@@ -67,7 +67,7 @@ final class ChannelDepthTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders');
         $client = $this->clientAnswering($this->channels());
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         $badge = $crawler->filter('tr[data-service="orders"] [data-channels-over]');
         self::assertSame('2', $badge->text());
@@ -79,7 +79,7 @@ final class ChannelDepthTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders');
         $client = $this->clientAnswering([['name' => 'small', 'kind' => 'queue', 'ready' => 5, 'delayed' => 0, 'inFlight' => 0, 'consumers' => null, 'probeError' => null]]);
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertSame('0', $crawler->filter('tr[data-service="orders"] [data-channels-over]')->text());
     }
@@ -135,7 +135,7 @@ final class ChannelDepthTest extends ReleasingWebTestCase
             'topology' => ['serviceMaps' => []],
             'channels' => $channels,
         ], JSON_THROW_ON_ERROR));
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
 

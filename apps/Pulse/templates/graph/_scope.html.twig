@@ -1,0 +1,18 @@
+<form method="get" action="{{ path(app.request.attributes.get('_route')) }}" class="scope-filter" data-scope-filter>
+    <label>Scope
+        <select name="service" aria-label="Show one service or all services">
+            <option value=""{% if not scope.narrowed %} selected{% endif %}>All services</option>
+            {% for name in scope.available %}
+                <option value="{{ name }}"{% if scope.selected == name %} selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    {% for name, value in carry|default({}) %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+    <button type="submit">Show</button>
+</form>
+{% if scope.narrowed %}
+    <p class="muted" data-scope-note>
+        Showing {{ scope.selected }}{% if scope.neighbours %} and the services it talks to directly, greyed: {{ scope.neighbours|join(', ') }}{% else %}, which talks to no other service{% endif %}.
+        <a href="{{ path(app.request.attributes.get('_route'), carry|default({})) }}" data-show-all-services>Show all services</a>
+    </p>
+{% endif %}

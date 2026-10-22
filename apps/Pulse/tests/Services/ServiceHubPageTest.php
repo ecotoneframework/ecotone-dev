@@ -41,7 +41,7 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
         $crawler = $this->freshView($client, '/services/orders');
 
         $crumbs = $crawler->filter('nav[aria-label="Breadcrumb"] li');
-        self::assertSame(['Services', 'orders'], $crumbs->each(static fn (Crawler $crumb) => trim($crumb->text())));
+        self::assertSame(['Home', 'orders'], $crumbs->each(static fn (Crawler $crumb) => trim($crumb->text())));
         self::assertSame('/', $crumbs->first()->filter('a')->attr('href'));
     }
 
@@ -49,7 +49,7 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
     {
         $client = $this->pulseWithServices();
 
-        $crawler = $this->freshView($client, '/');
+        $crawler = $this->freshView($client, '/services');
 
         self::assertSame('/services/orders', $crawler->filter('tr[data-service="orders"] a[data-hub-link]')->attr('href'));
     }
@@ -79,7 +79,7 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
         $client = static::createClient();
         $client->disableReboot();
         $this->setUpPulseDatabase($client->getKernel());
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->advanceTimeBy(10);
 
         $crawler = $client->request('GET', '/services/orders');
@@ -101,7 +101,7 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
         $client = static::createClient();
         $client->disableReboot();
         $this->setUpPulseDatabase($client->getKernel());
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->advanceTimeBy(10);
 
         $crawler = $client->request('GET', '/services/orders');
@@ -120,7 +120,7 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
         $client = static::createClient();
         $client->disableReboot();
         $this->setUpPulseDatabase($client->getKernel());
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->advanceTimeBy(10);
 
         $crawler = $client->request('GET', '/services/orders');

@@ -24,7 +24,7 @@ final class KafkaTransportTest extends ReleasingWebTestCase
         $client->disableReboot();
         $this->setUpPulseInternalStorage($client->getKernel());
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertResponseIsSuccessful();
         self::assertSame('channel_missing', $crawler->filter('[data-service="orders"] [data-status]')->attr('data-status'));

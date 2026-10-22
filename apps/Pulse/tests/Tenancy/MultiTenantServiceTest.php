@@ -25,7 +25,7 @@ final class MultiTenantServiceTest extends ReleasingWebTestCase
     {
         $client = $this->pulseWithTenants();
 
-        $services = $this->refreshedView($client, '/');
+        $services = $this->refreshedView($client, '/services');
 
         self::assertSame(['tenant_a', 'tenant_b'], $services->filter('[data-service="orders"] [data-tenants] [data-tenant]')->each(static fn (Crawler $tenant) => $tenant->attr('data-tenant')));
         self::assertCount(0, $services->filter('[data-service="billing"] [data-tenants]'));
@@ -46,7 +46,7 @@ final class MultiTenantServiceTest extends ReleasingWebTestCase
         self::assertCount(1, $list->filter('[data-service-section="orders@tenant_a"] [data-dead-letter]'));
         self::assertCount(2, $list->filter('[data-service-section="orders@tenant_b"] [data-dead-letter]'));
         self::assertSame('tenant_a', $list->filter('[data-service-section="orders@tenant_a"] [data-tenant]')->attr('data-tenant'));
-        self::assertSame('2', $client->request('GET', '/')->filter('[data-summary="dead-letters"] b')->text());
+        self::assertSame('2', $client->request('GET', '/services')->filter('[data-summary="dead-letters"] b')->text());
     }
 
     public function test_a_replay_runs_the_dead_letter_in_the_tenant_it_belongs_to(): void
@@ -122,7 +122,7 @@ final class MultiTenantServiceTest extends ReleasingWebTestCase
     public function test_the_doctor_and_the_banner_show_the_discovered_tenants(): void
     {
         $client = $this->pulseWithTenants();
-        $this->refreshedView($client, '/');
+        $this->refreshedView($client, '/services');
         $application = new Application($client->getKernel());
 
         $doctor = new CommandTester($application->find('pulse:doctor'));

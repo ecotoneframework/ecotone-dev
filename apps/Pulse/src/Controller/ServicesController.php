@@ -12,6 +12,7 @@ use App\Snapshot\ServiceStatus;
 use App\Snapshot\Snapshots;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -21,7 +22,7 @@ final class ServicesController extends AbstractController
     {
     }
 
-    #[Route('/', name: 'services', methods: ['GET'])]
+    #[Route('/services', name: 'services', methods: ['GET'])]
     public function services(): Response
     {
         $services = $this->snapshots->viewAndRequestStale();
@@ -60,10 +61,10 @@ final class ServicesController extends AbstractController
     }
 
     #[Route('/refresh', name: 'services_refresh', methods: ['POST'])]
-    public function refresh(): Response
+    public function refresh(Request $request): Response
     {
         $this->snapshots->refresh();
 
-        return new RedirectResponse($this->generateUrl('services'));
+        return new RedirectResponse($this->generateUrl($request->request->get('return') === 'home' ? 'home' : 'services'));
     }
 }

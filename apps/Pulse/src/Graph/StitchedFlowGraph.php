@@ -120,7 +120,7 @@ final class StitchedFlowGraph
      * @param list<ServiceFlow> $flows
      * @param list<string> $shownServices
      */
-    public static function toMermaid(array $flows, array $shownServices, ?TraceHighlight $highlight = null): string
+    public static function toMermaid(array $flows, array $shownServices, ?TraceHighlight $highlight = null, ?ServiceScopeFilter $scope = null): string
     {
         $shown = self::shownOf($flows, $shownServices);
         $ids = [];
@@ -149,7 +149,17 @@ final class StitchedFlowGraph
 
         array_push($lines, ...array_keys($edges));
 
-        return implode("\n", [...$lines, ...self::highlightLines($shown, $ids, array_values($edges), $highlight)]) . "\n";
+        $greyedLines = [];
+        foreach ($shown as $flow) {
+            if ($scope?->isGreyed($flow->name) === true) {
+                array_push($greyedLines, ...array_map(static fn (string $id): string => $id, array_values($ids[$flow->name] ?? [])));
+            }
+        }
+        if ($greyedLines !== []) {
+            $greyedLines = ['    classDef greyed opacity:0.45', '    class ' . implode(',', $greyedLines) . ' greyed'];
+        }
+
+        return implode("\n", [...$lines, ...self::highlightLines($shown, $ids, array_values($edges), $highlight), ...$greyedLines]) . "\n";
     }
 
     /**

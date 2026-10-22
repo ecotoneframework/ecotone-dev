@@ -69,7 +69,7 @@ final class DeadLetterDetailTest extends ReleasingWebTestCase
         $detail = $client->click($list->filter('[data-dead-letter] a')->link());
 
         $crumbs = $detail->filter('nav[aria-label="Breadcrumb"] li');
-        self::assertSame('Services', trim($crumbs->eq(0)->text()));
+        self::assertSame('Home', trim($crumbs->eq(0)->text()));
         self::assertSame('/services/orders', $crumbs->eq(1)->filter('a')->attr('href'));
         self::assertSame('/dead-letters?service=orders', $crumbs->eq(2)->filter('a')->attr('href'));
     }

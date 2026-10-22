@@ -29,7 +29,7 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
         $list = $this->freshView($client, '/dead-letters');
 
         self::assertSame('2 failures', $list->filter('nav [data-nav-dead-letters]')->text());
-        self::assertSame('2 failures', $client->request('GET', '/')->filter('nav [data-nav-dead-letters]')->text());
+        self::assertSame('2 failures', $client->request('GET', '/services')->filter('nav [data-nav-dead-letters]')->text());
     }
 
     public function test_the_navigation_has_no_badge_without_dead_letters(): void
@@ -175,7 +175,7 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
         $this->setUpPulseDatabase($client->getKernel());
         $orders = $this->serviceWithDeadLetters('orders');
         $orders->sendCommandWithRouting('order.cancel', '{"orderId":2}', 'application/json');
-        $orders->run(self::WORK_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
+        $orders->run(self::WORK_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false)->withMemoryLimitInMegabytes(4096));
         $list = $this->freshView($client, '/dead-letters');
 
         $detail = $client->click($list->filter('[data-dead-letter] a')->link());

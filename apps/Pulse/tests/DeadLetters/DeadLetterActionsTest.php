@@ -393,7 +393,7 @@ final class DeadLetterActionsTest extends ReleasingWebTestCase
      */
     private function ageOnServicesPage(KernelBrowser $client, string $service): string
     {
-        return $client->request('GET', '/')->filter(sprintf('[data-service="%s"] [data-age]', $service))->text();
+        return $client->request('GET', '/services')->filter(sprintf('[data-service="%s"] [data-age]', $service))->text();
     }
 
     private function remainingNames(KernelBrowser $client): array

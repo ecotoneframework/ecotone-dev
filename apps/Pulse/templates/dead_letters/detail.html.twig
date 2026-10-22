@@ -9,7 +9,8 @@
 {% endmacro %}
 
 {% block body %}
-    {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Services', href: path('services')}, {label: scope.service, href: path('service_hub', {service: scope.service})}, {label: 'Dead letters', href: path('dead_letters', {service: service})}, {label: entry.messageId}]} %}
+    {% set tenantCrumb = scope.tenant ? [{label: scope.tenant, href: path('service_hub', {service: scope.service, tenant: scope.tenant})}] : [] %}
+    {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Home', href: path('home')}, {label: scope.service, href: path('service_hub', {service: scope.service})}]|merge(tenantCrumb)|merge([{label: 'Dead letters', href: path('dead_letters', {service: service})}, {label: entry.messageId}])} %}
     <h1>Dead letter</h1>
 
     <div class="actions">

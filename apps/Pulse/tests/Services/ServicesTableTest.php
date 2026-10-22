@@ -28,7 +28,7 @@ final class ServicesTableTest extends ReleasingWebTestCase
         $this->runAllServices();
         $this->runPulseWorker($client->getKernel());
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertCount(2, $crawler->filter('table [data-service]'));
         self::assertSame('connected', $crawler->filter('tr[data-service="orders"] .pill[data-status]')->attr('data-status'));
@@ -50,7 +50,7 @@ final class ServicesTableTest extends ReleasingWebTestCase
         $this->runAllServices();
         $this->runPulseWorker($client->getKernel());
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertSame('/dead-letters?service=orders', $crawler->filter('tr[data-service="orders"] [data-dead-letters] a')->attr('href'));
     }
@@ -61,10 +61,10 @@ final class ServicesTableTest extends ReleasingWebTestCase
         $client = static::createClient();
         $client->disableReboot();
         $this->setUpPulseDatabase($client->getKernel());
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->advanceTimeBy(10);
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertSame('unreachable', $crawler->filter('tr[data-service="orders"] [data-status]')->attr('data-status'));
         self::assertCount(1, $crawler->filter('tr[data-service="orders"] [data-diagnose]'));
@@ -79,12 +79,12 @@ final class ServicesTableTest extends ReleasingWebTestCase
         $this->setUpPulseDatabase($client->getKernel());
         $orders = $this->serviceAnsweringWith('orders', $this->versionSnapshot('orders', '2.0.0'));
         $billing = $this->serviceAnsweringWith('billing', $this->versionSnapshot('billing', '2.1.0'));
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runService($billing, 'billing');
         $this->runPulseWorker($client->getKernel());
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertCount(1, $crawler->filter('tr[data-service="orders"] [data-drifted]'));
         self::assertCount(0, $crawler->filter('tr[data-service="billing"] [data-drifted]'));

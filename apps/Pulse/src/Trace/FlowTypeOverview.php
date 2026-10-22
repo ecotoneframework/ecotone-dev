@@ -12,10 +12,13 @@ final class FlowTypeOverview
      * @param list<ServiceSnapshot> $snapshots
      * @return list<array{service: string, name: string, tenant: ?string, status: ServiceSnapshot, tracing: bool, statsWindow: int, flowTypes: list<array<string, mixed>>}>
      */
-    public static function of(array $snapshots): array
+    public static function of(array $snapshots, string $scope = ''): array
     {
         $services = [];
         foreach ($snapshots as $snapshot) {
+            if ($scope !== '' && $snapshot->scope() !== $scope && $snapshot->service !== $scope) {
+                continue;
+            }
             $tracing = $snapshot->snapshot['tracing'] ?? null;
             $enabled = is_array($tracing);
             $flowTypes = $enabled ? array_values(array_filter($tracing['flowTypes'] ?? [], is_array(...))) : [];

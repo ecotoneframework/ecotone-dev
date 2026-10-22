@@ -149,7 +149,7 @@ final class DoctorTest extends ReleasingWebTestCase
             enabledModules: [ModulePackageList::AMQP_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $orders->run($this->queue, ExecutionPollingMetadata::createWithTestingSetup());
+        $orders->run($this->queue, ExecutionPollingMetadata::createWithTestingSetup()->withMemoryLimitInMegabytes(4096));
     }
 
     /**

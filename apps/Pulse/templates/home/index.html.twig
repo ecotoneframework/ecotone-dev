@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ecotone Pulse{% endblock %}
+
+{% block head %}
+    {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+
+{% block body %}
+    <div class="heading">
+        <div>
+            <h1>Home</h1>
+            {% if updatedAgo is not null %}<p class="muted" data-updated>Updated {{ updatedAgo }}s ago</p>{% endif %}
+        </div>
+        <form method="post" action="{{ path('services_refresh') }}"><input type="hidden" name="return" value="home"><button type="submit" data-await>Refresh</button></form>
+    </div>
+
+    <div class="strip">
+        <p class="card stat{{ summary.critical > 0 ? ' bad' : '' }}" data-summary="critical"><b>{{ summary.critical }}</b><span>Critical</span></p>
+        <p class="card stat{{ summary.warning > 0 ? ' warn' : '' }}" data-summary="warning"><b>{{ summary.warning }}</b><span>Warning</span></p>
+        <p class="card stat" data-summary="healthy"><b>{{ summary.healthy }}</b><span>Healthy</span></p>
+        {% if summary.waiting > 0 %}<p class="card stat" data-summary="waiting"><b>{{ summary.waiting }}</b><span>Waiting for a snapshot</span></p>{% endif %}
+    </div>
+
+    <p><a href="{{ path('services') }}" data-all-services-link>All services table</a></p>
+
+    {% if tiles is empty %}
+        <p class="notice" data-no-services>No service is configured. Add one to <code>PULSE_SERVICES</code>, for example <code>PULSE_SERVICES=orders:orders_channel</code>.</p>
+    {% endif %}
+
+    <div class="tiles">
+        {% for tile in tiles %}
+            {% set scope = tile.scope %}
+            {% set status = scope.status %}
+            <section class="card" data-tile="{{ scope.scope }}" data-tile-service="{{ scope.service }}"{% if scope.tenant %} data-tile-tenant="{{ scope.tenant }}"{% endif %} data-severity="{{ tile.worst ? tile.worst.value : 'none' }}" aria-labelledby="tile-{{ loop.index }}">
+                <h2 id="tile-{{ loop.index }}"><a href="{{ path('service_hub', {service: scope.service, tenant: scope.tenant}) }}" data-tile-link>{{ scope.service }}{% if scope.tenant %} <span class="muted">› {{ scope.tenant }}</span>{% endif %}</a></h2>
+                <p>
+                    <span class="pill {{ {connected: 'ok', waiting: 'wait'}[status.value] ?? 'bad sq' }}" data-status="{{ status.value }}">{{ status.value == 'channel_missing' ? 'Channel missing' : status.name }}</span>
+                </p>
+                {% if tile.problems %}
+                    <ul data-problems>
+                        {% for problem in tile.problems|slice(0, 4) %}
+                            <li data-problem="{{ problem.kind }}" data-problem-severity="{{ problem.severity.value }}"><span class="pill {{ {critical: 'bad sq', warning: 'wait', info: 'off'}[problem.severity.value] }}">{{ problem.severity.value|capitalize }}</span> <a href="{{ problem.href }}">{{ problem.text }}</a></li>
+                        {% endfor %}
+                    </ul>
+                    {% if tile.problems|length > 4 %}<p class="muted" data-more-problems><a href="{{ path('service_hub', {service: scope.service, tenant: scope.tenant}) }}">{{ tile.problems|length - 4 }} more</a></p>{% endif %}
+                {% elseif tile.waiting %}
+                    <p class="muted" data-waiting>Waiting for the first snapshot.</p>
+                {% else %}
+                    <p class="muted" data-all-clear>All clear</p>
+                {% endif %}
+            </section>
+        {% endfor %}
+    </div>
+{% endblock %}

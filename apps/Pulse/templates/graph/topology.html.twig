@@ -6,6 +6,7 @@
 
 {% block body %}
     <h1>Topology</h1>
+    {% include 'graph/_scope.html.twig' %}
     {% include 'graph/_notices.html.twig' %}
     {% if not report.hasConnections %}
         <p class="muted">No service maps commands or events to another service yet.</p>

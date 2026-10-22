@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Graph\ServiceFlow;
 use App\Graph\ServiceFlows;
+use App\Graph\ServiceScopeFilter;
 use App\Graph\StitchedFlowGraph;
 use App\Graph\TraceHighlight;
 use App\Snapshot\Snapshots;
@@ -37,7 +38,8 @@ final class FlowGraphController extends AbstractController
         $highlight = $traceView === null ? null : TraceHighlight::of($traceId, $traceView->trace, $serviceFlows->flows);
         $flows = $serviceFlows->flows;
         $available = array_map(fn (ServiceFlow $flow) => $flow->name, $flows);
-        $requested = $request->query->all('services');
+        $scope = ServiceScopeFilter::of($flows, $request->query->getString('service'));
+        $requested = $scope->isNarrowed() ? $scope->visible() : $request->query->all('services');
         $totalNodes = array_sum(array_map(fn (ServiceFlow $flow) => count($flow->graph->nodes()), $flows));
         $crossed = $highlight === null ? [] : array_values(array_intersect($available, $highlight->services));
         $narrowedByTrace = $requested === [] && $crossed !== [];
@@ -60,6 +62,7 @@ final class FlowGraphController extends AbstractController
             : $this->generateUrl('dead_letters', ['service' => $node['service']])], $nodes);
 
         return $this->render('graph/flow.html.twig', [
+            'scope' => $scope,
             'overview' => $overview,
             'nodes' => $nodes,
             'overviewUrl' => $this->generateUrl('flow_graph', array_filter(['view' => 'overview', 'trace' => $traceId])),
@@ -67,7 +70,7 @@ final class FlowGraphController extends AbstractController
             'services' => $available,
             'shown' => $shown,
             'notices' => $serviceFlows->notices,
-            'diagram' => $overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::toMermaid($flows, $shown, $highlight),
+            'diagram' => $overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::toMermaid($flows, $shown, $highlight, $scope),
             'trace' => $highlight,
             'traceStates' => $traceView?->states ?? [],
             'traceEmpty' => $traceView !== null && $traceView->trace->isEmpty(),

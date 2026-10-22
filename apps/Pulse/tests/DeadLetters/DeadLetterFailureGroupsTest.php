@@ -145,7 +145,7 @@ final class DeadLetterFailureGroupsTest extends ReleasingWebTestCase
         $client = $this->pulseWithSharedException();
         $this->freshView($client, '/dead-letters');
 
-        $services = $client->request('GET', '/');
+        $services = $client->request('GET', '/services');
         self::assertSame('2', $services->filter('[data-summary="dead-letters"] b')->text());
         self::assertStringContainsString('failures', $services->filter('[data-summary="dead-letters"] span')->text());
         self::assertSame('2', $services->filter('tr[data-service="orders"] [data-dead-letters]')->text());

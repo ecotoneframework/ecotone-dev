@@ -212,7 +212,7 @@ trait DistributedServicesTrait
      */
     private function pulseHavingHeardFrom(KernelBrowser $client, array $services): void
     {
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         foreach ($services as $name => $service) {
             $this->runService($service, $name);
         }

@@ -174,6 +174,7 @@ final readonly class Snapshots
             $service === null ? $tenants : [],
             $unadvertised,
             $record->projectionMovements,
+            $record->deadLettersGrewBy,
         );
     }
 

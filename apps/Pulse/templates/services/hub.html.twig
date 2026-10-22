@@ -31,8 +31,17 @@
 {% endmacro %}
 
 {% block body %}
-    {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Services', href: path('services')}, {label: service.service}]} %}
-    <h1>{{ service.service }}</h1>
+    {% include '_breadcrumbs.html.twig' with {crumbs: tenant ? [{label: 'Home', href: path('home')}, {label: service.service, href: path('service_hub', {service: service.service})}, {label: tenant}] : [{label: 'Home', href: path('home')}, {label: service.service}]} %}
+    <h1>{{ service.service }}{% if tenant %} <span class="muted">› {{ tenant }}</span>{% endif %}</h1>
+
+    {% if service.isMultiTenant %}
+        <nav aria-label="Tenant" class="tenant-switcher" data-tenant-switcher>
+            <a href="{{ path('service_hub', {service: service.service}) }}" data-tenant-choice="all"{% if not tenant %} aria-current="page"{% endif %}>All tenants</a>
+            {% for choice in service.tenants %}
+                <a href="{{ path('service_hub', {service: service.service, tenant: choice}) }}" data-tenant-choice="{{ choice }}"{% if choice == tenant %} aria-current="page"{% endif %}>{{ choice }}</a>
+            {% endfor %}
+        </nav>
+    {% endif %}
 
     <section class="card" data-hub-health>
         <h2>Health</h2>
@@ -73,7 +82,24 @@
             </dl>
         </section>
 
-        {% if service.isMultiTenant or service.unadvertisedTenants %}
+        <section class="card" data-hub-problems>
+            <h2>Problems</h2>
+            {% set anyProblem = false %}
+            {% for tile in tiles %}
+                {% if tile.problems %}
+                    {% set anyProblem = true %}
+                    {% if tile.scope.tenant and not tenant %}<h3>{{ tile.scope.tenant }}</h3>{% endif %}
+                    <ul>
+                        {% for problem in tile.problems %}
+                            <li data-problem="{{ problem.kind }}" data-problem-severity="{{ problem.severity.value }}"><span class="pill {{ {critical: 'bad sq', warning: 'wait', info: 'off'}[problem.severity.value] }}">{{ problem.severity.value|capitalize }}</span> <a href="{{ problem.href }}">{{ problem.text }}</a></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endfor %}
+            {% if not anyProblem %}<p class="muted" data-all-clear>All clear</p>{% endif %}
+        </section>
+
+        {% if focus is null and (service.isMultiTenant or service.unadvertisedTenants) %}
         <section class="card" data-hub-tenants>
             <h2>Tenants</h2>
             {% if service.isMultiTenant %}<p class="muted">{{ service.service }} advertises its tenants in header <code>{{ service.tenantHeader }}</code>. Pulse asks for each tenant separately.</p>{% endif %}
@@ -105,19 +131,25 @@
 
         <section class="card" id="channels" data-hub-channels>
             <h2>Channels</h2>
-            {% if channels is empty %}
+            {% set shownChannels = focus ? focusChannels : channels %}
+            {% if shownChannels is empty %}
                 <p class="muted">{{ service.service }} reports no message channel to measure.</p>
             {% else %}
-                {{ _self.channelTable(channels, null) }}
-                {% if service.isMultiTenant %}<p class="muted">Channels on the tenant connection are measured per tenant, see Tenants.</p>{% endif %}
+                {{ _self.channelTable(shownChannels, tenant) }}
+                {% if service.isMultiTenant and not tenant %}<p class="muted">Channels on the tenant connection are measured per tenant, see Tenants.</p>{% endif %}
             {% endif %}
         </section>
 
-        {% if not service.isMultiTenant %}
+        {% if focus is not null %}
         <section class="card" data-hub-dead-letters>
             <h2>Dead letters</h2>
-            {% if service.deadLetterTotal is not null and deadLetterEnabled is not same as(false) %}
-                <p><b data-total>{{ service.failureCount ?? 0 }}</b> {{ service.failureCount == 1 ? 'failure' : 'failures' }} <span class="muted" data-hub-dead-letter-total>({{ service.deadLetterTotal }} stored)</span>{% if service.deadLetterTotal > 0 %} · <a href="{{ path('dead_letters', {service: service.service}) }}">Open the dead letters of {{ service.service }}</a>{% else %}, dead letter storage is enabled{% endif %}</p>
+            {% if focus.deadLetterTotal is not null and deadLetterEnabled is not same as(false) %}
+                <p><b data-total>{{ focus.failureCount ?? 0 }}</b> {{ focus.failureCount == 1 ? 'failure' : 'failures' }} <span class="muted" data-hub-dead-letter-total>({{ focus.deadLetterTotal }} stored)</span>{% if focus.deadLetterTotal > 0 %} · <a href="{{ path('dead_letters', {service: focus.scope}) }}" data-open-dead-letters>Open the dead letters of {{ focus.scope }}</a>{% else %}, dead letter storage is enabled{% endif %}</p>
+                <ul data-failures>
+                    {% for failure in focusFailures %}
+                        <li data-failure="{{ failure.failureId }}"><a href="{{ path('dead_letters', {service: focus.scope, failureId: failure.failureId}) }}">{{ failure.count }} {{ failure.count == 1 ? 'failure' : 'failures' }} in {{ failure.messageName|default('(unnamed)') }}</a> <span class="muted">{{ failure.exceptionClass }}</span></li>
+                    {% endfor %}
+                </ul>
             {% else %}
                 <p class="muted">Dead letters are not configured for {{ service.service }}. Enable them with <code>DbalConfiguration::createWithDefaults()-&gt;withDeadLetter(true)</code> in a <code>#[ServiceContext]</code> of {{ service.service }}.</p>
             {% endif %}
@@ -125,26 +157,27 @@
 
         <section class="card" data-hub-projections>
             <h2>Projections</h2>
-            {% if projectionCounts.total == 0 %}
+            {% if focusProjectionCounts.total == 0 %}
                 <p class="muted">{{ service.service }} reports no projections.</p>
             {% else %}
-                <p><b data-total>{{ projectionCounts.total }}</b> projections · <b data-behind>{{ projectionCounts.behind }}</b> behind · <b data-stalled>{{ projectionCounts.stalled }}</b> stalled · <b data-failed>{{ projectionCounts.failed }}</b> failed · <a href="{{ path('service_projections', {service: service.service}) }}">Open the projections of {{ service.service }}</a></p>
+                <p><b data-total>{{ focusProjectionCounts.total }}</b> projections · <b data-behind>{{ focusProjectionCounts.behind }}</b> behind · <b data-stalled>{{ focusProjectionCounts.stalled }}</b> stalled · <b data-failed>{{ focusProjectionCounts.failed }}</b> failed · <a href="{{ path('service_projections', {service: focus.scope}) }}" data-open-projections>Open the projections and rebuilds of {{ focus.scope }}</a></p>
             {% endif %}
         </section>
         {% endif %}
-        {% if not service.isMultiTenant %}
+        {% if focus is not null %}
         <section class="card" data-hub-flow-types>
-            <h2>Flow types</h2>
-            {% if not tracing %}
+            <h2>Recent traces</h2>
+            {% if not focusTracing %}
                 <p class="muted">Flow tracking is not enabled in {{ service.service }}. Enable it with <code>FlowTrackingConfiguration::createWithDefaults()</code> returned from a <code>#[ServiceContext]</code> method of the service.</p>
-            {% elseif flowTypes is empty %}
+            {% elseif focusFlowTypes is empty %}
                 <p class="muted">No flow has been tracked yet.</p>
             {% else %}
                 <ul>
-                    {% for flowType in flowTypes %}
-                        <li><a href="{{ path('trace_list', {service: service.service, flowType: flowType.flowType}) }}">{{ flowType.flowType }}</a> <span class="muted">{{ flowType.runs }} runs, {{ flowType.errorRate }} errors, p95 {{ flowType.p95Ms }} ms</span></li>
+                    {% for flowType in focusFlowTypes %}
+                        <li><a href="{{ path('trace_list', {service: focus.scope, flowType: flowType.flowType}) }}">{{ flowType.flowType }}</a> <span class="muted">{{ flowType.runs }} runs, {{ flowType.errorRate }} errors, p95 {{ flowType.p95Ms }} ms</span></li>
                     {% endfor %}
                 </ul>
+                <p><a href="{{ path('traces', {service: focus.scope}) }}" data-open-traces>All traces of {{ focus.scope }}</a></p>
             {% endif %}
         </section>
         {% endif %}

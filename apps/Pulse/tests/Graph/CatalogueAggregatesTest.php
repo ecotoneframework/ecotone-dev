@@ -102,13 +102,13 @@ final class CatalogueAggregatesTest extends ReleasingWebTestCase
         self::assertSame('billing', $select->filter('option[selected]')->attr('value'));
     }
 
-    public function test_selecting_a_service_lists_only_its_groups(): void
+    public function test_selecting_a_service_lists_its_own_groups_and_greys_those_of_the_services_it_talks_to(): void
     {
         $crawler = $this->catalogueOf('/catalogue?service=orders');
 
-        self::assertCount(3, $crawler->filter('[data-group]'));
-        self::assertCount(0, $crawler->filter('[data-group][data-service="billing"]'));
-        self::assertCount(0, $crawler->filter('[data-group][data-service="shipping"]'));
+        self::assertCount(3, $crawler->filter('[data-group][data-service="orders"]:not([data-greyed])'));
+        self::assertCount(2, $crawler->filter('[data-group][data-greyed]'));
+        self::assertSame(['billing', 'shipping'], array_values(array_unique($crawler->filter('[data-group][data-greyed]')->each(fn (Crawler $group) => $group->attr('data-service')))));
     }
 
     public function test_selected_service_combines_with_the_search(): void

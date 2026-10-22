@@ -92,12 +92,12 @@ trait MultiTenantServicesTrait
     private function failOrderOfTenant(FlowTestSupport $service, string $tenant, int $orderId): void
     {
         $service->sendCommandWithRouting('order.place', ['orderId' => $orderId], metadata: ['tenant' => $tenant]);
-        $service->run(self::TENANT_WORK_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
+        $service->run(self::TENANT_WORK_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false)->withMemoryLimitInMegabytes(4096));
     }
 
     private function consumeTenantWork(FlowTestSupport $service): void
     {
-        $service->run(self::TENANT_WORK_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
+        $service->run(self::TENANT_WORK_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false)->withMemoryLimitInMegabytes(4096));
     }
 
     private function auditOfTenant(FlowTestSupport $service, string $tenant, int $orderId, string $traceId): void

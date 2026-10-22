@@ -101,7 +101,7 @@ trait PulseServicesTrait
 
     private function runService(FlowTestSupport $service, string $serviceName): void
     {
-        $service->run($this->serviceChannels[$serviceName], ExecutionPollingMetadata::createWithTestingSetup());
+        $service->run($this->serviceChannels[$serviceName], ExecutionPollingMetadata::createWithTestingSetup()->withMemoryLimitInMegabytes(4096));
     }
 
     private function setUpPulseInternalStorage(KernelInterface $kernel): void
@@ -123,7 +123,7 @@ trait PulseServicesTrait
     {
         $application = new Application($kernel);
         $command = new CommandTester($application->find('ecotone:run'));
-        $command->execute(['consumerName' => $this->pulseChannel, '--finishWhenNoMessages' => true, '--executionTimeLimit' => 2000]);
+        $command->execute(['consumerName' => $this->pulseChannel, '--finishWhenNoMessages' => true, '--memoryLimit' => 4096, '--executionTimeLimit' => 2000]);
     }
 
     /**

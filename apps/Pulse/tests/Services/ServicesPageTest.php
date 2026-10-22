@@ -21,7 +21,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders', 'billing');
         $client = $this->pulseClient();
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertResponseIsSuccessful();
         self::assertSame('waiting', $this->statusOf($crawler, 'orders'));
@@ -35,11 +35,11 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $orders = $this->realService('orders');
         $billing = $this->realService('billing');
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runService($billing, 'billing');
         $this->runPulseWorker($client->getKernel());
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertSame('connected', $this->statusOf($crawler, 'orders'));
         self::assertSame('connected', $this->statusOf($crawler, 'billing'));
@@ -55,11 +55,11 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders');
         $client = $this->pulseClient();
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->advanceTimeBy(9);
-        self::assertSame('waiting', $this->statusOf($client->request('GET', '/'), 'orders'));
+        self::assertSame('waiting', $this->statusOf($client->request('GET', '/services'), 'orders'));
         $this->advanceTimeBy(1);
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertSame('unreachable', $this->statusOf($crawler, 'orders'));
         self::assertStringContainsString('never', $crawler->filter('[data-service="orders"]')->text());
@@ -71,13 +71,13 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $client = $this->pulseClient();
         $orders = $this->realService('orders');
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
         $this->advanceTimeBy(70);
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->advanceTimeBy(10);
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertSame('unreachable', $this->statusOf($crawler, 'orders'));
         $card = $crawler->filter('[data-service="orders"]')->text();
@@ -91,15 +91,15 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $client = $this->pulseClient();
         $orders = $this->realService('orders');
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
         $this->advanceTimeBy(59);
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
 
-        self::assertSame('59s', $this->ageOf($client->request('GET', '/'), 'orders'));
+        self::assertSame('59s', $this->ageOf($client->request('GET', '/services'), 'orders'));
     }
 
     public function test_after_sixty_seconds_a_view_requests_a_new_snapshot(): void
@@ -108,15 +108,15 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $client = $this->pulseClient();
         $orders = $this->realService('orders');
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
         $this->advanceTimeBy(60);
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
         self::assertSame('connected', $this->statusOf($crawler, 'orders'));
         self::assertSame('0s', $this->ageOf($crawler, 'orders'));
     }
@@ -127,7 +127,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $client = $this->pulseClient();
         $orders = $this->realService('orders');
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
         $this->advanceTimeBy(20);
@@ -135,7 +135,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
 
-        self::assertSame('0s', $this->ageOf($client->request('GET', '/'), 'orders'));
+        self::assertSame('0s', $this->ageOf($client->request('GET', '/services'), 'orders'));
     }
 
     public function test_a_broker_that_cannot_be_reached_shows_every_service_as_unreachable_with_the_reason(): void
@@ -144,7 +144,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->configurePulse(['PULSE_TRANSPORT_DSN' => 'pgsql://ecotone:secret@127.0.0.1:1/ecotone', 'PULSE_SERVICES' => 'orders:orders_channel']);
         $client = $this->pulseClient(withDatabase: false);
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertResponseIsSuccessful();
         self::assertSame('unreachable', $this->statusOf($crawler, 'orders'));
@@ -161,18 +161,18 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $client = $this->pulseClient();
         $orders = $this->realService('orders');
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
         $this->advanceTimeBy(20);
         $client->request('POST', '/refresh');
-        $waiting = $client->request('GET', '/');
+        $waiting = $client->request('GET', '/services');
 
         self::assertSame('waiting', $this->statusOf($waiting, 'orders'));
         self::assertSame('20s', $this->ageOf($waiting, 'orders'));
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
-        self::assertSame('connected', $this->statusOf($client->request('GET', '/'), 'orders'));
+        self::assertSame('connected', $this->statusOf($client->request('GET', '/services'), 'orders'));
     }
 
     public function test_a_timed_out_request_is_sent_again_only_after_sixty_seconds_and_that_view_stays_unreachable(): void
@@ -181,19 +181,19 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $client = $this->pulseClient();
         [$orders, $handler] = $this->countingService('orders', $this->snapshotJson('orders', '2.0.0'));
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->advanceTimeBy(10);
-        self::assertSame('unreachable', $this->statusOf($client->request('GET', '/'), 'orders'));
+        self::assertSame('unreachable', $this->statusOf($client->request('GET', '/services'), 'orders'));
         $this->advanceTimeBy(49);
-        self::assertSame('unreachable', $this->statusOf($client->request('GET', '/'), 'orders'));
+        self::assertSame('unreachable', $this->statusOf($client->request('GET', '/services'), 'orders'));
         $this->advanceTimeBy(1);
-        $retry = $client->request('GET', '/');
+        $retry = $client->request('GET', '/services');
 
         self::assertSame('unreachable', $this->statusOf($retry, 'orders'));
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
         self::assertSame(2, $handler->requests);
-        self::assertSame('connected', $this->statusOf($client->request('GET', '/'), 'orders'));
+        self::assertSame('connected', $this->statusOf($client->request('GET', '/services'), 'orders'));
     }
 
     public function test_a_service_whose_reply_was_rejected_is_requested_again_only_after_sixty_seconds(): void
@@ -202,17 +202,17 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $client = $this->pulseClient();
         [$orders, $handler] = $this->countingService('orders', json_encode(['schemaVersion' => 2, 'serviceName' => 'orders'], JSON_THROW_ON_ERROR));
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
         $this->advanceTimeBy(30);
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->advanceTimeBy(29);
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         self::assertSame(1, $handler->requests);
         $this->advanceTimeBy(1);
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
 
         self::assertSame(2, $handler->requests);
@@ -224,9 +224,9 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $client = $this->pulseClient();
         [$orders, $handler] = $this->countingService('orders', $this->snapshotJson('orders', '2.0.0'));
 
-        $client->request('GET', '/');
-        $client->request('GET', '/');
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
+        $client->request('GET', '/services');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
 
         self::assertSame(1, $handler->requests);
@@ -238,11 +238,11 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $client = $this->pulseClient();
         $orders = $this->serviceAnsweringWith('orders', $this->snapshotJson('ghost', '2.0.0'));
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
 
-        self::assertSame('waiting', $this->statusOf($client->request('GET', '/'), 'orders'));
+        self::assertSame('waiting', $this->statusOf($client->request('GET', '/services'), 'orders'));
     }
 
     public function test_a_reply_that_is_not_json_does_not_stop_the_worker(): void
@@ -252,11 +252,11 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $orders = $this->serviceAnsweringWith('orders', 'not json at all');
         $billing = $this->serviceAnsweringWith('billing', $this->snapshotJson('billing', '2.0.0'));
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runService($billing, 'billing');
         $this->runPulseWorker($client->getKernel());
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertSame('waiting', $this->statusOf($crawler, 'orders'));
         self::assertSame('connected', $this->statusOf($crawler, 'billing'));
@@ -268,10 +268,10 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $client = $this->pulseClient();
         $orders = $this->serviceAnsweringWith('orders', json_encode(['schemaVersion' => 2, 'serviceName' => 'orders'], JSON_THROW_ON_ERROR));
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertSame('waiting', $this->statusOf($crawler, 'orders'));
         self::assertStringContainsString('schema version 2', $crawler->filter('[data-service="orders"] [data-reply-error]')->text());
@@ -282,7 +282,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders');
         $client = $this->pulseClient();
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertCount(1, $crawler->filter('meta[http-equiv="refresh"]'));
     }
@@ -294,11 +294,11 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $orders = $this->serviceAnsweringWith('orders', $this->snapshotJson('orders', '2.0.0'));
         $billing = $this->serviceAnsweringWith('billing', $this->snapshotJson('billing', '2.1.0'));
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runService($billing, 'billing');
         $this->runPulseWorker($client->getKernel());
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertCount(1, $crawler->filter('[data-version-drift]'));
         self::assertCount(1, $crawler->filter('[data-drifted]'));
@@ -312,11 +312,11 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $orders = $this->serviceAnsweringWith('orders', $this->snapshotJson('orders', '2.0.0', ['total' => 7, 'groups' => [['failureId' => 'aaaaaaaaaaaa', 'messageName' => 'order.place', 'exceptionClass' => 'RuntimeException', 'exceptionFile' => '/srv/app/src/Place.php', 'exceptionLine' => 12, 'exceptionMessage' => 'boom', 'count' => 7, 'firstFailedAt' => gmdate('c'), 'lastFailedAt' => gmdate('c')]], 'recent' => []]));
         $billing = $this->serviceAnsweringWith('billing', $this->snapshotJson('billing', '2.0.0'));
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runService($billing, 'billing');
         $this->runPulseWorker($client->getKernel());
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertSame('1', $crawler->filter('[data-service="orders"] [data-dead-letters]')->text());
         self::assertCount(0, $crawler->filter('[data-service="billing"] [data-dead-letters]'));
@@ -328,10 +328,10 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders');
         $client = $this->pulseClient();
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
         $links = $crawler->filter('nav a')->each(static fn (Crawler $link) => [$link->text(), $link->attr('href')]);
 
-        self::assertSame(['Services', 'Dead letters', 'Flow graph', 'Traces', 'Topology', 'Connect', 'Catalogue'], array_column($links, 0));
+        self::assertSame(['Home', 'Services', 'Dead letters', 'Flow graph', 'Traces', 'Topology', 'Connect', 'Catalogue'], array_column($links, 0));
         foreach (array_column($links, 1) as $href) {
             $client->request('GET', $href);
             self::assertResponseIsSuccessful();

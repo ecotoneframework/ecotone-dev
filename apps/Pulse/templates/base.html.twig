@@ -14,8 +14,8 @@
     <nav>
         {% set current = app.request.attributes.get('_route') %}
         <a href="{{ path('services') }}"{% if current == 'services' %} class="active"{% endif %}>Services</a>
-        {% set deadLetterTotal = dead_letter_total() %}
-        <a href="{{ path('dead_letters') }}"{% if current == 'dead_letters' or current == 'dead_letter' %} class="active"{% endif %}>Dead letters{% if deadLetterTotal > 0 %}<span class="badge" data-nav-dead-letters>{{ deadLetterTotal }}</span>{% endif %}</a>
+        {% set deadLetterFailures = dead_letter_failures() %}
+        <a href="{{ path('dead_letters') }}"{% if current == 'dead_letters' or current == 'dead_letter' %} class="active"{% endif %}>Dead letters{% if deadLetterFailures > 0 %}<span class="badge" data-nav-dead-letters title="{{ deadLetterFailures }} {{ deadLetterFailures == 1 ? 'failure' : 'failures' }}">{{ deadLetterFailures }}<span class="visually-hidden"> {{ deadLetterFailures == 1 ? 'failure' : 'failures' }}</span></span>{% endif %}</a>
         <a href="{{ path('flow_graph') }}"{% if current == 'flow_graph' %} class="active"{% endif %}>Flow graph</a>
         <a href="{{ path('traces') }}"{% if current starts with 'trace' %} class="active"{% endif %}>Traces</a>
         <a href="{{ path('topology') }}"{% if current == 'topology' %} class="active"{% endif %}>Topology</a>

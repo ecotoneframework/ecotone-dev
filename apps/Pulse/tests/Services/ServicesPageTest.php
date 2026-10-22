@@ -309,7 +309,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
     {
         $this->configurePulseWithServices('orders', 'billing');
         $client = $this->pulseClient();
-        $orders = $this->serviceAnsweringWith('orders', $this->snapshotJson('orders', '2.0.0', ['total' => 7, 'groups' => [['messageName' => 'order.place', 'exceptionClass' => 'RuntimeException', 'count' => 7]], 'recent' => []]));
+        $orders = $this->serviceAnsweringWith('orders', $this->snapshotJson('orders', '2.0.0', ['total' => 7, 'groups' => [['failureId' => 'aaaaaaaaaaaa', 'messageName' => 'order.place', 'exceptionClass' => 'RuntimeException', 'exceptionFile' => '/srv/app/src/Place.php', 'exceptionLine' => 12, 'exceptionMessage' => 'boom', 'count' => 7, 'firstFailedAt' => gmdate('c'), 'lastFailedAt' => gmdate('c')]], 'recent' => []]));
         $billing = $this->serviceAnsweringWith('billing', $this->snapshotJson('billing', '2.0.0'));
 
         $client->request('GET', '/');
@@ -318,7 +318,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->runPulseWorker($client->getKernel());
         $crawler = $client->request('GET', '/');
 
-        self::assertSame('7', $crawler->filter('[data-service="orders"] [data-dead-letters]')->text());
+        self::assertSame('1', $crawler->filter('[data-service="orders"] [data-dead-letters]')->text());
         self::assertCount(0, $crawler->filter('[data-service="billing"] [data-dead-letters]'));
         self::assertCount(0, $crawler->filter('[data-version-drift]'));
     }

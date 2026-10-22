@@ -23,7 +23,7 @@
     <div class="strip">
         <p class="card stat" data-summary="connected"><b>{{ summary.connected }}</b><span>Connected of {{ services|length }}</span></p>
         <p class="card stat{{ summary.unreachable > 0 ? ' bad' : '' }}" data-summary="unreachable"><b>{{ summary.unreachable }}</b><span>Unreachable or channel missing</span></p>
-        <p class="card stat{{ summary.deadLetters > 0 ? ' bad' : '' }}" data-summary="dead-letters"><b>{{ summary.deadLetters }}</b><span>Dead letters</span></p>
+        <p class="card stat{{ summary.deadLetters > 0 ? ' bad' : '' }}" data-summary="dead-letters"><b>{{ summary.deadLetters }}</b><span>Dead letter {{ summary.deadLetters == 1 ? 'failure' : 'failures' }}</span></p>
         <p class="card stat{{ summary.drift > 0 ? ' warn' : '' }}" data-summary="drift"><b>{{ summary.drift }}</b><span>Behind on Ecotone version</span></p>
     </div>
 
@@ -36,7 +36,7 @@
             <thead>
             <tr>
                 <th scope="col">Service</th><th scope="col">Status</th><th scope="col">Ecotone</th><th scope="col" class="hide-narrow">PHP</th><th scope="col" class="hide-narrow">Framework</th>
-                <th scope="col" class="hide-narrow">Licence expires</th><th scope="col" class="num">Dead letters</th><th scope="col">Last seen</th><th scope="col"><span class="visually-hidden">Actions</span></th>
+                <th scope="col" class="hide-narrow">Licence expires</th><th scope="col" class="num">Dead letter failures</th><th scope="col">Last seen</th><th scope="col"><span class="visually-hidden">Actions</span></th>
             </tr>
             </thead>
             <tbody>
@@ -54,7 +54,7 @@
                         <td class="hide-narrow">{{ service.snapshot.overview.phpVersion|default('unknown') }}</td>
                         <td class="hide-narrow">{{ service.snapshot.overview.framework|default('unknown') }}</td>
                         <td class="hide-narrow">{{ service.snapshot.overview.licence.expiresAt|default('never') }}</td>
-                        <td class="num">{% if service.deadLetterTotal is not null %}<span data-dead-letters>{% if service.deadLetterTotal > 0 %}<a href="{{ path('dead_letters', {service: service.service}) }}">{{ service.deadLetterTotal }}</a>{% else %}{{ service.deadLetterTotal }}{% endif %}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
+                        <td class="num">{% if service.failureCount is not null %}<span data-dead-letters>{% if service.failureCount > 0 %}<a href="{{ path('dead_letters', {service: service.service}) }}">{{ service.failureCount }}</a>{% else %}{{ service.failureCount }}{% endif %}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
                     {% else %}
                         <td class="muted" colspan="5">no snapshot yet</td>
                     {% endif %}

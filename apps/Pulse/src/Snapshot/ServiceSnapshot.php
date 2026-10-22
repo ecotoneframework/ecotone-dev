@@ -46,4 +46,14 @@ final readonly class ServiceSnapshot
 
         return is_int($deadLetters['total'] ?? null) ? $deadLetters['total'] : null;
     }
+
+    public function failureCount(): ?int
+    {
+        $deadLetters = $this->snapshot['deadLetters'] ?? null;
+        if (! is_array($deadLetters) || ! is_array($deadLetters['groups'] ?? null)) {
+            return null;
+        }
+
+        return count($deadLetters['groups']);
+    }
 }

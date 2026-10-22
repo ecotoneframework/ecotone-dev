@@ -13,12 +13,13 @@ use Symfony\Component\HttpFoundation\InputBag;
 final readonly class DeadLetterFilter
 {
     public const DATE_FIELDS = ['failedFrom', 'failedTo'];
-    public const FIELDS = ['service', 'messageName', 'exceptionClass', 'failedFrom', 'failedTo', 'search'];
+    public const FIELDS = ['service', 'messageName', 'exceptionClass', 'failureId', 'failedFrom', 'failedTo', 'search'];
 
     public function __construct(
         public string $service,
         public string $messageName,
         public string $exceptionClass,
+        public string $failureId,
         public string $failedFrom,
         public string $failedTo,
         public string $search,
@@ -54,6 +55,7 @@ final readonly class DeadLetterFilter
         $conditions = array_filter([
             'messageName' => $this->messageName,
             'exceptionClass' => $this->exceptionClass,
+            'failureId' => $this->failureId,
             'failedFrom' => self::atom($this->failedFrom),
             'failedTo' => self::atom($this->failedTo),
         ], static fn (?string $value) => $value !== null && $value !== '');
@@ -64,6 +66,21 @@ final readonly class DeadLetterFilter
     public function hasSearch(): bool
     {
         return $this->search !== '';
+    }
+
+    public function narrowsEntries(): bool
+    {
+        return $this->failedFrom !== '' || $this->failedTo !== '' || $this->search !== '';
+    }
+
+    /**
+     * @param array<string, mixed> $group
+     */
+    public function selectsFailure(array $group): bool
+    {
+        return ($this->messageName === '' || $this->messageName === ($group['messageName'] ?? null))
+            && ($this->exceptionClass === '' || $this->exceptionClass === ($group['exceptionClass'] ?? null))
+            && ($this->failureId === '' || $this->failureId === ($group['failureId'] ?? null));
     }
 
     public function selectsService(string $service): bool
@@ -82,6 +99,7 @@ final readonly class DeadLetterFilter
 
         return ($this->messageName === '' || $this->messageName === ($entry['messageName'] ?? null))
             && ($this->exceptionClass === '' || $this->exceptionClass === ($entry['exceptionClass'] ?? null))
+            && ($this->failureId === '' || $this->failureId === ($entry['failureId'] ?? null))
             && ($from === null || $failedAt >= $from)
             && ($to === null || $failedAt <= $to)
             && ($this->search === '' || $this->searchMatches($entry));

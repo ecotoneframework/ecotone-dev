@@ -38,9 +38,9 @@ final readonly class DeadLetterNotice
     /**
      * @param list<string> $services
      */
-    public static function actionSent(string $action, array $services): self
+    public static function actionSent(string $action, array $services, ?int $affected, string $failure): self
     {
-        return new self(self::ACTION_SENT, ['action' => $action, 'services' => implode(',', $services)]);
+        return new self(self::ACTION_SENT, ['action' => $action, 'services' => implode(',', $services)] + ($affected === null ? [] : ['affected' => (string) $affected]) + ($failure === '' ? [] : ['failure' => $failure]));
     }
 
     /**
@@ -119,7 +119,7 @@ final readonly class DeadLetterNotice
         $channel = (string) $query->get('channel', '');
 
         return match ($code) {
-            self::ACTION_SENT => in_array($action, ['replay', 'delete'], true) && $services !== [] ? self::actionSent($action, $services) : null,
+            self::ACTION_SENT => in_array($action, ['replay', 'delete'], true) && $services !== [] ? self::actionSent($action, $services, ctype_digit((string) $query->get('affected', '')) ? (int) $query->get('affected') : null, mb_substr((string) $query->get('failure', ''), 0, 300)) : null,
             self::SEND_FAILED => $services !== [] ? self::sendFailed($services) : null,
             self::NOT_CONFIGURED => in_array($service, $configuredServices, true) ? self::notConfigured($service) : null,
             self::UNKNOWN_CHANNEL => in_array($service, $configuredServices, true) && $channel !== '' ? self::unknownChannel($service, $channel) : null,

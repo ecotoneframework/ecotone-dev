@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
@@ -43,10 +44,15 @@ trait MultiTenantServicesTrait
 
     private object $tenantKickoffProjections;
 
-    private function multiTenantService(string $service): FlowTestSupport
+    private function multiTenantService(string $service, ?DbalConnectionFactory $unpreparedTenantB = null): FlowTestSupport
     {
         $this->tenantWork = $work = new class () {
             public bool $failing = true;
+
+            /**
+             * @var list<string>
+             */
+            public array $queued = [];
 
             /**
              * @var list<string>
@@ -62,6 +68,13 @@ trait MultiTenantServicesTrait
                 }
 
                 $this->handled[] = $tenant . ':' . $order['orderId'];
+            }
+
+            #[Asynchronous('pulse_tenant_queue')]
+            #[CommandHandler('order.queue', endpointId: 'pulse.tenant.order.queue.endpoint')]
+            public function queue(array $order, #[Header('tenant')] string $tenant): void
+            {
+                $this->queued[] = $tenant . ':' . $order['orderId'];
             }
 
             #[CommandHandler('order.audit', endpointId: 'pulse.tenant.order.audit.endpoint')]
@@ -94,20 +107,19 @@ trait MultiTenantServicesTrait
             }
         };
         $dsn = $_SERVER['PULSE_TRANSPORT_DSN'];
-        $application = EcotoneLite::bootstrapFlowTesting(
+        $connections = [
+            'pulse_connection' => OpenedConnections::factory($dsn),
+            'tenant_a_connection' => OpenedConnections::factory($dsn),
+            'tenant_b_connection' => OpenedConnections::factory((string) getenv('SECONDARY_DATABASE_DSN')),
+        ];
+        $bootstrap = fn (array $connections): FlowTestSupport => EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$work::class, $projections::class, $kickoffProjections::class],
-            containerOrAvailableServices: [
-                $work,
-                $projections,
-                $kickoffProjections,
-                'pulse_connection' => OpenedConnections::factory($dsn),
-                'tenant_a_connection' => OpenedConnections::factory($dsn),
-                'tenant_b_connection' => OpenedConnections::factory((string) getenv('SECONDARY_DATABASE_DSN')),
-            ],
+            containerOrAvailableServices: [$work, $projections, $kickoffProjections, ...$connections],
             extensionObjects: [
                 DbalBackedMessageChannelBuilder::create($this->serviceChannels[$service], 'pulse_connection')->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create($this->pulseChannel, 'pulse_connection'),
                 SimpleMessageChannelBuilder::createQueueChannel(self::TENANT_WORK_CHANNEL),
+                DbalBackedMessageChannelBuilder::create('pulse_tenant_queue'),
                 DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: $this->pulseChannel),
                 MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection']),
                 ServiceConfiguration::createWithDefaults()->withServiceName($service)->withDefaultErrorChannel('dbal_dead_letter'),
@@ -119,10 +131,11 @@ trait MultiTenantServicesTrait
             licenceKey: LicenceTesting::VALID_LICENCE,
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
+        $application = $bootstrap($connections);
         $application->runConsoleCommand('ecotone:migration:database:delete', ['force' => true]);
         $application->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 
-        return $application;
+        return $unpreparedTenantB === null ? $application : $bootstrap([...$connections, 'tenant_b_connection' => $unpreparedTenantB]);
     }
 
     private function failOrderOfTenant(FlowTestSupport $service, string $tenant, int $orderId): void
@@ -143,6 +156,11 @@ trait MultiTenantServicesTrait
 
     private function pulseWithTenants(string $narrowing = ''): KernelBrowser
     {
+        return $this->pulseWithTenantServices($narrowing, null);
+    }
+
+    private function pulseWithTenantServices(string $narrowing, ?DbalConnectionFactory $unpreparedTenantB): KernelBrowser
+    {
         $suffix = uniqid();
         $this->pulseChannel = 'pulse_' . $suffix;
         $this->serviceChannels = ['orders' => 'orders_' . $suffix, 'billing' => 'billing_' . $suffix];
@@ -153,7 +171,7 @@ trait MultiTenantServicesTrait
         $client = static::createClient();
         $client->disableReboot();
         $this->setUpPulseDatabase($client->getKernel());
-        $this->services = ['orders' => $this->multiTenantService('orders')];
+        $this->services = ['orders' => $this->multiTenantService('orders', $unpreparedTenantB)];
         $this->services['billing'] = $this->serviceWithoutDeadLetters('billing');
 
         return $client;

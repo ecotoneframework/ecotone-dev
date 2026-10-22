@@ -112,7 +112,7 @@ final class MultiTenantServiceTest extends ReleasingWebTestCase
         $hub = $this->refreshedView($client, '/services/orders');
         $list = $client->request('GET', '/dead-letters');
 
-        self::assertSame(['tenant_a'], $hub->filter('[data-tenant]:not([data-tenant-unadvertised])')->each(static fn (Crawler $tenant) => $tenant->attr('data-tenant')));
+        self::assertSame(['tenant_a'], $hub->filter('[data-tenants] [data-tenant]:not([data-tenant-unadvertised])')->each(static fn (Crawler $tenant) => $tenant->attr('data-tenant')));
         self::assertStringContainsString('not advertised by the service', $hub->filter('[data-tenant="tenant_x"][data-tenant-unadvertised]')->text());
         self::assertCount(0, $list->filter('[data-service-section="orders@tenant_b"]'));
         self::assertCount(1, $list->filter('[data-service-section="orders@tenant_a"]'));

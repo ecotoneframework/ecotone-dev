@@ -102,8 +102,9 @@ final class ConnectServicePageTest extends ReleasingWebTestCase
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );
         }
+        $orders->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
         $client->request('GET', '/services');
-        $orders->run($this->serviceChannels['orders'], ExecutionPollingMetadata::createWithTestingSetup()->withMemoryLimitInMegabytes(4096));
+        $orders->run($this->serviceChannels['orders'], ExecutionPollingMetadata::createWithTestingSetup());
         $this->runPulseWorker($client->getKernel());
 
         self::assertSame('connected', $this->statusOf($client->request('GET', '/services'), 'orders'));

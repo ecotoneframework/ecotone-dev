@@ -8,6 +8,7 @@ final class PulseEnvironment
 {
     public const VARIABLES = [
         'ECOTONE_LICENCE_KEY',
+        'PULSE_VERSION',
         'PULSE_SERVICE_NAME',
         'PULSE_CHANNEL',
         'PULSE_TRANSPORT_DSN',

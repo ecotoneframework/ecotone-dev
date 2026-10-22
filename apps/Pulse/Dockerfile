@@ -3,10 +3,13 @@
 
 FROM dunglas/frankenphp:1-php8.5-bookworm AS base
 
+ARG PULSE_VERSION=dev
+
 RUN install-php-extensions amqp rdkafka redis pdo_pgsql pdo_mysql pdo_sqlite sockets pcntl intl opcache zip
 
 ENV APP_ENV=prod \
     APP_DEBUG=0 \
+    PULSE_VERSION=${PULSE_VERSION} \
     PULSE_HTTP_PORT=8080 \
     XDG_DATA_HOME=/app/var/xdg/data \
     XDG_CONFIG_HOME=/app/var/xdg/config

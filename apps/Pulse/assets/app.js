@@ -2,8 +2,40 @@ import './styles/app.css';
 
 const ready = (fn) => (document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fn) : fn());
 
+const showIntro = () => {
+    const root = document.documentElement;
+    const intro = document.querySelector('[data-intro]');
+    if (!intro || !root.classList.contains('intro-pending')) {
+        return;
+    }
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const timers = [];
+    let ended = false;
+    const end = () => {
+        if (ended) {
+            return;
+        }
+        ended = true;
+        timers.forEach(clearTimeout);
+        try { localStorage.setItem('ecotone-pulse.intro-seen', root.dataset.pulseVersion); } catch (error) {}
+        intro.classList.add('intro-leaving');
+        setTimeout(() => { root.classList.remove('intro-pending'); intro.remove(); }, reduced ? 0 : 500);
+    };
+    const later = (action, milliseconds) => timers.push(setTimeout(action, milliseconds));
+    intro.addEventListener('click', end);
+    document.addEventListener('keydown', end, {once: true});
+    if (reduced) {
+        intro.classList.add('intro-beating');
+        later(end, 500);
+        return;
+    }
+    later(() => intro.classList.add('intro-beating'), 500);
+    later(end, 2600);
+};
+
 ready(() => {
     document.documentElement.classList.add('js');
+    showIntro();
     const themeToggle = document.querySelector('[data-theme-toggle]');
     if (themeToggle) {
         const current = () => document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');

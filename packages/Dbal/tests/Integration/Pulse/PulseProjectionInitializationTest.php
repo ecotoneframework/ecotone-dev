@@ -98,10 +98,9 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to initialize projection missing, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]');
+        $reply = $this->act('ecotone.pulse.projections.initialize', 'missing', self::FIRST_TRACE);
 
-        $this->act('ecotone.pulse.projections.initialize', 'missing', self::FIRST_TRACE);
+        self::assertStringContainsString('Pulse asked to initialize projection missing, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]', $reply['message']);
     }
 
     #[DataProvider('implementations')]
@@ -110,10 +109,9 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
         $this->bootstrap($implementation);
         $this->act('ecotone.pulse.projections.initialize', 'kickoff_orders', self::FIRST_TRACE);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to initialize projection kickoff_orders, but it is already initialized, so there is nothing left to set up. Use Rebuild to run it again from the first event, or Backfill to project the events it has not seen.');
+        $reply = $this->act('ecotone.pulse.projections.initialize', 'kickoff_orders', self::SECOND_TRACE);
 
-        $this->act('ecotone.pulse.projections.initialize', 'kickoff_orders', self::SECOND_TRACE);
+        self::assertStringContainsString('Pulse asked to initialize projection kickoff_orders, but it is already initialized, so there is nothing left to set up. Use Rebuild to run it again from the first event, or Backfill to project the events it has not seen.', $reply['message']);
     }
 
     #[DataProvider('implementations')]
@@ -121,10 +119,9 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to initialize projection partitioned_orders, but it is partitioned and every partition initializes itself on its first event, so there is no single initialization to run. Use Rebuild to run it again from the first event, or Backfill to project the events it has not seen.');
+        $reply = $this->act('ecotone.pulse.projections.initialize', 'partitioned_orders', self::FIRST_TRACE);
 
-        $this->act('ecotone.pulse.projections.initialize', 'partitioned_orders', self::FIRST_TRACE);
+        self::assertStringContainsString('Pulse asked to initialize projection partitioned_orders, but it is partitioned and every partition initializes itself on its first event, so there is no single initialization to run. Use Rebuild to run it again from the first event, or Backfill to project the events it has not seen.', $reply['message']);
     }
 
     #[DataProvider('implementations')]
@@ -164,10 +161,9 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to backfill projection missing, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]');
+        $reply = $this->act('ecotone.pulse.projections.backfill', 'missing', self::FIRST_TRACE);
 
-        $this->act('ecotone.pulse.projections.backfill', 'missing', self::FIRST_TRACE);
+        self::assertStringContainsString('Pulse asked to backfill projection missing, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]', $reply['message']);
     }
 
     #[DataProvider('implementations')]
@@ -175,10 +171,9 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to backfill projection streaming_orders, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]. A streaming projection is not among them: it keeps no position and reads no stored events, so it cannot be initialized, backfilled or rebuilt from Pulse. Publish the missing events to its channel again.');
+        $reply = $this->act('ecotone.pulse.projections.backfill', 'streaming_orders', self::FIRST_TRACE);
 
-        $this->act('ecotone.pulse.projections.backfill', 'streaming_orders', self::FIRST_TRACE);
+        self::assertStringContainsString('Pulse asked to backfill projection streaming_orders, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]. A streaming projection is not among them: it keeps no position and reads no stored events, so it cannot be initialized, backfilled or rebuilt from Pulse. Publish the missing events to its channel again.', $reply['message']);
     }
 
     #[DataProvider('implementations')]

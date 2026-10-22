@@ -128,10 +128,9 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('there is no such projection. Registered projections: [async_orders, failing_orders, sync_orders]');
+        $reply = $this->rebuild('missing', self::FIRST_TRACE);
 
-        $this->rebuild('missing', self::FIRST_TRACE);
+        self::assertStringContainsString('there is no such projection. Registered projections: [async_orders, failing_orders, sync_orders]', $reply['message']);
     }
 
     #[DataProvider('implementations')]
@@ -167,10 +166,9 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
     {
         $this->bootstrap('dbal', tablesSetUp: false);
 
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("table required by the 'pulse_tracking' feature does not exist");
+        $reply = $this->rebuild('sync_orders', self::FIRST_TRACE);
 
-        $this->rebuild('sync_orders', self::FIRST_TRACE);
+        self::assertStringContainsString("table required by the 'pulse_tracking' feature does not exist", $reply['message']);
     }
 
     private function rebuild(string $projection, string $tracingId): array

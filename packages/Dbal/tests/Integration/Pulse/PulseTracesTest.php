@@ -18,6 +18,7 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -147,6 +148,18 @@ final class PulseTracesTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_a_refused_trace_query_is_answered_to_pulse_and_leaves_no_dead_letter(string $implementation): void
+    {
+        $this->bootstrap($implementation, deadLetter: true);
+
+        $reply = $this->ask('ecotone.pulse.traces.trace', '{}');
+
+        self::assertSame('ecotone.pulse.traces.trace', $reply['requestKind']);
+        self::assertSame('query-1', $reply['queryId']);
+        self::assertSame(0, $this->orderService->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    #[DataProvider('implementations')]
     public function test_a_pulse_dead_letter_action_never_becomes_a_flow_type(string $implementation): void
     {
         $this->bootstrap($implementation, deadLetter: true);
@@ -242,9 +255,9 @@ final class PulseTracesTest extends DbalMessagingTestCase
         $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
         BetaSpansTableConnection::$tableLacksFlowColumns = true;
 
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(self::UPGRADE_INSTRUCTIONS);
-        $this->listTraces(['flowType' => 'create.ticket']);
+        $reply = $this->listTraces(['flowType' => 'create.ticket']);
+
+        self::assertSame(self::UPGRADE_INSTRUCTIONS, $reply['message']);
     }
 
     #[DataProvider('implementations')]
@@ -617,9 +630,9 @@ final class PulseTracesTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('A Pulse trace list query payload must be a JSON object such as {"flowType": "create.ticket", "page": 1, "perPage": 25}, but `nope` was sent.');
-        $this->ask('ecotone.pulse.traces.list', 'nope');
+        $reply = $this->ask('ecotone.pulse.traces.list', 'nope');
+
+        self::assertSame('A Pulse trace list query payload must be a JSON object such as {"flowType": "create.ticket", "page": 1, "perPage": 25}, but `nope` was sent.', $reply['message']);
     }
 
     #[DataProvider('implementations')]
@@ -627,9 +640,9 @@ final class PulseTracesTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('A Pulse trace list query needs a `flowType`, but the payload had none. Send {"flowType": "create.ticket", "page": 1, "perPage": 25}, taking the flow type from `tracing.flowTypes` of the Pulse snapshot.');
-        $this->listTraces([]);
+        $reply = $this->listTraces([]);
+
+        self::assertSame('A Pulse trace list query needs a `flowType`, but the payload had none. Send {"flowType": "create.ticket", "page": 1, "perPage": 25}, taking the flow type from `tracing.flowTypes` of the Pulse snapshot.', $reply['message']);
     }
 
     #[DataProvider('implementations')]
@@ -637,9 +650,9 @@ final class PulseTracesTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The `page` of a Pulse trace list query is `0`, but pages start at 1. Send {"flowType": "create.ticket", "page": 1, "perPage": 25}.');
-        $this->listTraces(['flowType' => 'create.ticket', 'page' => 0]);
+        $reply = $this->listTraces(['flowType' => 'create.ticket', 'page' => 0]);
+
+        self::assertSame('The `page` of a Pulse trace list query is `0`, but pages start at 1. Send {"flowType": "create.ticket", "page": 1, "perPage": 25}.', $reply['message']);
     }
 
     #[DataProvider('implementations')]
@@ -647,9 +660,9 @@ final class PulseTracesTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The `perPage` of a Pulse trace list query is `26`, but it must be a number from 1 to 25. Send a smaller `perPage`, or ask for the next `page`.');
-        $this->listTraces(['flowType' => 'create.ticket', 'perPage' => 26]);
+        $reply = $this->listTraces(['flowType' => 'create.ticket', 'perPage' => 26]);
+
+        self::assertSame('The `perPage` of a Pulse trace list query is `26`, but it must be a number from 1 to 25. Send a smaller `perPage`, or ask for the next `page`.', $reply['message']);
     }
 
     #[DataProvider('implementations')]
@@ -657,20 +670,23 @@ final class PulseTracesTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('A Pulse trace query needs a `traceId`, but the payload had none. Send {"traceId": "0af7651916cd43dd8448eb211c80319c"}, taking the trace id from a trace list or from the trace id an application logged.');
-        $this->ask('ecotone.pulse.traces.trace', '{}');
+        $reply = $this->ask('ecotone.pulse.traces.trace', '{}');
+
+        self::assertSame('A Pulse trace query needs a `traceId`, but the payload had none. Send {"traceId": "0af7651916cd43dd8448eb211c80319c"}, taking the trace id from a trace list or from the trace id an application logged.', $reply['message']);
     }
 
     #[DataProvider('implementations')]
     public function test_a_trace_query_without_a_query_id_is_refused(string $implementation): void
     {
         $this->bootstrap($implementation);
-        $this->pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.traces.trace', '{"traceId": "' . self::FIRST_TRACE . '"}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.query_result_received');
-
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Service order_service was asked by Pulse for traces without the query id in header `ecotone_pulse_query_id`, so Pulse could not match the result to its question. Send the request with metadata: ['ecotone_pulse_query_id' => '<unique id>'] on DistributedBus::sendMessage().");
+        $this->pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.traces.trace', '{"traceId": "' . self::FIRST_TRACE . '"}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
         $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(
+            "Service order_service was asked by Pulse for traces without the query id in header `ecotone_pulse_query_id`, so Pulse could not match the result to its question. Send the request with metadata: ['ecotone_pulse_query_id' => '<unique id>'] on DistributedBus::sendMessage().",
+            json_decode(array_pop($this->pulse->snapshots), true, flags: JSON_THROW_ON_ERROR)['message']
+        );
     }
 
     #[DataProvider('implementations')]
@@ -698,9 +714,9 @@ final class PulseTracesTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation, flowTracking: false);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Service order_service was asked by Pulse for traces, but flow tracking is not configured there, so it recorded none. Enable it with FlowTrackingConfiguration::createWithDefaults() in a #[ServiceContext] of order_service, or stop sending trace queries to this service.');
-        $this->listTraces(['flowType' => 'create.ticket']);
+        $reply = $this->listTraces(['flowType' => 'create.ticket']);
+
+        self::assertSame('Service order_service was asked by Pulse for traces, but flow tracking is not configured there, so it recorded none. Enable it with FlowTrackingConfiguration::createWithDefaults() in a #[ServiceContext] of order_service, or stop sending trace queries to this service.', $reply['message']);
     }
 
     private function bootstrap(string $implementation, bool $flowTracking = true, bool $deadLetter = false, ?ConnectionFactory $connectionFactory = null): void

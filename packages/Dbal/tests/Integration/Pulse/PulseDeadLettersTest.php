@@ -344,9 +344,11 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The `failedFrom` of a Pulse dead letter filter (2026-10-20T12:00:00+00:00) is later than its `failedTo` (2026-10-20T11:00:00+00:00), so no dead letter can match. Swap the two, or drop one of them.');
-        $this->delete(['filter' => ['failedFrom' => '2026-10-20T12:00:00+00:00', 'failedTo' => '2026-10-20T11:00:00+00:00']]);
+        $deadLettersBefore = $this->deadLetterCount();
+        $reply = $this->delete(['filter' => ['failedFrom' => '2026-10-20T12:00:00+00:00', 'failedTo' => '2026-10-20T11:00:00+00:00']]);
+
+        self::assertStringContainsString('The `failedFrom` of a Pulse dead letter filter (2026-10-20T12:00:00+00:00) is later than its `failedTo` (2026-10-20T11:00:00+00:00), so no dead letter can match. Swap the two, or drop one of them.', $reply['message']);
+        self::assertSame($deadLettersBefore, $this->deadLetterCount());
     }
 
     #[DataProvider('implementations')]
@@ -593,12 +595,9 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         $this->bootstrap($implementation);
         $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
 
-        try {
-            $this->replay(['filter' => ['failureId' => $this->failureOf('order.place')], 'targetChannel' => 'no_such_channel']);
-            self::fail('An unknown target channel was not refused');
-        } catch (InvalidArgumentException $exception) {
-            self::assertSame(ErrorChannelExceptionMessages::cannotReplayToUnknownChannel('no_such_channel'), $exception->getMessage());
-        }
+        $reply = $this->replay(['filter' => ['failureId' => $this->failureOf('order.place')], 'targetChannel' => 'no_such_channel']);
+
+        self::assertSame(ErrorChannelExceptionMessages::cannotReplayToUnknownChannel('no_such_channel'), $reply['message']);
 
         self::assertSame(1, $this->orderService->getGateway(DeadLetterGateway::class)->count());
     }
@@ -624,12 +623,9 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         $this->bootstrap($implementation);
         $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
 
-        try {
-            $this->replay(['messageIds' => ['m-1'], 'targetChannel' => 'order.replayed']);
-            self::fail('The replay to a channel that is not asynchronous was not refused');
-        } catch (InvalidArgumentException $exception) {
-            self::assertSame(ErrorChannelExceptionMessages::cannotReplayToNonAsynchronousChannel('order.replayed'), $exception->getMessage());
-        }
+        $reply = $this->replay(['messageIds' => ['m-1'], 'targetChannel' => 'order.replayed']);
+
+        self::assertSame(ErrorChannelExceptionMessages::cannotReplayToNonAsynchronousChannel('order.replayed'), $reply['message']);
 
         self::assertSame(1, $this->orderService->getGateway(DeadLetterGateway::class)->count());
         self::assertSame([], $this->handled->payloads);
@@ -641,12 +637,9 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         $this->bootstrap($implementation);
         $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
 
-        try {
-            $this->replay(['messageIds' => ['m-1'], 'targetChannel' => 'order.missing']);
-            self::fail('The replay to an unknown channel was not refused');
-        } catch (InvalidArgumentException $exception) {
-            self::assertSame(ErrorChannelExceptionMessages::cannotReplayToUnknownChannel('order.missing'), $exception->getMessage());
-        }
+        $reply = $this->replay(['messageIds' => ['m-1'], 'targetChannel' => 'order.missing']);
+
+        self::assertSame(ErrorChannelExceptionMessages::cannotReplayToUnknownChannel('order.missing'), $reply['message']);
 
         self::assertSame(1, $this->orderService->getGateway(DeadLetterGateway::class)->count());
     }
@@ -699,9 +692,11 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         $this->bootstrap($implementation);
         $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('A Pulse dead letter action selects messages with exactly one of `messageIds` or `filter`, but the payload had both. Send {"messageIds": ["id-1"]} to act on those messages, or {"filter": {"messageName": "order.place"}} to act on every dead letter matching it.');
-        $this->replay(['messageIds' => ['m-1'], 'filter' => ['messageName' => 'order.place']]);
+        $deadLettersBefore = $this->deadLetterCount();
+        $reply = $this->replay(['messageIds' => ['m-1'], 'filter' => ['messageName' => 'order.place']]);
+
+        self::assertStringContainsString('A Pulse dead letter action selects messages with exactly one of `messageIds` or `filter`, but the payload had both. Send {"messageIds": ["id-1"]} to act on those messages, or {"filter": {"messageName": "order.place"}} to act on every dead letter matching it.', $reply['message']);
+        self::assertSame($deadLettersBefore, $this->deadLetterCount());
     }
 
     #[DataProvider('implementations')]
@@ -709,9 +704,11 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('A Pulse dead letter action selects messages with exactly one of `messageIds` or `filter`, but the payload had neither. Send {"messageIds": ["id-1"]} to act on those messages, or {"filter": {"messageName": "order.place"}} to act on every dead letter matching it.');
-        $this->ask('ecotone.pulse.dead_letter.delete', '{}');
+        $deadLettersBefore = $this->deadLetterCount();
+        $reply = $this->ask('ecotone.pulse.dead_letter.delete', '{}');
+
+        self::assertStringContainsString('A Pulse dead letter action selects messages with exactly one of `messageIds` or `filter`, but the payload had neither. Send {"messageIds": ["id-1"]} to act on those messages, or {"filter": {"messageName": "order.place"}} to act on every dead letter matching it.', $reply['message']);
+        self::assertSame($deadLettersBefore, $this->deadLetterCount());
     }
 
     #[DataProvider('implementations')]
@@ -720,12 +717,9 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         $this->bootstrap($implementation);
         $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT);
 
-        try {
-            $this->delete(['filter' => new stdClass()]);
-            self::fail('An empty filter was not refused');
-        } catch (InvalidArgumentException $exception) {
-            self::assertSame('The `filter` of a Pulse dead letter action is empty, and an empty filter would match every dead letter. Name at least one of messageName, exceptionClass, failureId, failedFrom, failedTo, or select the messages by id with `messageIds`.', $exception->getMessage());
-        }
+        $reply = $this->delete(['filter' => new stdClass()]);
+
+        self::assertSame('The `filter` of a Pulse dead letter action is empty, and an empty filter would match every dead letter. Name at least one of messageName, exceptionClass, failureId, failedFrom, failedTo, or select the messages by id with `messageIds`.', $reply['message']);
 
         self::assertSame(1, $this->orderService->getGateway(DeadLetterGateway::class)->count());
     }
@@ -735,9 +729,11 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The `filter` of a Pulse dead letter action has an unknown condition `all`. Use only messageName, exceptionClass, failureId, failedFrom, failedTo.');
-        $this->delete(['filter' => ['all' => true]]);
+        $deadLettersBefore = $this->deadLetterCount();
+        $reply = $this->delete(['filter' => ['all' => true]]);
+
+        self::assertStringContainsString('The `filter` of a Pulse dead letter action has an unknown condition `all`. Use only messageName, exceptionClass, failureId, failedFrom, failedTo.', $reply['message']);
+        self::assertSame($deadLettersBefore, $this->deadLetterCount());
     }
 
     #[DataProvider('implementations')]
@@ -745,9 +741,11 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The `failedFrom` of a Pulse dead letter filter is `yesterday`, which is not an ISO-8601 date time. Send it as in 2026-10-20T12:00:00+00:00.');
-        $this->delete(['filter' => ['failedFrom' => 'yesterday']]);
+        $deadLettersBefore = $this->deadLetterCount();
+        $reply = $this->delete(['filter' => ['failedFrom' => 'yesterday']]);
+
+        self::assertStringContainsString('The `failedFrom` of a Pulse dead letter filter is `yesterday`, which is not an ISO-8601 date time. Send it as in 2026-10-20T12:00:00+00:00.', $reply['message']);
+        self::assertSame($deadLettersBefore, $this->deadLetterCount());
     }
 
     #[DataProvider('implementations')]
@@ -755,9 +753,11 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The `messageIds` of a Pulse dead letter action must be a non-empty list of message id strings, as in {"messageIds": ["id-1", "id-2"]}.');
-        $this->delete(['messageIds' => []]);
+        $deadLettersBefore = $this->deadLetterCount();
+        $reply = $this->delete(['messageIds' => []]);
+
+        self::assertStringContainsString('The `messageIds` of a Pulse dead letter action must be a non-empty list of message id strings, as in {"messageIds": ["id-1", "id-2"]}.', $reply['message']);
+        self::assertSame($deadLettersBefore, $this->deadLetterCount());
     }
 
     #[DataProvider('implementations')]
@@ -765,9 +765,11 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('A Pulse dead letter delete takes no `targetChannel`, as a deleted message is not sent anywhere. Remove `targetChannel` from the payload, or use the replay action to send the messages to a channel.');
-        $this->delete(['messageIds' => ['m-1'], 'targetChannel' => 'order.audited']);
+        $deadLettersBefore = $this->deadLetterCount();
+        $reply = $this->delete(['messageIds' => ['m-1'], 'targetChannel' => 'order.audited']);
+
+        self::assertStringContainsString('A Pulse dead letter delete takes no `targetChannel`, as a deleted message is not sent anywhere. Remove `targetChannel` from the payload, or use the replay action to send the messages to a channel.', $reply['message']);
+        self::assertSame($deadLettersBefore, $this->deadLetterCount());
     }
 
     #[DataProvider('implementations')]
@@ -775,9 +777,11 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('A Pulse dead letter action payload must be a JSON object such as {"messageIds": ["id-1"]} or {"filter": {"messageName": "order.place"}}, but `nope` was sent.');
-        $this->ask('ecotone.pulse.dead_letter.delete', 'nope');
+        $deadLettersBefore = $this->deadLetterCount();
+        $reply = $this->ask('ecotone.pulse.dead_letter.delete', 'nope');
+
+        self::assertStringContainsString('A Pulse dead letter action payload must be a JSON object such as {"messageIds": ["id-1"]} or {"filter": {"messageName": "order.place"}}, but `nope` was sent.', $reply['message']);
+        self::assertSame($deadLettersBefore, $this->deadLetterCount());
     }
 
     #[DataProvider('implementations')]
@@ -810,9 +814,11 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     {
         $this->bootstrap('in-memory', DbalConfiguration::createWithDefaults()->withDeadLetter(false));
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Service order_service was asked by Pulse to act on its dead letters, but no dead letter is configured there, so it holds none. Enable it with DbalConfiguration::createWithDefaults()->withDeadLetter(true) in a #[ServiceContext] of order_service, or stop sending dead letter actions to this service.');
-        $this->delete(['messageIds' => ['m-1']]);
+        $deadLettersBefore = $this->deadLetterCount();
+        $reply = $this->delete(['messageIds' => ['m-1']]);
+
+        self::assertStringContainsString('Service order_service was asked by Pulse to act on its dead letters, but no dead letter is configured there, so it holds none. Enable it with DbalConfiguration::createWithDefaults()->withDeadLetter(true) in a #[ServiceContext] of order_service, or stop sending dead letter actions to this service.', $reply['message']);
+        self::assertSame($deadLettersBefore, $this->deadLetterCount());
     }
 
     private function bootstrap(string $implementation, ?DbalConfiguration $dbalConfiguration = null): void
@@ -949,6 +955,11 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         self::assertCount($received + 1, $this->pulse->snapshots);
 
         return json_decode($this->pulse->snapshots[$received], true, flags: JSON_THROW_ON_ERROR);
+    }
+
+    private function deadLetterCount(): int
+    {
+        return $this->deadLetterIsConfigured ? $this->orderService->getGateway(DeadLetterGateway::class)->count() : 0;
     }
 
     private function clearDeadLetters(): void

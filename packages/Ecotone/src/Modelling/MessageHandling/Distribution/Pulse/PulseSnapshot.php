@@ -299,11 +299,10 @@ final class PulseSnapshot
         }
 
         $headers = $request->getHeaders();
-        $tenant = $this->isMultiTenant() && $headers->containsKey($this->tenancy['header']) ? $headers->get($this->tenancy['header']) : null;
         $payload = json_encode([
             'requestKind' => $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
             'serviceName' => $this->serviceName,
-            'tenant' => is_scalar($tenant) ? (string) $tenant : null,
+            'tenant' => $this->tenantRequestedBy($request),
             'message' => $cause->getMessage(),
             'queryId' => $headers->containsKey(PulseRequest::QUERY_ID_HEADER) ? $headers->get(PulseRequest::QUERY_ID_HEADER) : null,
             'tracingId' => $headers->containsKey(MessageHeaders::TRACING_ID) ? $headers->get(MessageHeaders::TRACING_ID) : null,
@@ -324,6 +323,16 @@ final class PulseSnapshot
                 DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME => $this->pulseServiceName,
             ],
         ];
+    }
+
+    private function tenantRequestedBy(Message $request): ?string
+    {
+        if (! $this->isMultiTenant() || ! $request->getHeaders()->containsKey($this->tenancy['header'])) {
+            return null;
+        }
+        $tenant = $request->getHeaders()->get($this->tenancy['header']);
+
+        return is_scalar($tenant) ? (string) $tenant : null;
     }
 
     public function authorizeRequestFrom(?string $sourceService): void

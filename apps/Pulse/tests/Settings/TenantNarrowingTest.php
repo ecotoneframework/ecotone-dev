@@ -15,6 +15,7 @@ final class TenantNarrowingTest extends TestCase
 {
     private const BASE = [
         'ECOTONE_LICENCE_KEY' => 'key',
+        'PULSE_VERSION' => 'test',
         'PULSE_TRANSPORT_DSN' => 'amqp://guest:guest@rabbitmq:5672',
     ];
 

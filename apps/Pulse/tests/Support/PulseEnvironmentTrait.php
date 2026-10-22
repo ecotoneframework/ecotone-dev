@@ -16,6 +16,7 @@ trait PulseEnvironmentTrait
     {
         $environment = [
             'ECOTONE_LICENCE_KEY' => LicenceTesting::VALID_LICENCE,
+            'PULSE_VERSION' => 'test',
             'PULSE_SERVICE_NAME' => 'ecotone_pulse',
             'PULSE_CHANNEL' => 'ecotone_pulse',
             'PULSE_TRANSPORT_DSN' => getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16',

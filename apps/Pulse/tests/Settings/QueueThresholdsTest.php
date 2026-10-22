@@ -88,6 +88,6 @@ final class QueueThresholdsTest extends TestCase
      */
     private function settings(array $overrides): PulseSettings
     {
-        return PulseSettings::fromEnvironment(['ECOTONE_LICENCE_KEY' => 'key', 'PULSE_TRANSPORT_DSN' => 'amqp://guest:guest@rabbitmq:5672', 'PULSE_SERVICES' => 'orders', ...$overrides], __DIR__);
+        return PulseSettings::fromEnvironment(['ECOTONE_LICENCE_KEY' => 'key', 'PULSE_VERSION' => 'test', 'PULSE_TRANSPORT_DSN' => 'amqp://guest:guest@rabbitmq:5672', 'PULSE_SERVICES' => 'orders', ...$overrides], __DIR__);
     }
 }

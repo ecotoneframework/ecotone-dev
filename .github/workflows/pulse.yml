@@ -117,6 +117,8 @@ jobs:
           push: false
           load: true
           tags: ecotone-pulse:ci
+          build-args: |
+            PULSE_VERSION=${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -182,6 +184,8 @@ jobs:
           push: false
           load: true
           tags: ecotone-pulse:ci
+          build-args: |
+            PULSE_VERSION=${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

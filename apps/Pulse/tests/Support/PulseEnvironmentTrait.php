@@ -6,6 +6,7 @@ namespace App\Tests\Support;
 
 use App\Settings\PulseEnvironment;
 use Ecotone\Test\LicenceTesting;
+use RuntimeException;
 
 trait PulseEnvironmentTrait
 {
@@ -48,6 +49,13 @@ trait PulseEnvironmentTrait
     private function resetSharedState(): void
     {
         $dsn = getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16';
+        if (! str_starts_with($dsn, 'pgsql:') && ! str_starts_with($dsn, 'postgres')) {
+            throw new RuntimeException(
+                'The Pulse app tests reset a dedicated PostgreSQL database per test (DROP SCHEMA public CASCADE), but DATABASE_DSN is "' . $dsn . '". '
+                . 'Point DATABASE_DSN at a PostgreSQL database, as .github/workflows/pulse.yml and the README do: '
+                . 'DATABASE_DSN=pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16'
+            );
+        }
         $connection = OpenedConnections::factory($dsn)->createContext()->getDbalConnection();
         $connection->executeStatement('DROP SCHEMA public CASCADE');
         $connection->executeStatement('CREATE SCHEMA public');

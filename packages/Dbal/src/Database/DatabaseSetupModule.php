@@ -113,7 +113,10 @@ final class DatabaseSetupModule implements AnnotationModule
             PulseTenantSetupStatus::class,
             new Definition(PulseTenantSetupStatus::class, [
                 new Reference(ConfiguredMessagingSystem::class),
-                array_map(static fn (MultiTenantConfiguration $configuration): string => $configuration->getReferenceName(), ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects)),
+                array_values(array_filter(
+                    array_map(static fn (MultiTenantConfiguration $configuration): string => $configuration->getReferenceName(), ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects)),
+                    static fn (string $connectionReferenceName): bool => isset($managerReferencesByConnection[$connectionReferenceName])
+                )),
             ])
         );
 

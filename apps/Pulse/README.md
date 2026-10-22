@@ -179,7 +179,7 @@ docker run -p 8080:8080 \
 | `PULSE_QUEUE_WARNING` | `1000` | Ready messages from which a channel shows a warning. A whole number, optionally with per-channel overrides: `orders:invoices=500,*=1000` |
 | `PULSE_QUEUE_CRITICAL` | `10000` | Ready messages from which a channel shows as critical. Same form as `PULSE_QUEUE_WARNING`, and always above it |
 | `PULSE_PROJECTION_STALLED_AFTER` | `300` | Seconds a projection that is behind may keep the same position across Pulse's snapshots before the projections page (`/services/{name}/projections`) calls it stalled. Whole number, `1` or more. |
-| `PULSE_CHANNEL_STALLED_AFTER` | `300` | Seconds a channel may have messages ready without its ready count going down across Pulse's snapshots before the service page and the home board call it not consuming. Pulse derives this from its own stored snapshots; the service reports only which consumers are expected to run the channel. Whole number, `1` or more. |
+| `PULSE_CHANNEL_STALLED_AFTER` | `300` | Seconds a channel may have messages ready without its ready count going down across Pulse's snapshots before the service page and the home board call it not draining. A channel that is not draining may still have a healthy consumer that producers outpace; Pulse measures only that the ready count has not fallen, from its own stored snapshots, and the service reports only which consumers are expected to run the channel. Whole number, `1` or more. |
 | `PULSE_TRACKING_DAYS` | `7` | How many days back Pulse looks for tracked projection operations (rebuild, initialization, backfill), on the projections page (`/services/{name}/projections`) and in its recent operations list. Whole number from `1` to `365`. |
 | `PULSE_HTTP_PORT` | `8080` | |
 | `TRUSTED_PROXIES`, `TRUSTED_HOSTS` | | Behind a reverse proxy, see above |
@@ -223,6 +223,12 @@ Pulse sends requests only to a destination that already exists, and it never cre
 Pulse reads replies on **every** connection, one reply consumer per connection, all started by the supervisor: a service replies through the reply channel its `PulseConfiguration` derives on its own broker. The reply channel is `PULSE_CHANNEL` on each connection. A channel name is registered once, so a second connection on a transport where the channel is the queue (Redis, SQS, database) cannot also be called `PULSE_CHANNEL`: Pulse refuses it at start, naming `PULSE_CONNECTION_<NAME>_REPLY_CHANNEL`, which gives that connection another reply channel; configure its services with `PulseConfiguration::withReplyChannel(...)` to match. On AMQP and Kafka the destination stays `PULSE_CHANNEL` and only the Ecotone channel name is made unique. At most one connection can be Kafka.
 
 A mistake in these entries (an unknown connection, a malformed entry, a service listed twice, two services on one channel or one destination) is refused at start with a message that names the entry and the fix.
+
+### Setup status
+
+The service page lists, for each database connection a service uses, which Ecotone tables exist and which broker channels are set up, with the command that creates what is missing. A service reads this inside a fixed 2 second budget per snapshot: every schema read runs under a statement timeout (PostgreSQL `statement_timeout`, MySQL `max_execution_time`, MariaDB `max_statement_time`; SQLite has no network), set only for that read. A table the service could not check in time shows as Unknown with "not checked within the budget" and a warning on the home board, and never as "All set up".
+
+The budget cannot interrupt opening a connection that hangs on a database it cannot reach, because that connection belongs to the application. Give every secondary connection a connect timeout in its own configuration (PostgreSQL `connect_timeout`, MySQL `PDO::ATTR_TIMEOUT`), so a dead host fails fast.
 
 ### Doctor
 

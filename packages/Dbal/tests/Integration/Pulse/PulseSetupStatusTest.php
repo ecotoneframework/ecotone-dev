@@ -6,6 +6,10 @@ namespace Test\Ecotone\Dbal\Integration\Pulse;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Doctrine\DBAL\Cache\QueryCacheProfile;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Doctrine\DBAL\Result;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -96,7 +100,27 @@ final class PulseSetupStatusTest extends DbalMessagingTestCase
         self::assertNull($channels['orders']['setUp']);
     }
 
-    private function bootstrap(): void
+    public function test_a_slow_schema_read_does_not_delay_the_snapshot_past_the_budget_and_the_other_sections_still_arrive(): void
+    {
+        SlowSchemaReadConnection::$secondsPerSchemaRead = 0.0;
+        $this->bootstrap(new DbalConnectionFactory(['dsn' => getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone', 'connection' => ['wrapperClass' => SlowSchemaReadConnection::class]]));
+        SlowSchemaReadConnection::$secondsPerSchemaRead = 1.5;
+
+        $startedAt = hrtime(true);
+        $snapshot = $this->requestSnapshot();
+        $tookMilliseconds = (hrtime(true) - $startedAt) / 1_000_000;
+        SlowSchemaReadConnection::$secondsPerSchemaRead = 0.0;
+
+        self::assertLessThan(4000, $tookMilliseconds);
+        self::assertSame('order_service', $snapshot['serviceName']);
+        self::assertContains('orders', array_column($snapshot['channels'], 'name'));
+        $unchecked = array_filter($snapshot['setup']['tables'], static fn (array $table): bool => $table['initialized'] === null);
+        self::assertNotSame([], $unchecked);
+        self::assertSame(['not checked within the budget'], array_values(array_unique(array_column($unchecked, 'error'))));
+        self::assertArrayNotHasKey('sectionErrors', $snapshot);
+    }
+
+    private function bootstrap(?DbalConnectionFactory $connectionFactory = null): void
     {
         $this->orders = new class () {
             #[Asynchronous('orders')]
@@ -117,7 +141,7 @@ final class PulseSetupStatusTest extends DbalMessagingTestCase
         $channels = [SimpleMessageChannelBuilder::createQueueChannel('order_channel'), SimpleMessageChannelBuilder::createQueueChannel('pulse_channel')];
         $this->orderService = $this->bootstrapFlowTesting(
             classesToResolve: [$this->orders::class],
-            containerOrAvailableServices: [$this->orders, DbalConnectionFactory::class => $this->getConnectionFactory()],
+            containerOrAvailableServices: [$this->orders, DbalConnectionFactory::class => $connectionFactory ?? $this->getConnectionFactory()],
             extensionObjects: [
                 ...$channels,
                 DbalBackedMessageChannelBuilder::create('orders'),
@@ -156,5 +180,19 @@ final class PulseSetupStatusTest extends DbalMessagingTestCase
     private function tablesByFeature(array $snapshot): array
     {
         return array_column($snapshot['setup']['tables'], null, 'feature');
+    }
+}
+
+final class SlowSchemaReadConnection extends Connection
+{
+    public static float $secondsPerSchemaRead = 0.0;
+
+    public function executeQuery(string $sql, array $params = [], array $types = [], ?QueryCacheProfile $qcp = null): Result
+    {
+        if (self::$secondsPerSchemaRead > 0.0 && stripos($sql, 'table_name') !== false) {
+            parent::executeQuery($this->getDatabasePlatform() instanceof PostgreSQLPlatform ? sprintf('SELECT pg_sleep(%s)', self::$secondsPerSchemaRead) : sprintf('SELECT SLEEP(%s)', self::$secondsPerSchemaRead))->free();
+        }
+
+        return parent::executeQuery($sql, $params, $types, $qcp);
     }
 }

@@ -21,6 +21,11 @@ final readonly class SetupItem
         return $this->kind . ':' . $this->key;
     }
 
+    public function isUnknown(): bool
+    {
+        return $this->initialized === null;
+    }
+
     public function isMissing(): bool
     {
         return $this->initialized === false;

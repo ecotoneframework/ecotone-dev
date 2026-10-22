@@ -61,6 +61,7 @@ final class PulseChannelDepthTest extends ConnectionTestCase
         $orders = $this->channelsByName($this->requestSnapshot())['pulse_depth_orders'];
 
         self::assertSame(['ready' => 2, 'delayed' => 1, 'inFlight' => 0, 'consumers' => null, 'probeError' => null], $this->depthOf($orders));
+        self::assertTrue($orders['setUp']);
     }
 
     public function test_a_message_being_handled_is_reported_in_flight(): void
@@ -81,14 +82,15 @@ final class PulseChannelDepthTest extends ConnectionTestCase
         self::assertSame(1, $depth['inFlight']);
     }
 
-    public function test_a_queue_that_does_not_exist_yet_reports_why(): void
+    public function test_a_queue_that_does_not_exist_yet_is_reported_as_not_set_up(): void
     {
         $this->bootstrap();
 
         $orders = $this->channelsByName($this->requestSnapshot())['pulse_depth_orders'];
 
         self::assertNull($orders['ready']);
-        self::assertStringContainsString("SQS queue 'pulse_depth_orders' could not be inspected", $orders['probeError']);
+        self::assertFalse($orders['setUp']);
+        self::assertNull($orders['probeError']);
     }
 
     public function test_the_depth_drops_to_zero_once_the_messages_are_handled(): void

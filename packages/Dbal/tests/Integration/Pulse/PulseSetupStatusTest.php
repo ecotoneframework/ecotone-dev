@@ -74,14 +74,16 @@ final class PulseSetupStatusTest extends DbalMessagingTestCase
         self::assertTrue($this->tablesByFeature($this->requestSnapshot())['message_queue']['initialized']);
     }
 
-    public function test_each_channel_lists_the_consumers_expected_to_run_it(): void
+    public function test_each_channel_names_the_consumer_to_run_and_the_handlers_waiting_on_it(): void
     {
         $this->bootstrap();
 
-        $channels = array_column($this->requestSnapshot()['channels'], 'expectedConsumers', 'name');
+        $channels = array_column($this->requestSnapshot()['channels'], null, 'name');
 
-        self::assertSame(['orders'], $channels['orders']);
-        self::assertSame(['order_channel'], $channels['order_channel']);
+        self::assertSame('orders', $channels['orders']['consumerToRun']);
+        self::assertSame(['order.place → place'], $channels['orders']['handlers']);
+        self::assertSame('order_channel', $channels['order_channel']['consumerToRun']);
+        self::assertSame([], $channels['order_channel']['handlers']);
     }
 
     public function test_a_dbal_channel_leaves_the_channel_setup_unknown_because_its_table_is_a_database_table(): void

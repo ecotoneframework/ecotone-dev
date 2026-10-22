@@ -55,18 +55,27 @@ final class AmqpChannelDepthProbe implements PulseChannelProbe
             if ($context instanceof AmqpLibContext) {
                 [, $ready, $consumers] = $context->getLibChannel()->queue_declare($queueName, true);
 
-                return PulseChannelDepth::measured((int) $ready, consumers: (int) $consumers > 0 ? (int) $consumers : null);
+                return PulseChannelDepth::measured((int) $ready, consumers: (int) $consumers > 0 ? (int) $consumers : null, setUp: true);
             }
 
             /** @var AmqpContext $context */
             $queue = $context->createQueue($queueName);
             $queue->addFlag(AmqpQueue::FLAG_PASSIVE);
 
-            return PulseChannelDepth::measured($context->declareQueue($queue));
+            return PulseChannelDepth::measured($context->declareQueue($queue), setUp: true);
         } catch (Throwable $failure) {
+            if ($this->isMissingQueue($failure)) {
+                return PulseChannelDepth::missing();
+            }
+
             return PulseChannelDepth::failed("RabbitMQ queue '{$queueName}' could not be inspected: {$failure->getMessage()}. Declare the queue by starting a consumer or sending a message to the channel, or point the channel at an existing queue.");
         } finally {
             $context->close();
         }
+    }
+
+    private function isMissingQueue(Throwable $failure): bool
+    {
+        return $failure->getCode() === 404 || str_contains($failure->getMessage(), 'NOT_FOUND');
     }
 }

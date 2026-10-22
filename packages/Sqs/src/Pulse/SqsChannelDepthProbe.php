@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Sqs\Pulse;
 
+use Aws\Exception\AwsException;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseChannelDepth;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseChannelProbe;
 use Enqueue\Sqs\SqsContext;
@@ -57,6 +58,10 @@ final class SqsChannelDepthProbe implements PulseChannelProbe
                 'AttributeNames' => ['ApproximateNumberOfMessages', 'ApproximateNumberOfMessagesNotVisible', 'ApproximateNumberOfMessagesDelayed'],
             ])->get('Attributes');
         } catch (Throwable $failure) {
+            if ($this->isMissingQueue($failure)) {
+                return PulseChannelDepth::missing();
+            }
+
             return PulseChannelDepth::failed("SQS queue '{$queueName}' could not be inspected: {$failure->getMessage()} Create the queue by sending a message to the channel or starting its consumer, or point the channel at an existing queue.");
         }
 
@@ -64,6 +69,12 @@ final class SqsChannelDepthProbe implements PulseChannelProbe
             (int) $attributes['ApproximateNumberOfMessages'],
             (int) $attributes['ApproximateNumberOfMessagesDelayed'],
             (int) $attributes['ApproximateNumberOfMessagesNotVisible'],
+            setUp: true,
         );
+    }
+
+    private function isMissingQueue(Throwable $failure): bool
+    {
+        return $failure instanceof AwsException && in_array($failure->getAwsErrorCode(), ['AWS.SimpleQueueService.NonExistentQueue', 'QueueDoesNotExist'], true);
     }
 }

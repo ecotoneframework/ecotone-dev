@@ -16,7 +16,6 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Messaging\Channel\DepthProbedMessageChannelBuilder;
-use Ecotone\Messaging\Channel\Manager\ChannelSetupManager;
 use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -122,7 +121,6 @@ final class PulseModule implements AnnotationModule
                 self::sectionReferences($sectionRegistrations, tenantScoped: true),
                 $tenancy === null ? [] : ['header' => $tenancy->tenantHeaderName, 'tenants' => $tenancy->tenants],
                 new Reference(ConfiguredMessagingSystem::class),
-                new Reference(ChannelSetupManager::class),
                 new Reference(EcotoneClockInterface::class),
             ])
         );

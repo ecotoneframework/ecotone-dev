@@ -8,7 +8,10 @@ use Composer\InstalledVersions;
 use DateTimeInterface;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Channel\Manager\ChannelSetupManager;
+use Ecotone\Api\Messaging\Flow\FlowEdge;
+use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
+use Ecotone\Api\Messaging\Flow\FlowNodeKind;
+use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Throwable;
 
@@ -58,7 +61,6 @@ final class PulseSnapshot
         private array $tenantScopedSections,
         private array $tenancy,
         private ConfiguredMessagingSystem $messagingSystem,
-        private ChannelSetupManager $channelSetupManager,
         private EcotoneClockInterface $clock,
     ) {
     }
@@ -131,7 +133,7 @@ final class PulseSnapshot
      *     overview: array{ecotoneVersion: string|null, phpVersion: string, framework: string, licence: array{enterprise: bool, expiresAt: string|null}},
      *     flowGraph: array<string, mixed>,
      *     topology: array{serviceMaps: array<mixed>},
-     *     channels: list<array{name: string, kind: string, ready: int|null, delayed: int|null, inFlight: int|null, consumers: int|null, probeError: string|null, expectedConsumers: list<string>, setUp: bool|null}>,
+     *     channels: list<array{name: string, kind: string, ready: int|null, delayed: int|null, inFlight: int|null, consumers: int|null, probeError: string|null, consumerToRun: string|null, handlers: list<string>, setUp: bool|null}>,
      * }&array<string, mixed>
      */
     private function snapshot(): array
@@ -209,16 +211,16 @@ final class PulseSnapshot
             $depths = [...$depths, ...$this->probe($this->probes[$group], $destinationByChannel)];
         }
 
-        $setUp = $forTenant ? [] : $this->channelSetUp();
         $consumers = $this->messagingSystem->list();
+        $handlersByChannel = $this->handlersByChannel();
         $listed = $forTenant ? array_filter($this->channels, static fn (array $channel): bool => $channel['tenantScoped']) : $this->channels;
 
         return array_values(array_map(
             fn (array $channel): array => [
                 'name' => $channel['name'],
                 'kind' => $channel['kind'],
-                'expectedConsumers' => array_values(array_intersect([$channel['name']], $consumers)),
-                'setUp' => $setUp[$channel['name']] ?? null,
+                'consumerToRun' => in_array($channel['name'], $consumers, true) ? $channel['name'] : null,
+                'handlers' => $handlersByChannel[$channel['name']] ?? [],
                 ...($depths[$channel['name']] ?? PulseChannelDepth::unmeasured())->toArray(),
             ],
             $listed
@@ -226,15 +228,28 @@ final class PulseSnapshot
     }
 
     /**
-     * @return array<string, bool>
+     * @return array<string, list<string>>
      */
-    private function channelSetUp(): array
+    private function handlersByChannel(): array
     {
-        try {
-            return array_filter($this->channelSetupManager->getInitializationStatus(), is_bool(...));
-        } catch (Throwable) {
-            return [];
+        $graph = $this->messagingSystem->getMessageFlowGraph();
+        $handlers = [];
+        foreach ($graph->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS) as $edge) {
+            $channel = $graph->node($edge->from);
+            if ($channel->kind === FlowNodeKind::CHANNEL) {
+                $handlers[(string) $channel->attributes['name']][] = $this->handlerDescription($graph, $edge->to);
+            }
         }
+
+        return $handlers;
+    }
+
+    private function handlerDescription(MessageFlowGraph $graph, string $handlerId): string
+    {
+        $method = (string) $graph->node($handlerId)->attributes['method'];
+        $messages = array_map(static fn (FlowEdge $edge): string => $graph->node($edge->from)->label, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, to: $handlerId));
+
+        return $messages === [] ? $method : implode(', ', array_unique($messages)) . ' → ' . $method;
     }
 
     /**

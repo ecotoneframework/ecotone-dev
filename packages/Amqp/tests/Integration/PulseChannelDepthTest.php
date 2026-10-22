@@ -53,6 +53,7 @@ final class PulseChannelDepthTest extends AmqpMessagingTestCase
     private string $ordersQueue;
     private string $requestQueue;
     private string $ghostQueue;
+    private string $downQueue;
 
     public function test_an_amqp_channel_reports_its_ready_messages_and_leaves_what_the_broker_does_not_tell_null(): void
     {
@@ -86,7 +87,7 @@ final class PulseChannelDepthTest extends AmqpMessagingTestCase
         $channel->close();
     }
 
-    public function test_a_queue_that_does_not_exist_reports_why_and_the_next_request_is_still_answered(): void
+    public function test_a_queue_that_does_not_exist_is_reported_as_not_set_up_and_the_service_keeps_publishing_and_consuming(): void
     {
         $this->bootstrap();
         $this->orderService->getGateway(CommandBus::class)->sendWithRouting('order.place', 'coffee');
@@ -98,10 +99,27 @@ final class PulseChannelDepthTest extends AmqpMessagingTestCase
         foreach ([$first, $second] as $snapshot) {
             $channels = $this->channelsByName($snapshot);
             self::assertNull($channels['ghost']['ready']);
-            self::assertStringContainsString($this->ghostQueue, $channels['ghost']['probeError']);
+            self::assertFalse($channels['ghost']['setUp']);
+            self::assertNull($channels['ghost']['probeError']);
+            self::assertTrue($channels['orders']['setUp']);
             self::assertNull($channels['orders']['probeError']);
             self::assertSame(1, $channels['orders']['ready']);
         }
+        $this->orderService->getGateway(CommandBus::class)->sendWithRouting('order.place', 'tea');
+        self::assertSame(2, $this->channelsByName($this->requestSnapshot())['orders']['ready']);
+        $this->orderService->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
+        self::assertSame(0, $this->channelsByName($this->requestSnapshot())['orders']['ready']);
+    }
+
+    public function test_an_unreachable_broker_leaves_the_setup_unknown_and_reports_the_error(): void
+    {
+        $this->bootstrap();
+
+        $down = $this->channelsByName($this->requestSnapshot())['down'];
+
+        self::assertNull($down['setUp']);
+        self::assertNull($down['ready']);
+        self::assertNotNull($down['probeError']);
     }
 
     public function tearDown(): void
@@ -123,6 +141,7 @@ final class PulseChannelDepthTest extends AmqpMessagingTestCase
         $this->ordersQueue = 'pulse_orders_' . Uuid::v7()->toRfc4122();
         $this->requestQueue = 'pulse_request_' . Uuid::v7()->toRfc4122();
         $this->ghostQueue = 'pulse_ghost_' . Uuid::v7()->toRfc4122();
+        $this->downQueue = 'pulse_down_' . Uuid::v7()->toRfc4122();
         $this->orders = new class () {
             public ?Closure $whileHandling = null;
 
@@ -153,12 +172,13 @@ final class PulseChannelDepthTest extends AmqpMessagingTestCase
         $replyChannel = SimpleMessageChannelBuilder::createQueueChannel('pulse_channel');
         $this->orderService = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$this->orders::class],
-            containerOrAvailableServices: [...$this->getConnectionFactoryReferences(), $this->orders],
+            containerOrAvailableServices: [...$this->getConnectionFactoryReferences(), 'unreachable_broker' => self::getRabbitConnectionFactory(['dsn' => 'amqp://guest:guest@127.0.0.1:1/%2f']), $this->orders],
             extensionObjects: [
                 $replyChannel,
                 AmqpBackedMessageChannelBuilder::create('order_channel', queueName: $this->requestQueue),
                 AmqpBackedMessageChannelBuilder::create('orders', queueName: $this->ordersQueue)->withAutoDeclare(true),
                 AmqpBackedMessageChannelBuilder::create('ghost', queueName: $this->ghostQueue)->withAutoDeclare(false),
+                AmqpBackedMessageChannelBuilder::create('down', 'unreachable_broker', $this->downQueue)->withAutoDeclare(false),
                 DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel'),
                 ServiceConfiguration::createWithDefaults()->withServiceName('order_service'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),

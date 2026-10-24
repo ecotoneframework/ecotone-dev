@@ -66,8 +66,8 @@ tr:last-child td{border-bottom:0}
 tbody tr:hover td{background:color-mix(in srgb,var(--accent) 7%,transparent)}
 .num{text-align:right}
 .mono,code,pre{font-family:var(--mono);font-size:.85rem}
-.muted{color:var(--muted)}
-.drift,.drifted{color:var(--bad);font-weight:600}
+.muted{color:var(--muted);overflow-wrap:anywhere}
+.drift,.drifted{color:var(--bad);font-weight:600;overflow-wrap:anywhere}
 .drifted:before{content:"≠ "}
 .hint{margin:0 0 1rem;border:1px solid var(--line);border-left:4px solid var(--accent);background:var(--surface-2);border-radius:8px;color:var(--fg)}.hint summary{cursor:pointer;padding:.55rem 1rem;font-weight:600}.hint-body{padding:0 1rem .7rem}.hint-body p{margin:.35rem 0}
 .notice{padding:.7rem 1rem;border:1px solid var(--line);border-left:4px solid var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--surface));border-radius:8px;margin-bottom:1rem}

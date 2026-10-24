@@ -1,7 +1,7 @@
 #!/bin/bash
 # Smoke test of the compose demo profile: from "docker compose --profile demo up" to two Connected services holding
 # dead letters and traces, with no file edited.
-#   usage: ECOTONE_LICENCE_KEY=... apps/Pulse/docker/demo-smoke.sh   (from the repository root)
+#   usage: apps/Pulse/docker/demo-smoke.sh   (from the repository root)
 set -u
 
 project="${DEMO_SMOKE_PROJECT:-pulsedemo}"
@@ -17,24 +17,21 @@ fail() {
 }
 trap 'compose down -v > /dev/null 2>&1' EXIT
 
-licence="$ECOTONE_LICENCE_KEY"
 unset ECOTONE_LICENCE_KEY
-compose down -v > /dev/null 2>&1 || fail "docker compose down needs ECOTONE_LICENCE_KEY"
-echo "down without the licence key: ok"
-export ECOTONE_LICENCE_KEY="$licence"
+compose down -v > /dev/null 2>&1 || fail "docker compose down failed"
 
 started="$(date +%s)"
 compose up -d --build > /dev/null 2>&1 || fail "docker compose up failed"
 
 for attempt in $(seq 1 120); do
-    [ "$(curl -s "$url/" | grep -c 'data-status="connected"')" = "2" ] && break
+    [ "$(curl -s "$url/services" | grep -c 'data-status="connected"')" = "2" ] && break
     sleep 2
 done
-[ "$(curl -s "$url/" | grep -c 'data-status="connected"')" = "2" ] || fail "orders and billing never both reached Connected"
+[ "$(curl -s "$url/services" | grep -c 'data-status="connected"')" = "2" ] || fail "orders and billing never both reached Connected"
 echo "Connected after $(( $(date +%s) - started )) s"
 
 for attempt in $(seq 1 60); do
-    total="$(curl -s "$url/" | grep -o 'data-summary="dead-letters"><b>[0-9]*' | grep -o '[0-9]*$')"
+    total="$(curl -s "$url/dead-letters" | grep -c 'data-message-id=')"
     [ "${total:-0}" -ge 10 ] && break
     sleep 2
 done

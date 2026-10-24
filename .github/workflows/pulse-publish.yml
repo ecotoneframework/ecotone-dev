@@ -44,6 +44,24 @@ jobs:
             echo "present=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Wait until Packagist serves the released packages
+        if: steps.pulse.outputs.present == 'true'
+        run: |
+          tag="${{ steps.release.outputs.tag }}"
+          packages="ecotone/ecotone $(jq -r '.require | keys[] | select(startswith("ecotone/"))' apps/Pulse/composer.json | tr '\n' ' ')"
+          for _ in $(seq 1 60); do
+            missing=""
+            for package in $packages; do
+              listed="$(curl -fsS "https://repo.packagist.org/p2/$package.json" || true)"
+              [[ "$listed" == *"\"version\":\"$tag\""* ]] || missing="$missing $package"
+            done
+            [ -z "$missing" ] && echo "Packagist serves $tag of: $packages" && exit 0
+            echo "Waiting for Packagist to serve $tag of:$missing"
+            sleep 30
+          done
+          echo "Packagist did not serve $tag of:$missing within 30 minutes. Re-run this workflow with the tag once the packages are released."
+          exit 1
+
       - name: Write the release public key
         if: steps.pulse.outputs.present == 'true'
         run: |
@@ -68,7 +86,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
         if: steps.pulse.outputs.present == 'true'
 
-      - name: Build the production image
+      - name: Build the production image on the released packages
         if: steps.pulse.outputs.present == 'true'
         uses: docker/build-push-action@v6
         with:
@@ -80,10 +98,10 @@ jobs:
           tags: ecotone-pulse:release
           build-args: |
             PULSE_VERSION=${{ steps.release.outputs.tag }}
-          secret-files: |
-            ecotone_enterprise_public_key=${{ runner.temp }}/ecotone-enterprise-public-key.pem
+            PULSE_DEPENDENCIES=released
+            ECOTONE_VERSION=${{ steps.release.outputs.tag }}
 
-      - name: Verify the image refuses Ecotone's testing licence
+      - name: Verify the image carries the release public key and refuses Ecotone's testing licence
         if: steps.pulse.outputs.present == 'true'
         run: apps/Pulse/docker/verify-production-licence.sh ecotone-pulse:release "$RUNNER_TEMP/ecotone-enterprise-public-key.pem"
 

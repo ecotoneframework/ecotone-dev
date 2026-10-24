@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Projection\ProjectionActionNotice;
+use App\Projection\ProjectionActionRequester;
 use App\Projection\ProjectionOverview;
 use App\Projection\RebuildTrackings;
 use App\Settings\PulseSettings;
+use App\Snapshot\Refusals;
 use App\Snapshot\ServiceScope;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
@@ -38,13 +40,16 @@ final class ProjectionsController extends AbstractController
             $sections[] = ['snapshot' => $row, 'projections' => $statuses, 'counts' => ProjectionOverview::counts($statuses), 'rebuilds' => $rebuilds];
         }
 
+        $notice = ProjectionActionNotice::fromQuery($request->query->all());
+
         return $this->render('services/projections.html.twig', [
             'service' => $rows[0],
             'tenant' => ServiceScope::fromKey($service)->tenant,
             'sections' => $sections,
             'stalledAfter' => $this->settings->projectionStalledAfterSeconds,
             'trackingDays' => $this->settings->trackingDays,
-            'notice' => ProjectionActionNotice::fromQuery($request->query->all()),
+            'notice' => $notice,
+            'refusals' => $notice === null || $notice->isError() ? [] : Refusals::of($rows, ProjectionActionRequester::ROUTING_KEYS[$notice->action]),
             'waiting' => Snapshots::needsAutoRefresh($rows) || array_filter($sections, static fn (array $section): bool => $section['rebuilds']->waiting || $section['rebuilds']->anyRunning()) !== [],
         ]);
     }

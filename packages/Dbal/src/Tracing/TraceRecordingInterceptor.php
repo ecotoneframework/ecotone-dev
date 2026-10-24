@@ -15,6 +15,7 @@ use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Dbal\Pulse\Tracking\PulseProjectionActions;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseRequest;
 use Ecotone\Tracing\Tracer;
 use Throwable;
 
@@ -38,8 +39,6 @@ use Throwable;
  */
 final class TraceRecordingInterceptor implements FlowTrackingScope
 {
-    private const PULSE_ROUTING_PREFIX = 'ecotone.pulse.';
-
     public function __construct(
         private StoringSpanRecorder $recorder,
         private Tracer $tracer,
@@ -61,7 +60,7 @@ final class TraceRecordingInterceptor implements FlowTrackingScope
     public function keepPulseRequestOutOfFlowTracking(MethodInvocation $methodInvocation, Message $message): mixed
     {
         $headers = $message->getHeaders();
-        if ($headers->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) && str_starts_with((string) $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY), self::PULSE_ROUTING_PREFIX) && ! in_array($headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY), PulseProjectionActions::TRACKED_ROUTING_KEYS, true)) {
+        if ($headers->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) && PulseRequest::isRoutedToPulse($headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY)) && ! in_array($headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY), PulseProjectionActions::TRACKED_ROUTING_KEYS, true)) {
             $this->recorder->excludeScopeFromTracking();
         }
 

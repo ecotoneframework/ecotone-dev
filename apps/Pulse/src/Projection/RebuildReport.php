@@ -15,6 +15,7 @@ final readonly class RebuildReport
         public bool $notAnswering,
         public bool $truncated,
         public ?int $cap,
+        public ?string $refusal = null,
     ) {
     }
 

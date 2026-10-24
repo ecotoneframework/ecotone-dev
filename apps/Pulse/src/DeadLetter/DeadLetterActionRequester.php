@@ -38,7 +38,7 @@ final readonly class DeadLetterActionRequester
     {
         $service = $scope->service;
         $now = DateTimeImmutable::createFromInterface($this->clock->now());
-        $this->store->update($scope, fn ($record) => $action->isReplay() ? $record->requested($now, $this->settings->replyTimeoutSeconds)->withFollowUpDueAt($now->modify('+' . self::FOLLOW_UP_SECONDS . ' seconds')) : $record->requested($now, $this->settings->replyTimeoutSeconds));
+        $this->store->update($scope, fn ($record) => ($action->isReplay() ? $record->requested($now, $this->settings->replyTimeoutSeconds)->withFollowUpDueAt($now->modify('+' . self::FOLLOW_UP_SECONDS . ' seconds')) : $record->requested($now, $this->settings->replyTimeoutSeconds))->forgettingRefusalOf($action->routingKey));
 
         $tracingId = ReplyAwaiter::newTracingId();
         try {

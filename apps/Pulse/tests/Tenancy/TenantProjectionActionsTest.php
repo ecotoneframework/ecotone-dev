@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Tenancy;
 
+use App\Tests\Support\FailureRepliesTrait;
 use App\Tests\Support\MultiTenantServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\EventSourcing\Event;
@@ -17,6 +18,20 @@ use Throwable;
 final class TenantProjectionActionsTest extends ReleasingWebTestCase
 {
     use MultiTenantServicesTrait;
+    use FailureRepliesTrait;
+
+    public function test_a_backfill_the_service_refused_for_one_tenant_does_not_show_for_the_other_tenant(): void
+    {
+        $client = $this->pulseWithOrderPlaced();
+
+        $client->request('POST', '/services/orders/projections/tenant_kickoff_orders/backfill', ['confirm' => '1', 'tenant' => 'tenant_b']);
+        $this->serviceRefuses('orders', 'ecotone.pulse.projections.backfill', 'backfill refused for b', tenant: 'tenant_b');
+        $this->runPulseWorker($client->getKernel());
+        $page = $client->followRedirect();
+
+        self::assertStringContainsString('backfill refused for b', $page->filter('[data-service-refusal="orders@tenant_b"]')->text());
+        self::assertCount(0, $page->filter('[data-service-refusal="orders@tenant_a"]'));
+    }
 
     public function test_a_rebuild_in_one_tenant_replays_and_is_tracked_in_that_tenant_only(): void
     {

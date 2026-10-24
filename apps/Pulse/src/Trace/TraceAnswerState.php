@@ -9,4 +9,5 @@ enum TraceAnswerState: string
     case Answered = 'answered';
     case Waiting = 'waiting';
     case NotAnswering = 'not_answering';
+    case Refused = 'refused';
 }

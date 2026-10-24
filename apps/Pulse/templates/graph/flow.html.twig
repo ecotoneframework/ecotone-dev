@@ -19,8 +19,8 @@
             </p>
             <p class="muted">Green: passed · amber dashed: sent but not processed yet · red: failed. Thick arrows: the trace crossed them. Durations are the longest step through the node.</p>
             {% for state in traceStates %}
-                {% if state.state in ['waiting', 'not_answering'] %}
-                    <p class="drift" data-trace-service-state="{{ state.service }}">{{ state.service }}: {{ state.state == 'waiting' ? 'pending, waiting for the answer…' : 'not answering for this query.' }}</p>
+                {% if state.state in ['waiting', 'not_answering', 'refused'] %}
+                    <p class="drift" data-trace-service-state="{{ state.service }}">{{ state.service }}: {{ state.state == 'waiting' ? 'pending, waiting for the answer…' : (state.state == 'refused' ? 'refused this query: ' ~ state.failure : 'not answering for this query.') }}</p>
                 {% endif %}
             {% endfor %}
         </section>

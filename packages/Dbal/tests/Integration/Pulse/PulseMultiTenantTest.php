@@ -285,12 +285,9 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         $this->bootstrap();
 
         foreach (['backfill'] as $operation) {
-            try {
-                $this->ask("ecotone.pulse.projections.{$operation}", json_encode(['projection' => 'tenant_kickoff_orders']), null, [MessageHeaders::TRACING_ID => self::TRACE_OF_TENANT_A]);
-                self::fail("A {$operation} request without a tenant must be refused");
-            } catch (InvalidArgumentException $exception) {
-                self::assertStringContainsString('Lack of context about tenant', $exception->getMessage());
-            }
+            $reply = $this->ask("ecotone.pulse.projections.{$operation}", json_encode(['projection' => 'tenant_kickoff_orders']), null, [MessageHeaders::TRACING_ID => self::TRACE_OF_TENANT_A]);
+
+            self::assertStringContainsString('Lack of context about tenant', $reply['message']);
         }
     }
 
@@ -298,12 +295,9 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
     {
         $this->bootstrap();
 
-        try {
-            $this->ask('ecotone.pulse.projections.rebuild', json_encode(['projection' => 'tenant_orders']), null, [MessageHeaders::TRACING_ID => self::TRACE_OF_TENANT_A]);
-            self::fail('A rebuild request without a tenant must be refused');
-        } catch (InvalidArgumentException $exception) {
-            self::assertStringContainsString('Lack of context about tenant', $exception->getMessage());
-        }
+        $reply = $this->ask('ecotone.pulse.projections.rebuild', json_encode(['projection' => 'tenant_orders']), null, [MessageHeaders::TRACING_ID => self::TRACE_OF_TENANT_A]);
+
+        self::assertStringContainsString('Lack of context about tenant', $reply['message']);
         self::assertSame([], $this->projection->replayedFor);
     }
 
@@ -311,9 +305,13 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
     {
         $this->bootstrap(withDefaultConnection: true);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Service order_service was asked by Pulse for tenant `tenant_c`, but it advertises only tenant_a, tenant_b, so the answer would come from the default connection and be shown as that tenant. Ask for one of the advertised tenants, or add `tenant_c` to the tenant mapping of MultiTenantConfiguration.');
-        $this->requestSnapshot('tenant_c');
+        $reply = $this->requestSnapshot('tenant_c');
+
+        self::assertSame('Service order_service was asked by Pulse for tenant `tenant_c`, but it advertises only tenant_a, tenant_b, so the answer would come from the default connection and be shown as that tenant. Ask for one of the advertised tenants, or add `tenant_c` to the tenant mapping of MultiTenantConfiguration.', $reply['message']);
+        self::assertSame('tenant_c', $reply['tenant']);
+        self::assertSame('ecotone.pulse.snapshot', $reply['requestKind']);
+        self::assertSame(0, $this->requestSnapshot('tenant_a')['deadLetters']['total']);
+        self::assertSame(0, $this->requestSnapshot('tenant_b')['deadLetters']['total']);
     }
 
     public function test_a_dbal_pulse_channel_on_the_multi_tenant_connection_is_refused_at_bootstrap(): void
@@ -354,6 +352,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         $answered = $this->requestSnapshot();
 
         self::assertSame('tenant', $answered['tenancy']['header']);
+
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Lack of context about tenant in Message Headers. Please add `tenant` header metadata to your message.');
         $this->orderService->sendCommandWithRouting('order.untenanted', 'milk');

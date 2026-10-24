@@ -18,6 +18,7 @@
                 <strong>{{ state.service }}</strong>{% if state.tenant %} <span class="chip" data-tenant="{{ state.tenant }}">tenant {{ state.tenant }}</span>{% endif %}:
                 {% if state.state == 'answered' %}answered{% if state.totalSpans %} ({{ state.totalSpans }} spans){% endif %}
                 {% elseif state.state == 'waiting' %}pending, waiting for the answer…
+                {% elseif state.state == 'refused' %}refused this query: {{ state.failure }}
                 {% elseif state.state == 'not_answering' %}not answering for this query.{% if state.failure %} {{ state.failure }}{% endif %}
                 {% elseif state.state == 'tracing_disabled' %}flow tracking not enabled, not asked
                 {% else %}not asked, service is {{ state.status|lower }}

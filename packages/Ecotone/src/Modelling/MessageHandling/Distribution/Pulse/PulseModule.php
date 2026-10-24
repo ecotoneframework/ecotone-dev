@@ -27,7 +27,10 @@ use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PolledMessageFailureAnswer;
+use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
@@ -123,6 +126,14 @@ final class PulseModule implements AnnotationModule
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),
                 new Reference(ExtensionObjectResolver::resolve(PulseSectionIsolationRegistration::class, $extensionObjects)[0]->serviceReference ?? NoPulseSectionIsolation::class),
+            ])
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            PolledMessageFailureAnswer::class,
+            Definition::createFor(PulseRequestFailureAnswer::class, [
+                new Reference(PulseSnapshot::class),
+                new Reference(MessagingEntrypointService::class),
+                new Reference(LoggingGateway::class),
             ])
         );
         $messagingConfiguration->registerServiceDefinition(NoPulseSectionIsolation::class, Definition::createFor(NoPulseSectionIsolation::class, []));

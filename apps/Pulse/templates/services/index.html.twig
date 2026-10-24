@@ -47,6 +47,7 @@
                         {% if service.hasSnapshot and service.snapshot.serviceName|default(service.service) != service.service %}<br><span class="muted mono">{{ service.snapshot.serviceName }}</span>{% endif %}
                         {% if service.requestFailure %}<br><span class="drift" data-request-error>{{ service.requestFailure }}</span>{% endif %}
                         {% include '_tenants.html.twig' with {service: service, tenantRows: tenantRows[service.service] ?? []} %}
+                        {% if service.refusalOf('ecotone.pulse.snapshot') %}<br><span class="drift" data-snapshot-refusal>Refused the snapshot request: {{ service.refusalOf('ecotone.pulse.snapshot') }}</span>{% endif %}
                         {% if service.replyError %}<br><span class="drift" data-reply-error>Reply rejected: {{ service.replyError }}</span>{% endif %}
                     </th>
                     <td>{{ _self.pill(service.status, service.retrying) }}</td>

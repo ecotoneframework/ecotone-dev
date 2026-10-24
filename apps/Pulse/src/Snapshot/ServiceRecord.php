@@ -14,6 +14,7 @@ final readonly class ServiceRecord
      * @param array<string, mixed> $snapshot
      * @param array<string, array{digest: string, since: string}> $projectionMovements
      * @param array<string, array{ready: int, since: string}> $channelMovements
+     * @param array<string, array{message: string, failedAt: string}> $refusedRequests
      */
     public function __construct(
         public ?DateTimeImmutable $receivedAt,
@@ -27,6 +28,8 @@ final readonly class ServiceRecord
         public array $projectionMovements = [],
         public int $deadLettersGrewBy = 0,
         public array $channelMovements = [],
+        public array $refusedRequests = [],
+        public ?DateTimeImmutable $refusedAt = null,
     ) {
     }
 
@@ -52,6 +55,8 @@ final readonly class ServiceRecord
             $stored['projectionMovements'] ?? [],
             $stored['deadLettersGrewBy'] ?? 0,
             $stored['channelMovements'] ?? [],
+            $stored['refusedRequests'] ?? [],
+            isset($stored['refusedAt']) ? new DateTimeImmutable($stored['refusedAt']) : null,
         );
     }
 
@@ -72,6 +77,8 @@ final readonly class ServiceRecord
             'projectionMovements' => $this->projectionMovements,
             'deadLettersGrewBy' => $this->deadLettersGrewBy,
             'channelMovements' => $this->channelMovements,
+            'refusedRequests' => $this->refusedRequests,
+            'refusedAt' => $this->refusedAt?->format(self::TIME_FORMAT),
         ];
     }
 
@@ -84,6 +91,20 @@ final readonly class ServiceRecord
             'missingDestination' => null,
             'followUpDueAt' => $this->followUpDueAt !== null && $at >= $this->followUpDueAt ? null : $this->followUpDueAt,
             'retrying' => $this->missingDestination === null && $this->hasOutstandingRequest() && $this->isUnanswered($at, $replyTimeoutSeconds),
+        ]);
+    }
+
+    public function forgettingRefusalOf(string $requestKind): self
+    {
+        return $this->with(['refusedRequests' => array_diff_key($this->refusedRequests, [$requestKind => true])]);
+    }
+
+    public function refused(string $requestKind, string $message, DateTimeImmutable $failedAt, DateTimeImmutable $at): self
+    {
+        return $this->with([
+            'refusedRequests' => [...$this->refusedRequests, $requestKind => ['message' => $message, 'failedAt' => $failedAt->format(self::TIME_FORMAT)]],
+            'refusedAt' => $at,
+            'retrying' => false,
         ]);
     }
 
@@ -112,7 +133,7 @@ final readonly class ServiceRecord
      */
     public function received(array $snapshot, DateTimeImmutable $at): self
     {
-        return $this->with(['receivedAt' => $at, 'snapshot' => $snapshot, 'requestFailure' => null, 'replyError' => null, 'retrying' => false, 'missingDestination' => null, 'projectionMovements' => $this->projectionMovementsAfter($snapshot, $at), 'deadLettersGrewBy' => $this->deadLettersGrowthTo($snapshot), 'channelMovements' => $this->channelMovementsAfter($snapshot, $at)]);
+        return $this->with(['receivedAt' => $at, 'snapshot' => $snapshot, 'requestFailure' => null, 'replyError' => null, 'retrying' => false, 'missingDestination' => null, 'projectionMovements' => $this->projectionMovementsAfter($snapshot, $at), 'deadLettersGrewBy' => $this->deadLettersGrowthTo($snapshot), 'channelMovements' => $this->channelMovementsAfter($snapshot, $at)])->forgettingRefusalOf(SnapshotRequester::ROUTING_KEY);
     }
 
     /**
@@ -183,7 +204,9 @@ final readonly class ServiceRecord
 
     public function hasOutstandingRequest(): bool
     {
-        return $this->requestedAt !== null && ($this->receivedAt === null || $this->requestedAt > $this->receivedAt);
+        return $this->requestedAt !== null
+            && ($this->receivedAt === null || $this->requestedAt > $this->receivedAt)
+            && ($this->refusedAt === null || $this->requestedAt > $this->refusedAt);
     }
 
     public function needsRequest(DateTimeImmutable $now): bool

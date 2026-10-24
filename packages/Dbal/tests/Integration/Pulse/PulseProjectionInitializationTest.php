@@ -35,7 +35,6 @@ use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Projecting\PartitionProvider;
 use Ecotone\Projecting\StreamFilter;
 use Ecotone\Test\LicenceTesting;
@@ -93,12 +92,9 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
         $this->bootstrap($implementation);
         self::assertSame('uninitialized', $this->initializationOf('kickoff_orders'));
 
-        try {
-            $this->act("ecotone.pulse.projections.{$operation}", 'kickoff_orders', self::FIRST_TRACE);
-            self::fail("The {$operation} of an uninitialized projection was not refused.");
-        } catch (InvalidArgumentException $exception) {
-            self::assertSame("Pulse asked to {$operation} projection kickoff_orders, but it is not initialized yet, and a request never initializes a projection, because setting it up can run DDL that a transaction cannot hold. Initialize it from the console with `ecotone:projection:init kickoff_orders` (bin/console in Symfony, php artisan in Laravel, ./tempest in Tempest), then ask again.", $exception->getMessage());
-        }
+        $reply = $this->act("ecotone.pulse.projections.{$operation}", 'kickoff_orders', self::FIRST_TRACE);
+
+        self::assertSame("Pulse asked to {$operation} projection kickoff_orders, but it is not initialized yet, and a request never initializes a projection, because setting it up can run DDL that a transaction cannot hold. Initialize it from the console with `ecotone:projection:init kickoff_orders` (bin/console in Symfony, php artisan in Laravel, ./tempest in Tempest), then ask again.", $reply['message']);
         self::assertSame(0, $this->orderService->sendQueryWithRouting('kickoff_orders.count'));
         self::assertSame(0, $this->orderService->sendQueryWithRouting('kickoff_orders.initializations'));
     }
@@ -165,10 +161,9 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to backfill projection missing, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]');
+        $reply = $this->act('ecotone.pulse.projections.backfill', 'missing', self::FIRST_TRACE);
 
-        $this->act('ecotone.pulse.projections.backfill', 'missing', self::FIRST_TRACE);
+        self::assertStringContainsString('Pulse asked to backfill projection missing, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]', $reply['message']);
     }
 
     #[DataProvider('implementations')]
@@ -176,10 +171,9 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to backfill projection streaming_orders, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]. A streaming projection is not among them: it keeps no position and reads no stored events, so it cannot be backfilled or rebuilt from Pulse. Publish the missing events to its channel again.');
+        $reply = $this->act('ecotone.pulse.projections.backfill', 'streaming_orders', self::FIRST_TRACE);
 
-        $this->act('ecotone.pulse.projections.backfill', 'streaming_orders', self::FIRST_TRACE);
+        self::assertStringContainsString('Pulse asked to backfill projection streaming_orders, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]. A streaming projection is not among them: it keeps no position and reads no stored events, so it cannot be backfilled or rebuilt from Pulse. Publish the missing events to its channel again.', $reply['message']);
     }
 
     public static function emptyOperations(): iterable

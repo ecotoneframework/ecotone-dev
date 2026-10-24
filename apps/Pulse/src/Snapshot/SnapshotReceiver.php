@@ -37,6 +37,13 @@ final readonly class SnapshotReceiver
 
         $tenant = $decoded['tenant'] ?? null;
         $scope = is_string($tenant) ? ServiceScope::ofTenant($service, $tenant) : ServiceScope::ofService($service);
+        if (FailureReply::isOne($decoded)) {
+            $failure = FailureReply::of($decoded);
+            $now = DateTimeImmutable::createFromInterface($this->clock->now());
+            $this->store->update($scope, fn (ServiceRecord $record) => $record->refused($failure->requestKind, $failure->message, $failure->failedAt, $now));
+
+            return;
+        }
         $problem = $this->problemWith($decoded, $scope);
         $this->store->update($scope, fn (ServiceRecord $record) => $problem === null
             ? $record->received($decoded, DateTimeImmutable::createFromInterface($this->clock->now()))

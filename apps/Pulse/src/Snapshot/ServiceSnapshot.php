@@ -14,6 +14,7 @@ final readonly class ServiceSnapshot
      * @param list<string> $unadvertisedTenants
      * @param array<string, array{digest: string, since: string}> $projectionMovements
      * @param array<string, array{ready: int, since: string}> $channelMovements
+     * @param array<string, array{message: string, failedAt: string}> $refusedRequests
      */
     public function __construct(
         public string $service,
@@ -33,12 +34,18 @@ final readonly class ServiceSnapshot
         public array $projectionMovements,
         public int $deadLettersGrewBy,
         public array $channelMovements = [],
+        public array $refusedRequests = [],
     ) {
     }
 
     public function scope(): string
     {
         return ($this->tenant === null ? ServiceScope::ofService($this->service) : ServiceScope::ofTenant($this->service, $this->tenant))->key();
+    }
+
+    public function refusalOf(string $requestKind): ?string
+    {
+        return $this->refusedRequests[$requestKind]['message'] ?? null;
     }
 
     public function isMultiTenant(): bool

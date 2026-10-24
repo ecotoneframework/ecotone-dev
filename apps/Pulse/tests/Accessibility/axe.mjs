@@ -60,7 +60,8 @@ const discover = async () => {
     return pages;
 };
 
-const pages = await discover();
+const only = (process.env.PULSE_AXE_ONLY ?? '').split(',').filter((path) => path !== '');
+const pages = only.length > 0 ? only : await discover();
 let problems = 0;
 const rows = [];
 
@@ -75,6 +76,7 @@ for (const scheme of schemes) {
                 await page.reload({waitUntil: 'networkidle'});
             }
             await page.waitForTimeout(500);
+            await page.evaluate(() => document.querySelectorAll('details').forEach((details) => { details.open = true; }));
             await page.evaluate(axeSource);
             const result = await page.evaluate(() => window.axe.run(document, {resultTypes: ['violations']}));
             const serious = result.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact));
@@ -98,6 +100,11 @@ for (const scheme of schemes) {
         const page = await (await browser.newContext({viewport, colorScheme: scheme})).newPage();
         await page.goto(base + '/', {waitUntil: 'networkidle'});
         await page.waitForSelector('html.intro-pending [data-intro-heart]', {timeout: 3000});
+        for (let attempt = 0; attempt < 15 && (await page.$('meta[http-equiv="refresh"]')) !== null; attempt++) {
+            await page.waitForTimeout(1000);
+            await page.reload({waitUntil: 'networkidle'});
+            await page.waitForSelector('html.intro-pending [data-intro-heart]', {timeout: 3000}).catch(() => {});
+        }
         await page.waitForTimeout(800);
         await page.evaluate(axeSource);
         const result = await page.evaluate(() => window.axe.run(document, {resultTypes: ['violations']}));

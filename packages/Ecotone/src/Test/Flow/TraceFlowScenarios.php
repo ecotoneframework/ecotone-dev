@@ -85,7 +85,7 @@ final class TraceFlowScenarios
         return new FlowScenario('two asynchronous commands consumed in one run keep their own traces', [$users::class], [$users], [SimpleMessageChannelBuilder::createQueueChannel('users')], [
             $send('1'),
             $send('2'),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2)))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect($consumed('1'), $consumed('2')),
         ]);
     }

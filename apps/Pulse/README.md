@@ -308,6 +308,7 @@ docker run --env-file pulse.env -p 8080:8080 ecotone-pulse
 * With a missing or invalid setting the container exits at start with the refusal message.
 * The web server is [FrankenPHP](https://frankenphp.dev) (Caddy and PHP in one process): no php-fpm and nginx pair to keep in step, and HTTP/2 and compression included. Pulse needs no worker mode, so it is plain `php_server`.
 * Run it behind your own authentication and with `restart: unless-stopped`. The internal database is gone when the container is replaced; that is intended.
+* The published image `ecotoneframework/ecotone-pulse:<release>` is built after each Ecotone release (`.github/workflows/pulse-publish.yml`), tagged with the release version (`2.0.0-beta.6`); a stable release also moves `<major>.<minor>` and `latest`. It verifies licences against the release public key, which is passed as a build secret (`--secret id=ecotone_enterprise_public_key,src=<key.pem>`, built with `--no-cache` because a secret is not part of the build cache key), and `apps/Pulse/docker/verify-production-licence.sh` refuses to publish an image that accepts Ecotone's testing licence. An image you build from this repository without that secret verifies against the development key, as the packages here do.
 
 ## Development
 

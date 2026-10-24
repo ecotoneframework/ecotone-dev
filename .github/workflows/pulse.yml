@@ -208,3 +208,32 @@ jobs:
           SMOKE_SECRET_FILES: ${{ matrix.secret_files }}
           SMOKE_STOP_CONSUMER: ${{ matrix.stop_consumer }}
         run: apps/Pulse/docker/smoke.sh "${{ matrix.transport }}" "${{ matrix.dsn }}"
+
+  production-licence:
+    name: Pulse production image refuses the testing licence
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Generate a throwaway release key pair
+        run: |
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$RUNNER_TEMP/private.pem"
+          openssl pkey -in "$RUNNER_TEMP/private.pem" -pubout -out "$RUNNER_TEMP/public.pem"
+
+      - name: Build the image the way the publish workflow does, with the key as a build secret
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/Pulse/Dockerfile
+          push: false
+          load: true
+          no-cache: true
+          tags: ecotone-pulse:production-licence
+          secret-files: |
+            ecotone_enterprise_public_key=${{ runner.temp }}/public.pem
+
+      - name: The image carries the given key and refuses Ecotone's testing licence
+        run: apps/Pulse/docker/verify-production-licence.sh ecotone-pulse:production-licence "$RUNNER_TEMP/public.pem"

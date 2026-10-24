@@ -2,6 +2,7 @@
 
 namespace Ecotone\Dbal\Recoverability;
 
+use Ecotone\Api\Attribute\ConsoleParameterOption;
 use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\Messaging\ErrorContext;
@@ -21,8 +22,8 @@ class DbalDeadLetterConsoleCommand
             [
                 [DbalDeadLetterModule::LIST_COMMAND_NAME . ' {page:int}', 'List all dead messages'],
                 [DbalDeadLetterModule::SHOW_COMMAND_NAME . ' {messageId:string} {fullDetails:bool}', 'Show more details about specific message'],
-                [DbalDeadLetterModule::REPLAY_COMMAND_NAME . ' {messageId:string} {targetChannel:?string}', 'Replay chosen dead message, to its source channel or to the target channel'],
-                [DbalDeadLetterModule::REPLAY_ALL_COMMAND_NAME . ' {targetChannel:?string}', 'Replay ALL dead messages, to their source channels or to the target channel'],
+                [DbalDeadLetterModule::REPLAY_COMMAND_NAME . ' {messageId:string} {--targetChannel=}', 'Replay chosen dead message, to its source channel or to the target channel'],
+                [DbalDeadLetterModule::REPLAY_ALL_COMMAND_NAME . ' {--targetChannel=}', 'Replay ALL dead messages, to their source channels or to the target channel'],
                 [DbalDeadLetterModule::DELETE_COMMAND_NAME . ' {messageId:string}', 'Delete chosen dead message'],
             ]
         );
@@ -65,7 +66,7 @@ class DbalDeadLetterConsoleCommand
         );
     }
 
-    public function replay(DeadLetterGateway $deadLetterGateway, string $messageId, ?string $targetChannel = null): void
+    public function replay(DeadLetterGateway $deadLetterGateway, string $messageId, #[ConsoleParameterOption] ?string $targetChannel = null): void
     {
         $deadLetterGateway->replay($messageId, $targetChannel);
     }
@@ -75,7 +76,7 @@ class DbalDeadLetterConsoleCommand
         $deadLetterGateway->delete($messageId);
     }
 
-    public function replayAll(DeadLetterGateway $deadLetterGateway, ?string $targetChannel = null): void
+    public function replayAll(DeadLetterGateway $deadLetterGateway, #[ConsoleParameterOption] ?string $targetChannel = null): void
     {
         $deadLetterGateway->replayAll($targetChannel);
     }

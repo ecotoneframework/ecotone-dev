@@ -9,6 +9,7 @@ use App\Snapshot\ServiceSnapshot;
 final readonly class SetupStatus
 {
     private const DATABASE_SETUP = 'ecotone:migration:database:setup';
+    private const PROJECTION_INIT = 'ecotone:projection:init';
     private const CHANNEL_SETUP = 'ecotone:migration:channel:setup';
 
     /**
@@ -61,6 +62,19 @@ final readonly class SetupStatus
     public function isAllClear(): bool
     {
         return $this->missing() === [] && $this->unknown() === [] && $this->sectionErrors === [];
+    }
+
+    public static function projectionInit(string $framework, string $projection): string
+    {
+        if ($framework === 'lite') {
+            return sprintf('$ecotone->runConsoleCommand(%s, [%s => %s]);', var_export(self::PROJECTION_INIT, true), var_export('name', true), var_export($projection, true));
+        }
+
+        return sprintf('%s %s %s', match ($framework) {
+            'laravel' => 'php artisan',
+            'tempest' => './tempest',
+            default => 'bin/console',
+        }, self::PROJECTION_INIT, preg_match('/^[A-Za-z0-9_.-]+$/', $projection) === 1 ? $projection : "'" . $projection . "'");
     }
 
     private static function tableFix(string $framework, string $feature, string $connection): string

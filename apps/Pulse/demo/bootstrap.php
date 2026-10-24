@@ -13,6 +13,11 @@ require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/Orders.php';
 require __DIR__ . '/Billing.php';
 
+if (getenv('PULSE_DEMO') === 'true' && ! getenv('ECOTONE_LICENCE_KEY')) {
+    putenv('ECOTONE_LICENCE_KEY=' . Ecotone\Test\LicenceTesting::VALID_LICENCE);
+    fwrite(STDERR, "Pulse demo: running on Ecotone's testing licence. Your own services need your Ecotone Enterprise key.\n");
+}
+
 if (! getenv('ECOTONE_LICENCE_KEY')) {
     fwrite(STDERR, "ECOTONE_LICENCE_KEY is not set, but the demo services are Ecotone Enterprise services. Start the demo with ECOTONE_LICENCE_KEY=<your key> docker compose ... --profile demo up (trial: https://ecotone.tech/pricing).\n");
     exit(1);

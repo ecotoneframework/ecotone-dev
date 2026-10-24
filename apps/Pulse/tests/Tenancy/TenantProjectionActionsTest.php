@@ -82,30 +82,18 @@ final class TenantProjectionActionsTest extends ReleasingWebTestCase
         self::assertSame([], $this->rebuildStates($page, 'tenant_b'));
     }
 
-    public function test_an_initialization_in_one_tenant_is_tracked_in_that_tenant_only(): void
-    {
-        $client = $this->pulseWithOrderPlaced();
-
-        $page = $this->act($client, 'initialize', 'tenant_kickoff_orders', 'tenant_a');
-
-        self::assertSame(['1'], $this->tenantKickoffProjections->projected);
-        self::assertSame(['done'], $this->rebuildStates($page, 'tenant_a'));
-        self::assertSame([], $this->rebuildStates($page, 'tenant_b'));
-        self::assertSame(['Initialization'], $this->operationsOf($page, 'tenant_a'));
-        self::assertSame([], $this->operationsOf($page, 'tenant_b'));
-    }
-
     public function test_a_backfill_in_one_tenant_projects_and_is_tracked_in_that_tenant_only(): void
     {
         $client = $this->pulseWithOrderPlaced();
-        $this->act($client, 'initialize', 'tenant_kickoff_orders', 'tenant_a');
+        $this->initializeInTenant('tenant_kickoff_orders', 'tenant_a');
+        $this->initializeInTenant('tenant_kickoff_orders', 'tenant_b');
         $this->tenantKickoffProjections->projected = [];
         $this->services['orders']->withEventStream('tenant_orders_stream', [Event::createWithType('order.placed', ['orderId' => '2'])]);
 
         $page = $this->act($client, 'backfill', 'tenant_kickoff_orders', 'tenant_b');
 
-        self::assertSame(['2'], $this->tenantKickoffProjections->projected);
-        self::assertSame(['Initialization'], $this->operationsOf($page, 'tenant_a'));
+        self::assertSame(['1', '2'], $this->tenantKickoffProjections->projected);
+        self::assertSame([], $this->operationsOf($page, 'tenant_a'));
         self::assertSame(['Backfill'], $this->operationsOf($page, 'tenant_b'));
     }
 
@@ -122,10 +110,42 @@ final class TenantProjectionActionsTest extends ReleasingWebTestCase
         self::assertStringContainsString('does not report a projection "tenant_orders"', $page->filter('[data-notice-error]')->text());
     }
 
+    public function test_a_backfill_of_a_tenant_returns_to_the_page_of_that_tenant_and_names_it_in_the_notice(): void
+    {
+        $client = $this->pulseWithOrderPlaced();
+        $this->initializeInTenant('tenant_kickoff_orders', 'tenant_b');
+
+        $client->request('POST', '/services/orders/projections/tenant_kickoff_orders/backfill', ['confirm' => '1', 'tenant' => 'tenant_b']);
+        $this->deliver($client);
+
+        self::assertSame('/services/orders@tenant_b/projections?backfill=requested&projection=tenant_kickoff_orders', $client->getResponse()->headers->get('Location'));
+        $page = $client->followRedirect();
+        self::assertStringContainsString('Backfill of tenant_kickoff_orders requested in tenant tenant_b', $page->filter('[data-notice]')->text());
+        self::assertCount(0, $page->filter('[data-projections-section="orders@tenant_a"]'));
+    }
+
+    public function test_an_action_that_is_not_confirmed_returns_to_the_page_of_the_tenant_it_was_asked_in(): void
+    {
+        $client = $this->pulseWithOrderPlaced();
+
+        $client->request('POST', '/services/orders/projections/tenant_orders/rebuild', ['tenant' => 'tenant_b']);
+
+        self::assertSame('/services/orders@tenant_b/projections?rebuild=not_confirmed&projection=tenant_orders', $client->getResponse()->headers->get('Location'));
+        self::assertStringContainsString('in tenant tenant_b was not confirmed', $client->followRedirect()->filter('[data-notice-error]')->text());
+    }
+
+    private function initializeInTenant(string $projection, string $tenant): void
+    {
+        $this->services['orders']->sendCommandWithRouting('projection.initialize', $projection, metadata: ['tenant' => $tenant]);
+    }
+
     private function pulseWithOrderPlaced(): KernelBrowser
     {
         $client = $this->pulseWithTenants();
         $this->services['orders']->withEventStream('tenant_orders_stream', [Event::createWithType('order.placed', ['orderId' => '1'])]);
+        foreach (['tenant_a', 'tenant_b'] as $tenant) {
+            $this->initializeInTenant('tenant_orders', $tenant);
+        }
         $this->refreshedView($client, '/services/orders/projections');
 
         return $client;

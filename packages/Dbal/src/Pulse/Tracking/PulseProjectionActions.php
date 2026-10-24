@@ -38,9 +38,8 @@ use stdClass;
 final class PulseProjectionActions
 {
     public const ROUTING_KEY = 'ecotone.pulse.projections.rebuild';
-    public const INITIALIZE_ROUTING_KEY = 'ecotone.pulse.projections.initialize';
     public const BACKFILL_ROUTING_KEY = 'ecotone.pulse.projections.backfill';
-    public const TRACKED_ROUTING_KEYS = [self::ROUTING_KEY, self::INITIALIZE_ROUTING_KEY, self::BACKFILL_ROUTING_KEY];
+    public const TRACKED_ROUTING_KEYS = [self::ROUTING_KEY, self::BACKFILL_ROUTING_KEY];
     private const EXAMPLE = '{"projection": "orders"}';
     private const TRACING_EXAMPLE = "sendMessage('service', 'ecotone.pulse.projections.rebuild', '{\"projection\": \"orders\"}', metadata: ['tracingId' => '0af7651916cd43dd8448eb211c80319c'])";
 
@@ -76,6 +75,7 @@ final class PulseProjectionActions
         $snapshot->authorizeRequestFrom($sourceService);
         $snapshot->tenantOfScopedRequest($headers);
         $projection = $this->knownProjectionOf($this->requestOf($payload, $verb), $verb);
+        $this->ensureInitialized($projection, $verb);
         $tracingId = $this->tracingIdOf(isset($headers[MessageHeaders::TRACING_ID]) ? (string) $headers[MessageHeaders::TRACING_ID] : null, $verb);
         $mode = $isAsynchronous($projection) ? 'asynchronous' : 'synchronous';
 
@@ -97,46 +97,14 @@ final class PulseProjectionActions
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 
-    /**
-     * @param array<string, mixed> $headers
-     */
-    public function initialize(string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot): string
-    {
-        $snapshot->authorizeRequestFrom($sourceService);
-        $snapshot->tenantOfScopedRequest($headers);
-        $projection = $this->knownProjectionOf($this->requestOf($payload, 'initialization'), 'initialize');
-        $this->ensureCanBeInitialized($projection);
-        $tracingId = $this->tracingIdOf(isset($headers[MessageHeaders::TRACING_ID]) ? (string) $headers[MessageHeaders::TRACING_ID] : null, 'initialization');
-
-        $this->trackings->withinTransaction(function () use ($projection, $tracingId): void {
-            $this->trackings->record(new Tracking(
-                $tracingId,
-                Tracking::PULSE_CATEGORY,
-                Tracking::PROJECTION_INITIALIZATION_TYPE,
-                $projection,
-                $this->trackings->activeTenant(),
-                $this->clock->now()->unixTime()->inMicroseconds(),
-            ));
-            $this->projectionOperations->initializeTrackedBy($projection, $tracingId);
-            $this->projectionOperations->triggerTrackedBy($projection, $tracingId);
-        });
-
-        return json_encode([
-            ...json_decode($snapshot->snapshotJson($sourceService, $headers), true, flags: JSON_THROW_ON_ERROR),
-            'initializeAction' => ['tracingId' => $tracingId, 'projection' => $projection],
-        ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-    }
-
-    private function ensureCanBeInitialized(string $projection): void
+    private function ensureInitialized(string $projection, string $verb): void
     {
         $manager = $this->projections->get($projection);
-        $alternatives = 'Use Rebuild to run it again from the first event, or Backfill to project the events it has not seen.';
-        if ($manager->isPartitioned()) {
-            throw InvalidArgumentException::create("Pulse asked to initialize projection {$projection}, but it is partitioned and every partition initializes itself on its first event, so there is no single initialization to run. {$alternatives}");
+        if ($manager->isPartitioned() || $manager->isSetUp()) {
+            return;
         }
-        if ($manager->isInitialized()) {
-            throw InvalidArgumentException::create("Pulse asked to initialize projection {$projection}, but it is already initialized, so there is nothing left to set up. {$alternatives}");
-        }
+
+        throw InvalidArgumentException::create("Pulse asked to {$verb} projection {$projection}, but it is not initialized yet, and a request never initializes a projection, because setting it up can run DDL that a transaction cannot hold. Initialize it from the console with `ecotone:projection:init {$projection}` (bin/console in Symfony, php artisan in Laravel, ./tempest in Tempest), then ask again.");
     }
 
     private function requestOf(string $payload, string $operation): stdClass
@@ -163,7 +131,7 @@ final class PulseProjectionActions
             $known = [...$this->projections->projectionNames()];
             sort($known);
 
-            throw InvalidArgumentException::create("Pulse asked to {$verb} projection {$projection}, but there is no such projection. Registered projections: [" . implode(', ', $known) . ']. A streaming projection is not among them: it keeps no position and reads no stored events, so it cannot be initialized, backfilled or rebuilt from Pulse. Publish the missing events to its channel again. For any other projection, send the name given in #[Projection] of the projection to ' . $verb . '.');
+            throw InvalidArgumentException::create("Pulse asked to {$verb} projection {$projection}, but there is no such projection. Registered projections: [" . implode(', ', $known) . ']. A streaming projection is not among them: it keeps no position and reads no stored events, so it cannot be backfilled or rebuilt from Pulse. Publish the missing events to its channel again. For any other projection, send the name given in #[Projection] of the projection to ' . $verb . '.');
         }
 
         return $projection;

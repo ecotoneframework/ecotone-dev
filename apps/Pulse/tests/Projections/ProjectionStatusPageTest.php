@@ -32,7 +32,7 @@ final class ProjectionStatusPageTest extends ReleasingWebTestCase
         self::assertSame('up_to_date', $this->statusOf($crawler, 'tickets'));
         self::assertSame('0', $crawler->filter('tr[data-projection="tickets"] [data-gap]')->text());
         self::assertSame('asynchronous', $crawler->filter('tr[data-projection="tickets"] [data-mode]')->text());
-        self::assertSame('initialized', $crawler->filter('tr[data-projection="tickets"] [data-initialization]')->text());
+        self::assertSame('Initialized', $crawler->filter('tr[data-projection="tickets"] [data-initialization]')->text());
     }
 
     public function test_a_projection_behind_by_events_is_catching_up_with_its_gap(): void

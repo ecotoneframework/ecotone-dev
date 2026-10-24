@@ -163,6 +163,8 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
     public function test_a_rebuild_without_the_tracking_table_is_refused_with_the_command_that_creates_it(): void
     {
         $this->bootstrap('dbal', tablesSetUp: false);
+        $this->orderService->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true, 'feature' => ['tracing', 'dead_letter']]);
+        $this->orderService->initializeProjection('sync_orders');
 
         $reply = $this->rebuild('sync_orders', self::FIRST_TRACE);
 
@@ -266,6 +268,9 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
             testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-10-20 12:00:00', new DateTimeZone('UTC')))->withDatabaseTablesSetUpOnBootstrap($tablesSetUp),
         );
         $this->orderService->withEventStream('orders_stream', [Event::createWithType('order.placed', ['orderId' => '1']), Event::createWithType('order.placed', ['orderId' => '2'])]);
+        if ($tablesSetUp) {
+            $this->orderService->initializeProjection('async_orders')->initializeProjection('sync_orders')->initializeProjection('failing_orders');
+        }
         $this->pulseService = $this->bootstrapFlowTesting(
             classesToResolve: [$this->pulse::class],
             containerOrAvailableServices: [$this->pulse],

@@ -10,9 +10,10 @@ enum ProjectionState: string
     case CatchingUp = 'catching_up';
     case Stalled = 'stalled';
     case Rebuilding = 'rebuilding';
-    case Initializing = 'initializing';
     case Backfilling = 'backfilling';
     case NotInitialized = 'not_initialized';
+    case WaitingForFirstEvent = 'waiting_for_first_event';
+    case Prepared = 'prepared';
     case Failed = 'failed';
     case Unknown = 'unknown';
 
@@ -23,9 +24,10 @@ enum ProjectionState: string
             self::CatchingUp => 'Catching up',
             self::Stalled => 'Stalled',
             self::Rebuilding => 'Rebuilding',
-            self::Initializing => 'Initializing',
             self::Backfilling => 'Backfilling',
             self::NotInitialized => 'Not initialized',
+            self::WaitingForFirstEvent => 'Waiting for its first event',
+            self::Prepared => 'Kicked off, waiting for its first run',
             self::Failed => 'Failed',
             self::Unknown => 'Unknown',
         };

@@ -176,10 +176,19 @@ final readonly class ServiceRecord
     {
         $movements = [];
         foreach (is_array($snapshot['channels'] ?? null) ? $snapshot['channels'] : [] as $channel) {
-            if (! is_array($channel) || ! is_string($channel['name'] ?? null) || ! is_int($channel['ready'] ?? null) || $channel['ready'] <= 0) {
+            if (! is_array($channel) || ! is_string($channel['name'] ?? null)) {
                 continue;
             }
             $previous = $this->channelMovements[$channel['name']] ?? null;
+            if (! is_int($channel['ready'] ?? null)) {
+                if ($previous !== null) {
+                    $movements[$channel['name']] = $previous;
+                }
+                continue;
+            }
+            if ($channel['ready'] <= 0) {
+                continue;
+            }
             $movements[$channel['name']] = $previous !== null && $channel['ready'] >= $previous['ready']
                 ? ['ready' => $channel['ready'], 'since' => $previous['since']]
                 : ['ready' => $channel['ready'], 'since' => $at->format(self::TIME_FORMAT)];

@@ -253,7 +253,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             TrackingStore::class,
             $storesOnDatabase
                 ? new Definition(DbalTrackingStore::class, [new Reference($connectionReference), new Reference(PulseTrackingTableManager::class), new Reference(EcotoneClockInterface::class)])
-                : new Definition(InMemoryTrackingStore::class)
+                : new Definition(InMemoryTrackingStore::class, [new Reference($connectionReference)])
         );
         $untracedSpans = PulseTrackings::class . '.untraced_spans';
         $messagingConfiguration->registerServiceDefinition($untracedSpans, new Definition(InMemoryTraceStore::class));
@@ -278,11 +278,6 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         $messagingConfiguration->registerMessageHandler(
             MessageProcessorActivatorBuilder::createForMethod(PulseProjectionActions::class, $interfaceToCallRegistry->getFor(PulseProjectionActions::class, 'rebuild'))
                 ->withInputChannelName(PulseProjectionActions::ROUTING_KEY)
-                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
-        );
-        $messagingConfiguration->registerMessageHandler(
-            MessageProcessorActivatorBuilder::createForMethod(PulseProjectionActions::class, $interfaceToCallRegistry->getFor(PulseProjectionActions::class, 'initialize'))
-                ->withInputChannelName(PulseProjectionActions::INITIALIZE_ROUTING_KEY)
                 ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
         );
         $messagingConfiguration->registerMessageHandler(

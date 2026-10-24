@@ -15,8 +15,10 @@ Pulse is an **Ecotone Enterprise** application. It does not start without `ECOTO
 You need Docker and an Ecotone Enterprise licence key (trial: https://ecotone.tech/pricing). From the repository root:
 
 ```bash
-ECOTONE_LICENCE_KEY=<your key> docker compose -f apps/Pulse/docker-compose.example.yml --profile demo up --build
+docker compose -f apps/Pulse/docker-compose.example.yml --profile demo up --build
 ```
+
+The demo needs no licence key: it runs on Ecotone's testing licence (a key you pass in `ECOTONE_LICENCE_KEY` still wins). Your own services need your Ecotone Enterprise key ([trial](https://ecotone.tech/pricing)).
 
 Open http://localhost:8080. No file is edited. After about 40 seconds the **Services** page shows `orders` and `billing`
 as **Connected**; the demo services run a few orders in the background, so **Dead letters** holds failed messages you can
@@ -308,6 +310,7 @@ docker run --env-file pulse.env -p 8080:8080 ecotone-pulse
 * With a missing or invalid setting the container exits at start with the refusal message.
 * The web server is [FrankenPHP](https://frankenphp.dev) (Caddy and PHP in one process): no php-fpm and nginx pair to keep in step, and HTTP/2 and compression included. Pulse needs no worker mode, so it is plain `php_server`.
 * Run it behind your own authentication and with `restart: unless-stopped`. The internal database is gone when the container is replaced; that is intended.
+* The published image `ecotoneframework/ecotone-pulse:<release>` is built after each Ecotone release has been split and Packagist serves it (`.github/workflows/pulse-publish.yml`), tagged with the release version (`2.0.0-beta.6`); a stable release also moves `<major>.<minor>` and `latest`. It runs the released Ecotone packages from Packagist (`--build-arg PULSE_DEPENDENCIES=released --build-arg ECOTONE_VERSION=<tag>`), which verify licences against the release public key, and `apps/Pulse/docker/verify-production-licence.sh` refuses to publish an image that does not carry that key or accepts Ecotone's testing licence. An image built from this repository without those arguments runs the packages here, as the tests and the demo do.
 
 ## Development
 

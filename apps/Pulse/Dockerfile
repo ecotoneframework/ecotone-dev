@@ -1,5 +1,9 @@
 # Build from the repository root, because the Ecotone packages are resolved from ./packages:
 #   docker build -f apps/Pulse/Dockerfile -t ecotone-pulse .
+# The published image runs the released Ecotone packages from Packagist instead:
+#   docker build --build-arg PULSE_DEPENDENCIES=released --build-arg ECOTONE_VERSION=<tag> -f apps/Pulse/Dockerfile -t ecotone-pulse .
+
+ARG PULSE_DEPENDENCIES=build
 
 FROM dunglas/frankenphp:1-php8.5-bookworm AS base
 
@@ -34,11 +38,24 @@ RUN sh docker/with-build-env.sh php bin/console importmap:install \
     && sh docker/with-build-env.sh php bin/console asset-map:compile \
     && rm -rf var
 
+FROM build AS released
+
+ARG ECOTONE_VERSION=
+
+ENV COMPOSER=composer.released.json
+
+RUN php docker/use-released-packages.php "$ECOTONE_VERSION" \
+    && rm -rf vendor composer.pinned.json composer.pinned.lock \
+    && COMPOSER_ALLOW_SUPERUSER=1 composer update --no-dev --no-interaction --no-scripts --prefer-dist --no-autoloader \
+    && COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload --no-dev --classmap-authoritative --no-scripts
+
+FROM ${PULSE_DEPENDENCIES} AS dependencies
+
 FROM base AS runtime
 
 WORKDIR /app
 
-COPY --from=build /build/apps/Pulse /app
+COPY --from=dependencies /build/apps/Pulse /app
 COPY apps/Pulse/docker/Caddyfile /etc/caddy/Caddyfile
 COPY apps/Pulse/docker/entrypoint.sh /usr/local/bin/pulse-entrypoint
 

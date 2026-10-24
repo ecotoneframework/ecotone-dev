@@ -7,9 +7,9 @@ namespace App\Tests\Tenancy;
 use App\Tests\Support\MultiTenantServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\EventSourcing\Event;
-use Throwable;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
+use Throwable;
 
 /**
  * @internal

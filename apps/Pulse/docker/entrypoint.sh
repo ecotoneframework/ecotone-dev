@@ -33,14 +33,6 @@ setup_tables() {
     done
 }
 
-use_demo_licence() {
-    if [ "${PULSE_DEMO:-}" = "true" ] && [ -z "${ECOTONE_LICENCE_KEY:-}" ]; then
-        ECOTONE_LICENCE_KEY="$(php -r 'require "vendor/autoload.php"; echo Ecotone\Test\LicenceTesting::VALID_LICENCE;')"
-        export ECOTONE_LICENCE_KEY
-        echo "Pulse demo: running on Ecotone's testing licence. Your own services need your Ecotone Enterprise key." >&2
-    fi
-}
-
 prepare() {
     rm -rf var/cache/*
     php bin/console cache:warmup
@@ -137,7 +129,6 @@ run_pulse() {
 case "${1:-run}" in
     run)
         prepare_application_secret
-        use_demo_licence
         run_pulse
         ;;
     *)

@@ -117,6 +117,8 @@ services:
     <<: *pulse
     build: *pulse-build
     profiles: ["demo"]
+    entrypoint: ["/app/docker/demo/entrypoint.sh"]
+    command: ["run"]
     environment:
       <<: *demo-environment
       PULSE_SERVICES: orders,billing

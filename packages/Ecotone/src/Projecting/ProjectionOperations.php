@@ -22,9 +22,12 @@ final class ProjectionOperations
     ) {
     }
 
-    public function initialize(string $projectionName): void
+    /**
+     * @param array<string, mixed> $headers
+     */
+    public function initialize(string $projectionName, array $headers = []): void
     {
-        $this->run($projectionName, ProjectionOperationEndpoint::INITIALIZE);
+        $this->run($projectionName, ProjectionOperationEndpoint::INITIALIZE, $headers);
     }
 
     public function initializeAll(): void
@@ -34,9 +37,12 @@ final class ProjectionOperations
         }
     }
 
-    public function trigger(string $projectionName): void
+    /**
+     * @param array<string, mixed> $headers
+     */
+    public function trigger(string $projectionName, array $headers = []): void
     {
-        $this->run($projectionName, ProjectionOperationEndpoint::TRIGGER);
+        $this->run($projectionName, ProjectionOperationEndpoint::TRIGGER, $headers);
     }
 
     public function reset(string $projectionName): void
@@ -70,7 +76,7 @@ final class ProjectionOperations
     }
 
     /**
-     * @param array<string, string> $headers
+     * @param array<string, mixed> $headers
      */
     private function run(string $projectionName, string $operation, array $headers = []): void
     {

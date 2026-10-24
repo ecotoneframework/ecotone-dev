@@ -10,6 +10,7 @@ namespace Ecotone\Projecting\Config;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\PropagateHeaders;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Attribute\WithoutMessageCollector;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -207,7 +208,7 @@ final class ProjectingModule implements AnnotationModule
                             )
                         )
                         ->withInputChannelName(ProjectionOperationEndpoint::channelFor($projectionName, $operation))
-                        ->withEndpointAnnotations([AttributeDefinition::fromObject(new ProjectionOperationEndpoint($projectionName, $operation))])
+                        ->withEndpointAnnotations([AttributeDefinition::fromObject(new ProjectionOperationEndpoint($projectionName, $operation)), new AttributeDefinition(PropagateHeaders::class)])
                 );
             }
 

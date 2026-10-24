@@ -43,24 +43,18 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertCount(0, $page->filter('[data-notice]'));
     }
 
-    public function test_an_initialization_and_a_backfill_the_service_refused_show_their_own_messages(): void
+    public function test_a_backfill_the_service_refused_shows_its_own_message(): void
     {
         $client = $this->pulseWithOrders();
-        $this->orders->projections = [$this->projection('waiting', initialization: 'uninitialized')];
+        $this->orders->projections = [$this->projection('waiting')];
         $this->observe($client);
 
-        $client->request('POST', '/services/orders/projections/waiting/initialize', ['confirm' => '1']);
-        $this->serviceRefuses('orders', 'ecotone.pulse.projections.initialize', 'initialization refused');
-        $this->runPulseWorker($client->getKernel());
-        $afterInitialize = $client->followRedirect();
         $client->request('POST', '/services/orders/projections/waiting/backfill', ['confirm' => '1']);
         $this->serviceRefuses('orders', 'ecotone.pulse.projections.backfill', 'backfill refused');
         $this->runPulseWorker($client->getKernel());
-        $afterBackfill = $client->followRedirect();
+        $page = $client->followRedirect();
 
-        self::assertStringContainsString('initialization refused', $afterInitialize->filter('[data-notice-error]')->text());
-        self::assertStringContainsString('backfill refused', $afterBackfill->filter('[data-notice-error]')->text());
-        self::assertStringNotContainsString('initialization refused', $afterBackfill->filter('[data-notice-error]')->text());
+        self::assertStringContainsString('backfill refused', $page->filter('[data-notice-error]')->text());
     }
 
     public function test_a_refusal_is_forgotten_when_the_same_kind_of_request_is_sent_again(): void

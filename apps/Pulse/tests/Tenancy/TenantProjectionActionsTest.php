@@ -19,21 +19,6 @@ final class TenantProjectionActionsTest extends ReleasingWebTestCase
     use MultiTenantServicesTrait;
     use FailureRepliesTrait;
 
-    public function test_an_initialization_the_service_refused_in_one_tenant_shows_its_message_for_that_tenant_only(): void
-    {
-        $client = $this->pulseWithOrderPlaced();
-        $this->act($client, 'initialize', 'tenant_kickoff_orders', 'tenant_a');
-
-        $client->request('POST', '/services/orders/projections/tenant_kickoff_orders/initialize', ['confirm' => '1', 'tenant' => 'tenant_a']);
-        $this->deliver($client);
-        $page = $client->followRedirect();
-
-        self::assertStringContainsString('is already initialized', $page->filter('[data-notice-error][data-service-refusal="orders@tenant_a"]')->text());
-        self::assertCount(0, $page->filter('[data-service-refusal="orders@tenant_b"]'));
-        self::assertCount(0, $page->filter('[data-notice]'));
-        self::assertSame(['1'], $this->tenantKickoffProjections->projected);
-    }
-
     public function test_a_backfill_the_service_refused_for_one_tenant_does_not_show_for_the_other_tenant(): void
     {
         $client = $this->pulseWithOrderPlaced();

@@ -1,0 +1,48 @@
+{% extends 'admin/layout.html.twig' %}
+{% import 'admin/layout.html.twig' as format %}
+
+{% block title %}{{ concert.artist }}{% endblock %}
+
+{% block content %}
+    <h1>{{ concert.artist }}</h1>
+    <p>
+        {{ concert.venueName }}, {{ concert.startsAt|date('Y-m-d H:i') }} UTC ·
+        <span class="status status-{{ concert.status }}">{{ concert.status|replace({'_': ' '}) }}</span>
+    </p>
+    <p class="prices">
+        Standard {{ format.money(concert.standardPriceCents, concert.currency) }} ·
+        VIP {{ format.money(concert.vipPriceCents, concert.currency) }}
+    </p>
+
+    <div class="actions">
+        <form method="post" action="{{ path('admin_concert_open_sales', {concertId: concert.concertId}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
+            <button type="submit">Open sales</button>
+        </form>
+        <form method="post" action="{{ path('admin_concert_price', {concertId: concert.concertId}) }}" class="inline-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
+            <select name="tier">
+                <option value="standard">standard</option>
+                <option value="vip">vip</option>
+            </select>
+            <input name="priceCents" type="number" min="1" placeholder="price in cents" required>
+            <button type="submit">Change price</button>
+        </form>
+        <form method="post" action="{{ path('admin_concert_cancel', {concertId: concert.concertId}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
+            <button type="submit" class="danger">Cancel concert</button>
+        </form>
+    </div>
+
+    <h2>Seats ({{ concert.seats|length }})</h2>
+    <table class="seats">
+        <thead>
+            <tr><th>Seat</th><th>Tier</th><th>Seat id</th></tr>
+        </thead>
+        <tbody>
+            {% for seat in concert.seats %}
+                <tr><td>{{ seat.seatCode }}</td><td>{{ seat.tier }}</td><td><code>{{ seat.seatId }}</code></td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

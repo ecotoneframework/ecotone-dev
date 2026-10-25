@@ -7,6 +7,7 @@
         <h1>Ticketing</h1>
         <p>The Symfony ticketing service of the Ecotone demo. It answers the storefront over the Distributed Bus on RabbitMQ.</p>
         <ul>
+            <li><a href="{{ path('admin') }}">Admin</a> manages the venues and concerts.</li>
             <li><a href="{{ pulseUrl }}">Ecotone Pulse</a> monitors this service and the storefront.</li>
             <li><a href="{{ jaegerUrl }}">Jaeger</a> shows the traces of every message.</li>
         </ul>

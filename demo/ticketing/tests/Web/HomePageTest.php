@@ -22,4 +22,13 @@ final class HomePageTest extends WebTestCase
         self::assertSame('http://localhost:8080', $crawler->selectLink('Ecotone Pulse')->attr('href'));
         self::assertSame('http://localhost:16686/search?service=ticketing', $crawler->selectLink('Jaeger')->attr('href'));
     }
+
+    public function test_the_home_page_links_to_the_admin_pages(): void
+    {
+        $client = static::createClient();
+
+        $crawler = $client->request('GET', '/');
+
+        self::assertSame('/admin', $crawler->selectLink('Admin')->attr('href'));
+    }
 }

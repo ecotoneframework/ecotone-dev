@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+
+{% macro money(cents, currency) %}{{ (cents / 100)|number_format(2, '.', '') }} {{ currency }}{% endmacro %}
+
+{% block body %}
+    <main class="admin">
+        <nav>
+            <a href="{{ path('home') }}">Ticketing</a>
+            <a href="{{ path('admin_concerts') }}">Concerts</a>
+            <a href="{{ path('admin_venues') }}">Venues</a>
+        </nav>
+        {% for notice in app.flashes('notice') %}
+            <p class="notice">{{ notice }}</p>
+        {% endfor %}
+        {% if refusal %}
+            <p class="refusal">{{ refusal }}</p>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+{% endblock %}

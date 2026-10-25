@@ -21,7 +21,7 @@ final class PaymentProvider
         if ($recordedOutcome !== null) {
             return $recordedOutcome;
         }
-        if ($cardEnding === self::TRANSIENT_OUTAGE_CARD_ENDING && $this->attempts->attemptsOf($paymentReference) === 0) {
+        if ($cardEnding === self::TRANSIENT_OUTAGE_CARD_ENDING && ! $this->attempts->isRecorded($paymentReference)) {
             $this->attempts->record(paymentReference: $paymentReference, cardEnding: $cardEnding, status: 'unavailable');
 
             throw new PaymentProviderUnavailable(sprintf(

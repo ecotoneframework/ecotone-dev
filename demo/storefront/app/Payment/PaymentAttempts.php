@@ -21,8 +21,8 @@ interface PaymentAttempts
     #[DbalWrite("UPDATE payment_attempts SET status = 'refunded' WHERE payment_reference = :paymentReference AND status = 'charged'", connectionReferenceName: self::CONNECTION)]
     public function refund(string $paymentReference): int;
 
-    #[DbalQuery('SELECT count(*) FROM payment_attempts WHERE payment_reference = :paymentReference', fetchMode: FetchMode::FIRST_COLUMN_OF_FIRST_ROW, connectionReferenceName: self::CONNECTION)]
-    public function attemptsOf(string $paymentReference): int;
+    #[DbalQuery('SELECT EXISTS (SELECT 1 FROM payment_attempts WHERE payment_reference = :paymentReference)', fetchMode: FetchMode::FIRST_COLUMN_OF_FIRST_ROW, connectionReferenceName: self::CONNECTION)]
+    public function isRecorded(string $paymentReference): bool;
 
     #[DbalQuery('SELECT status FROM payment_attempts WHERE payment_reference = :paymentReference', fetchMode: FetchMode::FIRST_COLUMN_OF_FIRST_ROW, connectionReferenceName: self::CONNECTION)]
     public function statusOf(string $paymentReference): string|false;

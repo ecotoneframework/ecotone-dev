@@ -278,3 +278,7 @@ button.seat:disabled {
 .held-seats {
     padding-left: 1.2rem;
 }
+
+[hidden] {
+    display: none !important;
+}

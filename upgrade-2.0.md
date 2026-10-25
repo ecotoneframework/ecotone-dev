@@ -471,14 +471,34 @@ public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfigur
   tables, no counters — and load by stream or aggregate as usual; the `event_tags` setup feature is not listed and
   no tag table is created or verified.
 
-**Aggregate saves are guarded on their tags.** With DCB enabled, every append of tagged events — an
-`#[EventSourcingAggregate]` save included, whether or not a decision model is injected — captures each tag's
-version with a consistent `SELECT` inside the transaction and bumps it with the guarded `UPDATE ... WHERE version =
-:captured`. On `REPEATABLE READ` (InnoDB) the captured version is the one the transaction's snapshot saw when the
+**What an append does to each counter.** An append changes a tag's counter only when other readers' boundaries
+could see the difference — when one of its events carries that tag — and checks everything else it was given:
+
+- a tag in the append condition that an appended event carries is **bumped guarded**: `UPDATE ... SET version =
+  version + 1 WHERE version = :captured`, failing the append if the tag moved since it was read;
+- an entry of the append condition that no appended event carries — an aggregate fetched read-only with `#[Fetch]`,
+  a decision model's or boundary's tag the decision's events do not carry — is **checked, never bumped**: the append
+  fails if it moved, under a shared row lock held until commit (`FOR SHARE` on PostgreSQL, `LOCK IN SHARE MODE` on
+  MySQL/MariaDB, a no-op `UPDATE` on SQLite, which has one writer anyway), so a save of a fetched aggregate waits for
+  the decision while other decisions checking the same counter proceed;
+- a tag an appended event carries that is **not** in the append condition is **incremented** unconditionally
+  (`version = version + 1`, no captured version): two appends with disjoint boundaries whose events share a tag
+  value both commit, and a decision scoped by that tag that read before them still conflicts.
+
+The counter of an aggregate an append saves, and of an instance a `#[DecisionModel(aggregate:)]` decides over, is
+bumped guarded like a captured tag. The third rule applies only to an append whose condition carries tag entries — a
+decision-model handler's append, or `appendTo()` with a condition from `loadByCriteria()`. **The exception: an append
+without a tag condition — an `#[EventSourcingAggregate]` save, or `appendTo()` with no condition — keeps guarding the
+tags its events carry,** as below.
+
+**Aggregate saves are guarded on their tags.** With DCB enabled, an append without a tag condition — an
+`#[EventSourcingAggregate]` save with no decision model injected, or `appendTo()` with no condition — captures each
+tag its events carry with a consistent `SELECT` inside the transaction and bumps it with the guarded `UPDATE ... WHERE
+version = :captured`. On `REPEATABLE READ` (InnoDB) the captured version is the one the transaction's snapshot saw when the
 aggregate was loaded, so a competing commit made after the load fails the save with
 `DecisionModelConcurrencyException` (a retry then sees it); on `READ COMMITTED` (the PostgreSQL default) the capture
 is current. An explicit `AppendCondition`/decision-model version always wins over the captured one for the same tag.
-The counters are never bumped blindly any more, except by `backfill-tags`.
+Outside the third rule above, a counter is never bumped blindly, except by `backfill-tags`.
 
 **Aggregates are inside the boundary.** With DCB enabled, every aggregate class — `#[EventSourcingAggregate]` and
 state-stored `#[Aggregate]` alike; `#[Saga]` and `#[EventSourcingSaga]` are process managers and are exempt — keeps
@@ -537,10 +557,8 @@ own stream or repository, snapshots included.
 - **`#[Fetch]` in a decision-model handler.** A handler that injects a decision model or declares a
   `#[DecisionBoundary]` captures the counter of every aggregate it fetches with `#[Fetch]`, before invocation and in
   the same read as its models, and appends its events only if none of those aggregates was saved meanwhile. The
-  append **checks** a fetched aggregate's counter and never bumps it — an append bumps exactly the tags its events
-  carry, plus the counter of an aggregate it saves or decides over through `#[DecisionModel(aggregate:)]`; every other
-  entry of its condition, a fetched aggregate's counter or a model tag no appended event carries, is checked under a
-  shared row lock held until commit. So decisions that only fetch the same aggregate (twelve `HoldSeat` decisions on
+  append **checks** a fetched aggregate's counter and never bumps it ("What an append does to each counter" above).
+  So decisions that only fetch the same aggregate (twelve `HoldSeat` decisions on
   different seats of one `Concert`) commit side by side instead of failing each other, while a save of the fetched
   aggregate still conflicts: before the decision's append it fails the decision ("Concert c-1 changed since it was
   loaded ... another transaction saved it"), after it the save waits for the decision to commit. Early 2.0 builds
@@ -879,10 +897,9 @@ no transaction.
 - Without any class, the same machinery is a gateway on the store itself:
   `$eventStore->loadByCriteria(EventCriteria::tag('course', $courseId)->ofTypes(...))` returns the matching events
   and a ready-made `AppendCondition` for `$eventStore->appendTo($stream, $events, $condition)`. Appending no events
-  is a no-op on every store: the condition is not checked, even when stale. **An append bumps exactly the tags its
-  events carry; every other tag of its condition is checked, not bumped** — the append still fails if that tag moved
-  since the load, but it does not move it for the next reader, because only an event carrying a tag can change what
-  a criterion on that tag matches. Several criteria
+  is a no-op on every store: the condition is not checked, even when stale. A tag of the condition that no appended
+  event carries is checked, not bumped, and a carried tag outside the condition is incremented — see "What an append
+  does to each counter" above. Several criteria
   combine with `->or(...)`; narrow each one with `andTag()`/`ofTypes()` before combining — calling either on an
   `or()` combination throws `InvalidArgumentException`.
 - **Fully shipped, including the DBAL-backed store.** `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,

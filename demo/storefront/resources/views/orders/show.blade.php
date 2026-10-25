@@ -57,6 +57,10 @@
             <p><code>{{ $order['paymentReference'] }}</code> · {{ $paymentStatus ?? 'unknown' }}</p>
         @endif
 
+        @if (($concert['status'] ?? null) === 'on_sale')
+            @include('rushes.panel', ['concertId' => $order['concertId']])
+        @endif
+
         @switch($order['status'])
             @case('started')
                 <p><a href="{{ url('/concerts/' . $order['concertId']) }}">Pick seats</a></p>

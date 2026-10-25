@@ -85,6 +85,11 @@
 
     async function refresh() {
         if (orderId === null) {
+            const taken = await fetch(picker.dataset.takenSeatsUrl, { headers: { Accept: 'application/json' } });
+            if (taken.ok) {
+                picker.dataset.takenSeatIds = JSON.stringify((await taken.json()).takenSeatIds);
+                render();
+            }
             return;
         }
         const response = await fetch(ordersUrl + '/' + orderId + '/state.json', { headers: { Accept: 'application/json' } });

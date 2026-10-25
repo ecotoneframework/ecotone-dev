@@ -14,9 +14,12 @@
         @elseif ($concert['status'] === 'on_sale' && $customer === null)
             <p class="notice"><a href="{{ url('/whoami') }}">Pick who you are</a> to choose seats.</p>
         @endif
+        @if ($concert['status'] === 'on_sale')
+            @include('rushes.panel', ['concertId' => $concert['concertId']])
+        @endif
         @if ($picksSeats)
             <div class="seat-picker-layout">
-                <div class="seat-picker" data-seat-picker data-order-id="{{ $openOrderId }}" data-start-order-url="{{ url('/concerts/' . $concert['concertId'] . '/orders') }}" data-orders-url="{{ url('/orders') }}" data-taken-seat-ids="{{ json_encode($takenSeatIds) }}">
+                <div class="seat-picker" data-seat-picker data-order-id="{{ $openOrderId }}" data-start-order-url="{{ url('/concerts/' . $concert['concertId'] . '/orders') }}" data-orders-url="{{ url('/orders') }}" data-taken-seats-url="{{ url('/concerts/' . $concert['concertId'] . '/taken-seats.json') }}" data-taken-seat-ids="{{ json_encode($takenSeatIds) }}">
                     <p class="muted">Click a free seat to hold it, click one of yours to let it go. A customer holds at most 4 seats per concert.</p>
                     @include('concerts.seat-sections', ['interactive' => true])
                     <p class="legend">

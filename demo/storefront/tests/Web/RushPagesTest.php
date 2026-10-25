@@ -134,7 +134,8 @@ final class RushPagesTest extends TestCase
 
         $response->assertOk();
         $response->assertExactJson(['takenSeatIds' => [self::CONCERT_ID . '/B-1']]);
-        $this->get('/concerts/' . self::CONCERT_ID)->assertSee('data-taken-seats-url="http://localhost/concerts/' . self::CONCERT_ID . '/taken-seats.json"', escape: false);
+        $adaId = $this->app->make(CommandBus::class)->send(new RegisterCustomer(name: 'Ada Lovelace', email: 'ada@example.com'));
+        $this->withCookie(self::CUSTOMER_COOKIE, $adaId)->get('/concerts/' . self::CONCERT_ID)->assertSee('data-taken-seats-url="http://localhost/concerts/' . self::CONCERT_ID . '/taken-seats.json"', escape: false);
     }
 
     public function test_the_state_of_a_rush_never_started_is_not_found(): void

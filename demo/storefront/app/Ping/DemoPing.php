@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Ping;
 
 use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\ConsoleParameterOption;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Reference;
@@ -17,7 +18,7 @@ final class DemoPing
     private const PING_ID_HEADER = 'demo_ping_id';
 
     #[ConsoleCommand('demo:ping')]
-    public function ping(ConsoleWriter $writer, #[Reference] DistributedBus $distributedBus, #[Reference] PongLog $pongLog, int $waitSeconds = 5): void
+    public function ping(ConsoleWriter $writer, #[Reference] DistributedBus $distributedBus, #[Reference] PongLog $pongLog, #[ConsoleParameterOption] int $waitSeconds = 5): void
     {
         $pingId = Uuid::v7()->toRfc4122();
         $distributedBus->sendMessage('ticketing', 'demo.ping', 'storefront', metadata: [self::PING_ID_HEADER => $pingId], replyRoutingKey: 'demo.pong');

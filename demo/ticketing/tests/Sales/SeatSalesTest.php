@@ -456,6 +456,28 @@ final class SeatSalesTest extends KernelTestCase
         $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
     }
 
+    public function test_confirming_a_hold_that_expired_and_another_customer_held_since_is_refused_and_leaves_the_seat_held(): void
+    {
+        $ticketing = $this->ticketing();
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $nextOrder = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->changeTimeTo(new DateTimeImmutable('2026-10-25 12:10:00'));
+        $this->hold($ticketing, $nextOrder, $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        $ticketing->discardRecordedMessages();
+
+        try {
+            $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+            self::fail('Confirming an expired hold was expected to be refused.');
+        } catch (SeatRefusal $refusal) {
+            self::assertSame("Order {$orderId} cannot buy seat {$concertId}/A-1, because its hold expired at 2026-10-25T12:10:00+00:00. Hold the seat again, then confirm the order again; nothing of the order was sold.", $refusal->getMessage());
+        }
+        self::assertSame([], $ticketing->popRecordedEventsOfType(SeatSold::class));
+        self::assertEquals(['orderId' => $nextOrder, 'expiresAt' => new DateTimeImmutable('2026-10-25 12:20:00')], $ticketing->sendQuery(new FindSeatHold($concertId . '/A-1')));
+    }
+
     public function test_confirming_seats_already_sold_to_the_order_is_refused(): void
     {
         $ticketing = $this->ticketing();

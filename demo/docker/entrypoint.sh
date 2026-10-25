@@ -72,13 +72,16 @@ fi
 case "$role" in
     web)
         deadline=$(( $(date +%s) + 60 ))
-        until prepare; do
+        prepare_log=/tmp/demo-prepare.log
+        until prepare >"$prepare_log" 2>&1; do
             if [ "$(date +%s)" -ge "$deadline" ]; then
-                echo "Demo: $DEMO_APP could not set up its database tables within 60 seconds. Check that postgres is healthy (docker compose -f demo/docker-compose.yml ps postgres) and the connection settings in demo/docker-compose.yml, then restart the container." >&2
+                cat "$prepare_log" >&2
+                echo "Demo: $DEMO_APP could not set up its database tables within 60 seconds. The last attempt failed with the error above: fix a broken migration, licence or PHP error it names, or, when it is a connection error, check that postgres is healthy (docker compose -f demo/docker-compose.yml ps postgres) and the connection settings in demo/docker-compose.yml, then restart the container." >&2
                 exit 1
             fi
             sleep 2
         done
+        cat "$prepare_log"
         export DEMO_PUBLIC_DIR="$PWD/public"
         exec frankenphp run --config /etc/caddy/Caddyfile
         ;;

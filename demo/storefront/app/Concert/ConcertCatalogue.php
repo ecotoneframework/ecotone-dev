@@ -18,8 +18,11 @@ interface ConcertCatalogue
         SQL)]
     public function schedule(string $concertId, string $artist, string $venueName, string $startsAt, string $currency, int $standardPriceCents, int $vipPriceCents, string $seats): void;
 
-    #[DbalWrite('UPDATE concerts SET status = :status WHERE concert_id = :concertId')]
-    public function changeStatus(string $concertId, string $status): void;
+    #[DbalWrite("UPDATE concerts SET status = 'on_sale' WHERE concert_id = :concertId")]
+    public function openSales(string $concertId): int;
+
+    #[DbalWrite("UPDATE concerts SET status = 'cancelled' WHERE concert_id = :concertId")]
+    public function cancel(string $concertId): int;
 
     #[DbalQuery(<<<'SQL'
         SELECT concert_id, artist, venue_name, starts_at, currency, standard_price_cents, vip_price_cents, status

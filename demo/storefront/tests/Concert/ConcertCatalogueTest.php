@@ -10,6 +10,7 @@ use App\Infrastructure\EcotoneConfiguration;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Tools\DsnParser;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -144,6 +145,44 @@ final class ConcertCatalogueTest extends TestCase
         $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertCount(1, $storefront->sendQueryWithRouting('concerts.list'));
+    }
+
+    public function test_opening_sales_for_a_concert_never_scheduled_is_refused(): void
+    {
+        $storefront = $this->storefront();
+        $this->publish($this->ticketing(), 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+
+        $this->expectExceptionMessage(sprintf('Concert %s is not in the storefront catalogue, so concert.sales_opened cannot put it on sale.', self::NIGHT_CONCERT));
+
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+    }
+
+    public function test_cancelling_a_concert_never_scheduled_is_refused(): void
+    {
+        $storefront = $this->storefront();
+        $this->publish($this->ticketing(), 'concert.cancelled', ['concertId' => self::NIGHT_CONCERT]);
+
+        $this->expectExceptionMessage(sprintf('Concert %s is not in the storefront catalogue, so concert.cancelled cannot cancel it.', self::NIGHT_CONCERT));
+
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+    }
+
+    public function test_sales_opened_before_the_concert_is_scheduled_goes_on_sale_once_replayed_after_the_schedule(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+        $deadLetter = $storefront->getGateway(DeadLetterGateway::class);
+        $deadLetter->deleteAll();
+
+        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+        $deadLetter->replayAll();
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame('on_sale', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
+        self::assertSame(0, $deadLetter->count());
     }
 
     private function scheduled(string $concertId, string $artist, string $startsAt): array

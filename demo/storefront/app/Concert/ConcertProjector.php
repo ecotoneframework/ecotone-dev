@@ -6,6 +6,7 @@ namespace App\Concert;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use DomainException;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
@@ -35,14 +36,18 @@ final class ConcertProjector
     #[EventHandler('concert.sales_opened')]
     public function whenSalesOpened(array $event, #[Reference] ConcertCatalogue $catalogue): void
     {
-        $catalogue->changeStatus($event['concertId'], 'on_sale');
+        if ($catalogue->openSales($event['concertId']) === 0) {
+            throw $this->notInCatalogue($event['concertId'], 'concert.sales_opened', 'put it on sale');
+        }
     }
 
     #[Distributed]
     #[EventHandler('concert.cancelled')]
     public function whenCancelled(array $event, #[Reference] ConcertCatalogue $catalogue): void
     {
-        $catalogue->changeStatus($event['concertId'], 'cancelled');
+        if ($catalogue->cancel($event['concertId']) === 0) {
+            throw $this->notInCatalogue($event['concertId'], 'concert.cancelled', 'cancel it');
+        }
     }
 
     #[QueryHandler('concerts.list')]
@@ -60,6 +65,17 @@ final class ConcertProjector
         }
 
         return [...$this->summary($row), 'sections' => $this->sections(json_decode($row['seats'], true, flags: JSON_THROW_ON_ERROR))];
+    }
+
+    private function notInCatalogue(string $concertId, string $eventName, string $change): DomainException
+    {
+        return new DomainException(sprintf(
+            'Concert %s is not in the storefront catalogue, so %s cannot %s. A concert enters the catalogue with concert.scheduled, which has to arrive first: replay concert.scheduled for this concert from ticketing, then replay this %s message from the dbal_dead_letter.',
+            $concertId,
+            $eventName,
+            $change,
+            $eventName,
+        ));
     }
 
     private function summary(array $row): array

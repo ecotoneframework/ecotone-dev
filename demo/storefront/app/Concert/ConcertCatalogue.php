@@ -24,6 +24,12 @@ interface ConcertCatalogue
     #[DbalWrite("UPDATE concerts SET status = 'cancelled' WHERE concert_id = :concertId")]
     public function cancel(string $concertId): int;
 
+    #[DbalWrite('UPDATE concerts SET standard_price_cents = :standardPriceCents, vip_price_cents = :vipPriceCents WHERE concert_id = :concertId')]
+    public function changePrices(string $concertId, int $standardPriceCents, int $vipPriceCents): int;
+
+    #[DbalWrite("UPDATE concerts SET status = CASE WHEN status = 'cancelled' THEN status ELSE 'sold_out' END WHERE concert_id = :concertId")]
+    public function markSoldOut(string $concertId): int;
+
     #[DbalQuery(<<<'SQL'
         SELECT concert_id, artist, venue_name, starts_at, currency, standard_price_cents, vip_price_cents, status
         FROM concerts ORDER BY status = 'on_sale' DESC, starts_at, artist

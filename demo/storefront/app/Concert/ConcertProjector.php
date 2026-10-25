@@ -59,6 +59,24 @@ final class ConcertProjector
         }
     }
 
+    #[Distributed]
+    #[EventHandler('concert.prices_changed')]
+    public function whenPricesChanged(array $event, #[Reference] ConcertCatalogue $catalogue): void
+    {
+        if ($catalogue->changePrices(concertId: $event['concertId'], standardPriceCents: $event['tiers']['standard'], vipPriceCents: $event['tiers']['vip']) === 0) {
+            throw $this->notInCatalogue($event['concertId'], 'concert.prices_changed', 'change its prices');
+        }
+    }
+
+    #[Distributed]
+    #[EventHandler('concert.sold_out')]
+    public function whenSoldOut(array $event, #[Reference] ConcertCatalogue $catalogue): void
+    {
+        if ($catalogue->markSoldOut($event['concertId']) === 0) {
+            throw $this->notInCatalogue($event['concertId'], 'concert.sold_out', 'mark it sold out');
+        }
+    }
+
     #[QueryHandler('concerts.list')]
     public function list(#[Reference] ConcertCatalogue $catalogue): array
     {

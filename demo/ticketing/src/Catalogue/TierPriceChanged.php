@@ -10,6 +10,8 @@ final readonly class TierPriceChanged
         public string $concertId,
         public Tier $tier,
         public int $priceCents,
+        public int $standardPriceCents,
+        public int $vipPriceCents,
     ) {
     }
 }

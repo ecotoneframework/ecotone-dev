@@ -191,6 +191,20 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         self::assertSame(0, $ticketing->sendQueryWithRouting('concert.sales', $this->concertIdOf($ticketing, 'The Midnight Owls'))['seatsSold']);
     }
 
+    public function test_seeding_only_the_demo_catalogue_schedules_the_concerts_and_sells_no_seat(): void
+    {
+        $ticketing = $this->ticketing();
+
+        $ticketing->runConsoleCommand('demo:seed', ['catalogueOnly' => true]);
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame([], $ticketing->popRecordedEventsOfType(SeatHeld::class));
+        self::assertSame(0, $ticketing->sendQueryWithRouting('concert.sales', $this->concertIdOf($ticketing, 'Neon Harbour'))['seatsSold']);
+        self::assertSame('on_sale', $this->statusOf($ticketing, $this->concertIdOf($ticketing, 'Neon Harbour')));
+        self::assertSame('on_sale', $this->statusOf($ticketing, $this->concertIdOf($ticketing, 'The Midnight Owls')));
+        self::assertSame('scheduled', $this->statusOf($ticketing, $this->concertIdOf($ticketing, 'Aurora Strings')));
+    }
+
     public function test_seeding_the_demo_again_sells_no_further_seat(): void
     {
         $ticketing = $this->ticketing();

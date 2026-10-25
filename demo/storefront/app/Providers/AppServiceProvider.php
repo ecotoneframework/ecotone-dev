@@ -10,6 +10,7 @@ use Ecotone\Api\Amqp\AmqpExtConnectionFactory;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\View as RenderedView;
+use OpenTelemetry\API\Trace\NoopTracerProvider;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 
 final class AppServiceProvider extends ServiceProvider
@@ -17,7 +18,9 @@ final class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(AmqpExtConnectionFactory::class, fn () => new AmqpExtConnectionFactory(config('demo.amqp_dsn')));
-        $this->app->singleton(TracerProviderInterface::class, fn () => OtlpTracerProviderFactory::create(config('demo.otlp_endpoint'), 'storefront'));
+        $this->app->singleton(TracerProviderInterface::class, $this->app->environment('testing')
+            ? fn () => new NoopTracerProvider()
+            : fn () => OtlpTracerProviderFactory::create(config('demo.otlp_endpoint'), 'storefront'));
     }
 
     public function boot(): void

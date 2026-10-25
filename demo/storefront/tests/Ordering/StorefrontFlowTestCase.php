@@ -12,6 +12,7 @@ use App\Ordering\Order;
 use App\Ordering\OrderQueries;
 use App\Ordering\StartOrder;
 use App\Ordering\TicketingRequests;
+use App\Payment\PaymentAttempts;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\Header;
@@ -121,7 +122,9 @@ abstract class StorefrontFlowTestCase extends TestCase
         $this->app->instance($repository::class, $repository);
         $services = [...self::STOREFRONT_SERVICES, ...$this->storefrontServices()];
         foreach ($services as $service) {
-            if (! interface_exists($service)) {
+            if (interface_exists($service)) {
+                $this->app->bind($service, fn () => $this->storefront->getGateway($service));
+            } else {
                 $this->app->singleton($service);
             }
         }
@@ -129,7 +132,11 @@ abstract class StorefrontFlowTestCase extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [...$services, $repository::class],
             containerOrAvailableServices: $this->app,
-            extensionObjects: [...$this->channels, LaravelConnectionReference::defaultConnection('pgsql')],
+            extensionObjects: [
+                ...$this->channels,
+                LaravelConnectionReference::defaultConnection('pgsql'),
+                LaravelConnectionReference::create('payment_provider', PaymentAttempts::CONNECTION),
+            ],
             pathToRootCatalog: dirname(__DIR__, 2),
             addInMemoryStateStoredRepository: false,
             licenceKey: LicenceTesting::VALID_LICENCE,

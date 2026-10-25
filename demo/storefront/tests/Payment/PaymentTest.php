@@ -8,6 +8,7 @@ use App\Ordering\FailOrder;
 use App\Ordering\MarkSeatHeld;
 use App\Payment\Checkout;
 use App\Payment\Pay;
+use App\Payment\PaymentAttempts;
 use App\Payment\PaymentProvider;
 use DomainException;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
@@ -30,7 +31,7 @@ final class PaymentTest extends StorefrontFlowTestCase
 
     protected function storefrontServices(): array
     {
-        return [Checkout::class, PaymentProvider::class];
+        return [Checkout::class, PaymentProvider::class, PaymentAttempts::class];
     }
 
     public function test_paying_moves_the_order_to_paying_until_the_card_is_charged(): void

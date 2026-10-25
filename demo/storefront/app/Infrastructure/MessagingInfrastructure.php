@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure;
 
+use App\Payment\PaymentAttempts;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Attribute\ConfigurationVariable;
 use Ecotone\Api\Attribute\ServiceContext;
@@ -17,6 +18,12 @@ final class MessagingInfrastructure
     public function databaseConnection(): LaravelConnectionReference
     {
         return LaravelConnectionReference::defaultConnection('pgsql');
+    }
+
+    #[ServiceContext]
+    public function paymentProviderConnection(): LaravelConnectionReference
+    {
+        return LaravelConnectionReference::create('payment_provider', PaymentAttempts::CONNECTION);
     }
 
     #[ServiceContext]

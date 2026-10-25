@@ -15,7 +15,6 @@ ENV COMPOSER_HOME=/tmp/composer \
 RUN printf 'opcache.enable_cli=0\nopcache.validate_timestamps=1\nopcache.revalidate_freq=0\nmemory_limit=512M\n' > "$PHP_INI_DIR/conf.d/zz-demo.ini"
 
 COPY demo/docker/Caddyfile /etc/caddy/Caddyfile
-COPY apps/Pulse/docker/entrypoint.sh /usr/local/bin/pulse-entrypoint
 
 EXPOSE 8080
 

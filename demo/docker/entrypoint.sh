@@ -48,7 +48,7 @@ fi
 if [ "$DEMO_APP" = pulse ]; then
     php bin/console importmap:install
     export DEMO_PUBLIC_DIR="$PWD/public"
-    exec pulse-entrypoint run
+    exec /repo/apps/Pulse/docker/entrypoint.sh run
 fi
 
 if [ "$DEMO_APP" = ticketing ]; then

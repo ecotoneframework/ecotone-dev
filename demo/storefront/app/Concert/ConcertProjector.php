@@ -20,6 +20,15 @@ final class ConcertProjector
     #[EventHandler('concert.scheduled')]
     public function whenScheduled(array $event, #[Reference] ConcertCatalogue $catalogue): void
     {
+        foreach ($event['seats'] as $seat) {
+            if (SeatCode::rowAndNumber($seat['seatCode']) === null) {
+                throw new DomainException(sprintf(
+                    'concert.scheduled for concert %s names seat code "%s", which is not ROW-NUMBER like "A-1", so the storefront cannot place the seat in its row. Correct the seat code in ticketing and publish concert.scheduled for this concert again, then delete this message from the dbal_dead_letter.',
+                    $event['concertId'],
+                    $seat['seatCode'],
+                ));
+            }
+        }
         $catalogue->schedule(
             concertId: $event['concertId'],
             artist: $event['artist'],
@@ -94,12 +103,12 @@ final class ConcertProjector
 
     private function sections(array $seats): array
     {
-        usort($seats, fn (array $left, array $right) => [array_search($left['tier'], self::TIER_ORDER, true), ...$this->rowAndNumber($left['seatCode'])]
-            <=> [array_search($right['tier'], self::TIER_ORDER, true), ...$this->rowAndNumber($right['seatCode'])]);
+        usort($seats, fn (array $left, array $right) => [array_search($left['tier'], self::TIER_ORDER, true), ...SeatCode::rowAndNumber($left['seatCode'])]
+            <=> [array_search($right['tier'], self::TIER_ORDER, true), ...SeatCode::rowAndNumber($right['seatCode'])]);
 
         $sections = [];
         foreach ($seats as $seat) {
-            $sections[$seat['tier']][$this->rowAndNumber($seat['seatCode'])[0]][] = $seat;
+            $sections[$seat['tier']][SeatCode::rowAndNumber($seat['seatCode'])[0]][] = $seat;
         }
 
         return array_values(array_map(
@@ -107,12 +116,5 @@ final class ConcertProjector
             array_keys($sections),
             $sections,
         ));
-    }
-
-    private function rowAndNumber(string $seatCode): array
-    {
-        [$row, $number] = explode('-', $seatCode, 2);
-
-        return [$row, (int) $number];
     }
 }

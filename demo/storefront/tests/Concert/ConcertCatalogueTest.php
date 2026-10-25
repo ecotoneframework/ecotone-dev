@@ -262,6 +262,18 @@ final class ConcertCatalogueTest extends TestCase
         );
     }
 
+    public function test_a_schedule_with_a_seat_code_that_is_not_row_and_number_is_refused(): void
+    {
+        $storefront = $this->storefront();
+        $scheduled = $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00');
+        $scheduled['seats'][] = ['seatId' => self::NIGHT_CONCERT . '/A3', 'seatCode' => 'A3', 'tier' => 'vip'];
+        $this->publish($this->ticketing(), 'concert.scheduled', $scheduled);
+
+        $this->expectExceptionMessage(sprintf('concert.scheduled for concert %s names seat code "A3", which is not ROW-NUMBER like "A-1", so the storefront cannot place the seat in its row.', self::NIGHT_CONCERT));
+
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+    }
+
     private function scheduled(string $concertId, string $artist, string $startsAt, array $tiers = ['standard' => 4500, 'vip' => 12000]): array
     {
         return [

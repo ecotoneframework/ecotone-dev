@@ -17,7 +17,7 @@
                         <tr>
                             <td><code>{{ $order['orderId'] }}</code></td>
                             <td>{{ $order['artist'] }}</td>
-                            <td>{{ implode(', ', array_map(fn (string $seatId) => substr($seatId, strrpos($seatId, '/') + 1), $order['seatIds'])) }}</td>
+                            <td>{{ implode(', ', array_map(\App\Concert\SeatCode::ofSeatId(...), $order['seatIds'])) }}</td>
                             <td class="status">{{ $order['status'] }}</td>
                         </tr>
                     @endforeach

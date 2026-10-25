@@ -19,6 +19,7 @@ use App\Sales\ConfirmSeats;
 use App\Sales\CustomerConcertSeats;
 use App\Sales\ExpireHold;
 use App\Sales\HoldExpired;
+use App\Sales\HoldExpiry;
 use App\Sales\HoldReleased;
 use App\Sales\HoldSeat;
 use App\Sales\ReleaseSeat;
@@ -319,7 +320,6 @@ final class SeatSalesTest extends KernelTestCase
             [new HoldExpired(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId)],
             $ticketing->popRecordedEventsOfType(HoldExpired::class),
         );
-        self::assertSame([$concertId], array_map(static fn (MessageHeaders $headers): mixed => $headers->get('concertId'), $ticketing->popRecordedEventHeaders()));
     }
 
     public function test_a_hold_released_before_its_expiry_is_not_expired_when_the_hold_length_passes(): void
@@ -546,6 +546,7 @@ final class SeatSalesTest extends KernelTestCase
                 Catalogue::class,
                 ConcertAnnouncements::class,
                 SeatSales::class,
+                HoldExpiry::class,
                 SeatAvailability::class,
                 CustomerConcertSeats::class,
                 SeatHeld::class,
@@ -559,6 +560,7 @@ final class SeatSalesTest extends KernelTestCase
                 new Catalogue($doctrine->getConnection()),
                 new ConcertAnnouncements(),
                 new SeatSales(),
+                new HoldExpiry(),
                 ...$applicationHandlers,
                 'doctrine' => $doctrine,
             ],

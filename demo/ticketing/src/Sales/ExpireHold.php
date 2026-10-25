@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Sales;
 
+use DateTimeImmutable;
+
 final readonly class ExpireHold
 {
     public function __construct(
@@ -11,6 +13,7 @@ final readonly class ExpireHold
         public string $concertId,
         public string $seatId,
         public string $customerId,
+        public DateTimeImmutable $expiresAt,
     ) {
     }
 }

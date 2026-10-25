@@ -168,7 +168,7 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
         $customerId = Uuid::v7()->toRfc4122();
         $ticketing->getCommandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
 
-        $ticketing->getCommandBus()->send(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->getCommandBus()->send(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
 
         self::assertSame(1, $this->announcementsWaitingOnTheTransport());
         self::assertSame([], $this->receivedByStorefront($storefront));

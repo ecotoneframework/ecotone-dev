@@ -104,7 +104,7 @@ final class SeatSales
     #[CommandHandler]
     public function expire(ExpireHold $command, SeatAvailability $seat): array
     {
-        if ($seat->holdingOrderId() !== $command->orderId) {
+        if ($seat->holdingOrderId() !== $command->orderId || $seat->heldUntil() != $command->expiresAt) {
             return [];
         }
 

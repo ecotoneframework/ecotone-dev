@@ -21,7 +21,7 @@ final class HoldExpiry
     public function whenDue(SeatHeld $event, CommandBus $commandBus): void
     {
         $commandBus->send(
-            new ExpireHold(orderId: $event->orderId, concertId: $event->concertId, seatId: $event->seatId, customerId: $event->customerId),
+            new ExpireHold(orderId: $event->orderId, concertId: $event->concertId, seatId: $event->seatId, customerId: $event->customerId, expiresAt: $event->expiresAt),
             metadata: ['concertId' => $event->concertId],
         );
     }

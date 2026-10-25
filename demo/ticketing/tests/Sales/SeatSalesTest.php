@@ -258,7 +258,7 @@ final class SeatSalesTest extends KernelTestCase
         $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
         $ticketing->discardRecordedMessages();
 
-        $ticketing->sendCommand(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
         $this->hold($ticketing, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
 
         self::assertEquals(
@@ -278,7 +278,7 @@ final class SeatSalesTest extends KernelTestCase
         $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
         $ticketing->discardRecordedMessages();
 
-        $ticketing->sendCommand(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
 
         self::assertSame([], $ticketing->popRecordedEvents());
     }
@@ -295,7 +295,7 @@ final class SeatSalesTest extends KernelTestCase
         $this->hold($ticketing, $nextOrder, $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
         $ticketing->discardRecordedMessages();
 
-        $ticketing->sendCommand(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
 
         self::assertSame([], $ticketing->popRecordedEvents());
         $this->expectException(SeatRefusal::class);

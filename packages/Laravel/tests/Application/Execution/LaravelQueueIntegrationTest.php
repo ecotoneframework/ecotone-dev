@@ -21,6 +21,7 @@ use Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\AsyncCommandHandler;
 use Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\AsyncEventHandler;
 use Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\ExampleCommand;
 use Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\ExampleEvent;
+use Test\Ecotone\Laravel\RestoresLaravelHandlers;
 
 /**
  * @internal
@@ -31,6 +32,8 @@ use Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\ExampleEvent;
  */
 final class LaravelQueueIntegrationTest extends TestCase
 {
+    use RestoresLaravelHandlers;
+
     public function setUp(): void
     {
         $this->getContainer();

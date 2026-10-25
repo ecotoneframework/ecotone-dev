@@ -17,6 +17,7 @@ use Psr\Log\AbstractLogger;
 use Psr\Log\NullLogger;
 use RuntimeException;
 use Stringable;
+use Test\Ecotone\Laravel\RestoresLaravelHandlers;
 
 /**
  * licence Apache-2.0
@@ -25,6 +26,8 @@ use Stringable;
 #[RunTestsInSeparateProcesses]
 final class HeadersInLogContextTest extends TestCase
 {
+    use RestoresLaravelHandlers;
+
     public function test_headers_listed_in_a_service_context_are_in_the_log_context(): void
     {
         $logger = new class () extends AbstractLogger {

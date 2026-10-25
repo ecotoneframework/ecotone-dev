@@ -7,12 +7,15 @@ namespace Test\Ecotone\Laravel\MultiTenant;
 use Ecotone\Messaging\Support\LicensingException;
 use Illuminate\Foundation\Http\Kernel;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Laravel\RestoresLaravelHandlers;
 
 /**
  * @internal
  */
 final class MultiTenantLicensingTest extends TestCase
 {
+    use RestoresLaravelHandlers;
+
     protected function tearDown(): void
     {
         putenv('LARAVEL_LICENCE_KEY');

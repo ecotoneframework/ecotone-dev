@@ -12,6 +12,7 @@ use Ecotone\Test\LicenceTesting;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Laravel\RestoresLaravelHandlers;
 
 /**
  * licence Enterprise
@@ -35,6 +36,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class LicenceTest extends TestCase
 {
+    use RestoresLaravelHandlers;
+
     private Application $app;
     private QueryBus $queryBus;
     private CommandBus $commandBus;

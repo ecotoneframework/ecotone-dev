@@ -132,6 +132,30 @@ use Ecotone\Api\Projecting\Partitioned;
 
 Per-aggregate-instance position tracking. NOT compatible with multiple `#[FromStream]` attributes.
 
+Events a `#[DecisionModel]` appends belong to no aggregate; partition them by a tag's value instead (Enterprise):
+
+```php
+use Ecotone\Api\Projecting\FromTaggedStream;
+use Ecotone\Api\Projecting\PartitionTagValue;
+
+#[Projection('concert_seats'), FromTaggedStream('concert'), Partitioned]
+final class ConcertSeats
+{
+    #[EventHandler]
+    public function whenReserved(SeatReserved $event, #[PartitionTagValue] string $concertId): void {}
+
+    #[ProjectionReset]
+    public function reset(#[PartitionTagValue] string $concertId): void {}  // a rebuild resets one concert at a time
+}
+```
+
+One partition per value of the `concert` tag (`#[EventTag('concert')]` on the events), read in tag-sequence order from
+any stream; an array-valued tag reaches each value's partition once. Rebuild, backfill, `#[ProjectionState]`,
+`#[ProjectionStateGateway]` (argument = the tag value) and Pulse work as for aggregate partitions. Refused at bootstrap:
+without `#[Partitioned]` (use `#[FromStream]` for a global projection), `#[Partitioned('header')]`, a second
+`#[FromTaggedStream]` or another source beside it, a tag no event declares, a filter-only tag, `#[Streaming]`,
+`#[Polling]`, `manualKickOff: true`.
+
 ## 3. Event Versioning
 
 ```php
@@ -223,6 +247,8 @@ final class OrderService {
 - Without any class: `$eventStore->loadByCriteria(EventCriteria::tag('coupon', $code))` returns the matching events
   and a ready-made `AppendCondition` for `$eventStore->appendTo($stream, $events, $condition)` -- `$eventStore` is
   the `EventStore` gateway/container reference, an OR of criteria is `EventCriteria::tag(...)->or(EventCriteria::tag(...))`.
+  Page a tag with `->afterTagSequence($last)->limit($count)`: events appended together share one tag sequence, so a page
+  never splits them and may hold more than `$count`; `limit()` is refused on an `or()` combination.
 - **Nothing retries automatically.** Configure `InstantRetryConfiguration::createWithDefaults()
   ->withCommandBusRetry(true, 3, [DecisionModelConcurrencyException::class])` (or Enterprise `#[InstantRetry]`) --
   without it, a real conflict surfaces to the caller as a technical exception instead of the business answer the
@@ -244,7 +270,7 @@ final class OrderService {
 
 ## Key Rules
 
-- Every projection needs at least one `#[FromStream]`/`#[FromAggregateStream]` -- there is no "from all streams" option; a forgotten filter is a bootstrap error, not a silent full-log scan
+- Every projection needs at least one `#[FromStream]`/`#[FromAggregateStream]`/`#[FromTaggedStream]` -- there is no "from all streams" option; a forgotten filter is a bootstrap error, not a silent full-log scan
 - Partitioned projections cannot use multiple streams
 - `#[FromAggregateStream]` requires an `#[EventSourcingAggregate]` class
 - Projection names must be unique

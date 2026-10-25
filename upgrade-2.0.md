@@ -233,6 +233,60 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
 - `EventSourcingConfiguration`'s projection-table-name and projection-manager-reference configuration are
   removed; only event-store-meaningful configuration remains.
 
+### Projections partitioned by a tag's value: `#[FromTaggedStream]` (Enterprise)
+
+**Before:** `#[Partitioned]` partitioned a projection only by aggregate: a projection over events a
+`#[DecisionModel]` handler appends — events that belong to no aggregate — was refused with `Aggregate type must be
+provided for projection X as partition header name is provided`, so it could only be global.
+
+**Now:** `#[FromTaggedStream('concert')]` (`Ecotone\Api\Projecting\FromTaggedStream`) with `#[Partitioned]` keeps one
+partition per value of the `concert` tag. A partition reads every event carrying that value, from whichever stream
+appended it, in the tag's sequence order, and resumes from the last tag sequence it projected. A published event
+reaches the partition named by its own `#[EventTag('concert')]` value; an array-valued tag reaches each of its values
+once. `#[PartitionTagValue]` (`Ecotone\Api\Projecting\PartitionTagValue`) gives a handler, and the
+`#[ProjectionReset]` a rebuild calls per partition, the value it runs for. Rebuild, backfill, `#[ProjectionState]` per
+partition, `#[ProjectionStateGateway]` (its argument is the tag value) and Pulse's projection operations work as for
+aggregate partitions, on the in-memory store and on DBAL (PostgreSQL, MySQL, MariaDB, SQLite), where the partitions
+are the tag's distinct values in the tag index.
+
+```php
+#[Projection('concert_seats')]
+#[FromTaggedStream('concert')]
+#[Partitioned]
+final class ConcertSeats
+{
+    #[EventHandler]
+    public function whenReserved(SeatReserved $event, #[ProjectionState] array $state = []): array
+    {
+        $state['reserved'][] = $event->seatId;
+
+        return $state;
+    }
+
+    #[ProjectionReset]
+    public function reset(#[PartitionTagValue] string $concertId): void
+    {
+        // forget only this concert's rows: a rebuild resets and replays one concert at a time
+    }
+}
+```
+
+Refused at bootstrap, each naming the way out: `#[FromTaggedStream]` without `#[Partitioned]` (use `#[FromStream]`
+for a global projection), with `#[Partitioned('header')]`, twice on one projection or beside `#[FromStream]`/
+`#[FromAggregateStream]`, over a tag no event declares with `#[EventTag]`, over a filter-only tag
+(`DynamicConsistencyBoundaryConfiguration::withFilterOnlyTags()` — its sequence is always 0, so it cannot position a
+partition), with `#[Streaming]`, `#[Polling]` or `#[ProjectionDeployment(manualKickOff: true)]`, and without an
+Enterprise licence (`LicensingException`).
+
+The partitions read through `EventStore::loadByCriteria()`, which gained `EventCriteria::limit(int $count)`: a limited
+criterion loads its first events in tag-sequence order and `afterTagSequence()` is its cursor. Events appended
+together share their tag's sequence, so a page never splits them — it completes the last sequence it reaches and may
+hold more than `$count` events. `limit()` is refused on an `or()` combination.
+
+**How to adapt:** nothing changes for existing projections. A projection over decision-model events that worked around
+the refusal with a global `#[FromStream]` and a per-concert read model can become `#[FromTaggedStream('concert')]`
+`#[Partitioned]` and drop the bookkeeping.
+
 ## 4. Event Store: Ecotone owns the store, one event stream table by default
 
 **Before:** `ecotone/pdo-event-sourcing` wrapped `prooph/pdo-event-store`. Every stream name was hashed into its own

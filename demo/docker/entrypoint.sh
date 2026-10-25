@@ -73,12 +73,15 @@ case "$role" in
     web)
         deadline=$(( $(date +%s) + 60 ))
         prepare_log=/tmp/demo-prepare.log
+        attempt=1
         until prepare >"$prepare_log" 2>&1; do
             if [ "$(date +%s)" -ge "$deadline" ]; then
                 cat "$prepare_log" >&2
                 echo "Demo: $DEMO_APP could not set up its database tables within 60 seconds. The last attempt failed with the error above: fix a broken migration, licence or PHP error it names, or, when it is a connection error, check that postgres is healthy (docker compose -f demo/docker-compose.yml ps postgres) and the connection settings in demo/docker-compose.yml, then restart the container." >&2
                 exit 1
             fi
+            echo "Demo: $DEMO_APP is waiting to set up its database tables, attempt $attempt failed. Retrying in 2 seconds, for up to $(( deadline - $(date +%s) )) more seconds; the last error is printed if it gives up."
+            attempt=$(( attempt + 1 ))
             sleep 2
         done
         cat "$prepare_log"

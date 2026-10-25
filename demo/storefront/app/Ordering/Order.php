@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ordering;
 
+use App\Concert\SeatCode;
 use DomainException;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -55,6 +56,9 @@ final class Order extends Model
         $this->assertAccepts('MarkSeatsHeld', OrderStatus::STARTED, OrderStatus::SEATS_HELD);
         if ($command->seatIds === []) {
             throw new DomainException(sprintf('MarkSeatsHeld for order %s names no seats, so it cannot move the order to seats_held. Send it with at least one seat id of concert %s, e.g. "%s/A-1".', $this->id, $this->concert_id, $this->concert_id));
+        }
+        foreach ($command->seatIds as $seatId) {
+            SeatCode::ofSeatId($seatId);
         }
         $this->seat_ids = array_values(array_unique([...$this->seat_ids, ...$command->seatIds]));
         $this->status = OrderStatus::SEATS_HELD;

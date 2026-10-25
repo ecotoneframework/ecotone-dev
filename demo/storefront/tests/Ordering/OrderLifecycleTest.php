@@ -177,6 +177,27 @@ final class OrderLifecycleTest extends TestCase
         $this->commandBus()->send(new MarkSeatsHeld(orderId: $orderId, seatIds: []));
     }
 
+    #[DataProvider('malformedSeatIds')]
+    public function test_holding_a_seat_id_that_is_not_concert_and_seat_code_is_refused_and_leaves_the_order_started(string $seatId): void
+    {
+        $orderId = $this->startOrder();
+
+        try {
+            $this->commandBus()->send(new MarkSeatsHeld(orderId: $orderId, seatIds: [self::CONCERT_ID . '/A-1', $seatId]));
+            self::fail('MarkSeatsHeld was accepted');
+        } catch (DomainException $exception) {
+            self::assertSame(sprintf('Seat id "%s" is not CONCERT-ID/ROW-NUMBER, so its seat code cannot be read. Send the concert id, a slash and the seat code concert.scheduled published for the seat, like "{concert id}/A-1".', $seatId), $exception->getMessage());
+        }
+        self::assertSame('started', $this->orderDetail($orderId)['status']);
+    }
+
+    public static function malformedSeatIds(): iterable
+    {
+        yield 'no slash' => ['A-1'];
+        yield 'seat code that is not ROW-NUMBER' => [self::CONCERT_ID . '/A1'];
+        yield 'empty seat code' => [self::CONCERT_ID . '/'];
+    }
+
     public function test_payment_cannot_begin_on_an_order_with_no_held_seats(): void
     {
         $orderId = $this->startOrder();

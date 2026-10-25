@@ -10,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * @internal
@@ -155,6 +156,48 @@ final class AdminPagesTest extends WebTestCase
         $client->followRedirect();
         self::assertSelectorTextContains('.notice', 'The concert is cancelled.');
         self::assertSelectorTextContains('.status', 'cancelled');
+    }
+
+    #[DataProvider('adminForms')]
+    public function test_an_admin_form_posted_without_its_token_is_refused(string $path, array $fields): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+        $concertId = $crawler->filter('table.concerts tbody tr:nth-child(1)')->attr('id');
+        $venueId = $crawler->filter('select[name="venueId"] option')->attr('value');
+
+        $client->request('POST', str_replace('{concertId}', $concertId, $path), str_replace('{venueId}', $venueId, $fields));
+
+        self::assertResponseStatusCodeSame(403);
+        $client->request('GET', "/admin/concerts/{$concertId}");
+        self::assertSelectorTextContains('.status', 'on sale');
+        self::assertSelectorTextContains('.prices', 'VIP 95.00 EUR');
+        $client->request('GET', '/admin/concerts');
+        self::assertSelectorCount(3, 'table.concerts tbody tr');
+        $client->request('GET', '/admin/venues');
+        self::assertSelectorCount(1, 'table.venues tbody tr');
+    }
+
+    public static function adminForms(): iterable
+    {
+        yield 'schedule a concert' => ['/admin/concerts', ['venueId' => '{venueId}', 'artist' => 'Velvet Static', 'startsAt' => '2030-06-01T20:00', 'standardPriceCents' => '3900', 'vipPriceCents' => '7900', 'currency' => 'EUR']];
+        yield 'open sales' => ['/admin/concerts/{concertId}/open-sales', []];
+        yield 'change a tier price' => ['/admin/concerts/{concertId}/price', ['tier' => 'vip', 'priceCents' => '12000']];
+        yield 'cancel a concert' => ['/admin/concerts/{concertId}/cancel', []];
+        yield 'create a venue' => ['/admin/venues', ['name' => 'Harbour Club', 'sections' => 'Floor', 'rowsPerSection' => '2', 'seatsPerRow' => '10', 'vipRows' => 'A']];
+    }
+
+    public function test_an_admin_form_posted_with_a_forged_token_is_refused(): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+        $concertId = $crawler->filter('table.concerts tbody tr:nth-child(1)')->attr('id');
+
+        $client->request('POST', "/admin/concerts/{$concertId}/cancel", ['_token' => 'forged']);
+
+        self::assertResponseStatusCodeSame(403);
+        $client->request('GET', "/admin/concerts/{$concertId}");
+        self::assertSelectorTextContains('.status', 'on sale');
     }
 
     private function seededClient(): KernelBrowser

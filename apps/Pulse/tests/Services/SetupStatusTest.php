@@ -31,6 +31,18 @@ final class SetupStatusTest extends ReleasingWebTestCase
         self::assertSame([], $this->problemsOf($this->observeBoard($client), 'orders'));
     }
 
+    public function test_a_table_that_is_set_up_shows_no_command_to_create_it(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->setup = ['tables' => [$this->table('message_queue', true), $this->table('dead_letter', false)]];
+
+        $this->observeBoard($client);
+        $crawler = $client->request('GET', '/services/orders');
+
+        self::assertCount(0, $crawler->filter('[data-setup-item="table:message_queue"] [data-fix]'));
+        self::assertCount(1, $crawler->filter('[data-setup-item="table:dead_letter"] [data-fix]'));
+    }
+
     public function test_a_missing_table_names_the_command_that_creates_it_and_is_a_critical_problem_linking_to_the_setup(): void
     {
         $client = $this->boardWith(['orders' => null]);

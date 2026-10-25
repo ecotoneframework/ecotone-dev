@@ -110,7 +110,7 @@ final class Concert
             currency: $currency,
             standardPriceCents: $command->standardPriceCents,
             vipPriceCents: $command->vipPriceCents,
-            seats: array_map(static fn (array $seat): Seat => new Seat(seatId: $seat['seatId'], seatCode: $seat['seatCode'], tier: $seat['tier']), $concert->seats),
+            seats: array_map(static fn (array $seat): Seat => new Seat(seatId: $seat['seatId'], seatCode: $seat['seatCode'], tier: Tier::from($seat['tier'])), $concert->seats),
         ));
 
         return $concert;

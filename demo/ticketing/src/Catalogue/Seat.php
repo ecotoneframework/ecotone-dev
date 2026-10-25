@@ -9,7 +9,7 @@ final readonly class Seat
     public function __construct(
         public string $seatId,
         public string $seatCode,
-        public string $tier,
+        public Tier $tier,
     ) {
     }
 }

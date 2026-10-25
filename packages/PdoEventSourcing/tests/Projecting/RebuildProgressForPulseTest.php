@@ -24,7 +24,6 @@ use Ecotone\Api\Projecting\PartitionAggregateId;
 use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionDelete;
-use Ecotone\Api\Projecting\ProjectionInitialization;
 use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Api\Pulse\PulseConfiguration;
@@ -85,6 +84,7 @@ final class RebuildProgressForPulseTest extends ProjectingTestCase
 
     private function bootstrap(): void
     {
+        $this->getConnection()->executeStatement('CREATE TABLE IF NOT EXISTS rebuild_pulse_tickets (ticket_id VARCHAR(36) PRIMARY KEY, ticket_type VARCHAR(25))');
         $projection = new #[Projection('rebuild_progress_for_pulse'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_pulse_channel'), FromAggregateStream(Ticket::class)] class ($this->getConnection()) {
             public function __construct(private Connection $connection)
             {
@@ -94,12 +94,6 @@ final class RebuildProgressForPulseTest extends ProjectingTestCase
             public function addTicket(TicketWasRegistered $event): void
             {
                 $this->connection->executeStatement('INSERT INTO rebuild_pulse_tickets VALUES (?,?)', [$event->getTicketId(), $event->getTicketType()]);
-            }
-
-            #[ProjectionInitialization]
-            public function initialization(): void
-            {
-                $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS rebuild_pulse_tickets (ticket_id VARCHAR(36) PRIMARY KEY, ticket_type VARCHAR(25))');
             }
 
             #[ProjectionDelete]

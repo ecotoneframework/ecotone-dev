@@ -57,7 +57,7 @@ final class EcotoneConfigurationTest extends TestCase
 
         $storefront->runConsoleCommand('demo:ping', ['waitSeconds' => 0]);
 
-        self::assertStringContainsString('No reply from ticketing within 0 seconds', $storefront->getInMemoryConsoleWriter()->getWrittenContent());
+        self::assertStringStartsWith('No reply from ticketing within 0 seconds.', implode(PHP_EOL, $storefront->getInMemoryConsoleWriter()->getErrorLines()));
     }
 
     private function storefront(): FlowTestSupport

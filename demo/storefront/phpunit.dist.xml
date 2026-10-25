@@ -75,6 +75,8 @@
         <server name="FILESYSTEM_DISK" value="local" force="true"/>
         <env name="LOG_CHANNEL" value="null" force="true"/>
         <server name="LOG_CHANNEL" value="null" force="true"/>
+        <env name="AMQP_DSN" value="amqp://guest:guest@127.0.0.1:1" force="true"/>
+        <server name="AMQP_DSN" value="amqp://guest:guest@127.0.0.1:1" force="true"/>
         <env name="DEMO_PULSE_URL" value="http://localhost:8080" force="true"/>
         <server name="DEMO_PULSE_URL" value="http://localhost:8080" force="true"/>
         <env name="DEMO_JAEGER_URL" value="http://localhost:16686" force="true"/>

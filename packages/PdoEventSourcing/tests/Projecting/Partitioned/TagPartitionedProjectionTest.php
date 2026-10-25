@@ -29,6 +29,7 @@ use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\PartitionTagValue;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionExecution;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Api\Projecting\ProjectionState;
 use Ecotone\Api\Projecting\ProjectionStateGateway;
@@ -79,6 +80,21 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
 
         self::assertSame(['concert-1' => ['A1', 'A2'], 'concert-2' => ['B1']], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
         self::assertSame(['concert-1' => 2, 'concert-2' => 1], $ecotone->sendQueryWithRouting('concert.reservationsCountedInState'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_partition_longer_than_one_loading_batch_is_rebuilt_page_by_page(string $implementation): void
+    {
+        $projection = $this->concertSeatsProjection();
+        $ecotone = $this->bootstrap($implementation, [$projection]);
+        foreach (['A1', 'A2', 'A3', 'A4', 'A5'] as $seatId) {
+            $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', $seatId));
+        }
+
+        $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'concert_seats']);
+
+        self::assertSame(['concert-1' => ['A1', 'A2', 'A3', 'A4', 'A5']], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
+        self::assertSame(['concert-1' => 5], $ecotone->sendQueryWithRouting('concert.reservationsCountedInState'));
     }
 
     #[DataProvider('implementations')]
@@ -303,7 +319,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
 
     private function concertSeatsProjection(): object
     {
-        return new #[Projection('concert_seats'), FromTaggedStream('concert'), Partitioned] class () {
+        return new #[Projection('concert_seats'), FromTaggedStream('concert'), Partitioned, ProjectionExecution(eventLoadingBatchSize: 2)] class () {
             public array $reservedSeats = [];
             public array $reservationsCountedInState = [];
             public array $resetConcerts = [];

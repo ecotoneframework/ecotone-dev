@@ -301,6 +301,32 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         self::assertSame([], $this->repliesReceivedBy($storefront));
     }
 
+    public function test_a_release_sent_over_the_distributed_bus_for_another_customer_than_the_holding_one_leaves_the_seat_held(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->repliesReceivedBy($storefront);
+        $ticketing->discardRecordedMessages();
+
+        $storefront->getDistributedBus()->sendMessage(
+            'ticketing',
+            'tickets.release',
+            json_encode(['orderId' => $orderId, 'concertId' => $concertId, 'seatId' => $concertId . '/A-1', 'customerId' => Uuid::v7()->toRfc4122()]),
+            MediaType::APPLICATION_JSON,
+            metadata: ['concertId' => $concertId],
+        );
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->sendHold($storefront, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame([], $ticketing->popRecordedEventsOfType(HoldReleased::class));
+        self::assertSame(['refused'], array_map(static fn (array $received): string => $received['reply']['outcome'], $this->repliesReceivedBy($storefront)));
+    }
+
     public function test_a_confirm_sent_over_the_distributed_bus_replies_sold_with_the_seat_ids(): void
     {
         $storefront = $this->storefront();

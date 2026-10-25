@@ -228,13 +228,54 @@ final class SeatSalesTest extends KernelTestCase
         $ticketing = $this->ticketing();
         $concertId = $this->concertOnSale($ticketing);
         $holdingOrder = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
         $otherOrder = Uuid::v7()->toRfc4122();
-        $this->hold($ticketing, $holdingOrder, $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        $this->hold($ticketing, $holdingOrder, $concertId, $concertId . '/A-1', $customerId);
 
         $this->expectException(SeatRefusal::class);
-        $this->expectExceptionMessage("Seat {$concertId}/A-1 cannot be released for order {$otherOrder}, because order {$holdingOrder} holds it, not order {$otherOrder}. Only the order holding a seat releases it.");
+        $this->expectExceptionMessage("Seat {$concertId}/A-1 cannot be released for order {$otherOrder} of customer {$customerId} at concert {$concertId}, because order {$holdingOrder} of customer {$customerId} holds it at concert {$concertId}. Release a seat with the order, customer and concert of its hold; only the holder releases it.");
 
-        $ticketing->sendCommand(new ReleaseSeat(orderId: $otherOrder, concertId: $concertId, seatId: $concertId . '/A-1', customerId: Uuid::v7()->toRfc4122()), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $otherOrder, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+    }
+
+    public function test_releasing_a_seat_for_another_customer_than_the_one_holding_it_is_refused_naming_the_holder(): void
+    {
+        $ticketing = $this->ticketing();
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $holdingCustomer = Uuid::v7()->toRfc4122();
+        $otherCustomer = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $holdingCustomer);
+        $ticketing->discardRecordedMessages();
+
+        try {
+            $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $otherCustomer), metadata: ['concertId' => $concertId]);
+            self::fail('Releasing a seat for another customer than the holding one was expected to be refused.');
+        } catch (SeatRefusal $refusal) {
+            self::assertSame("Seat {$concertId}/A-1 cannot be released for order {$orderId} of customer {$otherCustomer} at concert {$concertId}, because order {$orderId} of customer {$holdingCustomer} holds it at concert {$concertId}. Release a seat with the order, customer and concert of its hold; only the holder releases it.", $refusal->getMessage());
+        }
+        self::assertSame([], $ticketing->popRecordedEventsOfType(HoldReleased::class));
+        self::assertEquals(['orderId' => $orderId, 'expiresAt' => new DateTimeImmutable('2026-10-25 12:10:00')], $ticketing->sendQuery(new FindSeatHold($concertId . '/A-1')));
+    }
+
+    public function test_releasing_a_seat_for_another_concert_than_the_one_of_its_hold_is_refused_naming_the_holder(): void
+    {
+        $ticketing = $this->ticketing();
+        $concertId = $this->concertOnSale($ticketing);
+        $otherConcertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->discardRecordedMessages();
+
+        try {
+            $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $otherConcertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $otherConcertId]);
+            self::fail('Releasing a seat for another concert than the one of its hold was expected to be refused.');
+        } catch (SeatRefusal $refusal) {
+            self::assertSame("Seat {$concertId}/A-1 cannot be released for order {$orderId} of customer {$customerId} at concert {$otherConcertId}, because order {$orderId} of customer {$customerId} holds it at concert {$concertId}. Release a seat with the order, customer and concert of its hold; only the holder releases it.", $refusal->getMessage());
+        }
+        self::assertSame([], $ticketing->popRecordedEventsOfType(HoldReleased::class));
+        self::assertEquals(['orderId' => $orderId, 'expiresAt' => new DateTimeImmutable('2026-10-25 12:10:00')], $ticketing->sendQuery(new FindSeatHold($concertId . '/A-1')));
     }
 
     public function test_releasing_a_free_seat_is_refused(): void

@@ -31,8 +31,7 @@ final class EcotoneConfiguration
     {
         return DbalConfiguration::createWithDefaults()
             ->withDoctrineORMRepositories(true)
-            ->withDeadLetter(true)
-            ->withoutTransactionOnAsynchronousEndpoints(['ticketing']);
+            ->withDeadLetter(true);
     }
 
     #[ServiceContext]
@@ -66,8 +65,7 @@ final class EcotoneConfiguration
     public function instantRetry(): InstantRetryConfiguration
     {
         return InstantRetryConfiguration::createWithDefaults()
-            ->withCommandBusRetry(isEnabled: true, retryTimes: 3, retryExceptions: [DecisionModelConcurrencyException::class])
-            ->withAsynchronousEndpointsRetry(isEnabled: false);
+            ->withCommandBusRetry(isEnabled: true, retryTimes: 3, retryExceptions: [DecisionModelConcurrencyException::class]);
     }
 
     #[ServiceContext]

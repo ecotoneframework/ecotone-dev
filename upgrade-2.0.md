@@ -536,9 +536,18 @@ own stream or repository, snapshots included.
   `ConfigurationException`.
 - **`#[Fetch]` in a decision-model handler.** A handler that injects a decision model or declares a
   `#[DecisionBoundary]` captures the counter of every aggregate it fetches with `#[Fetch]`, before invocation and in
-  the same read as its models, and appends its events only if none of those aggregates was saved meanwhile. A
-  fetched aggregate that does not exist yet is captured at version 0, so deciding on its absence is safe; a
-  `#[Fetch]` expression that resolves to no identifier contributes nothing. A `#[Fetch]` handler that is not a
+  the same read as its models, and appends its events only if none of those aggregates was saved meanwhile. The
+  append **checks** a fetched aggregate's counter and never bumps it — an append bumps exactly the tags its events
+  carry, plus the counter of an aggregate it saves or decides over through `#[DecisionModel(aggregate:)]`; every other
+  entry of its condition, a fetched aggregate's counter or a model tag no appended event carries, is checked under a
+  shared row lock held until commit. So decisions that only fetch the same aggregate (twelve `HoldSeat` decisions on
+  different seats of one `Concert`) commit side by side instead of failing each other, while a save of the fetched
+  aggregate still conflicts: before the decision's append it fails the decision ("Concert c-1 changed since it was
+  loaded ... another transaction saved it"), after it the save waits for the decision to commit. Early 2.0 builds
+  bumped every fetched counter, so such decisions serialized on the aggregate and failed with a conflict blaming a
+  save that never happened. A fetched aggregate that does not exist yet is captured at version 0, so deciding on its
+  absence is safe and a concurrent creation conflicts; a `#[Fetch]` expression that resolves to no identifier
+  contributes nothing. A `#[Fetch]` handler that is not a
   decision-model handler behaves exactly as before. A boundary made only of an aggregate is written with
   `EventCriteria::aggregate(Wallet::class, $command->walletId)` — a leaf that captures the counter and matches no
   events. Fetching a saga into a decision-model handler is a bootstrap `ConfigurationException`.
@@ -546,7 +555,9 @@ own stream or repository, snapshots included.
   scopes the model by one instance of `Wallet`: its events, of the types the model handles, are read from `Wallet`'s
   own stream by the stream's own `(aggregate_type, aggregate_id, no)` index, in `aggregate_version` order, with the
   event-name filter pushed into SQL. The boundary is the aggregate's counter tag, which already exists and is already
-  bumped by every save, captured in the same read as the handler's other models and guarded on the append. The
+  bumped by every save, captured in the same read as the handler's other models and guarded on the append — and,
+  unlike a `#[Fetch]`ed aggregate's counter, bumped by the decision's append too, so two decisions over one instance
+  conflict just as two saves of it do. The
   aggregate's events need **no `#[EventTag]`**, and nothing is indexed, backfilled, migrated or configured:
 
   ```php
@@ -587,8 +598,9 @@ own stream or repository, snapshots included.
   `#[Fetch]` that has recorded events when the handler returns throws ("fetched aggregates are read-only") and nothing
   is appended — those events were silently dropped before. Send a command to the aggregate instead. Outside
   decision-model handlers `#[Fetch]` is unchanged.
-- **Conflicts name the aggregate**: "Wallet w-1 changed since it was loaded", still a
-  `DecisionModelConcurrencyException`.
+- **Conflicts name the aggregate and what moved it**: "Wallet w-1 changed since it was loaded (...): another
+  transaction saved it or appended a #[DecisionModel(aggregate:)] decision over it, ...", still a
+  `DecisionModelConcurrencyException`. A tag conflict says "another transaction appended an event carrying it".
 - **A tag conflict names what was being decided.** The batch loader knows which decision model, or which
   `#[DecisionBoundary]` method, each captured tag belongs to, so the message says so:
   `Concurrent append conflict on tag username:ada (expected version 0, current version 1) while deciding
@@ -867,7 +879,10 @@ no transaction.
 - Without any class, the same machinery is a gateway on the store itself:
   `$eventStore->loadByCriteria(EventCriteria::tag('course', $courseId)->ofTypes(...))` returns the matching events
   and a ready-made `AppendCondition` for `$eventStore->appendTo($stream, $events, $condition)`. Appending no events
-  is a no-op on every store: the condition is not checked, even when stale. Several criteria
+  is a no-op on every store: the condition is not checked, even when stale. **An append bumps exactly the tags its
+  events carry; every other tag of its condition is checked, not bumped** — the append still fails if that tag moved
+  since the load, but it does not move it for the next reader, because only an event carrying a tag can change what
+  a criterion on that tag matches. Several criteria
   combine with `->or(...)`; narrow each one with `andTag()`/`ofTypes()` before combining — calling either on an
   `or()` combination throws `InvalidArgumentException`.
 - **Fully shipped, including the DBAL-backed store.** `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,

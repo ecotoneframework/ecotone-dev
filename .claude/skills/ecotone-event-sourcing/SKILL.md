@@ -223,6 +223,11 @@ final class OrderService {
 - Without any class: `$eventStore->loadByCriteria(EventCriteria::tag('coupon', $code))` returns the matching events
   and a ready-made `AppendCondition` for `$eventStore->appendTo($stream, $events, $condition)` -- `$eventStore` is
   the `EventStore` gateway/container reference, an OR of criteria is `EventCriteria::tag(...)->or(EventCriteria::tag(...))`.
+- **An append bumps exactly the tags its events carry** (plus the counter of an aggregate it saves, or decides over
+  through `#[DecisionModel(aggregate:)]`). Every other entry of its condition -- an aggregate fetched read-only with
+  `#[Fetch]`, a model tag no returned event carries -- is only checked: the append fails if it moved since the load,
+  but does not move it, so decisions that merely fetch the same aggregate commit side by side, while a save of that
+  aggregate still conflicts with them.
 - **Nothing retries automatically.** Configure `InstantRetryConfiguration::createWithDefaults()
   ->withCommandBusRetry(true, 3, [DecisionModelConcurrencyException::class])` (or Enterprise `#[InstantRetry]`) --
   without it, a real conflict surfaces to the caller as a technical exception instead of the business answer the

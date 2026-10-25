@@ -43,6 +43,16 @@ final class OrderLifecycleTest extends TestCase
         );
     }
 
+    public function test_registering_an_email_already_registered_is_refused(): void
+    {
+        $customerId = $this->registerAda();
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage(sprintf('Customer %s is already registered with email ada@example.com, so RegisterCustomer cannot register Ada Byron with it: an email belongs to one customer. Use customer %s, register with another email, or run php artisan demo:seed, which registers only the demo customers not registered yet.', $customerId, $customerId));
+
+        $this->commandBus()->send(new RegisterCustomer(name: 'Ada Byron', email: 'ada@example.com'));
+    }
+
     public function test_a_started_order_is_listed_among_the_customer_orders(): void
     {
         $customerId = $this->registerAda();

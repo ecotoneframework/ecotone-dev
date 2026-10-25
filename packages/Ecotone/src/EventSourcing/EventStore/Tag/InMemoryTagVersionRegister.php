@@ -70,12 +70,14 @@ final class InMemoryTagVersionRegister
     }
 
     /**
-     * @param array<string, array{name: string, value: string, expectedVersion: int}> $expectedVersions
+     * @param array<string, array{name: string, value: string, expectedVersion: int, bumped: bool}> $expectedVersions
      */
     public function bump(array $expectedVersions): void
     {
-        foreach (array_keys($expectedVersions) as $key) {
-            $this->versions[$key] = ($this->versions[$key] ?? 0) + 1;
+        foreach ($expectedVersions as $key => $expected) {
+            if ($expected['bumped']) {
+                $this->versions[$key] = ($this->versions[$key] ?? 0) + 1;
+            }
         }
     }
 }

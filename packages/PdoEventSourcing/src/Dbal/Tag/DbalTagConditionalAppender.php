@@ -72,7 +72,7 @@ final class DbalTagConditionalAppender
 
     public function bumpTagsGuarded(DbalEventStore $eventStore, Connection $connection, AppendCondition $appendCondition): void
     {
-        $appended = $this->tagResolver->resolveAppend([], $appendCondition);
+        $appended = $this->tagResolver->resolveGuardedBump($appendCondition);
 
         TagTransactionRequirement::assertActiveForTaggedAppend($connection);
 

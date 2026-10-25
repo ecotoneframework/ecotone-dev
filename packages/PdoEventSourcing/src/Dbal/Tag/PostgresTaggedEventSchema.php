@@ -93,6 +93,21 @@ final class PostgresTaggedEventSchema implements TaggedEventSchema
             . "ON CONFLICT (tag_name, tag_value) DO UPDATE SET version = {$quoted}.version + 1";
     }
 
+    public function insertPlaceholderVersionSql(string $tableName): string
+    {
+        $quoted = $this->quoteIdentifier($tableName);
+
+        return "INSERT INTO {$quoted} (tag_name, tag_value, version) VALUES (?, ?, 0) ON CONFLICT (tag_name, tag_value) DO NOTHING";
+    }
+
+    public function lockedVersion(Connection $connection, string $tableName, string $tagName, string $tagValue): int
+    {
+        return (int) $connection->executeQuery(
+            'SELECT version FROM ' . $this->quoteIdentifier($tableName) . ' WHERE tag_name = ? AND tag_value = ? FOR SHARE',
+            [$tagName, $tagValue]
+        )->fetchOne();
+    }
+
     public function bigIntPlaceholder(): string
     {
         return 'CAST(? AS BIGINT)';

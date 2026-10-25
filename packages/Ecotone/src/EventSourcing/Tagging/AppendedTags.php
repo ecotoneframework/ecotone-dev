@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Tagging;
 
 use function array_diff_key;
+use function array_fill_keys;
+use function array_keys;
 use function ksort;
 
 /**
@@ -30,27 +32,37 @@ final class AppendedTags
     /** @var array<string, array{name: string, value: string}> */
     private readonly array $involved;
 
+    /** @var array<string, true> */
+    private readonly array $bumped;
+
     /**
-     * @param array<string, array{name: string, value: string, expectedVersion: int, decidedBy?: string[]}> $conditionVersions
+     * @param array<string, array{name: string, value: string, expectedVersion: int, decidedBy?: string[], bumpedOnAppend?: bool}> $conditionVersions
      * @param array<string, array{name: string, value: string}> $aggregateCounterTags
      * @param array<string, string> $aggregateTypesByCounterTagKey
      */
     public function __construct(
         private readonly EventsTags $eventsTags,
         private readonly array $conditionVersions,
-        array $aggregateCounterTags = [],
-        private readonly array $aggregateTypesByCounterTagKey = [],
+        array $aggregateCounterTags,
+        private readonly array $aggregateTypesByCounterTagKey,
+        bool $bumpsEveryConditionTag,
     ) {
         $involved = $eventsTags->counted();
+        $bumped = array_fill_keys(array_keys($involved), true);
         foreach ($conditionVersions as $key => $conditionVersion) {
             $involved[$key] = ['name' => $conditionVersion['name'], 'value' => $conditionVersion['value']];
+            if ($bumpsEveryConditionTag || ($conditionVersion['bumpedOnAppend'] ?? false)) {
+                $bumped[$key] = true;
+            }
         }
         foreach ($aggregateCounterTags as $key => $aggregateCounterTag) {
             $involved[$key] = $aggregateCounterTag;
+            $bumped[$key] = true;
         }
 
         ksort($involved);
         $this->involved = $involved;
+        $this->bumped = $bumped;
     }
 
     public function involvesAnyTag(): bool
@@ -68,7 +80,7 @@ final class AppendedTags
 
     /**
      * @param array<string, array{name: string, value: string, expectedVersion: int}> $captured
-     * @return array<string, array{name: string, value: string, expectedVersion: int, aggregateType?: string, decidedBy?: string[]}>
+     * @return array<string, array{name: string, value: string, expectedVersion: int, bumped: bool, aggregateType?: string, decidedBy?: string[]}>
      */
     public function expectedVersions(array $captured): array
     {
@@ -78,6 +90,7 @@ final class AppendedTags
                 'name' => $tag['name'],
                 'value' => $tag['value'],
                 'expectedVersion' => $this->conditionVersions[$key]['expectedVersion'] ?? $captured[$key]['expectedVersion'],
+                'bumped' => isset($this->bumped[$key]),
             ];
 
             if (isset($this->aggregateTypesByCounterTagKey[$key])) {

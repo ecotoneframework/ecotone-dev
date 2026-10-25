@@ -73,7 +73,7 @@ final class EnterpriseInMemoryTagCollaborator implements InMemoryTagCollaborator
 
     public function bumpTagsGuarded(AppendCondition $appendCondition): void
     {
-        $appended = $this->tagResolver->resolveAppend([], $appendCondition);
+        $appended = $this->tagResolver->resolveGuardedBump($appendCondition);
         $expected = $appended->expectedVersions($this->versions->capture($appended->needingCapture()));
 
         $this->versions->assertUnchanged($expected);

@@ -46,6 +46,10 @@ interface TaggedEventSchema
 
     public function upsertIncrementVersionSql(string $tableName): string;
 
+    public function insertPlaceholderVersionSql(string $tableName): string;
+
+    public function lockedVersion(Connection $connection, string $tableName, string $tagName, string $tagValue): int;
+
     public function bigIntPlaceholder(): string;
 
     /**

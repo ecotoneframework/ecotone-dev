@@ -91,12 +91,18 @@ final class DbalTagVersionRegister
     }
 
     /**
-     * @param array<string, array{name: string, value: string, expectedVersion: int, aggregateType?: string, decidedBy?: string[]}> $expectedVersions
+     * @param array<string, array{name: string, value: string, expectedVersion: int, bumped: bool, aggregateType?: string, decidedBy?: string[]}> $expectedVersions
      */
     public function bumpGuarded(Connection $connection, array $expectedVersions): void
     {
         foreach ($expectedVersions as $expected) {
-            $this->bumpGuardedTag($connection, $expected['name'], $expected['value'], $expected['expectedVersion'], $expected['aggregateType'] ?? null, $expected['decidedBy'] ?? []);
+            $unchanged = $expected['bumped']
+                ? $this->bumpGuardedTag($connection, $expected['name'], $expected['value'], $expected['expectedVersion'])
+                : $this->checkGuardedTag($connection, $expected['name'], $expected['value'], $expected['expectedVersion']);
+
+            if (! $unchanged) {
+                $this->raiseConflict($connection, $expected['name'], $expected['value'], $expected['expectedVersion'], $expected['aggregateType'] ?? null, $expected['decidedBy'] ?? []);
+            }
         }
     }
 
@@ -112,37 +118,55 @@ final class DbalTagVersionRegister
         }
     }
 
+    private function bumpGuardedTag(Connection $connection, string $name, string $value, int $expectedVersion): bool
+    {
+        $tagSchema = TaggedEventSchemaFactory::for($connection);
+
+        if ($expectedVersion === 0 && $this->insertInitialVersion($connection, $tagSchema, $name, $value)) {
+            return true;
+        }
+
+        $versionsTable = $tagSchema->quoteIdentifier(TagTableManager::TAG_VERSIONS_TABLE);
+
+        return (int) TagConcurrencyGuard::run(fn () => $connection->executeStatement(
+            "UPDATE {$versionsTable} SET version = version + 1 WHERE tag_name = ? AND tag_value = ? AND version = ?",
+            [$name, $value, $expectedVersion]
+        )) > 0;
+    }
+
+    private function insertInitialVersion(Connection $connection, TaggedEventSchema $tagSchema, string $name, string $value): bool
+    {
+        try {
+            return (int) TagConcurrencyGuard::run(fn () => $connection->executeStatement($tagSchema->insertInitialVersionSql(TagTableManager::TAG_VERSIONS_TABLE), [$name, $value])) > 0;
+        } catch (UniqueConstraintViolationException) {
+            return false;
+        }
+    }
+
+    private function checkGuardedTag(Connection $connection, string $name, string $value, int $expectedVersion): bool
+    {
+        $tagSchema = TaggedEventSchemaFactory::for($connection);
+
+        if ($expectedVersion === 0) {
+            TagConcurrencyGuard::run(fn () => $connection->executeStatement($tagSchema->insertPlaceholderVersionSql(TagTableManager::TAG_VERSIONS_TABLE), [$name, $value]));
+        }
+
+        return TagConcurrencyGuard::run(fn () => $tagSchema->lockedVersion($connection, TagTableManager::TAG_VERSIONS_TABLE, $name, $value)) === $expectedVersion;
+    }
+
     /**
      * @param string[] $decidedBy
      */
-    private function bumpGuardedTag(Connection $connection, string $name, string $value, int $expectedVersion, ?string $aggregateType, array $decidedBy): void
+    private function raiseConflict(Connection $connection, string $name, string $value, int $expectedVersion, ?string $aggregateType, array $decidedBy): never
     {
-        $tagSchema = TaggedEventSchemaFactory::for($connection);
-        $versionsTable = $tagSchema->quoteIdentifier(TagTableManager::TAG_VERSIONS_TABLE);
+        $currentVersion = $this->versionOf($connection, $name, $value);
+        $conflict = $aggregateType !== null
+            ? DecisionModelConcurrencyException::forAggregateConflict($aggregateType, $value, $expectedVersion, $currentVersion)
+            : DecisionModelConcurrencyException::forConflict($name, $value, $expectedVersion, $currentVersion, $decidedBy);
 
-        if ($expectedVersion === 0) {
-            try {
-                $affected = (int) TagConcurrencyGuard::run(fn () => $connection->executeStatement($tagSchema->insertInitialVersionSql(TagTableManager::TAG_VERSIONS_TABLE), [$name, $value]));
-            } catch (UniqueConstraintViolationException) {
-                $affected = 0;
-            }
-        } else {
-            $affected = (int) TagConcurrencyGuard::run(fn () => $connection->executeStatement(
-                "UPDATE {$versionsTable} SET version = version + 1 WHERE tag_name = ? AND tag_value = ? AND version = ?",
-                [$name, $value, $expectedVersion]
-            ));
-        }
+        $this->logger->notice(DecisionModelConcurrencyException::LOG_MESSAGE, $conflict->conflictFields());
 
-        if ($affected === 0) {
-            $currentVersion = $this->versionOf($connection, $name, $value);
-            $conflict = $aggregateType !== null
-                ? DecisionModelConcurrencyException::forAggregateConflict($aggregateType, $value, $expectedVersion, $currentVersion)
-                : DecisionModelConcurrencyException::forConflict($name, $value, $expectedVersion, $currentVersion, $decidedBy);
-
-            $this->logger->notice(DecisionModelConcurrencyException::LOG_MESSAGE, $conflict->conflictFields());
-
-            throw $conflict;
-        }
+        throw $conflict;
     }
 
     private function versionOf(Connection $connection, string $name, string $value): int

@@ -57,7 +57,7 @@ final class DecisionModelConcurrencyException extends ConcurrencyException
             $message .= sprintf(' while deciding %s', implode(', ', $decidedBy));
         }
 
-        $message .= '. The tag moved after it was read: another transaction committed to it, or an earlier append in the same '
+        $message .= '. The tag moved after it was read: another transaction appended an event carrying it, or an earlier append in the same '
             . 'transaction did (for example a command sent from inside the handler whose own handler appends to the same tag) '
             . '-- the latter fails on every retry, so decide both in one handler instead.';
 
@@ -67,9 +67,9 @@ final class DecisionModelConcurrencyException extends ConcurrencyException
     public static function forAggregateConflict(string $aggregateType, string $aggregateId, int $expectedVersion, int $currentVersion): self
     {
         $exception = self::create(sprintf(
-            '%s %s changed since it was loaded (it was at change %d when read, it is at change %d now): another transaction saved it, '
-            . 'or an earlier save in the same transaction did (for example a command sent from inside the handler whose own handler saves the same aggregate) '
-            . '-- the latter fails on every retry, so decide both in one handler instead.',
+            '%s %s changed since it was loaded (it was at change %d when read, it is at change %d now): another transaction saved it or appended a #[DecisionModel(aggregate:)] decision over it, '
+            . 'or an earlier one in the same transaction did (for example a command sent from inside the handler whose own handler saves the same aggregate) '
+            . '-- the latter fails on every retry, so decide both in one handler instead. Fetching it read-only with #[Fetch] never changes it.',
             $aggregateType,
             $aggregateId,
             $expectedVersion,

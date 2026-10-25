@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Customer;
 
 use Ecotone\Api\Attribute\QueryHandler;
+use Illuminate\Support\Str;
 
 final class CustomerDirectory
 {
@@ -14,7 +15,23 @@ final class CustomerDirectory
         return Customer::query()
             ->orderBy('name')
             ->get()
-            ->map(fn (Customer $customer) => ['customerId' => $customer->id, 'name' => $customer->name, 'email' => $customer->email])
+            ->map($this->summary(...))
             ->all();
+    }
+
+    #[QueryHandler('customer.detail')]
+    public function detail(string $customerId): ?array
+    {
+        if (! Str::isUuid($customerId)) {
+            return null;
+        }
+        $customer = Customer::query()->find($customerId);
+
+        return $customer === null ? null : $this->summary($customer);
+    }
+
+    private function summary(Customer $customer): array
+    {
+        return ['customerId' => $customer->id, 'name' => $customer->name, 'email' => $customer->email];
     }
 }

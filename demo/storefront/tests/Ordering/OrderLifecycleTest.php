@@ -43,6 +43,27 @@ final class OrderLifecycleTest extends TestCase
         );
     }
 
+    public function test_a_registered_customer_is_found_by_id(): void
+    {
+        $customerId = $this->registerAda();
+        $this->commandBus()->send(new RegisterCustomer(name: 'Grace Hopper', email: 'grace@example.com'));
+
+        self::assertSame(
+            ['customerId' => $customerId, 'name' => 'Ada Lovelace', 'email' => 'ada@example.com'],
+            $this->queryBus()->sendWithRouting('customer.detail', $customerId),
+        );
+    }
+
+    public function test_a_customer_id_never_registered_finds_no_customer(): void
+    {
+        self::assertNull($this->queryBus()->sendWithRouting('customer.detail', '0199f3a8-6f2a-7c1e-9a51-000000000000'));
+    }
+
+    public function test_a_value_that_is_not_a_customer_id_finds_no_customer(): void
+    {
+        self::assertNull($this->queryBus()->sendWithRouting('customer.detail', 'not-a-customer-id'));
+    }
+
     public function test_registering_an_email_already_registered_is_refused(): void
     {
         $customerId = $this->registerAda();

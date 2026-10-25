@@ -22,12 +22,6 @@ final class CurrentCustomer
 
     public function find(string $customerId): ?array
     {
-        foreach ($this->queryBus->sendWithRouting('customers.list') as $customer) {
-            if ($customer['customerId'] === $customerId) {
-                return $customer;
-            }
-        }
-
-        return null;
+        return $this->queryBus->sendWithRouting('customer.detail', $customerId);
     }
 }

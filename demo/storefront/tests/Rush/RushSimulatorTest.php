@@ -95,7 +95,7 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         $this->concertOnSale(seats: 12);
 
         $this->startRush(buyers: 10, seatsPerBuyer: 1);
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1000, executionTimeLimitInMilliseconds: 2000));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame(1, $this->rushState()['created']);
 
@@ -336,9 +336,9 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
     private function rushRuns(int $rounds = 20): void
     {
         for ($round = 0; $round < $rounds; $round++) {
-            $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1000, executionTimeLimitInMilliseconds: 2000, stopOnError: false));
-            $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
-            $this->storefrontConsumes();
+            $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+            $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+            $this->storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             Carbon::setTestNow(Carbon::now()->addSeconds(2));
         }
     }

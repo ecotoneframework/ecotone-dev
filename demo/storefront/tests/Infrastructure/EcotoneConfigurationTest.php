@@ -66,7 +66,7 @@ final class EcotoneConfigurationTest extends TestCase
     {
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [EcotoneConfiguration::class, DemoPing::class, PongLog::class],
-            containerOrAvailableServices: [new EcotoneConfiguration(), new DemoPing(), DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            containerOrAvailableServices: [new EcotoneConfiguration(), new DemoPing(), DbalConnectionFactory::class => new DbalConnectionFactory(['dsn' => getenv('DATABASE_DSN'), 'connection' => ['application_name' => getenv('DB_APPLICATION_NAME')]])],
             extensionObjects: $this->channels,
             pathToRootCatalog: dirname(__DIR__, 2),
             licenceKey: LicenceTesting::VALID_LICENCE,

@@ -385,7 +385,7 @@ final class ConcertCatalogueTest extends TestCase
     {
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [EcotoneConfiguration::class, ConcertProjector::class, ConcertCatalogue::class],
-            containerOrAvailableServices: [new EcotoneConfiguration(), new ConcertProjector(), DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            containerOrAvailableServices: [new EcotoneConfiguration(), new ConcertProjector(), DbalConnectionFactory::class => new DbalConnectionFactory(['dsn' => getenv('DATABASE_DSN'), 'connection' => ['application_name' => getenv('DB_APPLICATION_NAME')]])],
             extensionObjects: $this->channels,
             pathToRootCatalog: dirname(__DIR__, 2),
             licenceKey: LicenceTesting::VALID_LICENCE,

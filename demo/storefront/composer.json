@@ -23,16 +23,12 @@
         "ecotone/laravel": "2.0.x-dev",
         "ecotone/open-telemetry": "2.0.x-dev",
         "laravel/framework": "^12.0",
-        "laravel/tinker": "^2.10.1",
         "nyholm/psr7": "^1.8",
         "open-telemetry/exporter-otlp": "^1.0",
         "open-telemetry/sdk": "^1.0",
         "symfony/http-client": "^7.4"
     },
     "require-dev": {
-        "fakerphp/faker": "^1.23",
-        "mockery/mockery": "^1.6",
-        "nunomaduro/collision": "^8.6",
         "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^12.0"
     },
@@ -55,9 +51,6 @@
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
         ],
-        "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
-        ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
         ],
@@ -76,7 +69,6 @@
         "preferred-install": "dist",
         "sort-packages": true,
         "allow-plugins": {
-            "pestphp/pest-plugin": true,
             "php-http/discovery": true
         }
     }

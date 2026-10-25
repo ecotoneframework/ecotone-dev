@@ -78,6 +78,7 @@ final class Order extends Model
     #[CommandHandler]
     public function markTicketsIssued(MarkTicketsIssued $command): void
     {
+        $this->assertNotFinal('MarkTicketsIssued');
         if ($this->status !== OrderStatus::PAID) {
             throw new DomainException(sprintf('Order %s is %s, not paid, so its tickets cannot be issued. Send MarkPaid with the payment reference first.', $this->id, $this->status->value));
         }
@@ -87,16 +88,24 @@ final class Order extends Model
     #[CommandHandler]
     public function fail(FailOrder $command): void
     {
-        if ($this->status === OrderStatus::TICKETS_ISSUED) {
-            throw new DomainException(sprintf('Order %s already has its tickets issued, so it cannot fail: an order with issued tickets is final. Send FailOrder only for an order that has not reached tickets_issued.', $this->id));
-        }
         $this->assertAccepts('FailOrder', OrderStatus::STARTED, OrderStatus::SEATS_HELD, OrderStatus::PAYING, OrderStatus::PAID);
         $this->failure_reason = $command->reason;
         $this->status = OrderStatus::FAILED;
     }
 
+    private function assertNotFinal(string $commandName): void
+    {
+        if ($this->status === OrderStatus::TICKETS_ISSUED) {
+            throw new DomainException(sprintf('Order %s already has its tickets issued, so %s cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.', $this->id, $commandName));
+        }
+        if ($this->status === OrderStatus::FAILED) {
+            throw new DomainException(sprintf('Order %s is failed, so %s cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.', $this->id, $commandName));
+        }
+    }
+
     private function assertAccepts(string $commandName, OrderStatus ...$acceptingStatuses): void
     {
+        $this->assertNotFinal($commandName);
         if (! in_array($this->status, $acceptingStatuses, true)) {
             throw new DomainException(sprintf(
                 'Order %s is %s, so %s cannot be applied to it. %s is accepted only while the order is %s.',

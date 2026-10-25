@@ -172,7 +172,7 @@ final class OrderLifecycleTest extends TestCase
         $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId));
 
         $this->expectException(DomainException::class);
-        $this->expectExceptionMessage(sprintf('Order %s already has its tickets issued, so it cannot fail: an order with issued tickets is final. Send FailOrder only for an order that has not reached tickets_issued.', $orderId));
+        $this->expectExceptionMessage(sprintf('Order %s already has its tickets issued, so FailOrder cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.', $orderId));
 
         $this->commandBus()->send(new FailOrder(orderId: $orderId, reason: 'Too late'));
     }
@@ -220,16 +220,16 @@ final class OrderLifecycleTest extends TestCase
         yield 'MarkSeatsHeld on a paid order' => ['paid', $markSeatsHeld, 'Order %s is paid, so MarkSeatsHeld cannot be applied to it. MarkSeatsHeld is accepted only while the order is started or seats_held.'];
         yield 'BeginPayment on a paid order' => ['paid', $beginPayment, 'Order %s is paid, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
         yield 'MarkPaid on a paid order' => ['paid', $markPaid, 'Order %s is paid, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
-        yield 'MarkSeatsHeld on a tickets_issued order' => ['tickets_issued', $markSeatsHeld, 'Order %s is tickets_issued, so MarkSeatsHeld cannot be applied to it. MarkSeatsHeld is accepted only while the order is started or seats_held.'];
-        yield 'BeginPayment on a tickets_issued order' => ['tickets_issued', $beginPayment, 'Order %s is tickets_issued, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
-        yield 'MarkPaid on a tickets_issued order' => ['tickets_issued', $markPaid, 'Order %s is tickets_issued, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
-        yield 'MarkTicketsIssued on a tickets_issued order' => ['tickets_issued', $markTicketsIssued, 'Order %s is tickets_issued, not paid, so its tickets cannot be issued. Send MarkPaid with the payment reference first.'];
-        yield 'FailOrder on a tickets_issued order' => ['tickets_issued', $failOrder, 'Order %s already has its tickets issued, so it cannot fail: an order with issued tickets is final. Send FailOrder only for an order that has not reached tickets_issued.'];
-        yield 'MarkSeatsHeld on a failed order' => ['failed', $markSeatsHeld, 'Order %s is failed, so MarkSeatsHeld cannot be applied to it. MarkSeatsHeld is accepted only while the order is started or seats_held.'];
-        yield 'BeginPayment on a failed order' => ['failed', $beginPayment, 'Order %s is failed, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
-        yield 'MarkPaid on a failed order' => ['failed', $markPaid, 'Order %s is failed, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
-        yield 'MarkTicketsIssued on a failed order' => ['failed', $markTicketsIssued, 'Order %s is failed, not paid, so its tickets cannot be issued. Send MarkPaid with the payment reference first.'];
-        yield 'FailOrder on a failed order' => ['failed', $failOrder, 'Order %s is failed, so FailOrder cannot be applied to it. FailOrder is accepted only while the order is started or seats_held or paying or paid.'];
+        yield 'MarkSeatsHeld on a tickets_issued order' => ['tickets_issued', $markSeatsHeld, 'Order %s already has its tickets issued, so MarkSeatsHeld cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
+        yield 'BeginPayment on a tickets_issued order' => ['tickets_issued', $beginPayment, 'Order %s already has its tickets issued, so BeginPayment cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
+        yield 'MarkPaid on a tickets_issued order' => ['tickets_issued', $markPaid, 'Order %s already has its tickets issued, so MarkPaid cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
+        yield 'MarkTicketsIssued on a tickets_issued order' => ['tickets_issued', $markTicketsIssued, 'Order %s already has its tickets issued, so MarkTicketsIssued cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
+        yield 'FailOrder on a tickets_issued order' => ['tickets_issued', $failOrder, 'Order %s already has its tickets issued, so FailOrder cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
+        yield 'MarkSeatsHeld on a failed order' => ['failed', $markSeatsHeld, 'Order %s is failed, so MarkSeatsHeld cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
+        yield 'BeginPayment on a failed order' => ['failed', $beginPayment, 'Order %s is failed, so BeginPayment cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
+        yield 'MarkPaid on a failed order' => ['failed', $markPaid, 'Order %s is failed, so MarkPaid cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
+        yield 'MarkTicketsIssued on a failed order' => ['failed', $markTicketsIssued, 'Order %s is failed, so MarkTicketsIssued cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
+        yield 'FailOrder on a failed order' => ['failed', $failOrder, 'Order %s is failed, so FailOrder cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
     }
 
     private function registerAda(): string

@@ -1,0 +1,30 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Venues{% endblock %}
+
+{% block content %}
+    <h1>Venues</h1>
+    <table class="venues">
+        <thead>
+            <tr><th>Name</th><th>Seats</th></tr>
+        </thead>
+        <tbody>
+            {% for venue in venues %}
+                <tr><td>{{ venue.name }}</td><td>{{ venue.seatCount }}</td></tr>
+            {% else %}
+                <tr><td colspan="2">No venues yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Create a venue</h2>
+    <form method="post" action="{{ path('admin_venues_create') }}" class="admin-form">
+        <label>Name <input name="name" required></label>
+        <label>Sections, comma separated <input name="sections" placeholder="Stalls, Balcony" required></label>
+        <label>Rows per section <input name="rowsPerSection" type="number" min="1" value="3" required></label>
+        <label>Seats per row <input name="seatsPerRow" type="number" min="1" value="12" required></label>
+        <label>VIP rows, comma separated <input name="vipRows" placeholder="A, B"></label>
+        <p class="hint">Rows are lettered A, B, C… across the sections in order; a seat is its row and number, like A-12.</p>
+        <button type="submit">Create venue</button>
+    </form>
+{% endblock %}

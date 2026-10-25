@@ -14,3 +14,87 @@ main {
 a {
     color: #2563eb;
 }
+
+main.admin {
+    max-width: 64rem;
+}
+
+nav {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+    background: #fff;
+}
+
+th,
+td {
+    text-align: left;
+    padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid #e4e7eb;
+}
+
+.notice,
+.refusal {
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.3rem;
+}
+
+.notice {
+    background: #e3f9e5;
+    color: #05400a;
+}
+
+.refusal {
+    background: #ffe3e3;
+    color: #610404;
+}
+
+.status {
+    font-weight: 600;
+}
+
+.status-on_sale {
+    color: #0e7c3a;
+}
+
+.status-cancelled {
+    color: #ab091e;
+}
+
+.admin-form {
+    display: grid;
+    gap: 0.6rem;
+    max-width: 28rem;
+}
+
+.admin-form label {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.hint {
+    color: #616e7c;
+    font-size: 0.9rem;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.inline-form {
+    display: flex;
+    gap: 0.4rem;
+}
+
+button.danger {
+    color: #ab091e;
+}

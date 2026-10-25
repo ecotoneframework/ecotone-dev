@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Dbal\Tag;
 
 use function array_values;
-
 use function count;
 
 use Doctrine\DBAL\Connection;

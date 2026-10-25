@@ -14,3 +14,128 @@ main {
 a {
     color: #2563eb;
 }
+
+.site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.5rem;
+    background: #1f2933;
+    color: #f5f7fa;
+}
+
+.site-header nav {
+    display: flex;
+    gap: 1rem;
+}
+
+.site-header a {
+    color: #bfdbfe;
+}
+
+.site-header .brand {
+    font-weight: 700;
+    color: #f5f7fa;
+}
+
+.muted {
+    color: #616e7c;
+}
+
+.customer-list,
+.concert-list {
+    list-style: none;
+    padding: 0;
+}
+
+.customer-list li,
+.concert-list li {
+    margin: 0.5rem 0;
+    padding: 0.75rem 1rem;
+    background: #fff;
+    border-radius: 0.5rem;
+}
+
+.customer-list button {
+    margin-right: 0.5rem;
+    padding: 0.4rem 0.9rem;
+    border: 0;
+    border-radius: 0.4rem;
+    background: #2563eb;
+    color: #fff;
+    cursor: pointer;
+}
+
+.concert-list li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.concert-list a {
+    font-weight: 600;
+}
+
+.status {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #616e7c;
+}
+
+.concert--on_sale .status {
+    color: #15803d;
+}
+
+.concert--cancelled .status {
+    color: #b91c1c;
+}
+
+.seat-section {
+    margin: 1.5rem 0;
+}
+
+.seat-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    margin: 0.3rem 0;
+}
+
+.seat-row__label {
+    width: 4rem;
+    font-size: 0.85rem;
+    color: #616e7c;
+}
+
+.seat {
+    display: inline-block;
+    min-width: 2.6rem;
+    padding: 0.25rem 0.3rem;
+    border-radius: 0.3rem;
+    font-size: 0.75rem;
+    text-align: center;
+    background: #dbeafe;
+    color: #1e3a8a;
+}
+
+.seat--vip {
+    background: #fde68a;
+    color: #78350f;
+    font-weight: 600;
+}
+
+.orders {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.orders th,
+.orders td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #e4e7eb;
+    text-align: left;
+}

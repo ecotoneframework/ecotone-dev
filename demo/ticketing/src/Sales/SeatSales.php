@@ -82,16 +82,24 @@ final class SeatSales
     public function release(ReleaseSeat $command, SeatAvailability $seat): array
     {
         $holdingOrderId = $seat->holdingOrderId();
-        if ($holdingOrderId !== $command->orderId) {
+        if ($holdingOrderId === null) {
             throw SeatRefusal::because(sprintf(
                 'Seat %s cannot be released for order %s, because %s. Only the order holding a seat releases it.',
                 $command->seatId,
                 $command->orderId,
-                match (true) {
-                    $holdingOrderId !== null => sprintf('order %s holds it, not order %s', $holdingOrderId, $command->orderId),
-                    $seat->soldToOrderId() !== null => sprintf('it is sold to order %s', $seat->soldToOrderId()),
-                    default => 'no order holds it',
-                },
+                $seat->soldToOrderId() !== null ? sprintf('it is sold to order %s', $seat->soldToOrderId()) : 'no order holds it',
+            ));
+        }
+        if ($holdingOrderId !== $command->orderId || $seat->holdingCustomerId() !== $command->customerId || $seat->holdingConcertId() !== $command->concertId) {
+            throw SeatRefusal::because(sprintf(
+                'Seat %s cannot be released for order %s of customer %s at concert %s, because order %s of customer %s holds it at concert %s. Release a seat with the order, customer and concert of its hold; only the holder releases it.',
+                $command->seatId,
+                $command->orderId,
+                $command->customerId,
+                $command->concertId,
+                $holdingOrderId,
+                $seat->holdingCustomerId(),
+                $seat->holdingConcertId(),
             ));
         }
 

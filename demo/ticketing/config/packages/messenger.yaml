@@ -1,0 +1,4 @@
+framework:
+    messenger:
+        transports:
+            ticketing_async: 'doctrine://default?queue_name=ticketing_async&auto_setup=0'

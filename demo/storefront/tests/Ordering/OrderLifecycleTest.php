@@ -11,10 +11,12 @@ use App\Ordering\MarkPaid;
 use App\Ordering\MarkSeatsHeld;
 use App\Ordering\MarkTicketsIssued;
 use App\Ordering\StartOrder;
+use Closure;
 use DomainException;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -185,6 +187,51 @@ final class OrderLifecycleTest extends TestCase
         $this->commandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
     }
 
+    #[DataProvider('refusedCommands')]
+    public function test_a_command_its_status_does_not_accept_is_refused_and_leaves_the_order_unchanged(string $status, Closure $command, string $expectedMessage): void
+    {
+        $orderId = $this->orderIn($status);
+
+        try {
+            $this->commandBus()->send($command($orderId));
+            self::fail();
+        } catch (DomainException $refusal) {
+            self::assertSame(sprintf($expectedMessage, $orderId), $refusal->getMessage());
+        }
+        self::assertSame($status, $this->orderDetail($orderId)['status']);
+    }
+
+    public static function refusedCommands(): iterable
+    {
+        $markSeatsHeld = fn (string $orderId) => new MarkSeatsHeld(orderId: $orderId, seatIds: [self::CONCERT_ID . '/A-2']);
+        $beginPayment = fn (string $orderId) => new BeginPayment(orderId: $orderId);
+        $markPaid = fn (string $orderId) => new MarkPaid(orderId: $orderId, paymentReference: 'pay_456');
+        $markTicketsIssued = fn (string $orderId) => new MarkTicketsIssued(orderId: $orderId);
+        $failOrder = fn (string $orderId) => new FailOrder(orderId: $orderId, reason: 'Too late');
+
+        yield 'BeginPayment on a started order' => ['started', $beginPayment, 'Order %s is started, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
+        yield 'MarkPaid on a started order' => ['started', $markPaid, 'Order %s is started, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
+        yield 'MarkTicketsIssued on a started order' => ['started', $markTicketsIssued, 'Order %s is started, not paid, so its tickets cannot be issued. Send MarkPaid with the payment reference first.'];
+        yield 'MarkPaid on a seats_held order' => ['seats_held', $markPaid, 'Order %s is seats_held, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
+        yield 'MarkTicketsIssued on a seats_held order' => ['seats_held', $markTicketsIssued, 'Order %s is seats_held, not paid, so its tickets cannot be issued. Send MarkPaid with the payment reference first.'];
+        yield 'MarkSeatsHeld on a paying order' => ['paying', $markSeatsHeld, 'Order %s is paying, so MarkSeatsHeld cannot be applied to it. MarkSeatsHeld is accepted only while the order is started or seats_held.'];
+        yield 'BeginPayment on a paying order' => ['paying', $beginPayment, 'Order %s is paying, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
+        yield 'MarkTicketsIssued on a paying order' => ['paying', $markTicketsIssued, 'Order %s is paying, not paid, so its tickets cannot be issued. Send MarkPaid with the payment reference first.'];
+        yield 'MarkSeatsHeld on a paid order' => ['paid', $markSeatsHeld, 'Order %s is paid, so MarkSeatsHeld cannot be applied to it. MarkSeatsHeld is accepted only while the order is started or seats_held.'];
+        yield 'BeginPayment on a paid order' => ['paid', $beginPayment, 'Order %s is paid, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
+        yield 'MarkPaid on a paid order' => ['paid', $markPaid, 'Order %s is paid, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
+        yield 'MarkSeatsHeld on a tickets_issued order' => ['tickets_issued', $markSeatsHeld, 'Order %s is tickets_issued, so MarkSeatsHeld cannot be applied to it. MarkSeatsHeld is accepted only while the order is started or seats_held.'];
+        yield 'BeginPayment on a tickets_issued order' => ['tickets_issued', $beginPayment, 'Order %s is tickets_issued, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
+        yield 'MarkPaid on a tickets_issued order' => ['tickets_issued', $markPaid, 'Order %s is tickets_issued, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
+        yield 'MarkTicketsIssued on a tickets_issued order' => ['tickets_issued', $markTicketsIssued, 'Order %s is tickets_issued, not paid, so its tickets cannot be issued. Send MarkPaid with the payment reference first.'];
+        yield 'FailOrder on a tickets_issued order' => ['tickets_issued', $failOrder, 'Order %s already has its tickets issued, so it cannot fail: an order with issued tickets is final. Send FailOrder only for an order that has not reached tickets_issued.'];
+        yield 'MarkSeatsHeld on a failed order' => ['failed', $markSeatsHeld, 'Order %s is failed, so MarkSeatsHeld cannot be applied to it. MarkSeatsHeld is accepted only while the order is started or seats_held.'];
+        yield 'BeginPayment on a failed order' => ['failed', $beginPayment, 'Order %s is failed, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
+        yield 'MarkPaid on a failed order' => ['failed', $markPaid, 'Order %s is failed, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
+        yield 'MarkTicketsIssued on a failed order' => ['failed', $markTicketsIssued, 'Order %s is failed, not paid, so its tickets cannot be issued. Send MarkPaid with the payment reference first.'];
+        yield 'FailOrder on a failed order' => ['failed', $failOrder, 'Order %s is failed, so FailOrder cannot be applied to it. FailOrder is accepted only while the order is started or seats_held or paying or paid.'];
+    }
+
     private function registerAda(): string
     {
         return $this->commandBus()->send(new RegisterCustomer(name: 'Ada Lovelace', email: 'ada@example.com'));
@@ -215,6 +262,34 @@ final class OrderLifecycleTest extends TestCase
     {
         $orderId = $this->payingOrder();
         $this->commandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
+
+        return $orderId;
+    }
+
+    private function orderIn(string $status): string
+    {
+        return match ($status) {
+            'started' => $this->startOrder(),
+            'seats_held' => $this->orderWithHeldSeats(),
+            'paying' => $this->payingOrder(),
+            'paid' => $this->paidOrder(),
+            'tickets_issued' => $this->orderWithIssuedTickets(),
+            'failed' => $this->failedOrder(),
+        };
+    }
+
+    private function orderWithIssuedTickets(): string
+    {
+        $orderId = $this->paidOrder();
+        $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId));
+
+        return $orderId;
+    }
+
+    private function failedOrder(): string
+    {
+        $orderId = $this->startOrder();
+        $this->commandBus()->send(new FailOrder(orderId: $orderId, reason: 'Payment declined'));
 
         return $orderId;
     }

@@ -120,6 +120,30 @@ final class StorefrontPagesTest extends TestCase
         $this->get('/account')->assertRedirect('/whoami');
     }
 
+    public function test_the_account_of_a_customer_no_longer_registered_sends_you_to_whoami(): void
+    {
+        $customerId = $this->register('Ada Lovelace', 'ada@example.com');
+        DB::table('customers')->delete();
+
+        $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/account')->assertRedirect('/whoami');
+    }
+
+    public function test_the_layout_asks_who_you_are_when_the_chosen_customer_is_unknown(): void
+    {
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, '0199f3a8-6f2a-7c1e-9a51-000000000000')->get('/concerts');
+
+        $response->assertOk();
+        $response->assertSee('<a href="http://localhost/whoami">Pick who you are</a>', escape: false);
+    }
+
+    public function test_the_layout_asks_who_you_are_when_the_customer_cookie_is_not_a_customer_id(): void
+    {
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, 'not-a-customer-id')->get('/concerts');
+
+        $response->assertOk();
+        $response->assertSee('<a href="http://localhost/whoami">Pick who you are</a>', escape: false);
+    }
+
     private function register(string $name, string $email): string
     {
         return $this->commandBus()->send(new RegisterCustomer(name: $name, email: $email));

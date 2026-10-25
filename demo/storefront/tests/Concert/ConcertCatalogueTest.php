@@ -238,7 +238,31 @@ final class ConcertCatalogueTest extends TestCase
         self::assertSame('cancelled', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
     }
 
-    private function scheduled(string $concertId, string $artist, string $startsAt): array
+    public function test_a_redelivered_schedule_with_changed_details_updates_the_concert(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Late Owls', startsAt: '2026-12-02T21:30:00+00:00', tiers: ['standard' => 5000, 'vip' => 15000]));
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(
+            [[
+                'concertId' => self::NIGHT_CONCERT,
+                'artist' => 'The Late Owls',
+                'venueName' => 'Ecotone Hall',
+                'startsAt' => '2026-12-02T21:30:00+00:00',
+                'currency' => 'EUR',
+                'standardPriceCents' => 5000,
+                'vipPriceCents' => 15000,
+                'status' => 'scheduled',
+            ]],
+            $storefront->sendQueryWithRouting('concerts.list'),
+        );
+    }
+
+    private function scheduled(string $concertId, string $artist, string $startsAt, array $tiers = ['standard' => 4500, 'vip' => 12000]): array
     {
         return [
             'concertId' => $concertId,
@@ -246,7 +270,7 @@ final class ConcertCatalogueTest extends TestCase
             'artist' => $artist,
             'startsAt' => $startsAt,
             'currency' => 'EUR',
-            'tiers' => ['standard' => 4500, 'vip' => 12000],
+            'tiers' => $tiers,
             'seats' => [
                 ['seatId' => $concertId . '/B-10', 'seatCode' => 'B-10', 'tier' => 'standard'],
                 ['seatId' => $concertId . '/A-2', 'seatCode' => 'A-2', 'tier' => 'vip'],

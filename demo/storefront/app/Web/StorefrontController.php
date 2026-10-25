@@ -36,12 +36,20 @@ final class StorefrontController
         return view('concerts.index', ['concerts' => $this->queryBus->sendWithRouting('concerts.list')]);
     }
 
-    public function concert(string $concertId): View
+    public function concert(Request $request, string $concertId): View
     {
         $concert = $this->queryBus->sendWithRouting('concert.detail', $concertId);
         abort_if($concert === null, 404, 'There is no such concert. Pick one from /concerts.');
+        $customer = $this->currentCustomer->of($request);
+        $openOrderId = $customer === null ? null : $this->queryBus->sendWithRouting('customer.open_order', ['customerId' => $customer['customerId'], 'concertId' => $concertId]);
 
-        return view('concerts.show', ['concert' => $concert]);
+        return view('concerts.show', [
+            'concert' => $concert,
+            'customer' => $customer,
+            'picksSeats' => $customer !== null && $concert['status'] === 'on_sale',
+            'openOrderId' => $openOrderId,
+            'takenSeatIds' => $this->queryBus->sendWithRouting('concert.taken_seats', ['concertId' => $concertId, 'excludingOrderId' => $openOrderId]),
+        ]);
     }
 
     public function account(Request $request): View|RedirectResponse

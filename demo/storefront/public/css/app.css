@@ -139,3 +139,142 @@ a {
     border-bottom: 1px solid #e4e7eb;
     text-align: left;
 }
+
+button.seat {
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.75rem;
+}
+
+button.seat:disabled {
+    cursor: not-allowed;
+}
+
+.seat--pending {
+    background: #e0e7ff;
+    color: #3730a3;
+    outline: 2px dashed #6366f1;
+}
+
+.seat--yours {
+    background: #16a34a;
+    color: #fff;
+}
+
+.seat--taken {
+    background: #e4e7eb;
+    color: #9aa5b1;
+    text-decoration: line-through;
+}
+
+.seat--refused {
+    background: #fecaca;
+    color: #7f1d1d;
+    outline: 2px solid #dc2626;
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+}
+
+.seat-picker-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 14rem;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (max-width: 40rem) {
+    .seat-picker-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.basket {
+    position: sticky;
+    top: 1rem;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 0.5rem;
+}
+
+.basket h2 {
+    margin-top: 0;
+    font-size: 1.1rem;
+}
+
+.basket__seats {
+    padding-left: 1.2rem;
+}
+
+.basket__refusal {
+    color: #b91c1c;
+}
+
+.countdown {
+    font-size: 0.8rem;
+    color: #b45309;
+}
+
+.notice {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    background: #e0f2fe;
+}
+
+.notice--sold-out,
+.notice--failed,
+.notice--refused {
+    background: #fee2e2;
+    color: #7f1d1d;
+}
+
+.notice--sold-out {
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.concert--sold_out .status {
+    color: #b45309;
+}
+
+.button,
+.card-form button {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border: 0;
+    border-radius: 0.4rem;
+    background: #2563eb;
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+    font: inherit;
+}
+
+.card-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: end;
+    margin: 1.5rem 0 0.5rem;
+}
+
+.card-form input {
+    display: block;
+    margin-top: 0.25rem;
+    padding: 0.45rem 0.6rem;
+    font: inherit;
+}
+
+.entry-code {
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.held-seats {
+    padding-left: 1.2rem;
+}

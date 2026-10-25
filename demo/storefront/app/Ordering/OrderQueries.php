@@ -21,6 +21,30 @@ final class OrderQueries
             ->all();
     }
 
+    #[QueryHandler('customer.open_order')]
+    public function openOrderOf(array $query): ?string
+    {
+        return Order::query()
+            ->where('customer_id', $query['customerId'])
+            ->where('concert_id', $query['concertId'])
+            ->whereIn('status', Order::OPEN_STATUSES)
+            ->value('id');
+    }
+
+    #[QueryHandler('concert.taken_seats')]
+    public function seatsTakenByOtherOrders(array $query): array
+    {
+        return Order::query()
+            ->where('concert_id', $query['concertId'])
+            ->where('status', '<>', OrderStatus::FAILED)
+            ->when($query['excludingOrderId'] !== null, fn ($orders) => $orders->where('id', '<>', $query['excludingOrderId']))
+            ->get()
+            ->flatMap(fn (Order $order) => $order->heldSeatIds())
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     #[QueryHandler('order.detail')]
     public function detail(string $orderId): array
     {

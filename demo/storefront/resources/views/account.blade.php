@@ -15,7 +15,7 @@
                 <tbody>
                     @foreach ($orders as $order)
                         <tr>
-                            <td><code>{{ $order['orderId'] }}</code></td>
+                            <td><a href="{{ url('/orders/' . $order['orderId']) }}"><code>{{ $order['orderId'] }}</code></a></td>
                             <td>{{ $order['artist'] }}</td>
                             <td>{{ implode(', ', array_map(\App\Concert\SeatCode::ofSeatId(...), $order['seatIds'])) }}</td>
                             <td class="status">{{ $order['status'] }}</td>

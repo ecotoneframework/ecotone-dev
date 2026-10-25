@@ -6,9 +6,9 @@ namespace Tests\Ordering;
 
 use App\Customer\RegisterCustomer;
 use App\Ordering\BeginPayment;
+use App\Ordering\DropExpiredSeat;
 use App\Ordering\FailOrder;
 use App\Ordering\MarkPaid;
-use App\Ordering\DropExpiredSeat;
 use App\Ordering\MarkSeatHeld;
 use App\Ordering\MarkTicketsIssued;
 use App\Ordering\RecordSeatRefusal;

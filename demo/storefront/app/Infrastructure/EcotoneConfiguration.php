@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Infrastructure;
 
+use Doctrine\DBAL\Exception\RetryableException;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
-use Doctrine\DBAL\Exception\RetryableException;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;

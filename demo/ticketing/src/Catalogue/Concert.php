@@ -191,6 +191,50 @@ final class Concert
         ];
     }
 
+    public function isOnSale(): bool
+    {
+        return $this->status === ConcertStatus::ON_SALE;
+    }
+
+    public function seat(string $seatId): ?Seat
+    {
+        foreach ($this->seats as $seat) {
+            if ($seat['seatId'] === $seatId) {
+                return new Seat(seatId: $seat['seatId'], seatCode: $seat['seatCode'], tier: Tier::from($seat['tier']));
+            }
+        }
+
+        return null;
+    }
+
+    public function seatCount(): int
+    {
+        return count($this->seats);
+    }
+
+    public function priceOf(Tier $tier): int
+    {
+        return match ($tier) {
+            Tier::STANDARD => $this->standardPriceCents,
+            Tier::VIP => $this->vipPriceCents,
+        };
+    }
+
+    public function title(): string
+    {
+        return sprintf('the concert of %s', $this->artist);
+    }
+
+    public function seatRange(): string
+    {
+        return sprintf('%s to %s', $this->seats[0]['seatCode'] ?? '-', $this->seats[array_key_last($this->seats)]['seatCode'] ?? '-');
+    }
+
+    public function statusInWords(): string
+    {
+        return str_replace('_', ' ', $this->status->value);
+    }
+
     private static function assertPrice(string $artist, Tier $tier, int $priceCents): void
     {
         if ($priceCents < 1) {
@@ -201,10 +245,5 @@ final class Concert
     private function describe(): string
     {
         return sprintf('the concert of %s (%s)', $this->artist, $this->concertId);
-    }
-
-    private function statusInWords(): string
-    {
-        return str_replace('_', ' ', $this->status->value);
     }
 }

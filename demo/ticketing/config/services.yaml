@@ -1,3 +1,7 @@
+parameters:
+    env(TICKETING_HOLD_SECONDS): '600'
+    ticketingHoldSeconds: '%env(int:TICKETING_HOLD_SECONDS)%'
+
 services:
     _defaults:
         autowire: true

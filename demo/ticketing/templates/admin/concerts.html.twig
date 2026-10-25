@@ -31,6 +31,7 @@
         <p>Create a <a href="{{ path('admin_venues') }}">venue</a> first.</p>
     {% else %}
         <form method="post" action="{{ path('admin_concerts_schedule') }}" class="admin-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
             <label>Venue
                 <select name="venueId">
                     {% for venue in venues %}

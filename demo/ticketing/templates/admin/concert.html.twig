@@ -16,9 +16,11 @@
 
     <div class="actions">
         <form method="post" action="{{ path('admin_concert_open_sales', {concertId: concert.concertId}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
             <button type="submit">Open sales</button>
         </form>
         <form method="post" action="{{ path('admin_concert_price', {concertId: concert.concertId}) }}" class="inline-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
             <select name="tier">
                 <option value="standard">standard</option>
                 <option value="vip">vip</option>
@@ -27,6 +29,7 @@
             <button type="submit">Change price</button>
         </form>
         <form method="post" action="{{ path('admin_concert_cancel', {concertId: concert.concertId}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
             <button type="submit" class="danger">Cancel concert</button>
         </form>
     </div>

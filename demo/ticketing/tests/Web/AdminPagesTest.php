@@ -169,6 +169,7 @@ final class AdminPagesTest extends WebTestCase
         $client->request('POST', str_replace('{concertId}', $concertId, $path), str_replace('{venueId}', $venueId, $fields));
 
         self::assertResponseStatusCodeSame(403);
+        self::assertStringContainsString('carries no valid CSRF token, so nothing was changed. Every admin form renders its token in the &quot;_token&quot; field: reload the page and submit the form from it again.', $client->getResponse()->getContent());
         $client->request('GET', "/admin/concerts/{$concertId}");
         self::assertSelectorTextContains('.status', 'on sale');
         self::assertSelectorTextContains('.prices', 'VIP 95.00 EUR');

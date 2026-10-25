@@ -19,6 +19,7 @@
 
     <h2>Create a venue</h2>
     <form method="post" action="{{ path('admin_venues_create') }}" class="admin-form">
+        <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
         <label>Name <input name="name" required></label>
         <label>Sections, comma separated <input name="sections" placeholder="Stalls, Balcony" required></label>
         <label>Rows per section <input name="rowsPerSection" type="number" min="1" value="3" required></label>

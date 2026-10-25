@@ -23,6 +23,8 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="pgsql" force="true"/>
         <env name="DB_DATABASE" value="storefront_test" force="true"/>
+        <server name="DB_CONNECTION" value="pgsql" force="true"/>
+        <server name="DB_DATABASE" value="storefront_test" force="true"/>
         <env name="DATABASE_DSN" value="pgsql://ecotone:secret@postgres:5432/storefront_test"/>
         <env name="DEMO_PULSE_URL" value="http://localhost:8080" force="true"/>
         <env name="DEMO_JAEGER_URL" value="http://localhost:16686" force="true"/>

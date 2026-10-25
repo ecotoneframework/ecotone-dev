@@ -24,6 +24,7 @@ final class EcotoneConfigurationTest extends TestCase
             SimpleMessageChannelBuilder::createQueueChannel('ticketing'),
             SimpleMessageChannelBuilder::createQueueChannel('storefront'),
             SimpleMessageChannelBuilder::createQueueChannel('ticketing_async'),
+            SimpleMessageChannelBuilder::createQueueChannel('ecotone_pulse'),
         ];
         $storefront = new class () {
             public array $pongs = [];

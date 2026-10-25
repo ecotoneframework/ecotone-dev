@@ -1,4 +1,6 @@
 {
+    "name": "ecotone/demo-ticketing",
+    "description": "Ecotone demo: the Symfony ticketing service",
     "type": "project",
     "license": "proprietary",
     "minimum-stability": "dev",

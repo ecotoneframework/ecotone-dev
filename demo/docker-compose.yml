@@ -64,6 +64,7 @@ x-storefront-environment: &storefront-environment
   SESSION_DRIVER: file
   CACHE_STORE: file
   LOG_CHANNEL: stderr
+  LOG_LEVEL: notice
 
 x-web-healthcheck: &web-healthcheck
   test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/') === false ? 1 : 0);"]
@@ -73,7 +74,7 @@ x-web-healthcheck: &web-healthcheck
   retries: 6
 
 x-worker-healthcheck: &worker-healthcheck
-  test: ["CMD-SHELL", "ls /tmp/demo-workers/*.pid >/dev/null 2>&1 && cat /tmp/demo-workers/*.pid | xargs kill -0"]
+  test: ["CMD-SHELL", "ls /tmp/demo-workers/*.pid >/dev/null 2>&1 && for pid in $$(cat /tmp/demo-workers/*.pid); do kill -0 $$pid || exit 1; done"]
   interval: 5s
   timeout: 5s
   start_period: 120s
@@ -118,6 +119,7 @@ services:
 
   pulse:
     <<: *app
+    working_dir: /repo/apps/Pulse
     command: ["pulse"]
     environment:
       ECOTONE_LICENCE_KEY:
@@ -139,6 +141,7 @@ services:
 
   ticketing:
     <<: *app
+    working_dir: /repo/demo/ticketing
     command: ["web"]
     environment: *ticketing-environment
     ports:
@@ -147,6 +150,7 @@ services:
 
   ticketing-worker:
     <<: *app
+    working_dir: /repo/demo/ticketing
     command: ["worker", "ticketing", "ticketing_async"]
     environment: *ticketing-environment
     deploy:
@@ -159,6 +163,7 @@ services:
 
   storefront:
     <<: *app
+    working_dir: /repo/demo/storefront
     command: ["web"]
     environment: *storefront-environment
     ports:
@@ -167,6 +172,7 @@ services:
 
   storefront-worker:
     <<: *app
+    working_dir: /repo/demo/storefront
     command: ["worker", "storefront", "storefront_async"]
     environment: *storefront-environment
     healthcheck: *worker-healthcheck

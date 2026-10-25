@@ -47,6 +47,7 @@ fi
 
 if [ "$DEMO_APP" = pulse ]; then
     php bin/console importmap:install
+    export DEMO_PUBLIC_DIR="$PWD/public"
     exec pulse-entrypoint run
 fi
 

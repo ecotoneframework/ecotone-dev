@@ -18,6 +18,7 @@ use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Projecting\FromTaggedStream;
 use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionBackfill;
@@ -97,6 +98,7 @@ final class ProjectingAttributeModule implements AnnotationModule
             $partitionAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Partitioned::class);
 
             $partitionHeaderName = $partitionAttribute?->partitionHeaderName;
+            $taggedStreamAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, FromTaggedStream::class);
             // Resolve automatic initialization: manualKickOff: true means automaticInitialization: false
             $automaticInitialization = self::resolveAutomaticInitialization($partitionAttribute, $projectionDeployment);
             $isLive = $projectionDeployment?->live ?? true;
@@ -116,6 +118,7 @@ final class ProjectingAttributeModule implements AnnotationModule
                 hasRebuild: $rebuildAttribute !== null,
                 hasDeployment: $projectionDeployment !== null,
                 polling: $pollingAttribute !== null,
+                partitionTag: $partitionAttribute !== null ? $taggedStreamAttribute?->tag : null,
             );
 
             $asyncAttribute = self::getProjectionAsynchronousAttribute($annotationRegistrationService, $projectionClassName);

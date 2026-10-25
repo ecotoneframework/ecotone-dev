@@ -69,6 +69,16 @@ class ProjectingManager
         } while ($processedEvents > 0 && $this->terminationListener->shouldTerminate() !== true);
     }
 
+    /**
+     * @param string[] $partitionKeyValues
+     */
+    public function executeForPartitions(array $partitionKeyValues, bool $manualInitialization = false): void
+    {
+        foreach ($partitionKeyValues as $partitionKeyValue) {
+            $this->execute($partitionKeyValue, $manualInitialization);
+        }
+    }
+
     public function executePartitionBatch(?string $partitionKeyValue = null, bool $canInitialize = false, bool $shouldReset = false): int
     {
         if ($canInitialize) {
@@ -269,6 +279,7 @@ class ProjectingManager
                     'partitionBatch.streamName' => $streamFilter->streamName,
                     'partitionBatch.aggregateType' => $streamFilter->aggregateType,
                     'partitionBatch.eventStoreReferenceName' => $streamFilter->eventStoreReferenceName,
+                    'partitionBatch.tag' => $streamFilter->tag,
                     'partitionBatch.shouldReset' => $shouldReset,
                     ProjectingHeaders::REBUILD_BATCH_NUMBER => $batchNumber,
                     ProjectingHeaders::REBUILD_BATCH_COUNT => $totalBatches,

@@ -230,6 +230,9 @@ final class EventSourcingProjectingModule implements AnnotationModule
             $isPartitioned = $partitionedAttribute !== null;
 
             foreach ($streamFilters as $streamFilter) {
+                if ($streamFilter->tag !== null) {
+                    continue;
+                }
                 if ($isPartitioned && ! $streamFilter->aggregateType) {
                     throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
                 }

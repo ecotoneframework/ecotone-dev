@@ -104,6 +104,22 @@ final class InMemoryTagIndex
         return $sequences;
     }
 
+    /**
+     * @return string[]
+     */
+    public function valuesOf(string $tagName): array
+    {
+        $values = [];
+        foreach ($this->references[$tagName] ?? [] as $value => $references) {
+            if ($references !== []) {
+                $values[] = (string) $value;
+            }
+        }
+        sort($values, SORT_STRING);
+
+        return $values;
+    }
+
     public function deleteStream(string $streamName): void
     {
         foreach ($this->references as $tagName => $tagValues) {

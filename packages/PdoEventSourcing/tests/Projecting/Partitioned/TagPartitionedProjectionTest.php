@@ -113,11 +113,16 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             }
 
             #[ProjectionReset]
-            #[ProjectionDelete]
-            public function clear(): void
+            public function reset(): void
             {
                 $this->reservedSeats = [];
                 $this->reservationsCountedInState = [];
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->reset();
             }
         };
     }

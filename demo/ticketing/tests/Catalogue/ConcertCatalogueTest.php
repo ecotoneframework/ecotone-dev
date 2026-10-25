@@ -18,6 +18,15 @@ use App\Catalogue\ScheduleConcert;
 use App\Catalogue\Tier;
 use App\Catalogue\Venue;
 use App\Infrastructure\EcotoneConfiguration;
+use App\Sales\ConcertSalesLedger;
+use App\Sales\CustomerConcertSeats;
+use App\Sales\HoldExpired;
+use App\Sales\HoldExpiry;
+use App\Sales\HoldReleased;
+use App\Sales\SeatAvailability;
+use App\Sales\SeatHeld;
+use App\Sales\SeatSales;
+use App\Sales\SeatSold;
 use DateTimeImmutable;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Api\Attribute\Distributed;
@@ -326,17 +335,37 @@ final class ConcertCatalogueTest extends KernelTestCase
         self::bootKernel();
         /** @var ManagerRegistry $doctrine */
         $doctrine = self::getContainer()->get('doctrine');
-        $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues');
+        $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues, concert_sales_ledger');
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [EcotoneConfiguration::class, Venue::class, Concert::class, Catalogue::class, ConcertAnnouncements::class, DemoSeed::class],
+            classesToResolve: [
+                EcotoneConfiguration::class,
+                Venue::class,
+                Concert::class,
+                Catalogue::class,
+                ConcertAnnouncements::class,
+                DemoSeed::class,
+                SeatSales::class,
+                HoldExpiry::class,
+                ConcertSalesLedger::class,
+                SeatAvailability::class,
+                CustomerConcertSeats::class,
+                SeatHeld::class,
+                HoldReleased::class,
+                HoldExpired::class,
+                SeatSold::class,
+            ],
             containerOrAvailableServices: [
                 new EcotoneConfiguration(),
                 new Catalogue($doctrine->getConnection()),
                 new ConcertAnnouncements(),
                 new DemoSeed(),
+                new SeatSales(),
+                new HoldExpiry(),
+                new ConcertSalesLedger($doctrine->getConnection()),
                 'doctrine' => $doctrine,
             ],
+            configurationVariables: ['ticketingHoldSeconds' => 600],
             extensionObjects: [...$this->channels(), SymfonyConnectionReference::defaultManagerRegistry('default')],
             pathToRootCatalog: dirname(__DIR__, 2),
             addInMemoryStateStoredRepository: false,

@@ -10,6 +10,7 @@ use App\Catalogue\Concert;
 use App\Catalogue\ConcertAnnouncements;
 use App\Catalogue\ConcertSoldOut;
 use App\Catalogue\CreateVenue;
+use App\Catalogue\DemoSeed;
 use App\Catalogue\OpenSales;
 use App\Catalogue\ScheduleConcert;
 use App\Catalogue\Tier;
@@ -171,6 +172,51 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         self::assertEquals([new ConcertSoldOut($concertId)], $ticketing->popRecordedEventsOfType(ConcertSoldOut::class));
     }
 
+    public function test_seeding_the_demo_sells_all_but_the_last_three_seats_of_neon_harbour(): void
+    {
+        $ticketing = $this->ticketing();
+
+        $ticketing->runConsoleCommand('demo:seed', []);
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $concertId = $this->concertIdOf($ticketing, 'Neon Harbour');
+        $sales = $ticketing->sendQueryWithRouting('concert.sales', $concertId);
+        self::assertSame(69, $sales['seatsSold']);
+        self::assertSame(['standard' => ['seatsSold' => 45, 'revenueCents' => 202500], 'vip' => ['seatsSold' => 24, 'revenueCents' => 228000]], $sales['tiers']);
+        self::assertSame(
+            ['F-10', 'F-11', 'F-12'],
+            array_column(array_filter($ticketing->sendQueryWithRouting('concert.seat_map', $concertId), static fn (array $seat): bool => $seat['status'] === 'free'), 'seatCode'),
+        );
+        self::assertSame('on_sale', $this->statusOf($ticketing, $concertId));
+        self::assertSame(0, $ticketing->sendQueryWithRouting('concert.sales', $this->concertIdOf($ticketing, 'The Midnight Owls'))['seatsSold']);
+    }
+
+    public function test_seeding_the_demo_again_sells_no_further_seat(): void
+    {
+        $ticketing = $this->ticketing();
+        $ticketing->runConsoleCommand('demo:seed', []);
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketing->discardRecordedMessages();
+
+        $ticketing->runConsoleCommand('demo:seed', []);
+
+        self::assertSame([], $ticketing->popRecordedEventsOfType(SeatHeld::class));
+        self::assertSame([], $ticketing->popRecordedEventsOfType(SeatSold::class));
+    }
+
+    public function test_seeding_the_demo_again_before_the_ledger_caught_up_sells_no_further_seat(): void
+    {
+        $ticketing = $this->ticketing();
+        $ticketing->runConsoleCommand('demo:seed', []);
+        $ticketing->discardRecordedMessages();
+
+        $ticketing->runConsoleCommand('demo:seed', []);
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame([], $ticketing->popRecordedEventsOfType(SeatSold::class));
+        self::assertSame(69, $ticketing->sendQueryWithRouting('concert.sales', $this->concertIdOf($ticketing, 'Neon Harbour'))['seatsSold']);
+    }
+
     private function ticketing(): FlowTestSupport
     {
         self::bootKernel();
@@ -190,6 +236,7 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
                 ConcertSeatMap::class,
                 ConcertSalesLedger::class,
                 SoldOutWatch::class,
+                DemoSeed::class,
                 SeatAvailability::class,
                 CustomerConcertSeats::class,
                 SeatHeld::class,
@@ -206,6 +253,7 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
                 new ConcertSeatMap($doctrine->getConnection()),
                 new ConcertSalesLedger($doctrine->getConnection()),
                 new SoldOutWatch(),
+                new DemoSeed(),
                 'doctrine' => $doctrine,
             ],
             configurationVariables: ['ticketingHoldSeconds' => 600],
@@ -258,6 +306,11 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         ksort($counts);
 
         return $counts;
+    }
+
+    private function concertIdOf(FlowTestSupport $ticketing, string $artist): string
+    {
+        return array_column($ticketing->sendQueryWithRouting('concerts.list'), 'concertId', 'artist')[$artist];
     }
 
     private function statusOf(FlowTestSupport $ticketing, string $concertId): string

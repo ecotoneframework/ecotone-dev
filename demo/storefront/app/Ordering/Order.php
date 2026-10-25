@@ -169,6 +169,7 @@ final class Order extends Model
         }
         $this->tickets = $command->tickets;
         $this->status = OrderStatus::TICKETS_ISSUED;
+        $this->recordThat(new OrderTicketsIssued(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id));
     }
 
     #[CommandHandler]

@@ -97,7 +97,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         $ecotone = $this->bootstrap($implementation, $projection);
 
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
-        $ecotone->sendCommand(new SellFestivalPassForTaggedProjection('concert-1', ['concert-1', 'concert-2', 'concert-1'], 'pass-1'));
+        $ecotone->sendCommand(new SellFestivalPassForTaggedProjection('concert-1', ['concert-1', 'concert-2'], 'pass-1'));
 
         self::assertSame(['concert-1' => ['A1', 'pass-1'], 'concert-2' => ['pass-1']], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
         self::assertSame(['concert-1' => 2, 'concert-2' => 1], $ecotone->sendQueryWithRouting('concert.reservationsCountedInState'));

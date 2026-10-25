@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\TaggedStream;
 
+use function array_map;
+
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\Projecting\PartitionTagValue;
 use Ecotone\EventSourcing\Tagging\MatchedTagSequences;
 use Ecotone\EventSourcing\Tagging\TagKey;
 use Ecotone\Messaging\Support\Assert;
@@ -61,7 +65,10 @@ final class TagStreamSource implements StreamSource
             $criteria = $criteria->ofTypes(...$streamFilter->eventNames);
         }
 
-        $events = $this->eventStore->loadByCriteria($criteria)->events;
+        $events = array_map(
+            static fn (Event $event): Event => $event->withAddedMetadata([PartitionTagValue::HEADER_NAME => $partitionKey]),
+            $this->eventStore->loadByCriteria($criteria)->events,
+        );
         $lastEvent = end($events);
 
         return new StreamPage(

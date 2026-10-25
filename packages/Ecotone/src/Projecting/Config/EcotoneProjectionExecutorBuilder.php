@@ -192,6 +192,7 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
             $this->flushChannel,
             $this->isLive,
             $this->resetChannel,
+            $this->partitionTag !== null,
         ]);
     }
 

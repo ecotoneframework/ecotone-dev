@@ -91,7 +91,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ecotone -d storefront_test"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ecotone -d storefront_test"]
       interval: 3s
       timeout: 5s
       retries: 30

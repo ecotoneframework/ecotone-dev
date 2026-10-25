@@ -1,3 +1,16 @@
 body {
-    background-color: skyblue;
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    color: #1f2933;
+    background: #f5f7fa;
+}
+
+main {
+    max-width: 48rem;
+    margin: 3rem auto;
+    padding: 0 1rem;
+}
+
+a {
+    color: #2563eb;
 }

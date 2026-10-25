@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ticketing{% endblock %}
+
+{% block body %}
+    <main>
+        <h1>Ticketing</h1>
+        <p>The Symfony ticketing service of the Ecotone demo. It answers the storefront over the Distributed Bus on RabbitMQ.</p>
+        <ul>
+            <li><a href="{{ pulseUrl }}">Ecotone Pulse</a> monitors this service and the storefront.</li>
+            <li><a href="{{ jaegerUrl }}">Jaeger</a> shows the traces of every message.</li>
+        </ul>
+    </main>
+{% endblock %}

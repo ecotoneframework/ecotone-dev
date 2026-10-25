@@ -144,7 +144,7 @@ class ProjectingManager
         return 'projecting_manager_batch:' . $projectionName;
     }
 
-    public function loadState(?string $partitionKey = null): ProjectionPartitionState
+    public function loadState(?string $partitionKey = null): ?ProjectionPartitionState
     {
         return $this->getProjectionStateStorage()->loadPartition($this->projectionName, $partitionKey);
     }

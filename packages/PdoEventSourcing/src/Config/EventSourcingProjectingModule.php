@@ -68,7 +68,7 @@ final class EventSourcingProjectingModule implements AnnotationModule
      * @param string[] $projectionNames
      * @param string[] $partitionedProjectionNames
      * @param string[] $globalStreamProjectionNames
-     * @param array<array{className: string, methodName: string, projectionName: string, partitionKeyParam: ?string}> $v2StateGateways
+     * @param array<array{className: string, methodName: string, projectionName: string, aggregateIdParam: ?string, streamName: ?string, aggregateType: ?string, partitionedByTag: bool}> $v2StateGateways
      * @param array<string, array<string, string>> $projectionInvariantGuardMap stream name => (event name or '*' => projection name)
      * @param string[] $tagPartitionedProjectionNames
      */
@@ -95,6 +95,7 @@ final class EventSourcingProjectingModule implements AnnotationModule
             $projectionNames[] = $projectionAttribute->name;
         }
 
+        $tagPartitionedProjectionNames = StreamFilterRegistryModule::tagPartitionedProjectionNames($annotationRegistrationService);
         $v2StateGateways = [];
         foreach ($annotationRegistrationService->findAnnotatedMethods(ProjectionStateGateway::class) as $gatewayAnnotation) {
             /** @var ProjectionStateGateway $attribute */
@@ -115,7 +116,8 @@ final class EventSourcingProjectingModule implements AnnotationModule
 
             $streamName = null;
             $aggregateType = null;
-            if ($aggregateIdParam !== null) {
+            $partitionedByTag = in_array($attribute->getProjectionName(), $tagPartitionedProjectionNames, true);
+            if ($aggregateIdParam !== null && ! $partitionedByTag) {
                 $streamFilter = self::resolveStreamFilterForGateway(
                     $annotationRegistrationService,
                     $gatewayAnnotation->getClassName(),
@@ -134,6 +136,7 @@ final class EventSourcingProjectingModule implements AnnotationModule
                 'aggregateIdParam' => $aggregateIdParam,
                 'streamName' => $streamName,
                 'aggregateType' => $aggregateType,
+                'partitionedByTag' => $partitionedByTag,
             ];
         }
 
@@ -143,7 +146,7 @@ final class EventSourcingProjectingModule implements AnnotationModule
             $globalStreamProjectionNames,
             $v2StateGateways,
             $projectionInvariantGuardMap,
-            StreamFilterRegistryModule::tagPartitionedProjectionNames($annotationRegistrationService),
+            $tagPartitionedProjectionNames,
         );
     }
 
@@ -400,6 +403,7 @@ final class EventSourcingProjectingModule implements AnnotationModule
                 HeaderBuilder::createOptional('aggregateId', 'ecotone.projectionV2.state.aggregateId'),
                 HeaderBuilder::createOptional('streamName', 'ecotone.projectionV2.state.streamName'),
                 HeaderBuilder::createOptional('aggregateType', 'ecotone.projectionV2.state.aggregateType'),
+                HeaderBuilder::createOptional('partitionKey', 'ecotone.projectionV2.state.partitionKey'),
             ])
             ->withInputChannelName($handlerChannel)
         );
@@ -412,7 +416,12 @@ final class EventSourcingProjectingModule implements AnnotationModule
                 ),
             ];
 
-            if ($gateway['aggregateIdParam'] !== null) {
+            if ($gateway['aggregateIdParam'] !== null && $gateway['partitionedByTag']) {
+                $parameterConverters[] = GatewayHeaderBuilder::create(
+                    $gateway['aggregateIdParam'],
+                    'ecotone.projectionV2.state.partitionKey'
+                );
+            } elseif ($gateway['aggregateIdParam'] !== null) {
                 $parameterConverters[] = GatewayHeaderBuilder::create(
                     $gateway['aggregateIdParam'],
                     'ecotone.projectionV2.state.aggregateId'

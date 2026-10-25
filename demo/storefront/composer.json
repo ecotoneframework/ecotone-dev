@@ -62,6 +62,10 @@
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
+        ],
+        "tests:ci": [
+            "vendor/bin/phpstan analyse --no-progress",
+            "vendor/bin/phpunit --no-coverage"
         ]
     },
     "extra": {

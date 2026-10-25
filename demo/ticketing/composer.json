@@ -92,6 +92,10 @@
         ],
         "post-update-cmd": [
             "@auto-scripts"
+        ],
+        "tests:ci": [
+            "vendor/bin/phpstan analyse --no-progress",
+            "vendor/bin/phpunit --no-coverage"
         ]
     },
     "conflict": {

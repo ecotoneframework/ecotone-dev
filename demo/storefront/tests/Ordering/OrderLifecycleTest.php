@@ -196,6 +196,7 @@ final class OrderLifecycleTest extends TestCase
         yield 'no slash' => ['A-1'];
         yield 'seat code that is not ROW-NUMBER' => [self::CONCERT_ID . '/A1'];
         yield 'empty seat code' => [self::CONCERT_ID . '/'];
+        yield 'seat code with a trailing newline' => [self::CONCERT_ID . "/A-1\n"];
     }
 
     public function test_payment_cannot_begin_on_an_order_with_no_held_seats(): void

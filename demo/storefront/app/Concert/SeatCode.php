@@ -8,7 +8,7 @@ use DomainException;
 
 final class SeatCode
 {
-    private const ROW_AND_NUMBER = '/^(?<row>[^-\/]+)-(?<number>[1-9][0-9]*)$/';
+    private const ROW_AND_NUMBER = '/^(?<row>[^-\/]+)-(?<number>[1-9][0-9]*)\z/';
 
     /**
      * @return array{0: string, 1: int}|null

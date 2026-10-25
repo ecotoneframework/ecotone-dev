@@ -33,7 +33,7 @@ final class EcotoneConfiguration
     }
 
     #[ServiceContext]
-    public function instantRetries(): InstantRetryConfiguration
+    public function instantRetriesForTransientDatabaseErrorsOnly(): InstantRetryConfiguration
     {
         return InstantRetryConfiguration::createWithDefaults()
             ->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: 3, retryExceptions: [RetryableException::class]);

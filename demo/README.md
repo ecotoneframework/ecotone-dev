@@ -88,7 +88,9 @@ with `tickets.hold` over the Distributed Bus, and the page polls `/orders/{order
 seat yours (with a countdown to the hold's expiry), held by someone, or refused with ticketing's reason. Click one of
 yours to release it. The checkout charges the card on `storefront_async` through a payment stub: a card ending `0000` is
 declined and the order fails, one ending `9999` hits a provider outage on its first attempt, so the charge lands in the
-dead letters until you replay it (`php artisan ecotone:deadletter:replay <messageId>` in the storefront). A paid order
+dead letters until you replay it (`php artisan ecotone:deadletter:replay <messageId>` in the storefront). Only
+transient database errors are retried on the spot, so a provider outage reaches the dead letters instead of being retried
+away, and a payment reference is charged once however often its charge runs. A paid order
 sends `tickets.confirm`; `tickets.issued` shows the tickets with their entry codes on the order page and emails them,
 and the email to Linus Bounce (`@bounce.example`) always lands in the dead letters.
 

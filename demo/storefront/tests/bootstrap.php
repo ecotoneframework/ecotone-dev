@@ -21,13 +21,15 @@ $storefrontConfig = $storefront->make('config');
 $resolvedDatabase = (new ConfigurationUrlParser())->parseConfiguration($storefrontConfig->get('database.connections.' . $storefrontConfig->get('database.default')))['database'] ?? null;
 $dsnDatabase = ltrim((string) parse_url((string) getenv('DATABASE_DSN'), PHP_URL_PATH), '/');
 if ($resolvedDatabase !== $testDatabase || $dsnDatabase !== $testDatabase) {
-    $redirectingVariable = match (true) {
-        $dsnDatabase !== $testDatabase => 'DATABASE_DSN',
-        (string) env('DB_URL') !== '' => 'DB_URL',
-        env('DB_DATABASE') !== $testDatabase => 'DB_DATABASE',
-        default => 'DB_CONNECTION',
+    $pinTheVariable = ' redirects it: unset it in the environment, or pin it with force="true" as both <env> and <server> in phpunit.dist.xml, as every database variable there is, then run the tests again.';
+    $wayOut = match (true) {
+        $dsnDatabase !== $testDatabase => 'DATABASE_DSN' . $pinTheVariable,
+        $storefront->configurationIsCached() => sprintf('The cached configuration %s holds it: delete that file, or run APP_CONFIG_CACHE=bootstrap/cache/config.testing.php php artisan config:clear, then run the tests again.', $storefront->getCachedConfigPath()),
+        (string) env('DB_URL') !== '' => 'DB_URL' . $pinTheVariable,
+        env('DB_DATABASE') !== $testDatabase => 'DB_DATABASE' . $pinTheVariable,
+        default => 'DB_CONNECTION' . $pinTheVariable,
     };
-    fwrite(STDERR, sprintf('The storefront tests refuse to run: they wipe and migrate the database they are pointed at, and it is %s, not %s. %s redirects it: unset it in the environment, or pin it with force="true" as both <env> and <server> in phpunit.dist.xml, as every database variable there is, then run the tests again.' . PHP_EOL, $redirectingVariable === 'DATABASE_DSN' ? $dsnDatabase : $resolvedDatabase, $testDatabase, $redirectingVariable));
+    fwrite(STDERR, sprintf('The storefront tests refuse to run: they wipe and migrate the database they are pointed at, and it is %s, not %s. %s' . PHP_EOL, $dsnDatabase !== $testDatabase ? $dsnDatabase : $resolvedDatabase, $testDatabase, $wayOut));
     exit(1);
 }
 $storefront->flush();

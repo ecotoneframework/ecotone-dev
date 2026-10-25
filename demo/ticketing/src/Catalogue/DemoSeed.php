@@ -18,7 +18,7 @@ final class DemoSeed
     public function seed(CommandBus $commandBus, QueryBus $queryBus, EcotoneClockInterface $clock): void
     {
         $venueId = $this->riversideHall($commandBus, $queryBus);
-        $scheduledArtists = array_column($queryBus->sendWithRouting('concerts.list'), 'artist');
+        $seededConcerts = array_column($queryBus->sendWithRouting('concerts.list'), null, 'artist');
         $today = DateTimeImmutable::createFromInterface($clock->now())->setTime(20, 0);
 
         foreach ([
@@ -26,11 +26,8 @@ final class DemoSeed
             ['artist' => 'Aurora Strings', 'startsAt' => $today->modify('+3 months'), 'onSale' => false],
             ['artist' => 'Neon Harbour', 'startsAt' => $today->modify('+14 days'), 'onSale' => true],
         ] as $concert) {
-            if (in_array($concert['artist'], $scheduledArtists, true)) {
-                continue;
-            }
-
-            $concertId = $commandBus->send(new ScheduleConcert(
+            $seeded = $seededConcerts[$concert['artist']] ?? null;
+            $concertId = $seeded['concertId'] ?? $commandBus->send(new ScheduleConcert(
                 venueId: $venueId,
                 artist: $concert['artist'],
                 startsAt: $concert['startsAt'],
@@ -38,7 +35,7 @@ final class DemoSeed
                 vipPriceCents: 9500,
                 currency: 'EUR',
             ));
-            if ($concert['onSale']) {
+            if ($concert['onSale'] && ($seeded['status'] ?? ConcertStatus::SCHEDULED->value) === ConcertStatus::SCHEDULED->value) {
                 $commandBus->send(new OpenSales($concertId));
             }
         }

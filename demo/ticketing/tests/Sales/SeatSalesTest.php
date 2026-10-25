@@ -6,8 +6,10 @@ namespace App\Tests\Sales;
 
 use App\Catalogue\CancelConcert;
 use App\Catalogue\Catalogue;
+use App\Catalogue\ChangeTierPrice;
 use App\Catalogue\Concert;
 use App\Catalogue\ConcertAnnouncements;
+use App\Catalogue\ConcertCancelled;
 use App\Catalogue\CreateVenue;
 use App\Catalogue\OpenSales;
 use App\Catalogue\ScheduleConcert;
@@ -15,6 +17,7 @@ use App\Catalogue\Tier;
 use App\Catalogue\Venue;
 use App\Infrastructure\EcotoneConfiguration;
 use App\Kernel;
+use App\Sales\CancelledConcertHolds;
 use App\Sales\ConfirmSeats;
 use App\Sales\CustomerConcertSeats;
 use App\Sales\ExpireHold;
@@ -483,7 +486,7 @@ final class SeatSalesTest extends KernelTestCase
         }
     }
 
-    public function test_a_hold_racing_a_cancel_of_its_concert_is_refused_on_the_retry_as_not_on_sale(): void
+    public function test_a_hold_racing_a_cancel_of_its_concert_can_succeed_and_the_cancelled_concert_releases_it(): void
     {
         $competitor = $this->competitor();
         $interferer = new class () {
@@ -491,14 +494,82 @@ final class SeatSalesTest extends KernelTestCase
 
             public ?string $concertId = null;
 
-            public bool $cancelled = false;
+            public int $attempts = 0;
 
             #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::hold')]
-            public function cancelTheConcertOnceMeanwhile(MethodInvocation $invocation): mixed
+            public function cancelTheConcertOnceAfterTheDecision(MethodInvocation $invocation): mixed
             {
-                if (! $this->cancelled) {
-                    $this->cancelled = true;
+                $decision = $invocation->proceed();
+                if (++$this->attempts === 1) {
                     $this->competitor->sendCommand(new CancelConcert($this->concertId));
+                }
+
+                return $decision;
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $interferer->competitor = $competitor;
+        $interferer->concertId = $concertId;
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $ticketing->discardRecordedMessages();
+
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
+
+        self::assertSame(1, $interferer->attempts);
+        self::assertCount(1, $ticketing->popRecordedEventsOfType(SeatHeld::class));
+
+        $ticketing->publishEvent(new ConcertCancelled($concertId));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertEquals(
+            [new HoldReleased(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId)],
+            $ticketing->popRecordedEventsOfType(HoldReleased::class),
+        );
+    }
+
+    public function test_cancelling_a_concert_releases_its_live_holds_and_leaves_its_sold_seats_sold(): void
+    {
+        $ticketing = $this->ticketing();
+        $concertId = $this->concertOnSale($ticketing);
+        $holdingOrder = Uuid::v7()->toRfc4122();
+        $holdingCustomer = Uuid::v7()->toRfc4122();
+        $buyingOrder = Uuid::v7()->toRfc4122();
+        $buyer = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $holdingOrder, $concertId, $concertId . '/A-1', $holdingCustomer);
+        $this->hold($ticketing, $holdingOrder, $concertId, $concertId . '/A-2', $holdingCustomer);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $holdingOrder, concertId: $concertId, seatId: $concertId . '/A-2', customerId: $holdingCustomer), metadata: ['concertId' => $concertId]);
+        $this->hold($ticketing, $buyingOrder, $concertId, $concertId . '/A-3', $buyer);
+        $this->confirm($ticketing, $buyingOrder, $concertId, $buyer, [$concertId . '/A-3']);
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketing->discardRecordedMessages();
+
+        $ticketing->sendCommand(new CancelConcert($concertId));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertEquals(
+            [new HoldReleased(orderId: $holdingOrder, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $holdingCustomer)],
+            $ticketing->popRecordedEventsOfType(HoldReleased::class),
+        );
+        self::assertSame([], $ticketing->popRecordedEventsOfType(SeatSold::class));
+    }
+
+    public function test_holding_a_seat_while_a_tier_price_changes_conflicts_with_neither(): void
+    {
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public ?string $concertId = null;
+
+            public int $attempts = 0;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: Concert::class . '::changeTierPrice')]
+            public function holdASeatMeanwhile(MethodInvocation $invocation): mixed
+            {
+                if (++$this->attempts === 1) {
+                    $this->competitor->sendCommand(new HoldSeat(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: Uuid::v7()->toRfc4122()), metadata: ['concertId' => $this->concertId]);
                 }
 
                 return $invocation->proceed();
@@ -508,12 +579,11 @@ final class SeatSalesTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $interferer->competitor = $competitor;
         $interferer->concertId = $concertId;
-        $orderId = Uuid::v7()->toRfc4122();
 
-        $this->expectException(SeatRefusal::class);
-        $this->expectExceptionMessage("Seat A-1 of the concert of The Midnight Owls cannot be held for order {$orderId}, because the concert is cancelled, not on sale. Seats are held only while a concert is on sale.");
+        $ticketing->sendCommand(new ChangeTierPrice(concertId: $concertId, tier: Tier::VIP, priceCents: 12000));
 
-        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        self::assertSame(1, $interferer->attempts);
+        self::assertSame(12000, $ticketing->sendQueryWithRouting('concert.detail', metadata: ['aggregate.id' => $concertId])['vipPriceCents']);
     }
 
     private function ticketing(object ...$applicationHandlers): FlowTestSupport
@@ -547,6 +617,7 @@ final class SeatSalesTest extends KernelTestCase
                 ConcertAnnouncements::class,
                 SeatSales::class,
                 HoldExpiry::class,
+                CancelledConcertHolds::class,
                 SeatAvailability::class,
                 CustomerConcertSeats::class,
                 SeatHeld::class,
@@ -561,6 +632,7 @@ final class SeatSalesTest extends KernelTestCase
                 new ConcertAnnouncements(),
                 new SeatSales(),
                 new HoldExpiry(),
+                new CancelledConcertHolds(),
                 ...$applicationHandlers,
                 'doctrine' => $doctrine,
             ],

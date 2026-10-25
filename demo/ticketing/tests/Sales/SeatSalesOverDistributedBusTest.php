@@ -148,7 +148,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         );
     }
 
-    public function test_a_hold_racing_a_hold_of_another_seat_of_the_same_concert_is_retried_and_replies_held(): void
+    public function test_a_hold_racing_holds_of_eleven_other_seats_of_the_same_concert_replies_held_without_a_conflict(): void
     {
         $storefront = $this->storefront();
         $competitor = $this->competitor();
@@ -160,10 +160,12 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
             public int $attempts = 0;
 
             #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::hold')]
-            public function holdAnotherSeatOnceMeanwhile(MethodInvocation $invocation): mixed
+            public function holdElevenOtherSeatsMeanwhile(MethodInvocation $invocation): mixed
             {
                 if (++$this->attempts === 1) {
-                    $this->competitor->sendCommand(new HoldSeat(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/C-1', customerId: Uuid::v7()->toRfc4122()), metadata: ['concertId' => $this->concertId]);
+                    foreach (range(2, 12) as $seatNumber) {
+                        $this->competitor->sendCommand(new HoldSeat(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/A-' . $seatNumber, customerId: Uuid::v7()->toRfc4122()), metadata: ['concertId' => $this->concertId]);
+                    }
                 }
 
                 return $invocation->proceed();
@@ -177,9 +179,44 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $this->sendHold($storefront, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
+        self::assertSame('held', $this->repliesReceivedBy($storefront)[0]['reply']['outcome']);
+        self::assertSame(1, $interferer->attempts);
+    }
+
+    public function test_two_holds_racing_for_the_same_seat_reply_one_held_and_one_refused_because_someone_was_faster(): void
+    {
+        $storefront = $this->storefront();
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public ?string $concertId = null;
+
+            public ?string $fasterOrder = null;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::hold')]
+            public function holdTheSameSeatOnceMeanwhile(MethodInvocation $invocation): mixed
+            {
+                if ($this->fasterOrder === null) {
+                    $this->fasterOrder = Uuid::v7()->toRfc4122();
+                    $this->competitor->sendCommand(new HoldSeat(orderId: $this->fasterOrder, concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: Uuid::v7()->toRfc4122()), metadata: ['concertId' => $this->concertId]);
+                }
+
+                return $invocation->proceed();
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $interferer->competitor = $competitor;
+        $interferer->concertId = $concertId;
+        $orderId = Uuid::v7()->toRfc4122();
+
+        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+
         $reply = $this->repliesReceivedBy($storefront)[0]['reply'];
-        self::assertSame('held', $reply['outcome']);
-        self::assertSame(2, $interferer->attempts);
+        self::assertSame('refused', $reply['outcome']);
+        self::assertStringContainsString("cannot be held for order {$orderId}, because someone was faster", $reply['reason']);
     }
 
     public function test_a_hold_whose_seat_changes_on_every_attempt_replies_refused_because_someone_was_faster(): void

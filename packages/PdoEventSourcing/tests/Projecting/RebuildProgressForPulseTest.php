@@ -54,18 +54,18 @@ final class RebuildProgressForPulseTest extends ProjectingTestCase
         $this->rebuild('rebuild_progress_for_pulse');
 
         self::assertSame(['running', 0, null], $this->progress());
-        $this->ticketService->run('rebuild_pulse_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $this->ticketService->run('rebuild_pulse_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 10000));
         self::assertSame(['running', 1, 3], $this->progress());
-        $this->ticketService->run('rebuild_pulse_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $this->ticketService->run('rebuild_pulse_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 10000));
         self::assertSame(['running', 2, 3], $this->progress());
-        $this->ticketService->run('rebuild_pulse_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $this->ticketService->run('rebuild_pulse_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 10000));
         self::assertSame(['done', 3, 3], $this->progress());
     }
 
     private function rebuild(string $projection): void
     {
         $this->pulseService->getDistributedBus()->sendMessage('ticket_service', 'ecotone.pulse.projections.rebuild', json_encode(['projection' => $projection], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => self::TRACE], replyRoutingKey: 'ecotone.pulse.snapshot_received');
-        $this->ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
 
     /**
@@ -75,8 +75,8 @@ final class RebuildProgressForPulseTest extends ProjectingTestCase
     {
         $queryId = 'query-' . (count($this->pulse->queryResults) + 1);
         $this->pulseService->getDistributedBus()->sendMessage('ticket_service', 'ecotone.pulse.trackings.list', json_encode(['since' => '2000-01-01T00:00:00+00:00'], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: ['ecotone_pulse_query_id' => $queryId], replyRoutingKey: 'ecotone.pulse.query_result_received');
-        $this->ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $tracking = json_decode($this->pulse->queryResults[$queryId], true, flags: JSON_THROW_ON_ERROR)['trackings'][0];
 
         return [$tracking['state'], $tracking['batchesDone'], $tracking['batchCount']];

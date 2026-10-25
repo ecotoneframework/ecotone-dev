@@ -146,7 +146,7 @@ final class SeatSales
 
         $sold = [];
         foreach ($seatIds as $seatId) {
-            $this->assertLiveHoldOfTheOrder($command, $customerSeats, $seatId, $now);
+            $this->assertLiveHoldOfTheOrder(command: $command, customerSeats: $customerSeats, seatId: $seatId, now: $now);
             $tier = $concert->seat($seatId)->tier;
             $sold[] = new SeatSold(
                 orderId: $command->orderId,

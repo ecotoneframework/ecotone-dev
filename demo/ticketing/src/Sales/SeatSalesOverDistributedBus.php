@@ -81,7 +81,7 @@ final class SeatSalesOverDistributedBus
      */
     private static function seatFields(string $routingKey, array $payload): array
     {
-        self::assertStringFields($routingKey, $payload, self::SEAT_FIELDS, sprintf('Send %s as a JSON object of %s, each a non-empty string.', $routingKey, implode(', ', self::SEAT_FIELDS)));
+        self::assertStringFields(routingKey: $routingKey, payload: $payload, fields: self::SEAT_FIELDS, contract: sprintf('Send %s as a JSON object of %s, each a non-empty string.', $routingKey, implode(', ', self::SEAT_FIELDS)));
 
         return ['orderId' => $payload['orderId'], 'concertId' => $payload['concertId'], 'seatId' => $payload['seatId'], 'customerId' => $payload['customerId']];
     }
@@ -93,7 +93,7 @@ final class SeatSalesOverDistributedBus
     private static function orderFields(array $payload): array
     {
         $contract = 'Send tickets.confirm as a JSON object of orderId, concertId, customerId and paymentReference, each a non-empty string, and seatIds, a list of seat id strings.';
-        self::assertStringFields('tickets.confirm', $payload, ['orderId', 'concertId', 'customerId', 'paymentReference'], $contract);
+        self::assertStringFields(routingKey: 'tickets.confirm', payload: $payload, fields: ['orderId', 'concertId', 'customerId', 'paymentReference'], contract: $contract);
         $seatIds = $payload['seatIds'] ?? null;
         if (! is_array($seatIds) || ! array_is_list($seatIds) || array_filter($seatIds, static fn (mixed $seatId): bool => ! is_string($seatId) || $seatId === '') !== []) {
             throw new InvalidArgumentException(sprintf('ticketing received tickets.confirm for order %s whose seatIds is %s, not a list of seat id strings. %s', $payload['orderId'], json_encode($seatIds), $contract));

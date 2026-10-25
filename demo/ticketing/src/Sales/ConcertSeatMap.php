@@ -30,25 +30,25 @@ final class ConcertSeatMap
     #[EventHandler(endpointId: 'concert_seat_map.seat_held')]
     public function seatHeld(SeatHeld $event): void
     {
-        $this->changeSeat($event->concertId, $event->seatId, SeatStatus::HELD, $event->orderId, $event->expiresAt);
+        $this->changeSeat(concertId: $event->concertId, seatId: $event->seatId, status: SeatStatus::HELD, orderId: $event->orderId, expiresAt: $event->expiresAt);
     }
 
     #[EventHandler(endpointId: 'concert_seat_map.hold_released')]
     public function holdReleased(HoldReleased $event): void
     {
-        $this->changeSeat($event->concertId, $event->seatId, SeatStatus::FREE, null, null);
+        $this->changeSeat(concertId: $event->concertId, seatId: $event->seatId, status: SeatStatus::FREE, orderId: null, expiresAt: null);
     }
 
     #[EventHandler(endpointId: 'concert_seat_map.hold_expired')]
     public function holdExpired(HoldExpired $event): void
     {
-        $this->changeSeat($event->concertId, $event->seatId, SeatStatus::FREE, null, null);
+        $this->changeSeat(concertId: $event->concertId, seatId: $event->seatId, status: SeatStatus::FREE, orderId: null, expiresAt: null);
     }
 
     #[EventHandler(endpointId: 'concert_seat_map.seat_sold')]
     public function seatSold(SeatSold $event): void
     {
-        $this->changeSeat($event->concertId, $event->seatId, SeatStatus::SOLD, $event->orderId, null);
+        $this->changeSeat(concertId: $event->concertId, seatId: $event->seatId, status: SeatStatus::SOLD, orderId: $event->orderId, expiresAt: null);
     }
 
     /**

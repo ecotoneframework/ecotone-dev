@@ -12,6 +12,7 @@ use DomainException;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\IdentifierMethod;
+use Ecotone\Api\Modelling\WithEvents;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\Uid\Uuid;
@@ -30,6 +31,8 @@ use Symfony\Component\Uid\Uuid;
 #[Aggregate]
 final class Order extends Model
 {
+    use WithEvents;
+
     public const OPEN_STATUSES = [OrderStatus::STARTED, OrderStatus::SEATS_HELD];
 
     public $incrementing = false;
@@ -77,6 +80,17 @@ final class Order extends Model
     }
 
     #[CommandHandler]
+    public function requestSeat(RequestSeat $command): void
+    {
+        $this->assertAccepts('RequestSeat', ...self::OPEN_STATUSES);
+        $this->assertSeatOfThisConcert($command->seatId, 'RequestSeat');
+        if (in_array($command->seatId, $this->heldSeatIds(), true)) {
+            throw new DomainException(sprintf('Order %s already holds seat %s, so RequestSeat does not ask ticketing for it again. Pick another seat, or release this one with ReleaseSeat.', $this->id, $command->seatId));
+        }
+        $this->recordThat(new SeatRequested(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId));
+    }
+
+    #[CommandHandler]
     public function markSeatHeld(MarkSeatHeld $command): void
     {
         $this->assertAccepts('MarkSeatHeld', ...self::OPEN_STATUSES);
@@ -114,6 +128,7 @@ final class Order extends Model
             ));
         }
         $this->dropHeldSeat($command->seatId);
+        $this->recordThat(new SeatReleased(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId));
     }
 
     #[CommandHandler]
@@ -138,6 +153,7 @@ final class Order extends Model
         $this->assertAccepts('MarkPaid', OrderStatus::PAYING);
         $this->payment_reference = $command->paymentReference;
         $this->status = OrderStatus::PAID;
+        $this->recordThat(new OrderPaid(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatIds: $this->heldSeatIds(), paymentReference: $command->paymentReference));
     }
 
     #[CommandHandler]
@@ -161,6 +177,7 @@ final class Order extends Model
         $this->assertAccepts('FailOrder', OrderStatus::STARTED, OrderStatus::SEATS_HELD, OrderStatus::PAYING, OrderStatus::PAID);
         $this->failure_reason = $command->reason;
         $this->status = OrderStatus::FAILED;
+        $this->recordThat(new OrderFailed(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, heldSeatIds: $this->heldSeatIds(), paymentReference: $this->payment_reference, reason: $command->reason));
     }
 
     /**

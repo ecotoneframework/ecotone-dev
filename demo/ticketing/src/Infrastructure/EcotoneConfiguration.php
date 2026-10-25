@@ -64,7 +64,7 @@ final class EcotoneConfiguration
     public function instantRetry(): InstantRetryConfiguration
     {
         return InstantRetryConfiguration::createWithDefaults()
-            ->withCommandBusRetry(true, 3, [DecisionModelConcurrencyException::class]);
+            ->withCommandBusRetry(isEnabled: true, retryTimes: 3, retryExceptions: [DecisionModelConcurrencyException::class]);
     }
 
     #[ServiceContext]

@@ -459,6 +459,39 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
     }
 
     #[DataProvider('implementations')]
+    public function test_decisions_with_disjoint_boundaries_both_append_events_sharing_a_tag_neither_captured(string $implementation): void
+    {
+        $this->decisionCase($implementation, function (FlowTestSupport $deciding, FlowTestSupport $competing, object $seats): void {
+            $deciding->sendCommandWithRouting('concert.schedule', 'c-1');
+            $seats->arm(fn () => $competing->sendCommand(new HoldSeatForTaggedConformance('c-1', 'A2', 'v-1')));
+
+            $deciding->sendCommand(new HoldSeatForTaggedConformance('c-1', 'A1', 'v-1'));
+
+            self::assertSame(['A2', 'A1'], $this->heldSeatsOf($deciding));
+            self::assertSame(2, $this->versionOfTag($deciding, 'concert', 'c-1'));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_decision_scoped_by_a_tag_appended_meanwhile_without_being_captured_still_conflicts(string $implementation): void
+    {
+        $this->decisionCase($implementation, function (FlowTestSupport $deciding, FlowTestSupport $competing, object $seats): void {
+            $deciding->sendCommandWithRouting('concert.schedule', 'c-1');
+            $seats->arm(function () use ($competing): void {
+                $competing->sendCommand(new HoldSeatForTaggedConformance('c-1', 'A1', 'v-1'));
+                $competing->sendCommand(new HoldSeatForTaggedConformance('c-1', 'A2', 'v-1'));
+            });
+
+            try {
+                $deciding->sendCommand(new CloseSalesForTaggedConformance('c-1'));
+                self::fail('Expected closing sales on a stale seat count to be rejected');
+            } catch (DecisionModelConcurrencyException $exception) {
+                self::assertStringContainsString('on tag concert:c-1 (expected version 0, current version 2)', $exception->getMessage());
+            }
+        });
+    }
+
+    #[DataProvider('implementations')]
     public function test_decisions_over_the_same_aggregate_backed_model_still_conflict(string $implementation): void
     {
         $this->decisionCase($implementation, function (FlowTestSupport $deciding, FlowTestSupport $competing, object $seats): void {
@@ -639,6 +672,14 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
                 return [new ConcertAnnouncedForTaggedConformance($command->concertId, $command->channel)];
             }
 
+            #[CommandHandler]
+            public function closeSales(CloseSalesForTaggedConformance $command, ConcertSalesForTaggedConformance $sales): array
+            {
+                $this->runMidDecisionOnce();
+
+                return [new SalesClosedForTaggedConformance($command->concertId, $sales->seatsHeld)];
+            }
+
             #[CommandHandler('venue.close')]
             public function closeVenue(string $venueId, #[Reference] EventStore $eventStore): void
             {
@@ -708,6 +749,18 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
             }
 
             #[Converter]
+            public function fromSalesClosed(SalesClosedForTaggedConformance $event): array
+            {
+                return ['concertId' => $event->concertId, 'seatsHeld' => $event->seatsHeld];
+            }
+
+            #[Converter]
+            public function toSalesClosed(array $event): SalesClosedForTaggedConformance
+            {
+                return new SalesClosedForTaggedConformance($event['concertId'], $event['seatsHeld']);
+            }
+
+            #[Converter]
             public function fromVenueClosed(VenueClosedForTaggedConformance $event): array
             {
                 return ['venueId' => $event->venueId, 'day' => $event->day];
@@ -723,6 +776,7 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
             ConcertForTaggedConformance::class, ConcertScheduledForTaggedConformance::class, ConcertRenamedForTaggedConformance::class,
             ConcertAnnouncedForTaggedConformance::class, ConcertAnnouncementsForTaggedConformance::class,
             SeatHoldsForTaggedConformance::class, SeatHeldForTaggedConformance::class,
+            ConcertSalesForTaggedConformance::class, SalesClosedForTaggedConformance::class,
             VenueClosuresForTaggedConformance::class, VenueClosedForTaggedConformance::class,
             $converter::class, $seats::class,
         ];
@@ -749,6 +803,11 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->setupDatabaseTables();
+    }
+
+    private function versionOfTag(FlowTestSupport $ecotone, string $tagName, string $tagValue): int
+    {
+        return $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag($tagName, $tagValue))->appendCondition->expectedTagVersions()[0]['expectedVersion'];
     }
 
     /**
@@ -844,7 +903,7 @@ final readonly class ConcertAnnouncedForTaggedConformance
 final readonly class SeatHeldForTaggedConformance
 {
     public function __construct(
-        public string $concertId,
+        #[EventTag('concert')] public string $concertId,
         #[EventTag('seat')] public string $seatId,
     ) {
     }
@@ -908,6 +967,34 @@ final class VenueClosuresForTaggedConformance
     public function closed(VenueClosedForTaggedConformance $event): void
     {
         $this->closures++;
+    }
+}
+
+final readonly class CloseSalesForTaggedConformance
+{
+    public function __construct(public string $concertId)
+    {
+    }
+}
+
+final readonly class SalesClosedForTaggedConformance
+{
+    public function __construct(
+        #[EventTag('concert')] public string $concertId,
+        public int $seatsHeld,
+    ) {
+    }
+}
+
+#[DecisionModel(tags: ['concert'])]
+final class ConcertSalesForTaggedConformance
+{
+    public int $seatsHeld = 0;
+
+    #[Apply]
+    public function held(SeatHeldForTaggedConformance $event): void
+    {
+        $this->seatsHeld++;
     }
 }
 

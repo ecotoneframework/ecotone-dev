@@ -19,6 +19,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromTaggedStream;
 use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\PartitionTagValue;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionDelete;
 use Ecotone\Api\Projecting\ProjectionReset;
@@ -89,11 +90,56 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         self::assertSame(['concert-1' => 2, 'concert-2' => 1], $ecotone->sendQueryWithRouting('concert.reservationsCountedInState'));
     }
 
+    #[DataProvider('implementations')]
+    public function test_an_event_carrying_several_values_of_the_tag_reaches_each_of_their_partitions_once(string $implementation): void
+    {
+        $projection = $this->concertSeatsProjection();
+        $ecotone = $this->bootstrap($implementation, $projection);
+
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
+        $ecotone->sendCommand(new SellFestivalPassForTaggedProjection('concert-1', ['concert-1', 'concert-2', 'concert-1'], 'pass-1'));
+
+        self::assertSame(['concert-1' => ['A1', 'pass-1'], 'concert-2' => ['pass-1']], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
+        self::assertSame(['concert-1' => 2, 'concert-2' => 1], $ecotone->sendQueryWithRouting('concert.reservationsCountedInState'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_rebuilding_resets_and_replays_each_value_of_the_tag_on_its_own(string $implementation): void
+    {
+        $projection = $this->concertSeatsProjection();
+        $ecotone = $this->bootstrap($implementation, $projection);
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
+        $ecotone->sendCommand(new SellFestivalPassForTaggedProjection('concert-2', ['concert-1', 'concert-2'], 'pass-1'));
+
+        $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'concert_seats']);
+
+        self::assertSame(['concert-1' => ['A1', 'pass-1'], 'concert-2' => ['B1', 'pass-1']], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
+        self::assertSame(['concert-1' => 2, 'concert-2' => 2], $ecotone->sendQueryWithRouting('concert.reservationsCountedInState'));
+        self::assertSame(['concert-1', 'concert-2'], $ecotone->sendQueryWithRouting('concert.resetConcerts'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_backfilling_a_deleted_projection_projects_every_value_of_the_tag(string $implementation): void
+    {
+        $projection = $this->concertSeatsProjection();
+        $ecotone = $this->bootstrap($implementation, $projection);
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
+        $ecotone->deleteProjection('concert_seats');
+
+        $ecotone->initializeProjection('concert_seats');
+        $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'concert_seats']);
+
+        self::assertSame(['concert-1' => ['A1'], 'concert-2' => ['B1']], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
+    }
+
     private function concertSeatsProjection(): object
     {
         return new #[Projection('concert_seats'), FromTaggedStream('concert'), Partitioned] class () {
             public array $reservedSeats = [];
             public array $reservationsCountedInState = [];
+            public array $resetConcerts = [];
 
             #[EventHandler]
             public function whenReserved(SeatReservedForTaggedProjection $event, #[ProjectionState] array $state = []): array
@@ -115,6 +161,24 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
                 return $state;
             }
 
+            #[EventHandler]
+            public function whenPassSold(FestivalPassSoldForTaggedProjection $event, #[PartitionTagValue] string $concertId, #[ProjectionState] array $state = []): array
+            {
+                $this->reservedSeats[$concertId][] = $event->passId;
+                $state['reservations'] = ($state['reservations'] ?? 0) + 1;
+                $this->reservationsCountedInState[$concertId] = $state['reservations'];
+
+                return $state;
+            }
+
+            #[QueryHandler('concert.resetConcerts')]
+            public function resetConcerts(): array
+            {
+                sort($this->resetConcerts);
+
+                return $this->resetConcerts;
+            }
+
             #[QueryHandler('concert.reservedSeats')]
             public function reservedSeats(): array
             {
@@ -132,16 +196,17 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             }
 
             #[ProjectionReset]
-            public function reset(): void
+            public function reset(#[PartitionTagValue] string $concertId): void
             {
-                $this->reservedSeats = [];
-                $this->reservationsCountedInState = [];
+                $this->resetConcerts[] = $concertId;
+                unset($this->reservedSeats[$concertId], $this->reservationsCountedInState[$concertId]);
             }
 
             #[ProjectionDelete]
             public function delete(): void
             {
-                $this->reset();
+                $this->reservedSeats = [];
+                $this->reservationsCountedInState = [];
             }
         };
     }
@@ -157,6 +222,12 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
                 }
 
                 return [new SeatReservedForTaggedProjection($command->concertId, $command->seatId)];
+            }
+
+            #[CommandHandler]
+            public function sellPass(SellFestivalPassForTaggedProjection $command, ConcertSeatingForTaggedProjection $concert): array
+            {
+                return [new FestivalPassSoldForTaggedProjection($command->concertIds, $command->passId)];
             }
 
             #[CommandHandler]
@@ -179,6 +250,18 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             }
 
             #[Converter]
+            public function fromPassSold(FestivalPassSoldForTaggedProjection $event): array
+            {
+                return ['concertIds' => $event->concertIds, 'passId' => $event->passId];
+            }
+
+            #[Converter]
+            public function toPassSold(array $event): FestivalPassSoldForTaggedProjection
+            {
+                return new FestivalPassSoldForTaggedProjection($event['concertIds'], $event['passId']);
+            }
+
+            #[Converter]
             public function fromReleased(SeatReleasedForTaggedProjection $event): array
             {
                 return ['concertId' => $event->concertId, 'seatId' => $event->seatId];
@@ -198,6 +281,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             ConcertSeatingForTaggedProjection::class,
             SeatReservedForTaggedProjection::class,
             SeatReleasedForTaggedProjection::class,
+            FestivalPassSoldForTaggedProjection::class,
         ];
         $services = [...$projections, $seatReservations, $converter];
 
@@ -237,6 +321,31 @@ final readonly class ReleaseSeatForTaggedProjection
     public function __construct(
         public string $concertId,
         public string $seatId,
+    ) {
+    }
+}
+
+final readonly class SellFestivalPassForTaggedProjection
+{
+    /**
+     * @param string[] $concertIds
+     */
+    public function __construct(
+        public string $concertId,
+        public array $concertIds,
+        public string $passId,
+    ) {
+    }
+}
+
+final readonly class FestivalPassSoldForTaggedProjection
+{
+    /**
+     * @param string[] $concertIds
+     */
+    public function __construct(
+        #[EventTag('concert')] public array $concertIds,
+        public string $passId,
     ) {
     }
 }

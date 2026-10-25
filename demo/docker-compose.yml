@@ -88,6 +88,7 @@ services:
       POSTGRES_PASSWORD: secret
       POSTGRES_DB: ecotone
     volumes:
+      - postgres-data:/var/lib/postgresql/data
       - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ecotone -d storefront_test"]
@@ -97,6 +98,9 @@ services:
 
   rabbitmq:
     image: rabbitmq:4-management
+    hostname: rabbitmq
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
     ports:
       - "${DEMO_RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     healthcheck:
@@ -107,6 +111,8 @@ services:
 
   jaeger:
     image: jaegertracing/all-in-one:1.76.0
+    tmpfs:
+      - /tmp
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
@@ -180,3 +186,7 @@ services:
       <<: *infrastructure
       storefront:
         condition: service_healthy
+
+volumes:
+  postgres-data:
+  rabbitmq-data:

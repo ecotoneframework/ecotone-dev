@@ -29,7 +29,7 @@ reply reaches the storefront (`--waitSeconds=10` waits longer).
 | Jaeger | http://localhost:16686 |
 | RabbitMQ management (guest / guest) | http://localhost:15672 |
 
-Stop it with `docker compose -f demo/docker-compose.yml down` (add `-v` to drop the database volume as well).
+Stop it with `docker compose -f demo/docker-compose.yml down` (add `-v` to drop the Postgres and RabbitMQ volumes as well).
 
 ## Ports and parallel stacks
 

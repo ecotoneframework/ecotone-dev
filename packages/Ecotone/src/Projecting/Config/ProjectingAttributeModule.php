@@ -18,6 +18,8 @@ use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\FromTaggedStream;
 use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
@@ -31,6 +33,8 @@ use Ecotone\Api\Projecting\ProjectionName;
 use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Api\Projecting\Streaming;
+use Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary;
+use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -48,6 +52,7 @@ use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Projecting\EventStoreAdapter\PollingProjectionChannelAdapter;
 use Ecotone\Projecting\EventStoreAdapter\StreamingProjectionMessageHandler;
 use Ecotone\Projecting\ProjectingHeaders;
+use Ecotone\Projecting\TaggedStream\TaggedStreamProjectionGuard;
 use LogicException;
 use ReflectionAttribute;
 use ReflectionMethod;
@@ -64,6 +69,7 @@ final class ProjectingAttributeModule implements AnnotationModule
      * @param array<string, string> $pollingProjections Map of projection name to endpoint ID
      * @param array<string, array{streamingChannelName: string, endpointId: string, projectionBuilder: EcotoneProjectionExecutorBuilder}> $eventStreamingProjections
      * @param array<int, array{handler: string, parameter: string, projectionName: string}> $handlersRequiringProjectionName
+     * @param array<string, string> $partitionTagsByProjectionName
      */
     public function __construct(
         private array $projectionBuilders = [],
@@ -72,6 +78,7 @@ final class ProjectingAttributeModule implements AnnotationModule
         private array $eventStreamingProjections = [],
         private bool $hasFlushWithProjectionState = false,
         private array $handlersRequiringProjectionName = [],
+        private array $partitionTagsByProjectionName = [],
     ) {
     }
 
@@ -87,6 +94,8 @@ final class ProjectingAttributeModule implements AnnotationModule
         $projectionBuilders = [];
         $pollingProjections = [];
         $eventStreamingProjections = [];
+        $partitionTagsByProjectionName = [];
+        $declaredTagNames = array_column(array_merge([], ...array_values(EventTagRegistryBuilder::buildRawDefinitions($annotationRegistrationService))), 'name');
         foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $projectionClassName) {
             $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, Projection::class);
             $batchSizeAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionExecution::class);
@@ -98,7 +107,18 @@ final class ProjectingAttributeModule implements AnnotationModule
             $partitionAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Partitioned::class);
 
             $partitionHeaderName = $partitionAttribute?->partitionHeaderName;
-            $taggedStreamAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, FromTaggedStream::class);
+            $taggedStreamAttributes = $annotationRegistrationService->getAnnotationsForClass($projectionClassName, FromTaggedStream::class);
+            TaggedStreamProjectionGuard::assertReadableByTagPartitions(
+                $projectionAttribute->name,
+                $taggedStreamAttributes,
+                $partitionAttribute,
+                $annotationRegistrationService->getAnnotationsForClass($projectionClassName, FromStream::class) !== [] || $annotationRegistrationService->getAnnotationsForClass($projectionClassName, FromAggregateStream::class) !== [],
+                $declaredTagNames,
+            );
+            $partitionTag = $taggedStreamAttributes[0]->tag ?? null;
+            if ($partitionTag !== null) {
+                $partitionTagsByProjectionName[$projectionAttribute->name] = $partitionTag;
+            }
             // Resolve automatic initialization: manualKickOff: true means automaticInitialization: false
             $automaticInitialization = self::resolveAutomaticInitialization($partitionAttribute, $projectionDeployment);
             $isLive = $projectionDeployment?->live ?? true;
@@ -118,7 +138,7 @@ final class ProjectingAttributeModule implements AnnotationModule
                 hasRebuild: $rebuildAttribute !== null,
                 hasDeployment: $projectionDeployment !== null,
                 polling: $pollingAttribute !== null,
-                partitionTag: $partitionAttribute !== null ? $taggedStreamAttribute?->tag : null,
+                partitionTag: $partitionTag,
             );
 
             $asyncAttribute = self::getProjectionAsynchronousAttribute($annotationRegistrationService, $projectionClassName);
@@ -209,11 +229,14 @@ final class ProjectingAttributeModule implements AnnotationModule
             $eventStreamingProjections,
             $hasFlushWithProjectionState,
             handlersRequiringProjectionName: $handlersRequiringProjectionName,
+            partitionTagsByProjectionName: $partitionTagsByProjectionName,
         );
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        TaggedStreamProjectionGuard::assertNoPartitionByAFilterOnlyTag($this->partitionTagsByProjectionName, DynamicConsistencyBoundary::resolveFrom($extensionObjects)->filterOnlyTagNames());
+
         if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             if (! empty($this->pollingProjections)) {
                 throw LicensingException::create('#[Polling] projections require Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');

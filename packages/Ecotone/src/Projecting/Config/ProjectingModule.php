@@ -80,6 +80,9 @@ final class ProjectingModule implements AnnotationModule
 
         if (! empty($projectionBuilders) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             foreach ($projectionBuilders as $builder) {
+                if ($builder->partitionTag() !== null) {
+                    throw LicensingException::create("#[FromTaggedStream] on projection '{$builder->projectionName()}' requires Ecotone Enterprise licence. Partitioning a projection by the value of the tag '{$builder->partitionTag()}' is part of Ecotone Enterprise: either obtain a licence (see https://docs.ecotone.tech/enterprise) and pass it as the licenceKey of your framework's Ecotone configuration or of EcotoneLite::bootstrap(), or read the events with #[FromStream] for a projection over the whole stream.");
+                }
                 if (! $builder instanceof EcotoneProjectionExecutorBuilder || ! $builder->isOpenSourceEligible()) {
                     throw LicensingException::create('Projections with enterprise features (Partitioned, Streaming, Polling, ProjectionRebuild, ProjectionDeployment, async backfill) require Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
                 }

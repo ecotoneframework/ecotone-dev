@@ -39,6 +39,19 @@ seats, rows A and B VIP) and three concerts once. Scheduling a concert, opening 
 announced to the storefront as `concert.scheduled`, `concert.sales_opened` and `concert.cancelled`: an event handler on
 `ticketing_async` publishes each over the Distributed Bus after the command's transaction commits.
 
+## Seat sales
+
+Ticketing holds, releases, expires and sells the seats of a concert on sale under a Dynamic Consistency Boundary:
+`SeatHeld`, `HoldReleased`, `HoldExpired` and `SeatSold` are tagged by concert, seat and customer and appended to
+`ecotone_event_stream` by handlers that decide on two decision models, `SeatAvailability` (one live hold per seat) and
+`CustomerConcertSeats` (at most 4 seats per customer and concert), with the `Concert` fetched read-only. A conflict is
+retried three times; an exhausted one is refused with "someone was faster". A hold expires after
+`TICKETING_HOLD_SECONDS` (600 by default), through a delayed message on `ticketing_async`. The storefront drives it with
+`tickets.hold`, `tickets.release` and `tickets.confirm` over the Distributed Bus, and gets `tickets.hold.result` and
+`tickets.confirm.result` replies. Each concert has a seat map at `/concerts/{concertId}/seats` on the ticketing URL,
+linked from its admin page next to its sales ledger; both are projections on `ticketing_async`. `demo:seed` sells all
+but the last three seats of Neon Harbour, and selling those marks it sold out (`concert.sold_out`).
+
 ## Ports and parallel stacks
 
 Every host port is an environment variable, and so is the stack's name:

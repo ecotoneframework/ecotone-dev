@@ -63,14 +63,16 @@ docker run -d --name "$service" --network "$network" \
     -e PULSE_TRANSPORT_DSN="$dsn" \
     --entrypoint php "$image" docker/smoke-service.php > /dev/null || fail "the fixture service did not start"
 
+connected=0
 for attempt in $(seq 1 90); do
-    if curl -s "$url/" | grep -q 'data-status="connected"'; then
+    if curl -s "$url/services" | grep -q 'data-status="connected"'; then
         echo "[$name] Connected after $(( $(date +%s) - started )) s"
+        connected=1
         break
     fi
     sleep 1
 done
-curl -s "$url/" | grep -q 'data-status="connected"' || fail "the service never reached Connected"
+[ "$connected" = "1" ] || fail "the service never reached Connected"
 
 for attempt in $(seq 1 30); do
     [ "$(curl -s -o /dev/null -w '%{http_code}' "$url/readyz")" = "200" ] && break

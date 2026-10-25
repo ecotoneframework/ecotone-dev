@@ -62,6 +62,10 @@ them to load the edit (`docker compose -f demo/docker-compose.yml restart ticket
 A change to a package's `composer.json` needs a fresh install: delete the application's `vendor/` and restart its
 containers.
 
+Pulse runs from your own `apps/Pulse` checkout, so the demo shares its `vendor/` and `var/` with the Pulse you develop
+on the host. A `vendor/` you installed there differently, for example with `--copy` or other package versions, is the
+one the demo runs, and each start of the `pulse` container clears `apps/Pulse/var/cache` on the host.
+
 ## Tests
 
 Inside the containers, one application at a time:

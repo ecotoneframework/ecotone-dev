@@ -74,6 +74,13 @@ Pulse runs from your own `apps/Pulse` checkout, so the demo shares its `vendor/`
 on the host. A `vendor/` you installed there differently, for example with `--copy` or other package versions, is the
 one the demo runs, and each start of the `pulse` container clears `apps/Pulse/var/cache` on the host.
 
+## Storefront
+
+The storefront keeps customers and their orders as Eloquent aggregates, and a concert list fed by ticketing's
+`concert.scheduled`, `concert.sales_opened` and `concert.cancelled` events. There is no login: register the demo
+customers with `docker compose -f demo/docker-compose.yml exec storefront php artisan demo:seed` (safe to repeat), pick
+one on `/whoami`, and browse `/concerts` and your orders on `/account`.
+
 ## Tests
 
 Inside the containers, one application at a time:

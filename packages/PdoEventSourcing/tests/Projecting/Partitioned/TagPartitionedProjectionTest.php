@@ -11,13 +11,16 @@ use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -28,6 +31,8 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionDelete;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Api\Projecting\ProjectionState;
+use Ecotone\Api\Projecting\ProjectionStateGateway;
+use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
@@ -160,6 +165,103 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         self::assertSame(['concert-1' => 2, 'concert-2' => 1], $ecotone->sendQueryWithRouting('concert.sales'));
     }
 
+    public static function implementationsWithEventSourcingModule(): iterable
+    {
+        yield 'in-memory' => ['in-memory'];
+        yield 'dbal' => ['dbal'];
+    }
+
+    #[DataProvider('implementationsWithEventSourcingModule')]
+    public function test_a_projection_state_gateway_reads_the_state_of_one_value_of_the_tag(string $implementation): void
+    {
+        $projection = $this->concertSeatsProjection();
+        $ecotone = $this->bootstrap($implementation, [$projection], classesToResolve: [ConcertReservationsStateForTaggedProjection::class]);
+
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A2'));
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
+
+        $state = $ecotone->getGateway(ConcertReservationsStateForTaggedProjection::class);
+        self::assertSame(['reservations' => 2], $state->forConcert('concert-1'));
+        self::assertSame(['reservations' => 1], $state->forConcert('concert-2'));
+        self::assertSame([], $state->forConcert('concert-404'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_resetting_one_of_two_projections_over_a_tag_leaves_the_other_untouched(string $implementation): void
+    {
+        $seats = $this->concertSeatsProjection();
+        $sales = $this->concertSalesProjection();
+        $ecotone = $this->bootstrap($implementation, [$seats, $sales], [SimpleMessageChannelBuilder::createQueueChannel('concert_projections')]);
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
+        $ecotone->run('concert_projections', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $ecotone->resetProjection('concert_sales');
+
+        self::assertSame(['concert-1' => 1, 'concert-2' => 1], $ecotone->sendQueryWithRouting('concert.sales'));
+        self::assertSame(['concert-1' => ['A1'], 'concert-2' => ['B1']], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
+        self::assertSame([], $ecotone->sendQueryWithRouting('concert.resetConcerts'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_pulse_reports_the_partitions_of_a_tag_partitioned_projection_and_rebuilds_it(string $implementation): void
+    {
+        $pulse = new class () {
+            public array $snapshots = [];
+
+            #[InternalHandler('ecotone.pulse.snapshot_received')]
+            public function received(string $snapshot): void
+            {
+                $this->snapshots[] = $snapshot;
+            }
+        };
+        $channels = [
+            SimpleMessageChannelBuilder::createQueueChannel('concert_service_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('pulse_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('concert_projections'),
+        ];
+        $sales = $this->concertSalesProjection();
+        $concertService = $this->bootstrap($implementation, [$sales], [
+            ...$channels,
+            DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel'),
+            ServiceConfiguration::createWithDefaults()->withServiceName('concert_service'),
+            PulseConfiguration::createWithDefaults('ecotone_pulse'),
+        ]);
+        $pulseService = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$pulse::class],
+            containerOrAvailableServices: [$pulse],
+            extensionObjects: [
+                ...$channels,
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'concert_service', channelName: 'concert_service_channel'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('ecotone_pulse'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $askPulse = function (string $routingKey, string $payload) use ($pulse, $pulseService, $concertService): array {
+            $pulseService->getDistributedBus()->sendMessage('concert_service', $routingKey, $payload, MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+            $concertService->run('concert_service_channel', ExecutionPollingMetadata::createWithTestingSetup());
+            $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+            return json_decode(array_pop($pulse->snapshots), true, flags: JSON_THROW_ON_ERROR);
+        };
+
+        $concertService->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
+        $concertService->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
+        $behind = $askPulse('ecotone.pulse.snapshot', '{}')['projections'][0];
+        $concertService->run('concert_projections', ExecutionPollingMetadata::createWithTestingSetup());
+        $caughtUp = $askPulse('ecotone.pulse.snapshot', '{}')['projections'][0];
+
+        self::assertSame(['concert_sales', true], [$behind['name'], $behind['partitioned']]);
+        self::assertSame(['total' => 2, 'inspected' => 2, 'behind' => 2, 'atLeast' => false], $behind['partitions']);
+        self::assertSame(['total' => 2, 'inspected' => 2, 'behind' => 0, 'atLeast' => false], $caughtUp['partitions']);
+
+        $askPulse('ecotone.pulse.projections.rebuild', json_encode(['projection' => 'concert_sales'], JSON_THROW_ON_ERROR));
+
+        self::assertSame(['concert-1' => 1, 'concert-2' => 1], $concertService->sendQueryWithRouting('concert.sales'));
+    }
+
     private function concertSalesProjection(): object
     {
         return new #[Projection('concert_sales'), FromTaggedStream('concert'), Partitioned, Asynchronous('concert_projections')] class () {
@@ -276,7 +378,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         };
     }
 
-    private function bootstrap(string $implementation, array $projections, array $extensionObjects = []): FlowTestSupport
+    private function bootstrap(string $implementation, array $projections, array $extensionObjects = [], array $classesToResolve = []): FlowTestSupport
     {
         $seatReservations = new class () {
             #[CommandHandler]
@@ -347,6 +449,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             SeatReservedForTaggedProjection::class,
             SeatReleasedForTaggedProjection::class,
             FestivalPassSoldForTaggedProjection::class,
+            ...$classesToResolve,
         ];
         $services = [...$projections, $seatReservations, $converter];
 
@@ -371,6 +474,12 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
+}
+
+interface ConcertReservationsStateForTaggedProjection
+{
+    #[ProjectionStateGateway('concert_seats')]
+    public function forConcert(string $concertId): array;
 }
 
 final readonly class ReserveSeatForTaggedProjection

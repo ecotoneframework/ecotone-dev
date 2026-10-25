@@ -35,7 +35,7 @@
                 <label>Card number <input type="text" name="cardNumber" inputmode="numeric" autocomplete="off" value="4242424242424242"></label>
                 <button type="submit">Pay {{ $concert['currency'] }} {{ number_format($totalCents / 100, 2) }}</button>
             </form>
-            <p class="muted">Demo cards: any number pays; one ending in 0000 is declined; one ending in 9999 hits a payment provider outage, so the charge lands in the dead letters until you replay it from Ecotone Pulse.</p>
+            <p class="muted">Demo cards: any number pays; one ending in 0000 is declined; one ending in 9999 hits a payment provider outage, so the charge lands in the dead letters until you replay it from Ecotone Pulse or with <code>php artisan ecotone:deadletter:replay &lt;messageId&gt;</code> in the storefront.</p>
         @endif
     </main>
     <script src="{{ asset('js/countdown.js') }}"></script>

@@ -233,6 +233,16 @@ final class CheckoutPagesTest extends TestCase
         $response->assertSee('<input type="text" name="cardNumber"', escape: false);
     }
 
+    public function test_the_checkout_page_names_both_ways_to_replay_the_charge_of_a_card_ending_9999(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId . '/checkout');
+
+        $response->assertSee('so the charge lands in the dead letters until you replay it from Ecotone Pulse or with <code>php artisan ecotone:deadletter:replay &lt;messageId&gt;</code> in the storefront.', escape: false);
+    }
+
     public function test_paying_on_the_checkout_page_moves_the_order_to_paying_and_shows_the_order(): void
     {
         [$customerId, $orderId] = $this->startedOrder();

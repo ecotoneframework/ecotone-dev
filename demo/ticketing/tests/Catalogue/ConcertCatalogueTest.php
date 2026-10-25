@@ -301,6 +301,26 @@ final class ConcertCatalogueTest extends KernelTestCase
         self::assertSame($concerts, $ticketing->sendQueryWithRouting('concerts.list'));
     }
 
+    public function test_seeding_the_demo_again_opens_the_sales_a_previous_seed_left_unopened(): void
+    {
+        $ticketing = $this->ticketing();
+        $ticketing->getCommandBus()->send(new ScheduleConcert(
+            venueId: $this->createRiversideHall($ticketing),
+            artist: 'Neon Harbour',
+            startsAt: new DateTimeImmutable('2026-11-08 20:00:00'),
+            standardPriceCents: 4500,
+            vipPriceCents: 9500,
+            currency: 'EUR',
+        ));
+
+        $ticketing->runConsoleCommand('demo:seed', []);
+
+        self::assertSame(
+            ['Neon Harbour' => 'on_sale', 'The Midnight Owls' => 'on_sale', 'Aurora Strings' => 'scheduled'],
+            array_column($ticketing->sendQueryWithRouting('concerts.list'), 'status', 'artist'),
+        );
+    }
+
     private function ticketing(): FlowTestSupport
     {
         self::bootKernel();

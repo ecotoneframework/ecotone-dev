@@ -85,6 +85,11 @@ case "$role" in
             sleep 2
         done
         cat "$prepare_log"
+        commands="$("${console[@]}" list --raw)"
+        if grep -q '^demo:seed\b' <<<"$commands"; then
+            "${console[@]}" demo:seed
+            echo "Demo: $DEMO_APP seeded its demo data."
+        fi
         export DEMO_PUBLIC_DIR="$PWD/public"
         exec frankenphp run --config /etc/caddy/Caddyfile
         ;;

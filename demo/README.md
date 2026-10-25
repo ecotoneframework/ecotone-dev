@@ -31,6 +31,14 @@ reply reaches the storefront (`--waitSeconds=10` waits longer).
 
 Stop it with `docker compose -f demo/docker-compose.yml down` (add `-v` to drop the Postgres and RabbitMQ volumes as well).
 
+## Ticketing
+
+Ticketing owns the catalogue: venues and concerts are Doctrine ORM aggregates, managed at `/admin` on the ticketing
+URL. Every start of the web container runs `bin/console demo:seed`, which creates Riverside Hall (rows A to F of 12
+seats, rows A and B VIP) and three concerts once. Scheduling a concert, opening its sales and cancelling it is
+announced to the storefront as `concert.scheduled`, `concert.sales_opened` and `concert.cancelled`: an event handler on
+`ticketing_async` publishes each over the Distributed Bus after the command's transaction commits.
+
 ## Ports and parallel stacks
 
 Every host port is an environment variable, and so is the stack's name:

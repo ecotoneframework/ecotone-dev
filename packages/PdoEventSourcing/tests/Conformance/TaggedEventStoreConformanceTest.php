@@ -378,7 +378,7 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
     public function test_a_limit_counts_only_the_events_of_the_filtered_types(string $implementation): void
     {
         $this->conformanceCase($implementation, function (EventStore $eventStore): void {
-            $this->append($eventStore, self::STREAM, [
+            foreach ([
                 new StudentEnrolledForTaggedConformance('course-1', 'student-1'),
                 new StudentEnrolledForTaggedConformance('course-1', 'student-2'),
                 new CourseCapacityChangedForTaggedConformance('course-1', 10),
@@ -386,7 +386,9 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
                 new StudentEnrolledForTaggedConformance('course-1', 'student-4'),
                 new CourseCapacityChangedForTaggedConformance('course-1', 20),
                 new CourseCapacityChangedForTaggedConformance('course-1', 30),
-            ]);
+            ] as $event) {
+                $this->append($eventStore, self::STREAM, [$event]);
+            }
 
             self::assertEquals(
                 [new CourseCapacityChangedForTaggedConformance('course-1', 10), new CourseCapacityChangedForTaggedConformance('course-1', 20)],
@@ -396,17 +398,41 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
     }
 
     #[DataProvider('implementations')]
-    public function test_a_limit_counts_only_the_events_carrying_every_narrowing_tag(string $implementation): void
+    public function test_a_page_never_splits_the_events_appended_together(string $implementation): void
     {
         $this->conformanceCase($implementation, function (EventStore $eventStore): void {
             $this->append($eventStore, self::STREAM, [
+                new CourseCapacityChangedForTaggedConformance('course-1', 10),
+                new CourseCapacityChangedForTaggedConformance('course-1', 20),
+                new CourseCapacityChangedForTaggedConformance('course-1', 30),
+            ]);
+            $this->append($eventStore, self::STREAM, [new CourseCapacityChangedForTaggedConformance('course-1', 40)]);
+
+            self::assertEquals(
+                [new CourseCapacityChangedForTaggedConformance('course-1', 10), new CourseCapacityChangedForTaggedConformance('course-1', 20), new CourseCapacityChangedForTaggedConformance('course-1', 30)],
+                $this->payloadsOf($eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1')->limit(2))->events),
+            );
+            self::assertEquals(
+                [new CourseCapacityChangedForTaggedConformance('course-1', 40)],
+                $this->payloadsOf($eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1')->afterTagSequence(1)->limit(2))->events),
+            );
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_limit_counts_only_the_events_carrying_every_narrowing_tag(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (EventStore $eventStore): void {
+            foreach ([
                 new StudentEnrolledForTaggedConformance('course-1', 'student-1'),
                 new StudentEnrolledForTaggedConformance('course-1', 'student-2'),
                 new StudentEnrolledForTaggedConformance('course-1', 'student-1'),
                 new StudentEnrolledForTaggedConformance('course-2', 'student-1'),
                 new StudentEnrolledForTaggedConformance('course-1', 'student-3'),
                 new StudentEnrolledForTaggedConformance('course-1', 'student-1'),
-            ]);
+            ] as $event) {
+                $this->append($eventStore, self::STREAM, [$event]);
+            }
 
             self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1')->andTag('student', 'student-1')->limit(2))->events);
             self::assertCount(3, $eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1')->andTag('student', 'student-1')->limit(5))->events);

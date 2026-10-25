@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Tagging;
 
 use function array_diff_key;
+use function array_slice;
+use function count;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\Event;
@@ -142,6 +144,31 @@ final class TagResolver
         }
 
         return array_diff_key($bounds, $unsafe);
+    }
+
+    /**
+     * @param Event[] $eventsInSequenceOrder
+     * @return Event[]
+     */
+    public function pageOf(array $eventsInSequenceOrder, EventCriteria $criteria): array
+    {
+        if ($criteria->limit === null || count($eventsInSequenceOrder) <= $criteria->limit) {
+            return $eventsInSequenceOrder;
+        }
+
+        $positionTag = $this->positionTagOf($criteria);
+        $positionTagKey = TagKey::of($positionTag['name'], $positionTag['value']);
+        $page = array_slice($eventsInSequenceOrder, 0, $criteria->limit);
+        $lastSequenceOfPage = MatchedTagSequences::of($page[$criteria->limit - 1], $positionTagKey);
+
+        foreach (array_slice($eventsInSequenceOrder, $criteria->limit) as $event) {
+            if (MatchedTagSequences::of($event, $positionTagKey) !== $lastSequenceOfPage) {
+                break;
+            }
+            $page[] = $event;
+        }
+
+        return $page;
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Dbal\Tag;
 
+use function array_map;
 use function array_push;
 
 use Doctrine\DBAL\Connection;
@@ -90,6 +91,50 @@ final class DbalTagIndex
      */
     public function flagsFor(Connection $connection, array $tags, array $tagSequenceLowerBounds = []): array
     {
+        return $this->flagsMatching($connection, $tags, $tagSequenceLowerBounds, '', []);
+    }
+
+    /**
+     * @param array{name: string, value: string} $tag
+     * @return int[]
+     */
+    public function sequencesOfTagAfter(Connection $connection, array $tag, int $afterTagSequence, int $limit): array
+    {
+        $indexTable = TaggedEventSchemaFactory::for($connection)->quoteIdentifier(TagTableManager::TAGGED_EVENTS_TABLE);
+
+        return array_map('intval', TagConcurrencyGuard::run(
+            fn () => $connection->executeQuery(
+                "SELECT DISTINCT tag_sequence FROM {$indexTable} WHERE tag_name = ? AND tag_value = ? AND tag_sequence > ? ORDER BY tag_sequence LIMIT {$limit}",
+                [$tag['name'], $tag['value'], $afterTagSequence],
+            )->fetchFirstColumn()
+        ));
+    }
+
+    /**
+     * @param array<string, array{name: string, value: string}> $tags
+     * @return array<array{stream: string, eventNo: int, has: array<string, bool>, sequences: array<string, ?int>}>
+     */
+    public function flagsWithinSequences(Connection $connection, array $tags, string $positionTagKey, int $afterTagSequence, int $upToTagSequence): array
+    {
+        $positionTag = $tags[$positionTagKey];
+
+        return $this->flagsMatching(
+            $connection,
+            $tags,
+            [$positionTagKey => $afterTagSequence],
+            ' HAVING MAX(CASE WHEN tag_name = ? AND tag_value = ? THEN tag_sequence END) <= ?',
+            [$positionTag['name'], $positionTag['value'], $upToTagSequence],
+        );
+    }
+
+    /**
+     * @param array<string, array{name: string, value: string}> $tags
+     * @param array<string, int> $tagSequenceLowerBounds
+     * @param array<string|int> $groupParameters
+     * @return array<array{stream: string, eventNo: int, has: array<string, bool>, sequences: array<string, ?int>}>
+     */
+    private function flagsMatching(Connection $connection, array $tags, array $tagSequenceLowerBounds, string $afterGrouping, array $groupParameters): array
+    {
         $indexTable = TaggedEventSchemaFactory::for($connection)->quoteIdentifier(TagTableManager::TAGGED_EVENTS_TABLE);
 
         $selectColumns = [];
@@ -120,10 +165,10 @@ final class DbalTagIndex
 
         $sql = 'SELECT stream_name, event_no, ' . implode(', ', $selectColumns)
             . " FROM {$indexTable} WHERE " . implode(' OR ', $whereConditions)
-            . ' GROUP BY stream_name, event_no';
+            . ' GROUP BY stream_name, event_no' . $afterGrouping;
 
         $rows = TagConcurrencyGuard::run(
-            fn () => $connection->executeQuery($sql, [...$selectParameters, ...$whereParameters])->fetchAllAssociative()
+            fn () => $connection->executeQuery($sql, [...$selectParameters, ...$whereParameters, ...$groupParameters])->fetchAllAssociative()
         );
 
         $flags = [];

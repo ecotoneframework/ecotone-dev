@@ -84,7 +84,7 @@ final class InMemoryTagIndex
             }
         }
 
-        return $matched->inSequenceOrder();
+        return $tagResolver->pageOf($matched->inSequenceOrder(), $criteria);
     }
 
     /**

@@ -17,6 +17,7 @@ use App\Sales\CustomerConcertSeats;
 use App\Sales\HoldExpired;
 use App\Sales\HoldExpiry;
 use App\Sales\HoldReleased;
+use App\Sales\HoldSeat;
 use App\Sales\SeatAvailability;
 use App\Sales\SeatHeld;
 use App\Sales\SeatSales;
@@ -145,6 +146,40 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
             ]],
             $this->repliesReceivedBy($storefront),
         );
+    }
+
+    public function test_a_hold_racing_a_hold_of_another_seat_of_the_same_concert_is_retried_and_replies_held(): void
+    {
+        $storefront = $this->storefront();
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public ?string $concertId = null;
+
+            public int $attempts = 0;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::hold')]
+            public function holdAnotherSeatOnceMeanwhile(MethodInvocation $invocation): mixed
+            {
+                if (++$this->attempts === 1) {
+                    $this->competitor->sendCommand(new HoldSeat(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/C-1', customerId: Uuid::v7()->toRfc4122()), metadata: ['concertId' => $this->concertId]);
+                }
+
+                return $invocation->proceed();
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $interferer->competitor = $competitor;
+        $interferer->concertId = $concertId;
+
+        $this->sendHold($storefront, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $reply = $this->repliesReceivedBy($storefront)[0]['reply'];
+        self::assertSame('held', $reply['outcome']);
+        self::assertSame(2, $interferer->attempts);
     }
 
     public function test_a_hold_whose_seat_changes_on_every_attempt_replies_refused_because_someone_was_faster(): void

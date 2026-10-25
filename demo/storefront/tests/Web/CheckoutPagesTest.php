@@ -91,8 +91,8 @@ final class CheckoutPagesTest extends TestCase
         $this->scheduleOnSale();
         $customerId = $this->register('Ada Lovelace', 'ada@example.com');
 
-        $first = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/concerts/' . self::CONCERT_ID . '/orders');
-        $second = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/concerts/' . self::CONCERT_ID . '/orders');
+        $first = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/concerts/' . self::CONCERT_ID . '/orders');
+        $second = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/concerts/' . self::CONCERT_ID . '/orders');
 
         $first->assertOk();
         self::assertSame($first->json('orderId'), $second->json('orderId'));
@@ -114,7 +114,7 @@ final class CheckoutPagesTest extends TestCase
         $this->schedule();
         $customerId = $this->register('Ada Lovelace', 'ada@example.com');
 
-        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/concerts/' . self::CONCERT_ID . '/orders');
+        $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/concerts/' . self::CONCERT_ID . '/orders');
 
         $response->assertConflict();
         $response->assertJson(['error' => sprintf('Concert %s is scheduled, not on sale, so its seats cannot be picked yet. Wait until ticketing opens its sales, then pick the seats again.', self::CONCERT_ID)]);
@@ -124,7 +124,7 @@ final class CheckoutPagesTest extends TestCase
     {
         [$customerId, $orderId] = $this->startedOrder();
 
-        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/orders/' . $orderId . '/seats', ['seatId' => self::CONCERT_ID . '/A-1']);
+        $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/orders/' . $orderId . '/seats', ['seatId' => self::CONCERT_ID . '/A-1']);
 
         $response->assertAccepted();
         $response->assertJson(['requested' => self::CONCERT_ID . '/A-1']);
@@ -135,7 +135,7 @@ final class CheckoutPagesTest extends TestCase
         [$customerId, $orderId] = $this->startedOrder();
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
 
-        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/orders/' . $orderId . '/seats', ['seatId' => self::CONCERT_ID . '/A-1']);
+        $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/orders/' . $orderId . '/seats', ['seatId' => self::CONCERT_ID . '/A-1']);
 
         $response->assertConflict();
         $response->assertJson(['error' => sprintf('Order %s already holds seat %s/A-1, so RequestSeat does not ask ticketing for it again. Pick another seat, or release this one with ReleaseSeat.', $orderId, self::CONCERT_ID)]);
@@ -146,10 +146,10 @@ final class CheckoutPagesTest extends TestCase
         [$customerId, $orderId] = $this->startedOrder();
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
 
-        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/orders/' . $orderId . '/seats/release', ['seatId' => self::CONCERT_ID . '/A-1']);
+        $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/orders/' . $orderId . '/seats/release', ['seatId' => self::CONCERT_ID . '/A-1']);
 
         $response->assertOk();
-        self::assertSame([], $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json')->json('heldSeats'));
+        self::assertSame([], $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json')->json('heldSeats'));
     }
 
     public function test_the_order_state_reports_held_seats_with_their_expiry_and_the_earliest_expiry(): void
@@ -158,7 +158,7 @@ final class CheckoutPagesTest extends TestCase
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', expiresAt: self::LATER_EXPIRES_AT));
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
 
-        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json');
+        $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json');
 
         $response->assertOk();
         $response->assertExactJson([
@@ -182,7 +182,7 @@ final class CheckoutPagesTest extends TestCase
         [$customerId, $orderId] = $this->startedOrder();
         $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', reason: 'someone was faster: seat A-1'));
 
-        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json');
+        $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json');
 
         $response->assertJsonPath('lastRefusal', ['seatId' => self::CONCERT_ID . '/A-1', 'reason' => 'someone was faster: seat A-1']);
     }
@@ -196,7 +196,7 @@ final class CheckoutPagesTest extends TestCase
         $this->commandBus()->send(new MarkSeatHeld(orderId: $linusOrderId, seatId: self::CONCERT_ID . '/B-1', expiresAt: self::EXPIRES_AT));
         $this->commandBus()->send(new FailOrder(orderId: $linusOrderId, reason: 'The card ending 0000 was declined'));
 
-        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json');
+        $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json');
 
         $response->assertJsonPath('takenSeatIds', [self::CONCERT_ID . '/B-2']);
     }
@@ -206,9 +206,9 @@ final class CheckoutPagesTest extends TestCase
         [, $orderId] = $this->startedOrder();
         $graceId = $this->register('Grace Hopper', 'grace@example.com');
 
-        $this->withCookie(self::CUSTOMER_COOKIE, $graceId)->getJson('/orders/' . $orderId . '/state.json')->assertNotFound();
+        $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $graceId)->getJson('/orders/' . $orderId . '/state.json')->assertNotFound();
         $this->withCookie(self::CUSTOMER_COOKIE, $graceId)->get('/orders/' . $orderId)->assertNotFound();
-        $this->withCookie(self::CUSTOMER_COOKIE, $graceId)->postJson('/orders/' . $orderId . '/seats', ['seatId' => self::CONCERT_ID . '/A-1'])->assertNotFound();
+        $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $graceId)->postJson('/orders/' . $orderId . '/seats', ['seatId' => self::CONCERT_ID . '/A-1'])->assertNotFound();
     }
 
     public function test_an_order_that_does_not_exist_is_not_found(): void
@@ -241,7 +241,7 @@ final class CheckoutPagesTest extends TestCase
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->post('/orders/' . $orderId . '/checkout', ['cardNumber' => '4242424242424242']);
 
         $response->assertRedirect('/orders/' . $orderId);
-        self::assertSame('paying', $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json')->json('status'));
+        self::assertSame('paying', $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json')->json('status'));
     }
 
     public function test_paying_with_a_card_number_that_is_not_digits_shows_the_refusal_on_the_checkout_page(): void

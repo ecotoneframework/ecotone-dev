@@ -80,7 +80,11 @@ final class Order extends Model
     {
         $this->assertNotFinal('MarkTicketsIssued');
         if ($this->status !== OrderStatus::PAID) {
-            throw new DomainException(sprintf('Order %s is %s, not paid, so its tickets cannot be issued. Send MarkPaid with the payment reference first.', $this->id, $this->status->value));
+            throw new DomainException(sprintf('Order %s is %s, not paid, so its tickets cannot be issued. Pay for it first: send %s.', $this->id, $this->status->value, match ($this->status) {
+                OrderStatus::STARTED => 'MarkSeatsHeld, then BeginPayment, then MarkPaid with the payment reference',
+                OrderStatus::SEATS_HELD => 'BeginPayment, then MarkPaid with the payment reference',
+                default => 'MarkPaid with the payment reference',
+            }));
         }
         $this->status = OrderStatus::TICKETS_ISSUED;
     }

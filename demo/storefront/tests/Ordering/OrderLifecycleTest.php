@@ -192,7 +192,7 @@ final class OrderLifecycleTest extends TestCase
         $orderId = $this->payingOrder();
 
         $this->expectException(DomainException::class);
-        $this->expectExceptionMessage(sprintf('Order %s is paying, not paid, so its tickets cannot be issued. Send MarkPaid with the payment reference first.', $orderId));
+        $this->expectExceptionMessage(sprintf('Order %s is paying, not paid, so its tickets cannot be issued. Pay for it first: send MarkPaid with the payment reference.', $orderId));
 
         $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId));
     }
@@ -242,12 +242,12 @@ final class OrderLifecycleTest extends TestCase
 
         yield 'BeginPayment on a started order' => ['started', $beginPayment, 'Order %s is started, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
         yield 'MarkPaid on a started order' => ['started', $markPaid, 'Order %s is started, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
-        yield 'MarkTicketsIssued on a started order' => ['started', $markTicketsIssued, 'Order %s is started, not paid, so its tickets cannot be issued. Send MarkPaid with the payment reference first.'];
+        yield 'MarkTicketsIssued on a started order' => ['started', $markTicketsIssued, 'Order %s is started, not paid, so its tickets cannot be issued. Pay for it first: send MarkSeatsHeld, then BeginPayment, then MarkPaid with the payment reference.'];
         yield 'MarkPaid on a seats_held order' => ['seats_held', $markPaid, 'Order %s is seats_held, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
-        yield 'MarkTicketsIssued on a seats_held order' => ['seats_held', $markTicketsIssued, 'Order %s is seats_held, not paid, so its tickets cannot be issued. Send MarkPaid with the payment reference first.'];
+        yield 'MarkTicketsIssued on a seats_held order' => ['seats_held', $markTicketsIssued, 'Order %s is seats_held, not paid, so its tickets cannot be issued. Pay for it first: send BeginPayment, then MarkPaid with the payment reference.'];
         yield 'MarkSeatsHeld on a paying order' => ['paying', $markSeatsHeld, 'Order %s is paying, so MarkSeatsHeld cannot be applied to it. MarkSeatsHeld is accepted only while the order is started or seats_held.'];
         yield 'BeginPayment on a paying order' => ['paying', $beginPayment, 'Order %s is paying, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
-        yield 'MarkTicketsIssued on a paying order' => ['paying', $markTicketsIssued, 'Order %s is paying, not paid, so its tickets cannot be issued. Send MarkPaid with the payment reference first.'];
+        yield 'MarkTicketsIssued on a paying order' => ['paying', $markTicketsIssued, 'Order %s is paying, not paid, so its tickets cannot be issued. Pay for it first: send MarkPaid with the payment reference.'];
         yield 'MarkSeatsHeld on a paid order' => ['paid', $markSeatsHeld, 'Order %s is paid, so MarkSeatsHeld cannot be applied to it. MarkSeatsHeld is accepted only while the order is started or seats_held.'];
         yield 'BeginPayment on a paid order' => ['paid', $beginPayment, 'Order %s is paid, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
         yield 'MarkPaid on a paid order' => ['paid', $markPaid, 'Order %s is paid, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];

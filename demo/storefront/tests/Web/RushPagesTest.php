@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Web;
 
 use App\Customer\RegisterCustomer;
+use App\Ordering\MarkSeatHeld;
 use App\Ordering\StartOrder;
 use DomainException;
 use Ecotone\Api\Gateway\CommandBus;
@@ -120,6 +121,20 @@ final class RushPagesTest extends TestCase
     public function test_a_rush_on_a_concert_not_in_the_catalogue_is_not_found(): void
     {
         $this->postJson('/concerts/' . self::CONCERT_ID . '/rushes')->assertNotFound();
+    }
+
+    public function test_the_seats_taken_on_a_concert_are_listed_so_the_seat_map_follows_a_rush_before_the_visitor_picks(): void
+    {
+        $this->scheduleOnSale();
+        $customerId = $this->app->make(CommandBus::class)->send(new RegisterCustomer(name: 'Rush buyer 1', email: 'rush-1@example.com'));
+        $orderId = $this->app->make(CommandBus::class)->send(new StartOrder(customerId: $customerId, concertId: self::CONCERT_ID));
+        $this->app->make(CommandBus::class)->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', expiresAt: '2026-10-25T12:02:00+00:00'));
+
+        $response = $this->getJson('/concerts/' . self::CONCERT_ID . '/taken-seats.json');
+
+        $response->assertOk();
+        $response->assertExactJson(['takenSeatIds' => [self::CONCERT_ID . '/B-1']]);
+        $this->get('/concerts/' . self::CONCERT_ID)->assertSee('data-taken-seats-url="http://localhost/concerts/' . self::CONCERT_ID . '/taken-seats.json"', escape: false);
     }
 
     public function test_the_state_of_a_rush_never_started_is_not_found(): void

@@ -19,6 +19,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Requirement\Requirement;
 
 final class ConcertsController extends AbstractController
 {
@@ -67,42 +68,52 @@ final class ConcertsController extends AbstractController
         return $this->redirectToRoute('admin_concerts', ['_fragment' => $concertId]);
     }
 
-    #[Route('/admin/concerts/{concertId}', name: 'admin_concert', methods: ['GET'])]
+    #[Route('/admin/concerts/{concertId}', name: 'admin_concert', requirements: ['concertId' => Requirement::UUID], methods: ['GET'])]
     public function detail(string $concertId): Response
     {
-        return $this->concertPage($concertId);
+        return $this->onKnownConcert($concertId, fn (): Response => $this->concertPage($concertId));
     }
 
-    #[Route('/admin/concerts/{concertId}/open-sales', name: 'admin_concert_open_sales', methods: ['POST'])]
+    #[Route('/admin/concerts/{concertId}/open-sales', name: 'admin_concert_open_sales', requirements: ['concertId' => Requirement::UUID], methods: ['POST'])]
     public function openSales(string $concertId): Response
     {
-        return $this->onConcert($concertId, new OpenSales($concertId), 'Sales are open.');
+        return $this->onKnownConcert($concertId, fn (): Response => $this->sendToConcert($concertId, new OpenSales($concertId), 'Sales are open.'));
     }
 
-    #[Route('/admin/concerts/{concertId}/price', name: 'admin_concert_price', methods: ['POST'])]
+    #[Route('/admin/concerts/{concertId}/price', name: 'admin_concert_price', requirements: ['concertId' => Requirement::UUID], methods: ['POST'])]
     public function changePrice(string $concertId, Request $request): Response
     {
-        $tier = Tier::tryFrom($request->request->getString('tier'));
-        if ($tier === null) {
-            return $this->concertPage($concertId, sprintf('There is no "%s" tier. Pick standard or vip.', $request->request->getString('tier')));
-        }
-        $priceCents = $request->request->getInt('priceCents');
-        $concert = $this->concert($concertId);
+        return $this->onKnownConcert($concertId, function () use ($concertId, $request): Response {
+            $tier = Tier::tryFrom($request->request->getString('tier'));
+            if ($tier === null) {
+                return $this->concertPage($concertId, sprintf('There is no "%s" tier. Pick standard or vip.', $request->request->getString('tier')));
+            }
+            $priceCents = $request->request->getInt('priceCents');
 
-        return $this->onConcert(
-            $concertId,
-            new ChangeTierPrice(concertId: $concertId, tier: $tier, priceCents: $priceCents),
-            sprintf('The %s price is now %s %s.', $tier->value, number_format($priceCents / 100, 2, '.', ''), $concert['currency']),
-        );
+            return $this->sendToConcert(
+                $concertId,
+                new ChangeTierPrice(concertId: $concertId, tier: $tier, priceCents: $priceCents),
+                sprintf('The %s price is now %s %s.', $tier->value, number_format($priceCents / 100, 2, '.', ''), $this->concert($concertId)['currency']),
+            );
+        });
     }
 
-    #[Route('/admin/concerts/{concertId}/cancel', name: 'admin_concert_cancel', methods: ['POST'])]
+    #[Route('/admin/concerts/{concertId}/cancel', name: 'admin_concert_cancel', requirements: ['concertId' => Requirement::UUID], methods: ['POST'])]
     public function cancel(string $concertId): Response
     {
-        return $this->onConcert($concertId, new CancelConcert($concertId), 'The concert is cancelled.');
+        return $this->onKnownConcert($concertId, fn (): Response => $this->sendToConcert($concertId, new CancelConcert($concertId), 'The concert is cancelled.'));
     }
 
-    private function onConcert(string $concertId, object $command, string $notice): Response
+    private function onKnownConcert(string $concertId, callable $action): Response
+    {
+        try {
+            return $action();
+        } catch (AggregateNotFoundException) {
+            return $this->concertsPage(sprintf('There is no concert %s. Pick one from the list below.', $concertId), Response::HTTP_NOT_FOUND);
+        }
+    }
+
+    private function sendToConcert(string $concertId, object $command, string $notice): Response
     {
         try {
             $this->commandBus->send($command);
@@ -115,7 +126,7 @@ final class ConcertsController extends AbstractController
         return $this->redirectToRoute('admin_concert', ['concertId' => $concertId]);
     }
 
-    private function concertsPage(?string $refusal = null): Response
+    private function concertsPage(?string $refusal = null, int $refusalStatus = Response::HTTP_UNPROCESSABLE_ENTITY): Response
     {
         return $this->render(
             'admin/concerts.html.twig',
@@ -124,7 +135,7 @@ final class ConcertsController extends AbstractController
                 'venues' => $this->queryBus->sendWithRouting('venues.list'),
                 'refusal' => $refusal,
             ],
-            new Response(status: $refusal === null ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY),
+            new Response(status: $refusal === null ? Response::HTTP_OK : $refusalStatus),
         );
     }
 
@@ -139,10 +150,6 @@ final class ConcertsController extends AbstractController
 
     private function concert(string $concertId): array
     {
-        try {
-            return $this->queryBus->sendWithRouting('concert.detail', metadata: ['aggregate.id' => $concertId]);
-        } catch (AggregateNotFoundException) {
-            throw $this->createNotFoundException(sprintf('There is no concert %s. Pick one from the list under /admin/concerts.', $concertId));
-        }
+        return $this->queryBus->sendWithRouting('concert.detail', metadata: ['aggregate.id' => $concertId]);
     }
 }

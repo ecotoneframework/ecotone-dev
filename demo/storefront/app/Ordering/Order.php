@@ -96,6 +96,9 @@ final class Order extends Model
         $this->assertAccepts('MarkSeatHeld', ...self::OPEN_STATUSES);
         $this->assertSeatOfThisConcert($command->seatId, 'MarkSeatHeld');
         try {
+            if (trim($command->expiresAt) === '') {
+                throw new Exception();
+            }
             $expiresAt = (new DateTimeImmutable($command->expiresAt))->setTimezone(new DateTimeZone('UTC'))->format(DateTimeInterface::ATOM);
         } catch (Exception) {
             throw new DomainException(sprintf('MarkSeatHeld for seat %s of order %s carries expiresAt "%s", which is not an ISO-8601 date, so the storefront cannot count down the hold. Ticketing sends expiresAt as ISO-8601, like "2026-10-25T12:02:00+00:00": correct the tickets.hold.result reply and replay it from the dbal_dead_letter.', $command->seatId, $this->id, $command->expiresAt));

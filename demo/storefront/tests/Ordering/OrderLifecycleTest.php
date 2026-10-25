@@ -186,6 +186,16 @@ final class OrderLifecycleTest extends TestCase
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: 'soon'));
     }
 
+    public function test_holding_a_seat_with_no_expiry_is_refused(): void
+    {
+        $orderId = $this->startOrder();
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage(sprintf('MarkSeatHeld for seat %s/A-1 of order %s carries expiresAt "", which is not an ISO-8601 date', self::CONCERT_ID, $orderId));
+
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: ''));
+    }
+
     public function test_holding_a_seat_of_another_concert_is_refused(): void
     {
         $orderId = $this->startOrder();

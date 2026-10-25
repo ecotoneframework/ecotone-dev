@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConfigurationVariable;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 
 final class SeatSales
@@ -149,6 +150,19 @@ final class SeatSales
         }
 
         return $sold;
+    }
+
+    /**
+     * @return array{orderId: string, expiresAt: DateTimeImmutable}|null
+     */
+    #[QueryHandler]
+    public function holdOf(FindSeatHold $query, SeatAvailability $seat): ?array
+    {
+        if ($seat->holdingOrderId() === null) {
+            return null;
+        }
+
+        return ['orderId' => $seat->holdingOrderId(), 'expiresAt' => $seat->heldUntil()];
     }
 
     private function assertLiveHoldOfTheOrder(ConfirmSeats $command, CustomerConcertSeats $customerSeats, string $seatId, DateTimeInterface $now): void

@@ -79,10 +79,12 @@ jobs:
         working-directory: demo/${{ matrix.app }}
         run: composer update --prefer-dist --no-interaction --no-scripts
 
-      - name: Discover the Laravel packages
+      - name: Create Laravel's writable directories and discover its packages
         if: matrix.app == 'storefront'
         working-directory: demo/storefront
-        run: php artisan package:discover
+        run: |
+          mkdir -p storage/app storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+          php artisan package:discover
 
       - name: Run phpstan and phpunit
         working-directory: demo/${{ matrix.app }}

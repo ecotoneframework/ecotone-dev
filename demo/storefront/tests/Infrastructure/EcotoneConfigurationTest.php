@@ -9,8 +9,8 @@ use App\Ping\DemoPing;
 use App\Ping\PongLog;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Tools\DsnParser;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
-use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -78,7 +78,7 @@ final class EcotoneConfigurationTest extends TestCase
     {
         $ticketing = new class () {
             #[Distributed]
-            #[InternalHandler('demo.ping')]
+            #[CommandHandler('demo.ping')]
             public function ping(string $sender): string
             {
                 return 'pong from ticketing to ' . $sender;

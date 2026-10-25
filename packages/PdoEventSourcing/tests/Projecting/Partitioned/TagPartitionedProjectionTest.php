@@ -54,6 +54,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
     {
         yield 'in-memory' => ['in-memory'];
         yield 'in-memory-without-event-sourcing-module' => ['in-memory-without-event-sourcing-module'];
+        yield 'dbal' => ['dbal'];
     }
 
     #[DataProvider('implementations')]
@@ -65,6 +66,24 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A2'));
+
+        self::assertSame(['concert-1' => ['A1', 'A2'], 'concert-2' => ['B1']], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
+        self::assertSame(['concert-1' => 2, 'concert-2' => 1], $ecotone->sendQueryWithRouting('concert.reservationsCountedInState'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_triggering_a_deleted_projection_replays_every_value_of_the_tag(string $implementation): void
+    {
+        $projection = $this->concertSeatsProjection();
+        $ecotone = $this->bootstrap($implementation, $projection);
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A2'));
+
+        $ecotone->deleteProjection('concert_seats');
+        self::assertSame([], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
+
+        $ecotone->initializeProjection('concert_seats')->triggerProjection('concert_seats');
 
         self::assertSame(['concert-1' => ['A1', 'A2'], 'concert-2' => ['B1']], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
         self::assertSame(['concert-1' => 2, 'concert-2' => 1], $ecotone->sendQueryWithRouting('concert.reservationsCountedInState'));

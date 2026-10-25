@@ -21,6 +21,7 @@ use App\Sales\CancelledConcertHolds;
 use App\Sales\ConfirmSeats;
 use App\Sales\CustomerConcertSeats;
 use App\Sales\ExpireHold;
+use App\Sales\FindSeatHold;
 use App\Sales\HoldExpired;
 use App\Sales\HoldExpiry;
 use App\Sales\HoldReleased;
@@ -339,6 +340,25 @@ final class SeatSalesTest extends KernelTestCase
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame([], $ticketing->popRecordedEventsOfType(HoldExpired::class));
+    }
+
+    public function test_the_expiry_of_a_released_hold_does_not_expire_the_order_holding_the_seat_again(): void
+    {
+        $ticketing = $this->ticketing();
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->advanceTimeBy(Duration::seconds(300));
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->discardRecordedMessages();
+
+        $ticketing->advanceTimeBy(Duration::seconds(300));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame([], $ticketing->popRecordedEventsOfType(HoldExpired::class));
+        self::assertEquals(['orderId' => $orderId, 'expiresAt' => new DateTimeImmutable('2026-10-25 12:15:00')], $ticketing->sendQuery(new FindSeatHold($concertId . '/A-1')));
     }
 
     public function test_confirming_the_live_holds_of_an_order_sells_every_seat_at_its_tier_price(): void

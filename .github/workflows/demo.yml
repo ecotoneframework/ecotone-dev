@@ -1,0 +1,91 @@
+name: Ecotone demo
+
+on:
+  pull_request:
+    paths:
+      - 'demo/**'
+      - 'packages/**'
+      - 'apps/Pulse/**'
+      - '.github/workflows/demo.yml'
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '*.*'
+    paths:
+      - 'demo/**'
+      - 'packages/**'
+      - 'apps/Pulse/**'
+      - '.github/workflows/demo.yml'
+
+concurrency:
+  group: demo-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Demo ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: ticketing
+            database: ticketing_test
+          - app: storefront
+            database: storefront_test
+    services:
+      database:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ecotone
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: ${{ matrix.database }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ecotone"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/${{ matrix.database }}
+      DATABASE_URL: postgresql://ecotone:secret@127.0.0.1:5432/ticketing?serverVersion=16&charset=utf8
+      DB_HOST: 127.0.0.1
+      DB_PORT: '5432'
+      DB_USERNAME: ecotone
+      DB_PASSWORD: secret
+      COMPOSER: composer.pinned.json
+      SYMFONY_LOCKFILE: symfony.lock
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: amqp, pdo_pgsql, sockets, intl, zip, pcntl
+          coverage: none
+
+      - name: Run on Ecotone's testing licence
+        run: echo "ECOTONE_LICENCE_KEY=$(php -r 'require "packages/Ecotone/src/Test/LicenceTesting.php"; echo Ecotone\Test\LicenceTesting::VALID_LICENCE;')" >> "$GITHUB_ENV"
+
+      - name: Pin the path packages the way the demo containers do
+        working-directory: demo/${{ matrix.app }}
+        run: php ../docker/pin-path-package-versions.php
+
+      - name: Install ${{ matrix.app }} with fresh path packages
+        working-directory: demo/${{ matrix.app }}
+        run: composer update --prefer-dist --no-interaction --no-scripts
+
+      - name: Create Laravel's writable directories and discover its packages
+        if: matrix.app == 'storefront'
+        working-directory: demo/storefront
+        run: |
+          mkdir -p storage/app storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+          php artisan package:discover
+
+      - name: Run phpstan and phpunit
+        working-directory: demo/${{ matrix.app }}
+        run: composer tests:ci

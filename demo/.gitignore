@@ -1,0 +1,11 @@
+**/vendor/
+**/var/
+**/storage/
+**/bootstrap/cache/*.php
+**/.phpunit.cache/
+**/.phpunit.result.cache
+**/composer.pinned.json
+**/composer.pinned.lock
+**/config/reference.php
+**/.php-cs-fixer.cache
+!/ticketing/.env

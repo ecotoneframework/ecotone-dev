@@ -1,0 +1,16 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+
+    Ecotone\Api\Amqp\AmqpExtConnectionFactory:
+        arguments: ['%env(AMQP_DSN)%']
+
+    OpenTelemetry\API\Trace\TracerProviderInterface:
+        factory: ['App\Infrastructure\OtlpTracerProviderFactory', 'create']
+        arguments: ['%env(OTEL_EXPORTER_OTLP_ENDPOINT)%', 'ticketing']

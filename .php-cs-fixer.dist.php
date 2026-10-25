@@ -6,6 +6,10 @@ $finder = PhpCsFixer\Finder::create()
         __DIR__ . '/apps/Pulse/src',
         __DIR__ . '/apps/Pulse/tests',
         __DIR__ . '/apps/Pulse/config',
+        __DIR__ . '/demo/ticketing/src',
+        __DIR__ . '/demo/ticketing/tests',
+        __DIR__ . '/demo/storefront/app',
+        __DIR__ . '/demo/storefront/tests',
     ])
     ->exclude([
         'Ecotone/tests/Messaging/Fixture/Handler/ClosureInAttribute',

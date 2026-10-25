@@ -21,6 +21,9 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 final class EcotoneConfigurationTest extends TestCase
 {
     private array $channels;

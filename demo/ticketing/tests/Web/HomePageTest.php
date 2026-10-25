@@ -6,6 +6,9 @@ namespace App\Tests\Web;
 
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
+/**
+ * @internal
+ */
 final class HomePageTest extends WebTestCase
 {
     public function test_the_home_page_names_the_service_and_links_to_pulse_and_jaeger(): void

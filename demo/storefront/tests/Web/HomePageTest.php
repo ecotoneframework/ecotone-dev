@@ -6,6 +6,9 @@ namespace Tests\Web;
 
 use Tests\TestCase;
 
+/**
+ * @internal
+ */
 final class HomePageTest extends TestCase
 {
     public function test_the_home_page_names_the_service_and_links_to_pulse_and_jaeger(): void

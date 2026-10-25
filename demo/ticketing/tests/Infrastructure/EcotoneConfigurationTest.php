@@ -16,6 +16,9 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 final class EcotoneConfigurationTest extends TestCase
 {
     public function test_ticketing_answers_a_distributed_ping_on_the_reply_routing_key_of_the_sender(): void

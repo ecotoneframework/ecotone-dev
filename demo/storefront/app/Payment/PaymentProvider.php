@@ -17,6 +17,10 @@ final class PaymentProvider
 
     public function charge(string $orderId, string $paymentReference, string $cardEnding): ChargeOutcome
     {
+        $recordedOutcome = $this->recordedOutcomeOf($paymentReference);
+        if ($recordedOutcome !== null) {
+            return $recordedOutcome;
+        }
         if ($cardEnding === self::TRANSIENT_OUTAGE_CARD_ENDING && $this->attempts->attemptsOf($paymentReference) === 0) {
             $this->attempts->record(paymentReference: $paymentReference, cardEnding: $cardEnding, status: 'unavailable');
 
@@ -44,5 +48,14 @@ final class PaymentProvider
         $status = $this->attempts->statusOf($paymentReference);
 
         return $status === false ? null : $status;
+    }
+
+    private function recordedOutcomeOf(string $paymentReference): ?ChargeOutcome
+    {
+        return match ($this->attempts->statusOf($paymentReference)) {
+            'charged', 'refunded' => ChargeOutcome::CHARGED,
+            'declined' => ChargeOutcome::DECLINED,
+            default => null,
+        };
     }
 }

@@ -161,6 +161,9 @@ final class Order extends Model
     #[CommandHandler]
     public function markPaid(MarkPaid $command): void
     {
+        if ($this->status === OrderStatus::PAID && $this->payment_reference === $command->paymentReference) {
+            return;
+        }
         $this->assertAccepts('MarkPaid', OrderStatus::PAYING);
         $this->payment_reference = $command->paymentReference;
         $this->status = OrderStatus::PAID;

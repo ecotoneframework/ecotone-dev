@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Tests\Payment;
 
 use App\Ordering\FailOrder;
+use App\Ordering\Order;
 use App\Ordering\MarkSeatHeld;
+use App\Payment\ChargeCard;
 use App\Payment\Checkout;
 use App\Payment\Pay;
 use App\Payment\PaymentAttempts;
 use App\Payment\PaymentProvider;
+use Doctrine\DBAL\Driver\AbstractException;
+use Doctrine\DBAL\Exception\DeadlockException;
 use DomainException;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Headers;
@@ -49,7 +53,23 @@ final class PaymentTest extends StorefrontFlowTestCase
             }
         };
 
-        return [Checkout::class, PaymentProvider::class, PaymentAttempts::class, $commitFailure::class];
+        $deadlockOnFirstMarkPaid = new class () {
+            public bool $deadlocked = false;
+
+            #[Around(pointcut: Order::class . '::markPaid')]
+            public function deadlockOnce(MethodInvocation $invocation): mixed
+            {
+                if (! $this->deadlocked) {
+                    $this->deadlocked = true;
+
+                    throw new DeadlockException(new class ('deadlock detected') extends AbstractException {}, null);
+                }
+
+                return $invocation->proceed();
+            }
+        };
+
+        return [Checkout::class, PaymentProvider::class, PaymentAttempts::class, $commitFailure::class, $deadlockOnFirstMarkPaid::class];
     }
 
     public function test_paying_moves_the_order_to_paying_until_the_card_is_charged(): void
@@ -74,6 +94,35 @@ final class PaymentTest extends StorefrontFlowTestCase
         $received = $this->ticketingReceives();
         self::assertSame('tickets.confirm', $received[0][0]);
         self::assertSame($order['paymentReference'], $received[0][1]['paymentReference']);
+    }
+
+    public function test_a_charge_retried_after_a_deadlock_charges_the_card_once(): void
+    {
+        $orderId = $this->orderWithHeldSeat();
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, cardNumber: '4242424242424242'));
+
+        $this->charge();
+
+        $order = $this->order($orderId);
+        self::assertSame('paid', $order['status']);
+        self::assertSame(1, DB::table('payment_attempts')->where('payment_reference', $order['paymentReference'])->value('attempts'));
+        self::assertSame(['tickets.confirm'], array_column($this->ticketingReceives(), 0));
+    }
+
+    public function test_a_charge_card_replayed_for_a_paid_order_charges_nothing_and_confirms_nothing_again(): void
+    {
+        $orderId = $this->orderWithHeldSeat();
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, cardNumber: '4242424242424242'));
+        $this->charge();
+        $this->ticketingReceives();
+        $paymentReference = $this->order($orderId)['paymentReference'];
+
+        $this->storefront->getCommandBus()->send(new ChargeCard(orderId: $orderId, paymentReference: $paymentReference, cardEnding: '4242'));
+        $this->charge();
+
+        self::assertSame('paid', $this->order($orderId)['status']);
+        self::assertSame(1, DB::table('payment_attempts')->where('payment_reference', $paymentReference)->value('attempts'));
+        self::assertSame([], $this->ticketingReceives());
     }
 
     public function test_a_card_ending_0000_is_declined_and_fails_the_order_releasing_its_seats(): void

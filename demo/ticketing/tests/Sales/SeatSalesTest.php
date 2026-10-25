@@ -33,6 +33,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Interceptor\MethodInvocation;
@@ -43,6 +44,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Symfony\SymfonyConnectionReference;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Ecotone\Api\Scheduling\Duration;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -294,6 +296,46 @@ final class SeatSalesTest extends KernelTestCase
         $this->expectException(SeatRefusal::class);
         $this->expectExceptionMessage("because someone was faster: order {$nextOrder} holds it");
         $this->hold($ticketing, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+    }
+
+    public function test_a_hold_expires_on_the_asynchronous_channel_only_once_the_hold_length_has_passed(): void
+    {
+        $ticketing = $this->ticketing();
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->discardRecordedMessages();
+
+        $ticketing->advanceTimeBy(Duration::seconds(599));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame([], $ticketing->popRecordedEventsOfType(HoldExpired::class));
+
+        $ticketing->advanceTimeBy(Duration::seconds(1));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertEquals(
+            [new HoldExpired(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId)],
+            $ticketing->popRecordedEventsOfType(HoldExpired::class),
+        );
+        self::assertSame([$concertId], array_map(static fn (MessageHeaders $headers): mixed => $headers->get('concertId'), $ticketing->popRecordedEventHeaders()));
+    }
+
+    public function test_a_hold_released_before_its_expiry_is_not_expired_when_the_hold_length_passes(): void
+    {
+        $ticketing = $this->ticketing();
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->discardRecordedMessages();
+
+        $ticketing->advanceTimeBy(Duration::seconds(600));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame([], $ticketing->popRecordedEventsOfType(HoldExpired::class));
     }
 
     public function test_confirming_the_live_holds_of_an_order_sells_every_seat_at_its_tier_price(): void

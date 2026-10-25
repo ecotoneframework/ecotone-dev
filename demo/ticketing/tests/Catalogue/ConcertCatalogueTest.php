@@ -11,6 +11,7 @@ use App\Catalogue\ChangeTierPrice;
 use App\Catalogue\Concert;
 use App\Catalogue\ConcertAnnouncements;
 use App\Catalogue\CreateVenue;
+use App\Catalogue\DemoSeed;
 use App\Catalogue\MarkConcertSoldOut;
 use App\Catalogue\OpenSales;
 use App\Catalogue\ScheduleConcert;
@@ -266,6 +267,40 @@ final class ConcertCatalogueTest extends KernelTestCase
         );
     }
 
+    public function test_seeding_the_demo_creates_riverside_hall_with_two_concerts_on_sale_and_one_scheduled(): void
+    {
+        $ticketing = $this->ticketing();
+
+        $ticketing->runConsoleCommand('demo:seed', []);
+
+        self::assertSame(['Riverside Hall'], array_column($ticketing->sendQueryWithRouting('venues.list'), 'name'));
+        self::assertSame([72], array_column($ticketing->sendQueryWithRouting('venues.list'), 'seatCount'));
+        self::assertSame(
+            [
+                ['artist' => 'Neon Harbour', 'startsAt' => '2026-11-08T20:00:00+00:00', 'status' => 'on_sale'],
+                ['artist' => 'The Midnight Owls', 'startsAt' => '2026-11-25T20:00:00+00:00', 'status' => 'on_sale'],
+                ['artist' => 'Aurora Strings', 'startsAt' => '2027-01-25T20:00:00+00:00', 'status' => 'scheduled'],
+            ],
+            array_map(
+                static fn (array $concert): array => ['artist' => $concert['artist'], 'startsAt' => $concert['startsAt'], 'status' => $concert['status']],
+                $ticketing->sendQueryWithRouting('concerts.list'),
+            ),
+        );
+    }
+
+    public function test_seeding_the_demo_again_leaves_the_catalogue_as_it_is(): void
+    {
+        $ticketing = $this->ticketing();
+        $ticketing->runConsoleCommand('demo:seed', []);
+        $venues = $ticketing->sendQueryWithRouting('venues.list');
+        $concerts = $ticketing->sendQueryWithRouting('concerts.list');
+
+        $ticketing->runConsoleCommand('demo:seed', []);
+
+        self::assertSame($venues, $ticketing->sendQueryWithRouting('venues.list'));
+        self::assertSame($concerts, $ticketing->sendQueryWithRouting('concerts.list'));
+    }
+
     private function ticketing(): FlowTestSupport
     {
         self::bootKernel();
@@ -274,11 +309,12 @@ final class ConcertCatalogueTest extends KernelTestCase
         $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues');
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [EcotoneConfiguration::class, Venue::class, Concert::class, Catalogue::class, ConcertAnnouncements::class],
+            classesToResolve: [EcotoneConfiguration::class, Venue::class, Concert::class, Catalogue::class, ConcertAnnouncements::class, DemoSeed::class],
             containerOrAvailableServices: [
                 new EcotoneConfiguration(),
                 new Catalogue($doctrine->getConnection()),
                 new ConcertAnnouncements(),
+                new DemoSeed(),
                 'doctrine' => $doctrine,
             ],
             extensionObjects: [...$this->channels(), SymfonyConnectionReference::defaultManagerRegistry('default')],

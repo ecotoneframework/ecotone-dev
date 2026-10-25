@@ -96,6 +96,7 @@
             "@auto-scripts"
         ],
         "tests:ci": [
+            "Composer\\Config::disableProcessTimeout",
             "vendor/bin/phpstan analyse --no-progress",
             "vendor/bin/phpunit --no-coverage"
         ]

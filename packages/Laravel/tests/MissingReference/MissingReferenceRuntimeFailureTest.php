@@ -10,6 +10,7 @@ use Ecotone\Laravel\EcotoneCacheClear;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Foundation\Application;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Laravel\RestoresLaravelHandlers;
 use Throwable;
 
 /**
@@ -25,6 +26,8 @@ use Throwable;
  */
 final class MissingReferenceRuntimeFailureTest extends TestCase
 {
+    use RestoresLaravelHandlers;
+
     protected function setUp(): void
     {
         $this->clearEcotoneCache();

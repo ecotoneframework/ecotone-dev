@@ -18,6 +18,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\StubLogger;
 use RuntimeException;
@@ -287,134 +288,245 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $this->assertSame(['first-payload'], $handler->processedPayloads);
     }
 
-    public function test_dead_letter_message_is_replayed_to_the_chosen_channel_instead_of_the_source_one(): void
+    public function test_a_dead_letter_replayed_to_the_asynchronous_channel_of_its_handler_runs_the_handler(): void
     {
-        $handler = new class () {
-            public const REQUEST_CHANNEL = 'sourceRequestChannel';
-            public const TARGET_CHANNEL = 'targetRequestChannel';
+        [$ecotone, $handler] = $this->failedAsynchronousOrder();
 
-            /** @var string[] */
-            public array $handledBySource = [];
-            /** @var string[] */
-            public array $handledByTarget = [];
-            private bool $hasEmitted = false;
+        $this->deadLetters($ecotone)->replay($this->firstDeadLetterId($ecotone), $handler::QUEUE);
+        $handler->fail = false;
+        $ecotone->run($handler::QUEUE, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
-            #[\Ecotone\Api\Attribute\Scheduled(self::REQUEST_CHANNEL, 'emittingAdapter')]
-            #[\Ecotone\Api\Attribute\Poller(executionTimeLimitInMilliseconds: 1, handledMessageLimit: 1)]
-            public function emit(): ?string
-            {
-                if ($this->hasEmitted) {
-                    return null;
-                }
-                $this->hasEmitted = true;
-
-                return 'first-payload';
-            }
-
-            #[\Ecotone\Api\Attribute\InternalHandler(self::REQUEST_CHANNEL)]
-            public function handleBySource(string $payload): void
-            {
-                $this->handledBySource[] = $payload;
-
-                throw new RuntimeException('simulated');
-            }
-
-            #[\Ecotone\Api\Attribute\InternalHandler(self::TARGET_CHANNEL)]
-            public function handleByTarget(string $payload): void
-            {
-                $this->handledByTarget[] = $payload;
-            }
-        };
-        $connectionFactory = $this->getConnectionFactory();
-
-        $ecotone = $this->bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
-            containerOrAvailableServices: [
-                $handler,
-                DbalConnectionFactory::class => $connectionFactory,
-                'managerRegistry' => $connectionFactory,
-            ],
-            extensionObjects: [
-                \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
-            ],
-            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
-            pathToRootCatalog: __DIR__ . '/../../',
-            environment: 'prod',
-        );
-
-        $ecotone->run('emittingAdapter', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
-        $this->assertErrorMessageCount($ecotone, 1);
-
-        $gateway = $ecotone->getGateway(DeadLetterGateway::class);
-        $gateway->replay($gateway->list(10, 0)[0]->getMessageId(), $handler::TARGET_CHANNEL);
-
+        $this->assertSame(['order-1'], $handler->placed);
         $this->assertErrorMessageCount($ecotone, 0);
-        $this->assertSame(['first-payload'], $handler->handledBySource);
-        $this->assertSame(['first-payload'], $handler->handledByTarget);
     }
 
-    public function test_all_dead_letter_messages_are_replayed_to_the_chosen_channel(): void
+    public function test_a_dead_letter_replayed_to_another_asynchronous_channel_runs_the_original_handler_once_that_channel_is_consumed(): void
+    {
+        [$ecotone, $handler] = $this->failedAsynchronousOrder();
+        $handler->fail = false;
+
+        $this->deadLetters($ecotone)->replay($this->firstDeadLetterId($ecotone), $handler::OTHER_QUEUE);
+        $ecotone->run($handler::QUEUE, ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertSame([], $handler->placed);
+        $ecotone->run($handler::OTHER_QUEUE, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame(['order-1'], $handler->placed);
+        $this->assertErrorMessageCount($ecotone, 0);
+    }
+
+    public function test_all_dead_letters_are_replayed_to_another_asynchronous_channel_and_run_the_original_handler(): void
+    {
+        [$ecotone, $handler] = $this->failedAsynchronousOrder();
+        $handler->fail = false;
+
+        $this->deadLetters($ecotone)->replayAll($handler::OTHER_QUEUE);
+        $ecotone->run($handler::OTHER_QUEUE, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame(['order-1'], $handler->placed);
+        $this->assertErrorMessageCount($ecotone, 0);
+    }
+
+    public function test_the_console_replays_a_dead_letter_to_another_asynchronous_channel_and_the_original_handler_runs(): void
+    {
+        [$ecotone, $handler] = $this->failedAsynchronousOrder();
+        $handler->fail = false;
+
+        $ecotone->runConsoleCommand('ecotone:deadletter:replay', ['messageId' => $this->firstDeadLetterId($ecotone), 'targetChannel' => $handler::OTHER_QUEUE]);
+        $ecotone->run($handler::OTHER_QUEUE, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame(['order-1'], $handler->placed);
+        $this->assertErrorMessageCount($ecotone, 0);
+    }
+
+    public function test_a_dead_letter_replayed_to_a_queue_no_handler_is_bound_to_keeps_the_routing_slip_of_its_handler(): void
+    {
+        $interceptor = new class () {
+            /** @var string[] */
+            public array $routingSlips = [];
+
+            #[\Ecotone\Api\Attribute\ChannelInterceptor('idleQueue')]
+            public function record(#[\Ecotone\Api\Attribute\Payload] string $payload, #[\Ecotone\Api\Attribute\Header(MessageHeaders::ROUTING_SLIP)] string $routingSlip): string
+            {
+                $this->routingSlips[] = $routingSlip;
+
+                return $payload;
+            }
+        };
+        [$ecotone, $handler] = $this->failedAsynchronousOrder([$interceptor]);
+
+        $this->deadLetters($ecotone)->replay($this->firstDeadLetterId($ecotone), 'idleQueue');
+
+        $this->assertErrorMessageCount($ecotone, 0);
+        $this->assertCount(1, $interceptor->routingSlips);
+        $this->assertStringContainsString('order.place', $interceptor->routingSlips[0]);
+    }
+
+    public function test_replaying_to_a_channel_that_is_not_asynchronous_is_refused_on_every_path_and_keeps_the_dead_letter(): void
+    {
+        [$ecotone, $handler] = $this->failedAsynchronousOrder();
+        $messageId = $this->firstDeadLetterId($ecotone);
+        $refusals = [
+            fn () => $this->deadLetters($ecotone)->replay($messageId, $handler::SYNCHRONOUS_CHANNEL),
+            fn () => $this->deadLetters($ecotone)->replayAll($handler::SYNCHRONOUS_CHANNEL),
+            fn () => $ecotone->runConsoleCommand('ecotone:deadletter:replay', ['messageId' => $messageId, 'targetChannel' => $handler::SYNCHRONOUS_CHANNEL]),
+            fn () => $ecotone->runConsoleCommand('ecotone:deadletter:replayAll', ['targetChannel' => $handler::SYNCHRONOUS_CHANNEL]),
+        ];
+
+        foreach ($refusals as $replay) {
+            try {
+                $replay();
+                self::fail('Replaying to a channel that is not asynchronous should be refused');
+            } catch (InvalidArgumentException $exception) {
+                $this->assertStringContainsString($handler::SYNCHRONOUS_CHANNEL, $exception->getMessage());
+                $this->assertStringContainsString('not an asynchronous', $exception->getMessage());
+                $this->assertStringContainsString('asynchronous channels of the service', $exception->getMessage());
+                $this->assertStringContainsString('omit the target channel', $exception->getMessage());
+            }
+        }
+
+        $this->assertSame([], $handler->placed);
+        $this->assertErrorMessageCount($ecotone, 1);
+    }
+
+    public function test_a_dead_letter_whose_time_to_live_has_expired_is_handled_after_a_targeted_replay(): void
+    {
+        [$ecotone, $handler] = $this->failedAsynchronousOrder(metadata: [MessageHeaders::TIME_TO_LIVE => 5000], dbalChannels: true);
+        $handler->fail = false;
+        $ecotone->advanceTimeBy(\Ecotone\Api\Scheduling\Duration::seconds(60));
+
+        $this->deadLetters($ecotone)->replay($this->firstDeadLetterId($ecotone), $handler::OTHER_QUEUE);
+        $ecotone->run($handler::OTHER_QUEUE, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame(['order-1'], $handler->placed);
+    }
+
+    public function test_a_dead_letter_whose_delivery_was_delayed_is_not_delayed_again_after_a_targeted_replay(): void
+    {
+        [$ecotone, $handler] = $this->failedAsynchronousOrder(metadata: [MessageHeaders::DELIVERY_DELAY => 3000], dbalChannels: true, advanceSecondsBeforeFailing: 3);
+        $handler->fail = false;
+
+        $this->deadLetters($ecotone)->replay($this->firstDeadLetterId($ecotone), $handler::OTHER_QUEUE);
+        $ecotone->run($handler::OTHER_QUEUE, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame(['order-1'], $handler->placed);
+    }
+
+    public function test_a_dead_letter_that_fails_again_after_a_targeted_replay_is_replayed_back_to_the_channel_it_was_replayed_to(): void
+    {
+        [$ecotone, $handler] = $this->failedAsynchronousOrder();
+
+        $this->deadLetters($ecotone)->replay($this->firstDeadLetterId($ecotone), $handler::OTHER_QUEUE);
+        $ecotone->run($handler::OTHER_QUEUE, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $this->assertErrorMessageCount($ecotone, 1);
+        $handler->fail = false;
+        $this->deadLetters($ecotone)->replay($this->firstDeadLetterId($ecotone));
+        $ecotone->run($handler::OTHER_QUEUE, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame(['order-1'], $handler->placed);
+    }
+
+    private function deadLetters(FlowTestSupport $ecotone): DeadLetterGateway
+    {
+        return $ecotone->getGateway(DeadLetterGateway::class);
+    }
+
+    private function firstDeadLetterId(FlowTestSupport $ecotone): string
+    {
+        return $this->deadLetters($ecotone)->list(10, 0)[0]->getMessageId();
+    }
+
+    /**
+     * @param object[] $additionalServices
+     * @return array{FlowTestSupport, object}
+     */
+    private function failedAsynchronousOrder(array $additionalServices = [], array $metadata = [], bool $dbalChannels = false, ?int $advanceSecondsBeforeFailing = null): array
     {
         $handler = new class () {
-            public const TARGET_CHANNEL = 'allTargetChannel';
+            public const QUEUE = 'ordersQueue';
+            public const OTHER_QUEUE = 'otherQueue';
+            public const SYNCHRONOUS_CHANNEL = 'synchronousChannel';
 
-            public int $sourceInvocations = 0;
+            public bool $fail = true;
             /** @var string[] */
-            public array $handledByTarget = [];
-            private bool $hasEmitted = false;
+            public array $placed = [];
 
-            #[\Ecotone\Api\Attribute\Scheduled('allSourceChannel', 'allEmittingAdapter')]
-            #[\Ecotone\Api\Attribute\Poller(executionTimeLimitInMilliseconds: 1, handledMessageLimit: 1)]
-            public function emit(): ?string
+            #[\Ecotone\Api\Attribute\Asynchronous(self::QUEUE)]
+            #[\Ecotone\Api\Attribute\CommandHandler('order.place', endpointId: 'order.place.endpoint')]
+            public function place(string $orderId): void
             {
-                if ($this->hasEmitted) {
-                    return null;
+                if ($this->fail) {
+                    throw new RuntimeException('simulated');
                 }
-                $this->hasEmitted = true;
 
-                return 'payload';
+                $this->placed[] = $orderId;
             }
 
-            #[\Ecotone\Api\Attribute\InternalHandler('allSourceChannel')]
-            public function handleBySource(string $payload): void
+            #[\Ecotone\Api\Attribute\InternalHandler(self::SYNCHRONOUS_CHANNEL)]
+            public function synchronous(string $orderId): void
             {
-                $this->sourceInvocations++;
-
-                throw new RuntimeException('simulated');
-            }
-
-            #[\Ecotone\Api\Attribute\InternalHandler(self::TARGET_CHANNEL)]
-            public function handleByTarget(string $payload): void
-            {
-                $this->handledByTarget[] = $payload;
+                $this->placed[] = $orderId;
             }
         };
         $connectionFactory = $this->getConnectionFactory();
-
         $ecotone = $this->bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
+            classesToResolve: [$handler::class, ...array_map(fn (object $service) => $service::class, $additionalServices)],
             containerOrAvailableServices: [
                 $handler,
+                ...$additionalServices,
                 DbalConnectionFactory::class => $connectionFactory,
                 'managerRegistry' => $connectionFactory,
             ],
             extensionObjects: [
+                ...array_map(
+                    fn (string $channel) => $dbalChannels ? \Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder::create($channel) : \Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel($channel),
+                    [$handler::QUEUE, $handler::OTHER_QUEUE, 'idleQueue']
+                ),
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
             environment: 'prod',
+            licenceKey: $additionalServices === [] ? null : \Ecotone\Test\LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->sendCommandWithRouting('order.place', 'order-1', metadata: $metadata);
+        if ($advanceSecondsBeforeFailing !== null) {
+            $ecotone->run($handler::QUEUE, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+            $this->assertErrorMessageCount($ecotone, 0);
+            $ecotone->advanceTimeBy(\Ecotone\Api\Scheduling\Duration::seconds($advanceSecondsBeforeFailing));
+        }
+        $ecotone->run($handler::QUEUE, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $this->assertErrorMessageCount($ecotone, 1);
 
-        $ecotone->run('allEmittingAdapter', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+        return [$ecotone, $handler];
+    }
 
-        $ecotone->getGateway(DeadLetterGateway::class)->replayAll($handler::TARGET_CHANNEL);
+    #[\PHPUnit\Framework\Attributes\DataProvider('classRoutedHandlers')]
+    public function test_a_dead_letter_cannot_be_replayed_to_the_class_of_a_class_routed_command(object $payload): void
+    {
+        $handler = $this->replayProbeHandler($payload);
+        $ecotone = $this->bootstrapReplayProbe($handler);
+        $ecotone->run('replayProbeEmitter', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+        $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
-        $this->assertErrorMessageCount($ecotone, 0);
-        $this->assertSame(1, $handler->sourceInvocations);
-        $this->assertSame(['payload'], $handler->handledByTarget);
+        try {
+            $gateway->replay($gateway->list(10, 0)[0]->getMessageId(), $payload::class);
+            self::fail('A class-routed command has no channel of that name to replay to');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('no channel or handler with that name exists', $exception->getMessage());
+        }
+
+        $this->assertSame([], $handler->ran);
+        $this->assertErrorMessageCount($ecotone, 1);
+    }
+
+    /**
+     * @return iterable<string, array{object}>
+     */
+    public static function classRoutedHandlers(): iterable
+    {
+        yield 'class routed command handler' => [new ReplayProbeClassRouted()];
+        yield 'asynchronous class routed command handler' => [new ReplayProbeClassRoutedAsync()];
     }
 
     public function test_replaying_to_unknown_channel_is_refused_and_keeps_the_dead_letter_message(): void
@@ -473,7 +585,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         try {
             $ecotone->getGateway(DeadLetterGateway::class)->replayAll('missingChannel');
             $this->fail('Replay to an unknown channel should be refused');
-        } catch (\Ecotone\Messaging\Support\InvalidArgumentException $exception) {
+        } catch (InvalidArgumentException $exception) {
             $this->assertStringContainsString('missingChannel', $exception->getMessage());
             $this->assertStringContainsString('omit the target channel', $exception->getMessage());
         }
@@ -482,68 +594,94 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $this->assertSame([], $handler->handledByTarget);
     }
 
-    public function test_console_command_replays_dead_letter_message_to_the_chosen_channel(): void
+    private function replayProbeHandler(object $payload): object
     {
         $handler = new class () {
-            public const TARGET_CHANNEL = 'consoleTargetChannel';
+            public const QUEUE_CHANNEL = 'replayProbeQueue';
 
-            public int $sourceInvocations = 0;
             /** @var string[] */
-            public array $handledByTarget = [];
+            public array $ran = [];
+            public ?object $payload = null;
             private bool $hasEmitted = false;
 
-            #[\Ecotone\Api\Attribute\Scheduled('consoleSourceChannel', 'consoleEmittingAdapter')]
+            #[\Ecotone\Api\Attribute\Scheduled('replayProbeSource', 'replayProbeEmitter')]
             #[\Ecotone\Api\Attribute\Poller(executionTimeLimitInMilliseconds: 1, handledMessageLimit: 1)]
-            public function emit(): ?string
+            public function emit(): ?\Ecotone\Api\Messaging\Message
             {
                 if ($this->hasEmitted) {
                     return null;
                 }
                 $this->hasEmitted = true;
 
-                return 'payload';
+                return StaticMessageBuilder::withPayload($this->payload)->setContentType(\Ecotone\Api\ExtensionObject\MediaType::createApplicationXPHP())->build();
             }
 
-            #[\Ecotone\Api\Attribute\InternalHandler('consoleSourceChannel')]
-            public function handleBySource(string $payload): void
+            #[\Ecotone\Api\Attribute\InternalHandler('replayProbeSource')]
+            public function failing(object $payload): void
             {
-                $this->sourceInvocations++;
-
                 throw new RuntimeException('simulated');
             }
 
-            #[\Ecotone\Api\Attribute\InternalHandler(self::TARGET_CHANNEL)]
-            public function handleByTarget(string $payload): void
+            #[\Ecotone\Api\Attribute\CommandHandler]
+            public function classRouted(ReplayProbeClassRouted $command): void
             {
-                $this->handledByTarget[] = $payload;
+                $this->ran[] = 'class_routed';
+            }
+
+            #[\Ecotone\Api\Attribute\Asynchronous(self::QUEUE_CHANNEL)]
+            #[\Ecotone\Api\Attribute\CommandHandler(endpointId: 'replayProbe.classRoutedAsync')]
+            public function classRoutedAsynchronously(ReplayProbeClassRoutedAsync $command): void
+            {
+                $this->ran[] = 'class_routed_async';
+            }
+
+            #[\Ecotone\Api\Attribute\CommandHandler('replay.probe.keyed')]
+            public function keyed(ReplayProbeKeyed $command): void
+            {
+                $this->ran[] = 'keyed';
+            }
+
+            #[\Ecotone\Api\Attribute\Asynchronous(self::QUEUE_CHANNEL)]
+            #[\Ecotone\Api\Attribute\CommandHandler('replay.probe.keyed_async', endpointId: 'replayProbe.keyedAsync')]
+            public function keyedAsynchronously(ReplayProbeKeyed $command): void
+            {
+                $this->ran[] = 'keyed_async';
+            }
+
+            #[\Ecotone\Api\Attribute\InternalHandler('replay.probe.internal')]
+            public function internal(ReplayProbeKeyed $command): void
+            {
+                $this->ran[] = 'internal';
             }
         };
-        $connectionFactory = $this->getConnectionFactory();
+        $handler->payload = $payload;
+        ReplayProbeAggregate::$created = [];
 
+        return $handler;
+    }
+
+    private function bootstrapReplayProbe(object $handler): FlowTestSupport
+    {
+        $connectionFactory = $this->getConnectionFactory();
         $ecotone = $this->bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
+            classesToResolve: [$handler::class, ReplayProbeConverter::class, ReplayProbeAggregate::class],
             containerOrAvailableServices: [
                 $handler,
+                new ReplayProbeConverter(),
                 DbalConnectionFactory::class => $connectionFactory,
                 'managerRegistry' => $connectionFactory,
             ],
             extensionObjects: [
+                \Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel($handler::QUEUE_CHANNEL),
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL)->withDefaultSerializationMediaType(\Ecotone\Api\ExtensionObject\MediaType::createApplicationJson()),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
             environment: 'prod',
         );
 
-        $ecotone->run('consoleEmittingAdapter', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
-
-        $messageId = $ecotone->getGateway(DeadLetterGateway::class)->list(10, 0)[0]->getMessageId();
-        $ecotone->runConsoleCommand('ecotone:deadletter:replay', ['messageId' => $messageId, 'targetChannel' => $handler::TARGET_CHANNEL]);
-
-        $this->assertErrorMessageCount($ecotone, 0);
-        $this->assertSame(1, $handler->sourceInvocations);
-        $this->assertSame(['payload'], $handler->handledByTarget);
+        return $ecotone;
     }
 
     private function assertErrorMessageCount(FlowTestSupport $ecotone, int $amount, string $deadLetterReference = DeadLetterGateway::class): void
@@ -622,5 +760,59 @@ final class DeadLetterTest extends DbalMessagingTestCase
             namespaces: $namespaces,
             environment: 'prod',
         ));
+    }
+}
+
+final class ReplayProbeClassRouted
+{
+}
+
+final class ReplayProbeClassRoutedAsync
+{
+}
+
+final class ReplayProbeKeyed
+{
+}
+
+#[\Ecotone\Api\Attribute\Aggregate]
+final class ReplayProbeAggregate
+{
+    /** @var string[] */
+    public static array $created = [];
+
+    private function __construct(#[\Ecotone\Api\Attribute\Identifier] private string $id)
+    {
+    }
+
+    #[\Ecotone\Api\Attribute\CommandHandler('replay.probe.aggregate')]
+    public static function create(ReplayProbeKeyed $command): self
+    {
+        self::$created[] = 'created';
+
+        return new self('replay-probe');
+    }
+}
+
+#[\Ecotone\Api\Attribute\MediaTypeConverter]
+final class ReplayProbeConverter implements \Ecotone\Messaging\Conversion\Converter
+{
+    private const CLASSES = [ReplayProbeClassRouted::class, ReplayProbeClassRoutedAsync::class, ReplayProbeKeyed::class];
+
+    public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Api\ExtensionObject\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Api\ExtensionObject\MediaType $targetMediaType)
+    {
+        if ($targetMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationJson())) {
+            return '{}';
+        }
+
+        $class = $targetType->getTypeHint();
+
+        return new $class();
+    }
+
+    public function matches(\Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Api\ExtensionObject\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Api\ExtensionObject\MediaType $targetMediaType): bool
+    {
+        return (in_array($sourceType->getTypeHint(), self::CLASSES, true) && $targetMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationJson()))
+            || ($sourceMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationJson()) && in_array($targetType->getTypeHint(), self::CLASSES, true));
     }
 }

@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Confirm delete · Ecotone Pulse{% endblock %}
+
+{% block body %}
+    <h1>Delete dead letters</h1>
+    <form method="post" action="{{ path('dead_letter_actions') }}" data-confirm-delete>
+        {% if deleteFailure %}
+            <p>This deletes every stored dead letter of this failure in {{ services|join(', ') }}{% if failure %}: <strong data-failure-label>{{ failure.exceptionClass }} at {{ failure.exceptionFile ? (failure.exceptionFile|split('/')|last) ~ ':' ~ failure.exceptionLine : 'an unknown location' }} for {{ failure.messageName ?: '(unnamed)' }}</strong>, {{ failure.count }} {{ failure.count == 1 ? 'dead letter' : 'dead letters' }}{% endif %}, including those beyond the latest 100 shown in the list. Dead letters of the same exception under another message name stay. It cannot be undone.</p>
+            <input type="hidden" name="deleteFailure" value="{{ deleteFailure }}">
+            <button type="submit">Delete all of this failure</button>
+        {% elseif selection %}
+            {% set count = 0 %}
+            {% for ids in selection %}{% set count = count + ids|length %}{% endfor %}
+            <p>This deletes the {{ count }} dead {{ count == 1 ? 'letter' : 'letters' }} you selected in {{ services|join(', ') }}. It cannot be undone.</p>
+            <input type="hidden" name="scope" value="ids">
+            {% for service, ids in selection %}{% for id in ids %}<input type="hidden" name="selected[{{ service }}][]" value="{{ id }}">{% endfor %}{% endfor %}
+            <button type="submit">Delete selected</button>
+        {% else %}
+            <p>This deletes every stored dead letter of {{ services|join(', ') }} matching the filter below, including those beyond the latest 100 shown in the list. It cannot be undone.</p>
+            <ul>
+                {% for name, value in filter.toQuery %}{% if name != 'service' %}<li>{{ name }}: {{ value }}</li>{% endif %}{% endfor %}
+            </ul>
+            <input type="hidden" name="scope" value="filter">
+            {% for name, value in filter.toQuery %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+            <button type="submit">Delete all matching</button>
+        {% endif %}
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="confirm" value="1">
+        <a href="{{ path('dead_letters', filter.toQuery) }}">Cancel</a>
+    </form>
+{% endblock %}

@@ -49,7 +49,7 @@ final class EventSourcingFlowScenarios
         return new FlowScenario('projection on the database event store rebuilt from the console', [FlowOrder::class, FlowOrderPlaced::class, $projection::class], [$projection], [], [
             self::orderPlaced(),
             FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'order_list']))
-                ->expect(self::operation('rebuild')->containing(self::projectedOrder())),
+                ->expect(self::operation('rebuild')->containing(self::batchProjected())),
         ]);
     }
 
@@ -72,7 +72,7 @@ final class EventSourcingFlowScenarios
                 ->expect(
                     self::operation('rebuild')->containing(
                         ExpectedSpan::named('send order_list_rebuild')->containing(
-                            ExpectedSpan::named('receive order_list_rebuild')->ofKind(SpanKind::Consumer)->containing(self::projectedOrder()),
+                            ExpectedSpan::named('receive order_list_rebuild')->ofKind(SpanKind::Consumer)->containing(self::batchProjected()),
                         ),
                     ),
                 ),
@@ -95,7 +95,7 @@ final class EventSourcingFlowScenarios
                 $ecotone->initializeProjection('order_list');
                 $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'order_list']);
             })
-                ->expect(self::operation('delete'), self::operation('initialize'), self::operation('backfill')->containing(self::projectedOrder())),
+                ->expect(self::operation('delete'), self::operation('initialize'), self::operation('backfill')->containing(self::batchProjected())),
         ]);
     }
 
@@ -117,6 +117,11 @@ final class EventSourcingFlowScenarios
     private static function operation(string $operation): ExpectedSpan
     {
         return ExpectedSpan::named($operation . ' order_list')->asRoot()->ofKind(SpanKind::Server)->withAttributes([SpanAttribute::PROJECTION_NAME => 'order_list', SpanAttribute::PROJECTION_OPERATION => $operation]);
+    }
+
+    private static function batchProjected(): ExpectedSpan
+    {
+        return ExpectedSpan::named('process partition batch order_list')->ofKind(SpanKind::Internal)->withAttributes([SpanAttribute::PROJECTION_NAME => 'order_list'])->containing(self::projectedOrder());
     }
 
     private static function projectedOrder(): ExpectedSpan

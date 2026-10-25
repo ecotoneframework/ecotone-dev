@@ -1,0 +1,219 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ service.service }} · Ecotone Pulse{% endblock %}
+
+{% block head %}
+    {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+
+{% macro channelTable(channels, tenant) %}
+    <div class="flush" style="overflow-x:auto" tabindex="0" role="region" aria-label="Channels{% if tenant %} of {{ tenant }}{% endif %}">
+        <table>
+            <thead>
+            <tr><th scope="col">Channel</th><th scope="col" class="num">Ready</th><th scope="col" class="num">Delayed</th><th scope="col" class="num">In flight</th><th scope="col">Consumers</th><th scope="col">Consumer to run</th></tr>
+            </thead>
+            <tbody>
+            {% for channel in channels %}
+                <tr data-channel="{{ channel.name }}"{% if tenant %} data-tenant="{{ tenant }}"{% endif %}>
+                    <th scope="row">{{ channel.name }} <span class="muted">{{ channel.kind }}</span></th>
+                    <td class="num">
+                        <span class="pill {{ {ok: 'ok', warning: 'wait', critical: 'bad sq', unknown: 'off'}[channel.level] }}" data-level="{{ channel.level }}"><span data-ready>{{ channel.ready is null ? '–' : channel.ready|number_format }}</span><span class="visually-hidden"> {{ channel.level }}</span></span>
+                        {% if channel.probeError %}<br><span class="drift" data-probe-error>{{ channel.probeError }}</span>{% endif %}
+                    </td>
+                    <td class="num" data-delayed>{{ channel.delayed is null ? '–' : channel.delayed|number_format }}</td>
+                    <td class="num" data-in-flight>{{ channel.inFlight is null ? '–' : channel.inFlight|number_format }}</td>
+                    <td data-consumers>{% if channel.consumers is not null %}{{ channel.consumers|number_format }}{% elseif channel.inFlight is not null %}{{ channel.inFlight|number_format }} in flight{% else %}–{% endif %}</td>
+                    <td>{% if channel.setUp is same as(false) %}<span class="pill bad sq" data-channel-not-set-up>Not set up</span> {% endif %}{% if channel.runCommand %}<code data-run-command>{{ channel.runCommand }}</code>{% else %}<span data-run-command>No polling consumer</span>{% endif %}{% if channel.handlers %}<ul data-channel-handlers>{% for handler in channel.handlers %}<li>{{ handler }}</li>{% endfor %}</ul>{% endif %}{% if channel.notDrainingSeconds is not null %} <span class="pill wait" data-not-draining>Not draining for {{ (channel.notDrainingSeconds // 60) }} min</span>{% endif %}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endmacro %}
+
+{% block body %}
+    {% include '_breadcrumbs.html.twig' with {crumbs: tenant ? [{label: 'Home', href: path('home')}, {label: service.service, href: path('service_hub', {service: service.service})}, {label: tenant}] : [{label: 'Home', href: path('home')}, {label: service.service}]} %}
+    <h1>{{ service.service }}{% if tenant %} <span class="muted">› {{ tenant }}</span>{% endif %}</h1>
+
+    {% if service.isMultiTenant %}
+        <nav aria-label="Tenant" class="tenant-switcher" data-tenant-switcher>
+            <a href="{{ path('service_hub', {service: service.service}) }}" data-tenant-choice="all"{% if not tenant %} aria-current="page"{% endif %}>All tenants</a>
+            {% for choice in service.tenants %}
+                <a href="{{ path('service_hub', {service: service.service, tenant: choice}) }}" data-tenant-choice="{{ choice }}"{% if choice == tenant %} aria-current="page"{% endif %}>{{ choice }}</a>
+            {% endfor %}
+        </nav>
+    {% endif %}
+
+    <section class="card" data-hub-health>
+        <h2>Health</h2>
+        <p><span class="pill {{ {connected: 'ok', waiting: 'wait'}[service.status.value] ?? 'bad' }}" data-hub-status="{{ service.status.value }}">{{ service.status.value == 'channel_missing' ? 'Channel missing' : service.status.name }}</span>
+            Last seen {{ service.lastSeenAt ? service.lastSeenAt|date('Y-m-d H:i:s T') : 'never' }}{% if service.hasSnapshot %} <span class="muted">({{ service.ageSeconds }}s ago)</span>{% endif %}</p>
+        {% if service.requestFailure %}<p class="drift" data-request-error>{{ service.requestFailure }}</p>{% endif %}
+        {% set refusing = focus ?? service %}
+        {% if refusing.refusalOf('ecotone.pulse.snapshot') %}<p class="drift" role="alert" data-snapshot-refusal>{{ refusing.scope }} refused the snapshot request: {{ refusing.refusalOf('ecotone.pulse.snapshot') }}</p>{% endif %}
+        {% if service.replyError %}<p class="drift" data-reply-error>Reply rejected: {{ service.replyError }}</p>{% endif %}
+    </section>
+
+    {% if failing %}
+        <section class="card" id="diagnose" data-diagnose-section>
+            <h2>Diagnose</h2>
+            {% if diagnosis.skipped %}<p class="muted" data-checks-skipped>The broker checks did not fit the time budget and were skipped. Run <code>bin/console pulse:doctor</code> in the container for the full result, or raise <code>PULSE_DOCTOR_BUDGET_SECONDS</code> (default 8).</p>{% endif %}
+            <ul data-checks>
+                {% for check in diagnosis.checks %}
+                    <li data-check="{{ check.name }}" data-check-status="{{ check.status }}"><b>{{ check.status|upper }}</b> {{ check.name }}: {{ check.message }}{% if check.fix %}<br><span class="muted">{{ check.fix }}</span>{% endif %}</li>
+                {% endfor %}
+            </ul>
+            <ul data-diagnose-list>
+                <li>The service must run <code>ecotone:run {{ service.channel }}</code> to consume the channel Pulse writes to.</li>
+                <li><code>PULSE_SERVICES</code> must map <code>{{ service.service }}</code> to that channel.</li>
+                <li>The service needs an Ecotone Enterprise licence key. A service without one cannot answer, and shows here as Unreachable with no other reason.</li>
+                <li>Both must reach the same broker as <code>PULSE_TRANSPORT_DSN</code>.</li>
+            </ul>
+            <h3>Connect {{ service.service }}</h3>
+            {% include 'connect/_snippets.html.twig' %}
+        </section>
+    {% endif %}
+
+    {% if service.hasSnapshot %}
+        <section class="card" data-hub-versions>
+            <h2>Versions</h2>
+            <dl>
+                <dt>Ecotone</dt><dd>{{ service.ecotoneVersion ?? 'unknown' }}</dd>
+                <dt>PHP</dt><dd>{{ service.snapshot.overview.phpVersion|default('unknown') }}</dd>
+                <dt>Framework</dt><dd>{{ service.snapshot.overview.framework|default('unknown') }}</dd>
+                <dt>Licence expires</dt><dd>{{ service.snapshot.overview.licence.expiresAt|default('never') }}</dd>
+            </dl>
+        </section>
+
+        <section class="card" data-hub-problems>
+            <h2>Problems</h2>
+            {% set anyProblem = false %}
+            {% for tile in tiles %}
+                {% if tile.problems %}
+                    {% set anyProblem = true %}
+                    {% if tile.scope.tenant and not tenant %}<h3>{{ tile.scope.tenant }}</h3>{% endif %}
+                    <ul>
+                        {% for problem in tile.problems %}
+                            <li data-problem="{{ problem.kind }}" data-problem-severity="{{ problem.severity.value }}"><span class="pill {{ {critical: 'bad sq', warning: 'wait', info: 'off'}[problem.severity.value] }}">{{ problem.severity.value|capitalize }}</span> <a href="{{ problem.href }}">{{ problem.text }}</a></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endfor %}
+            {% if not anyProblem %}<p class="muted" data-all-clear>All clear</p>{% endif %}
+        </section>
+
+        {% if focus is null and (service.isMultiTenant or service.unadvertisedTenants) %}
+        <section class="card" data-hub-tenants>
+            <h2>Tenants</h2>
+            {% if service.isMultiTenant %}<p class="muted">{{ service.service }} advertises its tenants in header <code>{{ service.tenantHeader }}</code>. Pulse asks for each tenant separately.</p>{% endif %}
+            {% include '_tenants.html.twig' %}
+            {% for row in tenantRows %}
+                {% set channels = tenantChannels[row.tenant] ?? [] %}
+                {% if channels %}
+                    <h3>Channels of {{ row.tenant }}</h3>
+                    {{ _self.channelTable(channels, row.tenant) }}
+                {% endif %}
+                {% set counts = tenantProjectionCounts[row.tenant] ?? {total: 0} %}
+                {% if counts.total > 0 %}
+                    <p data-tenant-projections="{{ row.tenant }}"><b>{{ counts.total }}</b> projections of {{ row.tenant }} · <b>{{ counts.behind }}</b> behind · <b>{{ counts.stalled }}</b> stalled · <b>{{ counts.failed }}</b> failed · <a href="{{ path('service_projections', {service: row.scope}) }}">Open</a></p>
+                {% endif %}
+            {% endfor %}
+            {% for row in tenantFlowTypes %}
+                {% if row.flowTypes %}
+                    <h3>Flow types of {{ row.tenant }}</h3>
+                    <ul data-tenant-flow-types="{{ row.tenant }}">
+                        {% for flowType in row.flowTypes %}
+                            <li><a href="{{ path('trace_list', {service: row.service, flowType: flowType.flowType}) }}">{{ flowType.flowType }}</a> <span class="muted">{{ flowType.runs }} runs, {{ flowType.errorRate }} errors, p95 {{ flowType.p95Ms }} ms</span></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endfor %}
+        </section>
+        {% endif %}
+
+
+        {% if focusSetup is not null %}
+        <section class="card" id="setup" data-hub-setup>
+            <h2>Setup</h2>
+            {% if focusSetup.items is empty and focusSetup.sectionErrors is empty %}
+                <p class="muted">{{ service.service }} reports no database table or broker channel to check.</p>
+            {% else %}
+                {% if focusSetup.allClear %}<p data-setup-ok><span class="pill ok">All set up</span> Every table and channel {{ service.service }} uses exists.</p>{% endif %}
+                {% if focusSetup.items %}
+                <ul data-setup-items>
+                    {% for item in focusSetup.items %}
+                        <li data-setup-item="{{ item.id }}"{% if item.missing %} data-setup-missing{% endif %}>
+                            <span class="pill {{ item.missing ? 'bad sq' : (item.initialized ? 'ok' : 'off') }}" data-setup-status>{{ item.initialized is null ? 'Unknown' : (item.initialized ? 'Set up' : 'Missing') }}</span>
+                            {{ item.kind == 'table' ? 'Table for ' ~ item.key ~ ' on ' ~ item.connection : 'Channel ' ~ item.key }}
+                            {% if item.error %}<br><span class="drift" data-setup-error>{{ item.error }}</span>{% endif %}
+                            {% if item.fix and not item.initialized %}<br><code data-fix>{{ item.fix }}</code>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                {% for section, reason in focusSetup.sectionErrors %}
+                    <p data-section-error="{{ section }}"><span class="pill wait">Unavailable</span> {{ section }} could not be read: <span class="drift">{{ reason }}</span></p>
+                {% endfor %}
+            {% endif %}
+        </section>
+        {% endif %}
+
+        <section class="card" id="channels" data-hub-channels>
+            <h2>Channels</h2>
+            {% set shownChannels = focus ? focusChannels : channels %}
+            {% if shownChannels is empty %}
+                <p class="muted">{{ service.service }} reports no message channel to measure.</p>
+            {% else %}
+                {{ _self.channelTable(shownChannels, tenant) }}
+                {% if service.isMultiTenant and not tenant %}<p class="muted">Channels on the tenant connection are measured per tenant, see Tenants.</p>{% endif %}
+            {% endif %}
+        </section>
+
+        {% if focus is not null %}
+        <section class="card" data-hub-dead-letters>
+            <h2>Dead letters</h2>
+            {% if focus.deadLetterTotal is not null and deadLetterEnabled is not same as(false) %}
+                <p><b data-total>{{ focus.failureCount ?? 0 }}</b> {{ focus.failureCount == 1 ? 'failure' : 'failures' }} <span class="muted" data-hub-dead-letter-total>({{ focus.deadLetterTotal }} stored)</span>{% if focus.deadLetterTotal > 0 %} · <a href="{{ path('dead_letters', {service: focus.scope}) }}" data-open-dead-letters>Open the dead letters of {{ focus.scope }}</a>{% else %}, dead letter storage is enabled{% endif %}</p>
+                <ul data-failures>
+                    {% for failure in focusFailures %}
+                        <li data-failure="{{ failure.failureId }}"><a href="{{ path('dead_letters', {service: focus.scope, failureId: failure.failureId}) }}">{{ failure.count }} {{ failure.count == 1 ? 'failure' : 'failures' }} in {{ failure.messageName|default('(unnamed)') }}</a> <span class="muted">{{ failure.exceptionClass }}</span></li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="muted">Dead letters are not configured for {{ service.service }}. Enable them with <code>DbalConfiguration::createWithDefaults()-&gt;withDeadLetter(true)</code> in a <code>#[ServiceContext]</code> of {{ service.service }}.</p>
+            {% endif %}
+        </section>
+
+        <section class="card" data-hub-projections>
+            <h2>Projections</h2>
+            {% if focusProjectionCounts.total == 0 %}
+                <p class="muted">{{ service.service }} reports no projections.</p>
+            {% else %}
+                <p><b data-total>{{ focusProjectionCounts.total }}</b> projections · <b data-behind>{{ focusProjectionCounts.behind }}</b> behind · <b data-stalled>{{ focusProjectionCounts.stalled }}</b> stalled · <b data-failed>{{ focusProjectionCounts.failed }}</b> failed · <a href="{{ path('service_projections', {service: focus.scope}) }}" data-open-projections>Open the projections and rebuilds of {{ focus.scope }}</a></p>
+            {% endif %}
+        </section>
+        {% endif %}
+        {% if focus is not null %}
+        <section class="card" data-hub-flow-types>
+            <h2>Recent traces</h2>
+            {% if not focusTracing %}
+                <p class="muted">Flow tracking is not enabled in {{ service.service }}. Enable it with <code>FlowTrackingConfiguration::createWithDefaults()</code> returned from a <code>#[ServiceContext]</code> method of the service.</p>
+            {% elseif focusFlowTypes is empty %}
+                <p class="muted">No flow has been tracked yet.</p>
+            {% else %}
+                <ul>
+                    {% for flowType in focusFlowTypes %}
+                        <li><a href="{{ path('trace_list', {service: focus.scope, flowType: flowType.flowType}) }}">{{ flowType.flowType }}</a> <span class="muted">{{ flowType.runs }} runs, {{ flowType.errorRate }} errors, p95 {{ flowType.p95Ms }} ms</span></li>
+                    {% endfor %}
+                </ul>
+                <p><a href="{{ path('traces', {service: focus.scope}) }}" data-open-traces>All traces of {{ focus.scope }}</a></p>
+            {% endif %}
+        </section>
+        {% endif %}
+
+        <section class="card" data-hub-graph>
+            <h2>Flow graph</h2>
+            <p><a href="{{ path('flow_graph', {services: [service.service]}) }}">Show only {{ service.service }} on the flow graph</a></p>
+        </section>
+    {% endif %}
+{% endblock %}

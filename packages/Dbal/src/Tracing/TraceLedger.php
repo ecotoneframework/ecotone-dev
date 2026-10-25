@@ -9,6 +9,7 @@ use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanStatus;
+use Ecotone\Tracing\TracingInterceptor;
 
 /**
  * licence Enterprise
@@ -41,6 +42,7 @@ final class TraceLedger
 
         $rootEnded = false;
         $causedBy = [];
+        $sentToOtherServices = [];
         $sent = [];
         $processed = [];
         $sentDeliveries = [];
@@ -48,6 +50,9 @@ final class TraceLedger
         foreach ($spans as $span) {
             if (isset($span->attributes[MessageHeaders::MESSAGE_ID], $span->attributes[MessageHeaders::PARENT_MESSAGE_ID])) {
                 $causedBy[(string) $span->attributes[MessageHeaders::MESSAGE_ID]] = (string) $span->attributes[MessageHeaders::PARENT_MESSAGE_ID];
+            }
+            if ($span->name === TracingInterceptor::DISTRIBUTED_SEND_SPAN && isset($span->attributes[MessageHeaders::MESSAGE_ID])) {
+                $sentToOtherServices[(string) $span->attributes[MessageHeaders::MESSAGE_ID]] = true;
             }
             if ($span->attributes[SpanAttribute::TRACE_ROOT] ?? false) {
                 $rootEnded = true;
@@ -85,7 +90,7 @@ final class TraceLedger
             }
         }
 
-        return new TraceProgress($traceId, true, $rootEnded, $sent, $processed, $sentDeliveries, $processedDeliveries, $causedBy);
+        return new TraceProgress($traceId, true, $rootEnded, $sent, $processed, $sentDeliveries, $processedDeliveries, $causedBy, $sentToOtherServices);
     }
 
     public static function destinationOf(Span $span): ?string

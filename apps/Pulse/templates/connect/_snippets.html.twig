@@ -1,0 +1,11 @@
+<p>Add the class to the service and consume its request channel. Pulse side: <code data-pulse-services>PULSE_SERVICES={{ servicesEntry }}</code> (add it to the existing list, separated by commas).</p>
+{% for framework, snippet in snippets %}
+    <details class="card" data-snippet="{{ framework }}"{% if loop.first %} open{% endif %}>
+        <summary>{{ snippet.title }}</summary>
+        <p class="muted" data-location>Put the class in {{ snippet.location }}.</p>
+        <pre class="mono" data-php>{{ snippet.php }}</pre>
+        {% if snippet.bootstrap %}<p class="muted">Boot it:</p><pre class="mono" data-bootstrap>{{ snippet.bootstrap }}</pre>{% endif %}
+        {% if snippet.wiring %}<p class="muted">Licence key:</p><pre class="mono" data-wiring>{{ snippet.wiring }}</pre>{% endif %}
+        <p class="muted">Consume the request channel:</p><pre class="mono" data-consumer>{{ snippet.consumer }}</pre>
+    </details>
+{% endfor %}

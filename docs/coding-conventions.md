@@ -15,7 +15,7 @@ branch `dgafka/dcb-docs` and is deliberately untracked here, since `docs/superpo
 paths resolve on that branch. Commit SHAs cited below resolve on any branch.
 
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
-mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 1d, 6a, 10a, 16a,
+mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 1d, 6a, 10a, 16a, 16b,
 12a, 13a, 14a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.
 
 > **Verify names before you write them.** Every attribute, parameter, method and console option in code you write
@@ -1233,6 +1233,30 @@ fails the message. A test proves the rule by making the database unavailable rig
 Evidence: stored traces wrote the root span and claimed completion after the commit, and an outage at that moment
 threw the missing-table refusal out of the consumer (`FlowTrackingConformanceTest`, the outage tests); an asynchronous
 projection wrote its spans after its own batch committed (`FlowTrackingProjectionTest`).
+
+---
+
+## 16b. No DDL in a command, event or asynchronous flow
+
+Rule 16 keeps Ecotone from creating its own tables on the message path. The same holds for everything a flow runs:
+a command handler, an event handler, an asynchronous consumer, and anything a remote request triggers, whether a
+Distributed Bus message or a Pulse action. None of them creates, alters or drops a table, and that includes a
+projection's own tables.
+
+Every table exists before Ecotone handles its first message. Ecotone's tables come from
+`ecotone:migration:database:setup` or the SQL it prints for the application's migrations. A projection is set up
+with `ecotone:projection:init` (its `#[ProjectionInitialization]` runs there, outside any transaction) or by the
+application's migrations. Code on the message path assumes the tables are there, and a missing one is refused with
+the setup instructions (rule 16), never created.
+
+So a remote surface such as Pulse offers operations that run on existing tables (rebuild, backfill, dead letter
+replay) and shows setup and initialization status read-only, with the console command that fixes it. It never offers
+to initialize a projection or set up a table.
+
+Evidence: a Pulse Initialize ran a projection's `CREATE TABLE` inside the request's transaction. On MySQL the implicit
+commit lost the reply, committed the tracking row outside the transaction, and without the consumer transaction the
+request ran twice (round-4 review of the Pulse application). Core already kept `initProjection`, `backfillProjection`
+and `deleteProjection` console commands out of the DBAL transaction for the same reason (`DbalTransactionModule`).
 
 ---
 

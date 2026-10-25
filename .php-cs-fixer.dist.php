@@ -3,6 +3,9 @@
 $finder = PhpCsFixer\Finder::create()
     ->in([
         __DIR__ . '/packages',
+        __DIR__ . '/apps/Pulse/src',
+        __DIR__ . '/apps/Pulse/tests',
+        __DIR__ . '/apps/Pulse/config',
     ])
     ->exclude([
         'Ecotone/tests/Messaging/Fixture/Handler/ClosureInAttribute',

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" data-pulse-version="{{ pulse.version }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Ecotone Pulse{% endblock %}</title>
+    <script>try{var t=localStorage.getItem('pulse-theme');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t}}catch(e){}</script>
+    <script>try{var v=document.documentElement.dataset.pulseVersion;localStorage.setItem('ecotone-pulse.probe','1');localStorage.removeItem('ecotone-pulse.probe');if(localStorage.getItem('ecotone-pulse.intro-seen')!==v){document.documentElement.classList.add('intro-pending')}}catch(e){}</script>
+    {% block head %}{% endblock %}
+    {% block importmap %}{{ importmap('app') }}{% endblock %}
+</head>
+<body>
+<div class="intro" data-intro aria-hidden="true">
+    {% include '_logo.html.twig' with {class: 'intro-logo', id: 'intro'} %}
+    <svg class="intro-heart" data-intro-heart viewBox="0 0 32 29" xmlns="http://www.w3.org/2000/svg" focusable="false"><path d="M16 28C3 18 0 12 0 8a8 8 0 0 1 16-2 8 8 0 0 1 16 2c0 4-3 10-16 20Z" fill="currentColor"/></svg>
+</div>
+<a class="skip" href="#content">Skip to content</a>
+<header class="topbar">
+    <a class="brand" href="{{ path('home') }}">{% include '_logo.html.twig' with {class: 'brand-logo', id: 'brand', decorative: true} %}<span class="brand-title">Ecotone Pulse</span></a>
+    <nav>
+        {% set current = app.request.attributes.get('_route') %}
+        <a href="{{ path('home') }}"{% if current == 'home' %} class="active"{% endif %}>Home</a>
+        <a href="{{ path('services') }}"{% if current == 'services' or current == 'service_hub' or current == 'service_projections' %} class="active"{% endif %}>Services</a>
+        {% set deadLetterFailures = dead_letter_failures() %}
+        <a href="{{ path('dead_letters') }}"{% if current == 'dead_letters' or current == 'dead_letter' %} class="active"{% endif %}>Dead letters{% if deadLetterFailures > 0 %}<span class="badge" data-nav-dead-letters title="{{ deadLetterFailures }} {{ deadLetterFailures == 1 ? 'failure' : 'failures' }}">{{ deadLetterFailures }}<span class="visually-hidden"> {{ deadLetterFailures == 1 ? 'failure' : 'failures' }}</span></span>{% endif %}</a>
+        <a href="{{ path('flow_graph') }}"{% if current == 'flow_graph' %} class="active"{% endif %}>Flow graph</a>
+        <a href="{{ path('traces') }}"{% if current starts with 'trace' %} class="active"{% endif %}>Traces</a>
+        <a href="{{ path('topology') }}"{% if current == 'topology' %} class="active"{% endif %}>Topology</a>
+        <a href="{{ path('connect') }}"{% if current == 'connect' %} class="active"{% endif %}>Connect</a>
+        <a href="{{ path('catalogue') }}"{% if current == 'catalogue' %} class="active"{% endif %}>Catalogue</a>
+    </nav>
+    <button type="button" class="theme-toggle" data-theme-toggle>Theme</button>
+</header>
+<main id="content">{% block body %}{% endblock %}</main>
+</body>
+</html>

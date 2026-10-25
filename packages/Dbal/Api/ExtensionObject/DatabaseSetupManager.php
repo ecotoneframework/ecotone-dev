@@ -7,6 +7,7 @@ namespace Ecotone\Api\Dbal\ExtensionObject;
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DbalTableManager;
+use Ecotone\Dbal\Database\TimeBoxedSchemaRead;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
@@ -137,6 +138,38 @@ final class DatabaseSetupManager implements DefinedObject
     /**
      * @return array<string, bool>
      */
+    public function getInitializationStatusOnCurrentConnection(bool $onlyUsed = true): array
+    {
+        $connection = $this->singleConnection();
+        $status = [];
+
+        foreach ($this->getManagers($onlyUsed) as $manager) {
+            $status[$manager->getFeatureName()] = $manager->isInitialized($connection);
+        }
+
+        return $status;
+    }
+
+    public function isFeatureInitializedWithin(string $featureName, int $milliseconds): bool
+    {
+        $manager = $this->findManager($featureName);
+        foreach ($this->connections() as $connection) {
+            if (! TimeBoxedSchemaRead::within($connection, $milliseconds, static fn (): bool => $manager->isInitialized($connection))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function isFeatureInitializedOnCurrentConnectionWithin(string $featureName, int $milliseconds): bool
+    {
+        $manager = $this->findManager($featureName);
+        $connection = $this->singleConnection();
+
+        return TimeBoxedSchemaRead::within($connection, $milliseconds, static fn (): bool => $manager->isInitialized($connection));
+    }
+
     public function getUsageStatus(): array
     {
         $status = [];

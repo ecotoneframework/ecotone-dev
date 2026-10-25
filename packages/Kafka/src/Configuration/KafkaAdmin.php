@@ -118,6 +118,25 @@ final class KafkaAdmin
         return $this->initializedConsumers[$consumerKey];
     }
 
+    /**
+     * @return array{consumer: KafkaConsumer, topics: string[]}
+     */
+    public function createGroupInspector(string $channelName): array
+    {
+        $configuration = $this->getRdKafkaConfiguration($channelName);
+        $kafkaBrokerConfiguration = $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()];
+        $conf = $configuration->getConfig();
+        $kafkaConsumerConfig = $this->getConsumerConfiguration($channelName, $channelName);
+
+        $conf->set('group.id', $kafkaConsumerConfig->groupId);
+        $conf->set('metadata.broker.list', implode(',', $kafkaBrokerConfiguration->bootstrapServers));
+
+        return [
+            'consumer' => new KafkaConsumer($conf),
+            'topics' => $this->getMappedTopicNames($this->resolveExpressions($kafkaConsumerConfig->getTopics())),
+        ];
+    }
+
     public function closeAllConsumers(): void
     {
         foreach (array_keys($this->initializedConsumers) as $consumerKey) {
@@ -177,10 +196,15 @@ final class KafkaAdmin
         return $this->deliveryTrackers[$referenceName] ??= new KafkaDeliveryTracker();
     }
 
+    public function getTopicNameForProducer(string $referenceName): string
+    {
+        return $this->getMappedTopicNames($this->getConfigurationForPublisher($referenceName)->defaultTopicName);
+    }
+
     public function getTopicForProducer(string $referenceName): ProducerTopic
     {
         $producer = $this->getProducer($referenceName);
-        $topicName = $this->getMappedTopicNames($this->getConfigurationForPublisher($referenceName)->defaultTopicName);
+        $topicName = $this->getTopicNameForProducer($referenceName);
 
         return $producer->newTopic(
             $topicName,

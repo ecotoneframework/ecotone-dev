@@ -40,6 +40,13 @@ interface TraceStore
      */
     public function stepsOf(string $traceId): array;
 
+    /**
+     * @return FlowTypeStatistics[]
+     */
+    public function flowTypeStatistics(int $limit, int $window): array;
+
+    public function tracesOf(string $flowType, int $page, int $perPage): TracePage;
+
     public function removeTracesStartedBefore(DatePoint $startedBefore, int $batchSize): void;
 
     public function withinTransaction(Closure $work): mixed;

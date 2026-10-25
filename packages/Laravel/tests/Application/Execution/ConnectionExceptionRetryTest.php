@@ -12,6 +12,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Laravel\RestoresLaravelHandlers;
 use Throwable;
 
 /**
@@ -20,11 +21,8 @@ use Throwable;
  */
 final class ConnectionExceptionRetryTest extends TestCase
 {
-    protected function tearDown(): void
-    {
-        restore_exception_handler();
-        restore_error_handler();
-    }
+    use RestoresLaravelHandlers;
+
 
     public function test_consumer_reconnects_as_many_times_as_max_attempts_in_default_connection_exception_retry(): void
     {

@@ -1,0 +1,18 @@
+parameters:
+    env(APP_SECRET): 'pulse-has-nothing-to-sign'
+    env(TRUSTED_PROXIES): ''
+    env(TRUSTED_HOSTS): '.*'
+
+framework:
+    secret: '%env(APP_SECRET)%'
+    http_method_override: false
+    trusted_proxies: '%env(TRUSTED_PROXIES)%'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port']
+    trusted_hosts: ['%env(TRUSTED_HOSTS)%']
+    handle_all_throwables: true
+    php_errors:
+        log: true
+
+when@test:
+    framework:
+        test: true

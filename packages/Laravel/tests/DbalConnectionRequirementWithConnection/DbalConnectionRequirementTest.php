@@ -9,6 +9,7 @@ use Ecotone\Laravel\EcotoneProvider;
 use Illuminate\Foundation\Http\Kernel;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Laravel\RestoresLaravelHandlers;
 
 /**
  * licence Apache-2.0
@@ -16,6 +17,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class DbalConnectionRequirementTest extends TestCase
 {
+    use RestoresLaravelHandlers;
+
     #[DoesNotPerformAssertions]
     public function test_does_not_throw_when_dbal_connection_is_configured(): void
     {

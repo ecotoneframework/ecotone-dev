@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Catalogue · Ecotone Pulse{% endblock %}
+
+{% block body %}
+    <h1>Message catalogue</h1>
+    {% include 'graph/_notices.html.twig' %}
+    {% include 'graph/_scope.html.twig' with {carry: query ? {q: query} : {}} %}
+    <form method="get" data-catalogue-search>
+        {% if scope.narrowed %}<input type="hidden" name="service" value="{{ scope.selected }}">{% endif %}
+        <input type="search" name="q" aria-label="Search the catalogue" value="{{ query }}" placeholder="Class name, routing key, handler, aggregate or service">
+        <button type="submit">Search</button>
+    </form>
+    <p class="muted" data-search-help>A message is listed when its service, class name, routing key, aggregate, handler, endpoint id, asynchronous channel, emitting handler or subscriber contains the whole text, ignoring case. The text is not split into words.</p>
+    {% for group in groups %}
+        <section tabindex="0" role="region" aria-label="{{ group.service }}{% if group.aggregate is not null %} {{ group.aggregate }}{% endif %} messages"{% if group.greyed %} class="greyed" data-greyed{% endif %} data-group="{{ group.kind }}" data-service="{{ group.service }}"{% if group.aggregate is not null %} data-aggregate="{{ group.aggregate }}"{% endif %}>
+            <h2>{{ group.service }}{% if group.greyed %} <span class="chip">talks to {{ scope.selected }}</span>{% endif %} · {% if group.aggregate is not null %}{{ group.aggregate }} <span class="muted">aggregate</span>{% else %}Services and handlers{% endif %}</h2>
+            <table>
+                <thead>
+                <tr><th>Kind</th><th>Message</th><th>Handled by / subscribers</th><th>Emitted by</th></tr>
+                </thead>
+                <tbody>
+                {% for entry in group.entries %}
+                    <tr data-service="{{ entry.service }}" data-message="{{ entry.routingKey }}">
+                        <td>{{ entry.kind }}</td>
+                        <td>{{ entry.name }}{% if entry.name != entry.routingKey %} <span class="muted">{{ entry.routingKey }}</span>{% endif %}</td>
+                        <td>
+                            {% if entry.kind == 'event' %}
+                                {% for subscriber in entry.subscribers %}
+                                    <div data-subscriber data-subscriber-service="{{ subscriber.service }}">{{ subscriber.service }}{% if subscriber.label %} · {{ subscriber.label }}{% else %} <span class="muted">handler not shown in the service's graph</span>{% endif %}{% if subscriber.endpointId %} <span class="muted">{{ subscriber.endpointId }}</span>{% endif %}{% if subscriber.owner %} <span class="muted">{{ subscriber.owner }}</span>{% endif %}{% if subscriber.channel %} · async on {{ subscriber.channel }}{% endif %}</div>
+                                {% else %}
+                                    <span class="muted">no subscribers</span>
+                                {% endfor %}
+                            {% else %}
+                                {% for handler in entry.handlers %}
+                                    <div>{{ handler.label }}{% if handler.endpointId %} <span class="muted">{{ handler.endpointId }}</span>{% endif %}{% if handler.channel %} · async on {{ handler.channel }}{% endif %}</div>
+                                {% else %}
+                                    <span class="muted">not handled in this service</span>
+                                {% endfor %}
+                            {% endif %}
+                        </td>
+                        <td>{{ entry.emittedBy|join(', ') }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% else %}
+        <p class="muted">Nothing matches.</p>
+    {% endfor %}
+{% endblock %}

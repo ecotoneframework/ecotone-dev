@@ -82,6 +82,16 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
   or from a #[ServiceContext] method.`
   Flow tests (`bootstrapFlowTesting()`) do not throw this; they provide the in-memory channel instead.
 - Default queue channels are delayable (see §9); nothing to change unless you relied on delays being ignored.
+- **A message sent through a bus keeps its routing key on the asynchronous channel.** **Before:** the bus removed the
+  routing key when it put the message on an asynchronous channel, so the handler, the outbox and the dead letter could
+  not tell which name the message was sent with. **Now:** every message sent by `CommandBus`/`EventBus` to an
+  `#[Asynchronous]` handler carries the header `ecotone_modelling_bus_routing_key`: the key given to `sendWithRouting()`
+  or `publishWithRouting()` (for an event, the published name, not the handler's pattern), or the class-based name for a
+  class-routed message. Read it with `#[Header]`. It is informational: routing on consume is unchanged, it is not passed
+  on to messages the handler sends or publishes, and it stays on the stored message (outbox, dead letter) and when that
+  message is replayed to another channel. A message sent to the handler by a `#[BusinessMethod]` or `#[MessageGateway]`
+  routing key carries that routing key. **How to adapt:**
+  nothing is required; tests asserting the exact header set of an asynchronous message see one more header.
 
 ## 2. Multi-tenancy requires Ecotone Enterprise
 
@@ -3145,7 +3155,14 @@ it sent to a channel was consumed from that channel, so an asynchronous command,
 pending until its consumer processed that exact message. A destination counts messages by id, so a redelivery
 satisfies its own delivery only, and a message keeps the delivery it started as through dynamic channels, the
 high-throughput outbox and a dead-letter replay. A flow handed more work after completing, as when a request sends
-two commands under one `tracingId`, is pending again until that work is done. `isCompletedFor()` and
+two commands under one `tracingId`, is pending again until that work is done. A message sent to another service through the
+`DistributedBus` is handed off: this service's store never sees it consumed, so a call that names a destination,
+`isCompletedFor($tracingId, $destination)` or `isCompletedWithin($tracingId, $timeout, $destination)`, does not wait for it.
+Across a hand-off the destination counts as reached on the **first processed reply**: a flow that sent several distributed
+requests under one `tracingId` is true for the class that receives the replies as soon as one reply was processed, whether the
+service that answered tracks its flows or not and whether the reply was consumed by `run()` or `ecotone:run`. A caller that needs
+every reply sends each request with its own `tracingId` and awaits each one. A call without a destination,
+`isCompletedFor($tracingId)`, is unchanged: a trace that sent a distributed message never completes in this store. `isCompletedFor()` and
 `isCompletedWithin()` refuse a `#[Polling]` projection by name, because a polled run is not part of the flow that appended its
 events.
 
@@ -3205,6 +3222,184 @@ final class OrdersWebsocket
 
 **How to adapt:** nothing is required. To use it, register `FlowTrackingConfiguration`, run the setup command for its
 table, and give each handler you want to ask about an explicit `endpointId`.
+
+### A service answers Ecotone Pulse over the Distributed Bus (Enterprise)
+
+**Before:** there was no way for a tool outside the application to ask it what it runs: versions, handlers, the
+message flow, or how it is wired to other services.
+
+**Now:** registering `Ecotone\Api\Pulse\PulseConfiguration::createWithDefaults(pulseServiceName: 'ecotone_pulse')` from a
+`#[ServiceContext]` method makes the service answer the routing key `ecotone.pulse.snapshot`. The Pulse service sends
+`DistributedBus::sendMessage($service, 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey:
+'ecotone.pulse.snapshot_received')` and receives one JSON reply: `schemaVersion`, `serviceName`, `takenAt`, an
+`overview` (Ecotone and PHP versions, framework, licence), the `flowGraph`, the distributed `topology` of the
+`DistributedServiceMap`s and the `channels` the service consumes: a list of `{name, kind}` with kind `async` for a
+pollable channel an `#[Asynchronous]` handler consumes and `queue` for a pollable channel no handler is bound to (the
+channels a Service Map only sends to are left out), which is what Pulse offers as a dead letter replay target. Only requests from the configured Pulse service are served; any other source fails the
+handler with a message naming the expected service. The application needs an Enterprise licence and a service name, otherwise
+bootstrap is refused; registering `PulseConfiguration` twice is refused as well. The reply mapping to the Pulse service
+is implied: replies go to a channel named after the Pulse service, or to the one chosen with
+`PulseConfiguration::createWithDefaults(...)->withReplyChannel('pulse_replies')`, and no `DistributedServiceMap` is
+needed for it. The reply channel is registered for you with the builder class and connection of the request channel (the
+channel named after the service, or `->withRequestChannel('...')`), for Amqp, Dbal, Redis and Sqs channels; queue names,
+topics and tables are not copied. For Amqp and Sqs it is registered with `withRequiredExistingDestination()` (see
+below): the Pulse service creates its reply queue, so a service that replies before it exists fails the reply instead of
+creating a queue nobody consumes. A reply channel you register yourself wins. When the request channel is not registered,
+or is a Kafka channel, bootstrap is refused with a message naming `withRequestChannel` and the builder to register
+(for example `AmqpBackedMessageChannelBuilder::create('ecotone_pulse')`). A `DistributedServiceMap`
+that maps the Pulse service still works and wins; one that maps it to a different channel than `withReplyChannel` is
+refused, naming both.
+
+**How to adapt:** nothing is required. To use it, register `PulseConfiguration` next to the request channel the service already consumes. An existing `DistributedServiceMap` mapping to the Pulse service can stay or be removed.
+
+The snapshot of a service that has the Dbal package carries a `deadLetter` section, `{"enabled": true|false}`, next to `deadLetters` (which is still present only when dead letters are enabled), so a consumer of the snapshot tells "dead letter storage is enabled and empty" from "not configured". The field is additive: a snapshot without it is read by whether `deadLetters` is present, as before.
+
+With the DBAL dead letter enabled, the snapshot gains a `deadLetters` section: the `total`, the `groups` by message name
+and exception class, and the 100 `recent` dead letters newest first. Each recent dead letter has its message id, name,
+`failedAt`, exception class and message, stack trace and payload (both cut at 4096 bytes with a `... [truncated]`
+marker), content type and original channel.
+
+The name is the distributed routing key; else the routing key the message was sent with (see §1); else the
+`__TypeId__`, when it is a class or a type alias, for messages that never went through a bus.
+
+Pulse acts on dead letters with the routing keys `ecotone.pulse.dead_letter.replay` (optionally with a `targetChannel`)
+and `ecotone.pulse.dead_letter.delete`, sending `{"messageIds": [...]}` or `{"filter": {"messageName": ...,
+"exceptionClass": ..., "failedFrom": ..., "failedTo": ...}}`, and receives a fresh snapshot as the reply.
+
+A filter applies to every stored dead letter and matches the name shown in the snapshot. `failedFrom` and `failedTo` are
+inclusive at whole-second precision, and `failedFrom` later than `failedTo` is refused, as is an empty filter. A dead
+letter removed while a filtered action runs is skipped. A service without a dead letter refuses the action with how to
+enable it.
+
+With flow tracking (`FlowTrackingConfiguration`), the snapshot gains a `tracing` section, absent without flow tracking:
+`storage` (`dbal` or `in_memory`), `retention` in seconds, `statsWindow` (1000) and `flowTypes`, up to 100, most runs
+first. A flow type has `runs` (every retained run), `windowRuns` (the most recent runs, at most `statsWindow`),
+`runsWithErrors`, `p50Ms`, `p95Ms`, `maxMs` (all three over those `windowRuns`: the duration of the span the flow
+entered this service with) and `lastStartedAt`. Reading the section costs one index-only count per snapshot and one
+read of at most `statsWindow` entries per flow type.
+
+Flow types are case-sensitive on every engine (on MySQL and MariaDB the column is `utf8mb4_bin`).
+
+A flow type is the routing name the flow entered this service through: the routing key of a command, event or query
+sent to its bus, the class name when it was sent by class, and, for a flow that arrived through a channel or from
+another service, the name of the first message its handling sent (bus sends before channel sends, then the earliest,
+then alphabetical), else the channel name. The same business flow therefore has a different flow type in each
+service; it is joined across services by its trace id.
+
+`runsWithErrors` counts the runs in which an error was recorded in this service's part of the flow: a step that failed
+inside a unit of work that still completed, for instance an exception a handler caught, or one recorded by a later
+step. A step whose unit of work failed is rolled back with everything it recorded, so it leaves no span and is never
+counted: it is found among the dead letters, where every `recent` entry now carries its `traceId` (the trace id of the
+message's `traceparent`, else its `tracingId`; `null` for a message that carried none), the id the trace query takes.
+
+Pulse reads the traces on demand, with `DistributedBus::sendMessage($service, $routingKey, $payload,
+MediaType::APPLICATION_JSON, metadata: ['ecotone_pulse_query_id' => $queryId], replyRoutingKey:
+'ecotone.pulse.query_result_received')`. The query id must be sent, and is returned in the payload and, as a user
+header, with the reply. `ecotone.pulse.traces.list` takes `{"flowType": "create.ticket", "page": 1, "perPage": 25}`
+(`page` from 1, `perPage` from 1 to 25) and replies `queryId`, `flowType`, `page`, `perPage`, `total` and `traces`,
+newest first, each with `traceId`, `startedAt`, `durationMs`, `status` (`ok` or `error`, as `runsWithErrors` counts)
+and `rootEndpoint`; a flow type nobody ran is an empty list. `ecotone.pulse.traces.trace` takes `{"traceId": "..."}`
+and replies `queryId`, `traceId`, `totalSpans`, `truncated` and the first 1000 `spans` this service kept, each parent
+before its children, with `spanId`, `parentSpanId`, `name`, `kind`, `status`, `statusDescription`, `startedAt`,
+`endedAt`, `attributes` and `events`; text is cut at 4096 bytes. Both queries are served to the Pulse service only,
+and every request under the `ecotone.pulse.` routing prefix is kept out of flow tracking.
+
+A service with a `MultiTenantConfiguration` is monitored per tenant, and Pulse needs no tenant configuration for it. A
+snapshot request without the tenant header returns the tenant-independent sections (`overview`, `flowGraph`,
+`topology`, `channels`, `deadLetter`, `tracing.storage`) plus `tenancy: {header, tenants}`, the tenant header name and
+the tenants of the mapping; `deadLetters` and `tracing.flowTypes` are left out instead of failing. A request with the
+tenant header (`metadata: ['tenant' => 'tenant_a']`) returns `schemaVersion`, `serviceName`, `takenAt`, `tenant` and
+the sections of that tenant only, and the dead letter replay and delete actions and the trace queries with the header
+act on the database of that tenant and echo `tenant` in their reply. A tenant the service does not advertise is
+refused, because the connection of an unmapped tenant falls back to the default one. A snapshot of a single-tenant service has no
+`tenancy` key and is unchanged. Bootstrap is refused when the Pulse request or reply channel is a DBAL channel on the
+multi-tenant connection reference, naming the ways out: a dedicated non-tenant `DbalConnection` reference for the Pulse
+channels, or a broker transport; MultiTenantConfigurations that name different tenant headers are refused as well.
+
+The `projections` section is tenant-scoped as well: a request without the tenant header leaves it out, and a request with the header reports the projections from the event store of that tenant. DBAL channels on the multi-tenant connection are listed in the tenant-less `channels` without a depth (all fields `null`, no `probeError`) and measured in the `channels` of each tenant's reply; channels of other transports are measured in the tenant-less reply only. The dead letter replay and delete by `failureId` act on the requested tenant only.
+
+**How to adapt:** nothing is required for a single-tenant service. A multi-tenant service that sends Pulse over a DBAL channel on its multi-tenant connection moves the Pulse channels to a connection that is not multi-tenant, for example `DbalBackedMessageChannelBuilder::create('orders', 'pulse_connection')`. Pulse can narrow the tenants it asks for with `PULSE_SERVICES=orders{tenants=tenant_a,tenant_b}`.
+
+A trace crosses services under one trace id. The first span a service stores for a message it received from another
+service, `receive <channel>`, has as `parentSpanId` the `spanId` of the `send <channel>` span of the sending service,
+for a distributed command and for a distributed event alike, one per subscribing service; a handler that consumes
+asynchronously continues from its own `send` span in the receiving service. Pulse nests a service's spans under the
+sender's by that link.
+
+A spans table created by an earlier 2.0 beta lacks the `flow_type` and `flow_status` columns the section and the
+queries need. The first write or read that meets it fails with a `ConfigurationException` naming the statements below.
+
+**How to adapt:** add the columns and the index for your database, replacing `ecotone_tracing` with your table name.
+Flows stored by the beta have no flow type, so they are not listed and are removed when their retention passes.
+
+PostgreSQL and SQLite:
+
+```sql
+ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL;
+ALTER TABLE ecotone_tracing ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL;
+CREATE INDEX ecotone_tracing_flow_type_started_at_idx ON ecotone_tracing (flow_type, started_at);
+```
+
+MySQL and MariaDB:
+
+```sql
+ALTER TABLE ecotone_tracing
+    ADD COLUMN flow_type VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+    ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL,
+    ADD INDEX ecotone_tracing_flow_type_started_at_idx (flow_type, started_at);
+```
+
+Or drop the table, as tracked flows are only kept for the retention, and create it again:
+`DROP TABLE ecotone_tracing;` followed by `ecotone:migration:database:setup --initialize --feature=tracing`.
+
+### Ecotone Pulse tracks the projection rebuilds it starts in a new table (Enterprise)
+
+**Before:** a projection was rebuilt from the console (`ecotone:projection:rebuild`) or `ProjectionOperations`, and nothing recorded that a rebuild had been requested or how far it had got.
+
+**Now:** a service with `PulseConfiguration` answers `ecotone.pulse.projections.rebuild` (payload `{"projection": "orders"}`, with the `tracingId` header Pulse sends on every action) and `ecotone.pulse.trackings.list` (payload `{"since": "<ISO 8601 time>", "category": "ecotone-pulse", "type": "projection-rebuild", "reference": "orders", "limit": 100}`, `since` required, `limit` at most 100). In the transaction of the request, the service inserts one row into the new `ecotone_pulse_tracking` table: the tracing id, the category `ecotone-pulse`, the type `projection-rebuild`, the projection name as the reference, the active tenant (`NULL` without multi-tenancy) and the start time. The row is written once and never updated. The rebuild then runs under the request's tracing id: through the projection's `#[ProjectionRebuild(asyncChannelName: ...)]` channel when it has one, otherwise inside the request, and a failure of that synchronous rebuild fails the request and leaves no row.
+
+Every rebuild batch message carries `ecotone_projecting_rebuild_batch_number`, `ecotone_projecting_rebuild_batch_count` and `ecotone_projecting_rebuild_partition_count`, which tracing records as span attributes even when `TracingConfiguration::withSpanAttributesFromHeaders()` names other headers, and each batch is traced as a `process partition batch <projection>` span. The trackings query derives each rebuild's state from those spans and the dead letters: `running` (batches done out of the batch count, or the elapsed time), `done` (with its duration) or `failed` (the dead letter carrying the tracking's trace id), newest first and capped at 100. The projections of the Pulse snapshot report `rebuildAsyncChannel`.
+
+The table is created by the migration setup feature `pulse_tracking` only, in the database flow tracking stores to (with in-memory flow tracking, the tracking is in memory too). A service whose table is missing fails the rebuild request with a `ConfigurationException` naming the command.
+
+**How to adapt:** create the table with `ecotone:migration:database:setup --initialize` (or `--feature=pulse_tracking`), or `$messagingSystem->getServiceFromContainer(\Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager::class)->initialize('pulse_tracking')`, or generate the SQL for your own migrations with `getCreateSqlStatementsForFeatures(['pulse_tracking'])`. Expect one more span, `process partition batch <projection>`, in the trace of a backfill or a rebuild. Pulse reads rebuilds back from the service for the last `PULSE_TRACKING_DAYS` days (default 7), so a restart of Pulse loses nothing.
+
+### A channel can refuse to create its destination on send: `withRequiredExistingDestination()`
+
+**Before:** an AMQP channel declared its queue on every first send, an SQS channel created its queue on send, and a Kafka
+topic was created by the broker when it allowed it. A destination whose name was overridden (the `queueName` of
+`AmqpBackedMessageChannelBuilder::create()`, the `topicName` of `KafkaMessageChannelBuilder::create()`) and mistyped on the
+sending side was created quietly and the messages went into a queue nobody consumes.
+
+**Now:** `AmqpBackedMessageChannelBuilder`, `SqsBackedMessageChannelBuilder` and `KafkaMessageChannelBuilder` have
+`withRequiredExistingDestination()`, for a service that only sends to a channel another service consumes. It governs
+sending only: a consumer of the same channel still declares its own queue. The channel never declares or creates the
+destination, and checks that it exists before every send: a passive queue declare on AMQP (on its own short-lived context,
+because RabbitMQ closes the channel that asks about a missing queue), a queue URL lookup on SQS, and on Kafka a read of the
+topic list of the broker metadata (an unfiltered list, because asking the broker about one topic can make it create the
+topic, so the check would not be independent of `auto.create.topics.enable`; it is one metadata round trip per send, which
+is the price of detecting a topic deleted after the first send without keeping state in the channel). A missing
+destination throws `Ecotone\Api\Messaging\DestinationDoesNotExistException` with the channel name, the actual destination
+after the overrides, the connection, and the ways out: run the consumer of the channel, create the destination yourself,
+fix the name, or remove the option. It is a runtime failure, not a `ConfigurationException`, so the consumer's instant
+retries and error handling treat it like any failure of the handler; nothing is sent and the destination is not created,
+so a later send succeeds once it exists. A Kafka broker that cannot be reached for the check raises a
+`MessagingException` naming the channel instead of the raw `RdKafka\Exception`. The default of every builder is unchanged.
+
+```php
+AmqpBackedMessageChannelBuilder::create('orders', queueName: 'orders_v2')->withRequiredExistingDestination();
+```
+
+Redis and DBAL channel builders have no such method, on purpose: a Redis list does not exist while it is empty, and a DBAL queue is a
+value in the shared `enqueue` table, so neither has a reliable "this destination exists" signal and Ecotone does not fake one.
+Name those channels explicitly and check them yourself.
+
+Pulse uses it for every channel it sends to on a service's broker (AMQP, SQS, Kafka) and for the reply channel a service
+derives for it. A service whose channel does not exist is shown as "Channel missing" with the destination, distinct from
+Unreachable, and is asked again once the 60 seconds after which a snapshot stops counting as fresh have passed, or when Refresh is pressed. Pulse's own reply channel is still declared by Pulse, when it consumes it.
+
+**How to adapt:** nothing is required. A service that replies to Pulse over AMQP or SQS needs Pulse to have started
+consuming its reply channel first; until then the reply fails with the exception above, goes through the service's instant retries and error handling like any failure of a handler, and the request is processed again once Pulse's queue exists.
 
 ## 15. Testing and developer-experience changes
 
@@ -3430,6 +3625,17 @@ rename test-support methods without aliases; the renamed methods are listed in e
   The internal dead-letter channels are renamed with them (`ecotone.dbal.deadletter.replay`, `…replayAll`); console
   command names are unchanged. **How to adapt:** rename the calls, e.g.
   `sed -i 's/WithRoutingKey(/WithRouting(/g; s/->reply(/->replay(/g; s/->replyAll(/->replayAll(/g'`.
+- **A dead letter replayed to a target channel keeps its routing slip and goes through an asynchronous channel.** **Before:**
+  `DeadLetterGateway::replay($messageId, $targetChannel)`, `replayAll()` and `ecotone:deadletter:replay` removed the routing
+  slip of the message and accepted any existing channel, so a message replayed to a pollable channel was consumed there without
+  reaching a handler and was lost. **Now:** the target is the asynchronous (pollable) channel the message is sent through. The
+  message keeps its stored routing slip (only the error context is removed), so once that channel is consumed the original
+  handler runs; the channel can be the one of the handler or another asynchronous channel. A queue registered in your
+  `#[ServiceContext]` that no handler is bound to also keeps the message with its slip for a later consumer. A target that is
+  not asynchronous (a handler input channel, a direct channel) is refused before anything is replayed or deleted, on the
+  gateway, `replayAll()`, the console commands and the Pulse action, and the dead letters are kept. **How to adapt:** pass
+  an asynchronous channel instead of the input channel of a handler, or replay without a target to send each message back to
+  the channel it was polled from.
 - **A command or query sent to a handler that is not registered in a flow test names the class to register.** An
   Ecotone Lite bootstrap registers only the classes it lists, but the error suggested a missing attribute:
   `No Command Handler defined for it. Have you forgot to add #[CommandHandler] to method?`. In

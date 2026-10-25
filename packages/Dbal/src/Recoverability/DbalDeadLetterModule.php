@@ -9,11 +9,17 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetterActions;
+use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetters;
+use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLettersNotConfigured;
+use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetterStatus;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
@@ -26,12 +32,20 @@ use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
 
 #[ModuleAnnotation]
 /**
@@ -45,6 +59,8 @@ final class DbalDeadLetterModule implements AnnotationModule
     public const REPLAY_COMMAND_NAME     = 'ecotone:deadletter:replay';
     public const REPLAY_ALL_COMMAND_NAME = 'ecotone:deadletter:replayAll';
     public const DELETE_COMMAND_NAME     = 'ecotone:deadletter:delete';
+    private const PULSE_REPLAY_CHANNEL = 'ecotone.pulse.dead_letter.replay';
+    private const PULSE_DELETE_CHANNEL = 'ecotone.pulse.dead_letter.delete';
 
     /**
      * @inheritDoc
@@ -76,6 +92,11 @@ final class DbalDeadLetterModule implements AnnotationModule
             ])
         );
 
+        if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) !== []) {
+            $this->registerPulseActions($messagingConfiguration, $interfaceToCallRegistry, $isDeadLetterEnabled, $serviceConfiguration->serviceName);
+            $messagingConfiguration->registerServiceDefinition(PulseDeadLetterStatus::class, new Definition(PulseDeadLetterStatus::class, [$isDeadLetterEnabled]));
+        }
+
         if (! $isDeadLetterEnabled) {
             return;
         }
@@ -87,6 +108,20 @@ final class DbalDeadLetterModule implements AnnotationModule
         $this->registerOneTimeCommand('replayAll', self::REPLAY_ALL_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Replays all dead letter messages');
         $this->registerOneTimeCommand('delete', self::DELETE_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Deletes given dead letter message');
         $this->registerOneTimeCommand('help', self::HELP_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Shows help for dead letter management commands');
+
+        if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) !== []) {
+            $messagingConfiguration->registerServiceDefinition(
+                PulseDeadLetterActions::class,
+                new Definition(PulseDeadLetterActions::class, [
+                    Reference::to(DbalDeadLetterBuilder::storeReferenceFor(DeadLetterGateway::class)),
+                    Reference::to(DeadLetterHandler::class . '.' . DeadLetterGateway::class),
+                ])
+            );
+            $messagingConfiguration->registerServiceDefinition(
+                PulseDeadLetters::class,
+                new Definition(PulseDeadLetters::class, [Reference::to(DbalDeadLetterBuilder::storeReferenceFor(DeadLetterGateway::class))])
+            );
+        }
 
         $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, DbalDeadLetterBuilder::STORE_CHANNEL, $dbalConfiguration->deadLetterInMemory, $messagingConfiguration);
         foreach ($customDeadLetterGateways as $customDeadLetterGateway) {
@@ -107,9 +142,47 @@ final class DbalDeadLetterModule implements AnnotationModule
             $connectionReferences[] = $customDeadLetterGateway->getConnectionReferenceName();
         }
 
-        return array_map(
+        $extensions = array_map(
             fn (string $connectionReference): DbalTableManagerReference => new DbalTableManagerReference(DeadLetterTableManager::class, $connectionReference),
             array_values(array_unique($connectionReferences)),
+        );
+        if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
+            $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetter', serviceReference: PulseDeadLetterStatus::class, tenantScoped: false);
+            if ($dbalConfiguration->deadLetterEnabled) {
+                $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetters', serviceReference: PulseDeadLetters::class, tenantScoped: true);
+            }
+        }
+
+        return $extensions;
+    }
+
+    private function registerPulseActions(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, bool $isDeadLetterEnabled, string $serviceName): void
+    {
+        $sourceService = HeaderBuilder::createOptional('sourceService', DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME);
+        $snapshot = ReferenceBuilder::create('snapshot', PulseSnapshot::class);
+
+        if (! $isDeadLetterEnabled) {
+            $configuration->registerServiceDefinition(PulseDeadLettersNotConfigured::class, new Definition(PulseDeadLettersNotConfigured::class, [$serviceName]));
+            foreach ([self::PULSE_REPLAY_CHANNEL, self::PULSE_DELETE_CHANNEL] as $channel) {
+                $configuration->registerMessageHandler(
+                    MessageProcessorActivatorBuilder::createForMethod(PulseDeadLettersNotConfigured::class, $interfaceToCallRegistry->getFor(PulseDeadLettersNotConfigured::class, 'refuse'))
+                        ->withInputChannelName($channel)
+                        ->withMethodParameterConverters([$sourceService, $snapshot])
+                );
+            }
+
+            return;
+        }
+
+        $configuration->registerMessageHandler(
+            MessageProcessorActivatorBuilder::createForMethod(PulseDeadLetterActions::class, $interfaceToCallRegistry->getFor(PulseDeadLetterActions::class, 'replay'))
+                ->withInputChannelName(self::PULSE_REPLAY_CHANNEL)
+                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot, ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class)])
+        );
+        $configuration->registerMessageHandler(
+            MessageProcessorActivatorBuilder::createForMethod(PulseDeadLetterActions::class, $interfaceToCallRegistry->getFor(PulseDeadLetterActions::class, 'delete'))
+                ->withInputChannelName(self::PULSE_DELETE_CHANNEL)
+                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
         );
     }
 

@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Laravel\Fixture\Order\Order;
 use Test\Ecotone\Laravel\Fixture\Order\PlaceOrder;
 use Test\Ecotone\Laravel\Fixture\Product\RegisterProduct;
+use Test\Ecotone\Laravel\RestoresLaravelHandlers;
 
 /**
  * @internal
@@ -26,6 +27,8 @@ use Test\Ecotone\Laravel\Fixture\Product\RegisterProduct;
  */
 final class EloquentIntegrationTest extends TestCase
 {
+    use RestoresLaravelHandlers;
+
     public function setUp(): void
     {
         $this->createApplication();

@@ -41,6 +41,8 @@ class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
 
     private HeaderMapper $headerMapper;
 
+    private bool $requireExistingDestination = false;
+
     private function __construct(
         private string $endpointId,
         private string $inputChannelName = ''
@@ -75,6 +77,13 @@ class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
     public function getInputMessageChannelName(): string
     {
         return $this->inputChannelName;
+    }
+
+    public function withRequiredExistingDestination(bool $required): self
+    {
+        $this->requireExistingDestination = $required;
+
+        return $this;
     }
 
     public function withDefaultConversionMediaType(?string $mediaType): self
@@ -119,6 +128,7 @@ class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
             $outboundMessageConverter,
             new Reference(PendingDeliveryRegistry::class),
             new Reference(MessageBuilder::class),
+            $this->requireExistingDestination,
         ]);
     }
 

@@ -8,6 +8,7 @@ use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Dbal\Tracing\FlowTrackingScope;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
@@ -99,10 +100,16 @@ final class DeadLetterHandler
         $this->deadLetterStore->store($message);
     }
 
-    private function assertTargetChannelExists(?string $targetChannel): void
+    public function assertTargetChannelExists(?string $targetChannel): void
     {
-        if ($targetChannel !== null && ! $this->channelResolver->hasChannelWithName($targetChannel)) {
+        if ($targetChannel === null) {
+            return;
+        }
+        if (! $this->channelResolver->hasChannelWithName($targetChannel)) {
             throw InvalidArgumentException::create(ErrorChannelExceptionMessages::cannotReplayToUnknownChannel($targetChannel));
+        }
+        if (! $this->channelResolver->resolve($targetChannel) instanceof PollableChannel) {
+            throw InvalidArgumentException::create(ErrorChannelExceptionMessages::cannotReplayToNonAsynchronousChannel($targetChannel));
         }
     }
 
@@ -119,10 +126,6 @@ final class DeadLetterHandler
 
         if ($targetChannel !== null) {
             $entrypoint = $targetChannel;
-
-            $message = $this->messageBuilder->fromMessage($message)
-                ->removeHeader(MessageHeaders::ROUTING_SLIP)
-                ->build();
         } elseif ($hasPolledChannel) {
             $entrypoint = $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME);
         } elseif ($hasInboundRequestChannel) {

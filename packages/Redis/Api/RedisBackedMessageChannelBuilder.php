@@ -4,16 +4,22 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Redis;
 
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
+use Ecotone\Messaging\Channel\DepthProbedMessageChannelBuilder;
+use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Redis\Pulse\RedisChannelDepthProbe;
 use Ecotone\Redis\RedisInboundChannelAdapterBuilder;
 use Ecotone\Redis\RedisOutboundChannelAdapterBuilder;
 
 /**
  * licence Apache-2.0
  */
-final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
+final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection, DepthProbedMessageChannelBuilder
 {
-    private function __construct(string $channelName, string $connectionReferenceName)
+    private function __construct(string $channelName, public readonly string $connectionReferenceName)
     {
         parent::__construct(
             RedisInboundChannelAdapterBuilder::createWith(
@@ -47,6 +53,29 @@ final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilde
     protected function supportsBatchMessages(): bool
     {
         return $this->getRedisOutboundChannelAdapter()->isBatchPublishingEnabled();
+    }
+
+    public function depthProbeGroup(): string
+    {
+        return 'redis:' . $this->connectionReferenceName;
+    }
+
+    public function depthProbeDestination(): string
+    {
+        return $this->getMessageChannelName();
+    }
+
+    public function depthProbeDefinition(): Definition
+    {
+        return new Definition(RedisChannelDepthProbe::class, [
+            new Reference($this->connectionReferenceName),
+            new Reference(EcotoneClockInterface::class),
+        ]);
+    }
+
+    public function forSendOnlyChannelOnSameConnection(string $channelName): self
+    {
+        return self::create($channelName, $this->connectionReferenceName);
     }
 
     private function getRedisOutboundChannelAdapter(): RedisOutboundChannelAdapterBuilder

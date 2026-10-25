@@ -34,6 +34,7 @@ final class StoringSpanRecorder implements SpanRecorder
     /** @var Span[] */
     private array $buffer = [];
     private bool $scopeActive = false;
+    private bool $scopeExcludedFromTracking = false;
     private ?ActiveSpan $wrappingSpan = null;
     /** @var array<string, true> */
     private array $storedSpanIds = [];
@@ -51,7 +52,7 @@ final class StoringSpanRecorder implements SpanRecorder
 
     public function record(Span $span): void
     {
-        if ($this->scopeActive && $this->isStored($span)) {
+        if ($this->scopeActive && ! $this->scopeExcludedFromTracking && $this->isStored($span)) {
             $this->buffer[] = $span;
         }
     }
@@ -83,9 +84,20 @@ final class StoringSpanRecorder implements SpanRecorder
         return $this->scopeActive;
     }
 
+    public function excludeScopeFromTracking(): void
+    {
+        if (! $this->scopeActive) {
+            return;
+        }
+
+        $this->scopeExcludedFromTracking = true;
+        $this->buffer = [];
+    }
+
     public function closeScope(): void
     {
         $this->scopeActive = false;
+        $this->scopeExcludedFromTracking = false;
         $this->wrappingSpan = null;
         $this->storedSpanIds = [];
     }
@@ -131,6 +143,12 @@ final class StoringSpanRecorder implements SpanRecorder
      */
     private function store(array $openSpansSoFar): void
     {
+        if ($this->scopeExcludedFromTracking) {
+            $this->buffer = [];
+
+            return;
+        }
+
         $spans = [];
         foreach ([...$this->buffer, ...$openSpansSoFar] as $span) {
             if ($this->isStored($span) && ! isset($this->storedSpanIds[$span->spanId])) {

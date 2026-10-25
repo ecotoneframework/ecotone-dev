@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Topology · Ecotone Pulse{% endblock %}
+
+{% block importmap %}{{ importmap(['app', 'graph']) }}{% endblock %}
+
+{% block body %}
+    <h1>Topology</h1>
+    {% include 'graph/_scope.html.twig' %}
+    {% include 'graph/_notices.html.twig' %}
+    {% if not report.hasConnections %}
+        <p class="muted">No service maps commands or events to another service yet.</p>
+    {% else %}
+        <pre class="mermaid" data-topology>{{ diagram }}</pre>
+    {% endif %}
+
+    <h2>Command routes</h2>
+    <ul>
+        {% for route in report.commandRoutes %}
+            <li data-command-route="{{ route.from }}>{{ route.to }}"{% if route.stale %} data-stale="true"{% endif %}>{{ route.from }} sends commands to {{ route.to }} over channel {{ route.channel }}{% if route.stale %} (stale){% endif %}</li>
+        {% else %}
+            <li class="muted">None</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Event subscriptions</h2>
+    <ul>
+        {% for subscription in report.eventSubscriptions %}
+            <li data-event-subscription="{{ subscription.service }}"{% if subscription.stale %} data-stale="true"{% endif %}>{{ subscription.service }} over channel {{ subscription.channel }}: {{ subscription.keys|join(', ') }}{% if subscription.stale %} (stale){% endif %}</li>
+        {% else %}
+            <li class="muted">None</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Mismatches</h2>
+    {% if report.incomplete %}
+        <p class="notice" data-notice="incomplete">Incomplete: {{ report.incompleteBecause|join(', ') }} not answering, so published events and subscriptions cannot be compared yet.</p>
+    {% endif %}
+    <ul>
+        {% for mismatch in report.mismatches %}
+            <li data-mismatch="{{ mismatch.kind }}">{{ mismatch.message }}</li>
+        {% else %}
+            <li class="muted">None found</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

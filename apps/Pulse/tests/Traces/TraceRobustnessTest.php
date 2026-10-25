@@ -1,0 +1,190 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Traces;
+
+use App\Tests\Support\ReleasingWebTestCase;
+use App\Tests\Support\TracedServicesTrait;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Tracing\SpanContext;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Component\DomCrawler\Crawler;
+
+/**
+ * @internal
+ */
+final class TraceRobustnessTest extends ReleasingWebTestCase
+{
+    use TracedServicesTrait;
+
+    private const TRACE = '66666666666666666666666666666666';
+
+    public function test_markup_in_span_names_attributes_events_and_failures_is_escaped(): void
+    {
+        $hostile = '<img src=x onerror=alert(1)>';
+        $span = [
+            'spanId' => 'aaaaaaaaaaaaaaa1', 'parentSpanId' => null, 'name' => $hostile, 'kind' => 'server', 'status' => 'error', 'statusDescription' => $hostile,
+            'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'endedAt' => '2026-10-20T12:00:00.100000+00:00',
+            'attributes' => ['ecotone.endpoint.id' => $hostile, 'custom' => $hostile],
+            'events' => [['name' => $hostile, 'at' => '2026-10-20T12:00:00.000000+00:00', 'attributes' => ['exception.message' => $hostile, 'exception.type' => $hostile]]],
+        ];
+        $client = $this->pulseWithFakeService([$span], truncated: false);
+
+        $crawler = $this->traceView($client);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('img'));
+        self::assertStringNotContainsString('<img', $client->getResponse()->getContent());
+        self::assertStringContainsString('&lt;img src=x onerror=alert(1)&gt;', $client->getResponse()->getContent());
+        self::assertSame(1, $crawler->filter('[data-span]')->count());
+    }
+
+    public function test_a_large_trace_shows_the_first_steps_and_says_how_many_were_left_out(): void
+    {
+        $spans = [['spanId' => 'bbbbbbbbbbbbbbb0', 'parentSpanId' => null, 'name' => 'root', 'kind' => 'server', 'status' => 'ok', 'statusDescription' => null, 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'endedAt' => '2026-10-20T12:00:01.000000+00:00', 'attributes' => [], 'events' => []]];
+        for ($step = 1; $step <= 349; $step++) {
+            $spans[] = ['spanId' => sprintf('bbbbbbbbbbbbb%03d', $step), 'parentSpanId' => 'bbbbbbbbbbbbbbb0', 'name' => 'step ' . $step, 'kind' => 'internal', 'status' => 'ok', 'statusDescription' => null, 'startedAt' => sprintf('2026-10-20T12:00:00.%06d+00:00', $step), 'endedAt' => sprintf('2026-10-20T12:00:00.%06d+00:00', $step + 1), 'attributes' => [], 'events' => []];
+        }
+        $client = $this->pulseWithFakeService($spans, truncated: false);
+
+        $crawler = $this->traceView($client);
+
+        self::assertCount(300, $crawler->filter('[data-span]'));
+        self::assertStringContainsString('first 300 of 350', $crawler->filter('[data-rows-capped]')->text());
+    }
+
+    public function test_a_service_that_cut_its_reply_says_so(): void
+    {
+        $span = ['spanId' => 'ccccccccccccccc1', 'parentSpanId' => null, 'name' => 'root', 'kind' => 'server', 'status' => 'ok', 'statusDescription' => null, 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'endedAt' => '2026-10-20T12:00:00.100000+00:00', 'attributes' => [], 'events' => []];
+        $client = $this->pulseWithFakeService([$span], truncated: true, totalSpans: 5000);
+
+        $crawler = $this->traceView($client);
+
+        self::assertStringContainsString('5000', $crawler->filter('[data-reply-truncated]')->text());
+    }
+
+    public function test_a_receiver_that_started_before_its_sender_ended_is_reported_as_clock_skew_not_as_no_wait(): void
+    {
+        $send = ['spanId' => 'dddddddddddddd01', 'parentSpanId' => null, 'name' => 'send q', 'kind' => 'producer', 'status' => 'ok', 'statusDescription' => null, 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'endedAt' => '2026-10-20T12:00:01.000000+00:00', 'attributes' => ['ecotone.channel.name' => 'q'], 'events' => []];
+        $receive = ['spanId' => 'dddddddddddddd02', 'parentSpanId' => 'dddddddddddddd01', 'name' => 'receive q', 'kind' => 'consumer', 'status' => 'ok', 'statusDescription' => null, 'startedAt' => '2026-10-20T12:00:00.500000+00:00', 'endedAt' => '2026-10-20T12:00:00.600000+00:00', 'attributes' => ['ecotone.channel.name' => 'q'], 'events' => []];
+        $client = $this->pulseWithFakeService([$send, $receive], truncated: false);
+
+        $crawler = $this->traceView($client);
+
+        $wait = $crawler->filter('[data-span]')->last()->filter('[data-column="queueWait"]');
+        self::assertSame('clock skew between services (−500 ms)', $wait->text());
+        self::assertCount(1, $crawler->filter('[data-clock-skew]'));
+    }
+
+    public function test_a_span_with_a_malformed_time_is_shown_with_a_notice_and_does_not_break_the_page(): void
+    {
+        $root = ['spanId' => 'eeeeeeeeeeeeee01', 'parentSpanId' => null, 'name' => 'root', 'kind' => 'server', 'status' => 'ok', 'statusDescription' => null, 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'endedAt' => '2026-10-20T12:00:00.100000+00:00', 'attributes' => [], 'events' => []];
+        $malformed = [...$root, 'spanId' => 'eeeeeeeeeeeeee02', 'parentSpanId' => 'eeeeeeeeeeeeee01', 'name' => 'garbled', 'startedAt' => 'garbage'];
+        $client = $this->pulseWithFakeService([$root, $malformed], truncated: false);
+
+        $crawler = $this->traceView($client);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(2, $crawler->filter('[data-span]')->count());
+        $row = $crawler->filter('[data-span]')->reduce(fn (Crawler $span) => str_contains($span->text(), 'garbled'));
+        self::assertStringContainsString('time is missing or invalid', $row->filter('[data-time-invalid]')->text());
+        self::assertCount(0, $row->filter('[data-bar]'));
+        self::assertCount(0, $crawler->filter('[data-span]')->first()->filter('[data-time-invalid]'));
+        self::assertSame('100 ms', $crawler->filter('[data-summary="total"] b')->text());
+    }
+
+    public function test_a_span_without_a_start_time_is_shown_with_a_notice_and_does_not_skew_the_trace(): void
+    {
+        $root = ['spanId' => 'ffffffffffffff01', 'parentSpanId' => null, 'name' => 'root', 'kind' => 'server', 'status' => 'ok', 'statusDescription' => null, 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'endedAt' => '2026-10-20T12:00:00.100000+00:00', 'attributes' => [], 'events' => []];
+        $timeless = ['spanId' => 'ffffffffffffff02', 'parentSpanId' => 'ffffffffffffff01', 'name' => 'timeless', 'kind' => 'internal', 'status' => 'ok', 'statusDescription' => null, 'attributes' => [], 'events' => []];
+        $client = $this->pulseWithFakeService([$root, $timeless], truncated: false);
+
+        $crawler = $this->traceView($client);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-time-invalid]'));
+        self::assertSame('100 ms', $crawler->filter('[data-summary="total"] b')->text());
+    }
+
+    public function test_traces_stored_in_the_database_are_listed_and_shown(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing', 'shipping');
+        $client = $this->pulseWebClient();
+        $traceId = bin2hex(random_bytes(16));
+        $orders = $this->tracedService('orders', $this->ordersHandler(), \Ecotone\Api\ExtensionObject\DistributedServiceMap::initialize(), inMemory: false);
+        $orders->sendCommandWithRouting('order.persisted', ['orderId' => 1], metadata: [MessageHeaders::TRACEPARENT => (new SpanContext($traceId, 'aaaaaaaaaaaaaaaa'))->toTraceparent()]);
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
+
+        $overview = $client->request('GET', '/traces');
+        self::assertGreaterThanOrEqual(1, (int) $overview->filter('[data-flow-type="order.persisted"] [data-stat="runs"]')->text());
+        $client->request('GET', '/traces/orders/order.persisted');
+        $this->runService($orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+        $list = $client->request('GET', '/traces/orders/order.persisted');
+        self::assertContains($traceId, $list->filter('[data-trace]')->each(fn (Crawler $trace) => $trace->attr('data-trace-id')));
+        $detail = $this->traceView($client, $orders, $traceId);
+
+        self::assertCount(2, $detail->filter('[data-span][data-service="orders"]'));
+        self::assertCount(1, $detail->filter('[data-trace-status="completed"]'));
+    }
+
+    private function ordersHandler(): object
+    {
+        return new class () {
+            #[CommandHandler('order.persisted', endpointId: 'order.persisted.handler')]
+            public function persisted(array $order): void
+            {
+            }
+        };
+    }
+
+    /**
+     * @param list<array<string, mixed>> $spans
+     */
+    private function pulseWithFakeService(array $spans, bool $truncated, ?int $totalSpans = null): KernelBrowser
+    {
+        $this->configurePulseWithServices('orders', 'billing', 'shipping');
+        $client = $this->pulseWebClient();
+        $snapshot = json_encode(['schemaVersion' => 1, 'serviceName' => 'orders', 'overview' => [], 'tracing' => ['storage' => 'dbal', 'retention' => 604800, 'statsWindow' => 1000, 'flowTypes' => []]], JSON_THROW_ON_ERROR);
+        $trace = json_encode(['queryId' => 'QUERY_ID', 'traceId' => self::TRACE, 'totalSpans' => $totalSpans ?? count($spans), 'truncated' => $truncated, 'spans' => $spans], JSON_THROW_ON_ERROR);
+        $handler = new class ($snapshot, $trace) {
+            public function __construct(private string $snapshot, private string $trace)
+            {
+            }
+
+            #[Distributed]
+            #[CommandHandler('ecotone.pulse.snapshot')]
+            public function snapshot(string $request): string
+            {
+                return $this->snapshot;
+            }
+
+            #[Distributed]
+            #[CommandHandler('ecotone.pulse.traces.trace')]
+            public function trace(string $request, #[Header('ecotone_pulse_query_id')] string $queryId): string
+            {
+                return str_replace('QUERY_ID', $queryId, $this->trace);
+            }
+        };
+        $this->fake = $this->serviceApplication('orders', [$handler::class], [$handler], false);
+        $this->pulseHavingHeardFrom($client, ['orders' => $this->fake]);
+
+        return $client;
+    }
+
+    private ?FlowTestSupport $fake = null;
+
+    private function traceView(KernelBrowser $client, ?FlowTestSupport $service = null, string $traceId = self::TRACE): Crawler
+    {
+        $client->request('GET', '/traces/trace/' . $traceId);
+        $this->runService($service ?? $this->fake, 'orders');
+        $this->runPulseWorker($client->getKernel());
+
+        return $client->request('GET', '/traces/trace/' . $traceId);
+    }
+}

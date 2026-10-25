@@ -21,6 +21,7 @@ use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use Test\Ecotone\Laravel\RestoresLaravelHandlers;
 
 /**
  * Tests for Laravel Queue Final Failure Strategy message ordering
@@ -31,6 +32,8 @@ use Psr\Container\ContainerInterface;
  */
 final class LaravelQueueFinalFailureStrategyTest extends TestCase
 {
+    use RestoresLaravelHandlers;
+
     public function setUp(): void
     {
         $this->getContainer();

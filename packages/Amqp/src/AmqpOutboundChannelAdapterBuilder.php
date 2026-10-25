@@ -186,13 +186,13 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
 
         return new Definition(AmqpOutboundChannelAdapter::class, [
             $connectionFactory,
-            $this->autoDeclare ? new Reference(AmqpAdmin::REFERENCE_NAME) : new Definition(AmqpAdmin::class, factory: 'createEmpty'),
+            $this->declaresOnSend() ? new Reference(AmqpAdmin::REFERENCE_NAME) : new Definition(AmqpAdmin::class, factory: 'createEmpty'),
             $this->exchangeName,
             $this->defaultRoutingKey,
             $this->routingKeyFromHeader,
             $this->exchangeFromHeader,
             $this->defaultPersistentDelivery,
-            $this->autoDeclare,
+            $this->declaresOnSend(),
             $this->publisherConfirms,
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
@@ -204,6 +204,8 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->nonBlockingConfirmation,
             $this->confirmationTimeout,
             $this->publishingChannelName ?? $this->exchangeName,
+            $this->requireExistingDestination,
+            $this->amqpConnectionFactoryReferenceName,
         ]);
     }
 }

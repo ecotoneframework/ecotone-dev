@@ -7,6 +7,7 @@ namespace Ecotone\Dbal\Database;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Schema\Table;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**
@@ -21,7 +22,13 @@ final class EnqueueTableManager implements DbalTableManager
         private string $tableName,
         private bool $isUsed,
         private ?string $consoleInvocationPrefix = null,
+        private string $connectionReferenceName = DbalConnectionReference::DEFAULT,
     ) {
+    }
+
+    public static function referenceFor(string $connectionReferenceName): string
+    {
+        return $connectionReferenceName === DbalConnectionReference::DEFAULT ? self::class : self::class . '.' . $connectionReferenceName;
     }
 
     public function getFeatureName(): string
@@ -41,12 +48,12 @@ final class EnqueueTableManager implements DbalTableManager
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->tableName, $this->isUsed, $this->consoleInvocationPrefix]);
+        return new Definition(self::class, [$this->tableName, $this->isUsed, $this->consoleInvocationPrefix, $this->connectionReferenceName]);
     }
 
     public function getMissingTableInstructions(): string
     {
-        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
+        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix, $this->connectionReferenceName);
     }
 
     public function createTable(Connection $connection): void

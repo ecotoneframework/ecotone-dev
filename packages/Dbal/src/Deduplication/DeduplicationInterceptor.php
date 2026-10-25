@@ -10,6 +10,7 @@ use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Dbal\MultiTenant\Pulse\PulseSnapshotRequest;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ClosureExpression\ExecutorFor;
@@ -37,7 +38,7 @@ final class DeduplicationInterceptor
 
     public function deduplicate(MethodInvocation $methodInvocation, Message $message, #[ExecutorFor(Deduplicated::class)] ?AttributeExpressionExecutor $deduplicated, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint, ?WithoutDatabaseTransaction $withoutDatabaseTransaction = null): mixed
     {
-        if ($withoutDatabaseTransaction !== null) {
+        if ($withoutDatabaseTransaction !== null || PulseSnapshotRequest::isIn($message)) {
             return $methodInvocation->proceed();
         }
 

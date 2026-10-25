@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Test\Ecotone\Laravel\RestoresLaravelHandlers;
 
 require_once __DIR__ . '/boostrap.php';
 
@@ -29,6 +30,8 @@ require_once __DIR__ . '/boostrap.php';
  */
 final class MultiTenantTest extends TestCase
 {
+    use RestoresLaravelHandlers;
+
     private Application $app;
     private QueryBus $queryBus;
     private CommandBus $commandBus;

@@ -17,6 +17,7 @@ use Ecotone\Api\Tracing\SpanEvent;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Dbal\Connection\DbalContext;
+use Ecotone\Dbal\Database\MissingColumnFailure;
 use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Dbal\Database\SpansTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
@@ -58,7 +59,70 @@ final class DbalTraceStore implements TraceStore
     public function append(array $spans): void
     {
         $connection = $this->connection();
-        $this->onTables(fn () => $this->insertSpans($connection, $spans));
+        $this->onTables(function () use ($connection, $spans): void {
+            $plan = FlowEntries::plan($spans, $this->storedTracesOf($connection, $spans));
+            $this->insertSpans($connection, $spans, $plan);
+            $this->markFailed($connection, $plan->traceIdsToMarkFailed);
+        });
+    }
+
+    public function flowTypeStatistics(int $limit, int $window): array
+    {
+        return $this->onTables(function () use ($limit, $window): array {
+            $connection = $this->connection();
+            $table = $this->spansTableManager->getTableName();
+            $groups = $connection->fetchAllAssociative(
+                "SELECT flow_type, COUNT(*) AS runs FROM {$table} WHERE flow_type IS NOT NULL GROUP BY flow_type ORDER BY runs DESC, flow_type ASC LIMIT {$limit}",
+            );
+
+            return array_values(array_filter(array_map(fn (array $group): ?FlowTypeStatistics => FlowTypeStatistics::overWindow(
+                $group['flow_type'],
+                (int) $group['runs'],
+                array_map(fn (array $row): array => [
+                    'startedAt' => (int) $row['started_at'],
+                    'durationInMicroseconds' => (int) $row['ended_at'] - (int) $row['started_at'],
+                    'status' => (string) $row['flow_status'],
+                ], $connection->createQueryBuilder()
+                    ->select('started_at', 'ended_at', 'flow_status')
+                    ->from($table)
+                    ->where('flow_type = :flowType')
+                    ->setParameter('flowType', $group['flow_type'])
+                    ->orderBy('started_at', 'DESC')
+                    ->addOrderBy('trace_id', 'DESC')
+                    ->setMaxResults($window)
+                    ->executeQuery()
+                    ->fetchAllAssociative()),
+            ), $groups)));
+        });
+    }
+
+    public function tracesOf(string $flowType, int $page, int $perPage): TracePage
+    {
+        return $this->onTables(function () use ($flowType, $page, $perPage): TracePage {
+            $connection = $this->connection();
+            $table = $this->spansTableManager->getTableName();
+            $total = (int) $connection->fetchOne("SELECT COUNT(*) FROM {$table} WHERE flow_type = :flowType", ['flowType' => $flowType]);
+            $entries = $connection->createQueryBuilder()
+                ->select('*')
+                ->from($table)
+                ->where('flow_type = :flowType')
+                ->setParameter('flowType', $flowType)
+                ->orderBy('started_at', 'DESC')
+                ->addOrderBy('trace_id', 'DESC')
+                ->setFirstResult(($page - 1) * $perPage)
+                ->setMaxResults($perPage)
+                ->executeQuery()
+                ->fetchAllAssociative();
+            $spansByTrace = [];
+            foreach ($this->spansOfTraces($connection, array_column($entries, 'trace_id')) as $span) {
+                $spansByTrace[$span->traceId][] = $span;
+            }
+
+            return new TracePage($total, array_map(
+                fn (array $entry): TraceSummary => TraceSummary::of($this->spanOf($entry), $entry['flow_status'], $spansByTrace[$entry['trace_id']] ?? []),
+                $entries,
+            ));
+        });
     }
 
     public function stepsOf(string $traceId): array
@@ -109,10 +173,75 @@ final class DbalTraceStore implements TraceStore
 
     /**
      * @param Span[] $spans
+     * @return array<string, array{spanIds: array<string, true>, hasEntry: bool, hasError: bool}>
      */
-    private function insertSpans(Connection $connection, array $spans): void
+    private function storedTracesOf(Connection $connection, array $spans): array
     {
-        $columns = ['span_id', 'trace_id', 'parent_span_id', 'name', 'kind', 'status', 'status_description', 'attributes', 'events', 'started_at', 'ended_at'];
+        $stored = [];
+        $rows = $connection->createQueryBuilder()
+            ->select('trace_id', 'span_id', 'flow_type', 'status')
+            ->from($this->spansTableManager->getTableName())
+            ->where('trace_id IN (:traceIds)')
+            ->setParameter('traceIds', array_values(array_unique(array_map(fn (Span $span): string => $span->traceId, $spans))), ArrayParameterType::STRING)
+            ->executeQuery()
+            ->fetchAllAssociative();
+        foreach ($rows as $row) {
+            $trace = $stored[$row['trace_id']] ?? ['spanIds' => [], 'hasEntry' => false, 'hasError' => false];
+            $trace['spanIds'][$row['span_id']] = true;
+            $trace['hasEntry'] = $trace['hasEntry'] || $row['flow_type'] !== null;
+            $trace['hasError'] = $trace['hasError'] || $row['status'] === SpanStatus::Error->value;
+            $stored[$row['trace_id']] = $trace;
+        }
+
+        return $stored;
+    }
+
+    /**
+     * @param string[] $traceIds
+     */
+    private function markFailed(Connection $connection, array $traceIds): void
+    {
+        if ($traceIds === []) {
+            return;
+        }
+
+        $connection->createQueryBuilder()
+            ->update($this->spansTableManager->getTableName())
+            ->set('flow_status', ':status')
+            ->where('flow_type IS NOT NULL')
+            ->andWhere('trace_id IN (:traceIds)')
+            ->setParameter('status', FlowEntries::STATUS_ERROR)
+            ->setParameter('traceIds', $traceIds, ArrayParameterType::STRING)
+            ->executeStatement();
+    }
+
+    /**
+     * @param string[] $traceIds
+     * @return Span[]
+     */
+    private function spansOfTraces(Connection $connection, array $traceIds): array
+    {
+        if ($traceIds === []) {
+            return [];
+        }
+
+        $rows = $connection->createQueryBuilder()
+            ->select('*')
+            ->from($this->spansTableManager->getTableName())
+            ->where('trace_id IN (:traceIds)')
+            ->setParameter('traceIds', $traceIds, ArrayParameterType::STRING)
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        return array_map($this->spanOf(...), $rows);
+    }
+
+    /**
+     * @param Span[] $spans
+     */
+    private function insertSpans(Connection $connection, array $spans, FlowEntryPlan $plan): void
+    {
+        $columns = ['span_id', 'trace_id', 'parent_span_id', 'name', 'kind', 'status', 'status_description', 'attributes', 'events', 'started_at', 'ended_at', 'flow_type', 'flow_status'];
         $rows = [];
         $parameters = [];
         $types = [];
@@ -133,6 +262,8 @@ final class DbalTraceStore implements TraceStore
                 ], $span->events), JSON_THROW_ON_ERROR),
                 'started_at' => $span->startedAt->unixTime()->inMicroseconds(),
                 'ended_at' => $span->endedAt->unixTime()->inMicroseconds(),
+                'flow_type' => $plan->entriesBySpanId[$span->spanId]['flowType'] ?? null,
+                'flow_status' => $plan->entriesBySpanId[$span->spanId]['status'] ?? null,
             ];
             $placeholders = [];
             foreach ($values as $column => $value) {
@@ -163,7 +294,15 @@ final class DbalTraceStore implements TraceStore
             ->executeQuery()
             ->fetchAllAssociative();
 
-        return array_map(fn (array $row): Span => new Span(
+        return array_map($this->spanOf(...), $rows);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function spanOf(array $row): Span
+    {
+        return new Span(
             $row['trace_id'],
             $row['span_id'],
             $row['parent_span_id'],
@@ -178,7 +317,7 @@ final class DbalTraceStore implements TraceStore
             ),
             self::datePointOf((int) $row['started_at']),
             self::datePointOf((int) $row['ended_at']),
-        ), $rows);
+        );
     }
 
     private static function datePointOf(int $unixTimeInMicroseconds): DatePoint
@@ -191,7 +330,7 @@ final class DbalTraceStore implements TraceStore
         try {
             return $statement();
         } catch (Throwable $failure) {
-            throw MissingTableFailure::explained($failure, $this->spansTableManager);
+            throw MissingTableFailure::explained(MissingColumnFailure::explained($failure, $this->spansTableManager), $this->spansTableManager);
         }
     }
 

@@ -53,6 +53,9 @@ final class Order extends Model
     public function markSeatsHeld(MarkSeatsHeld $command): void
     {
         $this->assertAccepts('MarkSeatsHeld', OrderStatus::STARTED, OrderStatus::SEATS_HELD);
+        if ($command->seatIds === []) {
+            throw new DomainException(sprintf('MarkSeatsHeld for order %s names no seats, so it cannot move the order to seats_held. Send it with at least one seat id of concert %s, e.g. "%s/A-1".', $this->id, $this->concert_id, $this->concert_id));
+        }
         $this->seat_ids = array_values(array_unique([...$this->seat_ids, ...$command->seatIds]));
         $this->status = OrderStatus::SEATS_HELD;
     }
@@ -60,9 +63,6 @@ final class Order extends Model
     #[CommandHandler]
     public function beginPayment(BeginPayment $command): void
     {
-        if ($this->seat_ids === []) {
-            throw new DomainException(sprintf('Order %s has no held seats, so payment cannot begin. Hold at least one seat with MarkSeatsHeld before sending BeginPayment.', $this->id));
-        }
         $this->assertAccepts('BeginPayment', OrderStatus::SEATS_HELD);
         $this->status = OrderStatus::PAYING;
     }

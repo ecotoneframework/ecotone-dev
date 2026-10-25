@@ -134,12 +134,22 @@ final class OrderLifecycleTest extends TestCase
         );
     }
 
+    public function test_holding_no_seats_is_refused(): void
+    {
+        $orderId = $this->startOrder();
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage(sprintf('MarkSeatsHeld for order %s names no seats, so it cannot move the order to seats_held. Send it with at least one seat id of concert %s, e.g. "%s/A-1".', $orderId, self::CONCERT_ID, self::CONCERT_ID));
+
+        $this->commandBus()->send(new MarkSeatsHeld(orderId: $orderId, seatIds: []));
+    }
+
     public function test_payment_cannot_begin_on_an_order_with_no_held_seats(): void
     {
         $orderId = $this->startOrder();
 
         $this->expectException(DomainException::class);
-        $this->expectExceptionMessage(sprintf('Order %s has no held seats, so payment cannot begin. Hold at least one seat with MarkSeatsHeld before sending BeginPayment.', $orderId));
+        $this->expectExceptionMessage(sprintf('Order %s is started, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.', $orderId));
 
         $this->commandBus()->send(new BeginPayment(orderId: $orderId));
     }

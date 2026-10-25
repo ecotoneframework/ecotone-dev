@@ -23,6 +23,10 @@
         <env name="DB_CONNECTION" value="pgsql"/>
         <env name="DB_DATABASE" value="storefront_test"/>
         <env name="DATABASE_DSN" value="pgsql://ecotone:secret@postgres:5432/storefront_test"/>
+        <env name="DEMO_PULSE_URL" value="http://localhost:8080" force="true"/>
+        <env name="DEMO_JAEGER_URL" value="http://localhost:16686" force="true"/>
+        <server name="DEMO_PULSE_URL" value="http://localhost:8080" force="true"/>
+        <server name="DEMO_JAEGER_URL" value="http://localhost:16686" force="true"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

@@ -98,3 +98,65 @@ td {
 button.danger {
     color: #ab091e;
 }
+
+main.seat-map {
+    max-width: 64rem;
+}
+
+.stage {
+    text-align: center;
+    padding: 0.4rem;
+    margin-bottom: 1rem;
+    background: #cbd2d9;
+    border-radius: 0.3rem;
+}
+
+.seat-row {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    margin-bottom: 0.3rem;
+}
+
+.row-label {
+    width: 1.5rem;
+    font-weight: bold;
+}
+
+.seat {
+    display: inline-block;
+    min-width: 2.6rem;
+    padding: 0.3rem 0;
+    text-align: center;
+    font-size: 0.75rem;
+    border-radius: 0.3rem;
+    border: 2px solid transparent;
+}
+
+.seat.tier-vip {
+    border-color: #b8860b;
+}
+
+.seat-free,
+.swatch-free {
+    background: #e3f9e5;
+    color: #05400a;
+}
+
+.seat-held,
+.swatch-held {
+    background: #fff3c4;
+    color: #8d2b0b;
+}
+
+.seat-sold,
+.swatch-sold {
+    background: #ffe3e3;
+    color: #610404;
+}
+
+.swatch {
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.3rem;
+    font-size: 0.75rem;
+}

@@ -34,6 +34,22 @@
         </form>
     </div>
 
+    <h2>Sales</h2>
+    <p><a class="seat-map-link" href="{{ path('concert_seats', {concertId: concert.concertId}) }}">Seat map</a></p>
+    <table class="ledger">
+        <thead>
+            <tr><th>Tier</th><th>Seats sold</th><th>Revenue</th></tr>
+        </thead>
+        <tbody>
+            {% for tier, ledger in sales.tiers %}
+                <tr><td>{{ tier }}</td><td>{{ ledger.seatsSold }}</td><td>{{ format.money(ledger.revenueCents, concert.currency) }}</td></tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr><td>Total</td><td>{{ sales.seatsSold }} of {{ sales.seatCount }} seats sold</td><td>{{ format.money(sales.revenueCents, concert.currency) }}</td></tr>
+        </tfoot>
+    </table>
+
     <h2>Seats ({{ concert.seats|length }})</h2>
     <table class="seats">
         <thead>

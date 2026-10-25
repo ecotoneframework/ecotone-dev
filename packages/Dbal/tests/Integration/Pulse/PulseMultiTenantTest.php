@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Pulse;
 
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Cache\QueryCacheProfile;
@@ -400,6 +401,10 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
 
     public function test_a_slow_schema_read_on_a_tenant_connection_does_not_delay_the_snapshot_of_that_tenant_past_the_budget(): void
     {
+        $platform = $this->getConnection()->getDatabasePlatform();
+        if (! $platform instanceof PostgreSQLPlatform && ! $platform instanceof AbstractMySQLPlatform) {
+            self::markTestSkipped('A schema read can only stall on a database server; SQLite reads a local file, so the setup budget is left unproved on SQLite.');
+        }
         SlowTenantSchemaReadConnection::$secondsPerSchemaRead = 0.0;
         $slowTenantB = new DbalConnectionFactory(['dsn' => getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone', 'connection' => ['wrapperClass' => SlowTenantSchemaReadConnection::class]]);
         $this->bootstrap(unpreparedTenantB: $slowTenantB);

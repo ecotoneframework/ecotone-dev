@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Pulse;
 
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Cache\QueryCacheProfile;
@@ -102,6 +103,10 @@ final class PulseSetupStatusTest extends DbalMessagingTestCase
 
     public function test_a_slow_schema_read_does_not_delay_the_snapshot_past_the_budget_and_the_other_sections_still_arrive(): void
     {
+        $platform = $this->getConnection()->getDatabasePlatform();
+        if (! $platform instanceof PostgreSQLPlatform && ! $platform instanceof AbstractMySQLPlatform) {
+            self::markTestSkipped('A schema read can only stall on a database server; SQLite reads a local file, so the setup budget is left unproved on SQLite.');
+        }
         SlowSchemaReadConnection::$secondsPerSchemaRead = 0.0;
         $this->bootstrap(new DbalConnectionFactory(['dsn' => getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone', 'connection' => ['wrapperClass' => SlowSchemaReadConnection::class]]));
         SlowSchemaReadConnection::$secondsPerSchemaRead = 1.5;

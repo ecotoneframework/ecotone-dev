@@ -37,6 +37,9 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Throwable;
 
+/**
+ * @internal
+ */
 final class ConcertAnnouncementOutboxTest extends KernelTestCase
 {
     private ?array $inMemoryChannels = null;

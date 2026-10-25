@@ -58,7 +58,9 @@ final class AmqpChannelDepthProbe implements PulseChannelProbe
                 return PulseChannelDepth::measured((int) $ready, consumers: (int) $consumers > 0 ? (int) $consumers : null, setUp: true);
             }
 
-            /** @var AmqpContext $context */
+            if (! $context instanceof AmqpContext) {
+                return PulseChannelDepth::failed("RabbitMQ queue '{$queueName}' could not be inspected: the connection opened a " . $context::class . ', which cannot declare a queue passively. Use an AMQP connection factory (enqueue/amqp-ext or enqueue/amqp-lib) for this channel.');
+            }
             $queue = $context->createQueue($queueName);
             $queue->addFlag(AmqpQueue::FLAG_PASSIVE);
 

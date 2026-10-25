@@ -97,6 +97,27 @@ provider outage reaches the dead letters instead of being retried away, and a pa
 often its charge runs. A paid order sends `tickets.confirm`; `tickets.issued` shows the tickets with their entry codes
 on the order page and emails them, and the email to Linus Bounce (`@bounce.example`) always lands in the dead letters.
 
+## Simulate a rush
+
+The page of a concert on sale, and the page of an order for it, has a "Simulate a rush" panel: it sends a crowd of
+synthetic buyers after the seats while you pick yours (the same from the console: `docker compose -f
+demo/docker-compose.yml exec storefront php artisan demo:rush <concertId> --buyers=30 --declinedShare=30
+--outageShare=10 --bounceShare=10 --seatsPerBuyer=2`). Each buyer joins on `storefront_async` over the first five
+seconds, starts an order and asks ticketing for free seats one at a time, exactly as the seat picker does, tries another
+seat when one is refused (three refusals and it gives up), and pays once its seats are held: the declined share with a
+card ending `0000`, the outage share with one ending `9999`, the bounce share with an `@bounce.example` address. The
+status line under the panel polls `/rushes/{rushId}/state.json` every second and counts the buyers created, holding,
+paying, paid, failed and given up. What to watch:
+
+- the seat map greys out the seats the crowd holds, so your own clicks start to meet "someone was faster"
+- Ecotone Pulse lists the dead letters by exception: `PaymentProviderUnavailable` for the outage share (replay them and
+  the orders are paid) and `EmailBounced` for the bounce share once ticketing issues their tickets
+- Jaeger traces the storefront's side of every buyer (`RushSimulator::join`, each `RushSimulator::check`, the
+  `tickets.hold` requests and the charge), and ticketing's traces show where its seat conflicts refused a hold
+
+Rush buyers are synthetic customers: they are not listed on `/whoami`, so their account pages are not browsable. A rush
+is safe to replay from the dead letters; a buyer that already joined is not created twice.
+
 ## Tests
 
 Inside the containers, one application at a time:

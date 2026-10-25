@@ -185,6 +185,59 @@ final class ConcertCatalogueTest extends TestCase
         self::assertSame(0, $deadLetter->count());
     }
 
+    public function test_sales_opened_again_after_cancellation_keeps_the_concert_cancelled(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish($ticketing, 'concert.cancelled', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame('cancelled', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
+    }
+
+    public function test_sales_opened_again_keeps_the_concert_on_sale(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame('on_sale', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
+    }
+
+    public function test_a_redelivered_schedule_keeps_the_concert_on_sale(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame('on_sale', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
+    }
+
+    public function test_a_redelivered_schedule_keeps_the_concert_cancelled(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish($ticketing, 'concert.cancelled', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame('cancelled', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
+    }
+
     private function scheduled(string $concertId, string $artist, string $startsAt): array
     {
         return [

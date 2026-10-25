@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Sales;
 
-use App\Catalogue\Concert;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -13,6 +12,7 @@ use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Gateway\QueryBus;
 
 final class SeatSales
 {
@@ -23,14 +23,15 @@ final class SeatSales
     public function hold(
         HoldSeat $command,
         SeatAvailability $seat,
-        CustomerConcertSeats $customerSeats,
         #[Fetch(static function (#[Payload] HoldSeat $command): string {
-            return $command->concertId;
-        })] ?Concert $concert,
+            return CustomerConcertSeats::scopeOf(customerId: $command->customerId, concertId: $command->concertId);
+        })] CustomerConcertSeats $customerSeats,
+        QueryBus $queryBus,
         EcotoneClockInterface $clock,
         #[ConfigurationVariable('ticketingHoldSeconds')] int $holdSeconds,
     ): array {
         $now = DateTimeImmutable::createFromInterface($clock->now());
+        $concert = ConcertForSale::find($queryBus, $command->concertId);
         if ($concert === null) {
             throw SeatRefusal::because(sprintf('Seat %s cannot be held for order %s, because ticketing has no concert %s. Pick a concert from concert.scheduled announcements, or ask ticketing to publish concert.scheduled again.', $command->seatId, $command->orderId, $command->concertId));
         }
@@ -116,13 +117,14 @@ final class SeatSales
     #[CommandHandler]
     public function confirm(
         ConfirmSeats $command,
-        CustomerConcertSeats $customerSeats,
         #[Fetch(static function (#[Payload] ConfirmSeats $command): string {
-            return $command->concertId;
-        })] ?Concert $concert,
+            return CustomerConcertSeats::scopeOf(customerId: $command->customerId, concertId: $command->concertId);
+        })] CustomerConcertSeats $customerSeats,
+        QueryBus $queryBus,
         EcotoneClockInterface $clock,
     ): array {
         $now = $clock->now();
+        $concert = ConcertForSale::find($queryBus, $command->concertId);
         if ($concert === null) {
             throw SeatRefusal::because(sprintf('Order %s cannot buy seats of concert %s, because ticketing has no such concert. Pick a concert from concert.scheduled announcements, or ask ticketing to publish concert.scheduled again.', $command->orderId, $command->concertId));
         }

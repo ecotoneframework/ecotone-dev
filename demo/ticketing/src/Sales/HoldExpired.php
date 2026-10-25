@@ -16,8 +16,13 @@ final readonly class HoldExpired
         public string $concertId,
         #[EventTag('seat')]
         public string $seatId,
-        #[EventTag('customer')]
         public string $customerId,
     ) {
+    }
+
+    #[EventTag('customerConcert')]
+    public function customerConcert(): string
+    {
+        return CustomerConcertSeats::scopeOf(customerId: $this->customerId, concertId: $this->concertId);
     }
 }

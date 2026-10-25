@@ -9,10 +9,15 @@ use DateTimeInterface;
 use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\DecisionModel;
 
-#[DecisionModel(tags: ['customer', 'concert'])]
+#[DecisionModel(tags: ['customerConcert'])]
 final class CustomerConcertSeats
 {
     public const MAXIMUM_SEATS = 4;
+
+    public static function scopeOf(string $customerId, string $concertId): string
+    {
+        return $customerId . '/' . $concertId;
+    }
 
     /**
      * @var array<string, array{orderId: string, heldUntil: ?DateTimeImmutable}>

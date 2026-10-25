@@ -17,10 +17,15 @@ final readonly class SeatHeld
         public string $concertId,
         #[EventTag('seat')]
         public string $seatId,
-        #[EventTag('customer')]
         public string $customerId,
         public DateTimeImmutable $heldAt,
         public DateTimeImmutable $expiresAt,
     ) {
+    }
+
+    #[EventTag('customerConcert')]
+    public function customerConcert(): string
+    {
+        return CustomerConcertSeats::scopeOf(customerId: $this->customerId, concertId: $this->concertId);
     }
 }

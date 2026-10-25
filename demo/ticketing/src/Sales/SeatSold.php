@@ -17,11 +17,16 @@ final readonly class SeatSold
         public string $concertId,
         #[EventTag('seat')]
         public string $seatId,
-        #[EventTag('customer')]
         public string $customerId,
         public string $paymentReference,
         public Tier $tier,
         public int $priceCents,
     ) {
+    }
+
+    #[EventTag('customerConcert')]
+    public function customerConcert(): string
+    {
+        return CustomerConcertSeats::scopeOf(customerId: $this->customerId, concertId: $this->concertId);
     }
 }

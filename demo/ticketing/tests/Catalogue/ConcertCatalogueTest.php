@@ -24,6 +24,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
@@ -323,7 +324,7 @@ final class ConcertCatalogueTest extends KernelTestCase
                 ServiceConfiguration::createWithDefaults()->withServiceName('storefront'),
                 DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticketing', channelName: 'ticketing'),
             ],
-            enabledModules: [],
+            enabledModules: [ModulePackageList::JMS_CONVERTER_PACKAGE],
             pathToRootCatalog: dirname(__DIR__, 2),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

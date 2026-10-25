@@ -38,12 +38,12 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderB
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseRequestBodyBuilder;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
 
@@ -177,12 +177,12 @@ final class DbalDeadLetterModule implements AnnotationModule
         $configuration->registerMessageHandler(
             MessageProcessorActivatorBuilder::createForMethod(PulseDeadLetterActions::class, $interfaceToCallRegistry->getFor(PulseDeadLetterActions::class, 'replay'))
                 ->withInputChannelName(self::PULSE_REPLAY_CHANNEL)
-                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot, ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class)])
+                ->withMethodParameterConverters([PulseRequestBodyBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot, ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class)])
         );
         $configuration->registerMessageHandler(
             MessageProcessorActivatorBuilder::createForMethod(PulseDeadLetterActions::class, $interfaceToCallRegistry->getFor(PulseDeadLetterActions::class, 'delete'))
                 ->withInputChannelName(self::PULSE_DELETE_CHANNEL)
-                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
+                ->withMethodParameterConverters([PulseRequestBodyBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
         );
     }
 

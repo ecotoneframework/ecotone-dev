@@ -71,7 +71,6 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
@@ -79,6 +78,7 @@ use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\Distribution\DistributedMessageHandler;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseRequestBodyBuilder;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
 use Ecotone\Projecting\ProjectionOperationEndpoint;
@@ -278,17 +278,17 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         $messagingConfiguration->registerMessageHandler(
             MessageProcessorActivatorBuilder::createForMethod(PulseProjectionActions::class, $interfaceToCallRegistry->getFor(PulseProjectionActions::class, 'rebuild'))
                 ->withInputChannelName(PulseProjectionActions::ROUTING_KEY)
-                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
+                ->withMethodParameterConverters([PulseRequestBodyBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
         );
         $messagingConfiguration->registerMessageHandler(
             MessageProcessorActivatorBuilder::createForMethod(PulseProjectionActions::class, $interfaceToCallRegistry->getFor(PulseProjectionActions::class, 'backfill'))
                 ->withInputChannelName(PulseProjectionActions::BACKFILL_ROUTING_KEY)
-                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
+                ->withMethodParameterConverters([PulseRequestBodyBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
         );
         $messagingConfiguration->registerMessageHandler(
             MessageProcessorActivatorBuilder::createForMethod(PulseTrackings::class, $interfaceToCallRegistry->getFor(PulseTrackings::class, 'list'))
                 ->withInputChannelName(PulseTrackings::ROUTING_KEY)
-                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), HeaderBuilder::createOptional('queryId', PulseTrackings::QUERY_ID_HEADER), $snapshot])
+                ->withMethodParameterConverters([PulseRequestBodyBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), HeaderBuilder::createOptional('queryId', PulseTrackings::QUERY_ID_HEADER), $snapshot])
         );
     }
 
@@ -298,7 +298,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         $sourceService = HeaderBuilder::createOptional('sourceService', DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME);
         $snapshot = ReferenceBuilder::create('snapshot', PulseSnapshot::class);
         $queryId = HeaderBuilder::createOptional('queryId', PulseTraceQueries::QUERY_ID_HEADER);
-        $converters = $serviceClass === PulseTracesNotConfigured::class ? [$sourceService, $snapshot] : [PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $queryId, $snapshot];
+        $converters = $serviceClass === PulseTracesNotConfigured::class ? [$sourceService, $snapshot] : [PulseRequestBodyBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $queryId, $snapshot];
         foreach ([PulseTraceQueries::LIST_ROUTING_KEY => $listMethod, PulseTraceQueries::TRACE_ROUTING_KEY => $traceMethod] as $channel => $method) {
             $messagingConfiguration->registerMessageHandler(
                 MessageProcessorActivatorBuilder::createForMethod($serviceClass, $interfaceToCallRegistry->getFor($serviceClass, $method))

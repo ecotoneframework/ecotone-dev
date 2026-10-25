@@ -44,8 +44,13 @@ announced to the storefront as `concert.scheduled`, `concert.sales_opened` and `
 Ticketing holds, releases, expires and sells the seats of a concert on sale under a Dynamic Consistency Boundary:
 `SeatHeld`, `HoldReleased`, `HoldExpired` and `SeatSold` are tagged by concert, seat and customer and appended to
 `ecotone_event_stream` by handlers that decide on two decision models, `SeatAvailability` (one live hold per seat) and
-`CustomerConcertSeats` (at most 4 seats per customer and concert), with the `Concert` fetched read-only. A conflict is
-retried three times; an exhausted one is refused with "someone was faster". A hold expires after
+`CustomerConcertSeats` (at most 4 seats per customer and concert). The customer limit is scoped by one
+`customerConcert` tag rather than by `customer` and `concert` together, because a model scoped by `concert` would make
+every hold of a concert conflict with every other; `concert` stays on each event, captured by no model, as the
+projections' key. The concert's status, seats and prices are read through `concert.detail`, not guarded, until Ecotone
+can guard a fetched aggregate without bumping its counter, so a hold racing a cancellation can succeed and the
+cancellation then releases it. A conflict is retried three times on the command bus; an exhausted one is refused with
+"someone was faster". A hold expires after
 `TICKETING_HOLD_SECONDS` (600 by default), through a delayed message on `ticketing_async`. The storefront drives it with
 `tickets.hold`, `tickets.release` and `tickets.confirm` over the Distributed Bus, and gets `tickets.hold.result` and
 `tickets.confirm.result` replies. Each concert has a seat map at `/concerts/{concertId}/seats` on the ticketing URL,

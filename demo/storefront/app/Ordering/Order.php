@@ -93,8 +93,14 @@ final class Order extends Model
     #[CommandHandler]
     public function markSeatHeld(MarkSeatHeld $command): void
     {
-        $this->assertAccepts('MarkSeatHeld', ...self::OPEN_STATUSES);
         $this->assertSeatOfThisConcert($command->seatId, 'MarkSeatHeld');
+        if (! in_array($this->status, self::OPEN_STATUSES, true)) {
+            if (! in_array($command->seatId, $this->heldSeatIds(), true)) {
+                $this->recordThat(new SeatReleased(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId));
+            }
+
+            return;
+        }
         try {
             if (trim($command->expiresAt) === '') {
                 throw new Exception();
@@ -114,7 +120,9 @@ final class Order extends Model
     #[CommandHandler]
     public function recordSeatRefusal(RecordSeatRefusal $command): void
     {
-        $this->assertAccepts('RecordSeatRefusal', ...self::OPEN_STATUSES);
+        if (! in_array($this->status, self::OPEN_STATUSES, true)) {
+            return;
+        }
         $this->last_refusal = ['seatId' => $command->seatId, 'reason' => $command->reason];
     }
 
@@ -162,7 +170,29 @@ final class Order extends Model
     #[CommandHandler]
     public function markTicketsIssued(MarkTicketsIssued $command): void
     {
-        $this->assertNotFinal('MarkTicketsIssued');
+        if ($this->status === OrderStatus::TICKETS_ISSUED) {
+            if ($command->tickets === $this->tickets) {
+                return;
+            }
+
+            throw new DomainException(sprintf(
+                'Order %s already has tickets %s issued, but this tickets.issued carries tickets %s, so the storefront cannot tell which ones the customer holds. Keep the issued ones by deleting this message from the dead letters in Ecotone Pulse or with php artisan ecotone:deadletter:delete <messageId>, and void tickets %s in ticketing.',
+                $this->id,
+                self::ticketNumbersOf($this->tickets),
+                self::ticketNumbersOf($command->tickets),
+                self::ticketNumbersOf($command->tickets),
+            ));
+        }
+        if ($this->status === OrderStatus::FAILED) {
+            throw new DomainException(sprintf(
+                'Order %s failed (%s) and %s, so tickets %s that ticketing issued for it are not recorded. Void tickets %s in ticketing, then delete this message from the dead letters in Ecotone Pulse or with php artisan ecotone:deadletter:delete <messageId>.',
+                $this->id,
+                $this->failure_reason,
+                $this->payment_reference === null ? 'it was never paid' : 'its payment is refunded',
+                self::ticketNumbersOf($command->tickets),
+                self::ticketNumbersOf($command->tickets),
+            ));
+        }
         if ($this->status !== OrderStatus::PAID) {
             throw new DomainException(sprintf('Order %s is %s, not paid, so its tickets cannot be issued. Pay for it first: send %s.', $this->id, $this->status->value, match ($this->status) {
                 OrderStatus::STARTED => 'MarkSeatHeld, then BeginPayment, then MarkPaid with the payment reference',
@@ -190,6 +220,11 @@ final class Order extends Model
     public function heldSeatIds(): array
     {
         return array_column($this->held_seats, 'seatId');
+    }
+
+    private static function ticketNumbersOf(array $tickets): string
+    {
+        return implode(', ', array_column($tickets, 'ticketNumber'));
     }
 
     private function dropHeldSeat(string $seatId): void

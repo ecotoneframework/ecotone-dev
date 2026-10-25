@@ -464,8 +464,6 @@ final class OrderLifecycleTest extends TestCase
 
     public static function refusedCommands(): iterable
     {
-        $markSeatHeld = fn (string $orderId) => new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', expiresAt: self::EXPIRES_AT);
-        $recordSeatRefusal = fn (string $orderId) => new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', reason: 'someone was faster: seat A-2');
         $releaseSeat = fn (string $orderId) => new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1');
         $beginPayment = fn (string $orderId) => new BeginPayment(orderId: $orderId);
         $markPaid = fn (string $orderId) => new MarkPaid(orderId: $orderId, paymentReference: 'pay_456');
@@ -477,25 +475,20 @@ final class OrderLifecycleTest extends TestCase
         yield 'MarkTicketsIssued on a started order' => ['started', $markTicketsIssued, 'Order %s is started, not paid, so its tickets cannot be issued. Pay for it first: send MarkSeatHeld, then BeginPayment, then MarkPaid with the payment reference.'];
         yield 'MarkPaid on a seats_held order' => ['seats_held', $markPaid, 'Order %s is seats_held, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
         yield 'MarkTicketsIssued on a seats_held order' => ['seats_held', $markTicketsIssued, 'Order %s is seats_held, not paid, so its tickets cannot be issued. Pay for it first: send BeginPayment, then MarkPaid with the payment reference.'];
-        yield 'RecordSeatRefusal on a paying order' => ['paying', $recordSeatRefusal, 'Order %s is paying, so RecordSeatRefusal cannot be applied to it. RecordSeatRefusal is accepted only while the order is started or seats_held.'];
         yield 'ReleaseSeat on a paying order' => ['paying', $releaseSeat, 'Order %s is paying, so ReleaseSeat cannot be applied to it. ReleaseSeat is accepted only while the order is started or seats_held.'];
         yield 'ReleaseSeat on a paid order' => ['paid', $releaseSeat, 'Order %s is paid, so ReleaseSeat cannot be applied to it. ReleaseSeat is accepted only while the order is started or seats_held.'];
         yield 'ReleaseSeat on a failed order' => ['failed', $releaseSeat, 'Order %s is failed, so ReleaseSeat cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
-        yield 'MarkSeatHeld on a paying order' => ['paying', $markSeatHeld, 'Order %s is paying, so MarkSeatHeld cannot be applied to it. MarkSeatHeld is accepted only while the order is started or seats_held.'];
         yield 'BeginPayment on a paying order' => ['paying', $beginPayment, 'Order %s is paying, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
         yield 'MarkTicketsIssued on a paying order' => ['paying', $markTicketsIssued, 'Order %s is paying, not paid, so its tickets cannot be issued. Pay for it first: send MarkPaid with the payment reference.'];
-        yield 'MarkSeatHeld on a paid order' => ['paid', $markSeatHeld, 'Order %s is paid, so MarkSeatHeld cannot be applied to it. MarkSeatHeld is accepted only while the order is started or seats_held.'];
         yield 'BeginPayment on a paid order' => ['paid', $beginPayment, 'Order %s is paid, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
         yield 'MarkPaid on a paid order' => ['paid', $markPaid, 'Order %s is paid, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
-        yield 'MarkSeatHeld on a tickets_issued order' => ['tickets_issued', $markSeatHeld, 'Order %s already has its tickets issued, so MarkSeatHeld cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
         yield 'BeginPayment on a tickets_issued order' => ['tickets_issued', $beginPayment, 'Order %s already has its tickets issued, so BeginPayment cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
         yield 'MarkPaid on a tickets_issued order' => ['tickets_issued', $markPaid, 'Order %s already has its tickets issued, so MarkPaid cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
-        yield 'MarkTicketsIssued on a tickets_issued order' => ['tickets_issued', $markTicketsIssued, 'Order %s already has its tickets issued, so MarkTicketsIssued cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
+        yield 'MarkTicketsIssued with other tickets on a tickets_issued order' => ['tickets_issued', $markTicketsIssued, 'Order %s already has tickets T-0001 issued, but this tickets.issued carries tickets T-1, so the storefront cannot tell which ones the customer holds. Keep the issued ones by deleting this message from the dead letters in Ecotone Pulse or with php artisan ecotone:deadletter:delete <messageId>, and void tickets T-1 in ticketing.'];
         yield 'FailOrder on a tickets_issued order' => ['tickets_issued', $failOrder, 'Order %s already has its tickets issued, so FailOrder cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
-        yield 'MarkSeatHeld on a failed order' => ['failed', $markSeatHeld, 'Order %s is failed, so MarkSeatHeld cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
         yield 'BeginPayment on a failed order' => ['failed', $beginPayment, 'Order %s is failed, so BeginPayment cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
         yield 'MarkPaid on a failed order' => ['failed', $markPaid, 'Order %s is failed, so MarkPaid cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
-        yield 'MarkTicketsIssued on a failed order' => ['failed', $markTicketsIssued, 'Order %s is failed, so MarkTicketsIssued cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
+        yield 'MarkTicketsIssued on a failed order' => ['failed', $markTicketsIssued, 'Order %s failed (Payment declined) and it was never paid, so tickets T-1 that ticketing issued for it are not recorded. Void tickets T-1 in ticketing, then delete this message from the dead letters in Ecotone Pulse or with php artisan ecotone:deadletter:delete <messageId>.'];
         yield 'FailOrder on a failed order' => ['failed', $failOrder, 'Order %s is failed, so FailOrder cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
     }
 

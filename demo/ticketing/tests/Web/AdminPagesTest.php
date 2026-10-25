@@ -239,7 +239,7 @@ final class AdminPagesTest extends WebTestCase
         $client = static::createClient();
         /** @var ManagerRegistry $doctrine */
         $doctrine = static::getContainer()->get('doctrine');
-        $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues');
+        $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues, messenger_messages');
         $application = new Application($client->getKernel());
         $application->setAutoExit(false);
         self::assertSame(0, $application->run(new ArrayInput(['command' => 'demo:seed']), new NullOutput()));

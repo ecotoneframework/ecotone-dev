@@ -11,8 +11,13 @@ use App\Payment\Pay;
 use App\Payment\PaymentAttempts;
 use App\Payment\PaymentProvider;
 use DomainException;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Interceptor\Precedence;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
@@ -31,7 +36,20 @@ final class PaymentTest extends StorefrontFlowTestCase
 
     protected function storefrontServices(): array
     {
-        return [Checkout::class, PaymentProvider::class, PaymentAttempts::class];
+        $commitFailure = new class () {
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1, pointcut: CommandBus::class)]
+            public function failBeforeCommit(MethodInvocation $invocation, #[Headers] array $headers): mixed
+            {
+                $result = $invocation->proceed();
+                if (isset($headers['failBeforeCommit'])) {
+                    throw new RuntimeException('the commit failed');
+                }
+
+                return $result;
+            }
+        };
+
+        return [Checkout::class, PaymentProvider::class, PaymentAttempts::class, $commitFailure::class];
     }
 
     public function test_paying_moves_the_order_to_paying_until_the_card_is_charged(): void
@@ -130,8 +148,28 @@ final class PaymentTest extends StorefrontFlowTestCase
         $this->charge();
 
         $this->storefront->getCommandBus()->send(new FailOrder(orderId: $orderId, reason: 'someone was faster: seat A-12'));
+        $this->storefrontAsyncRuns();
 
         self::assertSame('refunded', $this->storefront->sendQueryWithRouting('payment.status', $this->order($orderId)['paymentReference']));
+    }
+
+    public function test_a_paid_order_whose_failure_does_not_commit_is_not_refunded(): void
+    {
+        $orderId = $this->orderWithHeldSeat();
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, cardNumber: '4242424242424242'));
+        $this->charge();
+
+        try {
+            $this->storefront->getCommandBus()->send(new FailOrder(orderId: $orderId, reason: 'someone was faster: seat A-12'), metadata: ['failBeforeCommit' => true]);
+            self::fail('FailOrder committed');
+        } catch (RuntimeException $failure) {
+            self::assertSame('the commit failed', $failure->getMessage());
+        }
+        $this->storefrontAsyncRuns();
+
+        $order = $this->order($orderId);
+        self::assertSame('paid', $order['status']);
+        self::assertSame('charged', $this->storefront->sendQueryWithRouting('payment.status', $order['paymentReference']));
     }
 
     public function test_a_payment_reference_never_charged_has_no_status(): void

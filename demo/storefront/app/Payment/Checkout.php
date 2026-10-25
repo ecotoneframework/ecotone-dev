@@ -44,7 +44,8 @@ final class Checkout
         });
     }
 
-    #[EventHandler]
+    #[Asynchronous('storefront_async')]
+    #[EventHandler(endpointId: 'refund_failed_order')]
     public function refundFailedOrder(OrderFailed $event, #[Reference] PaymentProvider $paymentProvider): void
     {
         if ($event->paymentReference !== null) {

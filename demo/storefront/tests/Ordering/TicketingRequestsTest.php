@@ -11,12 +11,68 @@ use App\Ordering\MarkSeatHeld;
 use App\Ordering\ReleaseSeat;
 use App\Ordering\RequestSeat;
 use DomainException;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Interceptor\Precedence;
+use RuntimeException;
 
 /**
  * @internal
  */
 final class TicketingRequestsTest extends StorefrontFlowTestCase
 {
+    protected function storefrontServices(): array
+    {
+        $commitFailure = new class () {
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1, pointcut: CommandBus::class)]
+            public function failBeforeCommit(MethodInvocation $invocation, #[Headers] array $headers): mixed
+            {
+                $result = $invocation->proceed();
+                if (isset($headers['failBeforeCommit'])) {
+                    throw new RuntimeException('the commit failed');
+                }
+
+                return $result;
+            }
+        };
+
+        return [$commitFailure::class];
+    }
+
+    public function test_a_paid_order_whose_commit_fails_sends_nothing_to_ticketing(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
+        $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId));
+
+        try {
+            $this->storefront->getCommandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'), metadata: ['failBeforeCommit' => true]);
+            self::fail('MarkPaid committed');
+        } catch (RuntimeException $failure) {
+            self::assertSame('the commit failed', $failure->getMessage());
+        }
+
+        self::assertSame('paying', $this->order($orderId)['status']);
+        self::assertSame([], $this->ticketingReceives());
+    }
+
+    public function test_a_paid_order_reaches_ticketing_once_its_commit_is_followed_by_storefront_async(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
+        $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId));
+
+        $this->storefront->getCommandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
+        $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame([], $this->ticketingService->received);
+        self::assertSame(['tickets.confirm'], array_column($this->ticketingReceives(), 0));
+        self::assertSame([], $this->ticketingReceives());
+    }
+
     public function test_requesting_a_seat_sends_tickets_hold_to_ticketing_with_the_concert_and_order_headers(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');

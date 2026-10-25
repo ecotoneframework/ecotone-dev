@@ -24,6 +24,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Laravel\LaravelConnectionReference;
+use Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\StateStoredRepository;
@@ -53,10 +54,10 @@ abstract class StorefrontFlowTestCase extends TestCase
         DB::table('orders')->delete();
         DB::table('customers')->delete();
         DB::table('concerts')->delete();
+        DB::table('jobs')->delete();
         $this->channels = [
             SimpleMessageChannelBuilder::createQueueChannel('storefront'),
             SimpleMessageChannelBuilder::createQueueChannel('ticketing'),
-            SimpleMessageChannelBuilder::createQueueChannel('storefront_async'),
             SimpleMessageChannelBuilder::createQueueChannel('ecotone_pulse'),
         ];
         $this->storefront = $this->storefront();
@@ -83,11 +84,17 @@ abstract class StorefrontFlowTestCase extends TestCase
 
     protected function ticketingReceives(): array
     {
+        $this->storefrontAsyncRuns();
         $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $received = $this->ticketingService->received;
         $this->ticketingService->received = [];
 
         return $received;
+    }
+
+    protected function storefrontAsyncRuns(): void
+    {
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup());
     }
 
     protected function storefrontConsumes(): void
@@ -134,6 +141,7 @@ abstract class StorefrontFlowTestCase extends TestCase
             containerOrAvailableServices: $this->app,
             extensionObjects: [
                 ...$this->channels,
+                LaravelQueueMessageChannelBuilder::create('storefront_async', 'database'),
                 LaravelConnectionReference::defaultConnection('pgsql'),
                 LaravelConnectionReference::create('payment_provider', PaymentAttempts::CONNECTION),
             ],

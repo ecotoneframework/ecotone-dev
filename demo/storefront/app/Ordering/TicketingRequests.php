@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ordering;
 
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\MediaType;
@@ -11,7 +12,8 @@ use Ecotone\Api\Gateway\DistributedBus;
 
 final class TicketingRequests
 {
-    #[EventHandler]
+    #[Asynchronous('storefront_async')]
+    #[EventHandler(endpointId: 'hold_requested_seat')]
     public function holdRequestedSeat(SeatRequested $event, #[Reference] DistributedBus $distributedBus): void
     {
         $this->send($distributedBus, 'tickets.hold', $event->orderId, $event->concertId, [
@@ -22,13 +24,15 @@ final class TicketingRequests
         ], replyRoutingKey: 'tickets.hold.result');
     }
 
-    #[EventHandler]
+    #[Asynchronous('storefront_async')]
+    #[EventHandler(endpointId: 'release_seat')]
     public function releaseSeat(SeatReleased $event, #[Reference] DistributedBus $distributedBus): void
     {
         $this->sendRelease($distributedBus, $event->orderId, $event->concertId, $event->customerId, $event->seatId);
     }
 
-    #[EventHandler]
+    #[Asynchronous('storefront_async')]
+    #[EventHandler(endpointId: 'release_seats_of_failed_order')]
     public function releaseSeatsOfFailedOrder(OrderFailed $event, #[Reference] DistributedBus $distributedBus): void
     {
         foreach ($event->heldSeatIds as $seatId) {
@@ -36,7 +40,8 @@ final class TicketingRequests
         }
     }
 
-    #[EventHandler]
+    #[Asynchronous('storefront_async')]
+    #[EventHandler(endpointId: 'confirm_paid_seats')]
     public function confirmPaidSeats(OrderPaid $event, #[Reference] DistributedBus $distributedBus): void
     {
         $this->send($distributedBus, 'tickets.confirm', $event->orderId, $event->concertId, [

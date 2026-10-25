@@ -89,6 +89,7 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
         $this->ticketingService->confirmReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'outcome' => 'refused', 'reason' => 'the hold of seat A-12 expired', 'seatIds' => [self::CONCERT_ID . '/A-12']];
 
         $this->ticketingReplies();
+        $this->storefrontAsyncRuns();
 
         $order = $this->order($orderId);
         self::assertSame('failed', $order['status']);

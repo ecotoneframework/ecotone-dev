@@ -15,27 +15,69 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
+        <env name="APP_ENV" value="testing" force="true"/>
         <server name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_DEBUG" value="true" force="true"/>
+        <server name="APP_DEBUG" value="true" force="true"/>
+        <env name="APP_URL" value="http://localhost" force="true"/>
         <server name="APP_URL" value="http://localhost" force="true"/>
+        <env name="APP_KEY" value="base64:ZGVtby1zdG9yZWZyb250LXRlc3Qta2V5LTMyLWJ5dGU=" force="true"/>
+        <server name="APP_KEY" value="base64:ZGVtby1zdG9yZWZyb250LXRlc3Qta2V5LTMyLWJ5dGU=" force="true"/>
+        <env name="APP_PREVIOUS_KEYS" value="" force="true"/>
+        <server name="APP_PREVIOUS_KEYS" value="" force="true"/>
         <env name="APP_CONFIG_CACHE" value="bootstrap/cache/config.testing.php" force="true"/>
-        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
-        <env name="BCRYPT_ROUNDS" value="4"/>
-        <env name="BROADCAST_CONNECTION" value="null"/>
-        <env name="CACHE_STORE" value="array"/>
+        <server name="APP_CONFIG_CACHE" value="bootstrap/cache/config.testing.php" force="true"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
+        <server name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
+        <env name="APP_MAINTENANCE_STORE" value="array" force="true"/>
+        <server name="APP_MAINTENANCE_STORE" value="array" force="true"/>
+        <env name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <server name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <env name="BROADCAST_CONNECTION" value="null" force="true"/>
+        <server name="BROADCAST_CONNECTION" value="null" force="true"/>
         <env name="DB_CONNECTION" value="pgsql" force="true"/>
-        <env name="DB_DATABASE" value="storefront_test" force="true"/>
         <server name="DB_CONNECTION" value="pgsql" force="true"/>
+        <env name="DB_URL" value="" force="true"/>
+        <server name="DB_URL" value="" force="true"/>
+        <env name="DB_HOST" value="postgres" force="true"/>
+        <server name="DB_HOST" value="postgres" force="true"/>
+        <env name="DB_PORT" value="5432" force="true"/>
+        <server name="DB_PORT" value="5432" force="true"/>
+        <env name="DB_DATABASE" value="storefront_test" force="true"/>
         <server name="DB_DATABASE" value="storefront_test" force="true"/>
-        <env name="DATABASE_DSN" value="pgsql://ecotone:secret@postgres:5432/storefront_test"/>
+        <env name="DB_USERNAME" value="ecotone" force="true"/>
+        <server name="DB_USERNAME" value="ecotone" force="true"/>
+        <env name="DB_PASSWORD" value="secret" force="true"/>
+        <server name="DB_PASSWORD" value="secret" force="true"/>
+        <env name="DATABASE_DSN" value="pgsql://ecotone:secret@postgres:5432/storefront_test" force="true"/>
+        <server name="DATABASE_DSN" value="pgsql://ecotone:secret@postgres:5432/storefront_test" force="true"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <server name="CACHE_STORE" value="array" force="true"/>
+        <env name="DB_CACHE_CONNECTION" value="" force="true"/>
+        <server name="DB_CACHE_CONNECTION" value="" force="true"/>
+        <env name="DB_CACHE_LOCK_CONNECTION" value="" force="true"/>
+        <server name="DB_CACHE_LOCK_CONNECTION" value="" force="true"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <server name="SESSION_DRIVER" value="array" force="true"/>
+        <env name="SESSION_CONNECTION" value="" force="true"/>
+        <server name="SESSION_CONNECTION" value="" force="true"/>
+        <env name="SESSION_STORE" value="" force="true"/>
+        <server name="SESSION_STORE" value="" force="true"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <server name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="DB_QUEUE_CONNECTION" value="" force="true"/>
+        <server name="DB_QUEUE_CONNECTION" value="" force="true"/>
+        <env name="QUEUE_FAILED_DRIVER" value="null" force="true"/>
+        <server name="QUEUE_FAILED_DRIVER" value="null" force="true"/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
+        <server name="MAIL_MAILER" value="array" force="true"/>
+        <env name="FILESYSTEM_DISK" value="local" force="true"/>
+        <server name="FILESYSTEM_DISK" value="local" force="true"/>
+        <env name="LOG_CHANNEL" value="null" force="true"/>
+        <server name="LOG_CHANNEL" value="null" force="true"/>
         <env name="DEMO_PULSE_URL" value="http://localhost:8080" force="true"/>
-        <env name="DEMO_JAEGER_URL" value="http://localhost:16686" force="true"/>
         <server name="DEMO_PULSE_URL" value="http://localhost:8080" force="true"/>
+        <env name="DEMO_JAEGER_URL" value="http://localhost:16686" force="true"/>
         <server name="DEMO_JAEGER_URL" value="http://localhost:16686" force="true"/>
-        <env name="DB_URL" value=""/>
-        <env name="MAIL_MAILER" value="array"/>
-        <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="SESSION_DRIVER" value="array"/>
-        <env name="APP_KEY" value="base64:ZGVtby1zdG9yZWZyb250LXRlc3Qta2V5LTMyLWJ5dGU="/>
     </php>
 </phpunit>

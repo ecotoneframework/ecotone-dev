@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
@@ -14,7 +15,10 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromTaggedStream;
@@ -62,7 +66,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
     public function test_a_projection_partitioned_by_a_tag_keeps_its_state_per_value_of_the_tag(string $implementation): void
     {
         $projection = $this->concertSeatsProjection();
-        $ecotone = $this->bootstrap($implementation, $projection);
+        $ecotone = $this->bootstrap($implementation, [$projection]);
 
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
@@ -76,7 +80,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
     public function test_triggering_a_deleted_projection_replays_every_value_of_the_tag(string $implementation): void
     {
         $projection = $this->concertSeatsProjection();
-        $ecotone = $this->bootstrap($implementation, $projection);
+        $ecotone = $this->bootstrap($implementation, [$projection]);
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A2'));
@@ -94,7 +98,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
     public function test_an_event_carrying_several_values_of_the_tag_reaches_each_of_their_partitions_once(string $implementation): void
     {
         $projection = $this->concertSeatsProjection();
-        $ecotone = $this->bootstrap($implementation, $projection);
+        $ecotone = $this->bootstrap($implementation, [$projection]);
 
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
         $ecotone->sendCommand(new SellFestivalPassForTaggedProjection('concert-1', ['concert-1', 'concert-2'], 'pass-1'));
@@ -107,7 +111,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
     public function test_rebuilding_resets_and_replays_each_value_of_the_tag_on_its_own(string $implementation): void
     {
         $projection = $this->concertSeatsProjection();
-        $ecotone = $this->bootstrap($implementation, $projection);
+        $ecotone = $this->bootstrap($implementation, [$projection]);
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
         $ecotone->sendCommand(new SellFestivalPassForTaggedProjection('concert-2', ['concert-1', 'concert-2'], 'pass-1'));
@@ -123,7 +127,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
     public function test_backfilling_a_deleted_projection_projects_every_value_of_the_tag(string $implementation): void
     {
         $projection = $this->concertSeatsProjection();
-        $ecotone = $this->bootstrap($implementation, $projection);
+        $ecotone = $this->bootstrap($implementation, [$projection]);
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
         $ecotone->deleteProjection('concert_seats');
@@ -132,6 +136,67 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'concert_seats']);
 
         self::assertSame(['concert-1' => ['A1'], 'concert-2' => ['B1']], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_an_asynchronous_projection_partitioned_by_a_tag_projects_once_its_channel_runs(string $implementation): void
+    {
+        $seats = $this->concertSeatsProjection();
+        $sales = $this->concertSalesProjection();
+        $ecotone = $this->bootstrap(
+            $implementation,
+            [$seats, $sales],
+            [SimpleMessageChannelBuilder::createQueueChannel('concert_projections', conversionMediaType: MediaType::createApplicationXPHPSerialized())],
+        );
+
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
+        $ecotone->sendCommand(new SellFestivalPassForTaggedProjection('concert-1', ['concert-1', 'concert-2'], 'pass-1'));
+
+        self::assertSame(['concert-1' => ['A1', 'pass-1'], 'concert-2' => ['pass-1']], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
+        self::assertSame([], $ecotone->sendQueryWithRouting('concert.sales'));
+
+        $ecotone->run('concert_projections', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['concert-1' => 2, 'concert-2' => 1], $ecotone->sendQueryWithRouting('concert.sales'));
+    }
+
+    private function concertSalesProjection(): object
+    {
+        return new #[Projection('concert_sales'), FromTaggedStream('concert'), Partitioned, Asynchronous('concert_projections')] class () {
+            public array $sales = [];
+
+            #[EventHandler]
+            public function whenReserved(SeatReservedForTaggedProjection $event, #[PartitionTagValue] string $concertId): void
+            {
+                $this->sales[$concertId] = ($this->sales[$concertId] ?? 0) + 1;
+            }
+
+            #[EventHandler]
+            public function whenPassSold(FestivalPassSoldForTaggedProjection $event, #[PartitionTagValue] string $concertId): void
+            {
+                $this->sales[$concertId] = ($this->sales[$concertId] ?? 0) + 1;
+            }
+
+            #[QueryHandler('concert.sales')]
+            public function sales(): array
+            {
+                ksort($this->sales);
+
+                return $this->sales;
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionTagValue] string $concertId): void
+            {
+                unset($this->sales[$concertId]);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->sales = [];
+            }
+        };
     }
 
     private function concertSeatsProjection(): object
@@ -211,7 +276,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         };
     }
 
-    private function bootstrap(string $implementation, object ...$projections): FlowTestSupport
+    private function bootstrap(string $implementation, array $projections, array $extensionObjects = []): FlowTestSupport
     {
         $seatReservations = new class () {
             #[CommandHandler]
@@ -289,7 +354,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             return EcotoneLite::bootstrapFlowTesting(
                 classesToResolve: $classesToResolve,
                 containerOrAvailableServices: $services,
-                extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
+                extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults(), ...$extensionObjects],
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );
         }
@@ -299,6 +364,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             containerOrAvailableServices: [...$services, DbalConnectionFactory::class => self::getConnectionFactory()],
             extensionObjects: [
                 DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
+                ...$extensionObjects,
                 $implementation === 'in-memory' ? EventSourcingConfiguration::createInMemory() : EventSourcingConfiguration::createWithDefaults(),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],

@@ -42,10 +42,10 @@ use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Symfony\SymfonyConnectionReference;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Ecotone\Api\Scheduling\Duration;
 use Symfony\Component\Uid\Uuid;
 
 /**

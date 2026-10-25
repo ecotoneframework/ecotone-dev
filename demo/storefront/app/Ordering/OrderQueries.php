@@ -17,7 +17,31 @@ final class OrderQueries
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get()
-            ->map(fn (Order $order) => ['orderId' => $order->id, 'concertId' => $order->concert_id, 'status' => $order->status->value, 'seatIds' => $order->seat_ids])
+            ->map(fn (Order $order) => ['orderId' => $order->id, 'concertId' => $order->concert_id, 'status' => $order->status->value, 'seatIds' => $order->heldSeatIds()])
+            ->all();
+    }
+
+    #[QueryHandler('customer.open_order')]
+    public function openOrderOf(array $query): ?string
+    {
+        return Order::query()
+            ->where('customer_id', $query['customerId'])
+            ->where('concert_id', $query['concertId'])
+            ->whereIn('status', Order::OPEN_STATUSES)
+            ->value('id');
+    }
+
+    #[QueryHandler('concert.taken_seats')]
+    public function seatsTakenByOtherOrders(array $query): array
+    {
+        return Order::query()
+            ->where('concert_id', $query['concertId'])
+            ->where('status', '<>', OrderStatus::FAILED)
+            ->when($query['excludingOrderId'] !== null, fn ($orders) => $orders->where('id', '<>', $query['excludingOrderId']))
+            ->get()
+            ->flatMap(fn (Order $order) => $order->heldSeatIds())
+            ->unique()
+            ->values()
             ->all();
     }
 
@@ -31,9 +55,11 @@ final class OrderQueries
             'customerId' => $order->customer_id,
             'concertId' => $order->concert_id,
             'status' => $order->status->value,
-            'seatIds' => $order->seat_ids,
+            'heldSeats' => $order->held_seats,
+            'lastRefusal' => $order->last_refusal,
             'paymentReference' => $order->payment_reference,
             'failureReason' => $order->failure_reason,
+            'tickets' => $order->tickets,
         ];
     }
 }

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Infrastructure;
 
+use Doctrine\DBAL\Exception\RetryableException;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration;
 use Ecotone\Api\Pulse\PulseConfiguration;
@@ -28,6 +30,13 @@ final class EcotoneConfiguration
     {
         return DbalConfiguration::createWithDefaults()
             ->withDeadLetter(true);
+    }
+
+    #[ServiceContext]
+    public function instantRetriesForTransientDatabaseErrorsOnly(): InstantRetryConfiguration
+    {
+        return InstantRetryConfiguration::createWithDefaults()
+            ->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: 3, retryExceptions: [RetryableException::class]);
     }
 
     #[ServiceContext]

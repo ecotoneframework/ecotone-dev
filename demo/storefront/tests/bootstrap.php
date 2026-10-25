@@ -14,6 +14,10 @@ if (($_SERVER['ECOTONE_LICENCE_KEY'] ?? getenv('ECOTONE_LICENCE_KEY')) == false)
     putenv('ECOTONE_LICENCE_KEY=' . LicenceTesting::VALID_LICENCE);
 }
 
+$testProcessApplicationName = 'storefront_tests_' . getmypid();
+$_SERVER['DB_APPLICATION_NAME'] = $_ENV['DB_APPLICATION_NAME'] = $testProcessApplicationName;
+putenv('DB_APPLICATION_NAME=' . $testProcessApplicationName);
+
 $storefront = require dirname(__DIR__) . '/bootstrap/app.php';
 $storefront->bootstrapWith([LoadEnvironmentVariables::class, LoadConfiguration::class]);
 $testDatabase = 'storefront_test';

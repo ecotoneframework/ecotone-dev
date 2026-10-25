@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace App\Ordering;
 
-final class MarkSeatsHeld
+final class OrderTicketsIssued
 {
-    /**
-     * @param list<string> $seatIds
-     */
     public function __construct(
         public readonly string $orderId,
-        public readonly array $seatIds,
+        public readonly string $concertId,
+        public readonly string $customerId,
     ) {
     }
 }

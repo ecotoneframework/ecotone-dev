@@ -10,6 +10,7 @@ use App\Sales\HoldSeat;
 use App\Sales\SeatRefusal;
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\ConsoleParameterOption;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\QueryBus;
@@ -23,8 +24,8 @@ final class DemoSeed
 
     private const SEATS_LEFT_UNSOLD = 3;
 
-    #[ConsoleCommand('demo:seed', 'Seeds the demo catalogue: Riverside Hall and three concerts, created only when missing, with all but three seats of Neon Harbour sold')]
-    public function seed(CommandBus $commandBus, QueryBus $queryBus, EcotoneClockInterface $clock): void
+    #[ConsoleCommand('demo:seed', 'Seeds the demo catalogue: Riverside Hall and three concerts, created only when missing, with all but three seats of Neon Harbour sold unless --catalogueOnly')]
+    public function seed(CommandBus $commandBus, QueryBus $queryBus, EcotoneClockInterface $clock, #[ConsoleParameterOption] bool $catalogueOnly = false): void
     {
         $venueId = $this->riversideHall($commandBus, $queryBus);
         $seededConcerts = array_column($queryBus->sendWithRouting('concerts.list'), null, 'artist');
@@ -47,8 +48,8 @@ final class DemoSeed
             if ($concert['onSale'] && ($seeded['status'] ?? ConcertStatus::SCHEDULED->value) === ConcertStatus::SCHEDULED->value) {
                 $commandBus->send(new OpenSales($concertId));
             }
-            if ($concert['artist'] === self::NEARLY_SOLD_OUT_ARTIST) {
-                $this->sellAllButTheLastSeats($commandBus, $queryBus, $concertId);
+            if ($concert['artist'] === self::NEARLY_SOLD_OUT_ARTIST && ! $catalogueOnly) {
+                $this->sellAllButTheLastSeats(commandBus: $commandBus, queryBus: $queryBus, concertId: $concertId);
             }
         }
     }

@@ -88,7 +88,7 @@ final class SeatMapPageTest extends WebTestCase
         $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues, messenger_messages, concert_seat_map, concert_sales_ledger');
         $application = new Application($client->getKernel());
         $application->setAutoExit(false);
-        self::assertSame(0, $application->run(new ArrayInput(['command' => 'demo:seed']), new NullOutput()));
+        self::assertSame(0, $application->run(new ArrayInput(['command' => 'demo:seed', '--catalogueOnly' => true]), new NullOutput()));
 
         return $client;
     }

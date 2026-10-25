@@ -242,7 +242,7 @@ final class AdminPagesTest extends WebTestCase
         $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues, messenger_messages');
         $application = new Application($client->getKernel());
         $application->setAutoExit(false);
-        self::assertSame(0, $application->run(new ArrayInput(['command' => 'demo:seed']), new NullOutput()));
+        self::assertSame(0, $application->run(new ArrayInput(['command' => 'demo:seed', '--catalogueOnly' => true]), new NullOutput()));
 
         return $client;
     }

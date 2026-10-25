@@ -200,8 +200,8 @@ final class PulseDeadLettersFromFailuresTest extends DbalMessagingTestCase
 
     private function consumeFailures(): void
     {
-        $this->orderService->run('orders', ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
-        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
+        $this->orderService->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
     }
 
     private function snapshot(): array

@@ -238,7 +238,7 @@ trait TracedServicesTrait
 
     private function consume(string $service, string $channel): void
     {
-        $this->tracedServices[$service]->run($channel, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
+        $this->tracedServices[$service]->run($channel, ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
     }
 
     private function deliverEverywhere(): void

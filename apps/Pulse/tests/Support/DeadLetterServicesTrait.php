@@ -137,7 +137,7 @@ trait DeadLetterServicesTrait
     private function failOrder(FlowTestSupport $service, string $routingKey, int $orderId): void
     {
         $service->sendCommandWithRouting($routingKey, ['orderId' => $orderId]);
-        $service->run(self::WORK_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
+        $service->run(self::WORK_CHANNEL, ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
     }
 
     private function runAllServices(): void
@@ -149,11 +149,11 @@ trait DeadLetterServicesTrait
 
     private function replayWorkOf(FlowTestSupport $service): void
     {
-        $service->run(self::WORK_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
+        $service->run(self::WORK_CHANNEL, ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
     }
 
     private function replayOtherChannelOf(FlowTestSupport $service): void
     {
-        $service->run(self::OTHER_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
+        $service->run(self::OTHER_CHANNEL, ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
     }
 }

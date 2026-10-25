@@ -86,13 +86,16 @@ one on `/whoami`, and browse `/concerts` and your orders on `/account`.
 Pick a customer on `/whoami`, open a concert that is on sale and click free seats: each click asks ticketing for a hold
 with `tickets.hold` over the Distributed Bus, and the page polls `/orders/{orderId}/state.json` every second to mark the
 seat yours (with a countdown to the hold's expiry), held by someone, or refused with ticketing's reason. Click one of
-yours to release it. The checkout charges the card on `storefront_async` through a payment stub: a card ending `0000` is
-declined and the order fails, one ending `9999` hits a provider outage on its first attempt, so the charge lands in the
-dead letters until you replay it (`php artisan ecotone:deadletter:replay <messageId>` in the storefront). Only
-transient database errors are retried on the spot, so a provider outage reaches the dead letters instead of being retried
-away, and a payment reference is charged once however often its charge runs. A paid order
-sends `tickets.confirm`; `tickets.issued` shows the tickets with their entry codes on the order page and emails them,
-and the email to Linus Bounce (`@bounce.example`) always lands in the dead letters.
+yours to release it. Every request to ticketing (`tickets.hold`, `tickets.release`, `tickets.confirm`) and every refund
+is queued on `storefront_async`, the database queue in the same transaction as the order change behind it, so it leaves
+only when that change commits. The `storefront-worker` container sends it within a fraction of a second, so a hold still
+shows on the page's next poll; with the worker stopped, clicks wait in the queue. The checkout charges the card on
+`storefront_async` through a payment stub: a card ending `0000` is declined and the order fails, one ending `9999` hits
+a provider outage on its first attempt, so the charge lands in the dead letters until you replay it (`php artisan
+ecotone:deadletter:replay <messageId>` in the storefront). Only transient database errors are retried on the spot, so a
+provider outage reaches the dead letters instead of being retried away, and a payment reference is charged once however
+often its charge runs. A paid order sends `tickets.confirm`; `tickets.issued` shows the tickets with their entry codes
+on the order page and emails them, and the email to Linus Bounce (`@bounce.example`) always lands in the dead letters.
 
 ## Tests
 

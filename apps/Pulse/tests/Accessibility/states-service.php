@@ -46,7 +46,7 @@ final class StatesService
             'setup' => ['tables' => [
                 $table('message_queue', 'Ecotone\Api\Dbal\DbalConnectionFactory', false),
                 $table('dead_letter', 'Ecotone\Api\Dbal\DbalConnectionFactory', true),
-                $table('document_store', 'reporting', null, 'could not be checked: connection refused'),
+                $table('document_store', 'reporting', null, 'connection refused'),
                 $table('deduplication', 'reporting', null, 'not checked within the budget'),
             ]],
         ], JSON_THROW_ON_ERROR);

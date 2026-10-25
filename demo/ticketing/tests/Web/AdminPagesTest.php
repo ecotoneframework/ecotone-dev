@@ -201,6 +201,39 @@ final class AdminPagesTest extends WebTestCase
         self::assertSelectorTextContains('.status', 'on sale');
     }
 
+    #[DataProvider('concertActions')]
+    public function test_an_unknown_concert_is_not_found_and_named_on_the_concerts_page(string $method, string $path, array $fields): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+        $unknownConcertId = '0195f0a0-0000-7000-8000-000000000000';
+
+        $client->request($method, str_replace('{concertId}', $unknownConcertId, $path), [...$fields, '_token' => $crawler->filter('input[name="_token"]')->attr('value')]);
+
+        self::assertResponseStatusCodeSame(404);
+        self::assertSelectorTextContains('.refusal', "There is no concert {$unknownConcertId}. Pick one from the list below.");
+        self::assertSelectorCount(3, 'table.concerts tbody tr');
+    }
+
+    #[DataProvider('concertActions')]
+    public function test_a_concert_id_that_is_not_a_uuid_is_not_found(string $method, string $path, array $fields): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+
+        $client->request($method, str_replace('{concertId}', 'not-a-uuid', $path), [...$fields, '_token' => $crawler->filter('input[name="_token"]')->attr('value')]);
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public static function concertActions(): iterable
+    {
+        yield 'show the concert' => ['GET', '/admin/concerts/{concertId}', []];
+        yield 'open sales' => ['POST', '/admin/concerts/{concertId}/open-sales', []];
+        yield 'change a tier price' => ['POST', '/admin/concerts/{concertId}/price', ['tier' => 'vip', 'priceCents' => '12000']];
+        yield 'cancel the concert' => ['POST', '/admin/concerts/{concertId}/cancel', []];
+    }
+
     private function seededClient(): KernelBrowser
     {
         $client = static::createClient();

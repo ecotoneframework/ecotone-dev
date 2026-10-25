@@ -12,6 +12,7 @@ use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchema;
 use Ecotone\EventSourcing\Tagging\AppendedTags;
 use Ecotone\EventSourcing\Tagging\TagResolver;
+use Ecotone\EventSourcing\Tagging\TagVersionChange;
 
 /**
  * licence Enterprise
@@ -67,7 +68,12 @@ final class DbalTagConditionalAppender
         $expected = $this->tables->raisingMissingTablesInstruction($eventStore, fn () => $this->bumpGuarded($connection, $appended));
 
         $eventStore->insertEventRows($connection, $schema, $streamName, $tableName, $rows);
-        $this->index->insertRows($connection, $tableName, array_column($rows, 0), $appended->sequencedAfterBump($expected));
+        $this->index->insertRows(
+            $connection,
+            $tableName,
+            array_column($rows, 0),
+            $appended->sequencedAfterBump($expected, $this->versions->currentVersions($connection, $appended->incremented())),
+        );
     }
 
     public function bumpTagsGuarded(DbalEventStore $eventStore, Connection $connection, AppendCondition $appendCondition): void
@@ -80,7 +86,7 @@ final class DbalTagConditionalAppender
     }
 
     /**
-     * @return array<string, array{name: string, value: string, expectedVersion: int, aggregateType?: string, decidedBy?: string[]}>
+     * @return array<string, array{name: string, value: string, change: TagVersionChange, expectedVersion: ?int, aggregateType?: string, decidedBy?: string[]}>
      */
     private function bumpGuarded(Connection $connection, AppendedTags $appended): array
     {

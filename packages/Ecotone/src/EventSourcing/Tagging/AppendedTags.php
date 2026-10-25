@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Tagging;
 
 use function array_diff_key;
-use function array_fill_keys;
-use function array_keys;
+use function array_filter;
+
+use const ARRAY_FILTER_USE_KEY;
+
 use function ksort;
 
 /**
@@ -32,8 +34,8 @@ final class AppendedTags
     /** @var array<string, array{name: string, value: string}> */
     private readonly array $involved;
 
-    /** @var array<string, true> */
-    private readonly array $bumped;
+    /** @var array<string, TagVersionChange> */
+    private readonly array $changes;
 
     /**
      * @param array<string, array{name: string, value: string, expectedVersion: int, decidedBy?: string[], bumpedOnAppend?: bool}> $conditionVersions
@@ -46,23 +48,28 @@ final class AppendedTags
         array $aggregateCounterTags,
         private readonly array $aggregateTypesByCounterTagKey,
         bool $bumpsEveryConditionTag,
+        bool $incrementsUncapturedTags,
     ) {
-        $involved = $eventsTags->counted();
-        $bumped = array_fill_keys(array_keys($involved), true);
+        $involved = [];
+        $changes = [];
+        foreach ($eventsTags->counted() as $key => $carriedTag) {
+            $involved[$key] = $carriedTag;
+            $changes[$key] = $incrementsUncapturedTags ? TagVersionChange::Increment : TagVersionChange::GuardedBump;
+        }
         foreach ($conditionVersions as $key => $conditionVersion) {
             $involved[$key] = ['name' => $conditionVersion['name'], 'value' => $conditionVersion['value']];
-            if ($bumpsEveryConditionTag || ($conditionVersion['bumpedOnAppend'] ?? false)) {
-                $bumped[$key] = true;
-            }
+            $changes[$key] = isset($changes[$key]) || $bumpsEveryConditionTag || ($conditionVersion['bumpedOnAppend'] ?? false)
+                ? TagVersionChange::GuardedBump
+                : TagVersionChange::Check;
         }
         foreach ($aggregateCounterTags as $key => $aggregateCounterTag) {
             $involved[$key] = $aggregateCounterTag;
-            $bumped[$key] = true;
+            $changes[$key] = TagVersionChange::GuardedBump;
         }
 
         ksort($involved);
         $this->involved = $involved;
-        $this->bumped = $bumped;
+        $this->changes = $changes;
     }
 
     public function involvesAnyTag(): bool
@@ -75,22 +82,37 @@ final class AppendedTags
      */
     public function needingCapture(): array
     {
-        return array_diff_key($this->involved, $this->conditionVersions);
+        return array_diff_key($this->involved, $this->conditionVersions, $this->incremented());
+    }
+
+    /**
+     * @return array<string, array{name: string, value: string}>
+     */
+    public function incremented(): array
+    {
+        return array_filter(
+            $this->involved,
+            fn (string $key): bool => $this->changes[$key] === TagVersionChange::Increment,
+            ARRAY_FILTER_USE_KEY,
+        );
     }
 
     /**
      * @param array<string, array{name: string, value: string, expectedVersion: int}> $captured
-     * @return array<string, array{name: string, value: string, expectedVersion: int, bumped: bool, aggregateType?: string, decidedBy?: string[]}>
+     * @return array<string, array{name: string, value: string, change: TagVersionChange, expectedVersion: ?int, aggregateType?: string, decidedBy?: string[]}>
      */
     public function expectedVersions(array $captured): array
     {
         $expected = [];
         foreach ($this->involved as $key => $tag) {
+            $change = $this->changes[$key];
             $expected[$key] = [
                 'name' => $tag['name'],
                 'value' => $tag['value'],
-                'expectedVersion' => $this->conditionVersions[$key]['expectedVersion'] ?? $captured[$key]['expectedVersion'],
-                'bumped' => isset($this->bumped[$key]),
+                'change' => $change,
+                'expectedVersion' => $change === TagVersionChange::Increment
+                    ? null
+                    : $this->conditionVersions[$key]['expectedVersion'] ?? $captured[$key]['expectedVersion'],
             ];
 
             if (isset($this->aggregateTypesByCounterTagKey[$key])) {
@@ -106,14 +128,17 @@ final class AppendedTags
     }
 
     /**
-     * @param array<string, array{name: string, value: string, expectedVersion: int}> $expectedVersions
+     * @param array<string, array{name: string, value: string, change: TagVersionChange, expectedVersion: ?int}> $expectedVersions
+     * @param array<string, int> $incrementedVersions
      * @return array<int, array<array{name: string, value: string, sequence: int}>>
      */
-    public function sequencedAfterBump(array $expectedVersions): array
+    public function sequencedAfterBump(array $expectedVersions, array $incrementedVersions): array
     {
-        $versionsAfterBump = [];
+        $versionsAfterBump = $incrementedVersions;
         foreach ($expectedVersions as $key => $expected) {
-            $versionsAfterBump[$key] = $expected['expectedVersion'] + 1;
+            if ($expected['change'] === TagVersionChange::GuardedBump) {
+                $versionsAfterBump[$key] = $expected['expectedVersion'] + 1;
+            }
         }
 
         return $this->eventsTags->sequencedBy($versionsAfterBump);

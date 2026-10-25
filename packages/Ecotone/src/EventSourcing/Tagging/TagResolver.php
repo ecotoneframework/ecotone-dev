@@ -59,12 +59,12 @@ final class TagResolver
      */
     public function resolveAppend(array $events, ?AppendCondition $appendCondition): AppendedTags
     {
-        return $this->resolve($events, $appendCondition, bumpsEveryConditionTag: false);
+        return $this->resolve($events, $appendCondition, bumpsEveryConditionTag: false, incrementsUncapturedTags: $appendCondition?->hasTagCondition() ?? false);
     }
 
     public function resolveGuardedBump(AppendCondition $appendCondition): AppendedTags
     {
-        return $this->resolve([], $appendCondition, bumpsEveryConditionTag: true);
+        return $this->resolve([], $appendCondition, bumpsEveryConditionTag: true, incrementsUncapturedTags: false);
     }
 
     /**
@@ -165,7 +165,7 @@ final class TagResolver
     /**
      * @param array<object|array> $events
      */
-    private function resolve(array $events, ?AppendCondition $appendCondition, bool $bumpsEveryConditionTag): AppendedTags
+    private function resolve(array $events, ?AppendCondition $appendCondition, bool $bumpsEveryConditionTag, bool $incrementsUncapturedTags): AppendedTags
     {
         $conditionVersions = [];
         foreach ($appendCondition?->expectedTagVersions() ?? [] as $expected) {
@@ -180,6 +180,7 @@ final class TagResolver
             $aggregateCounterTags,
             $this->aggregateTypesOfCounterTags([...$conditionVersions, ...$aggregateCounterTags]),
             $bumpsEveryConditionTag,
+            $incrementsUncapturedTags,
         );
     }
 

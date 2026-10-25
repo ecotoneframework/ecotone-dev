@@ -63,7 +63,7 @@ final class EnterpriseInMemoryTagCollaborator implements InMemoryTagCollaborator
         $firstEventNo = $eventStore->nextEventNumber($streamName);
         $eventStore->appendEventsUnconditionally($streamName, $events);
         $this->versions->bump($expected);
-        $this->index->record($streamName, $firstEventNo, $appended->sequencedAfterBump($expected));
+        $this->index->record($streamName, $firstEventNo, $appended->sequencedAfterBump($expected, $this->versions->currentVersions($appended->incremented())));
     }
 
     public function deleteTagIndexFor(string $streamName): void

@@ -12,6 +12,7 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Tagging\TagKey;
+use Ecotone\EventSourcing\Tagging\TagVersionChange;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 
 use function implode;
@@ -91,12 +92,18 @@ final class DbalTagVersionRegister
     }
 
     /**
-     * @param array<string, array{name: string, value: string, expectedVersion: int, bumped: bool, aggregateType?: string, decidedBy?: string[]}> $expectedVersions
+     * @param array<string, array{name: string, value: string, change: TagVersionChange, expectedVersion: ?int, aggregateType?: string, decidedBy?: string[]}> $expectedVersions
      */
     public function bumpGuarded(Connection $connection, array $expectedVersions): void
     {
         foreach ($expectedVersions as $expected) {
-            $unchanged = $expected['bumped']
+            if ($expected['change'] === TagVersionChange::Increment) {
+                $this->increment($connection, [$expected]);
+
+                continue;
+            }
+
+            $unchanged = $expected['change'] === TagVersionChange::GuardedBump
                 ? $this->bumpGuardedTag($connection, $expected['name'], $expected['value'], $expected['expectedVersion'])
                 : $this->checkGuardedTag($connection, $expected['name'], $expected['value'], $expected['expectedVersion']);
 
@@ -109,7 +116,7 @@ final class DbalTagVersionRegister
     /**
      * @param array<string, array{name: string, value: string}> $tags
      */
-    public function bumpForBackfill(Connection $connection, array $tags): void
+    public function increment(Connection $connection, array $tags): void
     {
         $sql = TaggedEventSchemaFactory::for($connection)->upsertIncrementVersionSql(TagTableManager::TAG_VERSIONS_TABLE);
 
@@ -171,11 +178,6 @@ final class DbalTagVersionRegister
 
     private function versionOf(Connection $connection, string $name, string $value): int
     {
-        $versionsTable = TaggedEventSchemaFactory::for($connection)->quoteIdentifier(TagTableManager::TAG_VERSIONS_TABLE);
-
-        return (int) $connection->executeQuery(
-            "SELECT version FROM {$versionsTable} WHERE tag_name = ? AND tag_value = ?",
-            [$name, $value]
-        )->fetchOne();
+        return TaggedEventSchemaFactory::for($connection)->lockedVersion($connection, TagTableManager::TAG_VERSIONS_TABLE, $name, $value);
     }
 }

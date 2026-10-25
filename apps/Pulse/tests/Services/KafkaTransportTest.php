@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Services;
 
+use App\Tests\Support\Brokers;
 use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 
@@ -19,7 +20,7 @@ final class KafkaTransportTest extends ReleasingWebTestCase
         $suffix = uniqid();
         $this->pulseChannel = 'pulse_' . $suffix;
         $this->serviceChannels = ['orders' => 'orders_' . $suffix];
-        $this->configurePulse(['PULSE_CHANNEL' => $this->pulseChannel, 'PULSE_TRANSPORT_DSN' => 'kafka://kafka:9092', 'PULSE_SERVICES' => 'orders:' . $this->serviceChannels['orders']]);
+        $this->configurePulse(['PULSE_CHANNEL' => $this->pulseChannel, 'PULSE_TRANSPORT_DSN' => Brokers::kafkaDsn(), 'PULSE_SERVICES' => 'orders:' . $this->serviceChannels['orders']]);
         $client = static::createClient();
         $client->disableReboot();
         $this->setUpPulseInternalStorage($client->getKernel());

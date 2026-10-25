@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Services;
 
+use App\Tests\Support\Brokers;
 use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
@@ -28,7 +29,6 @@ final class NamedConnectionsTest extends ReleasingWebTestCase
 {
     use PulseServicesTrait;
 
-    private const BROKER_DSN = 'amqp://guest:guest@rabbitmq:5672/%2f';
 
     private string $suffix;
 
@@ -67,7 +67,7 @@ final class NamedConnectionsTest extends ReleasingWebTestCase
         $this->serviceChannels = ['orders' => 'orders_' . $this->suffix, 'billing' => 'billing_' . $this->suffix];
         $this->configurePulse([
             'PULSE_CHANNEL' => $this->pulseChannel,
-            'PULSE_CONNECTION_LEGACY_DSN' => self::BROKER_DSN,
+            'PULSE_CONNECTION_LEGACY_DSN' => Brokers::amqpDsn(),
             'PULSE_SERVICES' => sprintf('orders:%s,billing:%s#billing_queue_%s@legacy', $this->serviceChannels['orders'], $this->serviceChannels['billing'], $this->suffix),
         ]);
 
@@ -80,7 +80,7 @@ final class NamedConnectionsTest extends ReleasingWebTestCase
 
     private function billingOnBroker(): FlowTestSupport
     {
-        $connection = new AmqpExtConnectionFactory(['dsn' => self::BROKER_DSN]);
+        $connection = new AmqpExtConnectionFactory(['dsn' => Brokers::amqpDsn()]);
 
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [AmqpExtConnectionFactory::class => $connection, AmqpLibConnectionFactory::class => $connection],

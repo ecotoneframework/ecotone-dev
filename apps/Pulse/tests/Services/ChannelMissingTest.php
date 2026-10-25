@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Services;
 
+use App\Tests\Support\Brokers;
 use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
@@ -26,7 +27,6 @@ final class ChannelMissingTest extends ReleasingWebTestCase
 {
     use PulseServicesTrait;
 
-    private const BROKER_DSN = 'amqp://guest:guest@rabbitmq:5672/%2f';
 
     public function test_a_service_whose_channel_does_not_exist_on_the_broker_is_shown_as_channel_missing_with_the_destination(): void
     {
@@ -92,7 +92,7 @@ final class ChannelMissingTest extends ReleasingWebTestCase
         $this->serviceChannels = ['orders' => 'orders_' . $suffix];
         $this->configurePulse([
             'PULSE_CHANNEL' => $this->pulseChannel,
-            'PULSE_TRANSPORT_DSN' => self::BROKER_DSN,
+            'PULSE_TRANSPORT_DSN' => Brokers::amqpDsn(),
             'PULSE_SERVICES' => 'orders:' . $this->serviceChannels['orders'],
         ]);
 
@@ -105,7 +105,7 @@ final class ChannelMissingTest extends ReleasingWebTestCase
 
     private function amqpService(string $service): FlowTestSupport
     {
-        $connection = new AmqpExtConnectionFactory(['dsn' => self::BROKER_DSN]);
+        $connection = new AmqpExtConnectionFactory(['dsn' => Brokers::amqpDsn()]);
 
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [AmqpExtConnectionFactory::class => $connection, AmqpLibConnectionFactory::class => $connection],

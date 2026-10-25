@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Doctor;
 
+use App\Tests\Support\Brokers;
 use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
@@ -26,13 +27,12 @@ final class DoctorTest extends ReleasingWebTestCase
 {
     use PulseServicesTrait;
 
-    private const BROKER_DSN = 'amqp://guest:guest@rabbitmq:5672/%2f';
 
     private string $queue;
 
     public function test_a_healthy_setup_passes_every_check(): void
     {
-        $this->pulseOn(self::BROKER_DSN);
+        $this->pulseOn(Brokers::amqpDsn());
         $this->serviceHavingCreatedItsQueue();
         $this->setUpInternalDatabase();
 
@@ -40,7 +40,7 @@ final class DoctorTest extends ReleasingWebTestCase
 
         self::assertSame(0, $status, json_encode($checks));
         self::assertSame('ok', $checks['transport default']['status']);
-        self::assertMatchesRegularExpression('/^reachable at rabbitmq:5672 in \d+ ms$/', $checks['transport default']['message']);
+        self::assertMatchesRegularExpression('/^reachable at ' . preg_quote(Brokers::amqpAddress(), '/') . ' in \d+ ms$/', $checks['transport default']['message']);
         self::assertSame('ok', $checks['login default']['status']);
         self::assertSame(sprintf("queue '%s' exists", $this->queue), $checks['service orders']['message']);
         self::assertSame('ok', $checks['service orders']['status']);
@@ -52,7 +52,7 @@ final class DoctorTest extends ReleasingWebTestCase
 
     public function test_a_service_queue_that_does_not_exist_is_reported_with_the_builder_to_check(): void
     {
-        $this->pulseOn(self::BROKER_DSN);
+        $this->pulseOn(Brokers::amqpDsn());
 
         [$status, $checks] = $this->diagnose();
 
@@ -77,7 +77,7 @@ final class DoctorTest extends ReleasingWebTestCase
 
     public function test_refused_credentials_are_reported_naming_the_variable(): void
     {
-        $this->pulseOn('amqp://guest:wrong@rabbitmq:5672/%2f');
+        $this->pulseOn(Brokers::amqpDsn('guest', 'wrong'));
 
         [$status, $checks] = $this->diagnose();
 
@@ -136,7 +136,7 @@ final class DoctorTest extends ReleasingWebTestCase
 
     private function serviceHavingCreatedItsQueue(): void
     {
-        $connection = new AmqpExtConnectionFactory(['dsn' => self::BROKER_DSN]);
+        $connection = new AmqpExtConnectionFactory(['dsn' => Brokers::amqpDsn()]);
         $orders = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [AmqpExtConnectionFactory::class => $connection, AmqpLibConnectionFactory::class => $connection],
             extensionObjects: [
@@ -171,7 +171,7 @@ final class DoctorTest extends ReleasingWebTestCase
 
     public function test_the_banner_names_the_transport_the_services_and_the_health_paths(): void
     {
-        $this->configurePulse(['PULSE_TRANSPORT_DSN' => self::BROKER_DSN, 'PULSE_SERVICES' => 'orders,billing#billing_queue', 'PULSE_CONNECTION_LEGACY_DSN' => 'redis://redis:6379', 'PULSE_CONNECTION_LEGACY_REPLY_CHANNEL' => 'pulse_legacy']);
+        $this->configurePulse(['PULSE_TRANSPORT_DSN' => Brokers::amqpDsn(), 'PULSE_SERVICES' => 'orders,billing#billing_queue', 'PULSE_CONNECTION_LEGACY_DSN' => Brokers::redisDsn(), 'PULSE_CONNECTION_LEGACY_REPLY_CHANNEL' => 'pulse_legacy']);
 
         $command = new CommandTester((new Application(self::bootKernel()))->find('pulse:banner'));
         $command->execute([]);

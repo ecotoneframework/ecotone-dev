@@ -16,6 +16,8 @@ use Ecotone\EventSourcing\Tagging\TagKey;
 
 use function implode;
 
+use const PHP_INT_MAX;
+
 /**
  * licence Enterprise
  *
@@ -92,6 +94,31 @@ final class DbalTagIndex
     public function flagsFor(Connection $connection, array $tags, array $tagSequenceLowerBounds = []): array
     {
         return $this->flagsMatching($connection, $tags, $tagSequenceLowerBounds, '', []);
+    }
+
+    public function countValuesOfTag(Connection $connection, string $tagName): int
+    {
+        $indexTable = TaggedEventSchemaFactory::for($connection)->quoteIdentifier(TagTableManager::TAGGED_EVENTS_TABLE);
+
+        return (int) $connection->executeQuery("SELECT COUNT(DISTINCT tag_value) FROM {$indexTable} WHERE tag_name = ?", [$tagName])->fetchOne();
+    }
+
+    /**
+     * @return string[]
+     */
+    public function valuesOfTag(Connection $connection, string $tagName, ?int $limit, int $offset): array
+    {
+        $indexTable = TaggedEventSchemaFactory::for($connection)->quoteIdentifier(TagTableManager::TAGGED_EVENTS_TABLE);
+        $limitClause = $limit === null ? '' : " LIMIT {$limit}";
+        $offsetClause = $offset > 0 ? " OFFSET {$offset}" : '';
+        if ($limit === null && $offset > 0) {
+            $limitClause = ' LIMIT ' . PHP_INT_MAX;
+        }
+
+        return array_map('strval', $connection->executeQuery(
+            "SELECT DISTINCT tag_value FROM {$indexTable} WHERE tag_name = ? ORDER BY tag_value{$limitClause}{$offsetClause}",
+            [$tagName],
+        )->fetchFirstColumn());
     }
 
     /**

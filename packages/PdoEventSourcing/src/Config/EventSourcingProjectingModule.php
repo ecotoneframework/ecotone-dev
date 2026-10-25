@@ -24,7 +24,10 @@ use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\EventSourcing\Database\MissingEventStreamTable;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
+use Ecotone\EventSourcing\Database\TagTableManager;
+use Ecotone\EventSourcing\Dbal\Tag\DbalTagIndex;
 use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProvider;
+use Ecotone\EventSourcing\Projecting\DbalTagPartitionProvider;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorage;
 use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSource;
@@ -67,6 +70,7 @@ final class EventSourcingProjectingModule implements AnnotationModule
      * @param string[] $globalStreamProjectionNames
      * @param array<array{className: string, methodName: string, projectionName: string, partitionKeyParam: ?string}> $v2StateGateways
      * @param array<string, array<string, string>> $projectionInvariantGuardMap stream name => (event name or '*' => projection name)
+     * @param string[] $tagPartitionedProjectionNames
      */
     public function __construct(
         private array $projectionNames,
@@ -74,6 +78,7 @@ final class EventSourcingProjectingModule implements AnnotationModule
         private array $globalStreamProjectionNames,
         private array $v2StateGateways = [],
         private array $projectionInvariantGuardMap = [],
+        private array $tagPartitionedProjectionNames = [],
     ) {
     }
 
@@ -138,6 +143,7 @@ final class EventSourcingProjectingModule implements AnnotationModule
             $globalStreamProjectionNames,
             $v2StateGateways,
             $projectionInvariantGuardMap,
+            StreamFilterRegistryModule::tagPartitionedProjectionNames($annotationRegistrationService),
         );
     }
 
@@ -295,6 +301,18 @@ final class EventSourcingProjectingModule implements AnnotationModule
             );
         }
 
+        if ($this->tagPartitionedProjectionNames !== [] && ! $eventSourcingConfiguration->isInMemory()) {
+            $messagingConfiguration->registerServiceDefinition(
+                DbalTagPartitionProvider::class,
+                new Definition(DbalTagPartitionProvider::class, [
+                    new Reference(DbalConnectionReference::DEFAULT),
+                    new Definition(DbalTagIndex::class),
+                    new Reference(TagTableManager::class),
+                    $this->tagPartitionedProjectionNames,
+                ])
+            );
+        }
+
         if (! $eventSourcingConfiguration->isInMemory()) {
             $this->registerGlobalStreamSource($messagingConfiguration);
             $this->registerAggregateStreamSource($messagingConfiguration);
@@ -435,6 +453,10 @@ final class EventSourcingProjectingModule implements AnnotationModule
 
         if ($this->partitionedProjectionNames !== [] && ! $eventSourcingConfiguration->isInMemory()) {
             $extensions[] = new PartitionProviderReference(AggregateIdPartitionProvider::class, $this->partitionedProjectionNames);
+        }
+
+        if ($this->tagPartitionedProjectionNames !== [] && ! $eventSourcingConfiguration->isInMemory()) {
+            $extensions[] = new PartitionProviderReference(DbalTagPartitionProvider::class, $this->tagPartitionedProjectionNames);
         }
 
         if (! $eventSourcingConfiguration->isInMemory()) {

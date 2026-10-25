@@ -31,7 +31,6 @@ final class EcotoneConfigurationTest extends TestCase
     protected function setUp(): void
     {
         $connection = DriverManager::getConnection((new DsnParser(['pgsql' => 'pdo_pgsql']))->parse(getenv('DATABASE_DSN')));
-        $connection->executeStatement('CREATE TABLE IF NOT EXISTS demo_pongs (ping_id VARCHAR(36) NOT NULL, reply TEXT NOT NULL, received_at TIMESTAMP(0) WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP)');
         $connection->executeStatement('DELETE FROM demo_pongs');
         $connection->close();
         $this->channels = [

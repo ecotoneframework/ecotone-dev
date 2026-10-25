@@ -17,7 +17,7 @@ final class OrderQueries
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get()
-            ->map(fn (Order $order) => ['orderId' => $order->id, 'concertId' => $order->concert_id, 'status' => $order->status->value, 'seatIds' => $order->seat_ids])
+            ->map(fn (Order $order) => ['orderId' => $order->id, 'concertId' => $order->concert_id, 'status' => $order->status->value, 'seatIds' => $order->heldSeatIds()])
             ->all();
     }
 
@@ -31,9 +31,11 @@ final class OrderQueries
             'customerId' => $order->customer_id,
             'concertId' => $order->concert_id,
             'status' => $order->status->value,
-            'seatIds' => $order->seat_ids,
+            'heldSeats' => $order->held_seats,
+            'lastRefusal' => $order->last_refusal,
             'paymentReference' => $order->payment_reference,
             'failureReason' => $order->failure_reason,
+            'tickets' => $order->tickets,
         ];
     }
 }

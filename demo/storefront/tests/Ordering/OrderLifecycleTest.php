@@ -8,8 +8,11 @@ use App\Customer\RegisterCustomer;
 use App\Ordering\BeginPayment;
 use App\Ordering\FailOrder;
 use App\Ordering\MarkPaid;
-use App\Ordering\MarkSeatsHeld;
+use App\Ordering\DropExpiredSeat;
+use App\Ordering\MarkSeatHeld;
 use App\Ordering\MarkTicketsIssued;
+use App\Ordering\RecordSeatRefusal;
+use App\Ordering\ReleaseSeat;
 use App\Ordering\StartOrder;
 use Closure;
 use DomainException;
@@ -25,6 +28,9 @@ use Tests\TestCase;
 final class OrderLifecycleTest extends TestCase
 {
     private const CONCERT_ID = '0199f3a8-6f2a-7c1e-9a51-3d2f6c1b8e40';
+    private const OTHER_CONCERT_ID = '0199f3a8-6f2a-7c1e-9a51-3d2f6c1b8e41';
+    private const EXPIRES_AT = '2026-10-25T12:02:00+00:00';
+    private const LATER_EXPIRES_AT = '2026-10-25T12:04:00+00:00';
 
     protected function setUp(): void
     {
@@ -87,25 +93,223 @@ final class OrderLifecycleTest extends TestCase
         );
     }
 
-    public function test_held_seats_move_the_order_to_seats_held(): void
+    public function test_starting_a_second_open_order_for_the_same_concert_is_refused(): void
+    {
+        $customerId = $this->registerAda();
+        $orderId = $this->commandBus()->send(new StartOrder(customerId: $customerId, concertId: self::CONCERT_ID));
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage(sprintf('Customer %s already has open order %s for concert %s, so StartOrder cannot start another: a customer has one open order per concert. Hold more seats on order %s, or pay for it or release its seats before starting a new one.', $customerId, $orderId, self::CONCERT_ID, $orderId));
+
+        $this->commandBus()->send(new StartOrder(customerId: $customerId, concertId: self::CONCERT_ID));
+    }
+
+    #[DataProvider('statusesThatCloseAnOrder')]
+    public function test_a_customer_whose_order_is_no_longer_open_can_start_another_for_the_same_concert(string $status): void
+    {
+        $orderId = $this->orderIn($status);
+        $customerId = $this->orderDetail($orderId)['customerId'];
+
+        $nextOrderId = $this->commandBus()->send(new StartOrder(customerId: $customerId, concertId: self::CONCERT_ID));
+
+        self::assertNotSame($orderId, $nextOrderId);
+    }
+
+    public static function statusesThatCloseAnOrder(): iterable
+    {
+        yield 'paying' => ['paying'];
+        yield 'paid' => ['paid'];
+        yield 'tickets_issued' => ['tickets_issued'];
+        yield 'failed' => ['failed'];
+    }
+
+    public function test_a_customer_can_have_open_orders_for_different_concerts(): void
+    {
+        $customerId = $this->registerAda();
+        $this->commandBus()->send(new StartOrder(customerId: $customerId, concertId: self::CONCERT_ID));
+
+        $this->commandBus()->send(new StartOrder(customerId: $customerId, concertId: self::OTHER_CONCERT_ID));
+
+        self::assertCount(2, $this->queryBus()->sendWithRouting('customer.orders', $customerId));
+    }
+
+    public function test_a_held_seat_moves_the_order_to_seats_held_with_the_hold_expiry(): void
     {
         $orderId = $this->startOrder();
 
-        $this->commandBus()->send(new MarkSeatsHeld(orderId: $orderId, seatIds: [self::CONCERT_ID . '/A-1', self::CONCERT_ID . '/A-2']));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
 
         $order = $this->orderDetail($orderId);
         self::assertSame('seats_held', $order['status']);
-        self::assertSame([self::CONCERT_ID . '/A-1', self::CONCERT_ID . '/A-2'], $order['seatIds']);
+        self::assertSame([['seatId' => self::CONCERT_ID . '/A-1', 'expiresAt' => self::EXPIRES_AT]], $order['heldSeats']);
     }
 
     public function test_seats_held_later_are_added_to_the_seats_already_held(): void
     {
         $orderId = $this->startOrder();
-        $this->commandBus()->send(new MarkSeatsHeld(orderId: $orderId, seatIds: [self::CONCERT_ID . '/A-1']));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
 
-        $this->commandBus()->send(new MarkSeatsHeld(orderId: $orderId, seatIds: [self::CONCERT_ID . '/A-1', self::CONCERT_ID . '/A-2']));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', expiresAt: self::LATER_EXPIRES_AT));
 
-        self::assertSame([self::CONCERT_ID . '/A-1', self::CONCERT_ID . '/A-2'], $this->orderDetail($orderId)['seatIds']);
+        self::assertSame(
+            [['seatId' => self::CONCERT_ID . '/A-1', 'expiresAt' => self::EXPIRES_AT], ['seatId' => self::CONCERT_ID . '/A-2', 'expiresAt' => self::LATER_EXPIRES_AT]],
+            $this->orderDetail($orderId)['heldSeats'],
+        );
+    }
+
+    public function test_a_seat_held_again_keeps_one_hold_with_the_new_expiry(): void
+    {
+        $orderId = $this->startOrder();
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::LATER_EXPIRES_AT));
+
+        self::assertSame([['seatId' => self::CONCERT_ID . '/A-1', 'expiresAt' => self::LATER_EXPIRES_AT]], $this->orderDetail($orderId)['heldSeats']);
+    }
+
+    public function test_the_hold_expiry_is_kept_in_utc(): void
+    {
+        $orderId = $this->startOrder();
+
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: '2026-10-25T14:02:00+02:00'));
+
+        self::assertSame(self::EXPIRES_AT, $this->orderDetail($orderId)['heldSeats'][0]['expiresAt']);
+    }
+
+    public function test_holding_a_seat_with_an_expiry_that_is_not_a_date_is_refused(): void
+    {
+        $orderId = $this->startOrder();
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage(sprintf('MarkSeatHeld for seat %s/A-1 of order %s carries expiresAt "soon", which is not an ISO-8601 date, so the storefront cannot count down the hold. Ticketing sends expiresAt as ISO-8601, like "2026-10-25T12:02:00+00:00": correct the tickets.hold.result reply and replay it from the dbal_dead_letter.', self::CONCERT_ID, $orderId));
+
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: 'soon'));
+    }
+
+    public function test_holding_a_seat_of_another_concert_is_refused(): void
+    {
+        $orderId = $this->startOrder();
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage(sprintf('Seat %s/A-1 belongs to concert %s, but order %s is for concert %s, so MarkSeatHeld cannot add it. Hold a seat of concert %s, or start an order for concert %s with StartOrder.', self::OTHER_CONCERT_ID, self::OTHER_CONCERT_ID, $orderId, self::CONCERT_ID, self::CONCERT_ID, self::OTHER_CONCERT_ID));
+
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::OTHER_CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+    }
+
+    public function test_a_held_seat_clears_the_refusal_of_the_same_seat(): void
+    {
+        $orderId = $this->startOrder();
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', reason: 'someone was faster: seat A-1'));
+
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+
+        self::assertNull($this->orderDetail($orderId)['lastRefusal']);
+    }
+
+    public function test_a_refused_seat_is_the_last_refusal_of_the_order(): void
+    {
+        $orderId = $this->orderWithHeldSeats();
+
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', reason: 'someone was faster: seat A-2'));
+
+        $order = $this->orderDetail($orderId);
+        self::assertSame(['seatId' => self::CONCERT_ID . '/A-2', 'reason' => 'someone was faster: seat A-2'], $order['lastRefusal']);
+        self::assertSame('seats_held', $order['status']);
+    }
+
+    public function test_a_later_refusal_replaces_the_last_refusal(): void
+    {
+        $orderId = $this->startOrder();
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', reason: 'someone was faster: seat A-1'));
+
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-3', reason: 'a customer holds or owns at most 4 seats per concert'));
+
+        self::assertSame(['seatId' => self::CONCERT_ID . '/A-3', 'reason' => 'a customer holds or owns at most 4 seats per concert'], $this->orderDetail($orderId)['lastRefusal']);
+    }
+
+    public function test_releasing_a_held_seat_removes_it_from_the_order(): void
+    {
+        $orderId = $this->startOrder();
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', expiresAt: self::EXPIRES_AT));
+
+        $this->commandBus()->send(new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1'));
+
+        $order = $this->orderDetail($orderId);
+        self::assertSame([['seatId' => self::CONCERT_ID . '/A-2', 'expiresAt' => self::EXPIRES_AT]], $order['heldSeats']);
+        self::assertSame('seats_held', $order['status']);
+    }
+
+    public function test_releasing_the_last_held_seat_moves_the_order_back_to_started(): void
+    {
+        $orderId = $this->orderWithHeldSeats();
+
+        $this->commandBus()->send(new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1'));
+
+        $order = $this->orderDetail($orderId);
+        self::assertSame([], $order['heldSeats']);
+        self::assertSame('started', $order['status']);
+    }
+
+    public function test_releasing_a_seat_the_order_does_not_hold_is_refused(): void
+    {
+        $orderId = $this->orderWithHeldSeats();
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage(sprintf('Order %s does not hold seat %s/A-2, so ReleaseSeat cannot release it. The order holds A-1: release one of those, or leave the seat alone.', $orderId, self::CONCERT_ID));
+
+        $this->commandBus()->send(new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2'));
+    }
+
+    public function test_an_expired_hold_drops_the_seat_from_the_order(): void
+    {
+        $orderId = $this->orderWithHeldSeats();
+
+        $this->commandBus()->send(new DropExpiredSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1'));
+
+        $order = $this->orderDetail($orderId);
+        self::assertSame([], $order['heldSeats']);
+        self::assertSame('started', $order['status']);
+    }
+
+    public function test_an_expired_hold_of_a_seat_the_order_no_longer_holds_changes_nothing(): void
+    {
+        $orderId = $this->orderWithHeldSeats();
+
+        $this->commandBus()->send(new DropExpiredSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2'));
+
+        $order = $this->orderDetail($orderId);
+        self::assertSame([['seatId' => self::CONCERT_ID . '/A-1', 'expiresAt' => self::EXPIRES_AT]], $order['heldSeats']);
+        self::assertSame('seats_held', $order['status']);
+    }
+
+    #[DataProvider('statusesThatKeepAnExpiredSeat')]
+    public function test_an_expired_hold_after_checkout_began_keeps_the_seat_for_ticketing_to_decide(string $status): void
+    {
+        $orderId = $this->orderIn($status);
+
+        $this->commandBus()->send(new DropExpiredSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1'));
+
+        $order = $this->orderDetail($orderId);
+        self::assertSame($status, $order['status']);
+        self::assertSame([['seatId' => self::CONCERT_ID . '/A-1', 'expiresAt' => self::EXPIRES_AT]], $order['heldSeats']);
+    }
+
+    public static function statusesThatKeepAnExpiredSeat(): iterable
+    {
+        yield 'paying' => ['paying'];
+        yield 'paid' => ['paid'];
+        yield 'tickets_issued' => ['tickets_issued'];
+    }
+
+    public function test_an_expired_hold_of_a_failed_order_changes_nothing(): void
+    {
+        $orderId = $this->orderWithHeldSeats();
+        $this->commandBus()->send(new FailOrder(orderId: $orderId, reason: 'Payment declined'));
+
+        $this->commandBus()->send(new DropExpiredSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1'));
+
+        self::assertSame('failed', $this->orderDetail($orderId)['status']);
     }
 
     public function test_beginning_payment_moves_an_order_with_held_seats_to_paying(): void
@@ -128,13 +332,15 @@ final class OrderLifecycleTest extends TestCase
         self::assertSame('pay_123', $order['paymentReference']);
     }
 
-    public function test_marking_tickets_issued_moves_a_paid_order_to_tickets_issued(): void
+    public function test_issued_tickets_move_a_paid_order_to_tickets_issued_with_their_entry_codes(): void
     {
         $orderId = $this->paidOrder();
 
-        $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId));
+        $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: $this->tickets()));
 
-        self::assertSame('tickets_issued', $this->orderDetail($orderId)['status']);
+        $order = $this->orderDetail($orderId);
+        self::assertSame('tickets_issued', $order['status']);
+        self::assertSame($this->tickets(), $order['tickets']);
     }
 
     public function test_failing_an_order_records_the_failure_reason(): void
@@ -159,22 +365,14 @@ final class OrderLifecycleTest extends TestCase
                 'customerId' => $customerId,
                 'concertId' => self::CONCERT_ID,
                 'status' => 'started',
-                'seatIds' => [],
+                'heldSeats' => [],
+                'lastRefusal' => null,
                 'paymentReference' => null,
                 'failureReason' => null,
+                'tickets' => [],
             ],
             $this->orderDetail($orderId),
         );
-    }
-
-    public function test_holding_no_seats_is_refused(): void
-    {
-        $orderId = $this->startOrder();
-
-        $this->expectException(DomainException::class);
-        $this->expectExceptionMessage(sprintf('MarkSeatsHeld for order %s names no seats, so it cannot move the order to seats_held. Send it with at least one seat id of concert %s, e.g. "%s/A-1".', $orderId, self::CONCERT_ID, self::CONCERT_ID));
-
-        $this->commandBus()->send(new MarkSeatsHeld(orderId: $orderId, seatIds: []));
     }
 
     #[DataProvider('malformedSeatIds')]
@@ -183,8 +381,8 @@ final class OrderLifecycleTest extends TestCase
         $orderId = $this->startOrder();
 
         try {
-            $this->commandBus()->send(new MarkSeatsHeld(orderId: $orderId, seatIds: [self::CONCERT_ID . '/A-1', $seatId]));
-            self::fail('MarkSeatsHeld was accepted');
+            $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: $seatId, expiresAt: self::EXPIRES_AT));
+            self::fail('MarkSeatHeld was accepted');
         } catch (DomainException $exception) {
             self::assertSame(sprintf('Seat id "%s" is not CONCERT-ID/ROW-NUMBER, so its seat code cannot be read. Send the concert id, a slash and the seat code concert.scheduled published for the seat, like "{concert id}/A-1".', $seatId), $exception->getMessage());
         }
@@ -216,13 +414,13 @@ final class OrderLifecycleTest extends TestCase
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage(sprintf('Order %s is paying, not paid, so its tickets cannot be issued. Pay for it first: send MarkPaid with the payment reference.', $orderId));
 
-        $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId));
+        $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: $this->tickets()));
     }
 
     public function test_an_order_with_issued_tickets_cannot_fail(): void
     {
         $orderId = $this->paidOrder();
-        $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId));
+        $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: $this->tickets()));
 
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage(sprintf('Order %s already has its tickets issued, so FailOrder cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.', $orderId));
@@ -256,29 +454,35 @@ final class OrderLifecycleTest extends TestCase
 
     public static function refusedCommands(): iterable
     {
-        $markSeatsHeld = fn (string $orderId) => new MarkSeatsHeld(orderId: $orderId, seatIds: [self::CONCERT_ID . '/A-2']);
+        $markSeatHeld = fn (string $orderId) => new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', expiresAt: self::EXPIRES_AT);
+        $recordSeatRefusal = fn (string $orderId) => new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', reason: 'someone was faster: seat A-2');
+        $releaseSeat = fn (string $orderId) => new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1');
         $beginPayment = fn (string $orderId) => new BeginPayment(orderId: $orderId);
         $markPaid = fn (string $orderId) => new MarkPaid(orderId: $orderId, paymentReference: 'pay_456');
-        $markTicketsIssued = fn (string $orderId) => new MarkTicketsIssued(orderId: $orderId);
+        $markTicketsIssued = fn (string $orderId) => new MarkTicketsIssued(orderId: $orderId, tickets: [['ticketNumber' => 'T-1', 'seatId' => self::CONCERT_ID . '/A-1', 'tier' => 'vip', 'entryCode' => 'ENTRY-1']]);
         $failOrder = fn (string $orderId) => new FailOrder(orderId: $orderId, reason: 'Too late');
 
         yield 'BeginPayment on a started order' => ['started', $beginPayment, 'Order %s is started, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
         yield 'MarkPaid on a started order' => ['started', $markPaid, 'Order %s is started, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
-        yield 'MarkTicketsIssued on a started order' => ['started', $markTicketsIssued, 'Order %s is started, not paid, so its tickets cannot be issued. Pay for it first: send MarkSeatsHeld, then BeginPayment, then MarkPaid with the payment reference.'];
+        yield 'MarkTicketsIssued on a started order' => ['started', $markTicketsIssued, 'Order %s is started, not paid, so its tickets cannot be issued. Pay for it first: send MarkSeatHeld, then BeginPayment, then MarkPaid with the payment reference.'];
         yield 'MarkPaid on a seats_held order' => ['seats_held', $markPaid, 'Order %s is seats_held, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
         yield 'MarkTicketsIssued on a seats_held order' => ['seats_held', $markTicketsIssued, 'Order %s is seats_held, not paid, so its tickets cannot be issued. Pay for it first: send BeginPayment, then MarkPaid with the payment reference.'];
-        yield 'MarkSeatsHeld on a paying order' => ['paying', $markSeatsHeld, 'Order %s is paying, so MarkSeatsHeld cannot be applied to it. MarkSeatsHeld is accepted only while the order is started or seats_held.'];
+        yield 'RecordSeatRefusal on a paying order' => ['paying', $recordSeatRefusal, 'Order %s is paying, so RecordSeatRefusal cannot be applied to it. RecordSeatRefusal is accepted only while the order is started or seats_held.'];
+        yield 'ReleaseSeat on a paying order' => ['paying', $releaseSeat, 'Order %s is paying, so ReleaseSeat cannot be applied to it. ReleaseSeat is accepted only while the order is started or seats_held.'];
+        yield 'ReleaseSeat on a paid order' => ['paid', $releaseSeat, 'Order %s is paid, so ReleaseSeat cannot be applied to it. ReleaseSeat is accepted only while the order is started or seats_held.'];
+        yield 'ReleaseSeat on a failed order' => ['failed', $releaseSeat, 'Order %s is failed, so ReleaseSeat cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
+        yield 'MarkSeatHeld on a paying order' => ['paying', $markSeatHeld, 'Order %s is paying, so MarkSeatHeld cannot be applied to it. MarkSeatHeld is accepted only while the order is started or seats_held.'];
         yield 'BeginPayment on a paying order' => ['paying', $beginPayment, 'Order %s is paying, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
         yield 'MarkTicketsIssued on a paying order' => ['paying', $markTicketsIssued, 'Order %s is paying, not paid, so its tickets cannot be issued. Pay for it first: send MarkPaid with the payment reference.'];
-        yield 'MarkSeatsHeld on a paid order' => ['paid', $markSeatsHeld, 'Order %s is paid, so MarkSeatsHeld cannot be applied to it. MarkSeatsHeld is accepted only while the order is started or seats_held.'];
+        yield 'MarkSeatHeld on a paid order' => ['paid', $markSeatHeld, 'Order %s is paid, so MarkSeatHeld cannot be applied to it. MarkSeatHeld is accepted only while the order is started or seats_held.'];
         yield 'BeginPayment on a paid order' => ['paid', $beginPayment, 'Order %s is paid, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.'];
         yield 'MarkPaid on a paid order' => ['paid', $markPaid, 'Order %s is paid, so MarkPaid cannot be applied to it. MarkPaid is accepted only while the order is paying.'];
-        yield 'MarkSeatsHeld on a tickets_issued order' => ['tickets_issued', $markSeatsHeld, 'Order %s already has its tickets issued, so MarkSeatsHeld cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
+        yield 'MarkSeatHeld on a tickets_issued order' => ['tickets_issued', $markSeatHeld, 'Order %s already has its tickets issued, so MarkSeatHeld cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
         yield 'BeginPayment on a tickets_issued order' => ['tickets_issued', $beginPayment, 'Order %s already has its tickets issued, so BeginPayment cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
         yield 'MarkPaid on a tickets_issued order' => ['tickets_issued', $markPaid, 'Order %s already has its tickets issued, so MarkPaid cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
         yield 'MarkTicketsIssued on a tickets_issued order' => ['tickets_issued', $markTicketsIssued, 'Order %s already has its tickets issued, so MarkTicketsIssued cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
         yield 'FailOrder on a tickets_issued order' => ['tickets_issued', $failOrder, 'Order %s already has its tickets issued, so FailOrder cannot be applied to it: an order with issued tickets is final. Start a new order with StartOrder to buy more tickets.'];
-        yield 'MarkSeatsHeld on a failed order' => ['failed', $markSeatsHeld, 'Order %s is failed, so MarkSeatsHeld cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
+        yield 'MarkSeatHeld on a failed order' => ['failed', $markSeatHeld, 'Order %s is failed, so MarkSeatHeld cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
         yield 'BeginPayment on a failed order' => ['failed', $beginPayment, 'Order %s is failed, so BeginPayment cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
         yield 'MarkPaid on a failed order' => ['failed', $markPaid, 'Order %s is failed, so MarkPaid cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
         yield 'MarkTicketsIssued on a failed order' => ['failed', $markTicketsIssued, 'Order %s is failed, so MarkTicketsIssued cannot be applied to it: a failed order is final. Start a new order with StartOrder for the same customer and concert.'];
@@ -298,7 +502,7 @@ final class OrderLifecycleTest extends TestCase
     private function orderWithHeldSeats(): string
     {
         $orderId = $this->startOrder();
-        $this->commandBus()->send(new MarkSeatsHeld(orderId: $orderId, seatIds: [self::CONCERT_ID . '/A-1']));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
 
         return $orderId;
     }
@@ -334,7 +538,7 @@ final class OrderLifecycleTest extends TestCase
     private function orderWithIssuedTickets(): string
     {
         $orderId = $this->paidOrder();
-        $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId));
+        $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: $this->tickets()));
 
         return $orderId;
     }
@@ -345,6 +549,11 @@ final class OrderLifecycleTest extends TestCase
         $this->commandBus()->send(new FailOrder(orderId: $orderId, reason: 'Payment declined'));
 
         return $orderId;
+    }
+
+    private function tickets(): array
+    {
+        return [['ticketNumber' => 'T-0001', 'seatId' => self::CONCERT_ID . '/A-1', 'tier' => 'vip', 'entryCode' => 'ENTRY-7F3A']];
     }
 
     private function orderDetail(string $orderId): array

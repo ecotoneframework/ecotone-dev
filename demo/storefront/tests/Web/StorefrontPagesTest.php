@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Web;
 
 use App\Customer\RegisterCustomer;
-use App\Ordering\MarkSeatsHeld;
+use App\Ordering\MarkSeatHeld;
 use App\Ordering\StartOrder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
@@ -105,7 +105,7 @@ final class StorefrontPagesTest extends TestCase
         $customerId = $this->register('Ada Lovelace', 'ada@example.com');
         $otherCustomerId = $this->register('Grace Hopper', 'grace@example.com');
         $heldOrderId = $this->commandBus()->send(new StartOrder(customerId: $customerId, concertId: self::CONCERT_ID));
-        $this->commandBus()->send(new MarkSeatsHeld(orderId: $heldOrderId, seatIds: [self::CONCERT_ID . '/A-1']));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $heldOrderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: '2026-10-25T12:02:00+00:00'));
         $otherOrderId = $this->commandBus()->send(new StartOrder(customerId: $otherCustomerId, concertId: self::CONCERT_ID));
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/account');

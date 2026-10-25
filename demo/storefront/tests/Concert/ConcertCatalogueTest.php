@@ -153,7 +153,7 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $this->publish($this->ticketing(), 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
 
-        $this->expectExceptionMessage(sprintf('Concert %s is not in the storefront catalogue, so concert.sales_opened cannot put it on sale.', self::NIGHT_CONCERT));
+        $this->expectExceptionMessage(sprintf('Concert %s is not in the storefront catalogue, so concert.sales_opened cannot put it on sale. A concert enters the catalogue with concert.scheduled, which has to arrive first: publish concert.scheduled for this concert again from ticketing, then replay this concert.sales_opened message from the dbal_dead_letter with php artisan ecotone:deadletter:replay <messageId> (ecotone:deadletter:list shows the id), or replay every dead letter with php artisan ecotone:deadletter:replayAll.', self::NIGHT_CONCERT));
 
         $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
     }
@@ -163,7 +163,7 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $this->publish($this->ticketing(), 'concert.cancelled', ['concertId' => self::NIGHT_CONCERT]);
 
-        $this->expectExceptionMessage(sprintf('Concert %s is not in the storefront catalogue, so concert.cancelled cannot cancel it.', self::NIGHT_CONCERT));
+        $this->expectExceptionMessage(sprintf('Concert %s is not in the storefront catalogue, so concert.cancelled cannot cancel it. A concert enters the catalogue with concert.scheduled, which has to arrive first: publish concert.scheduled for this concert again from ticketing, then replay this concert.cancelled message from the dbal_dead_letter with php artisan ecotone:deadletter:replay <messageId> (ecotone:deadletter:list shows the id), or replay every dead letter with php artisan ecotone:deadletter:replayAll.', self::NIGHT_CONCERT));
 
         $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
     }

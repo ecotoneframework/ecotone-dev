@@ -79,7 +79,7 @@ final class ConcertProjector
     private function notInCatalogue(string $concertId, string $eventName, string $change): DomainException
     {
         return new DomainException(sprintf(
-            'Concert %s is not in the storefront catalogue, so %s cannot %s. A concert enters the catalogue with concert.scheduled, which has to arrive first: replay concert.scheduled for this concert from ticketing, then replay this %s message from the dbal_dead_letter.',
+            'Concert %s is not in the storefront catalogue, so %s cannot %s. A concert enters the catalogue with concert.scheduled, which has to arrive first: publish concert.scheduled for this concert again from ticketing, then replay this %s message from the dbal_dead_letter with php artisan ecotone:deadletter:replay <messageId> (ecotone:deadletter:list shows the id), or replay every dead letter with php artisan ecotone:deadletter:replayAll.',
             $concertId,
             $eventName,
             $change,

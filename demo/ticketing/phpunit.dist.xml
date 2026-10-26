@@ -22,6 +22,10 @@
         <env name="DEMO_JAEGER_URL" value="http://localhost:16686" force="true" />
         <server name="TICKETING_HOLD_SECONDS" value="600" force="true" />
         <env name="TICKETING_HOLD_SECONDS" value="600" force="true" />
+        <server name="TICKETING_RENDER_FAILS_FOR_SEAT" value="" force="true" />
+        <env name="TICKETING_RENDER_FAILS_FOR_SEAT" value="" force="true" />
+        <server name="AMQP_DSN" value="amqp://guest:guest@127.0.0.1:1" force="true" />
+        <env name="AMQP_DSN" value="amqp://guest:guest@127.0.0.1:1" force="true" />
     </php>
 
     <testsuites>

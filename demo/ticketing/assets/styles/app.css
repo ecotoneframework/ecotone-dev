@@ -160,3 +160,30 @@ main.seat-map {
     border-radius: 0.3rem;
     font-size: 0.75rem;
 }
+
+.ticket-card {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.4rem 1rem;
+    padding: 1rem 1.2rem;
+    background: #fff;
+    border-left: 0.4rem solid #2563eb;
+    border-radius: 0.3rem;
+}
+
+.ticket-card.tier-vip {
+    border-left-color: #b7791f;
+}
+
+.ticket-card dt {
+    font-weight: 600;
+}
+
+.ticket-card dd {
+    margin: 0;
+}
+
+.entry-code {
+    font-size: 1.4rem;
+    letter-spacing: 0.15rem;
+}

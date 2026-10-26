@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ ticket ? 'Ticket ' ~ ticket.ticketNumber : 'No such ticket' }}{% endblock %}
+
+{% block body %}
+    <main class="ticket">
+        <nav>
+            <a href="{{ path('home') }}">Ticketing</a>
+        </nav>
+        {% if refusal %}
+            <h1>No such ticket</h1>
+            <p class="refusal">{{ refusal }}</p>
+        {% else %}
+            <h1>{{ concert.artist }}</h1>
+            <p>{{ concert.venueName }}, {{ concert.startsAt|date('Y-m-d H:i') }} UTC</p>
+            <dl class="ticket-card tier-{{ ticket.tier }}">
+                <dt>Ticket</dt>
+                <dd class="ticket-number">{{ ticket.ticketNumber }}</dd>
+                <dt>Seat</dt>
+                <dd class="seat-code">{{ ticket.seatCode }}</dd>
+                <dt>Tier</dt>
+                <dd class="tier">{{ ticket.tier }}{% if ticket.vipLoungePass %} · VIP lounge pass included{% endif %}</dd>
+                <dt>Entry code</dt>
+                <dd><code class="entry-code">{{ ticket.entryCode }}</code></dd>
+                <dt>Order</dt>
+                <dd class="order-id">{{ ticket.orderId }}</dd>
+                <dt>Issued</dt>
+                <dd>{{ ticket.issuedAt|date('Y-m-d H:i:s') }} UTC</dd>
+            </dl>
+            <p><a href="{{ path('concert_seats', {concertId: ticket.concertId}) }}">Seat map of {{ concert.artist }}</a></p>
+        {% endif %}
+    </main>
+{% endblock %}

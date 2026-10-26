@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Catalogue;
 
-use App\Sales\ConfirmSeats;
+use App\Sales\ConfirmSeedOrder;
 use App\Sales\CustomerConcertSeats;
 use App\Sales\HoldSeat;
 use App\Sales\SeatRefusal;
@@ -76,7 +76,7 @@ final class DemoSeed
             }
             if ($heldSeatIds !== []) {
                 $commandBus->send(
-                    new ConfirmSeats(orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: $heldSeatIds, paymentReference: 'demo-seed-' . $orderId),
+                    new ConfirmSeedOrder(orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: $heldSeatIds, paymentReference: 'demo-seed-' . $orderId),
                     metadata: ['concertId' => $concertId],
                 );
             }

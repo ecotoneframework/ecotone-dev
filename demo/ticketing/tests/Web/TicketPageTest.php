@@ -43,6 +43,22 @@ final class TicketPageTest extends WebTestCase
         self::assertSelectorTextContains('.order-id', $orderId);
     }
 
+    public function test_the_tests_render_tickets_into_the_test_cache_and_never_into_the_ticket_files_of_a_running_stack(): void
+    {
+        $client = $this->seededClient();
+        $concertId = $this->concertIdOf('The Midnight Owls');
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->commandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/C-3', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $this->commandBus()->send(new ConfirmSeats(orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/C-3'], paymentReference: 'pay-1'), metadata: ['concertId' => $concertId]);
+
+        $this->runTheConsumer($client);
+
+        $ticketNumber = $this->queryBus()->sendWithRouting('tickets.of_order', $orderId)[0]['ticketNumber'];
+        self::assertFileExists(static::getContainer()->getParameter('kernel.cache_dir') . '/tickets/' . $ticketNumber . '.txt');
+        self::assertFileDoesNotExist(static::getContainer()->getParameter('kernel.project_dir') . '/var/tickets/' . $ticketNumber . '.txt');
+    }
+
     public function test_the_page_of_an_unknown_ticket_is_not_found_and_says_where_ticket_numbers_come_from(): void
     {
         $client = $this->seededClient();

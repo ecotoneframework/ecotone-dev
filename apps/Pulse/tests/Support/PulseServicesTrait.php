@@ -101,7 +101,7 @@ trait PulseServicesTrait
 
     private function runService(FlowTestSupport $service, string $serviceName): void
     {
-        $service->run($this->serviceChannels[$serviceName], ExecutionPollingMetadata::createWithTestingSetup());
+        $service->run($this->serviceChannels[$serviceName], ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
     }
 
     private function setUpPulseInternalStorage(KernelInterface $kernel): void

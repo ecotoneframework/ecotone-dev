@@ -482,8 +482,7 @@ could see the difference — when one of its events carries that tag — and che
   :captured`, and zero rows affected fails the append. MySQL and MariaDB count changed rows rather than matched ones
   unless the client sets `MYSQL_ATTR_FOUND_ROWS`, which belongs to your connection, so there the check is a guarded
   `version + 1` followed by a guarded `version - 1` in the same transaction: the committed version never moves, and
-  no other connection sees the intermediate value. No pessimistic lock statement (`FOR SHARE`, `FOR UPDATE`,
-  `LOCK IN SHARE MODE`) is used. A save of a fetched aggregate that committed first fails the decision; one that
+  no other connection sees the intermediate value. No pessimistic lock statement is used. A save of a fetched aggregate that committed first fails the decision; one that
   holds the row makes the decision wait and then fail; one that arrives later waits for the decision to commit and
   then succeeds. Two decisions checking the same counter wait for each other's commit and both succeed;
 - a tag an appended event carries that is **not** in the append condition is **incremented** unconditionally

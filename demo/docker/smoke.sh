@@ -82,13 +82,13 @@ step "rush finished: $(jq -c '{created, held, paying, paid, issued, failed, gave
 wait_until 30 rush_has '.issued >= 1' || fail "no order of rush $rush_id got its tickets issued: $rush_state$(budget_note)"
 step "$(jq -r '.issued' <<<"$rush_state") orders of the rush have their tickets issued"
 
-dead_letters=0
-pulse_has_dead_letters() {
-    dead_letters="$(curl -s "$pulse/dead-letters" | grep -c 'data-dead-letter ')"
-    [ "$dead_letters" -ge 1 ]
+outages=0
+pulse_lists_the_provider_outages_of_the_rush() {
+    outages="$(curl -s "$pulse/dead-letters" | grep -oF '<td>App\Payment\PaymentProviderUnavailable: ' | wc -l)"
+    [ "$outages" -ge 1 ]
 }
-wait_until 30 pulse_has_dead_letters || fail "Pulse lists no dead letter after the rush ($pulse/dead-letters)$(budget_note)"
-step "Pulse lists $dead_letters dead letters"
+wait_until 30 pulse_lists_the_provider_outages_of_the_rush || fail "Pulse lists no PaymentProviderUnavailable dead letter of the rush's outage buyers ($pulse/dead-letters)$(budget_note)"
+step "Pulse lists $outages PaymentProviderUnavailable dead letters"
 
 traces_across_both_services=0
 jaeger_has_a_trace_across_both_services() {

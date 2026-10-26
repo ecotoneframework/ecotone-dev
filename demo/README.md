@@ -61,6 +61,8 @@ Distributed Bus, and gets `tickets.hold.result` and `tickets.confirm.result` rep
 `/concerts/{concertId}/seats` on the ticketing URL, linked from its admin page next to its sales ledger; both are
 projections on `ticketing_async`. `demo:seed` sells all but the last three seats of Neon Harbour, and selling those
 marks it sold out (`concert.sold_out`); `demo:seed --catalogueOnly` seeds the venue and the concerts without that sale.
+The seed confirms its orders with `ConfirmSeedOrder`, which records their `SeatSold` events without `SeatsSoldToOrder`:
+those orders exist only in ticketing, so they get no tickets and the storefront is never told about them.
 
 ## Ticket issuance
 

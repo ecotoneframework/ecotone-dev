@@ -7,6 +7,7 @@ namespace App\Tests\Issuance;
 use App\Catalogue\Catalogue;
 use App\Catalogue\Concert;
 use App\Catalogue\CreateVenue;
+use App\Catalogue\DemoSeed;
 use App\Catalogue\OpenSales;
 use App\Catalogue\ScheduleConcert;
 use App\Catalogue\Tier;
@@ -17,6 +18,7 @@ use App\Issuance\IssueTickets;
 use App\Issuance\TicketIssuance;
 use App\Issuance\TicketIssuanceProcess;
 use App\Issuance\TicketIssuanceStart;
+use App\Sales\ConcertSalesLedger;
 use App\Sales\ConfirmSeats;
 use App\Sales\CustomerConcertSeats;
 use App\Sales\HoldExpired;
@@ -252,21 +254,54 @@ final class TicketIssuanceTest extends KernelTestCase
         self::assertSame(0, $this->messagesWaitingOnTheTransport());
     }
 
+    public function test_the_demo_seed_sells_its_seats_without_announcing_tickets_to_the_storefront_while_a_real_order_of_the_same_concert_still_gets_them(): void
+    {
+        $storefront = $this->storefrontListening();
+        $ticketing = $this->ticketingWithTheDemoSeed();
+
+        $ticketing->runConsoleCommand('demo:seed', []);
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame([], $this->receivedByStorefront($storefront));
+        $concertId = array_column($ticketing->sendQueryWithRouting('concerts.list'), 'concertId', 'artist')['Neon Harbour'];
+        self::assertSame(69, $ticketing->sendQueryWithRouting('concert.sales', $concertId)['seatsSold']);
+
+        $orderId = Uuid::v7()->toRfc4122();
+        $lastSeatCode = substr(strrchr(array_column($ticketing->sendQueryWithRouting('concert.detail', metadata: ['aggregate.id' => $concertId])['seats'], 'seatId')[71], '/'), 1);
+        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), [$lastSeatCode]);
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame([$orderId], array_column(array_column($this->receivedByStorefront($storefront), 'event'), 'orderId'));
+    }
+
     private function ticketing(?object $recorder = null, string $renderFailsForSeat = ''): FlowTestSupport
+    {
+        $this->bootKernelOnEmptyTables();
+
+        return $this->bootstrapTicketing($renderFailsForSeat, $recorder === null ? [] : [$recorder]);
+    }
+
+    private function ticketingWithTheDemoSeed(): FlowTestSupport
+    {
+        $this->bootKernelOnEmptyTables();
+        /** @var ManagerRegistry $doctrine */
+        $doctrine = self::getContainer()->get('doctrine');
+
+        return $this->bootstrapTicketing('', [new DemoSeed(), new ConcertSalesLedger($doctrine->getConnection())]);
+    }
+
+    private function bootKernelOnEmptyTables(): void
     {
         self::bootKernel();
         /** @var ManagerRegistry $doctrine */
         $doctrine = self::getContainer()->get('doctrine');
-        $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues, messenger_messages, issued_tickets');
-
-        return $this->bootstrapTicketing($renderFailsForSeat, $recorder);
+        $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues, messenger_messages, issued_tickets, concert_sales_ledger');
     }
 
-    private function bootstrapTicketing(string $renderFailsForSeat, ?object $recorder = null): FlowTestSupport
+    private function bootstrapTicketing(string $renderFailsForSeat, array $applicationHandlers = []): FlowTestSupport
     {
         /** @var ManagerRegistry $doctrine */
         $doctrine = self::getContainer()->get('doctrine');
-        $applicationHandlers = $recorder === null ? [] : [$recorder];
 
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [

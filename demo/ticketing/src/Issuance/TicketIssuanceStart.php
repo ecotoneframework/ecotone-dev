@@ -15,7 +15,7 @@ final class TicketIssuanceStart
     public function whenSeatsSoldToOrder(SeatsSoldToOrder $event, TicketIssuanceProcess $ticketIssuance): void
     {
         $ticketIssuance->issue(
-            new IssueTickets(orderId: $event->orderId, concertId: $event->concertId, customerId: $event->customerId, seats: $event->seats, paymentReference: $event->paymentReference),
+            new IssueTickets(orderId: $event->orderId, concertId: $event->concertId, customerId: $event->customerId, seats: $event->seats),
             $event->concertId,
         );
     }

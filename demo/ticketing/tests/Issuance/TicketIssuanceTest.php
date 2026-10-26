@@ -183,7 +183,6 @@ final class TicketIssuanceTest extends KernelTestCase
                 concertId: $concertId,
                 customerId: $customerId,
                 seats: [new SoldSeat(seatId: $concertId . '/A-1', tier: Tier::VIP, priceCents: 9500), new SoldSeat(seatId: $concertId . '/C-1', tier: Tier::STANDARD, priceCents: 4500)],
-                paymentReference: 'pay-1',
             ),
             $concertId,
         );

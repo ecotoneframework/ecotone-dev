@@ -17,7 +17,6 @@ final readonly class IssueTickets
         public string $concertId,
         public string $customerId,
         public array $seats,
-        public string $paymentReference,
     ) {
     }
 

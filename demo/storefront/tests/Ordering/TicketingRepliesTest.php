@@ -100,7 +100,7 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
         $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
         $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, cardNumber: '4242424242424242'));
         $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->ticketingService->confirmReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'outcome' => 'refused', 'reason' => 'the hold of seat A-12 expired', 'seatIds' => [self::CONCERT_ID . '/A-12']];
+        $this->ticketingService->confirmReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'outcome' => 'refused', 'reason' => 'the hold of seat A-12 expired.', 'seatIds' => [self::CONCERT_ID . '/A-12']];
 
         $this->ticketingReplies();
         $this->storefrontAsyncRuns();

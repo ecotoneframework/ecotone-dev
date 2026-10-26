@@ -65,9 +65,15 @@
             pollInFlight = true;
             try {
                 const response = await fetch(polledUrl, { headers: { Accept: 'application/json' } });
+                if (polledUrl !== stateUrl) {
+                    return;
+                }
                 if (response.status === 404 && stateSeen) {
                     forget();
                     stopFollowing();
+                    return;
+                }
+                if (response.status === 404) {
                     return;
                 }
                 if (!response.ok) {
@@ -89,6 +95,9 @@
                     stopFollowing();
                 }
             } catch (error) {
+                if (polledUrl !== stateUrl) {
+                    return;
+                }
                 failedPolls++;
                 if (failedPolls >= maxFailedPolls) {
                     stopFollowing();

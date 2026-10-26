@@ -27,6 +27,10 @@ export SYMFONY_LOCKFILE=symfony.lock
 if [ ! -f vendor/autoload.php ]; then
     echo "Demo: installing $DEMO_APP's dependencies, with ecotone/* linked from /repo/packages."
     composer install --no-interaction --prefer-dist --no-scripts
+elif [ composer.json -nt vendor/autoload.php ]; then
+    echo "Demo: $DEMO_APP's composer.json changed since its vendor/ was installed, updating its dependencies."
+    composer update --no-interaction --prefer-dist --no-scripts
+    touch vendor/autoload.php
 fi
 
 if [ -z "${ECOTONE_LICENCE_KEY:-}" ]; then

@@ -313,6 +313,26 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         self::assertNotNull($this->rushState()['finishedAt']);
     }
 
+    public function test_every_buyer_of_a_rush_ticketing_never_answers_ends_failed_naming_the_deadline_and_the_rush_finishes(): void
+    {
+        $this->concertOnSale(seats: 12);
+        $this->startRush(buyers: 5, seatsPerBuyer: 2);
+
+        $this->rushRunsWithoutTicketingAnsweringFor(seconds: 130);
+        $handledWhenFinished = $this->rushMessagesHandled();
+        $this->rushRunsWithoutTicketingAnsweringFor(seconds: 60);
+
+        self::assertSame($handledWhenFinished, $this->rushMessagesHandled());
+        foreach ($this->buyers() as $buyer) {
+            $order = $this->order($buyer['orderId']);
+            self::assertSame('failed', $order['status']);
+            self::assertSame(sprintf('Rush buyer %d gave up: ticketing had not held its seats 120 seconds after it joined the rush, the deadline of a rush buyer set by RUSH_BUYER_DEADLINE_SECONDS.', $buyer['buyerNumber']), $order['failureReason']);
+        }
+        $state = $this->rushState();
+        self::assertSame(5, $state['gaveUp']);
+        self::assertNotNull($state['finishedAt']);
+    }
+
     public function test_a_rush_past_its_deadline_lets_every_buyer_still_picking_go_and_ends_on_its_own(): void
     {
         config(['demo.rush_deadline_seconds' => 30]);

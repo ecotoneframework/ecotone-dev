@@ -190,13 +190,13 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
 
             return ['orders' => $orders];
         });
+        $this->respondInBackground(['shipping']);
         $this->respondInBackground(['billing'], function () use ($inTrace): array {
             $billing = $this->tracedBilling();
             $billing->sendCommandWithRouting('invoice.create', 'payload', metadata: $inTrace);
 
             return ['billing' => $billing];
         }, startAfterSeconds: 6);
-        $this->respondInBackground(['shipping']);
 
         $startedAt = microtime(true);
         $crawler = $client->request('GET', '/traces/trace/' . $traceId);

@@ -11,6 +11,7 @@ use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Tracing\TracingConfiguration;
@@ -33,10 +34,10 @@ final class EcotoneConfiguration
     }
 
     #[ServiceContext]
-    public function instantRetriesForTransientDatabaseErrorsOnly(): InstantRetryConfiguration
+    public function instantRetriesForTransientDatabaseErrorsAndVersionConflicts(): InstantRetryConfiguration
     {
         return InstantRetryConfiguration::createWithDefaults()
-            ->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: 3, retryExceptions: [RetryableException::class]);
+            ->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: 3, retryExceptions: [RetryableException::class, ConcurrencyException::class]);
     }
 
     #[ServiceContext]

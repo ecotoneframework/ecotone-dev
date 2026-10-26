@@ -134,7 +134,7 @@ The storefront talks to no real payment provider or mail server. Three rules dri
 | Feature | What it does here | Code |
 |---|---|---|
 | Doctrine ORM aggregates | Venues and concerts, with command handlers on the entities | `ticketing/src/Catalogue/Venue.php`, `Concert.php` |
-| Eloquent aggregates | Customers and orders as Eloquent models; an order is saved under optimistic locking on its `#[Version]`, so two writers that loaded it cannot overwrite each other | `storefront/app/Customer/Customer.php`, `storefront/app/Ordering/Order.php`, `OrderRepository.php` |
+| Eloquent aggregates | Customers and orders as Eloquent models; an order is saved under optimistic locking on its `#[Version]`, so two writers that loaded it cannot overwrite each other: the one that saves second is retried against the order as the first left it | `storefront/app/Customer/Customer.php`, `storefront/app/Ordering/Order.php`, `OrderRepository.php` |
 | Dynamic Consistency Boundary | Holds, releases, expiries and sales decided on the `SeatAvailability` and `CustomerConcertSeats` decision models, scoped by the `seat` and `customerConcert` tags of their events | `ticketing/src/Sales/SeatSales.php`, `SeatAvailability.php`, `CustomerConcertSeats.php`, `SeatHeld.php` |
 | Outbox | Ticketing's announcements go out from `ticketing_async`, a Doctrine Messenger transport committed with the change; the storefront's requests to ticketing, charges and emails go out from `storefront_async`, a database queue committed with the order | `ticketing/src/Catalogue/ConcertAnnouncements.php`, `storefront/app/Ordering/TicketingRequests.php` |
 | Distributed Bus with replies | `tickets.hold` and `tickets.confirm` sent to ticketing and answered with `tickets.hold.result` and `tickets.confirm.result`; events such as `tickets.issued` published to the storefront | `ticketing/src/Sales/SeatSalesOverDistributedBus.php`, `storefront/app/Ordering/TicketingRequests.php`, `TicketingReplies.php` |
@@ -143,7 +143,7 @@ The storefront talks to no real payment provider or mail server. Three rules dri
 | Orchestrator | Ticket issuance as a routing slip built from the order, with an asynchronous hop before the render | `ticketing/src/Issuance/TicketIssuance.php` |
 | Flow tracking and Pulse | Each service records its flows and answers Pulse over the Distributed Bus | both apps' `Infrastructure/EcotoneConfiguration.php`, Pulse in `apps/Pulse` |
 | OpenTelemetry | Every handler, bus and channel traced to Jaeger over OTLP | both apps' `Infrastructure/EcotoneConfiguration.php` and `OtlpTracerProviderFactory.php` |
-| Dead letters and retries | Failures dead-lettered to the database and replayed from Pulse or the console; the storefront retries transient database errors on the spot, ticketing retries a DCB conflict on a command-bus send three times | both apps' `Infrastructure/EcotoneConfiguration.php` |
+| Dead letters and retries | Failures dead-lettered to the database and replayed from Pulse or the console; the storefront retries transient database errors and an order saved by another writer first on the spot, ticketing retries a DCB conflict on a command-bus send three times | both apps' `Infrastructure/EcotoneConfiguration.php` |
 
 ## How it works
 
@@ -215,10 +215,11 @@ only when that change commits. The `storefront-worker` container sends it within
 shows on the page's next poll; with the worker stopped, clicks wait in the queue. The checkout charges the card on
 `storefront_async` through a payment stub: a card ending `0000` is declined and the order fails, one ending `9999` hits
 a provider outage on its first attempt, so the charge lands in the dead letters until you replay it (`php artisan
-ecotone:deadletter:replay <messageId>` in the storefront). Only transient database errors are retried on the spot, so a
-provider outage reaches the dead letters instead of being retried away, and a payment reference is charged once however
-often its charge runs. A paid order sends `tickets.confirm`; `tickets.issued` shows the tickets with their entry codes
-on the order page and emails them, and the email to Linus Bounce (`@bounce.example`) always lands in the dead letters.
+ecotone:deadletter:replay <messageId>` in the storefront). Only transient database errors and an order another writer
+saved first are retried on the spot, so a provider outage reaches the dead letters instead of being retried away, and a
+payment reference is charged once however often its charge runs. A paid order sends `tickets.confirm`; `tickets.issued`
+shows the tickets with their entry codes on the order page and emails them, and the email to Linus Bounce
+(`@bounce.example`) always lands in the dead letters.
 
 ### The rush
 

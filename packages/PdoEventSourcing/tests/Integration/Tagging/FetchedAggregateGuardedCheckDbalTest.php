@@ -54,7 +54,7 @@ use Throwable;
  *
  * @internal
  */
-final class FetchedAggregateRowLockDbalTest extends EventSourcingMessagingTestCase
+final class FetchedAggregateGuardedCheckDbalTest extends EventSourcingMessagingTestCase
 {
     public function test_a_save_of_a_fetched_aggregate_on_another_connection_waits_until_the_deciding_transaction_commits(): void
     {
@@ -72,7 +72,7 @@ final class FetchedAggregateRowLockDbalTest extends EventSourcingMessagingTestCa
             }
         });
 
-        $anna->sendCommand(new HoldSeatForRowLockTest('c-1', 'A1'));
+        $anna->sendCommand(new HoldSeatForGuardedCheckTest('c-1', 'A1'));
         $ben->sendCommandWithRouting('concert.rename', ['concertId' => 'c-1', 'name' => 'Encore']);
 
         self::assertInstanceOf(ConcurrencyException::class, $refusedWhileDeciding);
@@ -93,14 +93,14 @@ final class FetchedAggregateRowLockDbalTest extends EventSourcingMessagingTestCa
         $refusedWhileDeciding = null;
         $seats->afterAppending(function () use ($ben, &$refusedWhileDeciding): void {
             try {
-                $ben->sendCommand(new HoldSeatForRowLockTest('c-1', 'A2'));
+                $ben->sendCommand(new HoldSeatForGuardedCheckTest('c-1', 'A2'));
             } catch (Throwable $refused) {
                 $refusedWhileDeciding = $refused;
             }
         });
 
-        $anna->sendCommand(new HoldSeatForRowLockTest('c-1', 'A1'));
-        $ben->sendCommand(new HoldSeatForRowLockTest('c-1', 'A2'));
+        $anna->sendCommand(new HoldSeatForGuardedCheckTest('c-1', 'A1'));
+        $ben->sendCommand(new HoldSeatForGuardedCheckTest('c-1', 'A2'));
 
         self::assertInstanceOf(ConcurrencyException::class, $refusedWhileDeciding);
         self::assertSame(['A1', 'A2'], $this->heldSeatsOf($anna));
@@ -136,15 +136,15 @@ final class FetchedAggregateRowLockDbalTest extends EventSourcingMessagingTestCa
 
             #[CommandHandler]
             public function hold(
-                HoldSeatForRowLockTest $command,
-                #[Fetch('payload.concertId')] ConcertForRowLockTest $concert,
-                SeatHoldsForRowLockTest $seat,
+                HoldSeatForGuardedCheckTest $command,
+                #[Fetch('payload.concertId')] ConcertForGuardedCheckTest $concert,
+                SeatHoldsForGuardedCheckTest $seat,
             ): array {
-                return $seat->held ? [] : [new SeatHeldForRowLockTest($command->concertId, $command->seatId)];
+                return $seat->held ? [] : [new SeatHeldForGuardedCheckTest($command->concertId, $command->seatId)];
             }
 
             #[EventHandler]
-            public function whenHeld(SeatHeldForRowLockTest $event): void
+            public function whenHeld(SeatHeldForGuardedCheckTest $event): void
             {
                 $afterAppending = $this->afterAppending;
                 $this->afterAppending = null;
@@ -159,46 +159,46 @@ final class FetchedAggregateRowLockDbalTest extends EventSourcingMessagingTestCa
     {
         $converter = new class () {
             #[Converter]
-            public function fromScheduled(ConcertScheduledForRowLockTest $event): array
+            public function fromScheduled(ConcertScheduledForGuardedCheckTest $event): array
             {
                 return ['concertId' => $event->concertId];
             }
 
             #[Converter]
-            public function toScheduled(array $event): ConcertScheduledForRowLockTest
+            public function toScheduled(array $event): ConcertScheduledForGuardedCheckTest
             {
-                return new ConcertScheduledForRowLockTest($event['concertId']);
+                return new ConcertScheduledForGuardedCheckTest($event['concertId']);
             }
 
             #[Converter]
-            public function fromRenamed(ConcertRenamedForRowLockTest $event): array
+            public function fromRenamed(ConcertRenamedForGuardedCheckTest $event): array
             {
                 return ['concertId' => $event->concertId, 'name' => $event->name];
             }
 
             #[Converter]
-            public function toRenamed(array $event): ConcertRenamedForRowLockTest
+            public function toRenamed(array $event): ConcertRenamedForGuardedCheckTest
             {
-                return new ConcertRenamedForRowLockTest($event['concertId'], $event['name']);
+                return new ConcertRenamedForGuardedCheckTest($event['concertId'], $event['name']);
             }
 
             #[Converter]
-            public function fromSeatHeld(SeatHeldForRowLockTest $event): array
+            public function fromSeatHeld(SeatHeldForGuardedCheckTest $event): array
             {
                 return ['concertId' => $event->concertId, 'seatId' => $event->seatId];
             }
 
             #[Converter]
-            public function toSeatHeld(array $event): SeatHeldForRowLockTest
+            public function toSeatHeld(array $event): SeatHeldForGuardedCheckTest
             {
-                return new SeatHeldForRowLockTest($event['concertId'], $event['seatId']);
+                return new SeatHeldForGuardedCheckTest($event['concertId'], $event['seatId']);
             }
         };
 
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
-                ConcertForRowLockTest::class, ConcertScheduledForRowLockTest::class, ConcertRenamedForRowLockTest::class,
-                SeatHoldsForRowLockTest::class, SeatHeldForRowLockTest::class, $converter::class, $seats::class,
+                ConcertForGuardedCheckTest::class, ConcertScheduledForGuardedCheckTest::class, ConcertRenamedForGuardedCheckTest::class,
+                SeatHoldsForGuardedCheckTest::class, SeatHeldForGuardedCheckTest::class, $converter::class, $seats::class,
             ],
             containerOrAvailableServices: [$converter, $seats, DbalConnectionFactory::class => $connectionFactory],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
@@ -219,7 +219,7 @@ final class FetchedAggregateRowLockDbalTest extends EventSourcingMessagingTestCa
     }
 }
 
-final readonly class HoldSeatForRowLockTest
+final readonly class HoldSeatForGuardedCheckTest
 {
     public function __construct(
         public string $concertId,
@@ -228,14 +228,14 @@ final readonly class HoldSeatForRowLockTest
     }
 }
 
-final readonly class ConcertScheduledForRowLockTest
+final readonly class ConcertScheduledForGuardedCheckTest
 {
     public function __construct(public string $concertId)
     {
     }
 }
 
-final readonly class ConcertRenamedForRowLockTest
+final readonly class ConcertRenamedForGuardedCheckTest
 {
     public function __construct(
         public string $concertId,
@@ -244,7 +244,7 @@ final readonly class ConcertRenamedForRowLockTest
     }
 }
 
-final readonly class SeatHeldForRowLockTest
+final readonly class SeatHeldForGuardedCheckTest
 {
     public function __construct(
         public string $concertId,
@@ -255,7 +255,7 @@ final readonly class SeatHeldForRowLockTest
 
 #[EventSourcingAggregate]
 #[AggregateType('concert')]
-final class ConcertForRowLockTest
+final class ConcertForGuardedCheckTest
 {
     use WithAggregateVersioning;
 
@@ -267,13 +267,13 @@ final class ConcertForRowLockTest
     #[CommandHandler('concert.schedule')]
     public static function schedule(string $concertId): array
     {
-        return [new ConcertScheduledForRowLockTest($concertId)];
+        return [new ConcertScheduledForGuardedCheckTest($concertId)];
     }
 
     #[CommandHandler('concert.rename')]
     public function rename(array $command): array
     {
-        return [new ConcertRenamedForRowLockTest($this->concertId, $command['name'])];
+        return [new ConcertRenamedForGuardedCheckTest($this->concertId, $command['name'])];
     }
 
     #[QueryHandler('concert.name')]
@@ -283,25 +283,25 @@ final class ConcertForRowLockTest
     }
 
     #[Apply]
-    public function scheduled(ConcertScheduledForRowLockTest $event): void
+    public function scheduled(ConcertScheduledForGuardedCheckTest $event): void
     {
         $this->concertId = $event->concertId;
     }
 
     #[Apply]
-    public function renamed(ConcertRenamedForRowLockTest $event): void
+    public function renamed(ConcertRenamedForGuardedCheckTest $event): void
     {
         $this->name = $event->name;
     }
 }
 
 #[DecisionModel(tags: ['seat'])]
-final class SeatHoldsForRowLockTest
+final class SeatHoldsForGuardedCheckTest
 {
     public bool $held = false;
 
     #[Apply]
-    public function held(SeatHeldForRowLockTest $event): void
+    public function held(SeatHeldForGuardedCheckTest $event): void
     {
         $this->held = true;
     }

@@ -80,7 +80,7 @@ final class FetchedAggregateRowLockDbalTest extends EventSourcingMessagingTestCa
         self::assertSame('Encore', $anna->sendQueryWithRouting('concert.name', metadata: ['aggregate.id' => 'c-1']));
     }
 
-    public function test_a_second_decision_fetching_the_same_aggregate_on_another_connection_is_not_held_up_by_the_first(): void
+    public function test_a_second_decision_fetching_the_same_aggregate_on_another_connection_waits_for_the_first_to_commit_then_succeeds(): void
     {
         if (self::getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             $this->markTestSkipped('SQLite lets one connection write at a time, so a second decision waits for the first whatever it fetched.');
@@ -90,10 +90,19 @@ final class FetchedAggregateRowLockDbalTest extends EventSourcingMessagingTestCa
         $anna = $this->bootstrap(self::getConnectionFactory(), $seats);
         $ben = $this->bootstrap($this->competingConnectionFactory(), $this->seatHolding());
         $anna->sendCommandWithRouting('concert.schedule', 'c-1');
-        $seats->afterAppending(fn () => $ben->sendCommand(new HoldSeatForRowLockTest('c-1', 'A2')));
+        $refusedWhileDeciding = null;
+        $seats->afterAppending(function () use ($ben, &$refusedWhileDeciding): void {
+            try {
+                $ben->sendCommand(new HoldSeatForRowLockTest('c-1', 'A2'));
+            } catch (Throwable $refused) {
+                $refusedWhileDeciding = $refused;
+            }
+        });
 
         $anna->sendCommand(new HoldSeatForRowLockTest('c-1', 'A1'));
+        $ben->sendCommand(new HoldSeatForRowLockTest('c-1', 'A2'));
 
+        self::assertInstanceOf(ConcurrencyException::class, $refusedWhileDeciding);
         self::assertSame(['A1', 'A2'], $this->heldSeatsOf($anna));
     }
 

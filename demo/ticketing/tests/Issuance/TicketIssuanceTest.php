@@ -235,7 +235,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $deadLetters = $failingTicketing->getGateway(DeadLetterGateway::class)->list(10, 0);
         self::assertCount(1, $deadLetters);
         self::assertStringContainsString(
-            'Ticket of seat C-1 cannot be rendered, because TICKETING_RENDER_FAILS_FOR_SEAT is set to C-1 to simulate a failing render. Unset TICKETING_RENDER_FAILS_FOR_SEAT and restart the ticketing workers, then replay this message from the dead letters in Ecotone Pulse or with bin/console ecotone:deadletter:replay ' . $deadLetters[0]->getMessageId() . '.',
+            'Ticket of seat C-1 cannot be rendered, because TICKETING_RENDER_FAILS_FOR_SEAT is set to C-1 to simulate a failing render. Unset TICKETING_RENDER_FAILS_FOR_SEAT and recreate the container (docker compose up -d ticketing-worker), because a restart keeps the old environment, then replay this message from the dead letters in Ecotone Pulse or with bin/console ecotone:deadletter:replay ' . $deadLetters[0]->getMessageId() . '.',
             $deadLetters[0]->getMessage(),
         );
 

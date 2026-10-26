@@ -194,6 +194,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
 
             return ['billing' => $billing];
         }, startAfterSeconds: 6);
+        $this->respondInBackground(['shipping']);
 
         $startedAt = microtime(true);
         $crawler = $client->request('GET', '/traces/trace/' . $traceId);

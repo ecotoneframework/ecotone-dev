@@ -330,7 +330,7 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         self::assertSame(14, $this->rushMessagesHandled());
     }
 
-    public function test_a_buyer_whose_seats_ticketing_has_not_held_two_minutes_after_it_joined_gives_up_and_its_order_fails(): void
+    public function test_a_buyer_whose_seats_ticketing_has_not_held_two_minutes_after_it_asked_for_the_first_gives_up_and_its_order_fails(): void
     {
         $this->concertOnSale(seats: 12);
         $this->startRush(buyers: 1, seatsPerBuyer: 1);
@@ -343,7 +343,7 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
 
         $order = $this->order($this->buyers()[0]['orderId']);
         self::assertSame('failed', $order['status']);
-        self::assertSame('Rush buyer 1 gave up: ticketing had not held its seats 120 seconds after it joined the rush, the deadline of a rush buyer set by RUSH_BUYER_DEADLINE_SECONDS.', $order['failureReason']);
+        self::assertSame('Rush buyer 1 gave up: ticketing had not held its seats 120 seconds after the buyer asked it for the first one, the deadline of a rush buyer set by RUSH_BUYER_DEADLINE_SECONDS.', $order['failureReason']);
         self::assertNotNull($this->rushState()['finishedAt']);
     }
 
@@ -360,11 +360,57 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         foreach ($this->buyers() as $buyer) {
             $order = $this->order($buyer['orderId']);
             self::assertSame('failed', $order['status']);
-            self::assertSame(sprintf('Rush buyer %d gave up: ticketing had not held its seats 120 seconds after it joined the rush, the deadline of a rush buyer set by RUSH_BUYER_DEADLINE_SECONDS.', $buyer['buyerNumber']), $order['failureReason']);
+            self::assertSame(sprintf('Rush buyer %d gave up: ticketing had not held its seats 120 seconds after the buyer asked it for the first one, the deadline of a rush buyer set by RUSH_BUYER_DEADLINE_SECONDS.', $buyer['buyerNumber']), $order['failureReason']);
         }
         $state = $this->rushState();
         self::assertSame(5, $state['gaveUp']);
         self::assertNotNull($state['finishedAt']);
+    }
+
+    #[DataProvider('secondsBetweenTicks')]
+    public function test_a_buyer_of_a_rush_larger_than_its_steps_per_tick_is_never_failed_for_ticketing_before_it_asked_ticketing_for_a_seat(int $secondsBetweenTicks): void
+    {
+        config(['demo.rush_buyer_deadline_seconds' => 30]);
+        $this->concertOnSale(seats: 300);
+
+        $this->startRush(buyers: 60, seatsPerBuyer: 4);
+        $this->rushRuns(rounds: 40, secondsBetweenRounds: $secondsBetweenTicks);
+
+        $buyerDeadlineFailures = array_filter(
+            array_map(fn (array $buyer) => $this->order($buyer['orderId'])['failureReason'], $this->buyers()),
+            fn (?string $reason) => $reason !== null && str_contains($reason, 'RUSH_BUYER_DEADLINE_SECONDS'),
+        );
+        self::assertSame([], $buyerDeadlineFailures);
+        self::assertSame(60, $this->rushState()['paid']);
+    }
+
+    #[DataProvider('secondsBetweenTicks')]
+    public function test_every_buyer_of_a_rush_larger_than_its_steps_per_tick_ticketing_never_answers_asks_for_a_seat_before_any_buyer_deadline_fires(int $secondsBetweenTicks): void
+    {
+        config(['demo.rush_buyer_deadline_seconds' => 30]);
+        $this->concertOnSale(seats: 300);
+        $this->startRush(buyers: 60, seatsPerBuyer: 4);
+
+        $this->rushRunsWithoutTicketingAnsweringFor(seconds: 29, secondsBetweenRounds: $secondsBetweenTicks);
+        $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertSame(0, $this->rushState()['gaveUp']);
+        self::assertCount(60, array_unique(array_map(fn (array $hold) => $hold[1]['orderId'], $this->holdsReceived())));
+
+        $this->rushRunsWithoutTicketingAnsweringFor(seconds: 90, secondsBetweenRounds: $secondsBetweenTicks);
+        $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertCount(60, $this->holdsReceived());
+        foreach ($this->buyers() as $buyer) {
+            self::assertSame(sprintf('Rush buyer %d gave up: ticketing had not held its seats 30 seconds after the buyer asked it for the first one, the deadline of a rush buyer set by RUSH_BUYER_DEADLINE_SECONDS.', $buyer['buyerNumber']), $this->order($buyer['orderId'])['failureReason']);
+        }
+        self::assertNotNull($this->rushState()['finishedAt']);
+    }
+
+    public static function secondsBetweenTicks(): iterable
+    {
+        yield 'ticks 2 seconds apart' => [2];
+        yield 'ticks 3 seconds apart' => [3];
     }
 
     public function test_a_rush_past_its_deadline_lets_every_buyer_still_picking_go_and_ends_on_its_own(): void
@@ -462,22 +508,27 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         ));
     }
 
-    private function rushRuns(int $rounds = 20): void
+    private function rushRuns(int $rounds = 20, int $secondsBetweenRounds = 2): void
     {
         for ($round = 0; $round < $rounds; $round++) {
             $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
             $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             $this->storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
-            Carbon::setTestNow(Carbon::now()->addSeconds(2));
+            Carbon::setTestNow(Carbon::now()->addSeconds($secondsBetweenRounds));
         }
     }
 
-    private function rushRunsWithoutTicketingAnsweringFor(int $seconds): void
+    private function rushRunsWithoutTicketingAnsweringFor(int $seconds, int $secondsBetweenRounds = 1): void
     {
-        for ($second = 0; $second < $seconds; $second++) {
+        for ($second = 0; $second < $seconds; $second += $secondsBetweenRounds) {
             $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
-            Carbon::setTestNow(Carbon::now()->addSecond());
+            Carbon::setTestNow(Carbon::now()->addSeconds($secondsBetweenRounds));
         }
+    }
+
+    private function holdsReceived(): array
+    {
+        return array_values(array_filter($this->ticketingService->received, fn (array $request) => $request[0] === 'tickets.hold'));
     }
 
     private function rushMessagesHandled(): int

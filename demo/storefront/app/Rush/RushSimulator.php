@@ -108,6 +108,7 @@ final class RushSimulator
                 stage: $step['stage'],
                 pendingSeatId: $step['stage'] === self::PICKING ? (string) $step['pendingSeatId'] : '',
                 refusedSeatIds: json_encode($step['refusedSeatIds'], JSON_THROW_ON_ERROR),
+                recordedAt: $now->toAtomString(),
             );
         }
 
@@ -205,8 +206,8 @@ final class RushSimulator
 
             return $this->step(stage: self::PAYING, pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
         }
-        if ($now->greaterThanOrEqualTo(Carbon::parse($buyer['joined_at'])->addSeconds((int) $rush['buyer_deadline_seconds']))) {
-            return $this->step(stage: $this->giveUp($commandBus, $buyer['order_id'], sprintf('Rush buyer %d gave up: ticketing had not held its seats %d seconds after it joined the rush, the deadline of a rush buyer set by RUSH_BUYER_DEADLINE_SECONDS.', $buyerNumber, (int) $rush['buyer_deadline_seconds'])), pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
+        if ($buyer['asked_at'] !== null && $now->greaterThanOrEqualTo(Carbon::parse($buyer['asked_at'])->addSeconds((int) $rush['buyer_deadline_seconds']))) {
+            return $this->step(stage: $this->giveUp($commandBus, $buyer['order_id'], sprintf('Rush buyer %d gave up: ticketing had not held its seats %d seconds after the buyer asked it for the first one, the deadline of a rush buyer set by RUSH_BUYER_DEADLINE_SECONDS.', $buyerNumber, (int) $rush['buyer_deadline_seconds'])), pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
         }
         if ($pendingSeatId !== null) {
             return $this->step(stage: self::PICKING, pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: false);

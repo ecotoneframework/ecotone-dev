@@ -33,19 +33,20 @@ interface Rushes
     public function buyersJoinedOf(string $rushId): int;
 
     #[DbalQuery(<<<'SQL'
-        SELECT b.buyer_number, b.order_id, b.role, b.pending_seat_id, b.refused_seat_ids, b.joined_at, o.status, o.held_seats, o.last_refusal
+        SELECT b.buyer_number, b.order_id, b.role, b.pending_seat_id, b.refused_seat_ids, b.asked_at, o.status, o.held_seats, o.last_refusal
         FROM rush_buyers b
         JOIN orders o ON o.id = b.order_id
         WHERE b.rush_id = :rushId AND b.stage = 'picking'
-        ORDER BY b.buyer_number
+        ORDER BY b.asked_at NULLS LAST, b.buyer_number
         SQL)]
     public function buyersPickingOf(string $rushId): array;
 
     #[DbalWrite(<<<'SQL'
-        UPDATE rush_buyers SET stage = :stage, pending_seat_id = NULLIF(:pendingSeatId, ''), refused_seat_ids = CAST(:refusedSeatIds AS json)
+        UPDATE rush_buyers SET stage = :stage, pending_seat_id = NULLIF(:pendingSeatId, ''), refused_seat_ids = CAST(:refusedSeatIds AS json),
+            asked_at = COALESCE(asked_at, CASE WHEN :pendingSeatId <> '' THEN CAST(:recordedAt AS timestamptz) END)
         WHERE rush_id = :rushId AND buyer_number = :buyerNumber
         SQL)]
-    public function recordProgress(string $rushId, int $buyerNumber, string $stage, string $pendingSeatId, string $refusedSeatIds): void;
+    public function recordProgress(string $rushId, int $buyerNumber, string $stage, string $pendingSeatId, string $refusedSeatIds, string $recordedAt): void;
 
     #[DbalQuery("SELECT pending_seat_id FROM rush_buyers WHERE concert_id = :concertId AND stage = 'picking' AND pending_seat_id IS NOT NULL", fetchMode: FetchMode::FIRST_COLUMN)]
     public function pendingSeatIdsOf(string $concertId): array;

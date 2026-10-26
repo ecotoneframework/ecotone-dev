@@ -35,6 +35,7 @@ return new class () extends Migration {
             $table->string('pending_seat_id')->nullable();
             $table->json('refused_seat_ids');
             $table->timestampTz('joined_at');
+            $table->timestampTz('asked_at')->nullable();
             $table->primary(['rush_id', 'buyer_number']);
         });
     }

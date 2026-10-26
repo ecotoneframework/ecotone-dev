@@ -104,13 +104,14 @@ synthetic buyers after the seats while you pick yours (the same from the console
 demo/docker-compose.yml exec storefront php artisan demo:rush <concertId> --buyers=30 --declinedShare=30
 --outageShare=10 --bounceShare=10 --seatsPerBuyer=2`). The whole rush is one `AdvanceRush` message on
 `storefront_async`, sent again every 2 seconds (every 5 while every buyer waits on ticketing): each tick lets 20 more
-buyers join and moves up to 10 buyers one step, so the crowd's holds and charges never queue far ahead of yours. A buyer
-starts an order and asks ticketing for free seats one at a time, exactly as the seat picker does, tries another seat
-when one is refused (three refusals and it gives up), and pays once its seats are held: the declined share with a card
-ending `0000`, the outage share with one ending `9999`, the bounce share with an `@bounce.example` address. A buyer
-whose seats are not held 120 seconds after it joined gives up and fails its order (`RUSH_BUYER_DEADLINE_SECONDS`), and
-a rush lets every buyer still picking go 600 seconds after it started (`RUSH_DEADLINE_SECONDS`), so a rush ends on its
-own even when ticketing never answers. The
+buyers join and moves up to 10 buyers one step, the buyers that first asked ticketing earliest before the ones yet to
+ask, so the crowd's holds and charges never queue far ahead of yours. A buyer starts an order and asks ticketing for
+free seats one at a time, exactly as the seat picker does, tries another seat when one is refused (three refusals and it
+gives up), and pays once its seats are held: the declined share with a card ending `0000`, the outage share with one
+ending `9999`, the bounce share with an `@bounce.example` address. A buyer whose seats are not held 120 seconds after it
+asked ticketing for the first one gives up and fails its order (`RUSH_BUYER_DEADLINE_SECONDS`), and a rush lets every
+buyer still picking go 600 seconds after it started (`RUSH_DEADLINE_SECONDS`), so a rush ends on its own even when
+ticketing never answers. The
 status line under the panel polls `/rushes/{rushId}/state.json` every second, stops once every buyer has had a go,
 and counts the buyers created and then each buyer once, at the stage its order is at now: held (seats held, not yet
 paying), paying, paid, issued (tickets issued), failed (declined or refused by ticketing) and gave up. What to watch:

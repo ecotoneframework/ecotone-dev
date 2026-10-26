@@ -20,11 +20,11 @@ final class DemoRush
         string $concertId,
         #[Reference] CommandBus $commandBus,
         #[Reference] QueryBus $queryBus,
-        #[ConsoleParameterOption] int $buyers = 30,
-        #[ConsoleParameterOption] int $declinedShare = 30,
-        #[ConsoleParameterOption] int $outageShare = 10,
-        #[ConsoleParameterOption] int $bounceShare = 10,
-        #[ConsoleParameterOption] int $seatsPerBuyer = 2,
+        #[ConsoleParameterOption] int $buyers = StartRush::DEFAULTS['buyers'],
+        #[ConsoleParameterOption] int $declinedShare = StartRush::DEFAULTS['declinedShare'],
+        #[ConsoleParameterOption] int $outageShare = StartRush::DEFAULTS['outageShare'],
+        #[ConsoleParameterOption] int $bounceShare = StartRush::DEFAULTS['bounceShare'],
+        #[ConsoleParameterOption] int $seatsPerBuyer = StartRush::DEFAULTS['seatsPerBuyer'],
     ): void {
         $rushId = Uuid::v7()->toRfc4122();
         $refusal = RushSimulator::refusalOf($queryBus->sendWithRouting('concert.detail', $concertId), $concertId, $rushId);

@@ -10,6 +10,7 @@ final class StartRush
 {
     public const MAX_BUYERS = 200;
     public const MAX_SEATS_PER_BUYER = 4;
+    public const DEFAULTS = ['buyers' => 30, 'declinedShare' => 30, 'outageShare' => 10, 'bounceShare' => 10, 'seatsPerBuyer' => 2];
 
     public function __construct(
         public readonly string $rushId,

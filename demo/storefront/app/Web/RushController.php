@@ -15,8 +15,6 @@ use Symfony\Component\Uid\Uuid;
 
 final class RushController
 {
-    public const DEFAULTS = ['buyers' => 30, 'declinedShare' => 30, 'outageShare' => 10, 'bounceShare' => 10, 'seatsPerBuyer' => 2];
-
     public function __construct(
         private readonly CommandBus $commandBus,
         private readonly QueryBus $queryBus,
@@ -33,7 +31,7 @@ final class RushController
             return response()->json(['error' => $refusal->getMessage()], 409);
         }
         $settings = [];
-        foreach (self::DEFAULTS as $setting => $default) {
+        foreach (StartRush::DEFAULTS as $setting => $default) {
             $settings[$setting] = (int) $request->input($setting, $default);
         }
         try {

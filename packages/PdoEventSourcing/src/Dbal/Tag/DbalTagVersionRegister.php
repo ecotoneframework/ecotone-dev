@@ -158,7 +158,7 @@ final class DbalTagVersionRegister
             TagConcurrencyGuard::run(fn () => $connection->executeStatement($tagSchema->insertPlaceholderVersionSql(TagTableManager::TAG_VERSIONS_TABLE), [$name, $value]));
         }
 
-        return TagConcurrencyGuard::run(fn () => $tagSchema->lockedVersion($connection, TagTableManager::TAG_VERSIONS_TABLE, $name, $value)) === $expectedVersion;
+        return TagConcurrencyGuard::run(fn () => $tagSchema->checkVersionUnchanged($connection, TagTableManager::TAG_VERSIONS_TABLE, $name, $value, $expectedVersion));
     }
 
     /**
@@ -178,6 +178,11 @@ final class DbalTagVersionRegister
 
     private function versionOf(Connection $connection, string $name, string $value): int
     {
-        return TaggedEventSchemaFactory::for($connection)->lockedVersion($connection, TagTableManager::TAG_VERSIONS_TABLE, $name, $value);
+        $versionsTable = TaggedEventSchemaFactory::for($connection)->quoteIdentifier(TagTableManager::TAG_VERSIONS_TABLE);
+
+        return (int) $connection->executeQuery(
+            "SELECT version FROM {$versionsTable} WHERE tag_name = ? AND tag_value = ?",
+            [$name, $value]
+        )->fetchOne();
     }
 }

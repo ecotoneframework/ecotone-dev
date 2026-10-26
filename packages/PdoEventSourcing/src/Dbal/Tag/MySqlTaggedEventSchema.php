@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Dbal\Tag;
 
 use Doctrine\DBAL\Connection;
+use LogicException;
 
 /**
  * licence Enterprise
@@ -95,12 +96,27 @@ final class MySqlTaggedEventSchema implements TaggedEventSchema
         return "INSERT IGNORE INTO {$quoted} (tag_name, tag_value, version) VALUES (?, ?, 0)";
     }
 
-    public function lockedVersion(Connection $connection, string $tableName, string $tagName, string $tagValue): int
+    public function checkVersionUnchanged(Connection $connection, string $tableName, string $tagName, string $tagValue, int $expectedVersion): bool
     {
-        return (int) $connection->executeQuery(
-            'SELECT version FROM ' . $this->quoteIdentifier($tableName) . ' WHERE tag_name = ? AND tag_value = ? LOCK IN SHARE MODE',
-            [$tagName, $tagValue]
-        )->fetchOne();
+        $quoted = $this->quoteIdentifier($tableName);
+
+        $unchanged = (int) $connection->executeStatement(
+            "UPDATE {$quoted} SET version = version + 1 WHERE tag_name = ? AND tag_value = ? AND version = ?",
+            [$tagName, $tagValue, $expectedVersion]
+        ) > 0;
+        if (! $unchanged) {
+            return false;
+        }
+
+        $restored = (int) $connection->executeStatement(
+            "UPDATE {$quoted} SET version = version - 1 WHERE tag_name = ? AND tag_value = ? AND version = ?",
+            [$tagName, $tagValue, $expectedVersion + 1]
+        );
+        if ($restored !== 1) {
+            throw new LogicException("The check of tag {$tagName}={$tagValue} raised its version from {$expectedVersion} to " . ($expectedVersion + 1) . " inside the append's transaction but could not restore it, so the append is refused. Something else in the same transaction changed this row of {$tableName}: write tag versions only through the event store's append.");
+        }
+
+        return true;
     }
 
     public function bigIntPlaceholder(): string

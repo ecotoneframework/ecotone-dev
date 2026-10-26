@@ -100,12 +100,12 @@ final class SqliteTaggedEventSchema implements TaggedEventSchema
         return "INSERT INTO {$quoted} (tag_name, tag_value, version) VALUES (?, ?, 0) ON CONFLICT (tag_name, tag_value) DO NOTHING";
     }
 
-    public function lockedVersion(Connection $connection, string $tableName, string $tagName, string $tagValue): int
+    public function checkVersionUnchanged(Connection $connection, string $tableName, string $tagName, string $tagValue, int $expectedVersion): bool
     {
-        $quoted = $this->quoteIdentifier($tableName);
-        $connection->executeStatement("UPDATE {$quoted} SET version = version WHERE tag_name = ? AND tag_value = ?", [$tagName, $tagValue]);
-
-        return (int) $connection->executeQuery("SELECT version FROM {$quoted} WHERE tag_name = ? AND tag_value = ?", [$tagName, $tagValue])->fetchOne();
+        return (int) $connection->executeStatement(
+            'UPDATE ' . $this->quoteIdentifier($tableName) . ' SET version = version WHERE tag_name = ? AND tag_value = ? AND version = ?',
+            [$tagName, $tagValue, $expectedVersion]
+        ) > 0;
     }
 
     public function bigIntPlaceholder(): string

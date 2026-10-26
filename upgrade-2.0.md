@@ -478,9 +478,14 @@ could see the difference — when one of its events carries that tag — and che
   version + 1 WHERE version = :captured`, failing the append if the tag moved since it was read;
 - an entry of the append condition that no appended event carries — an aggregate fetched read-only with `#[Fetch]`,
   a decision model's or boundary's tag the decision's events do not carry — is **checked, never bumped**: the append
-  fails if it moved, under a shared row lock held until commit (`FOR SHARE` on PostgreSQL, `LOCK IN SHARE MODE` on
-  MySQL/MariaDB, a no-op `UPDATE` on SQLite, which has one writer anyway), so a save of a fetched aggregate waits for
-  the decision while other decisions checking the same counter proceed;
+  fails if it moved. The check is a guarded no-op write, `UPDATE ... SET version = version WHERE version =
+  :captured`, and zero rows affected fails the append. MySQL and MariaDB count changed rows rather than matched ones
+  unless the client sets `MYSQL_ATTR_FOUND_ROWS`, which belongs to your connection, so there the check is a guarded
+  `version + 1` followed by a guarded `version - 1` in the same transaction: the committed version never moves, and
+  no other connection sees the intermediate value. No pessimistic lock statement (`FOR SHARE`, `FOR UPDATE`,
+  `LOCK IN SHARE MODE`) is used. A save of a fetched aggregate that committed first fails the decision; one that
+  holds the row makes the decision wait and then fail; one that arrives later waits for the decision to commit and
+  then succeeds. Two decisions checking the same counter wait for each other's commit and both succeed;
 - a tag an appended event carries that is **not** in the append condition is **incremented** unconditionally
   (`version = version + 1`, no captured version): two appends with disjoint boundaries whose events share a tag
   value both commit, and a decision scoped by that tag that read before them still conflicts.
@@ -559,7 +564,8 @@ own stream or repository, snapshots included.
   the same read as its models, and appends its events only if none of those aggregates was saved meanwhile. The
   append **checks** a fetched aggregate's counter and never bumps it ("What an append does to each counter" above).
   So decisions that only fetch the same aggregate (twelve `HoldSeat` decisions on
-  different seats of one `Concert`) commit side by side instead of failing each other, while a save of the fetched
+  different seats of one `Concert`) never fail each other — each waits for the one before it to commit, then
+  commits — while a save of the fetched
   aggregate still conflicts: before the decision's append it fails the decision ("Concert c-1 changed since it was
   loaded ... another transaction saved it"), after it the save waits for the decision to commit. Early 2.0 builds
   bumped every fetched counter, so such decisions serialized on the aggregate and failed with a conflict blaming a
@@ -621,12 +627,15 @@ own stream or repository, snapshots included.
   `DecisionModelConcurrencyException`. A tag conflict says "another transaction appended an event carrying it".
 - **A tag conflict names what was being decided.** The batch loader knows which decision model, or which
   `#[DecisionBoundary]` method, each captured tag belongs to, so the message says so:
-  `Concurrent append conflict on tag username:ada (expected version 0, current version 1) while deciding
-  App\Registration\UsernameAvailability. The tag moved after it was read: ...`. Several models sharing the
+  `Concurrent append conflict on tag username:ada (expected version 0, moved since it was read) while deciding
+  App\Registration\UsernameAvailability. The tag moved after it was read: ... Otherwise retry the command: ...`. Several models sharing the
   conflicting tag are listed comma-separated; a handler with only a boundary is named as
   `while deciding App\Registration\Usernames::boundary`. An aggregate counter conflict keeps its own wording
-  ("Wallet w-1 changed since it was loaded") and names no model. The exception also exposes the conflict as data —
-  `conflictingTagName()`, `conflictingTagValue()`, `expectedVersion()`, `currentVersion()`, `decidedBy()` — so you
+  ("Wallet w-1 changed since it was loaded at change 3") and names no model. Neither names the version it moved to: a
+  guarded write that misses does not report the row it found, and on InnoDB `REPEATABLE READ` a plain read returns
+  the transaction's snapshot, so the number would be wrong on MySQL/MariaDB — every engine and the in-memory store
+  print the same message. The exception also exposes the conflict as data —
+  `conflictingTagName()`, `conflictingTagValue()`, `expectedVersion()`, `decidedBy()` — so you
   can turn it into a business answer without parsing the message.
 - **A `#[Fetch]` expression that fails names where it is written.** A syntax error, an unknown `reference()`, a
   mapper that throws, or a result that does not fit the model throws `ExpressionEvaluationException` naming the
@@ -672,7 +681,7 @@ interface MyCommandBus extends CommandBus {}
 ```
 
 Without retry configured, a conflict surfaces to the caller as a technical exception naming the tag (or the aggregate)
-and the captured vs. current version — not a business answer. Asynchronous endpoints already retry 3 times by default. Retry never
+and the version it was read at — not a business answer. Asynchronous endpoints already retry 3 times by default. Retry never
 fires inside an already-open database transaction; that transaction is already unsafe to continue. A conflict is not
 always another writer: a handler that sends a command from inside itself, whose handler appends to the same tag in
 the same transaction, moves the tag under its own feet and fails on every retry — decide both in one handler.
@@ -914,7 +923,7 @@ no transaction.
 
 **Observability.** Every conflict is reported as one `notice`-level log line through the PSR logger you registered,
 with the message `Dynamic Consistency Boundary conflict` and the context keys `ecotone.dcb.conflict.tag`,
-`ecotone.dcb.conflict.expected_version`, `ecotone.dcb.conflict.current_version` and `ecotone.dcb.conflict.model`, so
+`ecotone.dcb.conflict.expected_version` and `ecotone.dcb.conflict.model`, so
 conflicts can be counted without any tracing set-up.
 
 With `ecotone/open-telemetry` installed and the tracing package enabled, each boundary handler also produces two spans:
@@ -925,7 +934,7 @@ With `ecotone/open-telemetry` installed and the tracing package enabled, each bo
 | `Conditional Append: <stream>` | around an append carrying a tag condition — a decision-model handler's result and an event-sourced aggregate save alike | `ecotone.dcb.tags`, `ecotone.dcb.events_appended` |
 
 A conflict records the exception on the append span, sets its status to error, and adds a span event named
-`dcb.conflict` whose attributes are the four `ecotone.dcb.conflict.*` fields above. List-valued attributes are
+`dcb.conflict` whose attributes are the three `ecotone.dcb.conflict.*` fields above. List-valued attributes are
 comma-separated strings.
 
 Nothing is registered when the OpenTelemetry module is absent, and the DCB code itself has no dependency on it: the

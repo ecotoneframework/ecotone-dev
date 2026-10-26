@@ -21,7 +21,7 @@ use Symfony\Component\Uid\Uuid;
  */
 final class TicketPageTest extends WebTestCase
 {
-    public function test_the_ticket_page_shows_the_concert_seat_tier_and_entry_code_of_an_issued_ticket(): void
+    public function test_the_ticket_page_shows_the_concert_seat_tier_vip_lounge_pass_and_entry_code_of_an_issued_ticket(): void
     {
         $client = $this->seededClient();
         $concertId = $this->concertIdOf('The Midnight Owls');
@@ -38,7 +38,7 @@ final class TicketPageTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'The Midnight Owls');
         self::assertSelectorTextContains('.ticket-number', $ticket['ticketNumber']);
         self::assertSelectorTextContains('.seat-code', 'A-3');
-        self::assertSelectorTextContains('.tier', 'vip');
+        self::assertSelectorTextContains('.tier', 'vip · VIP lounge pass included');
         self::assertSelectorTextContains('.entry-code', $ticket['entryCode']);
         self::assertSelectorTextContains('.order-id', $orderId);
     }

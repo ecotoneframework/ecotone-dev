@@ -20,11 +20,11 @@ use App\Rush\StartRush;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\ConcurrencyException;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 

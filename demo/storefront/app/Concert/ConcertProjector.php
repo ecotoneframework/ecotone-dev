@@ -45,36 +45,28 @@ final class ConcertProjector
     #[EventHandler('concert.sales_opened')]
     public function whenSalesOpened(array $event, #[Reference] ConcertCatalogue $catalogue): void
     {
-        if ($catalogue->openSales($event['concertId']) === 0) {
-            throw $this->notInCatalogue($event['concertId'], 'concert.sales_opened', 'put it on sale');
-        }
+        $catalogue->advanceStatusTo(concertId: $event['concertId'], status: 'on_sale');
     }
 
     #[Distributed]
     #[EventHandler('concert.cancelled')]
     public function whenCancelled(array $event, #[Reference] ConcertCatalogue $catalogue): void
     {
-        if ($catalogue->cancel($event['concertId']) === 0) {
-            throw $this->notInCatalogue($event['concertId'], 'concert.cancelled', 'cancel it');
-        }
+        $catalogue->advanceStatusTo(concertId: $event['concertId'], status: 'cancelled');
     }
 
     #[Distributed]
     #[EventHandler('concert.prices_changed')]
     public function whenPricesChanged(array $event, #[Reference] ConcertCatalogue $catalogue): void
     {
-        if ($catalogue->changePrices(concertId: $event['concertId'], standardPriceCents: $event['tiers']['standard'], vipPriceCents: $event['tiers']['vip']) === 0) {
-            throw $this->notInCatalogue($event['concertId'], 'concert.prices_changed', 'change its prices');
-        }
+        $catalogue->changePrices(concertId: $event['concertId'], standardPriceCents: $event['tiers']['standard'], vipPriceCents: $event['tiers']['vip']);
     }
 
     #[Distributed]
     #[EventHandler('concert.sold_out')]
     public function whenSoldOut(array $event, #[Reference] ConcertCatalogue $catalogue): void
     {
-        if ($catalogue->markSoldOut($event['concertId']) === 0) {
-            throw $this->notInCatalogue($event['concertId'], 'concert.sold_out', 'mark it sold out');
-        }
+        $catalogue->advanceStatusTo(concertId: $event['concertId'], status: 'sold_out');
     }
 
     #[QueryHandler('concerts.list')]
@@ -92,17 +84,6 @@ final class ConcertProjector
         }
 
         return [...$this->summary($row), 'sections' => $this->sections(json_decode($row['seats'], true, flags: JSON_THROW_ON_ERROR))];
-    }
-
-    private function notInCatalogue(string $concertId, string $eventName, string $change): DomainException
-    {
-        return new DomainException(sprintf(
-            'Concert %s is not in the storefront catalogue, so %s cannot %s. A concert enters the catalogue with concert.scheduled, which has to arrive first: publish concert.scheduled for this concert again from ticketing, then replay this %s message from the dbal_dead_letter with php artisan ecotone:deadletter:replay <messageId> (ecotone:deadletter:list shows the id), or replay every dead letter with php artisan ecotone:deadletter:replayAll.',
-            $concertId,
-            $eventName,
-            $change,
-            $eventName,
-        ));
     }
 
     private function summary(array $row): array

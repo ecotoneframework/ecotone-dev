@@ -89,3 +89,15 @@ jobs:
       - name: Run phpstan and phpunit
         working-directory: demo/${{ matrix.app }}
         run: composer tests:ci
+
+  smoke:
+    name: Demo compose smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start the demo, run a rush and check Pulse and Jaeger, on the demo's PHP 8.5 image
+        run: |
+          export DEMO_UID="$(id -u)" DEMO_GID="$(id -g)"
+          demo/docker/smoke.sh

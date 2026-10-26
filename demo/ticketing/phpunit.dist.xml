@@ -17,8 +17,11 @@
         <env name="APP_ENV" value="test" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
         <env name="DATABASE_DSN" value="pgsql://ecotone:secret@postgres:5432/ticketing_test" />
+        <env name="OTEL_PHP_DEBUG_SCOPES_DISABLED" value="1" />
         <env name="DEMO_PULSE_URL" value="http://localhost:8080" force="true" />
         <env name="DEMO_JAEGER_URL" value="http://localhost:16686" force="true" />
+        <server name="TICKETING_HOLD_SECONDS" value="600" force="true" />
+        <env name="TICKETING_HOLD_SECONDS" value="600" force="true" />
     </php>
 
     <testsuites>

@@ -5,13 +5,26 @@ declare(strict_types=1);
 namespace App\Tests\Catalogue;
 
 use App\Catalogue\Catalogue;
+use App\Catalogue\ChangeTierPrice;
 use App\Catalogue\Concert;
 use App\Catalogue\ConcertAnnouncements;
 use App\Catalogue\CreateVenue;
+use App\Catalogue\MarkConcertSoldOut;
 use App\Catalogue\OpenSales;
 use App\Catalogue\ScheduleConcert;
+use App\Catalogue\Tier;
 use App\Catalogue\Venue;
 use App\Infrastructure\EcotoneConfiguration;
+use App\Sales\CustomerConcertSeats;
+use App\Sales\ExpireHold;
+use App\Sales\HoldExpired;
+use App\Sales\HoldExpiry;
+use App\Sales\HoldReleased;
+use App\Sales\HoldSeat;
+use App\Sales\SeatAvailability;
+use App\Sales\SeatHeld;
+use App\Sales\SeatSales;
+use App\Sales\SeatSold;
 use DateTimeImmutable;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Api\Attribute\Around;
@@ -35,6 +48,7 @@ use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
+use Symfony\Component\Uid\Uuid;
 use Throwable;
 
 /**
@@ -98,6 +112,79 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
         );
     }
 
+    public function test_a_changed_tier_price_waits_on_the_messenger_transport_and_reaches_the_storefront_with_both_tier_prices(): void
+    {
+        $storefront = $this->storefrontListening();
+        $ticketing = $this->ticketing();
+        $concertId = $this->scheduleConcert($ticketing, $this->createRiversideHall($ticketing));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->receivedByStorefront($storefront);
+
+        $ticketing->getCommandBus()->send(new ChangeTierPrice(concertId: $concertId, tier: Tier::VIP, priceCents: 12000));
+
+        self::assertSame(1, $this->announcementsWaitingOnTheTransport());
+        self::assertSame([], $this->receivedByStorefront($storefront));
+
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(0, $this->announcementsWaitingOnTheTransport());
+        self::assertSame(
+            [['routingKey' => 'concert.prices_changed', 'concertIdHeader' => $concertId, 'event' => ['concertId' => $concertId, 'tiers' => ['standard' => 4500, 'vip' => 12000]]]],
+            $this->receivedByStorefront($storefront),
+        );
+    }
+
+    public function test_a_sold_out_concert_waits_on_the_messenger_transport_and_reaches_the_storefront_after_the_consumer_runs(): void
+    {
+        $storefront = $this->storefrontListening();
+        $ticketing = $this->ticketing();
+        $concertId = $this->scheduleConcert($ticketing, $this->createRiversideHall($ticketing));
+        $ticketing->getCommandBus()->send(new OpenSales($concertId));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->receivedByStorefront($storefront);
+
+        $ticketing->getCommandBus()->send(new MarkConcertSoldOut($concertId));
+
+        self::assertSame(1, $this->announcementsWaitingOnTheTransport());
+        self::assertSame([], $this->receivedByStorefront($storefront));
+
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(
+            [['routingKey' => 'concert.sold_out', 'concertIdHeader' => $concertId, 'event' => ['concertId' => $concertId]]],
+            $this->receivedByStorefront($storefront),
+        );
+    }
+
+    public function test_an_expired_hold_waits_on_the_messenger_transport_and_reaches_the_storefront_as_tickets_hold_expired(): void
+    {
+        $storefront = $this->storefrontListening();
+        $ticketing = $this->ticketing();
+        $concertId = $this->scheduleConcert($ticketing, $this->createRiversideHall($ticketing));
+        $ticketing->getCommandBus()->send(new OpenSales($concertId));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->receivedByStorefront($storefront);
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $ticketing->getCommandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+
+        $ticketing->getCommandBus()->send(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
+
+        self::assertSame(1, $this->announcementsWaitingOnTheTransport());
+        self::assertSame([], $this->receivedByStorefront($storefront));
+
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(
+            [[
+                'routingKey' => 'tickets.hold_expired',
+                'concertIdHeader' => $concertId,
+                'event' => ['orderId' => $orderId, 'concertId' => $concertId, 'seatId' => $concertId . '/A-1', 'customerId' => $customerId],
+            ]],
+            $this->receivedByStorefront($storefront),
+        );
+    }
+
     public function test_a_command_failing_after_its_announcement_was_queued_rolls_back_the_announcement_with_the_change(): void
     {
         $failingAfterTheAnnouncement = new class () {
@@ -150,11 +237,28 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
         $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues, messenger_messages');
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [EcotoneConfiguration::class, Venue::class, Concert::class, Catalogue::class, ConcertAnnouncements::class, ...array_map(static fn (object $handler): string => $handler::class, $applicationHandlers)],
+            classesToResolve: [
+                EcotoneConfiguration::class,
+                Venue::class,
+                Concert::class,
+                Catalogue::class,
+                ConcertAnnouncements::class,
+                SeatSales::class,
+                HoldExpiry::class,
+                SeatAvailability::class,
+                CustomerConcertSeats::class,
+                SeatHeld::class,
+                HoldReleased::class,
+                HoldExpired::class,
+                SeatSold::class,
+                ...array_map(static fn (object $handler): string => $handler::class, $applicationHandlers),
+            ],
             containerOrAvailableServices: [
                 new EcotoneConfiguration(),
                 new Catalogue($doctrine->getConnection()),
                 new ConcertAnnouncements(),
+                new SeatSales(),
+                new HoldExpiry(),
                 ...$applicationHandlers,
                 'doctrine' => $doctrine,
                 'messenger.transport.ticketing_async' => $this->transport(),
@@ -164,6 +268,7 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
                 SymfonyMessengerMessageChannelBuilder::create('ticketing_async'),
                 SymfonyConnectionReference::defaultManagerRegistry('default'),
             ],
+            configurationVariables: ['ticketingHoldSeconds' => 600],
             pathToRootCatalog: dirname(__DIR__, 2),
             addInMemoryStateStoredRepository: false,
             testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-10-25 12:00:00')),
@@ -188,6 +293,27 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
             public function salesOpened(array $event, #[Headers] array $headers): void
             {
                 $this->received[] = ['routingKey' => 'concert.sales_opened', 'concertIdHeader' => $headers['concertId'] ?? null, 'event' => $event];
+            }
+
+            #[Distributed]
+            #[EventHandler('concert.prices_changed')]
+            public function pricesChanged(array $event, #[Headers] array $headers): void
+            {
+                $this->received[] = ['routingKey' => 'concert.prices_changed', 'concertIdHeader' => $headers['concertId'] ?? null, 'event' => $event];
+            }
+
+            #[Distributed]
+            #[EventHandler('concert.sold_out')]
+            public function soldOut(array $event, #[Headers] array $headers): void
+            {
+                $this->received[] = ['routingKey' => 'concert.sold_out', 'concertIdHeader' => $headers['concertId'] ?? null, 'event' => $event];
+            }
+
+            #[Distributed]
+            #[EventHandler('tickets.hold_expired')]
+            public function holdExpired(array $event, #[Headers] array $headers): void
+            {
+                $this->received[] = ['routingKey' => 'tickets.hold_expired', 'concertIdHeader' => $headers['concertId'] ?? null, 'event' => $event];
             }
         };
 

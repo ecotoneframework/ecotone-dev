@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Catalogue;
 
+use App\Sales\HoldExpired;
 use DateTimeInterface;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\EventHandler;
@@ -42,5 +43,34 @@ final class ConcertAnnouncements
     public function concertCancelled(ConcertCancelled $event, DistributedBus $distributedBus): void
     {
         $distributedBus->convertAndPublishEvent('concert.cancelled', ['concertId' => $event->concertId], metadata: ['concertId' => $event->concertId]);
+    }
+
+    #[Asynchronous('ticketing_async')]
+    #[EventHandler(endpointId: 'announce_prices_changed')]
+    public function pricesChanged(TierPriceChanged $event, DistributedBus $distributedBus): void
+    {
+        $distributedBus->convertAndPublishEvent(
+            'concert.prices_changed',
+            ['concertId' => $event->concertId, 'tiers' => [Tier::STANDARD->value => $event->standardPriceCents, Tier::VIP->value => $event->vipPriceCents]],
+            metadata: ['concertId' => $event->concertId],
+        );
+    }
+
+    #[Asynchronous('ticketing_async')]
+    #[EventHandler(endpointId: 'announce_concert_sold_out')]
+    public function concertSoldOut(ConcertSoldOut $event, DistributedBus $distributedBus): void
+    {
+        $distributedBus->convertAndPublishEvent('concert.sold_out', ['concertId' => $event->concertId], metadata: ['concertId' => $event->concertId]);
+    }
+
+    #[Asynchronous('ticketing_async')]
+    #[EventHandler(endpointId: 'announce_hold_expired')]
+    public function holdExpired(HoldExpired $event, DistributedBus $distributedBus): void
+    {
+        $distributedBus->convertAndPublishEvent(
+            'tickets.hold_expired',
+            ['orderId' => $event->orderId, 'concertId' => $event->concertId, 'seatId' => $event->seatId, 'customerId' => $event->customerId],
+            metadata: ['concertId' => $event->concertId],
+        );
     }
 }

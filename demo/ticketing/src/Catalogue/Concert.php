@@ -143,7 +143,13 @@ final class Concert
             Tier::STANDARD => $this->standardPriceCents = $command->priceCents,
             Tier::VIP => $this->vipPriceCents = $command->priceCents,
         };
-        $this->recordThat(new TierPriceChanged(concertId: $this->concertId, tier: $command->tier, priceCents: $command->priceCents));
+        $this->recordThat(new TierPriceChanged(
+            concertId: $this->concertId,
+            tier: $command->tier,
+            priceCents: $command->priceCents,
+            standardPriceCents: $this->standardPriceCents,
+            vipPriceCents: $this->vipPriceCents,
+        ));
     }
 
     #[CommandHandler]

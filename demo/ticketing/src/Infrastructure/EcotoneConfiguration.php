@@ -57,7 +57,8 @@ final class EcotoneConfiguration
     #[ServiceContext]
     public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfiguration
     {
-        return DynamicConsistencyBoundaryConfiguration::createWithDefaults();
+        return DynamicConsistencyBoundaryConfiguration::createWithDefaults()
+            ->withFilterOnlyTags(['concert']);
     }
 
     #[ServiceContext]

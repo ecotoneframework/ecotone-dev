@@ -104,6 +104,19 @@ final class ConcertsController extends AbstractController
         return $this->onKnownConcert($concertId, fn (): Response => $this->sendToConcert($concertId, new CancelConcert($concertId), 'The concert is cancelled.'));
     }
 
+    #[Route('/concerts/{concertId}/seats', name: 'concert_seats', requirements: ['concertId' => Requirement::UUID], methods: ['GET'])]
+    public function seats(string $concertId): Response
+    {
+        return $this->onKnownConcert($concertId, function () use ($concertId): Response {
+            $rows = [];
+            foreach ($this->queryBus->sendWithRouting('concert.seat_map', $concertId) as $seat) {
+                $rows[explode('-', $seat['seatCode'])[0]][] = $seat;
+            }
+
+            return $this->render('concerts/seats.html.twig', ['concert' => $this->concert($concertId), 'rows' => $rows, 'refreshSeconds' => 3]);
+        });
+    }
+
     private function onKnownConcert(string $concertId, callable $action): Response
     {
         try {
@@ -143,7 +156,7 @@ final class ConcertsController extends AbstractController
     {
         return $this->render(
             'admin/concert.html.twig',
-            ['concert' => $this->concert($concertId), 'refusal' => $refusal],
+            ['concert' => $this->concert($concertId), 'sales' => $this->queryBus->sendWithRouting('concert.sales', $concertId), 'refusal' => $refusal],
             new Response(status: $refusal === null ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY),
         );
     }

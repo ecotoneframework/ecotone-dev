@@ -6,6 +6,10 @@ namespace App\Tests\Infrastructure;
 
 use App\Infrastructure\EcotoneConfiguration;
 use App\Ping\PingHandler;
+use App\Sales\HoldExpired;
+use App\Sales\HoldReleased;
+use App\Sales\SeatHeld;
+use App\Sales\SeatSold;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
@@ -39,7 +43,7 @@ final class EcotoneConfigurationTest extends TestCase
             }
         };
         $ticketing = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [EcotoneConfiguration::class, PingHandler::class],
+            classesToResolve: [EcotoneConfiguration::class, PingHandler::class, SeatHeld::class, HoldReleased::class, HoldExpired::class, SeatSold::class],
             containerOrAvailableServices: [new EcotoneConfiguration(), new PingHandler(), DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: $channels,
             pathToRootCatalog: dirname(__DIR__, 2),

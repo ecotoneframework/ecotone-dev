@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Seats of {{ concert.artist }}{% endblock %}
+
+{% block head %}
+    <meta http-equiv="refresh" content="{{ refreshSeconds }}">
+{% endblock %}
+
+{% block body %}
+    <main class="seat-map">
+        <nav>
+            <a href="{{ path('home') }}">Ticketing</a>
+            <a href="{{ path('admin_concert', {concertId: concert.concertId}) }}">{{ concert.artist }} in the admin</a>
+        </nav>
+        <h1>{{ concert.artist }}</h1>
+        <p>
+            {{ concert.venueName }}, {{ concert.startsAt|date('Y-m-d H:i') }} UTC ·
+            <span class="status status-{{ concert.status }}">{{ concert.status|replace({'_': ' '}) }}</span> ·
+            refreshes every {{ refreshSeconds }} seconds
+        </p>
+        <p class="legend">
+            <span class="swatch swatch-free">free</span>
+            <span class="swatch swatch-held">held</span>
+            <span class="swatch swatch-sold">sold</span>
+        </p>
+        <div class="stage">Stage</div>
+        {% for row, seats in rows %}
+            <div class="seat-row">
+                <span class="row-label">{{ row }}</span>
+                {% for seat in seats %}
+                    <span class="seat seat-{{ seat.status }} tier-{{ seat.tier }}" title="{{ seat.seatCode }} · {{ seat.tier }} · {{ seat.status }}{% if seat.orderId %} · order {{ seat.orderId }}{% endif %}{% if seat.expiresAt %} · until {{ seat.expiresAt|date('H:i:s') }} UTC{% endif %}">{{ seat.seatCode }}</span>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </main>
+{% endblock %}

@@ -14,6 +14,7 @@
 #   DEMO_RABBITMQ_MANAGEMENT_PORT  host port of the RabbitMQ management UI, default 15672
 #   TICKETING_HOLD_SECONDS         how long ticketing holds a seat before it expires, default 120
 #   TICKETING_RENDER_FAILS_FOR_SEAT  a seat code, like C-7, whose ticket render fails on ticketing-worker; empty by default
+#   RUSH_DEADLINE_SECONDS          how long a rush runs before its buyers still picking give up, default 600
 #
 # The repository root is mounted at /repo: the applications run from demo/ticketing, demo/storefront and apps/Pulse,
 # and resolve ecotone/* from packages/ through symlinked path repositories, so a package edit is live on the next request.
@@ -66,6 +67,7 @@ x-storefront-environment: &storefront-environment
   DB_USERNAME: ecotone
   DB_PASSWORD: secret
   QUEUE_CONNECTION: database
+  RUSH_DEADLINE_SECONDS: ${RUSH_DEADLINE_SECONDS:-600}
   SESSION_DRIVER: file
   CACHE_STORE: file
   LOG_CHANNEL: stderr

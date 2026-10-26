@@ -111,8 +111,9 @@ ending `0000`, the outage share with one ending `9999`, the bounce share with an
 whose seats are not held 120 seconds after it joined gives up and fails its order (`RUSH_BUYER_DEADLINE_SECONDS`), and
 a rush lets every buyer still picking go 600 seconds after it started (`RUSH_DEADLINE_SECONDS`), so a rush ends on its
 own even when ticketing never answers. The
-status line under the panel polls `/rushes/{rushId}/state.json` every second and counts the buyers created, holding,
-paying, paid, failed and given up. What to watch:
+status line under the panel polls `/rushes/{rushId}/state.json` every second, stops once every buyer has had a go,
+and counts the buyers created and then each buyer once, at the stage its order is at now: held (seats held, not yet
+paying), paying, paid, issued (tickets issued), failed (declined or refused by ticketing) and gave up. What to watch:
 
 - the seat map greys out the seats the crowd holds, so your own clicks start to meet "someone was faster"
 - Ecotone Pulse lists the dead letters by exception: `PaymentProviderUnavailable` for the outage share (replay them and

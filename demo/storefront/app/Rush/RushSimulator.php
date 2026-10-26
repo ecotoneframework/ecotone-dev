@@ -152,6 +152,7 @@ final class RushSimulator
             'held' => (int) $progress['held'],
             'paying' => (int) $progress['paying'],
             'paid' => (int) $progress['paid'],
+            'issued' => (int) $progress['issued'],
             'failed' => (int) $progress['failed'],
             'gaveUp' => (int) $progress['gave_up'],
             'startedAt' => $this->atom($progress['started_at']),

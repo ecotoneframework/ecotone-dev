@@ -81,7 +81,7 @@
                 failedPolls = 0;
                 show(
                     'Rush of ' + state.buyersRequested + ' buyers: ' + state.created + ' created · ' + state.held + ' held · '
-                        + state.paying + ' paying · ' + state.paid + ' paid · ' + state.failed + ' failed · ' + state.gaveUp + ' gave up'
+                        + state.paying + ' paying · ' + state.paid + ' paid · ' + state.issued + ' issued · ' + state.failed + ' failed · ' + state.gaveUp + ' gave up'
                         + (state.finishedAt === null ? '' : ' · every buyer has had a go'),
                     false,
                 );

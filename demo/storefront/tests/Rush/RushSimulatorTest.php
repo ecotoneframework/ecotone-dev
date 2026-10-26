@@ -7,6 +7,7 @@ namespace Tests\Rush;
 use App\Concert\ConcertCatalogue;
 use App\Concert\ConcertProjector;
 use App\Ordering\MarkSeatHeld;
+use App\Ordering\MarkTicketsIssued;
 use App\Ordering\TicketingReplies;
 use App\Payment\Checkout;
 use App\Payment\PaymentAttempts;
@@ -163,7 +164,7 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
 
         $state = $this->rushState();
         self::assertSame(10, $state['created']);
-        self::assertSame(10, $state['held']);
+        self::assertSame(0, $state['held']);
         self::assertSame(6, $state['paid']);
         self::assertSame(3, $state['failed']);
         self::assertSame(1, $state['paying']);
@@ -175,6 +176,25 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         $emails = array_map(fn (array $buyer) => $this->storefront->sendQueryWithRouting('customer.detail', $buyer['customerId'])['email'], $this->buyers());
         self::assertCount(1, array_filter($emails, fn (string $email) => str_ends_with($email, '@bounce.example')));
         self::assertCount(9, array_filter($emails, fn (string $email) => str_ends_with($email, '@example.com')));
+    }
+
+    public function test_the_rush_state_counts_each_buyer_once_at_the_stage_its_order_has_reached(): void
+    {
+        $this->concertOnSale(seats: 12);
+        $this->startRush(buyers: 1, seatsPerBuyer: 2);
+
+        $this->rushRuns(rounds: 2);
+
+        self::assertSame(['held' => 1, 'paying' => 0, 'paid' => 0, 'issued' => 0, 'failed' => 0, 'gaveUp' => 0], $this->stageCounts());
+
+        $this->rushRuns();
+
+        self::assertSame(['held' => 0, 'paying' => 0, 'paid' => 1, 'issued' => 0, 'failed' => 0, 'gaveUp' => 0], $this->stageCounts());
+
+        $order = $this->order($this->buyers()[0]['orderId']);
+        $this->storefront->getCommandBus()->send(new MarkTicketsIssued(orderId: $order['orderId'], tickets: array_map(fn (array $seat) => ['ticketNumber' => 'T-' . $seat['seatId'], 'seatId' => $seat['seatId'], 'tier' => 'standard', 'entryCode' => 'ENTRY-1'], $order['heldSeats'])));
+
+        self::assertSame(['held' => 0, 'paying' => 0, 'paid' => 0, 'issued' => 1, 'failed' => 0, 'gaveUp' => 0], $this->stageCounts());
     }
 
     public function test_a_refused_seat_is_tried_again_on_another_free_seat(): void
@@ -364,7 +384,7 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
 
         self::assertSame(
-            ['rushId' => self::RUSH_ID, 'concertId' => self::CONCERT_ID, 'buyersRequested' => 4, 'seatsPerBuyer' => 2, 'created' => 0, 'held' => 0, 'paying' => 0, 'paid' => 0, 'failed' => 0, 'gaveUp' => 0, 'startedAt' => '2026-10-25T12:00:00+00:00', 'finishedAt' => null],
+            ['rushId' => self::RUSH_ID, 'concertId' => self::CONCERT_ID, 'buyersRequested' => 4, 'seatsPerBuyer' => 2, 'created' => 0, 'held' => 0, 'paying' => 0, 'paid' => 0, 'issued' => 0, 'failed' => 0, 'gaveUp' => 0, 'startedAt' => '2026-10-25T12:00:00+00:00', 'finishedAt' => null],
             $this->rushState(),
         );
     }
@@ -449,6 +469,11 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
     private function rushMessagesHandled(): int
     {
         return $this->app->make($this->rushMessages)->handled;
+    }
+
+    private function stageCounts(): array
+    {
+        return array_intersect_key($this->rushState(), array_flip(['held', 'paying', 'paid', 'issued', 'failed', 'gaveUp']));
     }
 
     private function rushState(): ?array

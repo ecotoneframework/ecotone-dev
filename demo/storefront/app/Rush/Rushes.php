@@ -56,9 +56,10 @@ interface Rushes
     #[DbalQuery(<<<'SQL'
         SELECT r.rush_id, r.concert_id, r.buyers_requested, r.seats_per_buyer, r.started_at, r.finished_at,
             count(b.buyer_number) AS created,
-            count(*) FILTER (WHERE b.stage = 'paying') AS held,
-            count(*) FILTER (WHERE b.stage = 'paying' AND o.status = 'paying') AS paying,
-            count(*) FILTER (WHERE o.status IN ('paid', 'tickets_issued')) AS paid,
+            count(*) FILTER (WHERE o.status = 'seats_held' AND b.stage <> 'gave_up') AS held,
+            count(*) FILTER (WHERE o.status = 'paying') AS paying,
+            count(*) FILTER (WHERE o.status = 'paid') AS paid,
+            count(*) FILTER (WHERE o.status = 'tickets_issued') AS issued,
             count(*) FILTER (WHERE o.status = 'failed' AND b.stage <> 'gave_up') AS failed,
             count(*) FILTER (WHERE b.stage = 'gave_up') AS gave_up
         FROM rushes r

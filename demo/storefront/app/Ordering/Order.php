@@ -12,6 +12,7 @@ use DomainException;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\IdentifierMethod;
+use Ecotone\Api\Attribute\Version;
 use Ecotone\Api\Modelling\WithEvents;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
@@ -27,6 +28,7 @@ use Symfony\Component\Uid\Uuid;
  * @property list<array{ticketNumber: string, seatId: string, tier: string, entryCode: string}> $tickets
  * @property string|null $payment_reference
  * @property string|null $failure_reason
+ * @property int $version
  */
 #[Aggregate]
 final class Order extends Model
@@ -44,6 +46,9 @@ final class Order extends Model
         'last_refusal' => 'array',
         'tickets' => 'array',
     ];
+
+    #[Version]
+    private int $version;
 
     #[CommandHandler]
     public static function start(StartOrder $command): self
@@ -77,6 +82,16 @@ final class Order extends Model
     public function orderId(): string
     {
         return $this->id;
+    }
+
+    public function getVersion(): int
+    {
+        return (int) $this->getAttribute('version');
+    }
+
+    public function setVersion(int $version): void
+    {
+        $this->setAttribute('version', $version);
     }
 
     #[CommandHandler]

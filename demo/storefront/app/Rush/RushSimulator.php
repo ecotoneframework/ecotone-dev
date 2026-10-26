@@ -27,14 +27,16 @@ use Random\Randomizer;
 
 final class RushSimulator
 {
-    public const SPREAD_MILLISECONDS = 5000;
-    public const CHECK_EVERY_MILLISECONDS = 1000;
-    public const MAX_CHECKS = 60;
+    public const TICK_EVERY_MILLISECONDS = 2000;
+    public const TICK_WHILE_WAITING_ON_TICKETING_MILLISECONDS = 5000;
+    public const JOINS_PER_TICK = 20;
+    public const BUYER_STEPS_PER_TICK = 10;
     public const MAX_REFUSED_SEATS = 3;
 
     private const PICKING = 'picking';
     private const PAYING = 'paying';
     private const GAVE_UP = 'gave_up';
+    private const OPEN_ORDER_STATUSES = ['started', 'seats_held'];
 
     public static function refusalOf(?array $concert, string $concertId, string $rushId): ?DomainException
     {
@@ -56,6 +58,7 @@ final class RushSimulator
         if ($refusal !== null) {
             throw $refusal;
         }
+        $startedAt = Carbon::now();
         $started = $rushes->start(
             rushId: $command->rushId,
             concertId: $command->concertId,
@@ -64,97 +67,72 @@ final class RushSimulator
             declinedShare: $command->declinedShare,
             outageShare: $command->outageShare,
             bounceShare: $command->bounceShare,
-            startedAt: Carbon::now()->toAtomString(),
+            buyerDeadlineSeconds: (int) config('demo.rush_buyer_deadline_seconds'),
+            startedAt: $startedAt->toAtomString(),
+            deadlineAt: $startedAt->copy()->addSeconds((int) config('demo.rush_deadline_seconds'))->toAtomString(),
         );
         if ($started === 0) {
             return;
         }
-        for ($buyerNumber = 1; $buyerNumber <= $command->buyers; $buyerNumber++) {
-            $commandBus->send(
-                new JoinRush(rushId: $command->rushId, buyerNumber: $buyerNumber),
-                metadata: [MessageHeaders::DELIVERY_DELAY => intdiv(($buyerNumber - 1) * self::SPREAD_MILLISECONDS, $command->buyers)],
-            );
-        }
+        $commandBus->send(new AdvanceRush(rushId: $command->rushId, tick: 1));
     }
 
     #[Asynchronous('storefront_async')]
-    #[CommandHandler(endpointId: 'join_rush')]
-    public function join(JoinRush $command, #[Reference] Rushes $rushes, #[Reference] CommandBus $commandBus): void
+    #[CommandHandler(endpointId: 'advance_rush')]
+    public function advance(AdvanceRush $command, #[Reference] Rushes $rushes, #[Reference] QueryBus $queryBus, #[Reference] CommandBus $commandBus): void
     {
-        if ($rushes->buyer($command->rushId, $command->buyerNumber) !== false) {
+        if ($rushes->claimTick(rushId: $command->rushId, tick: $command->tick) === 0) {
             return;
         }
         $rush = $rushes->find($command->rushId);
-        $role = $this->rolesOf($rush)[$command->buyerNumber - 1];
-        $customerId = $commandBus->send(new RegisterCustomer(name: 'Rush buyer ' . $command->buyerNumber, email: $role->emailOf($command->rushId, $command->buyerNumber)));
-        $orderId = $commandBus->send(new StartOrder(customerId: $customerId, concertId: $rush['concert_id']));
-        $rushes->addBuyer(
-            rushId: $command->rushId,
-            buyerNumber: $command->buyerNumber,
-            customerId: $customerId,
-            orderId: $orderId,
-            concertId: $rush['concert_id'],
-            role: $role->value,
-        );
-        $commandBus->send(new CheckRushBuyer(rushId: $command->rushId, buyerNumber: $command->buyerNumber, check: 1));
-    }
+        $now = Carbon::now();
+        $deadline = Carbon::parse($rush['deadline_at']);
+        $pastDeadline = $now->greaterThanOrEqualTo($deadline);
+        $freeSeatIds = $this->freeSeatIdsOf($rushes, $queryBus, $rush['concert_id']);
+        $stepsLeft = self::BUYER_STEPS_PER_TICK;
+        $stillPicking = 0;
+        $everyBuyerWaitsOnTicketing = true;
 
-    #[Asynchronous('storefront_async')]
-    #[CommandHandler(endpointId: 'check_rush_buyer')]
-    public function check(CheckRushBuyer $command, #[Reference] Rushes $rushes, #[Reference] QueryBus $queryBus, #[Reference] CommandBus $commandBus): void
-    {
-        $buyer = $rushes->buyer($command->rushId, $command->buyerNumber);
-        if ($buyer === false || $buyer['stage'] !== self::PICKING || (int) $buyer['last_check'] !== $command->check - 1) {
-            return;
-        }
-        $rush = $rushes->find($command->rushId);
-        $order = $queryBus->sendWithRouting('order.detail', $buyer['order_id']);
-        $heldSeatIds = array_column($order['heldSeats'], 'seatId');
-        $pendingSeatId = $buyer['pending_seat_id'];
-        $refusedSeatIds = json_decode($buyer['refused_seat_ids'], true, flags: JSON_THROW_ON_ERROR);
-        if ($pendingSeatId !== null && in_array($pendingSeatId, $heldSeatIds, true)) {
-            $pendingSeatId = null;
-        } elseif ($pendingSeatId !== null && ($order['lastRefusal']['seatId'] ?? null) === $pendingSeatId) {
-            $refusedSeatIds[] = $pendingSeatId;
-            $pendingSeatId = null;
-        }
-
-        $stage = self::PICKING;
-        if (! in_array($order['status'], ['started', 'seats_held'], true)) {
-            $stage = self::GAVE_UP;
-        } elseif (count($refusedSeatIds) >= self::MAX_REFUSED_SEATS) {
-            $stage = $this->giveUp($commandBus, $buyer['order_id'], sprintf('Rush buyer %d gave up after ticketing refused %d seats.', $command->buyerNumber, count($refusedSeatIds)));
-        } elseif ($pendingSeatId === null && count($heldSeatIds) >= (int) $rush['seats_per_buyer']) {
-            $commandBus->send(new Pay(orderId: $buyer['order_id'], cardNumber: RushBuyerRole::from($buyer['role'])->cardNumber()));
-            $stage = self::PAYING;
-        } elseif ($pendingSeatId === null) {
-            $pendingSeatId = $this->freeSeatFor($rushes, $queryBus, $rush['concert_id'], $buyer['order_id'], [...$heldSeatIds, ...$refusedSeatIds]);
-            if ($pendingSeatId === null) {
-                $stage = $this->giveUp($commandBus, $buyer['order_id'], sprintf('Rush buyer %d gave up: no free seat of the concert was left.', $command->buyerNumber));
-            } else {
-                $commandBus->send(new RequestSeat(orderId: $buyer['order_id'], seatId: $pendingSeatId));
+        foreach ($rushes->buyersPickingOf($command->rushId) as $buyer) {
+            $step = $this->advanceBuyer($buyer, $rush, $now, $pastDeadline, $freeSeatIds, $stepsLeft > 0, $commandBus);
+            if ($step['acted']) {
+                $stepsLeft--;
             }
-        } elseif ($command->check >= self::MAX_CHECKS) {
-            $stage = $this->giveUp($commandBus, $buyer['order_id'], sprintf('Rush buyer %d gave up after waiting %d checks for ticketing to answer the hold of seat %s.', $command->buyerNumber, $command->check, $pendingSeatId));
+            if ($step['stage'] === self::PICKING) {
+                $stillPicking++;
+                $everyBuyerWaitsOnTicketing = $everyBuyerWaitsOnTicketing && $step['pendingSeatId'] !== null;
+            }
+            $rushes->recordProgress(
+                rushId: $command->rushId,
+                buyerNumber: (int) $buyer['buyer_number'],
+                stage: $step['stage'],
+                pendingSeatId: $step['stage'] === self::PICKING ? (string) $step['pendingSeatId'] : '',
+                refusedSeatIds: json_encode($step['refusedSeatIds'], JSON_THROW_ON_ERROR),
+            );
         }
 
-        $rushes->recordCheck(
-            rushId: $command->rushId,
-            buyerNumber: $command->buyerNumber,
-            stage: $stage,
-            pendingSeatId: $stage === self::PICKING ? (string) $pendingSeatId : '',
-            refusedSeatIds: json_encode($refusedSeatIds, JSON_THROW_ON_ERROR),
-            lastCheck: $command->check,
-        );
-        if ($stage === self::PICKING) {
-            $commandBus->send(
-                new CheckRushBuyer(rushId: $command->rushId, buyerNumber: $command->buyerNumber, check: $command->check + 1),
-                metadata: [MessageHeaders::DELIVERY_DELAY => self::CHECK_EVERY_MILLISECONDS],
-            );
+        $joined = $rushes->buyersJoinedOf($command->rushId);
+        $buyersRequested = (int) $rush['buyers_requested'];
+        if (! $pastDeadline && $joined < $buyersRequested) {
+            $roles = $this->rolesOf($rush);
+            $joining = min($buyersRequested, $joined + self::JOINS_PER_TICK);
+            for ($buyerNumber = $joined + 1; $buyerNumber <= $joining; $buyerNumber++) {
+                $this->join($rushes, $commandBus, $rush, $roles[$buyerNumber - 1], $buyerNumber, $now->toAtomString());
+            }
+            $stillPicking += $joining - $joined;
+            $everyBuyerWaitsOnTicketing = false;
+        }
+
+        if ($stillPicking === 0) {
+            $rushes->finish(rushId: $command->rushId, finishedAt: $now->toAtomString());
 
             return;
         }
-        $rushes->finishWhenEveryBuyerIsDone(rushId: $command->rushId, finishedAt: Carbon::now()->toAtomString());
+        $nextTickIn = $everyBuyerWaitsOnTicketing && $stepsLeft > 0 ? self::TICK_WHILE_WAITING_ON_TICKETING_MILLISECONDS : self::TICK_EVERY_MILLISECONDS;
+        $commandBus->send(
+            new AdvanceRush(rushId: $command->rushId, tick: $command->tick + 1),
+            metadata: [MessageHeaders::DELIVERY_DELAY => $pastDeadline ? self::TICK_EVERY_MILLISECONDS : min($nextTickIn, (int) $now->diffInMilliseconds($deadline))],
+        );
     }
 
     #[QueryHandler('rush.state')]
@@ -193,6 +171,81 @@ final class RushSimulator
     }
 
     /**
+     * @param list<string> $freeSeatIds
+     * @return array{stage: string, pendingSeatId: ?string, refusedSeatIds: list<string>, acted: bool}
+     */
+    private function advanceBuyer(array $buyer, array $rush, Carbon $now, bool $pastDeadline, array &$freeSeatIds, bool $mayAct, CommandBus $commandBus): array
+    {
+        $buyerNumber = (int) $buyer['buyer_number'];
+        $heldSeatIds = array_column(json_decode($buyer['held_seats'], true, flags: JSON_THROW_ON_ERROR), 'seatId');
+        $lastRefusal = $buyer['last_refusal'] === null ? null : json_decode($buyer['last_refusal'], true, flags: JSON_THROW_ON_ERROR);
+        $pendingSeatId = $buyer['pending_seat_id'];
+        $refusedSeatIds = json_decode($buyer['refused_seat_ids'], true, flags: JSON_THROW_ON_ERROR);
+        if ($pendingSeatId !== null && in_array($pendingSeatId, $heldSeatIds, true)) {
+            $pendingSeatId = null;
+        } elseif ($pendingSeatId !== null && ($lastRefusal['seatId'] ?? null) === $pendingSeatId) {
+            $refusedSeatIds[] = $pendingSeatId;
+            $pendingSeatId = null;
+        }
+        if (! in_array($buyer['status'], self::OPEN_ORDER_STATUSES, true)) {
+            return $this->step(stage: self::GAVE_UP, pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: false);
+        }
+        if (! $mayAct) {
+            return $this->step(stage: self::PICKING, pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: false);
+        }
+        if (count($refusedSeatIds) >= self::MAX_REFUSED_SEATS) {
+            return $this->step(stage: $this->giveUp($commandBus, $buyer['order_id'], sprintf('Rush buyer %d gave up after ticketing refused %d seats.', $buyerNumber, count($refusedSeatIds))), pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
+        }
+        if ($pastDeadline) {
+            return $this->step(stage: $this->giveUp($commandBus, $buyer['order_id'], sprintf('Rush buyer %d gave up: the rush ended %d seconds after it started, the deadline of a rush set by RUSH_DEADLINE_SECONDS.', $buyerNumber, (int) Carbon::parse($rush['started_at'])->diffInSeconds(Carbon::parse($rush['deadline_at'])))), pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
+        }
+        if ($pendingSeatId === null && count($heldSeatIds) >= (int) $rush['seats_per_buyer']) {
+            $commandBus->send(new Pay(orderId: $buyer['order_id'], cardNumber: RushBuyerRole::from($buyer['role'])->cardNumber()));
+
+            return $this->step(stage: self::PAYING, pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
+        }
+        if ($now->greaterThanOrEqualTo(Carbon::parse($buyer['joined_at'])->addSeconds((int) $rush['buyer_deadline_seconds']))) {
+            return $this->step(stage: $this->giveUp($commandBus, $buyer['order_id'], sprintf('Rush buyer %d gave up: ticketing had not held its seats %d seconds after it joined the rush, the deadline of a rush buyer set by RUSH_BUYER_DEADLINE_SECONDS.', $buyerNumber, (int) $rush['buyer_deadline_seconds'])), pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
+        }
+        if ($pendingSeatId !== null) {
+            return $this->step(stage: self::PICKING, pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: false);
+        }
+        $seatIdsForThisBuyer = array_values(array_diff($freeSeatIds, $refusedSeatIds));
+        if ($seatIdsForThisBuyer === []) {
+            return $this->step(stage: $this->giveUp($commandBus, $buyer['order_id'], sprintf('Rush buyer %d gave up: no free seat of the concert was left.', $buyerNumber)), pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
+        }
+        $pendingSeatId = $seatIdsForThisBuyer[array_rand($seatIdsForThisBuyer)];
+        $freeSeatIds = array_values(array_diff($freeSeatIds, [$pendingSeatId]));
+        $commandBus->send(new RequestSeat(orderId: $buyer['order_id'], seatId: $pendingSeatId));
+
+        return $this->step(stage: self::PICKING, pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
+    }
+
+    /**
+     * @param list<string> $refusedSeatIds
+     * @return array{stage: string, pendingSeatId: ?string, refusedSeatIds: list<string>, acted: bool}
+     */
+    private function step(string $stage, ?string $pendingSeatId, array $refusedSeatIds, bool $acted): array
+    {
+        return ['stage' => $stage, 'pendingSeatId' => $pendingSeatId, 'refusedSeatIds' => $refusedSeatIds, 'acted' => $acted];
+    }
+
+    private function join(Rushes $rushes, CommandBus $commandBus, array $rush, RushBuyerRole $role, int $buyerNumber, string $joinedAt): void
+    {
+        $customerId = $commandBus->send(new RegisterCustomer(name: 'Rush buyer ' . $buyerNumber, email: $role->emailOf($rush['rush_id'], $buyerNumber)));
+        $orderId = $commandBus->send(new StartOrder(customerId: $customerId, concertId: $rush['concert_id']));
+        $rushes->addBuyer(
+            rushId: $rush['rush_id'],
+            buyerNumber: $buyerNumber,
+            customerId: $customerId,
+            orderId: $orderId,
+            concertId: $rush['concert_id'],
+            role: $role->value,
+            joinedAt: $joinedAt,
+        );
+    }
+
+    /**
      * @return list<RushBuyerRole>
      */
     private function rolesOf(array $rush): array
@@ -208,7 +261,10 @@ final class RushSimulator
         return (new Randomizer(new Mt19937(crc32($rush['rush_id']))))->shuffleArray($roles);
     }
 
-    private function freeSeatFor(Rushes $rushes, QueryBus $queryBus, string $concertId, string $orderId, array $seatIdsOfThisBuyer): ?string
+    /**
+     * @return list<string>
+     */
+    private function freeSeatIdsOf(Rushes $rushes, QueryBus $queryBus, string $concertId): array
     {
         $concert = $queryBus->sendWithRouting('concert.detail', $concertId);
         $seatIds = [];
@@ -217,14 +273,12 @@ final class RushSimulator
                 $seatIds = [...$seatIds, ...array_column($row['seats'], 'seatId')];
             }
         }
-        $freeSeatIds = array_values(array_diff(
-            $seatIds,
-            $queryBus->sendWithRouting('concert.taken_seats', ['concertId' => $concertId, 'excludingOrderId' => $orderId]),
-            $rushes->pendingSeatIdsOf($concertId),
-            $seatIdsOfThisBuyer,
-        ));
 
-        return $freeSeatIds === [] ? null : $freeSeatIds[array_rand($freeSeatIds)];
+        return array_values(array_diff(
+            $seatIds,
+            $queryBus->sendWithRouting('concert.taken_seats', ['concertId' => $concertId, 'excludingOrderId' => null]),
+            $rushes->pendingSeatIdsOf($concertId),
+        ));
     }
 
     private function giveUp(CommandBus $commandBus, string $orderId, string $reason): string

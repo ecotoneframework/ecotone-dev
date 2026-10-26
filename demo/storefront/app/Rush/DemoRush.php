@@ -40,6 +40,6 @@ final class DemoRush
             bounceShare: $bounceShare,
             seatsPerBuyer: $seatsPerBuyer,
         ));
-        $writer->success(sprintf('Started rush %s of %d buyers on concert %s. Follow it on the concert page or with the rush.state query; storefront-worker sends the buyers over the next few seconds.', $rushId, $buyers, $concertId));
+        $writer->success(sprintf('Started rush %s of %d buyers on concert %s. Follow it on the concert page or with the rush.state query; storefront-worker lets the buyers join a few at a time.', $rushId, $buyers, $concertId));
     }
 }

@@ -84,7 +84,7 @@ final class RushPagesTest extends TestCase
 
         $state = $this->getJson('/rushes/' . $rushId . '/state.json');
         $state->assertOk();
-        $state->assertJson(['rushId' => $rushId, 'concertId' => self::CONCERT_ID, 'buyersRequested' => 3, 'seatsPerBuyer' => 1, 'created' => 1, 'paid' => 0, 'failed' => 0, 'finishedAt' => null]);
+        $state->assertJson(['rushId' => $rushId, 'concertId' => self::CONCERT_ID, 'buyersRequested' => 3, 'seatsPerBuyer' => 1, 'created' => 3, 'paid' => 0, 'failed' => 0, 'finishedAt' => null]);
     }
 
     public function test_a_rush_started_without_settings_sends_30_buyers_of_2_seats_with_the_default_shares(): void
@@ -155,7 +155,7 @@ final class RushPagesTest extends TestCase
         $state = $this->app->make(QueryBus::class)->sendWithRouting('rush.state', $matches['rushId']);
         self::assertSame(4, $state['buyersRequested']);
         self::assertSame(1, $state['seatsPerBuyer']);
-        self::assertSame(1, $state['created']);
+        self::assertSame(4, $state['created']);
     }
 
     public function test_demo_rush_on_a_concert_not_on_sale_is_refused_naming_its_status(): void

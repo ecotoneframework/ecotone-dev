@@ -17,7 +17,10 @@ return new class () extends Migration {
             $table->integer('declined_share');
             $table->integer('outage_share');
             $table->integer('bounce_share');
+            $table->integer('buyer_deadline_seconds');
             $table->timestampTz('started_at');
+            $table->timestampTz('deadline_at');
+            $table->integer('last_tick')->default(0);
             $table->timestampTz('finished_at')->nullable();
         });
 
@@ -31,7 +34,7 @@ return new class () extends Migration {
             $table->string('stage', 10);
             $table->string('pending_seat_id')->nullable();
             $table->json('refused_seat_ids');
-            $table->integer('last_check');
+            $table->timestampTz('joined_at');
             $table->primary(['rush_id', 'buyer_number']);
         });
     }

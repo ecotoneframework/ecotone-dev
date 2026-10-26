@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Rush;
 
-final class CheckRushBuyer
+final class AdvanceRush
 {
     public function __construct(
         public readonly string $rushId,
-        public readonly int $buyerNumber,
-        public readonly int $check,
+        public readonly int $tick,
     ) {
     }
 }

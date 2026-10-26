@@ -33,7 +33,9 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
 {
     private const RUSH_ID = '0199f3a8-6f2a-7c1e-9a51-7a3c5e9b2d10';
 
-    private string $joinFailsOnce;
+    private string $tickFailsOnce;
+
+    private string $rushMessages;
 
     protected function setUp(): void
     {
@@ -52,25 +54,37 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
 
     protected function storefrontServices(): array
     {
-        $joinFailsOnce = new class () {
+        $tickFailsOnce = new class () {
             public bool $armed = false;
 
-            #[Around(pointcut: RushSimulator::class . '::join')]
-            public function failAfterJoining(MethodInvocation $invocation): mixed
+            #[Around(pointcut: RushSimulator::class . '::advance')]
+            public function failAfterAdvancing(MethodInvocation $invocation): mixed
             {
                 $result = $invocation->proceed();
                 if ($this->armed) {
                     $this->armed = false;
 
-                    throw new RuntimeException('the buyer could not join');
+                    throw new RuntimeException('the rush could not advance');
                 }
 
                 return $result;
             }
         };
-        $this->joinFailsOnce = $joinFailsOnce::class;
+        $this->tickFailsOnce = $tickFailsOnce::class;
+        $rushMessages = new class () {
+            public int $handled = 0;
 
-        return [RushSimulator::class, Rushes::class, ConcertProjector::class, ConcertCatalogue::class, TicketingReplies::class, Checkout::class, PaymentProvider::class, PaymentAttempts::class, $joinFailsOnce::class];
+            #[Around(pointcut: RushSimulator::class)]
+            public function count(MethodInvocation $invocation): mixed
+            {
+                $this->handled++;
+
+                return $invocation->proceed();
+            }
+        };
+        $this->rushMessages = $rushMessages::class;
+
+        return [RushSimulator::class, Rushes::class, ConcertProjector::class, ConcertCatalogue::class, TicketingReplies::class, Checkout::class, PaymentProvider::class, PaymentAttempts::class, $tickFailsOnce::class, $rushMessages::class];
     }
 
     public function test_a_rush_registers_its_buyers_and_starts_an_order_for_each_of_them(): void
@@ -90,18 +104,18 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         }
     }
 
-    public function test_rush_buyers_are_spread_over_a_few_seconds_rather_than_joining_at_once(): void
+    public function test_rush_buyers_join_a_few_at_a_time_rather_than_all_at_once(): void
     {
         $this->concertOnSale(seats: 12);
 
-        $this->startRush(buyers: 10, seatsPerBuyer: 1);
+        $this->startRush(buyers: 50, seatsPerBuyer: 1);
         $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
-        self::assertSame(1, $this->rushState()['created']);
+        self::assertSame(RushSimulator::JOINS_PER_TICK, $this->rushState()['created']);
 
         $this->rushRuns();
 
-        self::assertSame(10, $this->rushState()['created']);
+        self::assertSame(50, $this->rushState()['created']);
     }
 
     public function test_rush_buyers_hold_only_free_seats_and_leave_the_orders_of_real_customers_alone(): void
@@ -199,7 +213,7 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
     {
         $this->concertOnSale(seats: 12);
         $this->startRush(buyers: 1, seatsPerBuyer: 2);
-        $this->rushRuns(rounds: 1);
+        $this->rushRuns(rounds: 2);
         $this->ticketingService->holdsToRefuse = 3;
 
         $this->rushRuns();
@@ -238,17 +252,17 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         self::assertSame(3, $this->rushState()['paid']);
     }
 
-    public function test_a_buyer_dead_lettered_while_joining_is_replayed_without_a_second_customer_or_order(): void
+    public function test_a_rush_tick_dead_lettered_while_buyers_join_is_replayed_without_a_second_customer_or_order(): void
     {
         $this->concertOnSale(seats: 12);
-        $this->app->make($this->joinFailsOnce)->armed = true;
+        $this->app->make($this->tickFailsOnce)->armed = true;
 
         $this->startRush(buyers: 3, seatsPerBuyer: 1);
         $this->rushRuns();
 
         $deadLetter = $this->storefront->getGateway(DeadLetterGateway::class);
         self::assertSame(1, $deadLetter->count());
-        self::assertSame(2, $this->rushState()['created']);
+        self::assertSame(0, $this->rushState()['created']);
 
         $deadLetter->replayAll();
         $this->rushRuns();
@@ -259,6 +273,67 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         self::assertCount(3, array_unique(array_column($buyers, 'customerId')));
         self::assertSame(3, $this->rushState()['paid']);
         self::assertCount(3, array_filter($this->ticketingService->received, fn (array $request) => $request[0] === 'tickets.hold'));
+    }
+
+    public function test_a_rush_of_200_buyers_handles_well_under_one_message_of_its_own_per_second_while_ticketing_is_slow(): void
+    {
+        $this->concertOnSale(seats: 450);
+
+        $this->startRush(buyers: 200, seatsPerBuyer: 2);
+        $this->rushRunsWithoutTicketingAnsweringFor(seconds: 60);
+
+        self::assertLessThanOrEqual(30, $this->rushMessagesHandled());
+        self::assertSame(200, $this->rushState()['created']);
+    }
+
+    public function test_a_rush_whose_every_buyer_waits_on_ticketing_advances_every_five_seconds_instead_of_every_two(): void
+    {
+        $this->concertOnSale(seats: 12);
+
+        $this->startRush(buyers: 3, seatsPerBuyer: 1);
+        $this->rushRunsWithoutTicketingAnsweringFor(seconds: 60);
+
+        self::assertSame(14, $this->rushMessagesHandled());
+    }
+
+    public function test_a_buyer_whose_seats_ticketing_has_not_held_two_minutes_after_it_joined_gives_up_and_its_order_fails(): void
+    {
+        $this->concertOnSale(seats: 12);
+        $this->startRush(buyers: 1, seatsPerBuyer: 1);
+
+        $this->rushRunsWithoutTicketingAnsweringFor(seconds: 119);
+
+        self::assertSame('started', $this->order($this->buyers()[0]['orderId'])['status']);
+
+        $this->rushRunsWithoutTicketingAnsweringFor(seconds: 10);
+
+        $order = $this->order($this->buyers()[0]['orderId']);
+        self::assertSame('failed', $order['status']);
+        self::assertSame('Rush buyer 1 gave up: ticketing had not held its seats 120 seconds after it joined the rush, the deadline of a rush buyer set by RUSH_BUYER_DEADLINE_SECONDS.', $order['failureReason']);
+        self::assertNotNull($this->rushState()['finishedAt']);
+    }
+
+    public function test_a_rush_past_its_deadline_lets_every_buyer_still_picking_go_and_ends_on_its_own(): void
+    {
+        config(['demo.rush_deadline_seconds' => 30]);
+        $this->concertOnSale(seats: 12);
+        $this->startRush(buyers: 3, seatsPerBuyer: 1);
+
+        $this->rushRunsWithoutTicketingAnsweringFor(seconds: 29);
+
+        self::assertNull($this->rushState()['finishedAt']);
+
+        $this->rushRunsWithoutTicketingAnsweringFor(seconds: 10);
+        $handledWhenFinished = $this->rushMessagesHandled();
+        $this->rushRunsWithoutTicketingAnsweringFor(seconds: 60);
+
+        self::assertSame($handledWhenFinished, $this->rushMessagesHandled());
+        $state = $this->rushState();
+        self::assertSame(3, $state['gaveUp']);
+        self::assertSame('2026-10-25T12:00:30+00:00', $state['finishedAt']);
+        foreach ($this->buyers() as $buyer) {
+            self::assertSame(sprintf('Rush buyer %d gave up: the rush ended 30 seconds after it started, the deadline of a rush set by RUSH_DEADLINE_SECONDS.', $buyer['buyerNumber']), $this->order($buyer['orderId'])['failureReason']);
+        }
     }
 
     public function test_the_rush_state_reports_its_concert_and_the_buyers_it_was_asked_for_before_any_joined(): void
@@ -341,6 +416,19 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
             $this->storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             Carbon::setTestNow(Carbon::now()->addSeconds(2));
         }
+    }
+
+    private function rushRunsWithoutTicketingAnsweringFor(int $seconds): void
+    {
+        for ($second = 0; $second < $seconds; $second++) {
+            $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+            Carbon::setTestNow(Carbon::now()->addSecond());
+        }
+    }
+
+    private function rushMessagesHandled(): int
+    {
+        return $this->app->make($this->rushMessages)->handled;
     }
 
     private function rushState(): ?array

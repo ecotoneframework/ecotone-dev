@@ -192,7 +192,7 @@ final class TicketIssuanceTest extends KernelTestCase
         self::assertSame(array_column($firstAnnouncement['tickets'], 'ticketNumber'), array_column($ticketing->sendQueryWithRouting('tickets.of_order', $orderId), 'ticketNumber'));
     }
 
-    public function test_the_ticket_detail_query_returns_the_ticket_with_its_seat_tier_entry_code_and_issue_time(): void
+    public function test_the_ticket_detail_query_returns_the_ticket_with_its_seat_tier_entry_code_vip_lounge_pass_and_issue_time(): void
     {
         $storefront = $this->storefrontListening();
         $ticketing = $this->ticketing();
@@ -211,6 +211,7 @@ final class TicketIssuanceTest extends KernelTestCase
                 'seatCode' => 'A-1',
                 'tier' => 'vip',
                 'entryCode' => $ticket['entryCode'],
+                'vipLoungePass' => true,
                 'issuedAt' => '2026-10-25T12:00:00+00:00',
             ],
             $ticketing->sendQueryWithRouting('ticket.detail', $ticket['ticketNumber']),

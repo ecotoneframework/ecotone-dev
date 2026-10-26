@@ -33,7 +33,7 @@ final class TicketingReplies
     {
         match ($result['outcome']) {
             'sold' => null,
-            'refused' => $commandBus->send(new FailOrder(orderId: $result['orderId'], reason: sprintf('Ticketing refused to confirm the seats: %s. A refund of the payment is queued.', $result['reason']))),
+            'refused' => $commandBus->send(new FailOrder(orderId: $result['orderId'], reason: sprintf('Ticketing refused to confirm the seats: %s. A refund of the payment is queued.', rtrim((string) $result['reason'], '.')))),
             default => throw new DomainException(sprintf(
                 'tickets.confirm.result for order %s has outcome "%s", but the contract has only "sold" and "refused", so the storefront cannot tell whether the seats are sold. Correct the reply in ticketing and replay this message from the dead letters in Ecotone Pulse or with php artisan ecotone:deadletter:replay <messageId>.',
                 $result['orderId'],

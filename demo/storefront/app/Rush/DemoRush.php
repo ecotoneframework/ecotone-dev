@@ -26,11 +26,11 @@ final class DemoRush
         #[ConsoleParameterOption] int $bounceShare = StartRush::DEFAULTS['bounceShare'],
         #[ConsoleParameterOption] int $seatsPerBuyer = StartRush::DEFAULTS['seatsPerBuyer'],
     ): void {
-        $rushId = Uuid::v7()->toRfc4122();
-        $refusal = RushSimulator::refusalOf($queryBus->sendWithRouting('concert.detail', $concertId), $concertId, $rushId);
+        $refusal = RushSimulator::refusalOf($queryBus->sendWithRouting('concert.detail', $concertId), $concertId);
         if ($refusal !== null) {
             throw $refusal;
         }
+        $rushId = Uuid::v7()->toRfc4122();
         $commandBus->send(new StartRush(
             rushId: $rushId,
             concertId: $concertId,

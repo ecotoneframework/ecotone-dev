@@ -25,8 +25,7 @@ final class RushController
     {
         $concert = $this->queryBus->sendWithRouting('concert.detail', $concertId);
         abort_if($concert === null, 404, 'There is no such concert. Pick one from /concerts.');
-        $rushId = Uuid::v7()->toRfc4122();
-        $refusal = RushSimulator::refusalOf($concert, $concertId, $rushId);
+        $refusal = RushSimulator::refusalOf($concert, $concertId);
         if ($refusal !== null) {
             return response()->json(['error' => $refusal->getMessage()], 409);
         }
@@ -39,13 +38,13 @@ final class RushController
             }
         }
         try {
-            $command = new StartRush(...['rushId' => $rushId, 'concertId' => $concertId, ...$settings]);
+            $command = new StartRush(...['rushId' => Uuid::v7()->toRfc4122(), 'concertId' => $concertId, ...$settings]);
         } catch (DomainException $refusal) {
             return response()->json(['error' => $refusal->getMessage()], 422);
         }
         $this->commandBus->send($command);
 
-        return response()->json(['rushId' => $rushId, 'stateUrl' => url('/rushes/' . $rushId . '/state.json')], 202);
+        return response()->json(['rushId' => $command->rushId, 'stateUrl' => url('/rushes/' . $command->rushId . '/state.json')], 202);
     }
 
     public function state(string $rushId): JsonResponse

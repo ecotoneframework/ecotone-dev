@@ -134,7 +134,7 @@ final class RushPagesTest extends TestCase
         $response = $this->postJson('/concerts/' . self::CONCERT_ID . '/rushes');
 
         $response->assertConflict();
-        self::assertStringStartsWith(sprintf('Concert %s is scheduled, not on sale, so rush ', self::CONCERT_ID), $response->json('error'));
+        self::assertSame(sprintf('Concert %s is scheduled, not on sale, so a rush cannot send buyers to it: ticketing holds seats only while a concert is on sale. Open its sales in ticketing and start a new rush, or start the rush on a concert listed as on_sale on /concerts.', self::CONCERT_ID), $response->json('error'));
         self::assertSame(0, DB::table('jobs')->count());
     }
 
@@ -183,7 +183,7 @@ final class RushPagesTest extends TestCase
         $this->schedule();
 
         $this->expectException(DomainException::class);
-        $this->expectExceptionMessageMatches(sprintf('/^Concert %s is scheduled, not on sale, so rush [0-9a-f-]{36} cannot send buyers to it/', self::CONCERT_ID));
+        $this->expectExceptionMessage(sprintf('Concert %s is scheduled, not on sale, so a rush cannot send buyers to it: ticketing holds seats only while a concert is on sale. Open its sales in ticketing and start a new rush, or start the rush on a concert listed as on_sale on /concerts.', self::CONCERT_ID));
 
         Artisan::call('demo:rush', ['concertId' => self::CONCERT_ID]);
     }

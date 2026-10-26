@@ -425,7 +425,7 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         $this->startRush(buyers: 3, seatsPerBuyer: 1);
 
         $this->expectException(DomainException::class);
-        $this->expectExceptionMessage(sprintf('Concert %s is scheduled, not on sale, so rush %s cannot send buyers to it: ticketing holds seats only while a concert is on sale. Open its sales in ticketing and start a new rush, or start the rush on a concert listed as on_sale on /concerts.', self::CONCERT_ID, self::RUSH_ID));
+        $this->expectExceptionMessage(sprintf('Concert %s is scheduled, not on sale, so a rush cannot send buyers to it: ticketing holds seats only while a concert is on sale. Open its sales in ticketing and start a new rush, or start the rush on a concert listed as on_sale on /concerts.', self::CONCERT_ID));
 
         $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup());
     }

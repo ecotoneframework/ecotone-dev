@@ -38,13 +38,13 @@ final class RushSimulator
     private const GAVE_UP = 'gave_up';
     private const OPEN_ORDER_STATUSES = ['started', 'seats_held'];
 
-    public static function refusalOf(?array $concert, string $concertId, string $rushId): ?DomainException
+    public static function refusalOf(?array $concert, string $concertId): ?DomainException
     {
         if ($concert === null) {
-            return new DomainException(sprintf('There is no concert %s in the storefront catalogue, so rush %s cannot send buyers to it. Start the rush on a concert listed on /concerts.', $concertId, $rushId));
+            return new DomainException(sprintf('There is no concert %s in the storefront catalogue, so a rush cannot send buyers to it. Start the rush on a concert listed on /concerts.', $concertId));
         }
         if ($concert['status'] !== 'on_sale') {
-            return new DomainException(sprintf('Concert %s is %s, not on sale, so rush %s cannot send buyers to it: ticketing holds seats only while a concert is on sale. Open its sales in ticketing and start a new rush, or start the rush on a concert listed as on_sale on /concerts.', $concertId, $concert['status'], $rushId));
+            return new DomainException(sprintf('Concert %s is %s, not on sale, so a rush cannot send buyers to it: ticketing holds seats only while a concert is on sale. Open its sales in ticketing and start a new rush, or start the rush on a concert listed as on_sale on /concerts.', $concertId, $concert['status']));
         }
 
         return null;
@@ -54,7 +54,7 @@ final class RushSimulator
     #[CommandHandler(endpointId: 'start_rush')]
     public function start(StartRush $command, #[Reference] Rushes $rushes, #[Reference] QueryBus $queryBus, #[Reference] CommandBus $commandBus): void
     {
-        $refusal = self::refusalOf($queryBus->sendWithRouting('concert.detail', $command->concertId), $command->concertId, $command->rushId);
+        $refusal = self::refusalOf($queryBus->sendWithRouting('concert.detail', $command->concertId), $command->concertId);
         if ($refusal !== null) {
             throw $refusal;
         }

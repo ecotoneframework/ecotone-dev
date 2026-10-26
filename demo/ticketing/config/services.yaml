@@ -21,3 +21,7 @@ services:
     OpenTelemetry\API\Trace\TracerProviderInterface:
         factory: ['App\Infrastructure\OtlpTracerProviderFactory', 'create']
         arguments: ['%env(OTEL_EXPORTER_OTLP_ENDPOINT)%', 'ticketing']
+
+when@test:
+    parameters:
+        ticketFilesDirectory: '%kernel.cache_dir%/tickets'

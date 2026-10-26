@@ -75,9 +75,11 @@ so issuing an issued order again announces the same tickets. Each ticket has a p
 ticketing URL, read through `ticket.detail`. In Jaeger, the `ticketing` trace of a confirm shows `send ticket.issuance`
 with the allocate and VIP steps, and then, after a `receive ticketing_async` hop, the render, register and announce
 steps. Set `TICKETING_RENDER_FAILS_FOR_SEAT` to a seat code (for example `C-7`) on `ticketing-worker` to make the
-render of that seat fail: the slip lands in the dead letters in Pulse. Unset the variable, restart the worker and
-replay the message from Pulse or with `bin/console ecotone:deadletter:replay <messageId>`, and the slip resumes at the
-render with the numbers it already allocated.
+render of that seat fail: the slip lands in the dead letters in Pulse. `docker-compose.yml` does not pass the variable
+to `ticketing-worker` yet; the finishing unit wires it. Unset the variable, recreate the container
+(`docker compose up -d ticketing-worker`), because a restart keeps the old environment, and replay the message from
+Pulse or with `bin/console ecotone:deadletter:replay <messageId>`, and the slip resumes at the render with the numbers
+it already allocated.
 
 ## Ports and parallel stacks
 

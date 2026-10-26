@@ -486,7 +486,7 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
                 $deciding->sendCommand(new CloseSalesForTaggedConformance('c-1'));
                 self::fail('Expected closing sales on a stale seat count to be rejected');
             } catch (DecisionModelConcurrencyException $exception) {
-                self::assertStringContainsString('on tag concert:c-1 (expected version 0, current version 2)', $exception->getMessage());
+                self::assertStringContainsString('on tag concert:c-1 (expected version 0, moved since it was read)', $exception->getMessage());
             }
         });
     }

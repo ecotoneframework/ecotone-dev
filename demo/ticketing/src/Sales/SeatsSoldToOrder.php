@@ -22,10 +22,4 @@ final readonly class SeatsSoldToOrder
         public array $seats,
     ) {
     }
-
-    #[EventTag('customerConcert')]
-    public function customerConcert(): string
-    {
-        return CustomerConcertSeats::scopeOf(customerId: $this->customerId, concertId: $this->concertId);
-    }
 }

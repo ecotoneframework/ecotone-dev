@@ -19,7 +19,7 @@
                 <dt>Seat</dt>
                 <dd class="seat-code">{{ ticket.seatCode }}</dd>
                 <dt>Tier</dt>
-                <dd class="tier">{{ ticket.tier }}{% if ticket.tier == 'vip' %} · VIP lounge pass included{% endif %}</dd>
+                <dd class="tier">{{ ticket.tier }}{% if ticket.vipLoungePass %} · VIP lounge pass included{% endif %}</dd>
                 <dt>Entry code</dt>
                 <dd><code class="entry-code">{{ ticket.entryCode }}</code></dd>
                 <dt>Order</dt>

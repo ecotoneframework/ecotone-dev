@@ -8,6 +8,7 @@ use App\Catalogue\Tier;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Ecotone\Api\Attribute\QueryHandler;
 use Symfony\Component\Uid\Uuid;
 
@@ -21,9 +22,10 @@ final class IssuedTicketRegistry
     {
         foreach ($issuedTickets->tickets as $ticket) {
             $this->connection->executeStatement(
-                'INSERT INTO issued_tickets (ticket_number, order_id, concert_id, seat_id, tier, entry_code, issued_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+                'INSERT INTO issued_tickets (ticket_number, order_id, concert_id, seat_id, tier, entry_code, vip_lounge_pass, issued_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                  ON CONFLICT (order_id, seat_id) DO NOTHING',
-                [$ticket->ticketNumber, $issuedTickets->orderId, $issuedTickets->concertId, $ticket->seatId, $ticket->tier->value, $ticket->entryCode, $issuedAt->format(DateTimeInterface::ATOM)],
+                [$ticket->ticketNumber, $issuedTickets->orderId, $issuedTickets->concertId, $ticket->seatId, $ticket->tier->value, $ticket->entryCode, $ticket->vipLoungePass, $issuedAt->format(DateTimeInterface::ATOM)],
+                [6 => ParameterType::BOOLEAN],
             );
         }
     }
@@ -34,13 +36,13 @@ final class IssuedTicketRegistry
     public function ticketsOfOrder(string $orderId): array
     {
         return array_map(
-            static fn (array $row): Ticket => new Ticket(ticketNumber: $row['ticket_number'], seatId: $row['seat_id'], tier: Tier::from($row['tier']), entryCode: $row['entry_code'], vipLoungePass: false),
+            static fn (array $row): Ticket => new Ticket(ticketNumber: $row['ticket_number'], seatId: $row['seat_id'], tier: Tier::from($row['tier']), entryCode: $row['entry_code'], vipLoungePass: (bool) $row['vip_lounge_pass']),
             $this->rowsOfOrder($orderId),
         );
     }
 
     /**
-     * @return array{ticketNumber: string, orderId: string, concertId: string, seatId: string, seatCode: string, tier: string, entryCode: string, issuedAt: string}|null
+     * @return array{ticketNumber: string, orderId: string, concertId: string, seatId: string, seatCode: string, tier: string, entryCode: string, vipLoungePass: bool, issuedAt: string}|null
      */
     #[QueryHandler('ticket.detail')]
     public function detail(string $ticketNumber): ?array
@@ -54,7 +56,7 @@ final class IssuedTicketRegistry
     }
 
     /**
-     * @return list<array{ticketNumber: string, orderId: string, concertId: string, seatId: string, seatCode: string, tier: string, entryCode: string, issuedAt: string}>
+     * @return list<array{ticketNumber: string, orderId: string, concertId: string, seatId: string, seatCode: string, tier: string, entryCode: string, vipLoungePass: bool, issuedAt: string}>
      */
     #[QueryHandler('tickets.of_order')]
     public function ofOrder(string $orderId): array
@@ -63,7 +65,7 @@ final class IssuedTicketRegistry
     }
 
     /**
-     * @return list<array<string, string>>
+     * @return list<array<string, mixed>>
      */
     private function rowsOfOrder(string $orderId): array
     {
@@ -75,8 +77,8 @@ final class IssuedTicketRegistry
     }
 
     /**
-     * @param array<string, string> $row
-     * @return array{ticketNumber: string, orderId: string, concertId: string, seatId: string, seatCode: string, tier: string, entryCode: string, issuedAt: string}
+     * @param array<string, mixed> $row
+     * @return array{ticketNumber: string, orderId: string, concertId: string, seatId: string, seatCode: string, tier: string, entryCode: string, vipLoungePass: bool, issuedAt: string}
      */
     private static function detailOf(array $row): array
     {
@@ -88,6 +90,7 @@ final class IssuedTicketRegistry
             'seatCode' => substr($row['seat_id'], strrpos($row['seat_id'], '/') + 1),
             'tier' => $row['tier'],
             'entryCode' => $row['entry_code'],
+            'vipLoungePass' => (bool) $row['vip_lounge_pass'],
             'issuedAt' => (new DateTimeImmutable($row['issued_at']))->format(DateTimeInterface::ATOM),
         ];
     }

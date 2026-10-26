@@ -282,3 +282,41 @@ button.seat:disabled {
 [hidden] {
     display: none !important;
 }
+
+.rush-panel {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 0.5rem;
+}
+
+.rush-panel h2 {
+    margin-top: 0;
+    font-size: 1.1rem;
+}
+
+.rush-panel__form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: end;
+}
+
+.rush-panel__form label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+}
+
+.rush-panel__form input {
+    width: 6rem;
+}
+
+.rush-panel__status {
+    font-variant-numeric: tabular-nums;
+}
+
+.rush-panel__status--failed {
+    color: #b91c1c;
+}

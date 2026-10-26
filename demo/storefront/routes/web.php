@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Web\OrderController;
+use App\Web\RushController;
 use App\Web\StorefrontController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,9 @@ Route::get('/whoami', [StorefrontController::class, 'whoami']);
 Route::post('/whoami', [StorefrontController::class, 'chooseCustomer']);
 Route::get('/concerts', [StorefrontController::class, 'concerts']);
 Route::get('/concerts/{concertId}', [StorefrontController::class, 'concert']);
+Route::get('/concerts/{concertId}/taken-seats.json', [StorefrontController::class, 'takenSeats']);
+Route::post('/concerts/{concertId}/rushes', [RushController::class, 'start']);
+Route::get('/rushes/{rushId}/state.json', [RushController::class, 'state']);
 Route::get('/account', [StorefrontController::class, 'account']);
 Route::post('/concerts/{concertId}/orders', [OrderController::class, 'start']);
 Route::post('/orders/{orderId}/seats', [OrderController::class, 'requestSeat']);

@@ -120,7 +120,7 @@ final class SeatSales
     }
 
     /**
-     * @return list<SeatSold>
+     * @return list<SeatSold|SeatsSoldToOrder>
      */
     #[CommandHandler]
     public function confirm(
@@ -159,7 +159,16 @@ final class SeatSales
             );
         }
 
-        return $sold;
+        return [
+            ...$sold,
+            new SeatsSoldToOrder(
+                orderId: $command->orderId,
+                concertId: $command->concertId,
+                customerId: $command->customerId,
+                paymentReference: $command->paymentReference,
+                seats: array_map(static fn (SeatSold $seat): SoldSeat => new SoldSeat(seatId: $seat->seatId, tier: $seat->tier, priceCents: $seat->priceCents), $sold),
+            ),
+        ];
     }
 
     /**

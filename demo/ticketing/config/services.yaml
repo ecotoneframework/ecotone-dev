@@ -1,6 +1,9 @@
 parameters:
     env(TICKETING_HOLD_SECONDS): '600'
     ticketingHoldSeconds: '%env(int:TICKETING_HOLD_SECONDS)%'
+    env(TICKETING_RENDER_FAILS_FOR_SEAT): ''
+    ticketingRenderFailsForSeat: '%env(TICKETING_RENDER_FAILS_FOR_SEAT)%'
+    ticketFilesDirectory: '%kernel.project_dir%/var/tickets'
 
 services:
     _defaults:

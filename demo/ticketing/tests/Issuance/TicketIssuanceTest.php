@@ -14,7 +14,7 @@ use App\Catalogue\Venue;
 use App\Infrastructure\EcotoneConfiguration;
 use App\Issuance\IssuedTicketRegistry;
 use App\Issuance\IssueTickets;
-use App\Issuance\SoldSeat;
+use App\Sales\SoldSeat;
 use App\Issuance\TicketIssuance;
 use App\Issuance\TicketIssuanceProcess;
 use App\Issuance\TicketIssuanceStart;
@@ -34,7 +34,7 @@ use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Headers;
-use Ecotone\Api\Dbal\DeadLetterGateway;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -108,7 +108,7 @@ final class TicketIssuanceTest extends KernelTestCase
         self::assertNotSame($event['tickets'][0]['entryCode'], $event['tickets'][1]['entryCode']);
     }
 
-    public function test_the_slip_of_an_order_without_vip_seats_allocates_renders_registers_and_announces_carrying_the_concert_id_header(): void
+    public function test_the_slip_of_an_order_without_vip_seats_is_decided_first_then_allocates_renders_registers_and_announces_carrying_the_concert_id_header(): void
     {
         $recorder = $this->stepRecorder();
         $this->storefrontListening();
@@ -118,8 +118,8 @@ final class TicketIssuanceTest extends KernelTestCase
         $this->buy($ticketing, Uuid::v7()->toRfc4122(), $concertId, Uuid::v7()->toRfc4122(), ['C-1']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertSame(['allocateNumbers', 'renderTickets', 'registerEntryCodes', 'announceIssuedTickets'], array_column($recorder->steps, 'step'));
-        self::assertSame([$concertId, $concertId, $concertId, $concertId], array_column($recorder->steps, 'concertIdHeader'));
+        self::assertSame(['slipFor', 'allocateNumbers', 'renderTickets', 'registerEntryCodes', 'announceIssuedTickets'], array_column($recorder->steps, 'step'));
+        self::assertSame([$concertId, $concertId, $concertId, $concertId, $concertId], array_column($recorder->steps, 'concertIdHeader'));
     }
 
     public function test_the_slip_of_an_order_holding_a_vip_seat_grants_vip_lounge_passes_after_allocating_numbers(): void
@@ -132,7 +132,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $this->buy($ticketing, Uuid::v7()->toRfc4122(), $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertSame(['allocateNumbers', 'grantVipLoungePasses', 'renderTickets', 'registerEntryCodes', 'announceIssuedTickets'], array_column($recorder->steps, 'step'));
+        self::assertSame(['slipFor', 'allocateNumbers', 'grantVipLoungePasses', 'renderTickets', 'registerEntryCodes', 'announceIssuedTickets'], array_column($recorder->steps, 'step'));
     }
 
     public function test_tickets_are_rendered_as_text_files_on_the_messenger_transport_after_their_numbers_are_allocated(): void

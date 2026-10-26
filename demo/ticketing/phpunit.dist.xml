@@ -22,6 +22,8 @@
         <env name="DEMO_JAEGER_URL" value="http://localhost:16686" force="true" />
         <server name="TICKETING_HOLD_SECONDS" value="600" force="true" />
         <env name="TICKETING_HOLD_SECONDS" value="600" force="true" />
+        <server name="TICKETING_RENDER_FAILS_FOR_SEAT" value="" force="true" />
+        <env name="TICKETING_RENDER_FAILS_FOR_SEAT" value="" force="true" />
     </php>
 
     <testsuites>

@@ -197,6 +197,20 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         self::assertSame(['held' => 0, 'paying' => 0, 'paid' => 0, 'issued' => 1, 'failed' => 0, 'gaveUp' => 0], $this->stageCounts());
     }
 
+    public function test_the_buyers_left_over_by_rounding_the_shares_go_to_the_shares_closest_to_another_buyer(): void
+    {
+        $this->concertOnSale(seats: 12);
+
+        $this->startRush(buyers: 2, seatsPerBuyer: 1, declinedShare: 25, outageShare: 35);
+        $this->rushRuns();
+
+        $state = $this->rushState();
+        self::assertSame(0, $state['failed']);
+        self::assertSame(1, $state['paid']);
+        self::assertSame(1, $state['paying']);
+        self::assertSame(1, $this->storefront->getGateway(DeadLetterGateway::class)->count());
+    }
+
     public function test_a_refused_seat_is_tried_again_on_another_free_seat(): void
     {
         $this->concertOnSale(seats: 12);

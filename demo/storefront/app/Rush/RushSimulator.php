@@ -252,12 +252,22 @@ final class RushSimulator
     private function rolesOf(array $rush): array
     {
         $buyers = (int) $rush['buyers_requested'];
-        $roles = [
-            ...array_fill(0, (int) round($buyers * $rush['declined_share'] / 100), RushBuyerRole::DECLINED),
-            ...array_fill(0, (int) round($buyers * $rush['outage_share'] / 100), RushBuyerRole::OUTAGE),
-            ...array_fill(0, (int) round($buyers * $rush['bounce_share'] / 100), RushBuyerRole::BOUNCE),
+        $shares = [
+            RushBuyerRole::DECLINED->value => (int) $rush['declined_share'],
+            RushBuyerRole::OUTAGE->value => (int) $rush['outage_share'],
+            RushBuyerRole::BOUNCE->value => (int) $rush['bounce_share'],
         ];
-        $roles = array_pad(array_slice($roles, 0, $buyers), $buyers, RushBuyerRole::PAYING);
+        $shares[RushBuyerRole::PAYING->value] = 100 - array_sum($shares);
+        $buyersOf = array_map(fn (int $share) => intdiv($buyers * $share, 100), $shares);
+        $leftOver = array_map(fn (int $share) => $buyers * $share % 100, $shares);
+        arsort($leftOver, SORT_NUMERIC);
+        foreach (array_slice(array_keys($leftOver), 0, $buyers - array_sum($buyersOf)) as $role) {
+            $buyersOf[$role]++;
+        }
+        $roles = [];
+        foreach ($buyersOf as $role => $count) {
+            $roles = [...$roles, ...array_fill(0, $count, RushBuyerRole::from($role))];
+        }
 
         return (new Randomizer(new Mt19937(crc32($rush['rush_id']))))->shuffleArray($roles);
     }

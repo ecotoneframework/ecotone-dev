@@ -71,6 +71,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $this->awaitRepliesFor(30);
         $client = $this->pulseClient();
         $this->respondInBackground(['orders'], fn () => ['orders' => $this->tracedOrders()]);
+        $this->respondInBackground(['billing', 'shipping']);
 
         $client->request('POST', '/refresh');
         $crawler = $client->followRedirect();
@@ -138,6 +139,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
 
             return ['orders' => $orders];
         });
+        $this->respondInBackground(['billing', 'shipping']);
 
         $crawler = $client->request('GET', '/traces/orders/order.place');
 

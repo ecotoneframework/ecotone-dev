@@ -76,7 +76,7 @@
         refusalLine.textContent = shownRefusal || '';
 
         const checkout = basket.querySelector('[data-basket-checkout]');
-        checkout.hidden = !(state && state.status === 'seats_held');
+        checkout.hidden = !(state && state.status === 'seats_held') || pendingSeatIds.size > 0;
         if (orderId !== null) {
             checkout.href = ordersUrl + '/' + orderId + '/checkout';
         }

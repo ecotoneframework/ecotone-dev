@@ -62,6 +62,23 @@ Distributed Bus, and gets `tickets.hold.result` and `tickets.confirm.result` rep
 projections on `ticketing_async`. `demo:seed` sells all but the last three seats of Neon Harbour, and selling those
 marks it sold out (`concert.sold_out`); `demo:seed --catalogueOnly` seeds the venue and the concerts without that sale.
 
+## Ticket issuance
+
+A confirm that sells an order's seats records one `SeatsSoldToOrder` event beside the order's `SeatSold` events, so
+issuance starts once per order rather than once per seat: an event handler on `ticketing_async` sends `IssueTickets`
+with the `concertId` header to the `TicketIssuance` orchestrator, so the start survives a worker restart. The
+orchestrator builds its routing slip from the order: `ticket.allocate_numbers`, then `ticket.vip_lounge_pass` only when
+the order holds a VIP seat, then `ticket.render` on `ticketing_async`, which writes `var/tickets/<ticketNumber>.txt`,
+then `ticket.register_entry_codes` into the `issued_tickets` table, and `ticket.announce`, which publishes
+`tickets.issued` to the storefront. Ticket numbers are UUIDs and entry codes are random, both generated once per order,
+so issuing an issued order again announces the same tickets. Each ticket has a page at `/tickets/{ticketNumber}` on the
+ticketing URL, read through `ticket.detail`. In Jaeger, the `ticketing` trace of a confirm shows `send ticket.issuance`
+with the allocate and VIP steps, and then, after a `receive ticketing_async` hop, the render, register and announce
+steps. Set `TICKETING_RENDER_FAILS_FOR_SEAT` to a seat code (for example `C-7`) on `ticketing-worker` to make the
+render of that seat fail: the slip lands in the dead letters in Pulse. Unset the variable, restart the worker and
+replay the message from Pulse or with `bin/console ecotone:deadletter:replay <messageId>`, and the slip resumes at the
+render with the numbers it already allocated.
+
 ## Ports and parallel stacks
 
 Every host port is an environment variable, and so is the stack's name:

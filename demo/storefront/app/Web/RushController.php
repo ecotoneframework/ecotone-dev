@@ -32,7 +32,11 @@ final class RushController
         }
         $settings = [];
         foreach (StartRush::DEFAULTS as $setting => $default) {
-            $settings[$setting] = (int) $request->input($setting, $default);
+            $value = (string) $request->input($setting, $default);
+            $settings[$setting] = filter_var($value, FILTER_VALIDATE_INT);
+            if ($settings[$setting] === false) {
+                return response()->json(['error' => sprintf('The %s of a rush is "%s", not a whole number, so the rush cannot start. Give %s as a whole number, or leave it out to use %d.', $setting, $value, $setting, $default)], 422);
+            }
         }
         try {
             $command = new StartRush(...['rushId' => $rushId, 'concertId' => $concertId, ...$settings]);

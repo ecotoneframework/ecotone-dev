@@ -105,7 +105,7 @@
         form.addEventListener('submit', async function (event) {
             event.preventDefault();
             const settings = {};
-            new FormData(form).forEach(function (value, name) { settings[name] = Number(value); });
+            new FormData(form).forEach(function (value, name) { settings[name] = value; });
             const button = form.querySelector('button');
             button.disabled = true;
             try {

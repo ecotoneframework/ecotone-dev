@@ -7,12 +7,14 @@ namespace Tests\Web;
 use App\Customer\RegisterCustomer;
 use App\Ordering\MarkSeatHeld;
 use App\Ordering\StartOrder;
+use App\Rush\StartRush;
 use DomainException;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -105,6 +107,24 @@ final class RushPagesTest extends TestCase
 
         $response->assertUnprocessable();
         $response->assertExactJson(['error' => 'The declined (60 %), outage (30 %) and bounce (20 %) shares of a rush add up to 110 %, but each buyer plays one part, so they cannot exceed 100 %. Lower them until they add up to at most 100 %; the rest of the buyers pay with a card that succeeds.']);
+    }
+
+    #[DataProvider('settingsThatAreNotWholeNumbers')]
+    public function test_a_rush_setting_that_is_not_a_whole_number_is_refused_naming_the_setting(string $setting, mixed $value): void
+    {
+        $this->scheduleOnSale();
+
+        $response = $this->postJson('/concerts/' . self::CONCERT_ID . '/rushes', [$setting => $value]);
+
+        $response->assertStatus(422);
+        $response->assertExactJson(['error' => sprintf('The %s of a rush is "%s", not a whole number, so the rush cannot start. Give %s as a whole number, or leave it out to use %d.', $setting, $value, $setting, StartRush::DEFAULTS[$setting])]);
+    }
+
+    public static function settingsThatAreNotWholeNumbers(): iterable
+    {
+        yield 'a blank declined share' => ['declinedShare', ''];
+        yield 'a word for the outage share' => ['outageShare', 'many'];
+        yield 'a fraction of buyers' => ['buyers', '2.5'];
     }
 
     public function test_a_rush_on_a_concert_not_on_sale_is_refused_naming_its_status(): void

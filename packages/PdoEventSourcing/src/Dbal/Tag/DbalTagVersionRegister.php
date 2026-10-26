@@ -108,7 +108,7 @@ final class DbalTagVersionRegister
                 : $this->checkGuardedTag($connection, $expected['name'], $expected['value'], $expected['expectedVersion']);
 
             if (! $unchanged) {
-                $this->raiseConflict($connection, $expected['name'], $expected['value'], $expected['expectedVersion'], $expected['aggregateType'] ?? null, $expected['decidedBy'] ?? []);
+                $this->raiseConflict($expected['name'], $expected['value'], $expected['expectedVersion'], $expected['aggregateType'] ?? null, $expected['decidedBy'] ?? []);
             }
         }
     }
@@ -164,25 +164,14 @@ final class DbalTagVersionRegister
     /**
      * @param string[] $decidedBy
      */
-    private function raiseConflict(Connection $connection, string $name, string $value, int $expectedVersion, ?string $aggregateType, array $decidedBy): never
+    private function raiseConflict(string $name, string $value, int $expectedVersion, ?string $aggregateType, array $decidedBy): never
     {
-        $currentVersion = $this->versionOf($connection, $name, $value);
         $conflict = $aggregateType !== null
-            ? DecisionModelConcurrencyException::forAggregateConflict($aggregateType, $value, $expectedVersion, $currentVersion)
-            : DecisionModelConcurrencyException::forConflict($name, $value, $expectedVersion, $currentVersion, $decidedBy);
+            ? DecisionModelConcurrencyException::forAggregateConflict($aggregateType, $value, $expectedVersion)
+            : DecisionModelConcurrencyException::forConflict($name, $value, $expectedVersion, $decidedBy);
 
         $this->logger->notice(DecisionModelConcurrencyException::LOG_MESSAGE, $conflict->conflictFields());
 
         throw $conflict;
-    }
-
-    private function versionOf(Connection $connection, string $name, string $value): int
-    {
-        $versionsTable = TaggedEventSchemaFactory::for($connection)->quoteIdentifier(TagTableManager::TAG_VERSIONS_TABLE);
-
-        return (int) $connection->executeQuery(
-            "SELECT version FROM {$versionsTable} WHERE tag_name = ? AND tag_value = ?",
-            [$name, $value]
-        )->fetchOne();
     }
 }

@@ -74,8 +74,8 @@ final class InMemoryTagVersionRegister
             $current = $this->versions[$key] ?? 0;
             if ($expected['change'] !== TagVersionChange::Increment && $current !== $expected['expectedVersion']) {
                 $conflict = isset($expected['aggregateType'])
-                    ? DecisionModelConcurrencyException::forAggregateConflict($expected['aggregateType'], $expected['value'], $expected['expectedVersion'], $current)
-                    : DecisionModelConcurrencyException::forConflict($expected['name'], $expected['value'], $expected['expectedVersion'], $current, $expected['decidedBy'] ?? []);
+                    ? DecisionModelConcurrencyException::forAggregateConflict($expected['aggregateType'], $expected['value'], $expected['expectedVersion'])
+                    : DecisionModelConcurrencyException::forConflict($expected['name'], $expected['value'], $expected['expectedVersion'], $expected['decidedBy'] ?? []);
 
                 $this->logger->notice(DecisionModelConcurrencyException::LOG_MESSAGE, $conflict->conflictFields());
 

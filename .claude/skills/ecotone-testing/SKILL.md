@@ -216,7 +216,8 @@ Tests prove Ecotone's own testing support is enough to test an Ecotone applicati
 - **Allowed**: `EcotoneLite::bootstrapFlowTesting()` (or the framework kernel), `run('channel', ExecutionPollingMetadata::...)`,
   `ecotone:run` through the framework console, `FlowTestSupport` (`sendCommand`, `publishEvent`, `sendQueryWithRouting`,
   `getRecordedEvents`, gateways), `withTimeAt()` / `advanceTimeBy()`, in-memory and `#[Environment]`-scoped channels,
-  `Ecotone\Test\*` helpers (`StaticPsrClock::whenWaiting()` runs a step at each wait on the pinned clock), and for a
+  `whenWaiting()` (runs a step at each wait on the pinned clock; a kernel-booted app calls it on the container's
+  `Ecotone\Test\StaticPsrClock`), and for a
   cross-service flow several `EcotoneLite` applications in the one test process, each driven with `run()`
 - **Refused**: `pcntl_fork`, `proc_open`/`Process` running a consumer, sockets or pipes as a readiness or reply channel,
   a `microtime()`/`usleep()` polling loop, a direct broker client, any consumer that is not `run()`

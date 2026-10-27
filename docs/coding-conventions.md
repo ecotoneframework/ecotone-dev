@@ -747,10 +747,13 @@ Allowed — the whole toolbox:
   `getRecordedEvents()`, gateways from `getGateway()`
 - time through `TestConfiguration::createWithDefaults()->withTimeAt()`, `advanceTimeBy()` and `$ecotone->now()`;
   a wait the application performs on Ecotone's clock runs on the pinned clock, and
-  `Ecotone\Test\StaticPsrClock::whenWaiting()` runs a step — another application's `run()` — at each wait
+  `FlowTestSupport::whenWaiting()` runs a step — another application's `run()` — at each wait
 - in-memory channels, DBAL or broker channels configured through extension objects, and `#[Environment]`-scoped
   channel configuration
-- the `Ecotone\Test\*` helpers
+- the `Ecotone\Test\*` helpers. They are the one sanctioned exception to rule 10's "never names a class outside
+  `Api/`", as `StaticMessageBuilder` is: the framework's own kernel-booted applications (Pulse) have no
+  `FlowTestSupport`, so they reach the same pinned clock as the container's `StaticPsrClock` and call its
+  `whenWaiting()`
 - a flow across services (Pulse, the Distributed Bus): every application booted with `EcotoneLite` in the one test
   process, over shared in-memory or real channels, each driven with `run()` at the moment the test chooses
 
@@ -773,17 +776,24 @@ if (pcntl_fork() === 0) {
     }
 }
 $startedAt = microtime(true);
-$crawler = $client->request('GET', '/services');
+$orders->sendCommandWithRouting('order.awaitInvoice', $orderId);
 self::assertGreaterThanOrEqual(6.0, microtime(true) - $startedAt);
 
-// right — the pinned clock runs billing once the test says it answers, and the wait is read off that clock
-$clock->whenWaiting(function (DateTimeImmutable $now) use ($billing, $startedAt): void {
+// right — the clock is pinned at bootstrap, the step runs billing once the test says it answers,
+// and the wait is read off that clock
+$startedAt = new DateTimeImmutable('2026-03-01 12:00:00');
+$orders = EcotoneLite::bootstrapFlowTesting(
+    [OrderService::class],
+    [new OrderService()],
+    testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt($startedAt),
+);
+$orders->whenWaiting(function (DateTimeImmutable $now) use ($billing, $startedAt): void {
     if ($now >= $startedAt->modify('+6 seconds')) {
         $billing->run('billing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
 });
-$crawler = $client->request('GET', '/services');
-self::assertGreaterThanOrEqual($startedAt->modify('+6 seconds'), $clock->now());
+$orders->sendCommandWithRouting('order.awaitInvoice', $orderId);
+self::assertEquals($startedAt->modify('+6 seconds'), $orders->now());
 ```
 
 **The escape is a framework increment.** When the testing support cannot express what a test needs, stop and add

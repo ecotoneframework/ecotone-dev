@@ -35,8 +35,11 @@ final class ConcurrentWritersTest extends ReleasingWebTestCase
         $client->disableReboot();
         $this->setUpPulseDatabase($client->getKernel());
         $report = sys_get_temp_dir() . '/pulse-writers-' . uniqid() . '.txt';
-        foreach (['orders' => $this->realService('orders'), 'billing' => $this->realService('billing')] as $service => $application) {
-            $this->inAnotherProcess(fn () => $application->run($this->serviceChannels[$service], ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(self::CONSUMING_MILLISECONDS)));
+        foreach (array_keys($this->serviceChannels) as $service) {
+            $this->realService($service);
+        }
+        foreach (array_keys($this->serviceChannels) as $service) {
+            $this->inAnotherProcess(fn () => $this->realServiceOnExistingTables($service)->run($this->serviceChannels[$service], ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(self::CONSUMING_MILLISECONDS)));
         }
         $consumer = $this->inAnotherProcess(fn () => (new CommandTester((new Application($this->bootedKernel()))->find('ecotone:run')))->execute(['consumerName' => $this->pulseChannel, '--executionTimeLimit' => self::CONSUMING_MILLISECONDS]));
         $writer = $this->inAnotherProcess(function () use ($report): void {

@@ -74,6 +74,11 @@ trait PulseServicesTrait
         return $this->serviceApplication($service, [], []);
     }
 
+    private function realServiceOnExistingTables(string $service): FlowTestSupport
+    {
+        return $this->serviceApplication($service, [], [], databaseTablesSetUpOnBootstrap: false);
+    }
+
     private function serviceAnsweringWith(string $service, string $snapshotJson): FlowTestSupport
     {
         $handler = new class ($snapshotJson) {
@@ -148,7 +153,7 @@ trait PulseServicesTrait
      * @param array<class-string> $classes
      * @param array<object> $handlers
      */
-    private function serviceApplication(string $service, array $classes, array $handlers, bool $withPulseResponder = true): FlowTestSupport
+    private function serviceApplication(string $service, array $classes, array $handlers, bool $withPulseResponder = true, bool $databaseTablesSetUpOnBootstrap = true): FlowTestSupport
     {
         $dsn = $_SERVER['PULSE_TRANSPORT_DSN'];
 
@@ -164,7 +169,7 @@ trait PulseServicesTrait
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel($this->pulseChannel),
+            testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel($this->pulseChannel)->withDatabaseTablesSetUpOnBootstrap($databaseTablesSetUpOnBootstrap),
         );
     }
 }

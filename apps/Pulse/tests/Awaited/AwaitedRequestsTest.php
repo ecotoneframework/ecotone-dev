@@ -144,7 +144,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/services');
 
-        self::assertGreaterThanOrEqual(new DateTimeImmutable('2026-10-20 12:00:06'), $clock->now());
+        self::assertEquals(new DateTimeImmutable('2026-10-20 12:00:06'), $clock->now());
         self::assertSame('connected', $this->statusOf($crawler, 'orders'));
         self::assertSame('connected', $this->statusOf($crawler, 'billing'));
     }
@@ -154,10 +154,11 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders', 'billing');
         $this->awaitRepliesFor(4);
         $client = $this->pulseClient();
-        $this->respondWhileWaiting($client->getKernel(), ['orders' => $this->realService('orders'), 'billing' => $this->realService('billing')], ['billing' => 30]);
+        $clock = $this->respondWhileWaiting($client->getKernel(), ['orders' => $this->realService('orders'), 'billing' => $this->realService('billing')], ['billing' => 30]);
 
         $crawler = $client->request('GET', '/services');
 
+        self::assertEquals(new DateTimeImmutable('2026-10-20 12:00:04'), $clock->now());
         self::assertSame('connected', $this->statusOf($crawler, 'orders'));
         self::assertSame('waiting', $this->statusOf($crawler, 'billing'));
     }
@@ -177,7 +178,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/traces/trace/' . $traceId);
 
-        self::assertGreaterThanOrEqual(new DateTimeImmutable('2026-10-20 12:00:06'), $clock->now());
+        self::assertEquals(new DateTimeImmutable('2026-10-20 12:00:06.052'), $clock->now());
         self::assertCount(1, $crawler->filter('[data-service-state="orders"][data-state="answered"]'));
         self::assertCount(1, $crawler->filter('[data-service-state="billing"][data-state="answered"]'));
         self::assertCount(0, $crawler->filter('meta[http-equiv="refresh"]'));

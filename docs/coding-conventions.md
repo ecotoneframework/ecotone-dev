@@ -780,7 +780,7 @@ $orders->sendCommandWithRouting('order.awaitInvoice', $orderId);
 self::assertGreaterThanOrEqual(6.0, microtime(true) - $startedAt);
 
 // right — the clock is pinned at bootstrap, the step runs billing once the test says it answers,
-// and the wait is read off that clock
+// and the wait is read off that clock to the second billing answered in
 $startedAt = new DateTimeImmutable('2026-03-01 12:00:00');
 $orders = EcotoneLite::bootstrapFlowTesting(
     [OrderService::class],
@@ -793,7 +793,7 @@ $orders->whenWaiting(function (DateTimeImmutable $now) use ($billing, $startedAt
     }
 });
 $orders->sendCommandWithRouting('order.awaitInvoice', $orderId);
-self::assertEquals($startedAt->modify('+6 seconds'), $orders->now());
+self::assertSame('2026-03-01 12:00:06', $orders->now()->format('Y-m-d H:i:s'));
 ```
 
 **The escape is a framework increment.** When the testing support cannot express what a test needs, stop and add

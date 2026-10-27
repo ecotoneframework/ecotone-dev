@@ -750,10 +750,10 @@ Allowed — the whole toolbox:
   `FlowTestSupport::whenWaiting()` runs a step — another application's `run()` — at each wait
 - in-memory channels, DBAL or broker channels configured through extension objects, and `#[Environment]`-scoped
   channel configuration
-- the `Ecotone\Test\*` helpers. They are the one sanctioned exception to rule 10's "never names a class outside
-  `Api/`", as `StaticMessageBuilder` is: the framework's own kernel-booted applications (Pulse) have no
-  `FlowTestSupport`, so they reach the same pinned clock as the container's `StaticPsrClock` and call its
-  `whenWaiting()`
+- `Ecotone\Test\*` only where no `FlowTestSupport` exists: the framework's own kernel-booted applications (Pulse)
+  take the container's `StaticPsrClock` and call its `whenWaiting()`, as `StaticMessageBuilder` serves the rare
+  internal test that drives a channel interceptor. An `EcotoneLite` test never takes a `StaticPsrClock`: it pins
+  time with `withTimeAt()`, moves it with `advanceTimeBy()` and runs a step with `FlowTestSupport::whenWaiting()`
 - a flow across services (Pulse, the Distributed Bus): every application booted with `EcotoneLite` in the one test
   process, over shared in-memory or real channels, each driven with `run()` at the moment the test chooses
 

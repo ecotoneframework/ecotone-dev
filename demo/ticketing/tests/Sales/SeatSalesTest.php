@@ -493,7 +493,7 @@ final class SeatSalesTest extends KernelTestCase
         $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
     }
 
-    public function test_a_hold_whose_seat_changes_between_read_and_append_on_every_attempt_surfaces_the_conflict_naming_the_seat_tag_and_the_version_it_read(): void
+    public function test_a_hold_whose_seat_changes_between_read_and_append_on_every_attempt_surfaces_the_conflict_naming_the_seat_tag_and_the_decision_model(): void
     {
         $competitor = $this->competitor();
         $interferer = new class () {

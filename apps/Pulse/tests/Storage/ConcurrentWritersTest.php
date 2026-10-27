@@ -9,6 +9,7 @@ use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -34,10 +35,10 @@ final class ConcurrentWritersTest extends ReleasingWebTestCase
         $client->disableReboot();
         $this->setUpPulseDatabase($client->getKernel());
         $report = sys_get_temp_dir() . '/pulse-writers-' . uniqid() . '.txt';
-        foreach (['orders', 'billing'] as $service) {
-            $this->inAnotherProcess(fn () => $this->realService($service)->run($this->serviceChannels[$service], ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(self::CONSUMING_MILLISECONDS)));
+        foreach (['orders' => $this->realService('orders'), 'billing' => $this->realService('billing')] as $service => $application) {
+            $this->inAnotherProcess(fn () => $application->run($this->serviceChannels[$service], ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(self::CONSUMING_MILLISECONDS)));
         }
-        $this->inAnotherProcess(fn () => (new CommandTester((new Application($this->bootedKernel()))->find('ecotone:run')))->execute(['consumerName' => $this->pulseChannel, '--executionTimeLimit' => self::CONSUMING_MILLISECONDS]));
+        $consumer = $this->inAnotherProcess(fn () => (new CommandTester((new Application($this->bootedKernel()))->find('ecotone:run')))->execute(['consumerName' => $this->pulseChannel, '--executionTimeLimit' => self::CONSUMING_MILLISECONDS]));
         $writer = $this->inAnotherProcess(function () use ($report): void {
             $kernel = $this->bootedKernel();
             $statuses = [];
@@ -48,13 +49,16 @@ final class ConcurrentWritersTest extends ReleasingWebTestCase
         });
 
         $statuses = [];
-        while (count($statuses) < self::REFRESHES || pcntl_waitpid($writer, $status, WNOHANG) === 0) {
+        while (count($statuses) < self::REFRESHES || $this->isRunning($writer)) {
             $client->request('POST', '/refresh');
             $statuses[] = $client->getResponse()->getStatusCode();
+        }
+        while (! $this->bothServicesConnected($client) && $this->isRunning($consumer)) {
         }
 
         self::assertSame(array_fill(0, count($statuses), 302), $statuses);
         self::assertSame(implode(',', array_fill(0, self::REFRESHES, 302)), file_get_contents($report));
+        self::assertTrue($this->bothServicesConnected($client));
     }
 
     protected function tearDown(): void
@@ -81,6 +85,18 @@ final class ConcurrentWritersTest extends ReleasingWebTestCase
         } finally {
             posix_kill(posix_getpid(), SIGKILL);
         }
+    }
+
+    private function isRunning(int $process): bool
+    {
+        return pcntl_waitpid($process, $status, WNOHANG) === 0;
+    }
+
+    private function bothServicesConnected(KernelBrowser $client): bool
+    {
+        $services = $client->request('GET', '/services');
+
+        return $this->statusOf($services, 'orders') === 'connected' && $this->statusOf($services, 'billing') === 'connected';
     }
 
     private function bootedKernel(): Kernel

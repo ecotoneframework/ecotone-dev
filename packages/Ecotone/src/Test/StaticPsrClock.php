@@ -60,7 +60,7 @@ final class StaticPsrClock implements ClockInterface, SleepInterface
     public function whenWaiting(Closure $step): void
     {
         if ($this->now === null) {
-            throw InvalidArgumentException::create("StaticPsrClock::whenWaiting() runs its step each time a wait moves the pinned time forward, but this clock reads the system time and waits for real, so the step would never run. Pin the clock first: construct it with a time, as new StaticPsrClock('2026-03-01 12:00:00') or call setCurrentTime() on it.");
+            throw InvalidArgumentException::create("whenWaiting() runs its step each time a wait moves the pinned time forward, but the test clock reads the system time and waits for real, so the step would never run. Pin the clock before registering the step: bootstrap with TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-03-01 12:00:00')), or call advanceTimeBy() or changeTimeTo() on the flow test support. A StaticPsrClock taken from the container is pinned with setCurrentTime().");
         }
 
         $this->whenWaiting = $step;

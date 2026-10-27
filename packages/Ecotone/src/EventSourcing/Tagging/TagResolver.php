@@ -59,19 +59,12 @@ final class TagResolver
      */
     public function resolveAppend(array $events, ?AppendCondition $appendCondition): AppendedTags
     {
-        $conditionVersions = [];
-        foreach ($appendCondition?->expectedTagVersions() ?? [] as $expected) {
-            $conditionVersions[TagKey::of($expected['name'], $expected['value'])] = $expected;
-        }
+        return $this->resolve($events, $appendCondition, bumpsEveryConditionTag: false, incrementsUncapturedTags: $appendCondition?->hasTagCondition() ?? false);
+    }
 
-        $aggregateCounterTags = $this->counterTagOfSavedAggregate($appendCondition);
-
-        return new AppendedTags(
-            $this->resolveEvents($events),
-            $conditionVersions,
-            $aggregateCounterTags,
-            $this->aggregateTypesOfCounterTags([...$conditionVersions, ...$aggregateCounterTags]),
-        );
+    public function resolveGuardedBump(AppendCondition $appendCondition): AppendedTags
+    {
+        return $this->resolve([], $appendCondition, bumpsEveryConditionTag: true, incrementsUncapturedTags: false);
     }
 
     /**
@@ -167,6 +160,28 @@ final class TagResolver
         }
 
         return $matching;
+    }
+
+    /**
+     * @param array<object|array> $events
+     */
+    private function resolve(array $events, ?AppendCondition $appendCondition, bool $bumpsEveryConditionTag, bool $incrementsUncapturedTags): AppendedTags
+    {
+        $conditionVersions = [];
+        foreach ($appendCondition?->expectedTagVersions() ?? [] as $expected) {
+            $conditionVersions[TagKey::of($expected['name'], $expected['value'])] = $expected;
+        }
+
+        $aggregateCounterTags = $this->counterTagOfSavedAggregate($appendCondition);
+
+        return new AppendedTags(
+            $this->resolveEvents($events),
+            $conditionVersions,
+            $aggregateCounterTags,
+            $this->aggregateTypesOfCounterTags([...$conditionVersions, ...$aggregateCounterTags]),
+            $bumpsEveryConditionTag,
+            $incrementsUncapturedTags,
+        );
     }
 
     /**

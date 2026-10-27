@@ -105,7 +105,7 @@ final class EventSourcedAggregateCounterDbalTest extends EventSourcingMessagingT
         $captured = $anna->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('aggregate_CounterWallet', 'w-1'))->appendCondition;
         self::inTransaction(fn () => $anna->getGateway(EventStore::class)->appendTo(self::STREAM, [new WalletAuditedForCounterDbalTest('w-1')], $captured));
 
-        self::assertSame(2, $this->counterOf($anna, 'w-1'));
+        self::assertSame(1, $this->counterOf($anna, 'w-1'));
     }
 
     public function test_a_competing_save_of_the_same_aggregate_committed_during_its_command_fails_the_save(): void

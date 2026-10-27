@@ -22,6 +22,7 @@ use Ecotone\Test\StaticPsrClock;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpKernel\KernelInterface;
 
 trait PulseServicesTrait
@@ -48,6 +49,11 @@ trait PulseServicesTrait
             'PULSE_CHANNEL' => $this->pulseChannel,
             'PULSE_SERVICES' => implode(',', array_map(fn (string $service) => $service . ':' . $this->serviceChannels[$service], $services)),
         ]);
+    }
+
+    private function statusOf(Crawler $crawler, string $service): string
+    {
+        return $crawler->filter(sprintf('[data-service="%s"] [data-status]', $service))->attr('data-status');
     }
 
     private function advanceTimeBy(int $seconds): void

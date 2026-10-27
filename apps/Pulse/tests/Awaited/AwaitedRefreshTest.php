@@ -8,7 +8,6 @@ use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use App\Tests\Support\RespondingWhileWaitingTrait;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
@@ -39,10 +38,5 @@ final class AwaitedRefreshTest extends ReleasingWebTestCase
         $this->setUpPulseDatabase($client->getKernel());
 
         return $client;
-    }
-
-    private function statusOf(Crawler $crawler, string $service): string
-    {
-        return $crawler->filter(sprintf('[data-service="%s"] [data-status]', $service))->attr('data-status');
     }
 }

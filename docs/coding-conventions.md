@@ -783,7 +783,7 @@ $clock->whenWaiting(function (DateTimeImmutable $now) use ($billing, $startedAt)
     }
 });
 $crawler = $client->request('GET', '/services');
-self::assertEquals($startedAt->modify('+6 seconds'), $clock->now());
+self::assertGreaterThanOrEqual($startedAt->modify('+6 seconds'), $clock->now());
 ```
 
 **The escape is a framework increment.** When the testing support cannot express what a test needs, stop and add
@@ -799,7 +799,9 @@ Evidence: `apps/Pulse/tests/Support/ConcurrentRespondersTrait.php` forked its re
 and #735 was spent on start-up timing instead of behaviour. `apps/Pulse/tests/Traces/TraceListPageTest.php` slept
 `usleep(2000)` between two commands so their traces sorted apart, `apps/Pulse/tests/Accessibility/states-service.php`
 consumed in a `time()` loop, and `apps/Pulse/tests/Storage/ConcurrentWritersTest.php` is the concurrency exception:
-three processes racing SQLite's write lock.
+three processes racing SQLite's write lock. `859548b83` added the missing support (`StaticPsrClock::whenWaiting()`),
+`ecd839fec` moved Pulse's reply budget onto the clock the wait sleeps on, and `40cd47192`, `55ed1156e`, `2b09526b8`
+and `6c173b7ab` moved the tests onto it — the awaited-request suite went from forked responders to one process.
 
 ---
 

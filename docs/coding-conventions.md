@@ -12,7 +12,7 @@ is in [docs/conventions-outstanding.md](./conventions-outstanding.md).
 
 Every `docs/superpowers/` path cited below — the design records, the audits and the research reports — lives on
 branch `dgafka/dcb-docs` and is deliberately untracked here, since `docs/superpowers/` is in `.gitignore`. The
-paths resolve on that branch. Commit SHAs cited below resolve on any branch.
+paths resolve on that branch.
 
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
 mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 1d, 6a, 10a, 10b, 16a, 16b,
@@ -809,9 +809,11 @@ Evidence: `apps/Pulse/tests/Support/ConcurrentRespondersTrait.php` forked its re
 and #735 was spent on start-up timing instead of behaviour. `apps/Pulse/tests/Traces/TraceListPageTest.php` slept
 `usleep(2000)` between two commands so their traces sorted apart, `apps/Pulse/tests/Accessibility/states-service.php`
 consumed in a `time()` loop, and `apps/Pulse/tests/Storage/ConcurrentWritersTest.php` is the concurrency exception:
-three processes racing SQLite's write lock. `859548b83` added the missing support (`StaticPsrClock::whenWaiting()`),
-`ecd839fec` moved Pulse's reply budget onto the clock the wait sleeps on, and `40cd47192`, `55ed1156e`, `2b09526b8`
-and `6c173b7ab` moved the tests onto it — the awaited-request suite went from forked responders to one process.
+three processes racing SQLite's write lock. `packages/Ecotone/tests/Lite/Test/WaitingOnTestClockTest.php` proves
+the support that was missing (`FlowTestSupport::whenWaiting()`), `apps/Pulse/src/Snapshot/ReplyAwaiter.php` now
+measures its reply budget on the clock the wait sleeps on, and `AwaitedRequestsTest`, `ConcurrentWritersTest`,
+`TraceListPageTest` and `states-service.php` run on the testing support — the awaited-request suite went from
+forked responders to one process.
 
 ---
 

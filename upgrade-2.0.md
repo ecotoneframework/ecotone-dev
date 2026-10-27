@@ -471,14 +471,38 @@ public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfigur
   tables, no counters — and load by stream or aggregate as usual; the `event_tags` setup feature is not listed and
   no tag table is created or verified.
 
-**Aggregate saves are guarded on their tags.** With DCB enabled, every append of tagged events — an
-`#[EventSourcingAggregate]` save included, whether or not a decision model is injected — captures each tag's
-version with a consistent `SELECT` inside the transaction and bumps it with the guarded `UPDATE ... WHERE version =
-:captured`. On `REPEATABLE READ` (InnoDB) the captured version is the one the transaction's snapshot saw when the
+**What an append does to each counter.** An append changes a tag's counter only when other readers' boundaries
+could see the difference — when one of its events carries that tag — and checks everything else it was given:
+
+- a tag in the append condition that an appended event carries is **bumped guarded**: `UPDATE ... SET version =
+  version + 1 WHERE version = :captured`, failing the append if the tag moved since it was read;
+- an entry of the append condition that no appended event carries — an aggregate fetched read-only with `#[Fetch]`,
+  a decision model's or boundary's tag the decision's events do not carry — is **checked, never bumped**: the append
+  fails if it moved. The check is a guarded no-op write, `UPDATE ... SET version = version WHERE version =
+  :captured`, and zero rows affected fails the append. MySQL and MariaDB count changed rows rather than matched ones
+  unless the client sets `MYSQL_ATTR_FOUND_ROWS`, which belongs to your connection, so there the check is a guarded
+  `version + 1` followed by a guarded `version - 1` in the same transaction: the committed version never moves, and
+  no other connection sees the intermediate value. No pessimistic lock statement is used. A save of a fetched aggregate that committed first fails the decision; one that
+  holds the row makes the decision wait and then fail; one that arrives later waits for the decision to commit and
+  then succeeds. Two decisions checking the same counter wait for each other's commit and both succeed;
+- a tag an appended event carries that is **not** in the append condition is **incremented** unconditionally
+  (`version = version + 1`, no captured version): two appends with disjoint boundaries whose events share a tag
+  value both commit, and a decision scoped by that tag that read before them still conflicts.
+
+The counter of an aggregate an append saves, and of an instance a `#[DecisionModel(aggregate:)]` decides over, is
+bumped guarded like a captured tag. The third rule applies only to an append whose condition carries tag entries — a
+decision-model handler's append, or `appendTo()` with a condition from `loadByCriteria()`. **The exception: an append
+without a tag condition — an `#[EventSourcingAggregate]` save, or `appendTo()` with no condition — keeps guarding the
+tags its events carry,** as below.
+
+**Aggregate saves are guarded on their tags.** With DCB enabled, an append without a tag condition — an
+`#[EventSourcingAggregate]` save with no decision model injected, or `appendTo()` with no condition — captures each
+tag its events carry with a consistent `SELECT` inside the transaction and bumps it with the guarded `UPDATE ... WHERE
+version = :captured`. On `REPEATABLE READ` (InnoDB) the captured version is the one the transaction's snapshot saw when the
 aggregate was loaded, so a competing commit made after the load fails the save with
 `DecisionModelConcurrencyException` (a retry then sees it); on `READ COMMITTED` (the PostgreSQL default) the capture
 is current. An explicit `AppendCondition`/decision-model version always wins over the captured one for the same tag.
-The counters are never bumped blindly any more, except by `backfill-tags`.
+Outside the third rule above, a counter is never bumped blindly, except by `backfill-tags`.
 
 **Aggregates are inside the boundary.** With DCB enabled, every aggregate class — `#[EventSourcingAggregate]` and
 state-stored `#[Aggregate]` alike; `#[Saga]` and `#[EventSourcingSaga]` are process managers and are exempt — keeps
@@ -536,9 +560,17 @@ own stream or repository, snapshots included.
   `ConfigurationException`.
 - **`#[Fetch]` in a decision-model handler.** A handler that injects a decision model or declares a
   `#[DecisionBoundary]` captures the counter of every aggregate it fetches with `#[Fetch]`, before invocation and in
-  the same read as its models, and appends its events only if none of those aggregates was saved meanwhile. A
-  fetched aggregate that does not exist yet is captured at version 0, so deciding on its absence is safe; a
-  `#[Fetch]` expression that resolves to no identifier contributes nothing. A `#[Fetch]` handler that is not a
+  the same read as its models, and appends its events only if none of those aggregates was saved meanwhile. The
+  append **checks** a fetched aggregate's counter and never bumps it ("What an append does to each counter" above).
+  So decisions that only fetch the same aggregate (twelve `HoldSeat` decisions on
+  different seats of one `Concert`) never fail each other — each waits for the one before it to commit, then
+  commits — while a save of the fetched
+  aggregate still conflicts: before the decision's append it fails the decision ("Concert c-1 changed since it was
+  loaded ... another transaction saved it"), after it the save waits for the decision to commit. Early 2.0 builds
+  bumped every fetched counter, so such decisions serialized on the aggregate and failed with a conflict blaming a
+  save that never happened. A fetched aggregate that does not exist yet is captured at version 0, so deciding on its
+  absence is safe and a concurrent creation conflicts; a `#[Fetch]` expression that resolves to no identifier
+  contributes nothing. A `#[Fetch]` handler that is not a
   decision-model handler behaves exactly as before. A boundary made only of an aggregate is written with
   `EventCriteria::aggregate(Wallet::class, $command->walletId)` — a leaf that captures the counter and matches no
   events. Fetching a saga into a decision-model handler is a bootstrap `ConfigurationException`.
@@ -546,7 +578,9 @@ own stream or repository, snapshots included.
   scopes the model by one instance of `Wallet`: its events, of the types the model handles, are read from `Wallet`'s
   own stream by the stream's own `(aggregate_type, aggregate_id, no)` index, in `aggregate_version` order, with the
   event-name filter pushed into SQL. The boundary is the aggregate's counter tag, which already exists and is already
-  bumped by every save, captured in the same read as the handler's other models and guarded on the append. The
+  bumped by every save, captured in the same read as the handler's other models and guarded on the append — and,
+  unlike a `#[Fetch]`ed aggregate's counter, bumped by the decision's append too, so two decisions over one instance
+  conflict just as two saves of it do. The
   aggregate's events need **no `#[EventTag]`**, and nothing is indexed, backfilled, migrated or configured:
 
   ```php
@@ -587,16 +621,20 @@ own stream or repository, snapshots included.
   `#[Fetch]` that has recorded events when the handler returns throws ("fetched aggregates are read-only") and nothing
   is appended — those events were silently dropped before. Send a command to the aggregate instead. Outside
   decision-model handlers `#[Fetch]` is unchanged.
-- **Conflicts name the aggregate**: "Wallet w-1 changed since it was loaded", still a
-  `DecisionModelConcurrencyException`.
+- **Conflicts name the aggregate and what moved it**: "Wallet w-1 changed since it was loaded (...): another
+  transaction saved it or appended a #[DecisionModel(aggregate:)] decision over it, ...", still a
+  `DecisionModelConcurrencyException`. A tag conflict says "another transaction appended an event carrying it".
 - **A tag conflict names what was being decided.** The batch loader knows which decision model, or which
   `#[DecisionBoundary]` method, each captured tag belongs to, so the message says so:
-  `Concurrent append conflict on tag username:ada (expected version 0, current version 1) while deciding
-  App\Registration\UsernameAvailability. The tag moved after it was read: ...`. Several models sharing the
+  `Concurrent append conflict on tag username:ada (expected version 0, moved since it was read) while deciding
+  App\Registration\UsernameAvailability. The tag moved after it was read: ... Otherwise retry the command: ...`. Several models sharing the
   conflicting tag are listed comma-separated; a handler with only a boundary is named as
   `while deciding App\Registration\Usernames::boundary`. An aggregate counter conflict keeps its own wording
-  ("Wallet w-1 changed since it was loaded") and names no model. The exception also exposes the conflict as data —
-  `conflictingTagName()`, `conflictingTagValue()`, `expectedVersion()`, `currentVersion()`, `decidedBy()` — so you
+  ("Wallet w-1 changed since it was loaded at change 3") and names no model. Neither names the version it moved to: a
+  guarded write that misses does not report the row it found, and on InnoDB `REPEATABLE READ` a plain read returns
+  the transaction's snapshot, so the number would be wrong on MySQL/MariaDB — every engine and the in-memory store
+  print the same message. The exception also exposes the conflict as data —
+  `conflictingTagName()`, `conflictingTagValue()`, `expectedVersion()`, `decidedBy()` — so you
   can turn it into a business answer without parsing the message.
 - **A `#[Fetch]` expression that fails names where it is written.** A syntax error, an unknown `reference()`, a
   mapper that throws, or a result that does not fit the model throws `ExpressionEvaluationException` naming the
@@ -642,7 +680,7 @@ interface MyCommandBus extends CommandBus {}
 ```
 
 Without retry configured, a conflict surfaces to the caller as a technical exception naming the tag (or the aggregate)
-and the captured vs. current version — not a business answer. Asynchronous endpoints already retry 3 times by default. Retry never
+and the version it was read at — not a business answer. Asynchronous endpoints already retry 3 times by default. Retry never
 fires inside an already-open database transaction; that transaction is already unsafe to continue. A conflict is not
 always another writer: a handler that sends a command from inside itself, whose handler appends to the same tag in
 the same transaction, moves the tag under its own feet and fails on every retry — decide both in one handler.
@@ -867,7 +905,9 @@ no transaction.
 - Without any class, the same machinery is a gateway on the store itself:
   `$eventStore->loadByCriteria(EventCriteria::tag('course', $courseId)->ofTypes(...))` returns the matching events
   and a ready-made `AppendCondition` for `$eventStore->appendTo($stream, $events, $condition)`. Appending no events
-  is a no-op on every store: the condition is not checked, even when stale. Several criteria
+  is a no-op on every store: the condition is not checked, even when stale. A tag of the condition that no appended
+  event carries is checked, not bumped, and a carried tag outside the condition is incremented — see "What an append
+  does to each counter" above. Several criteria
   combine with `->or(...)`; narrow each one with `andTag()`/`ofTypes()` before combining — calling either on an
   `or()` combination throws `InvalidArgumentException`.
 - **Fully shipped, including the DBAL-backed store.** `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,
@@ -882,7 +922,7 @@ no transaction.
 
 **Observability.** Every conflict is reported as one `notice`-level log line through the PSR logger you registered,
 with the message `Dynamic Consistency Boundary conflict` and the context keys `ecotone.dcb.conflict.tag`,
-`ecotone.dcb.conflict.expected_version`, `ecotone.dcb.conflict.current_version` and `ecotone.dcb.conflict.model`, so
+`ecotone.dcb.conflict.expected_version` and `ecotone.dcb.conflict.model`, so
 conflicts can be counted without any tracing set-up.
 
 With `ecotone/open-telemetry` installed and the tracing package enabled, each boundary handler also produces two spans:
@@ -893,7 +933,7 @@ With `ecotone/open-telemetry` installed and the tracing package enabled, each bo
 | `Conditional Append: <stream>` | around an append carrying a tag condition — a decision-model handler's result and an event-sourced aggregate save alike | `ecotone.dcb.tags`, `ecotone.dcb.events_appended` |
 
 A conflict records the exception on the append span, sets its status to error, and adds a span event named
-`dcb.conflict` whose attributes are the four `ecotone.dcb.conflict.*` fields above. List-valued attributes are
+`dcb.conflict` whose attributes are the three `ecotone.dcb.conflict.*` fields above. List-valued attributes are
 comma-separated strings.
 
 Nothing is registered when the OpenTelemetry module is absent, and the DCB code itself has no dependency on it: the

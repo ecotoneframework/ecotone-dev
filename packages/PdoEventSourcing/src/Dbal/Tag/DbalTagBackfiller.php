@@ -94,7 +94,7 @@ final class DbalTagBackfiller
         }
 
         $pendingTags = $this->pendingTags($connection, $tableName, $batch);
-        $this->versions->bumpForBackfill($connection, $pendingTags);
+        $this->versions->increment($connection, $pendingTags);
         $report->recordBumped(count($pendingTags));
 
         $versionsAfterBump = $this->versions->currentVersions($connection, $pendingTags);

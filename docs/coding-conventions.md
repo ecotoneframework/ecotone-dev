@@ -15,7 +15,7 @@ branch `dgafka/dcb-docs` and is deliberately untracked here, since `docs/superpo
 paths resolve on that branch. Commit SHAs cited below resolve on any branch.
 
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
-mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 1d, 6a, 10a, 16a, 16b,
+mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 1d, 6a, 10a, 10b, 16a, 16b,
 12a, 13a, 14a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.
 
 > **Verify names before you write them.** Every attribute, parameter, method and console option in code you write
@@ -729,6 +729,77 @@ Before the commit that adds a method to an interface, an attribute to a handler,
 enumerate the entry points it must work through, and write one test per entry point. The live path and the
 reconstruction path of one concept count as two of them — and they should share one method rather than be
 maintained as two.
+
+### 10b. Tests run messages through Ecotone's own testing support
+
+Ecotone's tests dogfood Ecotone. A test sends, runs and consumes messages with the testing support and the
+user-land features an application has, and never around them. That is what proves those features are enough to
+test an Ecotone application: a test that forks its own consumer proves only that PHP can fork, and the next
+application with the same scenario has no way to test it. When the support cannot express a scenario, the gap is a
+framework feature to add, not a workaround to write in the test.
+
+Allowed — the whole toolbox:
+
+- `EcotoneLite::bootstrapFlowTesting()`, or the framework kernel's own bootstrap for a Symfony or Laravel app
+- `run('channel', ExecutionPollingMetadata::...)` as the only consumer, and console commands (`ecotone:run`)
+  executed through the framework
+- `FlowTestSupport`: `sendCommand()`, `sendCommandWithRouting()`, `publishEvent()`, `sendQueryWithRouting()`,
+  `getRecordedEvents()`, gateways from `getGateway()`
+- time through `TestConfiguration::createWithDefaults()->withTimeAt()`, `advanceTimeBy()` and `$ecotone->now()`;
+  a wait the application performs on Ecotone's clock runs on the pinned clock, and
+  `Ecotone\Test\StaticPsrClock::whenWaiting()` runs a step — another application's `run()` — at each wait
+- in-memory channels, DBAL or broker channels configured through extension objects, and `#[Environment]`-scoped
+  channel configuration
+- the `Ecotone\Test\*` helpers
+- a flow across services (Pulse, the Distributed Bus): every application booted with `EcotoneLite` in the one test
+  process, over shared in-memory or real channels, each driven with `run()` at the moment the test chooses
+
+Refused:
+
+- `pcntl_fork()`, and `proc_open()` or Symfony `Process` to run a consumer or a responder
+- a socket, a pipe or a file as a readiness signal or a reply channel
+- a hand-written polling loop over `microtime()`, `time()`, `sleep()` or `usleep()`, and a `usleep()` to make
+  two messages' timestamps differ
+- a broker or database client that reads a queue directly
+- any consumer that is not `run()`
+
+```php
+// wrong — a forked process consumes in its own loop, and the test measures the wall clock
+if (pcntl_fork() === 0) {
+    $deadline = microtime(true) + 40;
+    while (microtime(true) < $deadline) {
+        $billing->run('billing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        usleep(100_000);
+    }
+}
+$startedAt = microtime(true);
+$crawler = $client->request('GET', '/services');
+self::assertGreaterThanOrEqual(6.0, microtime(true) - $startedAt);
+
+// right — the pinned clock runs billing once the test says it answers, and the wait is read off that clock
+$clock->whenWaiting(function (DateTimeImmutable $now) use ($billing, $startedAt): void {
+    if ($now >= $startedAt->modify('+6 seconds')) {
+        $billing->run('billing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+    }
+});
+$crawler = $client->request('GET', '/services');
+self::assertEquals($startedAt->modify('+6 seconds'), $clock->now());
+```
+
+**The escape is a framework increment.** When the testing support cannot express what a test needs, stop and add
+the support to `Ecotone\Test`, `FlowTestSupport` or `TestConfiguration` in its own commit, with a test of the
+support itself, and then write the test on it. **The one accepted exception is real concurrency**: two processes
+racing a database constraint or a database lock cannot be put in one process. Such a test says so in its name,
+and still drives each process through `EcotoneLite` or the kernel and a single `run()` each — no handshake, no
+loop of its own.
+
+Evidence: `apps/Pulse/tests/Support/ConcurrentRespondersTrait.php` forked its responders, waited for them over a
+`stream_socket_pair()` handshake and consumed in a `microtime()` loop with `usleep(100_000)`, and
+`apps/Pulse/tests/Awaited/AwaitedRequestsTest.php` asserted wall-clock bounds on top of it — the tests went flaky
+and #735 was spent on start-up timing instead of behaviour. `apps/Pulse/tests/Traces/TraceListPageTest.php` slept
+`usleep(2000)` between two commands so their traces sorted apart, `apps/Pulse/tests/Accessibility/states-service.php`
+consumed in a `time()` loop, and `apps/Pulse/tests/Storage/ConcurrentWritersTest.php` is the concurrency exception:
+three processes racing SQLite's write lock.
 
 ---
 

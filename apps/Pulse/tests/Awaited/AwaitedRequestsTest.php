@@ -8,6 +8,7 @@ use App\Tests\Support\ConcurrentRespondersTrait;
 use App\Tests\Support\DeadLetterServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use App\Tests\Support\TracedServicesTrait;
+use DateTimeImmutable;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanContext;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -42,13 +43,11 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders');
         $this->awaitRepliesFor(2);
         $client = $this->pulseClient();
+        $clock = $this->pinnedWaitClock();
 
-        $startedAt = microtime(true);
         $crawler = $client->request('GET', '/services');
-        $waited = microtime(true) - $startedAt;
 
-        self::assertGreaterThanOrEqual(2.0, $waited);
-        self::assertLessThan(8.0, $waited);
+        self::assertEquals(new DateTimeImmutable('2026-10-20 12:00:02'), $clock->now());
         self::assertSame('waiting', $this->statusOf($crawler, 'orders'));
         self::assertCount(1, $crawler->filter('meta[http-equiv="refresh"]'));
     }
@@ -58,11 +57,11 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders', 'billing', 'shipping');
         $this->awaitRepliesFor(2);
         $client = $this->pulseClient();
+        $clock = $this->pinnedWaitClock();
 
-        $startedAt = microtime(true);
         $client->request('GET', '/services');
 
-        self::assertLessThan(5.0, microtime(true) - $startedAt);
+        self::assertEquals(new DateTimeImmutable('2026-10-20 12:00:02'), $clock->now());
     }
 
     public function test_a_refresh_is_answered_by_a_service_that_tracks_its_own_flows(): void

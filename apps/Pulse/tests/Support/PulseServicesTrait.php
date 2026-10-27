@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Support;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
@@ -16,6 +17,8 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticPsrClock;
+use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\HttpKernel\KernelInterface;
@@ -49,6 +52,14 @@ trait PulseServicesTrait
     private function advanceTimeBy(int $seconds): void
     {
         self::getContainer()->get('pulse.clock')->sleep($seconds);
+    }
+
+    private function pinnedWaitClock(): StaticPsrClock
+    {
+        $clock = self::getContainer()->get(ClockInterface::class);
+        $clock->setCurrentTime(new DateTimeImmutable('2026-10-20 12:00:00'));
+
+        return $clock;
     }
 
     private function realService(string $service): FlowTestSupport

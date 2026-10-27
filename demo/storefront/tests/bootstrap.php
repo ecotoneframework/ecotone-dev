@@ -14,7 +14,7 @@ if (($_SERVER['ECOTONE_LICENCE_KEY'] ?? getenv('ECOTONE_LICENCE_KEY')) == false)
     putenv('ECOTONE_LICENCE_KEY=' . LicenceTesting::VALID_LICENCE);
 }
 
-$testProcessApplicationName = 'storefront_tests_' . getmypid();
+$testProcessApplicationName = sprintf('storefront_tests_%s_%d_%s', gethostname(), getmypid(), bin2hex(random_bytes(4)));
 $_SERVER['DB_APPLICATION_NAME'] = $_ENV['DB_APPLICATION_NAME'] = $testProcessApplicationName;
 putenv('DB_APPLICATION_NAME=' . $testProcessApplicationName);
 

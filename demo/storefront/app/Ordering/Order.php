@@ -12,6 +12,7 @@ use DomainException;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\IdentifierMethod;
+use Ecotone\Api\Attribute\Version;
 use Ecotone\Api\Modelling\WithEvents;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
@@ -27,6 +28,7 @@ use Symfony\Component\Uid\Uuid;
  * @property list<array{ticketNumber: string, seatId: string, tier: string, entryCode: string}> $tickets
  * @property string|null $payment_reference
  * @property string|null $failure_reason
+ * @property int $version
  */
 #[Aggregate]
 final class Order extends Model
@@ -44,6 +46,9 @@ final class Order extends Model
         'last_refusal' => 'array',
         'tickets' => 'array',
     ];
+
+    #[Version]
+    private int $version;
 
     #[CommandHandler]
     public static function start(StartOrder $command): self
@@ -77,6 +82,16 @@ final class Order extends Model
     public function orderId(): string
     {
         return $this->id;
+    }
+
+    public function getVersion(): int
+    {
+        return (int) $this->getAttribute('version');
+    }
+
+    public function setVersion(int $version): void
+    {
+        $this->setAttribute('version', $version);
     }
 
     #[CommandHandler]
@@ -174,7 +189,7 @@ final class Order extends Model
     public function markTicketsIssued(MarkTicketsIssued $command): void
     {
         if ($this->status === OrderStatus::TICKETS_ISSUED) {
-            if ($command->tickets === $this->tickets) {
+            if (self::sameTickets($command->tickets, $this->tickets)) {
                 return;
             }
 
@@ -191,7 +206,7 @@ final class Order extends Model
                 'Order %s failed (%s) and %s, so tickets %s that ticketing issued for it are not recorded. Void tickets %s in ticketing, then delete this message from the dead letters in Ecotone Pulse or with php artisan ecotone:deadletter:delete <messageId>.',
                 $this->id,
                 $this->failure_reason,
-                $this->payment_reference === null ? 'it was never paid' : 'its payment is refunded',
+                $this->payment_reference === null ? 'it was never paid' : 'a refund of its payment is queued',
                 self::ticketNumbersOf($command->tickets),
                 self::ticketNumbersOf($command->tickets),
             ));
@@ -223,6 +238,23 @@ final class Order extends Model
     public function heldSeatIds(): array
     {
         return array_column($this->held_seats, 'seatId');
+    }
+
+    private static function sameTickets(array $tickets, array $otherTickets): bool
+    {
+        return self::comparable($tickets) === self::comparable($otherTickets);
+    }
+
+    private static function comparable(array $tickets): array
+    {
+        $comparable = array_map(function (array $ticket) {
+            ksort($ticket);
+
+            return $ticket;
+        }, $tickets);
+        usort($comparable, fn (array $ticket, array $otherTicket) => $ticket['ticketNumber'] <=> $otherTicket['ticketNumber']);
+
+        return $comparable;
     }
 
     private static function ticketNumbersOf(array $tickets): string

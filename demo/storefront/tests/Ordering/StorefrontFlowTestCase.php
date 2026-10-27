@@ -10,6 +10,7 @@ use App\Customer\RegisterCustomer;
 use App\Infrastructure\EcotoneConfiguration;
 use App\Ordering\Order;
 use App\Ordering\OrderQueries;
+use App\Ordering\OrderRepository;
 use App\Ordering\StartOrder;
 use App\Ordering\TicketingRequests;
 use App\Payment\PaymentAttempts;
@@ -29,7 +30,6 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\StateStoredRepository;
 use Ecotone\Test\LicenceTesting;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -38,7 +38,7 @@ abstract class StorefrontFlowTestCase extends TestCase
     protected const CONCERT_ID = '0199f3a8-6f2a-7c1e-9a51-3d2f6c1b8e40';
     protected const EXPIRES_AT = '2026-10-25T12:02:00+00:00';
 
-    private const STOREFRONT_SERVICES = [EcotoneConfiguration::class, Order::class, Customer::class, OrderQueries::class, CustomerDirectory::class, TicketingRequests::class];
+    private const STOREFRONT_SERVICES = [EcotoneConfiguration::class, Order::class, OrderRepository::class, Customer::class, OrderQueries::class, CustomerDirectory::class, TicketingRequests::class];
 
     private array $channels;
 
@@ -113,7 +113,7 @@ abstract class StorefrontFlowTestCase extends TestCase
         $repository = new #[Repository] class () implements StateStoredRepository {
             public function canHandle(string $aggregateClassName): bool
             {
-                return is_subclass_of($aggregateClassName, Model::class);
+                return $aggregateClassName === Customer::class;
             }
 
             public function findBy(string $aggregateClassName, array $identifiers): ?object

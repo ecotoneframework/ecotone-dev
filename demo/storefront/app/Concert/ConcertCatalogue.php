@@ -18,24 +18,31 @@ interface ConcertCatalogue
         SQL)]
     public function schedule(string $concertId, string $artist, string $venueName, string $startsAt, string $currency, int $standardPriceCents, int $vipPriceCents, string $seats): void;
 
-    #[DbalWrite("UPDATE concerts SET status = CASE WHEN status = 'scheduled' THEN 'on_sale' ELSE status END WHERE concert_id = :concertId")]
-    public function openSales(string $concertId): int;
+    #[DbalWrite(<<<'SQL'
+        INSERT INTO concerts (concert_id, status) VALUES (:concertId, :status)
+        ON CONFLICT (concert_id) DO UPDATE SET status = CASE
+            WHEN array_position(ARRAY['scheduled', 'on_sale', 'sold_out', 'cancelled']::varchar[], EXCLUDED.status) > array_position(ARRAY['scheduled', 'on_sale', 'sold_out', 'cancelled']::varchar[], concerts.status)
+            THEN EXCLUDED.status ELSE concerts.status END
+        SQL)]
+    public function advanceStatusTo(string $concertId, string $status): void;
 
-    #[DbalWrite("UPDATE concerts SET status = 'cancelled' WHERE concert_id = :concertId")]
-    public function cancel(string $concertId): int;
-
-    #[DbalWrite('UPDATE concerts SET standard_price_cents = :standardPriceCents, vip_price_cents = :vipPriceCents WHERE concert_id = :concertId')]
-    public function changePrices(string $concertId, int $standardPriceCents, int $vipPriceCents): int;
-
-    #[DbalWrite("UPDATE concerts SET status = CASE WHEN status = 'cancelled' THEN status ELSE 'sold_out' END WHERE concert_id = :concertId")]
-    public function markSoldOut(string $concertId): int;
+    #[DbalWrite(<<<'SQL'
+        INSERT INTO concerts (concert_id, status, changed_standard_price_cents, changed_vip_price_cents) VALUES (:concertId, 'scheduled', :standardPriceCents, :vipPriceCents)
+        ON CONFLICT (concert_id) DO UPDATE SET changed_standard_price_cents = EXCLUDED.changed_standard_price_cents, changed_vip_price_cents = EXCLUDED.changed_vip_price_cents
+        SQL)]
+    public function changePrices(string $concertId, int $standardPriceCents, int $vipPriceCents): void;
 
     #[DbalQuery(<<<'SQL'
-        SELECT concert_id, artist, venue_name, starts_at, currency, standard_price_cents, vip_price_cents, status
-        FROM concerts ORDER BY status = 'on_sale' DESC, starts_at, artist
+        SELECT concert_id, artist, venue_name, starts_at, currency, COALESCE(changed_standard_price_cents, standard_price_cents) AS standard_price_cents,
+            COALESCE(changed_vip_price_cents, vip_price_cents) AS vip_price_cents, status
+        FROM concerts WHERE seats IS NOT NULL ORDER BY status = 'on_sale' DESC, starts_at, artist
         SQL)]
     public function all(): array;
 
-    #[DbalQuery('SELECT concert_id, artist, venue_name, starts_at, currency, standard_price_cents, vip_price_cents, status, seats FROM concerts WHERE concert_id = :concertId', fetchMode: FetchMode::FIRST_ROW)]
+    #[DbalQuery(<<<'SQL'
+        SELECT concert_id, artist, venue_name, starts_at, currency, COALESCE(changed_standard_price_cents, standard_price_cents) AS standard_price_cents,
+            COALESCE(changed_vip_price_cents, vip_price_cents) AS vip_price_cents, status, seats
+        FROM concerts WHERE concert_id = :concertId AND seats IS NOT NULL
+        SQL, fetchMode: FetchMode::FIRST_ROW)]
     public function find(string $concertId): array|false;
 }

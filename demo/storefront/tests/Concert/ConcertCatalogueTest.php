@@ -148,27 +148,7 @@ final class ConcertCatalogueTest extends TestCase
         self::assertCount(1, $storefront->sendQueryWithRouting('concerts.list'));
     }
 
-    public function test_opening_sales_for_a_concert_never_scheduled_is_refused(): void
-    {
-        $storefront = $this->storefront();
-        $this->publish($this->ticketing(), 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
-
-        $this->expectExceptionMessage(sprintf('Concert %s is not in the storefront catalogue, so concert.sales_opened cannot put it on sale. A concert enters the catalogue with concert.scheduled, which has to arrive first: publish concert.scheduled for this concert again from ticketing, then replay this concert.sales_opened message from the dbal_dead_letter with php artisan ecotone:deadletter:replay <messageId> (ecotone:deadletter:list shows the id), or replay every dead letter with php artisan ecotone:deadletter:replayAll.', self::NIGHT_CONCERT));
-
-        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
-    }
-
-    public function test_cancelling_a_concert_never_scheduled_is_refused(): void
-    {
-        $storefront = $this->storefront();
-        $this->publish($this->ticketing(), 'concert.cancelled', ['concertId' => self::NIGHT_CONCERT]);
-
-        $this->expectExceptionMessage(sprintf('Concert %s is not in the storefront catalogue, so concert.cancelled cannot cancel it. A concert enters the catalogue with concert.scheduled, which has to arrive first: publish concert.scheduled for this concert again from ticketing, then replay this concert.cancelled message from the dbal_dead_letter with php artisan ecotone:deadletter:replay <messageId> (ecotone:deadletter:list shows the id), or replay every dead letter with php artisan ecotone:deadletter:replayAll.', self::NIGHT_CONCERT));
-
-        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
-    }
-
-    public function test_sales_opened_before_the_concert_is_scheduled_goes_on_sale_once_replayed_after_the_schedule(): void
+    public function test_sales_opened_before_the_concert_is_scheduled_put_it_on_sale_once_the_schedule_arrives_without_a_dead_letter(): void
     {
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
@@ -176,14 +156,77 @@ final class ConcertCatalogueTest extends TestCase
         $deadLetter->deleteAll();
 
         $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
-        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
         $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
-        $deadLetter->replayAll();
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $concert = $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT);
+        self::assertSame(['The Night Owls', 'on_sale'], [$concert['artist'], $concert['status']]);
+        self::assertCount(2, $concert['sections']);
+        self::assertSame(0, $deadLetter->count());
+    }
+
+    public function test_a_concert_whose_sales_opened_before_its_schedule_arrived_is_not_listed_until_it_does(): void
+    {
+        $storefront = $this->storefront();
+
+        $this->publish($this->ticketing(), 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
         $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertSame('on_sale', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
-        self::assertSame(0, $deadLetter->count());
+        self::assertSame([], $storefront->sendQueryWithRouting('concerts.list'));
+        self::assertNull($storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT));
+    }
+
+    public function test_a_cancellation_before_the_concert_is_scheduled_keeps_it_cancelled_once_the_schedule_arrives(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+
+        $this->publish($ticketing, 'concert.cancelled', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame('cancelled', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
+    }
+
+    public function test_a_sell_out_before_the_concert_is_scheduled_keeps_it_sold_out_once_the_schedule_and_the_opened_sales_arrive(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+
+        $this->publish($ticketing, 'concert.sold_out', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame('sold_out', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
+    }
+
+    public function test_prices_changed_before_the_concert_is_scheduled_win_over_the_prices_of_the_schedule(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+
+        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $concert = $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT);
+        self::assertSame([5500, 14000], [$concert['standardPriceCents'], $concert['vipPriceCents']]);
+    }
+
+    public function test_a_schedule_redelivered_after_changed_prices_keeps_the_changed_prices(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $concert = $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT);
+        self::assertSame([5500, 14000], [$concert['standardPriceCents'], $concert['vipPriceCents']]);
     }
 
     public function test_sales_opened_again_after_cancellation_keeps_the_concert_cancelled(): void
@@ -276,16 +319,6 @@ final class ConcertCatalogueTest extends TestCase
         self::assertSame([5500, 14000], [$concert['standardPriceCents'], $concert['vipPriceCents']]);
     }
 
-    public function test_changing_prices_of_a_concert_never_scheduled_is_refused(): void
-    {
-        $storefront = $this->storefront();
-        $this->publish($this->ticketing(), 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
-
-        $this->expectExceptionMessage(sprintf('Concert %s is not in the storefront catalogue, so concert.prices_changed cannot change its prices. A concert enters the catalogue with concert.scheduled', self::NIGHT_CONCERT));
-
-        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
-    }
-
     public function test_a_sold_out_concert_is_marked_sold_out(): void
     {
         $storefront = $this->storefront();
@@ -325,16 +358,6 @@ final class ConcertCatalogueTest extends TestCase
         $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame('cancelled', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
-    }
-
-    public function test_selling_out_a_concert_never_scheduled_is_refused(): void
-    {
-        $storefront = $this->storefront();
-        $this->publish($this->ticketing(), 'concert.sold_out', ['concertId' => self::NIGHT_CONCERT]);
-
-        $this->expectExceptionMessage(sprintf('Concert %s is not in the storefront catalogue, so concert.sold_out cannot mark it sold out. A concert enters the catalogue with concert.scheduled', self::NIGHT_CONCERT));
-
-        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
     }
 
     #[DataProvider('seatCodesThatAreNotRowAndNumber')]

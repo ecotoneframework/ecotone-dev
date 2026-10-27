@@ -94,6 +94,28 @@ final class StorefrontPagesTest extends TestCase
         $response->assertSee('<span class="seat seat--standard" title="' . self::CONCERT_ID . '/B-1">B-1</span>', escape: false);
     }
 
+    public function test_a_concert_whose_sales_opened_before_its_schedule_arrived_shows_on_sale_with_its_name_and_seats(): void
+    {
+        $this->openSales();
+        $this->schedule();
+
+        $response = $this->get('/concerts/' . self::CONCERT_ID);
+
+        $response->assertOk();
+        $response->assertSeeInOrder(['The Night Owls', '<span class="status">on_sale</span>', 'Row A', 'A-1', 'Row B', 'B-1', 'B-2'], escape: false);
+    }
+
+    public function test_a_concert_whose_sales_opened_after_its_schedule_shows_on_sale_with_its_name_and_seats(): void
+    {
+        $this->schedule();
+        $this->openSales();
+
+        $response = $this->get('/concerts/' . self::CONCERT_ID);
+
+        $response->assertOk();
+        $response->assertSeeInOrder(['The Night Owls', '<span class="status">on_sale</span>', 'Row A', 'A-1', 'Row B', 'B-1', 'B-2'], escape: false);
+    }
+
     public function test_an_unknown_concert_is_not_found(): void
     {
         $this->get('/concerts/' . self::CONCERT_ID)->assertNotFound();
@@ -164,6 +186,11 @@ final class StorefrontPagesTest extends TestCase
                 ['seatId' => self::CONCERT_ID . '/B-1', 'seatCode' => 'B-1', 'tier' => 'standard'],
             ],
         ], metadata: ['concertId' => self::CONCERT_ID]);
+    }
+
+    private function openSales(): void
+    {
+        $this->app->make(EventBus::class)->publishWithRouting('concert.sales_opened', ['concertId' => self::CONCERT_ID], metadata: ['concertId' => self::CONCERT_ID]);
     }
 
     private function commandBus(): CommandBus

@@ -20,7 +20,7 @@ final class TicketingReplies
             'held' => new MarkSeatHeld(orderId: $result['orderId'], seatId: $result['seatId'], expiresAt: (string) $result['expiresAt']),
             'refused' => new RecordSeatRefusal(orderId: $result['orderId'], seatId: $result['seatId'], reason: (string) $result['reason']),
             default => throw new DomainException(sprintf(
-                'tickets.hold.result for seat %s of order %s has outcome "%s", but the contract has only "held" and "refused", so the storefront cannot tell whether the seat is the customer\'s. Correct the reply in ticketing and replay this message from the dead letters in Ecotone Pulse.',
+                'tickets.hold.result for seat %s of order %s has outcome "%s", but the contract has only "held" and "refused", so the storefront cannot tell whether the seat is the customer\'s. Correct the reply in ticketing and replay this message from the dead letters in Ecotone Pulse or with php artisan ecotone:deadletter:replay <messageId>.',
                 $result['seatId'],
                 $result['orderId'],
                 $result['outcome'],
@@ -33,9 +33,9 @@ final class TicketingReplies
     {
         match ($result['outcome']) {
             'sold' => null,
-            'refused' => $commandBus->send(new FailOrder(orderId: $result['orderId'], reason: sprintf('Ticketing refused to confirm the seats: %s. The payment is refunded.', $result['reason']))),
+            'refused' => $commandBus->send(new FailOrder(orderId: $result['orderId'], reason: sprintf('Ticketing refused to confirm the seats: %s. A refund of the payment is queued.', rtrim((string) $result['reason'], '.')))),
             default => throw new DomainException(sprintf(
-                'tickets.confirm.result for order %s has outcome "%s", but the contract has only "sold" and "refused", so the storefront cannot tell whether the seats are sold. Correct the reply in ticketing and replay this message from the dead letters in Ecotone Pulse.',
+                'tickets.confirm.result for order %s has outcome "%s", but the contract has only "sold" and "refused", so the storefront cannot tell whether the seats are sold. Correct the reply in ticketing and replay this message from the dead letters in Ecotone Pulse or with php artisan ecotone:deadletter:replay <messageId>.',
                 $result['orderId'],
                 $result['outcome'],
             )),

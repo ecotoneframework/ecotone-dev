@@ -12,6 +12,9 @@
 #   DEMO_PULSE_PORT                host port of Ecotone Pulse, default 8080
 #   DEMO_JAEGER_PORT               host port of the Jaeger UI, default 16686
 #   DEMO_RABBITMQ_MANAGEMENT_PORT  host port of the RabbitMQ management UI, default 15672
+#   TICKETING_HOLD_SECONDS         how long ticketing holds a seat before it expires, default 120
+#   TICKETING_RENDER_FAILS_FOR_SEAT  a seat code, like C-7, whose ticket render fails on ticketing-worker; empty by default
+#   RUSH_DEADLINE_SECONDS          how long a rush runs before its buyers still picking give up, default 600
 #
 # The repository root is mounted at /repo: the applications run from demo/ticketing, demo/storefront and apps/Pulse,
 # and resolve ecotone/* from packages/ through symlinked path repositories, so a package edit is live on the next request.
@@ -48,6 +51,7 @@ x-ticketing-environment: &ticketing-environment
   APP_ENV: dev
   APP_SECRET: ecotone-demo-ticketing
   DATABASE_URL: postgresql://ecotone:secret@postgres:5432/ticketing?serverVersion=16&charset=utf8
+  TICKETING_HOLD_SECONDS: ${TICKETING_HOLD_SECONDS:-120}
 
 x-storefront-environment: &storefront-environment
   <<: *environment
@@ -63,6 +67,7 @@ x-storefront-environment: &storefront-environment
   DB_USERNAME: ecotone
   DB_PASSWORD: secret
   QUEUE_CONNECTION: database
+  RUSH_DEADLINE_SECONDS: ${RUSH_DEADLINE_SECONDS:-600}
   SESSION_DRIVER: file
   CACHE_STORE: file
   LOG_CHANNEL: stderr
@@ -160,7 +165,9 @@ services:
     <<: *app
     working_dir: /repo/demo/ticketing
     command: ["worker", "ticketing", "ticketing_async"]
-    environment: *ticketing-environment
+    environment:
+      <<: *ticketing-environment
+      TICKETING_RENDER_FAILS_FOR_SEAT: ${TICKETING_RENDER_FAILS_FOR_SEAT:-}
     deploy:
       replicas: 2
     healthcheck: *worker-healthcheck

@@ -78,6 +78,10 @@ Every directory under `packages/` is a separate Composer package with its own `c
 - **A change to `packages/Ecotone` can affect every package**, so run the downstream suites too, and a
   cross-package change needs tests in both packages
 - Splits are managed by `symplify/monorepo-builder` (`monorepo-builder.php`)
+- `demo/` is the showcase, not a package: a Symfony ticketing service and a Laravel storefront running on the
+  `packages/` checkout over the Distributed Bus, with Pulse and Jaeger (`demo/README.md`). It is never split or
+  version-bumped, each app runs its own `composer tests:ci` (phpstan and phpunit) in its container, and php-cs-fixer
+  covers it
 - Template for a new package: `_PackageTemplate/`. Registering it also means adding its name to
   `ModulePackageList` (`Ecotone\Api\ExtensionObject\ModulePackageList`), to `ModuleClassList::packageNames()` and
   `ModuleClassList::forPackage()`, and its module class to the right `ModuleClassList` constant

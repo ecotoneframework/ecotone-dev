@@ -7,6 +7,7 @@ namespace App\Tests\Traces;
 use App\Tests\Support\ReleasingWebTestCase;
 use App\Tests\Support\TracedServicesTrait;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Scheduling\Duration;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -132,7 +133,7 @@ final class TraceListPageTest extends ReleasingWebTestCase
         $orders = $this->tracedOrders();
         for ($order = 1; $order <= $runs; $order++) {
             $orders->sendCommandWithRouting('order.place', ['orderId' => $order]);
-            usleep(2000);
+            $orders->advanceTimeBy(Duration::milliseconds(2));
         }
         $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
         $this->advanceTimeBy(0);

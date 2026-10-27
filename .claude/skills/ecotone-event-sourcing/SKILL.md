@@ -249,6 +249,17 @@ final class OrderService {
   the `EventStore` gateway/container reference, an OR of criteria is `EventCriteria::tag(...)->or(EventCriteria::tag(...))`.
   Page a tag with `->afterTagSequence($last)->limit($count)`: events appended together share one tag sequence, so a page
   never splits them and may hold more than `$count`; `limit()` is refused on an `or()` combination.
+- **What an append does to each counter:** a condition tag an appended event carries is bumped guarded (fails if it
+  moved); a condition entry no appended event carries -- an aggregate fetched read-only with `#[Fetch]`, a model tag
+  no returned event carries -- is only checked, never bumped, by a guarded no-op write (`SET version = version
+  WHERE version = :captured`; on MySQL/MariaDB a guarded +1 then -1 in the same transaction, since they count changed
+  rows); no pessimistic lock statement is used. A carried tag outside the condition is incremented unconditionally.
+  So decisions that merely fetch the same aggregate never fail each other (the second waits for the first to commit,
+  then succeeds), decisions whose disjoint boundaries append events sharing a tag both commit, while a save of the
+  fetched aggregate, or a decision scoped by the shared tag, still conflicts. A conflict names the version read and
+  that it moved, never the current version. The counter of a saved aggregate or a `#[DecisionModel(aggregate:)]` instance is bumped guarded.
+  Exception: an append without a tag condition (an `#[EventSourcingAggregate]` save with no model, `appendTo()` with
+  no condition) keeps guarding the tags its events carry.
 - **Nothing retries automatically.** Configure `InstantRetryConfiguration::createWithDefaults()
   ->withCommandBusRetry(true, 3, [DecisionModelConcurrencyException::class])` (or Enterprise `#[InstantRetry]`) --
   without it, a real conflict surfaces to the caller as a technical exception instead of the business answer the

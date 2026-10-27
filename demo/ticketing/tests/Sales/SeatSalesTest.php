@@ -493,7 +493,7 @@ final class SeatSalesTest extends KernelTestCase
         $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
     }
 
-    public function test_a_hold_whose_seat_changes_between_read_and_append_on_every_attempt_surfaces_the_conflict_naming_the_seat_tag_and_versions(): void
+    public function test_a_hold_whose_seat_changes_between_read_and_append_on_every_attempt_surfaces_the_conflict_naming_the_seat_tag_and_the_version_it_read(): void
     {
         $competitor = $this->competitor();
         $interferer = new class () {
@@ -527,7 +527,7 @@ final class SeatSalesTest extends KernelTestCase
             self::fail('The hold was expected to conflict on every attempt.');
         } catch (DecisionModelConcurrencyException $conflict) {
             self::assertStringContainsString("Concurrent append conflict on tag seat:{$concertId}/A-1 (expected version ", $conflict->getMessage());
-            self::assertStringContainsString(', current version ', $conflict->getMessage());
+            self::assertStringContainsString(', moved since it was read) while deciding App\\Sales\\SeatAvailability.', $conflict->getMessage());
             self::assertSame('seat', $conflict->conflictingTagName());
             self::assertSame($concertId . '/A-1', $conflict->conflictingTagValue());
         }

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Test;
 
+use Closure;
 use DateTimeImmutable;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\SleepInterface;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -17,6 +19,8 @@ final class StaticPsrClock implements ClockInterface, SleepInterface
     private bool $hasBeenChanged = false;
     private ?DateTimeImmutable $now = null;
     private ?DateTimeImmutable $pinnedTime = null;
+    private ?Closure $whenWaiting = null;
+    private bool $isRunningWaitStep = false;
 
     public function __construct(?string $now = null)
     {
@@ -47,6 +51,33 @@ final class StaticPsrClock implements ClockInterface, SleepInterface
         }
 
         $this->now = $this->now()->modify("+{$duration->inMicroseconds()} microseconds");
+        $this->runWaitStep();
+    }
+
+    /**
+     * @param Closure(DateTimeImmutable): void $step
+     */
+    public function whenWaiting(Closure $step): void
+    {
+        if ($this->now === null) {
+            throw InvalidArgumentException::create("StaticPsrClock::whenWaiting() runs its step each time a wait moves the pinned time forward, but this clock reads the system time and waits for real, so the step would never run. Pin the clock first: construct it with a time, as new StaticPsrClock('2026-03-01 12:00:00') or call setCurrentTime() on it.");
+        }
+
+        $this->whenWaiting = $step;
+    }
+
+    private function runWaitStep(): void
+    {
+        if ($this->whenWaiting === null || $this->isRunningWaitStep) {
+            return;
+        }
+
+        $this->isRunningWaitStep = true;
+        try {
+            ($this->whenWaiting)($this->now);
+        } finally {
+            $this->isRunningWaitStep = false;
+        }
     }
 
     public function hasBeenChanged(): bool

@@ -60,6 +60,18 @@ final class WaitingOnTestClockTest extends TestCase
         });
     }
 
+    public function test_a_second_step_on_the_same_clock_is_refused(): void
+    {
+        $ecotone = $this->bootstrap(TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-03-01 12:00:00')));
+        $ecotone->whenWaiting(static function (DateTimeImmutable $now): void {
+        });
+
+        $this->expectExceptionMessage('whenWaiting() already has a step on this clock, and a second one would replace it, so the responders of the first step would never run. Register one step that runs every responder, as whenWaiting(function (DateTimeImmutable $now) use ($orders, $billing): void { $orders->run(\'orders\'); $billing->run(\'billing\'); }), on FlowTestSupport::whenWaiting() and StaticPsrClock::whenWaiting() alike.');
+
+        $ecotone->whenWaiting(static function (DateTimeImmutable $now): void {
+        });
+    }
+
     private function bootstrap(TestConfiguration $testConfiguration): FlowTestSupport
     {
         $handler = new class () {

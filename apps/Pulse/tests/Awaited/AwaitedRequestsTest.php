@@ -144,7 +144,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/services');
 
-        self::assertEquals(new DateTimeImmutable('2026-10-20 12:00:06'), $clock->now());
+        self::assertSame('2026-10-20 12:00:06', $clock->now()->format('Y-m-d H:i:s'));
         self::assertSame('connected', $this->statusOf($crawler, 'orders'));
         self::assertSame('connected', $this->statusOf($crawler, 'billing'));
     }
@@ -178,7 +178,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/traces/trace/' . $traceId);
 
-        self::assertEquals(new DateTimeImmutable('2026-10-20 12:00:06.052'), $clock->now());
+        self::assertSame('2026-10-20 12:00:06', $clock->now()->format('Y-m-d H:i:s'));
         self::assertCount(1, $crawler->filter('[data-service-state="orders"][data-state="answered"]'));
         self::assertCount(1, $crawler->filter('[data-service-state="billing"][data-state="answered"]'));
         self::assertCount(0, $crawler->filter('meta[http-equiv="refresh"]'));

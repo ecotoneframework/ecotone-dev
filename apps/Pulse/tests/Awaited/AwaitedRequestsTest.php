@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Awaited;
 
-use App\Tests\Support\ConcurrentRespondersTrait;
 use App\Tests\Support\DeadLetterServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
+use App\Tests\Support\RespondingWhileWaitingTrait;
 use App\Tests\Support\TracedServicesTrait;
 use DateTimeImmutable;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -23,14 +23,14 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
     use DeadLetterServicesTrait {
         TracedServicesTrait::pulseWebClient insteadof DeadLetterServicesTrait;
     }
-    use ConcurrentRespondersTrait;
+    use RespondingWhileWaitingTrait;
 
     public function test_a_page_view_renders_the_fresh_snapshot_in_the_same_response_when_the_service_answers(): void
     {
         $this->configurePulseWithServices('orders');
         $this->awaitRepliesFor(30);
         $client = $this->pulseClient();
-        $this->respondInBackground(['orders']);
+        $this->respondWhileWaiting($client->getKernel(), ['orders' => $this->realService('orders')]);
 
         $crawler = $client->request('GET', '/services');
 
@@ -69,8 +69,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders', 'billing', 'shipping');
         $this->awaitRepliesFor(30);
         $client = $this->pulseClient();
-        $this->respondInBackground(['orders'], fn () => ['orders' => $this->tracedOrders()]);
-        $this->respondInBackground(['billing', 'shipping']);
+        $this->respondWhileWaiting($client->getKernel(), ['orders' => $this->tracedOrders(), 'billing' => $this->realService('billing'), 'shipping' => $this->realService('shipping')]);
 
         $client->request('POST', '/refresh');
         $crawler = $client->followRedirect();
@@ -84,13 +83,10 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders');
         $this->awaitRepliesFor(30);
         $client = $this->pulseClient();
-        $this->respondInBackground(['orders'], function (): array {
-            $orders = $this->serviceWithDeadLetters('orders');
-            $this->failOrder($orders, 'order.place', 1);
-            $this->failOrder($orders, 'order.place', 2);
-
-            return ['orders' => $orders];
-        });
+        $orders = $this->serviceWithDeadLetters('orders');
+        $this->failOrder($orders, 'order.place', 1);
+        $this->failOrder($orders, 'order.place', 2);
+        $this->respondWhileWaiting($client->getKernel(), ['orders' => $orders]);
 
         $list = $client->request('GET', '/dead-letters');
         self::assertCount(2, $list->filter('[data-dead-letter]'));
@@ -107,14 +103,11 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders');
         $this->awaitRepliesFor(30);
         $client = $this->pulseClient();
-        $this->respondInBackground(['orders'], function (): array {
-            $orders = $this->serviceWithDeadLetters('orders');
-            $this->failOrder($orders, 'order.place', 1);
-            $this->failOrder($orders, 'order.place', 2);
-            $this->failOrder($orders, 'order.cancel', 3);
-
-            return ['orders' => $orders];
-        });
+        $orders = $this->serviceWithDeadLetters('orders');
+        $this->failOrder($orders, 'order.place', 1);
+        $this->failOrder($orders, 'order.place', 2);
+        $this->failOrder($orders, 'order.cancel', 3);
+        $this->respondWhileWaiting($client->getKernel(), ['orders' => $orders]);
 
         $list = $client->request('GET', '/dead-letters');
         $confirmation = $client->submit($list->filter('[data-group][data-message-name="order.place"] [data-group-delete]')->form());
@@ -131,14 +124,10 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders', 'billing', 'shipping');
         $this->awaitRepliesFor(30);
         $client = $this->pulseClient();
-        $this->respondInBackground(['orders'], function (): array {
-            $orders = $this->tracedOrders();
-            $orders->sendCommandWithRouting('order.place', ['orderId' => 1]);
-            $orders->sendCommandWithRouting('order.place', ['orderId' => 2]);
-
-            return ['orders' => $orders];
-        });
-        $this->respondInBackground(['billing', 'shipping']);
+        $orders = $this->tracedOrders();
+        $orders->sendCommandWithRouting('order.place', ['orderId' => 1]);
+        $orders->sendCommandWithRouting('order.place', ['orderId' => 2]);
+        $this->respondWhileWaiting($client->getKernel(), ['orders' => $orders, 'billing' => $this->realService('billing'), 'shipping' => $this->realService('shipping')]);
 
         $crawler = $client->request('GET', '/traces/orders/order.place');
 
@@ -151,13 +140,11 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders', 'billing');
         $this->awaitRepliesFor(30);
         $client = $this->pulseClient();
-        $this->respondInBackground(['orders']);
-        $this->respondInBackground(['billing'], startAfterSeconds: 6);
+        $clock = $this->respondWhileWaiting($client->getKernel(), ['orders' => $this->realService('orders'), 'billing' => $this->realService('billing')], ['billing' => 6]);
 
-        $startedAt = microtime(true);
         $crawler = $client->request('GET', '/services');
 
-        self::assertGreaterThanOrEqual(6.0, microtime(true) - $startedAt);
+        self::assertGreaterThanOrEqual(new DateTimeImmutable('2026-10-20 12:00:06'), $clock->now());
         self::assertSame('connected', $this->statusOf($crawler, 'orders'));
         self::assertSame('connected', $this->statusOf($crawler, 'billing'));
     }
@@ -167,8 +154,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders', 'billing');
         $this->awaitRepliesFor(4);
         $client = $this->pulseClient();
-        $this->respondInBackground(['orders']);
-        $this->respondInBackground(['billing'], startAfterSeconds: 30);
+        $this->respondWhileWaiting($client->getKernel(), ['orders' => $this->realService('orders'), 'billing' => $this->realService('billing')], ['billing' => 30]);
 
         $crawler = $client->request('GET', '/services');
 
@@ -183,24 +169,15 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders', 'billing', 'shipping');
         $this->awaitRepliesFor(40);
         $client = $this->pulseClient();
-        $this->respondInBackground(['orders'], function () use ($inTrace): array {
-            $orders = $this->tracedOrders();
-            $orders->sendCommandWithRouting('order.place', ['orderId' => 1], metadata: $inTrace);
+        $orders = $this->tracedOrders();
+        $orders->sendCommandWithRouting('order.place', ['orderId' => 1], metadata: $inTrace);
+        $billing = $this->tracedBilling();
+        $billing->sendCommandWithRouting('invoice.create', 'payload', metadata: $inTrace);
+        $clock = $this->respondWhileWaiting($client->getKernel(), ['orders' => $orders, 'shipping' => $this->realService('shipping'), 'billing' => $billing], ['billing' => 6]);
 
-            return ['orders' => $orders];
-        });
-        $this->respondInBackground(['shipping']);
-        $this->respondInBackground(['billing'], function () use ($inTrace): array {
-            $billing = $this->tracedBilling();
-            $billing->sendCommandWithRouting('invoice.create', 'payload', metadata: $inTrace);
-
-            return ['billing' => $billing];
-        }, startAfterSeconds: 6);
-
-        $startedAt = microtime(true);
         $crawler = $client->request('GET', '/traces/trace/' . $traceId);
 
-        self::assertGreaterThanOrEqual(6.0, microtime(true) - $startedAt);
+        self::assertGreaterThanOrEqual(new DateTimeImmutable('2026-10-20 12:00:06'), $clock->now());
         self::assertCount(1, $crawler->filter('[data-service-state="orders"][data-state="answered"]'));
         self::assertCount(1, $crawler->filter('[data-service-state="billing"][data-state="answered"]'));
         self::assertCount(0, $crawler->filter('meta[http-equiv="refresh"]'));

@@ -129,10 +129,11 @@ final class StitchedFlowGraph
      * @param list<string> $shownServices
      * @param list<string> $collapsed
      */
-    public static function toMermaid(array $flows, array $shownServices, ?TraceHighlight $highlight = null, ?ServiceScopeFilter $scope = null, ?FlowFocus $focus = null, array $collapsed = []): string
+    public static function toMermaid(array $flows, array $shownServices, ?TraceHighlight $highlight = null, ?ServiceScopeFilter $scope = null, ?FlowFocus $focus = null, array $collapsed = [], bool $foldChannels = false): string
     {
         $shown = self::shownOf($flows, $shownServices);
         $ids = [];
+        $asyncVia = [];
         $lines = ['flowchart LR'];
         foreach ($shown as $serviceIndex => $flow) {
             $lines[] = sprintf('    subgraph s%d ["%s"]', $serviceIndex, MermaidText::escape($flow->name));
@@ -146,8 +147,14 @@ final class StitchedFlowGraph
                 $lines[] = '    end';
                 continue;
             }
+            $folded = $foldChannels ? self::foldedChannels($flow, $focus) : [];
+            foreach ($folded as $channelId => $handlers) {
+                foreach ($handlers as $handlerId) {
+                    $asyncVia[$flow->name][$handlerId] = $flow->graph->node($channelId)->label;
+                }
+            }
             foreach ($flow->graph->nodes() as $nodeIndex => $node) {
-                if ($focus?->includes($flow->name, $node->id) === false) {
+                if ($focus?->includes($flow->name, $node->id) === false || isset($folded[$node->id])) {
                     continue;
                 }
                 $ids[$flow->name][$node->id] = sprintf('s%dn%d', $serviceIndex, $nodeIndex);
@@ -161,7 +168,9 @@ final class StitchedFlowGraph
                 if (in_array($flow->name, $collapsed, true) || ! isset($ids[$flow->name][$edge->from], $ids[$flow->name][$edge->to])) {
                     continue;
                 }
-                $line = sprintf('    %s %s %s', $ids[$flow->name][$edge->from], self::arrow($edge), $ids[$flow->name][$edge->to]);
+                $channel = $edge->kind === FlowEdgeKind::ASYNCHRONOUS ? null : ($asyncVia[$flow->name][$edge->to] ?? null);
+                $arrow = $channel === null ? self::arrow($edge) : '==>|"' . MermaidText::escape('async: ' . $channel) . '"|';
+                $line = sprintf('    %s %s %s', $ids[$flow->name][$edge->from], $arrow, $ids[$flow->name][$edge->to]);
                 $edges[$line] = ($edges[$line] ?? false) || ($highlight?->passes($flow->name, $edge->from, $edge->to) ?? false);
             }
         }
@@ -219,6 +228,32 @@ final class StitchedFlowGraph
         }
 
         return [...self::highlightClassLines($byState), ...self::highlightedLinkLines($highlightedEdges)];
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    private static function foldedChannels(ServiceFlow $flow, ?FlowFocus $focus): array
+    {
+        $shown = fn (string $nodeId): bool => $focus?->includes($flow->name, $nodeId) !== false;
+        $folded = [];
+        foreach ($flow->graph->nodesOfKind(FlowNodeKind::CHANNEL) as $channel) {
+            $outgoing = $flow->graph->edgesFrom($channel->id);
+            if (! $shown($channel->id) || $outgoing === [] || $flow->graph->edgesTo($channel->id) !== []) {
+                continue;
+            }
+            $handlers = [];
+            foreach ($outgoing as $edge) {
+                $fedOtherwise = array_filter($flow->graph->edgesTo($edge->to), fn (FlowEdge $into) => $into->kind !== FlowEdgeKind::ASYNCHRONOUS && $shown($into->from));
+                if ($edge->kind !== FlowEdgeKind::ASYNCHRONOUS || ! $shown($edge->to) || $fedOtherwise === []) {
+                    continue 2;
+                }
+                $handlers[] = $edge->to;
+            }
+            $folded[$channel->id] = $handlers;
+        }
+
+        return $folded;
     }
 
     private static function countShown(ServiceFlow $flow, ?FlowFocus $focus): int

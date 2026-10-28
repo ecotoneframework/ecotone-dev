@@ -12,6 +12,7 @@ use App\Graph\ServiceScopeFilter;
 use App\Graph\ShortLabel;
 use App\Graph\StitchedFlowGraph;
 use App\Graph\TraceHighlight;
+use App\Graph\UnknownFold;
 use App\Snapshot\Snapshots;
 use App\Trace\TraceLoader;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -48,6 +49,7 @@ final class FlowGraphController extends AbstractController
         $narrowedByTrace = $requested === [] && $crossed !== [];
         $view = (string) $request->query->get('view', '');
         $focus = $this->focusOf($flows, $request->query->getString('focus'));
+        $foldChannels = $this->foldsChannels($request->query->getString('fold'));
         $collapsed = array_values(array_intersect($available, array_map('strval', $request->query->all('collapse'))));
         $crossedNodes = array_sum(array_map(fn (ServiceFlow $flow) => in_array($flow->name, $crossed, true) ? count($flow->graph->nodes()) : 0, $flows));
         $overview = $focus === null && $collapsed === [] && $requested === [] && $view !== 'detail' && match (true) {
@@ -62,7 +64,7 @@ final class FlowGraphController extends AbstractController
             default => array_values(array_intersect($available, array_map('strval', $requested))),
         };
 
-        $carried = array_filter(['trace' => $traceId, 'service' => $scope->selected, 'collapse' => $collapsed]);
+        $carried = array_filter(['trace' => $traceId, 'service' => $scope->selected, 'collapse' => $collapsed, 'fold' => $foldChannels ? 'channels' : '']);
         $find = trim($request->query->getString('find'));
         $found = $find === '' ? [] : $this->found($flows, $find, $carried);
         if (count($found) === 1) {
@@ -96,9 +98,11 @@ final class FlowGraphController extends AbstractController
             'services' => $available,
             'shown' => $shown,
             'collapsed' => $collapsed,
+            'foldChannels' => $foldChannels,
+            'foldUrl' => $this->generateUrl('flow_graph', array_filter([...$request->query->all(), 'fold' => $foldChannels ? '' : 'channels'])),
             'collapseUrls' => array_combine($shown, array_map(fn (string $service): string => $this->collapseUrl($request, $collapsed, $service), $shown)),
             'notices' => $serviceFlows->notices,
-            'diagram' => $overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::toMermaid($flows, $shown, $highlight, $scope, $focus, $collapsed),
+            'diagram' => $overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::toMermaid($flows, $shown, $highlight, $scope, $focus, $collapsed, $foldChannels),
             'trace' => $highlight,
             'traceStates' => $traceView?->states ?? [],
             'traceEmpty' => $traceView !== null && $traceView->trace->isEmpty(),
@@ -189,5 +193,14 @@ final class FlowGraphController extends AbstractController
         $toggled = in_array($service, $collapsed, true) ? array_values(array_diff($collapsed, [$service])) : [...$collapsed, $service];
 
         return $this->generateUrl('flow_graph', array_filter([...$request->query->all(), 'collapse' => $toggled]));
+    }
+
+    private function foldsChannels(string $fold): bool
+    {
+        if ($fold !== '' && $fold !== 'channels') {
+            throw new UnknownFold($fold);
+        }
+
+        return $fold === 'channels';
     }
 }

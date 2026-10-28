@@ -76,6 +76,7 @@
         <p class="muted graph-view">
             {% if overview %}<span data-flow-overview>Service overview: one node per service, arrows are distributed commands, events and messages.</span> Click a service to see its flow, or <a href="{{ detailUrl }}">show every service in detail</a>.
             {% elseif services|length > 1 %}<a href="{{ overviewUrl }}">Show the service overview</a>{% endif %}
+            {% if not overview %}{% if foldChannels %}<a href="{{ foldUrl }}" data-unfold-channels>Show channels</a>{% else %}<a href="{{ foldUrl }}" data-fold-channels>Fold asynchronous channels into arrows</a>{% endif %}{% endif %}
         </p>
         <pre class="mermaid" data-flow-graph data-graph-nodes="{{ nodes|json_encode }}">{{ diagram }}</pre>
         <details class="card legend" data-graph-legend open>

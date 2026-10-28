@@ -7,6 +7,10 @@ namespace App\Tests\Graph;
 use App\Tests\Support\DistributedServicesTrait;
 use App\Tests\Support\MermaidDiagram;
 use App\Tests\Support\ReleasingWebTestCase;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 /**
@@ -61,6 +65,60 @@ final class FlowGraphCollapseTest extends ReleasingWebTestCase
         $diagram = MermaidDiagram::fromPage($page);
         self::assertSame(1, $diagram->nodesOf('svc01'));
         self::assertGreaterThan(1, $diagram->nodesOf('orders'));
+    }
+
+    public function test_folding_channels_draws_an_asynchronous_channel_as_a_labelled_arrow_from_the_message_to_its_handler(): void
+    {
+        $client = $this->shippingWorkingAsynchronously();
+
+        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow?fold=channels'));
+
+        self::assertSame([], array_values(array_filter($diagram->nodes, fn (array $node) => $node['label'] === 'Channel<br/>shipping_work')));
+        self::assertTrue($diagram->hasEdge('shipping', 'shipping.pack', 'async: shipping_work', 'shipping', '::pack', '==>'));
+        self::assertTrue($diagram->hasEdge('shipping', 'shipping.label', 'async: shipping_work', 'shipping', '::label', '==>'));
+        self::assertNotEmpty(array_filter($diagram->nodes, fn (array $node) => $node['label'] === 'Distributed Bus'));
+    }
+
+    public function test_channels_are_folded_and_shown_again_by_a_link(): void
+    {
+        $client = $this->shippingWorkingAsynchronously();
+
+        self::assertSame('/flow?fold=channels', $client->request('GET', '/flow')->filter('[data-fold-channels]')->attr('href'));
+        $folded = $client->request('GET', '/flow?fold=channels');
+        self::assertCount(0, $folded->filter('[data-fold-channels]'));
+        self::assertSame('/flow', $folded->filter('[data-unfold-channels]')->attr('href'));
+    }
+
+    public function test_folding_anything_but_channels_is_refused_naming_what_can_be_folded(): void
+    {
+        $client = $this->shippingWorkingAsynchronously();
+
+        $client->request('GET', '/flow?fold=handlers');
+
+        self::assertResponseStatusCodeSame(404);
+        self::assertStringContainsString('Cannot fold &quot;handlers&quot;: only channels can be folded into arrows. Use fold=channels, or remove the fold parameter to draw every channel.', (string) $client->getResponse()->getContent());
+    }
+
+    private function shippingWorkingAsynchronously(): KernelBrowser
+    {
+        $this->configurePulseWithServices('shipping');
+        $client = $this->pulseWebClient();
+        $handlers = new class () {
+            #[Asynchronous('shipping_work')]
+            #[CommandHandler('shipping.pack', endpointId: 'shipping.pack.handler')]
+            public function pack(array $payload): void
+            {
+            }
+
+            #[Asynchronous('shipping_work')]
+            #[CommandHandler('shipping.label', endpointId: 'shipping.label.handler')]
+            public function label(array $payload): void
+            {
+            }
+        };
+        $this->pulseHavingHeardFrom($client, ['shipping' => $this->distributedService('shipping', $handlers, DistributedServiceMap::initialize(), [SimpleMessageChannelBuilder::createQueueChannel('shipping_work')])]);
+
+        return $client;
     }
 
     private function ordersAndBilling(): KernelBrowser

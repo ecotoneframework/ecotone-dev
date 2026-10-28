@@ -7,6 +7,7 @@ namespace Ecotone\EventSourcing\Projecting;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ManagerRegistryConnectionFactory;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\TagTableManager;
@@ -41,7 +42,7 @@ final class DbalTagPartitionProvider implements PartitionProvider
      * @param string[] $tagPartitionedProjectionNames
      */
     public function __construct(
-        private DbalConnectionFactory|MultiTenantConnectionFactory|AlreadyConnectedDbalConnectionFactory $connectionFactory,
+        private DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory|AlreadyConnectedDbalConnectionFactory $connectionFactory,
         private DbalTagIndex $tagIndex,
         private TagTableManager $tagTableManager,
         private array $tagPartitionedProjectionNames,

@@ -29,6 +29,24 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         ], $this->labelsByService(MermaidDiagram::fromPage($focused)));
     }
 
+    public function test_the_followed_node_is_marked_and_the_steps_before_and_after_it_are_listed_as_links_to_follow(): void
+    {
+        $client = $this->ordersAndBilling();
+
+        $focused = $this->follow($client, $client->request('GET', '/flow'), 'billing', '::create');
+
+        self::assertStringContainsString('class@anonymous::create', $focused->filter('[data-focus] h2')->text());
+        $diagram = MermaidDiagram::fromPage($focused);
+        $marked = array_values(array_filter($diagram->lines, fn (string $line) => str_starts_with($line, '    class ') && str_ends_with($line, ' focused')));
+        self::assertCount(1, $marked);
+        self::assertSame('CommandHandler<br/>class@anonymous::create', $diagram->nodes[explode(' ', $marked[0])[5]]['label']);
+        self::assertContains('    classDef focused stroke-width:4px', $diagram->lines);
+        self::assertSame(['order.place', 'class@anonymous::place', 'invoice.create', 'Distributed Bus', 'invoice.create'], $focused->filter('[data-focus-upstream] a')->each(fn (Crawler $link) => $link->text()));
+        self::assertSame(['invoice.created', 'Distributed Bus', 'invoice.created', 'class@anonymous::whenInvoiceCreated'], $focused->filter('[data-focus-downstream] a')->each(fn (Crawler $link) => $link->text()));
+        $refocused = $client->request('GET', $focused->filter('[data-focus-upstream] a')->first()->attr('href'));
+        self::assertStringContainsString('order.place', $refocused->filter('[data-focus] h2')->text());
+    }
+
     private function ordersAndBilling(): KernelBrowser
     {
         $this->configurePulseWithServices('orders', 'billing');

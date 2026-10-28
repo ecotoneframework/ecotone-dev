@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Graph\FlowFocus;
+use Ecotone\Api\Messaging\Flow\FlowNode;
 use App\Graph\ServiceFlow;
 use App\Graph\ServiceFlows;
 use App\Graph\ServiceScopeFilter;
+use App\Graph\ShortLabel;
 use App\Graph\StitchedFlowGraph;
 use App\Graph\TraceHighlight;
 use App\Snapshot\Snapshots;
@@ -62,12 +64,18 @@ final class FlowGraphController extends AbstractController
         $nodes = $overview ? StitchedFlowGraph::overviewDetails($flows) : StitchedFlowGraph::nodeDetails($flows, $shown, $focus);
         $nodes = array_map(fn (array $node): array => [...$node, 'href' => match (true) {
             $overview => $this->generateUrl('flow_graph', ['services' => [$node['service']]]),
-            isset($node['node']) => $this->generateUrl('flow_graph', array_filter(['focus' => $node['service'] . ':' . $node['node'], 'trace' => $traceId])),
+            isset($node['node']) => $this->focusUrl($node['service'], $node['node'], $traceId),
             default => $this->generateUrl('dead_letters', ['service' => $node['service']]),
         }], $nodes);
 
         return $this->render('graph/flow.html.twig', [
             'scope' => $scope,
+            'focus' => $focus === null ? null : [
+                'label' => ShortLabel::of($focus->node->label),
+                'service' => $focus->service,
+                'upstream' => $this->stepsOf($focus->upstream, $traceId),
+                'downstream' => $this->stepsOf($focus->downstream, $traceId),
+            ],
             'overview' => $overview,
             'nodes' => $nodes,
             'overviewUrl' => $this->generateUrl('flow_graph', array_filter(['view' => 'overview', 'trace' => $traceId])),
@@ -94,5 +102,24 @@ final class FlowGraphController extends AbstractController
         [$service, $nodeId] = explode(':', $requested, 2) + [1 => ''];
 
         return FlowFocus::of($flows, $service, $nodeId);
+    }
+
+    /**
+     * @param list<array{service: string, node: FlowNode}> $steps
+     * @return list<array{label: string, kind: string, service: string, href: string}>
+     */
+    private function stepsOf(array $steps, string $traceId): array
+    {
+        return array_map(fn (array $step): array => [
+            'label' => ShortLabel::of($step['node']->label),
+            'kind' => $step['node']->kind->value,
+            'service' => $step['service'],
+            'href' => $this->focusUrl($step['service'], $step['node']->id, $traceId),
+        ], $steps);
+    }
+
+    private function focusUrl(string $service, string $nodeId, string $traceId): string
+    {
+        return $this->generateUrl('flow_graph', array_filter(['focus' => $service . ':' . $nodeId, 'trace' => $traceId]));
     }
 }

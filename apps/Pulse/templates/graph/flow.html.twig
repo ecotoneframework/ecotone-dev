@@ -26,6 +26,26 @@
         </section>
     {% endif %}
     {% include 'graph/_scope.html.twig' with {carry: trace ? {trace: trace.traceId} : {}} %}
+    {% if focus %}
+        <section class="card focus" data-focus aria-labelledby="focus-heading">
+            <h2 id="focus-heading">Following {{ focus.label }} <span class="muted">in {{ focus.service }}</span></h2>
+            <p class="muted">Only what led to it and everything it causes is drawn. Follow any step to re-centre on it, or <a href="{{ path('flow_graph', trace ? {trace: trace.traceId} : {}) }}" data-focus-clear>show everything</a>.</p>
+            <div class="focus-steps">
+                <div>
+                    <h3>What led here</h3>
+                    {% if focus.upstream is empty %}<p class="muted">Nothing: this is where the flow starts.</p>{% else %}
+                    <ol data-focus-upstream>{% for step in focus.upstream %}<li><a href="{{ step.href }}">{{ step.label }}</a> <span class="muted">{{ step.kind }} · {{ step.service }}</span></li>{% endfor %}</ol>
+                    {% endif %}
+                </div>
+                <div>
+                    <h3>What happens next</h3>
+                    {% if focus.downstream is empty %}<p class="muted">Nothing: the flow ends here.</p>{% else %}
+                    <ol data-focus-downstream>{% for step in focus.downstream %}<li><a href="{{ step.href }}">{{ step.label }}</a> <span class="muted">{{ step.kind }} · {{ step.service }}</span></li>{% endfor %}</ol>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    {% endif %}
     <form method="get" class="service-toggles">
         {% if trace %}<input type="hidden" name="trace" value="{{ trace.traceId }}">{% endif %}
         {% for service in services %}

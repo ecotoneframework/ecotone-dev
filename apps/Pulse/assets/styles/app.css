@@ -143,6 +143,8 @@ b.ok{background:none;border:0}
 pre.mermaid .tracePassed>*{fill:var(--ok-bg)!important;stroke:var(--ok)!important}
 pre.mermaid .tracePending>*{fill:var(--wait-bg)!important;stroke:var(--wait)!important;stroke-dasharray:4 2!important}
 pre.mermaid .traceFailed>*{fill:var(--bad-bg)!important;stroke:var(--bad)!important}
+pre.mermaid .focused>*{stroke:var(--accent)!important;stroke-width:4px!important;filter:drop-shadow(0 0 6px var(--glow))}
+.focus-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));gap:1rem}.focus-steps ol{margin:.25rem 0;padding-left:1.4rem}.focus-steps li{margin:.15rem 0;overflow-wrap:anywhere}.focus h3{margin:.5rem 0 .25rem;font-size:1rem}
 pre.mermaid path[style*="stroke-width:3px"],pre.mermaid path[style*="stroke-width: 3px"]{stroke:var(--ok)!important}
 .waterfall{min-width:62rem}
 .waterfall td[data-column=startedAt],.waterfall td[data-column=kind],.waterfall td.num,.waterfall td[data-column=status]{white-space:nowrap}

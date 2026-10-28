@@ -168,7 +168,9 @@ final class StitchedFlowGraph
             $greyedLines = ['    classDef greyed opacity:0.45', '    class ' . implode(',', $greyedLines) . ' greyed'];
         }
 
-        return implode("\n", [...$lines, ...self::highlightLines($shown, $ids, array_values($edges), $highlight), ...$greyedLines]) . "\n";
+        $focusedLines = $focus === null ? [] : ['    classDef focused stroke-width:4px', sprintf('    class %s focused', $ids[$focus->service][$focus->node->id])];
+
+        return implode("\n", [...$lines, ...self::highlightLines($shown, $ids, array_values($edges), $highlight), ...$greyedLines, ...$focusedLines]) . "\n";
     }
 
     /**

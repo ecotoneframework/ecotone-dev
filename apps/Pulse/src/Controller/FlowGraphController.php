@@ -82,10 +82,12 @@ final class FlowGraphController extends AbstractController
         return $this->render('graph/flow.html.twig', [
             'scope' => $scope,
             'find' => $find,
+            'carried' => $carried,
             'found' => $found,
             'nodeNames' => $this->nodeNamesOf($flows),
             'focus' => $focus === null ? null : [
                 'label' => ShortLabel::of($focus->node->label),
+                'parameter' => $focus->service . ':' . $focus->node->id,
                 'service' => $focus->service,
                 'clearUrl' => $this->generateUrl('flow_graph', $carried),
                 'upstream' => $this->stepsOf($focus->upstream, $carried),

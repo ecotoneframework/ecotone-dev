@@ -89,6 +89,34 @@ final class FlowGraphCollapseTest extends ReleasingWebTestCase
         self::assertSame('/flow', $folded->filter('[data-unfold-channels]')->attr('href'));
     }
 
+    public function test_finding_a_node_keeps_the_collapsed_services_the_folding_and_the_scope(): void
+    {
+        $client = $this->ordersAndBilling();
+        $page = $client->request('GET', '/flow?collapse[]=billing&fold=channels&service=orders');
+
+        $client->submit($page->filter('[data-flow-find]')->form(['find' => 'order.place']));
+
+        self::assertResponseRedirects();
+        parse_str((string) parse_url((string) $client->getResponse()->headers->get('Location'), PHP_URL_QUERY), $query);
+        self::assertSame(['billing'], $query['collapse']);
+        self::assertSame('channels', $query['fold']);
+        self::assertSame('orders', $query['service']);
+        self::assertStringStartsWith('orders:', $query['focus']);
+    }
+
+    public function test_choosing_services_or_a_scope_keeps_the_collapsed_services_and_the_folding(): void
+    {
+        $client = $this->ordersAndBilling();
+        $page = $client->request('GET', '/flow?collapse[]=billing&fold=channels');
+
+        foreach (['form.service-toggles', '[data-scope-filter]'] as $form) {
+            $client->submit($page->filter($form)->form());
+
+            self::assertSame(['billing'], $client->getRequest()->query->all('collapse'));
+            self::assertSame('channels', $client->getRequest()->query->getString('fold'));
+        }
+    }
+
     public function test_folding_anything_but_channels_is_refused_naming_what_can_be_folded(): void
     {
         $client = $this->shippingWorkingAsynchronously();

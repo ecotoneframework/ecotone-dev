@@ -127,8 +127,8 @@ a name matching several nodes lists them to choose from.
 
 **collapse** next to a service draws it as one node carrying its distributed arrows, and **expand** brings its detail back
 (`collapse[]={service}`). **Fold asynchronous channels into arrows** (`fold=channels`) drops an asynchronous channel and
-labels the arrow from the message to its handler with the channel instead. Following a node keeps the highlighted trace,
-the service scope, the collapsed services and the folding.
+labels the arrow from the message to its handler with the channel instead. Following a node, finding one, choosing the
+services and changing the scope all keep the highlighted trace, the service scope, the collapsed services and the folding.
 
 ## Traces
 

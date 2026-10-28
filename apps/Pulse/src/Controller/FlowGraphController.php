@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Graph\FlowFocus;
-use Ecotone\Api\Messaging\Flow\FlowNode;
 use App\Graph\ServiceFlow;
 use App\Graph\ServiceFlows;
 use App\Graph\ServiceScopeFilter;
@@ -15,6 +14,7 @@ use App\Graph\TraceHighlight;
 use App\Graph\UnknownFold;
 use App\Snapshot\Snapshots;
 use App\Trace\TraceLoader;
+use Ecotone\Api\Messaging\Flow\FlowNode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;

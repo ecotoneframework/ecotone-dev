@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Graph;
 
 use App\Tests\Support\DistributedServicesTrait;
+use App\Tests\Support\MermaidDiagram;
+use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -12,8 +14,6 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Interceptor\MethodInvocation;
-use App\Tests\Support\MermaidDiagram;
-use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
 

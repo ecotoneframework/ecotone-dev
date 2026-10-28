@@ -156,6 +156,7 @@ final class Order extends Model
             return;
         }
         $this->last_refusal = ['seatId' => $command->seatId, 'reason' => $command->reason];
+        $this->recordThat(new SeatRefused(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId, holdId: $command->holdId, reason: $command->reason));
     }
 
     #[CommandHandler]

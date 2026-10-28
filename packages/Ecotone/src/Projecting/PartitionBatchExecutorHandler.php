@@ -28,13 +28,14 @@ class PartitionBatchExecutorHandler
         string $eventStoreReferenceName = '',
         bool $shouldReset = false,
         ?int $batchCount = null,
+        ?string $tag = null,
     ): void {
         if ($batchCount === 0) {
             return;
         }
 
         $projectingManager = $this->projectionRegistry->get($projectionName);
-        $streamFilter = new StreamFilter($streamName, $aggregateType, $eventStoreReferenceName);
+        $streamFilter = new StreamFilter($streamName, $aggregateType, $eventStoreReferenceName, tag: $tag);
 
         foreach ($projectingManager->getPartitionProvider()->partitions($streamFilter, $limit, $offset) as $partition) {
             if ($shouldReset) {

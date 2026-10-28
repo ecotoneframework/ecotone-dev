@@ -403,12 +403,6 @@ parameters:
 			path: packages/PdoEventSourcing/src/AggregateStreamMapping.php
 
 		-
-			message: '#^Offset ''aggregateIdParam'' does not exist on array\{className\: string, methodName\: string, projectionName\: string, partitionKeyParam\: string\|null\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: packages/PdoEventSourcing/src/Config/EventSourcingProjectingModule.php
-
-		-
 			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
 			identifier: method.notFound
 			count: 1

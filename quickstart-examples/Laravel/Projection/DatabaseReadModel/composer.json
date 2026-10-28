@@ -22,10 +22,10 @@
         }
     },
     "require": {
-        "ecotone/dbal": "~2.0.0-beta.6",
-        "ecotone/jms-converter": "~2.0.0-beta.6",
-        "ecotone/laravel": "~2.0.0-beta.6",
-        "ecotone/pdo-event-sourcing": "~2.0.0-beta.6",
+        "ecotone/dbal": "~2.0.0-beta.7",
+        "ecotone/jms-converter": "~2.0.0-beta.7",
+        "ecotone/laravel": "~2.0.0-beta.7",
+        "ecotone/pdo-event-sourcing": "~2.0.0-beta.7",
         "laravel/laravel": "^11.0",
         "ramsey/uuid": "^4.0"
     },

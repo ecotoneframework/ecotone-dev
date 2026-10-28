@@ -22,7 +22,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~2.0.0-beta.6"
+        "ecotone/ecotone": "~2.0.0-beta.7"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.6|^10.5|^11.0"

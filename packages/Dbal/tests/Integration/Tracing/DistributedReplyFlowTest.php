@@ -56,7 +56,7 @@ final class DistributedReplyFlowTest extends DbalMessagingTestCase
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', metadata: [MessageHeaders::TRACING_ID => $tracingId], replyRoutingKey: 'ticket.created');
         $gateway = $userService->getGateway(TracingGateway::class);
         self::assertFalse($gateway->isCompletedFor($tracingId, $users::class));
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->drain($ticketService, 'ticket_channel');
         self::assertFalse($gateway->isCompletedFor($tracingId, $users::class));
         $this->consumeThroughConsole($userService, 'user_channel');
 
@@ -71,7 +71,7 @@ final class DistributedReplyFlowTest extends DbalMessagingTestCase
         $ticketService = $this->service('ticket_service', $this->ticketHandlers(), 'user_channel', 'ticket_channel', FlowTrackingConfiguration::createWithDefaults(), $this->connectionForTenantB());
 
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', metadata: [MessageHeaders::TRACING_ID => $tracingId], replyRoutingKey: 'ticket.created');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->drain($ticketService, 'ticket_channel');
         $this->consumeThroughConsole($userService, 'user_channel');
 
         $gateway = $userService->getGateway(TracingGateway::class);
@@ -94,13 +94,13 @@ final class DistributedReplyFlowTest extends DbalMessagingTestCase
 
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', metadata: [MessageHeaders::TRACING_ID => $tracingId], replyRoutingKey: 'ticket.created');
         $userService->publishEventWithRouting('branch.started', 'x', metadata: [MessageHeaders::TRACING_ID => $tracingId]);
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->drain($ticketService, 'ticket_channel');
         $this->consumeThroughConsole($userService, 'user_channel');
 
         $gateway = $userService->getGateway(TracingGateway::class);
         self::assertFalse($gateway->isCompletedFor($tracingId, $users::class));
         self::assertFalse($gateway->isCompletedFor($tracingId));
-        $userService->run('other_branch', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->drain($userService, 'other_branch');
         self::assertTrue($gateway->isCompletedFor($tracingId, $users::class));
     }
 
@@ -147,22 +147,27 @@ final class DistributedReplyFlowTest extends DbalMessagingTestCase
         $bus->sendMessage('ticket_b', 'ticket.create', 'b', metadata: [MessageHeaders::TRACING_ID => $secondId], replyRoutingKey: 'ticket.created');
         $gateway = $userService->getGateway(TracingGateway::class);
 
-        $ticketServices['ticket_a']->run('ticket_a_channel', ExecutionPollingMetadata::createWithTestingSetup(2));
+        $this->drain($ticketServices['ticket_a'], 'ticket_a_channel');
         $this->consumeThroughConsole($userService, 'user_channel');
 
         self::assertTrue($gateway->isCompletedFor($sharedId, $users::class));
         self::assertTrue($gateway->isCompletedFor($firstId, $users::class));
         self::assertFalse($gateway->isCompletedFor($secondId, $users::class));
 
-        $ticketServices['ticket_b']->run('ticket_b_channel', ExecutionPollingMetadata::createWithTestingSetup(2));
+        $this->drain($ticketServices['ticket_b'], 'ticket_b_channel');
         $this->consumeThroughConsole($userService, 'user_channel');
 
         self::assertTrue($gateway->isCompletedFor($secondId, $users::class));
     }
 
+    private function drain(FlowTestSupport $service, string $channel): void
+    {
+        $service->run($channel, ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+    }
+
     private function consumeThroughConsole(FlowTestSupport $service, string $channel): void
     {
-        $service->getGateway(ConsoleCommandRunner::class)->execute('ecotone:run', ['consumerName' => $channel, 'finishWhenNoMessages' => true, 'executionTimeLimit' => 1000]);
+        $service->getGateway(ConsoleCommandRunner::class)->execute('ecotone:run', ['consumerName' => $channel, 'finishWhenNoMessages' => true, 'executionTimeLimit' => 10000]);
     }
 
     private function userHandlers(): object

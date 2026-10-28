@@ -349,6 +349,21 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
     }
 
     #[DataProvider('implementations')]
+    public function test_a_limited_load_returns_the_first_events_in_tag_sequence_order(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (EventStore $eventStore): void {
+            $this->append($eventStore, self::SECOND_STREAM, [new CourseCapacityChangedForTaggedConformance('course-1', 10)]);
+            $this->append($eventStore, self::STREAM, [new StudentEnrolledForTaggedConformance('course-1', 'student-1')]);
+            $this->append($eventStore, self::SECOND_STREAM, [new CourseCapacityChangedForTaggedConformance('course-1', 20)]);
+
+            self::assertEquals(
+                [new CourseCapacityChangedForTaggedConformance('course-1', 10), new StudentEnrolledForTaggedConformance('course-1', 'student-1')],
+                $this->payloadsOf($eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1')->limit(2))->events),
+            );
+        });
+    }
+
+    #[DataProvider('implementations')]
     public function test_a_condition_tag_no_appended_event_carries_is_checked_without_being_moved(string $implementation): void
     {
         $this->conformanceCase($implementation, function (EventStore $eventStore): void {
@@ -359,6 +374,28 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
             $this->append($eventStore, self::STREAM, [new CourseCapacityChangedForTaggedConformance('course-3', 5)], $loaded);
 
             self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('course', 'course-3'))->events);
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_tag_longer_than_one_page_is_read_page_by_page_after_the_last_tag_sequence(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (EventStore $eventStore): void {
+            foreach ([10, 20, 30, 40, 50] as $capacity) {
+                $this->append($eventStore, self::STREAM, [new CourseCapacityChangedForTaggedConformance('course-1', $capacity)]);
+            }
+
+            $pages = [];
+            $lastTagSequence = 0;
+            do {
+                $page = $eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1')->afterTagSequence($lastTagSequence)->limit(2))->events;
+                if ($page !== []) {
+                    $pages[] = array_map(fn (object $payload): int => $payload->capacity, $this->payloadsOf($page));
+                    $lastTagSequence += count($page);
+                }
+            } while ($page !== []);
+
+            self::assertSame([[10, 20], [30, 40], [50]], $pages);
         });
     }
 
@@ -395,6 +432,29 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
     }
 
     #[DataProvider('implementations')]
+    public function test_a_limit_counts_only_the_events_of_the_filtered_types(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (EventStore $eventStore): void {
+            foreach ([
+                new StudentEnrolledForTaggedConformance('course-1', 'student-1'),
+                new StudentEnrolledForTaggedConformance('course-1', 'student-2'),
+                new CourseCapacityChangedForTaggedConformance('course-1', 10),
+                new StudentEnrolledForTaggedConformance('course-1', 'student-3'),
+                new StudentEnrolledForTaggedConformance('course-1', 'student-4'),
+                new CourseCapacityChangedForTaggedConformance('course-1', 20),
+                new CourseCapacityChangedForTaggedConformance('course-1', 30),
+            ] as $event) {
+                $this->append($eventStore, self::STREAM, [$event]);
+            }
+
+            self::assertEquals(
+                [new CourseCapacityChangedForTaggedConformance('course-1', 10), new CourseCapacityChangedForTaggedConformance('course-1', 20)],
+                $this->payloadsOf($eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1')->ofTypes(CourseCapacityChangedForTaggedConformance::class)->limit(2))->events),
+            );
+        });
+    }
+
+    #[DataProvider('implementations')]
     public function test_decisions_fetching_the_same_absent_aggregate_both_append_and_it_can_be_created_after(string $implementation): void
     {
         $this->decisionCase($implementation, function (FlowTestSupport $deciding, FlowTestSupport $competing, object $seats): void {
@@ -426,6 +486,28 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
     }
 
     #[DataProvider('implementations')]
+    public function test_a_page_never_splits_the_events_appended_together(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (EventStore $eventStore): void {
+            $this->append($eventStore, self::STREAM, [
+                new CourseCapacityChangedForTaggedConformance('course-1', 10),
+                new CourseCapacityChangedForTaggedConformance('course-1', 20),
+                new CourseCapacityChangedForTaggedConformance('course-1', 30),
+            ]);
+            $this->append($eventStore, self::STREAM, [new CourseCapacityChangedForTaggedConformance('course-1', 40)]);
+
+            self::assertEquals(
+                [new CourseCapacityChangedForTaggedConformance('course-1', 10), new CourseCapacityChangedForTaggedConformance('course-1', 20), new CourseCapacityChangedForTaggedConformance('course-1', 30)],
+                $this->payloadsOf($eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1')->limit(2))->events),
+            );
+            self::assertEquals(
+                [new CourseCapacityChangedForTaggedConformance('course-1', 40)],
+                $this->payloadsOf($eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1')->afterTagSequence(1)->limit(2))->events),
+            );
+        });
+    }
+
+    #[DataProvider('implementations')]
     public function test_decisions_reading_a_tag_no_appended_event_carries_both_append(string $implementation): void
     {
         $this->decisionCase($implementation, function (FlowTestSupport $deciding, FlowTestSupport $competing, object $seats): void {
@@ -436,6 +518,26 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
             $deciding->sendCommand(new HoldSeatForTaggedConformance('c-1', 'A1', 'v-1'));
 
             self::assertSame(['A2', 'A1'], $this->heldSeatsOf($deciding));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_limit_counts_only_the_events_carrying_every_narrowing_tag(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (EventStore $eventStore): void {
+            foreach ([
+                new StudentEnrolledForTaggedConformance('course-1', 'student-1'),
+                new StudentEnrolledForTaggedConformance('course-1', 'student-2'),
+                new StudentEnrolledForTaggedConformance('course-1', 'student-1'),
+                new StudentEnrolledForTaggedConformance('course-2', 'student-1'),
+                new StudentEnrolledForTaggedConformance('course-1', 'student-3'),
+                new StudentEnrolledForTaggedConformance('course-1', 'student-1'),
+            ] as $event) {
+                $this->append($eventStore, self::STREAM, [$event]);
+            }
+
+            self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1')->andTag('student', 'student-1')->limit(2))->events);
+            self::assertCount(3, $eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1')->andTag('student', 'student-1')->limit(5))->events);
         });
     }
 

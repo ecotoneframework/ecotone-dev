@@ -162,7 +162,12 @@ final class ConcertsController extends AbstractController
     {
         return $this->render(
             'admin/concert.html.twig',
-            ['concert' => $this->concert($concertId), 'sales' => $this->queryBus->sendWithRouting('concert.sales', $concertId), 'refusal' => $refusal],
+            [
+                'concert' => $this->concert($concertId),
+                'sales' => $this->queryBus->sendWithRouting('concert.sales', $concertId),
+                'seatCounts' => $this->seatCountsOf($this->queryBus->sendWithRouting('concert.seat_map', $concertId)),
+                'refusal' => $refusal,
+            ],
             new Response(status: $refusal === null ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY),
         );
     }

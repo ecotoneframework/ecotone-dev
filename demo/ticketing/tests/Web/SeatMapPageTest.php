@@ -88,6 +88,20 @@ final class SeatMapPageTest extends WebTestCase
         self::assertSelectorTextContains("table.concerts tr[id=\"{$this->concertIdOf('Aurora Strings')}\"] .seat-counts", '72 free');
     }
 
+    public function test_the_concert_page_counts_its_held_seats_beside_the_sold_ones(): void
+    {
+        $client = $this->seededClient();
+        $concertId = $this->concertIdOf('The Midnight Owls');
+        $this->hold(Uuid::v7()->toRfc4122(), $concertId, 'A-1', Uuid::v7()->toRfc4122());
+        $this->hold(Uuid::v7()->toRfc4122(), $concertId, 'C-1', Uuid::v7()->toRfc4122());
+        $this->runTheConsumer($client);
+
+        $client->request('GET', '/admin/concerts/' . $concertId);
+
+        self::assertSelectorTextContains('.stat-held .stat-value', '2');
+        self::assertSelectorTextContains('.stat-sold .stat-value', '0 of 72');
+    }
+
     public function test_the_seat_map_of_an_unknown_concert_is_not_found_and_points_to_the_concerts(): void
     {
         $client = $this->seededClient();

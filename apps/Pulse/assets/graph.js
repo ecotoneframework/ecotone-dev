@@ -64,6 +64,13 @@ const zoomable = (graph, svg) => {
     });
     graph.before(toolbar);
     graph.classList.add('graph-ready');
+    const focused = svg.querySelector('.focused');
+    if (focused && graph.clientWidth < home.width) {
+        const bounds = focused.getBoundingClientRect();
+        const centre = new DOMPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2).matrixTransform(svg.getScreenCTM().inverse());
+        view = {x: centre.x - graph.clientWidth / 2, y: centre.y - graph.clientHeight / 2, width: graph.clientWidth, height: graph.clientHeight};
+        apply();
+    }
     graph.tabIndex = 0;
     graph.setAttribute('role', 'group');
     graph.setAttribute('aria-label', 'Flow graph, arrow keys pan, plus and minus zoom');

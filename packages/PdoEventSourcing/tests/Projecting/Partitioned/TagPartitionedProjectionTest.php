@@ -12,10 +12,14 @@ use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
@@ -180,6 +184,63 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         $ecotone->run('concert_projections', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(['concert-1' => 2, 'concert-2' => 1], $ecotone->sendQueryWithRouting('concert.sales'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_named_event_and_a_plain_class_event_of_one_tag_value_are_both_projected_live_and_on_rebuild(string $implementation): void
+    {
+        $projection = new #[Projection('concert_upgrades'), FromTaggedStream('concert'), Partitioned] class () {
+            public array $seats = [];
+
+            #[EventHandler]
+            public function whenReserved(SeatReservedForTaggedProjection $event): void
+            {
+                $this->seats[$event->concertId][] = 'reserved ' . $event->seatId;
+            }
+
+            #[EventHandler]
+            public function whenUpgraded(SeatUpgradedForTaggedProjection $event): void
+            {
+                $this->seats[$event->concertId][] = 'upgraded ' . $event->seatId;
+            }
+
+            #[QueryHandler('concert.upgrades')]
+            public function upgrades(): array
+            {
+                ksort($this->seats);
+
+                return $this->seats;
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionTagValue] string $concertId): void
+            {
+                unset($this->seats[$concertId]);
+            }
+        };
+        $ecotone = $this->bootstrap($implementation, [$projection]);
+
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
+        $ecotone->sendCommand(new UpgradeSeatForTaggedProjection('concert-1', 'A1'));
+        $ecotone->sendCommand(new UpgradeSeatForTaggedProjection('concert-2', 'B1'));
+
+        self::assertSame(['concert-1' => ['reserved A1', 'upgraded A1'], 'concert-2' => ['upgraded B1']], $ecotone->sendQueryWithRouting('concert.upgrades'));
+
+        $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'concert_upgrades']);
+
+        self::assertSame(['concert-1' => ['reserved A1', 'upgraded A1'], 'concert-2' => ['upgraded B1']], $ecotone->sendQueryWithRouting('concert.upgrades'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_loading_a_tag_value_narrowed_to_the_class_of_a_named_event_returns_that_event(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation, []);
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
+        $ecotone->sendCommand(new UpgradeSeatForTaggedProjection('concert-1', 'A1'));
+
+        $events = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('concert', 'concert-1')->ofTypes(SeatUpgradedForTaggedProjection::class))->events;
+
+        self::assertEquals([new SeatUpgradedForTaggedProjection('concert-1', 'A1')], array_map(static fn (Event $event): object => $event->getPayload(), $events));
     }
 
     public static function implementationsWithEventSourcingModule(): iterable
@@ -415,6 +476,12 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             }
 
             #[CommandHandler]
+            public function upgrade(UpgradeSeatForTaggedProjection $command, ConcertSeatingForTaggedProjection $concert): array
+            {
+                return [new SeatUpgradedForTaggedProjection($command->concertId, $command->seatId)];
+            }
+
+            #[CommandHandler]
             public function release(ReleaseSeatForTaggedProjection $command, ConcertSeatingForTaggedProjection $concert): array
             {
                 return $concert->isTaken($command->seatId) ? [new SeatReleasedForTaggedProjection($command->concertId, $command->seatId)] : [];
@@ -446,6 +513,18 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             }
 
             #[Converter]
+            public function fromUpgraded(SeatUpgradedForTaggedProjection $event): array
+            {
+                return ['concertId' => $event->concertId, 'seatId' => $event->seatId];
+            }
+
+            #[Converter]
+            public function toUpgraded(array $event): SeatUpgradedForTaggedProjection
+            {
+                return new SeatUpgradedForTaggedProjection($event['concertId'], $event['seatId']);
+            }
+
+            #[Converter]
             public function fromReleased(SeatReleasedForTaggedProjection $event): array
             {
                 return ['concertId' => $event->concertId, 'seatId' => $event->seatId];
@@ -465,6 +544,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             ConcertSeatingForTaggedProjection::class,
             SeatReservedForTaggedProjection::class,
             SeatReleasedForTaggedProjection::class,
+            SeatUpgradedForTaggedProjection::class,
             FestivalPassSoldForTaggedProjection::class,
             ...$classesToResolve,
         ];
@@ -543,6 +623,25 @@ final readonly class FestivalPassSoldForTaggedProjection
 }
 
 final readonly class SeatReservedForTaggedProjection
+{
+    public function __construct(
+        #[EventTag('concert')] public string $concertId,
+        public string $seatId,
+    ) {
+    }
+}
+
+final readonly class UpgradeSeatForTaggedProjection
+{
+    public function __construct(
+        public string $concertId,
+        public string $seatId,
+    ) {
+    }
+}
+
+#[NamedEvent('tagged_projection.seat_upgraded')]
+final readonly class SeatUpgradedForTaggedProjection
 {
     public function __construct(
         #[EventTag('concert')] public string $concertId,

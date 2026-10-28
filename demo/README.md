@@ -183,12 +183,13 @@ per seat) and `CustomerConcertSeats` (at most 4 seats per customer and concert).
 `customerConcert` tag rather than by `customer` and `concert` together, because a model scoped by `concert` would make
 every hold of a concert conflict with every other; `concert` stays on each event, captured by no model, as the
 projections' key: an append only increments its counter, so overlapping holds of one concert do not conflict on it.
-A hold and a confirm fetch the `Concert` read-only with `#[Fetch]`: holds of one concert never conflict with each
-other, while a cancellation or price change saved between their read and their append makes them conflict, and the
+A hold and a confirm fetch the `Concert` read-only with `#[Fetch]`: holds of different seats of one concert never conflict
+on the concert, while a cancellation or price change saved between their read and their append makes them conflict, and the
 retry decides again on the concert as it now is; a hold that lands before a cancellation is released by it. A conflict on a command-bus send is retried three times, and an exhausted one is refused with "someone
 was faster"; a `tickets.hold` or `tickets.confirm` arriving over the Distributed Bus is not retried, so a conflict
-there is refused at once with that reason, or, when the concert changed, with a reason naming the concert's change,
-and the buyer's next click holds the seat at the current prices. Every hold carries the `holdId` its requester chose, and only the order,
+there is refused at once with that reason, or, when the concert changed, with a reason naming the concert's change:
+a refused hold is held again at the current prices on the buyer's next click, a refused confirm sells nothing and is
+refunded. Every hold carries the `holdId` its requester chose, and only the order,
 customer, concert and hold id of a hold release it, so a late release of an earlier hold leaves a later one in place.
 A hold expires after `TICKETING_HOLD_SECONDS` (600 by default, 120 in `docker-compose.yml`), through a delayed message
 on `ticketing_async` that frees only the hold it was scheduled for. A confirm decides on the customer's holds and,

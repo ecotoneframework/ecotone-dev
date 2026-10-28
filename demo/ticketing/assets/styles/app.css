@@ -33,6 +33,8 @@
     --color-vip: #a16207;
     --color-vip-soft: #fef9c3;
     --color-vip-on-soft: #854d0e;
+    --color-vip-on-held: #78350f;
+    --color-vip-on-sold: #fcd34d;
     --color-seat-free: #ffffff;
     --color-seat-free-border: #16a34a;
     --color-seat-free-text: #166534;
@@ -1092,6 +1094,14 @@ select:focus-visible {
 .seat.tier-vip,
 .swatch.tier-vip {
     box-shadow: inset 0 3px 0 var(--color-vip);
+}
+
+.seat-held.tier-vip {
+    box-shadow: inset 0 3px 0 var(--color-vip-on-held);
+}
+
+.seat-sold.tier-vip {
+    box-shadow: inset 0 3px 0 var(--color-vip-on-sold);
 }
 
 .venue-back {

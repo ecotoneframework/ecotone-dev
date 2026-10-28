@@ -147,6 +147,32 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         self::assertSame($sales, $ticketing->sendQueryWithRouting('concert.sales', $concertId));
     }
 
+    public function test_rebuilding_resets_and_replays_each_concert_on_its_own_and_keeps_every_other_concerts_rows(): void
+    {
+        $ticketing = $this->ticketing();
+        $firstConcert = $this->concertOnSale($ticketing);
+        $secondConcert = $this->concertOnSale($ticketing);
+        foreach ([$firstConcert, $secondConcert] as $concertId) {
+            $orderId = Uuid::v7()->toRfc4122();
+            $customerId = Uuid::v7()->toRfc4122();
+            $this->hold($ticketing, $orderId, $concertId, 'A-1', $customerId);
+            $this->hold($ticketing, $orderId, $concertId, 'C-1', $customerId);
+            $this->confirm($ticketing, $orderId, $concertId, $customerId, ['C-1']);
+        }
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $seatMaps = [$firstConcert => $ticketing->sendQueryWithRouting('concert.seat_map', $firstConcert), $secondConcert => $ticketing->sendQueryWithRouting('concert.seat_map', $secondConcert)];
+        $sales = [$firstConcert => $ticketing->sendQueryWithRouting('concert.sales', $firstConcert), $secondConcert => $ticketing->sendQueryWithRouting('concert.sales', $secondConcert)];
+
+        $ticketing->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'concert_seat_map']);
+        $ticketing->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'concert_sales_ledger']);
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame($seatMaps, [$firstConcert => $ticketing->sendQueryWithRouting('concert.seat_map', $firstConcert), $secondConcert => $ticketing->sendQueryWithRouting('concert.seat_map', $secondConcert)]);
+        self::assertSame($sales, [$firstConcert => $ticketing->sendQueryWithRouting('concert.sales', $firstConcert), $secondConcert => $ticketing->sendQueryWithRouting('concert.sales', $secondConcert)]);
+        self::assertSame(['free' => 70, 'held' => 1, 'sold' => 1], $this->statusCounts($ticketing, $firstConcert));
+        self::assertSame(['free' => 70, 'held' => 1, 'sold' => 1], $this->statusCounts($ticketing, $secondConcert));
+    }
+
     public function test_selling_the_last_seat_of_a_concert_marks_it_sold_out_and_records_concert_sold_out(): void
     {
         $ticketing = $this->ticketing();

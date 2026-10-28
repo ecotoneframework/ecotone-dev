@@ -10,9 +10,11 @@ use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
@@ -83,6 +85,19 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         $focused = $this->follow($client, $client->request('GET', '/flow'), 'shipping', '::pack');
 
         self::assertSame(['shipping' => ['Channel<br/>shipping_work', 'CommandHandler<br/>class@anonymous::pack', 'shipping.pack']], $this->labelsByService(MermaidDiagram::fromPage($focused)));
+    }
+
+    public function test_a_followed_path_marks_each_step_that_runs_on_an_asynchronous_channel_with_and_without_folding(): void
+    {
+        $client = $this->ticketingHoldingSeatsAsynchronously();
+
+        foreach (['', '&fold=channels'] as $fold) {
+            $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('ticketing:' . $this->nodeIdOf($client, 'ticketing', 'tickets.hold')) . $fold));
+
+            self::assertTrue($diagram->hasEdge('ticketing', 'tickets.hold', 'async: ticketing_async', 'ticketing', '::hold', '==>'));
+            self::assertTrue($diagram->hasEdge('ticketing', 'seat.held', 'async: ticketing_async', 'ticketing', '::whenSeatHeld', '==>'));
+            self::assertSame([], array_values(array_filter($diagram->nodes, fn (array $node) => $node['label'] === 'Channel<br/>ticketing_async')));
+        }
     }
 
     public function test_following_a_distributed_bus_shows_only_what_it_receives_and_what_it_sends_to(): void
@@ -227,6 +242,42 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         $this->pulseHavingHeardFrom($client, ['orders' => $this->ordersSendingInvoiceCommandToBilling(), 'billing' => $this->billingCreatingInvoices()]);
 
         return $client;
+    }
+
+    private function ticketingHoldingSeatsAsynchronously(): KernelBrowser
+    {
+        $this->configurePulseWithServices('ticketing');
+        $client = $this->pulseWebClient();
+        $handlers = new class () {
+            public function __construct(private ?EventBus $eventBus = null)
+            {
+            }
+
+            #[Asynchronous('ticketing_async')]
+            #[CommandHandler('tickets.hold', endpointId: 'tickets.hold.handler')]
+            public function hold(array $payload): void
+            {
+                $this->eventBus->publishWithRouting('seat.held', $payload);
+            }
+
+            #[Asynchronous('ticketing_async')]
+            #[EventHandler('seat.held', endpointId: 'seat.held.handler')]
+            public function whenSeatHeld(array $payload): void
+            {
+            }
+        };
+        $this->pulseHavingHeardFrom($client, ['ticketing' => $this->distributedService('ticketing', $handlers, DistributedServiceMap::initialize(), [SimpleMessageChannelBuilder::createQueueChannel('ticketing_async')])]);
+
+        return $client;
+    }
+
+    private function nodeIdOf(KernelBrowser $client, string $service, string $title): string
+    {
+        $nodes = json_decode($client->request('GET', '/flow')->filter('pre.mermaid')->attr('data-graph-nodes'), true, flags: JSON_THROW_ON_ERROR);
+        $matching = array_values(array_filter($nodes, fn (array $node) => $node['service'] === $service && $node['title'] === $title));
+        self::assertCount(1, $matching);
+
+        return $matching[0]['node'];
     }
 
     private function follow(KernelBrowser $client, Crawler $page, string $service, string $titleEnding): Crawler

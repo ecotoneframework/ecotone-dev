@@ -121,7 +121,8 @@ To read one path rather than the whole system, click any node, or type its name 
 name) and press Enter: `/flow?focus={service}:{node}` draws only what led to that node and everything it causes, across
 services, with the node outlined, and lists the steps before and after it as links that re-centre the flow on them. The path
 never runs through a Distributed Bus or an interceptor, which many unrelated flows share; following a channel or a Distributed
-Bus itself shows only what feeds it and what it feeds. An exact name, ignoring case, wins over names that only contain it;
+Bus itself shows only what feeds it and what it feeds. A step that runs on an asynchronous channel is drawn as an
+`async: {channel}` arrow into its handler, so the path shows where it crosses an asynchronous boundary. An exact name, ignoring case, wins over names that only contain it;
 a name matching several nodes lists them to choose from.
 
 **collapse** next to a service draws it as one node carrying its distributed arrows, and **expand** brings its detail back

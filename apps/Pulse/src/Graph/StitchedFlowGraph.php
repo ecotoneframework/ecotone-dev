@@ -160,6 +160,11 @@ final class StitchedFlowGraph
                 $ids[$flow->name][$node->id] = sprintf('s%dn%d', $serviceIndex, $nodeIndex);
                 $lines[] = '        ' . $ids[$flow->name][$node->id] . self::shape($node, $highlight?->stateOf($flow->name, $node->id) === null ? null : $highlight->durationLabelOf($flow->name, $node->id));
             }
+            foreach ($flow->graph->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS) as $edge) {
+                if (isset($ids[$flow->name][$edge->to]) && ! isset($ids[$flow->name][$edge->from]) && $flow->graph->node($edge->from)->kind === FlowNodeKind::CHANNEL) {
+                    $asyncVia[$flow->name][$edge->to] = $flow->graph->node($edge->from)->label;
+                }
+            }
             $lines[] = '    end';
         }
         $edges = [];
@@ -245,12 +250,17 @@ final class StitchedFlowGraph
             $handlers = [];
             foreach ($outgoing as $edge) {
                 $fedOtherwise = array_filter($flow->graph->edgesTo($edge->to), fn (FlowEdge $into) => $into->kind !== FlowEdgeKind::ASYNCHRONOUS && $shown($into->from));
-                if ($edge->kind !== FlowEdgeKind::ASYNCHRONOUS || ! $shown($edge->to) || $fedOtherwise === []) {
+                if ($edge->kind === FlowEdgeKind::ASYNCHRONOUS && ! $shown($edge->to)) {
+                    continue;
+                }
+                if ($edge->kind !== FlowEdgeKind::ASYNCHRONOUS || $fedOtherwise === []) {
                     continue 2;
                 }
                 $handlers[] = $edge->to;
             }
-            $folded[$channel->id] = $handlers;
+            if ($handlers !== []) {
+                $folded[$channel->id] = $handlers;
+            }
         }
 
         return $folded;

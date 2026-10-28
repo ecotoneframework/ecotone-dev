@@ -14,6 +14,7 @@ final class CustomerDirectory
     {
         return Customer::query()
             ->whereNotIn('id', fn ($rushBuyers) => $rushBuyers->select('customer_id')->from('rush_buyers'))
+            ->whereNotIn('id', fn ($contendingBuyers) => $contendingBuyers->select('customer_id')->from('contention_buyers'))
             ->orderBy('name')
             ->get()
             ->map($this->summary(...))

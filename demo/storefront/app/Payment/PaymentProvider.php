@@ -8,33 +8,29 @@ use Ecotone\Api\Attribute\QueryHandler;
 
 final class PaymentProvider
 {
-    private const DECLINED_CARD_ENDING = '0000';
-    private const TRANSIENT_OUTAGE_CARD_ENDING = '9999';
-
     public function __construct(private readonly PaymentAttempts $attempts)
     {
     }
 
-    public function charge(string $orderId, string $paymentReference, string $cardEnding): ChargeOutcome
+    public function charge(string $orderId, string $paymentReference, PaymentOutcome $outcome): ChargeOutcome
     {
         $recordedOutcome = $this->recordedOutcomeOf($paymentReference);
         if ($recordedOutcome !== null) {
             return $recordedOutcome;
         }
-        if ($cardEnding === self::TRANSIENT_OUTAGE_CARD_ENDING && ! $this->attempts->isRecorded($paymentReference)) {
-            $this->attempts->record(paymentReference: $paymentReference, cardEnding: $cardEnding, status: 'unavailable');
+        if ($outcome === PaymentOutcome::PROVIDER_OUTAGE && ! $this->attempts->isRecorded($paymentReference)) {
+            $this->attempts->record(paymentReference: $paymentReference, status: 'unavailable');
 
             throw new PaymentProviderUnavailable(sprintf(
-                'The payment provider is unavailable, so payment %s of order %s with the card ending %s was not charged. It is a transient outage: replay this ChargeCard message from the dead letters in Ecotone Pulse, or run php artisan ecotone:deadletter:replay <messageId> in the storefront, and the card is charged again.',
+                'The payment provider is unavailable, so payment %s of order %s was not charged. It is a transient outage: replay this ChargeCard message from the dead letters in Ecotone Pulse, or run php artisan ecotone:deadletter:replay <messageId> in the storefront, and the card is charged again.',
                 $paymentReference,
                 $orderId,
-                $cardEnding,
             ));
         }
-        $outcome = $cardEnding === self::DECLINED_CARD_ENDING ? ChargeOutcome::DECLINED : ChargeOutcome::CHARGED;
-        $this->attempts->record(paymentReference: $paymentReference, cardEnding: $cardEnding, status: $outcome->value);
+        $chargeOutcome = $outcome === PaymentOutcome::DECLINED ? ChargeOutcome::DECLINED : ChargeOutcome::CHARGED;
+        $this->attempts->record(paymentReference: $paymentReference, status: $chargeOutcome->value);
 
-        return $outcome;
+        return $chargeOutcome;
     }
 
     public function refund(string $paymentReference): void

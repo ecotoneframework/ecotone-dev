@@ -21,6 +21,10 @@
             <p class="notice notice--refused">Seat {{ \App\Concert\SeatCode::ofSeatId($order['lastRefusal']['seatId']) }} was refused: {{ $order['lastRefusal']['reason'] }}</p>
         @endif
 
+        @if ($order['confirmationEmailBounces'])
+            <p class="notice">You chose at checkout that the confirmation email bounces, so the entry codes reach you here, on the order page.</p>
+        @endif
+
         @if ($order['tickets'] !== [])
             <h2>Tickets</h2>
             <table class="orders">

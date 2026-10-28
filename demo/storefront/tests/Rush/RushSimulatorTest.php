@@ -154,7 +154,7 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         self::assertSame('charged', $this->storefront->sendQueryWithRouting('payment.status', $order['paymentReference']));
     }
 
-    public function test_the_buyers_pay_with_cards_in_the_shares_of_the_rush(): void
+    public function test_the_buyers_choose_payment_outcomes_in_the_shares_of_the_rush(): void
     {
         $this->concertOnSale(seats: 12);
 
@@ -171,10 +171,11 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         self::assertNotNull($state['finishedAt']);
         self::assertSame(1, $this->storefront->getGateway(DeadLetterGateway::class)->count());
         $failureReasons = array_filter(array_map(fn (array $buyer) => $this->order($buyer['orderId'])['failureReason'], $this->buyers()));
-        self::assertSame(array_fill(0, 3, 'The card ending 0000 was declined, so the order is not paid and its seats are released. Pick the seats again and pay with another card.'), array_values($failureReasons));
+        self::assertSame(array_fill(0, 3, 'The card was declined, so the order is not paid and its seats are released. Pick the seats again and pay with another card.'), array_values($failureReasons));
+        $confirmationEmailBounces = array_map(fn (array $buyer) => $this->order($buyer['orderId'])['confirmationEmailBounces'], $this->buyers());
+        self::assertCount(1, array_filter($confirmationEmailBounces));
         $emails = array_map(fn (array $buyer) => $this->storefront->sendQueryWithRouting('customer.detail', $buyer['customerId'])['email'], $this->buyers());
-        self::assertCount(1, array_filter($emails, fn (string $email) => str_ends_with($email, '@bounce.example')));
-        self::assertCount(9, array_filter($emails, fn (string $email) => str_ends_with($email, '@example.com')));
+        self::assertCount(10, array_filter($emails, fn (string $email) => str_ends_with($email, '@example.com')));
     }
 
     public function test_the_rush_state_counts_each_buyer_once_at_the_stage_its_order_has_reached(): void
@@ -472,7 +473,7 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage(sprintf('Concert %s is scheduled, not on sale, so a rush cannot send buyers to it: ticketing holds seats only while a concert is on sale. Open its sales in ticketing and start a new rush, or start the rush on a concert listed as on_sale on /concerts.', self::CONCERT_ID));
 
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
 
     #[DataProvider('rushesThatCannotRun')]

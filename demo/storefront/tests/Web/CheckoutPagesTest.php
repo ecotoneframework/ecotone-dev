@@ -17,6 +17,7 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -199,10 +200,10 @@ final class CheckoutPagesTest extends TestCase
         $graceOrderId = $this->commandBus()->send(new StartOrder(customerId: $this->register('Grace Hopper', 'grace@example.com'), concertId: self::CONCERT_ID));
         $this->commandBus()->send(new RequestSeat(orderId: $graceOrderId, seatId: self::CONCERT_ID . '/B-2', holdId: 'hold-1'));
         $this->commandBus()->send(new MarkSeatHeld(orderId: $graceOrderId, seatId: self::CONCERT_ID . '/B-2', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
-        $linusOrderId = $this->commandBus()->send(new StartOrder(customerId: $this->register('Linus Bounce', 'linus@bounce.example'), concertId: self::CONCERT_ID));
+        $linusOrderId = $this->commandBus()->send(new StartOrder(customerId: $this->register('Linus Pauling', 'linus@example.com'), concertId: self::CONCERT_ID));
         $this->commandBus()->send(new RequestSeat(orderId: $linusOrderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1'));
         $this->commandBus()->send(new MarkSeatHeld(orderId: $linusOrderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
-        $this->commandBus()->send(new FailOrder(orderId: $linusOrderId, reason: 'The card ending 0000 was declined'));
+        $this->commandBus()->send(new FailOrder(orderId: $linusOrderId, reason: 'The card was declined'));
 
         $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json');
 
@@ -240,10 +241,10 @@ final class CheckoutPagesTest extends TestCase
         $response->assertOk();
         $response->assertSeeInOrder(['A-1', 'VIP', 'EUR 120.00', 'B-1', 'Standard', 'EUR 45.00', 'Total', 'EUR 165.00']);
         $response->assertSee('<form method="post" action="http://localhost/orders/' . $orderId . '/checkout"', escape: false);
-        $response->assertSee('<input type="text" name="cardNumber"', escape: false);
+        $response->assertDontSee('cardNumber', escape: false);
     }
 
-    public function test_the_checkout_page_names_both_ways_to_replay_the_charge_of_a_card_ending_9999(): void
+    public function test_the_checkout_page_offers_the_three_payment_outcomes_in_plain_words_with_success_chosen(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
@@ -251,31 +252,90 @@ final class CheckoutPagesTest extends TestCase
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId . '/checkout');
 
-        $response->assertSee('so the charge lands in the dead letters until you replay it from Ecotone Pulse or with <code>php artisan ecotone:deadletter:replay &lt;messageId&gt;</code> in the storefront.', escape: false);
+        $response->assertSeeInOrder([
+            '<input type="radio" name="paymentOutcome" value="succeeds" checked> The payment succeeds',
+            '<input type="radio" name="paymentOutcome" value="declined"> The card is declined: the order fails and its seats are released',
+            '<input type="radio" name="paymentOutcome" value="provider_outage"> The payment provider is down: the charge lands in the dead letters until you replay it from Ecotone Pulse',
+        ], escape: false);
     }
 
-    public function test_paying_on_the_checkout_page_moves_the_order_to_paying_and_shows_the_order(): void
+    public function test_the_checkout_page_names_both_ways_to_replay_a_charge_hit_by_the_provider_outage(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
-        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->post('/orders/' . $orderId . '/checkout', ['cardNumber' => '4242424242424242']);
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId . '/checkout');
+
+        $response->assertSee('the charge lands in the dead letters until you replay it from Ecotone Pulse or with <code>php artisan ecotone:deadletter:replay &lt;messageId&gt;</code> in the storefront', escape: false);
+    }
+
+    #[DataProvider('paymentOutcomes')]
+    public function test_paying_on_the_checkout_page_with_any_outcome_moves_the_order_to_paying_and_shows_the_order(string $paymentOutcome): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->post('/orders/' . $orderId . '/checkout', ['paymentOutcome' => $paymentOutcome]);
 
         $response->assertRedirect('/orders/' . $orderId);
         self::assertSame('paying', $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json')->json('status'));
     }
 
-    public function test_paying_with_a_card_number_that_is_not_digits_shows_the_refusal_on_the_checkout_page(): void
+    public function test_the_checkout_page_offers_to_let_the_confirmation_email_bounce_unticked(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
-        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->from('/orders/' . $orderId . '/checkout')->post('/orders/' . $orderId . '/checkout', ['cardNumber' => '4242 4242']);
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId . '/checkout');
+
+        $response->assertSee('<input type="checkbox" name="confirmationEmailBounces" value="1"> The confirmation email bounces: it lands in the dead letters, and the entry codes stay on the order page', escape: false);
+    }
+
+    public function test_paying_with_the_confirmation_email_chosen_to_bounce_keeps_the_choice_with_the_order(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+
+        $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->post('/orders/' . $orderId . '/checkout', ['paymentOutcome' => 'succeeds', 'confirmationEmailBounces' => '1']);
+
+        self::assertTrue($this->app->make(QueryBus::class)->sendWithRouting('order.detail', $orderId)['confirmationEmailBounces']);
+        $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId)->assertSee('You chose at checkout that the confirmation email bounces, so the entry codes reach you here, on the order page.');
+    }
+
+    public function test_paying_without_the_bounce_ticked_sends_the_confirmation_email(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+
+        $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->post('/orders/' . $orderId . '/checkout', ['paymentOutcome' => 'succeeds']);
+
+        self::assertFalse($this->app->make(QueryBus::class)->sendWithRouting('order.detail', $orderId)['confirmationEmailBounces']);
+        $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId)->assertDontSee('the confirmation email bounces');
+    }
+
+    public static function paymentOutcomes(): iterable
+    {
+        yield 'the payment succeeds' => ['succeeds'];
+        yield 'the card is declined' => ['declined'];
+        yield 'the payment provider is down' => ['provider_outage'];
+    }
+
+    public function test_paying_with_an_outcome_the_demo_provider_does_not_know_shows_the_refusal_on_the_checkout_page(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->from('/orders/' . $orderId . '/checkout')->post('/orders/' . $orderId . '/checkout', ['paymentOutcome' => 'maybe']);
 
         $response->assertRedirect('/orders/' . $orderId . '/checkout');
-        $response->assertSessionHas('refusal', sprintf('The card number for order %s is not 12 to 19 digits, so the card cannot be charged. Enter the number without spaces, like 4242424242424242.', $orderId));
+        $response->assertSessionHas('refusal', sprintf('The payment outcome "maybe" is not one the demo payment provider plays, so order %s is not paid. Choose succeeds (the payment succeeds), declined (the card is declined) or provider_outage (the payment provider is down).', $orderId));
+        self::assertSame('seats_held', $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json')->json('status'));
     }
 
     public function test_the_order_page_shows_the_held_seats_counting_down_to_their_expiry(): void
@@ -297,7 +357,7 @@ final class CheckoutPagesTest extends TestCase
         [$customerId, $orderId] = $this->startedOrder();
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
-        $this->commandBus()->send(new BeginPayment(orderId: $orderId));
+        $this->commandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
         $this->commandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId);
@@ -310,7 +370,7 @@ final class CheckoutPagesTest extends TestCase
         [$customerId, $orderId] = $this->startedOrder();
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
-        $this->commandBus()->send(new BeginPayment(orderId: $orderId));
+        $this->commandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
         $this->commandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
         $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: [['ticketNumber' => 'T-0001', 'seatId' => self::CONCERT_ID . '/A-1', 'tier' => 'vip', 'entryCode' => 'ENTRY-7F3A']]));
 
@@ -322,11 +382,11 @@ final class CheckoutPagesTest extends TestCase
     public function test_the_order_page_shows_why_the_order_failed(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
-        $this->commandBus()->send(new FailOrder(orderId: $orderId, reason: 'The card ending 0000 was declined'));
+        $this->commandBus()->send(new FailOrder(orderId: $orderId, reason: 'The card was declined'));
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId);
 
-        $response->assertSeeInOrder(['failed', 'The card ending 0000 was declined']);
+        $response->assertSeeInOrder(['failed', 'The card was declined']);
     }
 
     public function test_the_order_page_shows_the_last_refusal(): void

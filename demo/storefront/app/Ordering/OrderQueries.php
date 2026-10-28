@@ -60,6 +60,7 @@ final class OrderQueries
             'paymentReference' => $order->payment_reference,
             'failureReason' => $order->failure_reason,
             'tickets' => $order->tickets,
+            'confirmationEmailBounces' => $order->confirmation_email_bounces,
         ];
     }
 }

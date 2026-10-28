@@ -65,7 +65,10 @@ volumes are dropped.
    "asking ticketing" while the storefront sends `tickets.hold` over the Distributed Bus, then yours, with a countdown
    to the hold's expiry: ticketing holds a seat for 120 seconds in the demo (`TICKETING_HOLD_SECONDS`). Click it again
    to let it go. **Go to checkout** appears once every seat you asked for is held.
-3. Pay with any card number without spaces, `4242424242424242` for example. The charge runs on `storefront_async`, the
+3. At checkout, choose how the payment stub answers: **the payment succeeds** (the default), **the card is declined**
+   (the order fails and its seats are released) or **the payment provider is down** (the charge lands in the dead
+   letters until you replay it from Pulse, below), and whether **the confirmation email bounces** (unticked by default).
+   With the payment succeeding, the charge runs on `storefront_async`, the
    paid order sends `tickets.confirm`, ticketing sells the seats and issues the tickets, and the order page shows them
    with their entry codes a few seconds later. The confirmation email goes through the storefront's email stub, which
    records it in its `sent_emails` table instead of sending it.
@@ -83,8 +86,8 @@ every three seconds.
 ## Run a rush
 
 A concert's page on the storefront has a **Simulate a rush** panel: it sends a crowd of synthetic buyers after the seats
-while you pick yours. Start one with the defaults (30 buyers: 30% with a declined card, 10% hitting a payment provider
-outage, 10% with an email address that bounces), or from the console:
+while you pick yours. Start one with the defaults (30 buyers: 30% whose card is declined, 10% hitting a payment provider
+outage, 10% whose confirmation email bounces), or from the console:
 
 ```bash
 docker compose -f demo/docker-compose.yml exec storefront php artisan demo:rush <concertId> --buyers=20
@@ -96,7 +99,7 @@ The status line under the panel counts the buyers as they hold, pay, get their t
   meet "someone was faster"; ticketing's seat map stripes them amber as held and darkens them once sold.
 - **Pulse → Dead letters** groups the failed messages by exception: `PaymentProviderUnavailable` for the outage share
   and `EmailBounced` for the bounce share once their tickets are issued. Each one can be replayed or deleted, one at a
-  time or the whole group. A replayed `EmailBounced` bounces again, since `@bounce.example` accepts no mail: the
+  time or the whole group. A replayed `EmailBounced` bounces again, since the bounce was chosen for the order: the
   buyer's tickets and entry codes are on their order page (`/orders/{orderId}`, the account page links it), so the
   operator hands them over from there and then deletes the dead letter.
 - **Pulse → Traces** lists the flows of both services; open one to see every handler it went through, across the
@@ -114,9 +117,29 @@ The status line under the panel counts the buyers as they hold, pay, get their t
   `receive ticketing_async` hop into `renderTickets` and `registerEntryCodes`, another into `announceIssuedTickets`, and back to the
   storefront's `MarkTicketsIssued`. A whole rush is one trace, from `RushSimulator::start` through every tick.
 
+## Contend for one seat
+
+The **Contend for one seat** panel on a concert's page shows the Dynamic Consistency Boundary on a single seat. Pick a
+seat that ticketing has not sold and a number of buyers (2 to 10, 5 by default), then press **Contend for this seat with
+5 buyers**. The storefront creates that many synthetic buyers. Each starts an order and asks ticketing for the same
+seat, each with its own hold id, within the same moment. Ticketing decides them in whatever order they arrive, and the
+Dynamic Consistency Boundary on the seat lets exactly one hold stand: a request that reaches the seat while another is
+being appended is refused by the boundary itself, a later one is refused because the seat is already held. The
+contention page (`/contentions/{contentionId}`) polls their state every second. On a free seat one buyer turns green
+(held) and every other one turns red (refused), and each refusal says which of the two it was above the reason
+ticketing replied with: a request refused by the boundary is told the seat changed each time ticketing tried to hold
+it, one that read the seat already held is told who holds it and until when. The headline says how the contention
+ended: which buyer holds the seat, or, on a seat already held or sold, that no buyer got it, with ticketing's reason.
+
+The winner's order is a normal held order: **Continue as** that buyer to pay for it, or let the hold expire. Every
+refused buyer's order fails with ticketing's reason. In Jaeger, the contention is one trace across both services, with
+one `SeatSalesOverDistributedBus::hold` per buyer. A request that read the seat already held ends in its `process
+SeatSales::hold` marked as an error; one refused by the boundary ends in a `Conditional Append: ecotone_event_stream`
+marked as an error.
+
 ## Replay a dead-lettered payment
 
-A buyer of the outage share, or you with a card ending `9999`, hits the payment provider outage on the first attempt,
+A buyer of the outage share, or you choosing **the payment provider is down** at checkout, hits the outage on the first attempt,
 so the charge lands in the dead letters and the order stays paying. Open **Pulse → Dead letters**, expand
 `PaymentProviderUnavailable` and press **Replay all** (or tick one message and **Replay selected**): the charge runs
 again, succeeds this time, and the order completes: paid, confirmed by ticketing, tickets issued. Replay it while the
@@ -145,13 +168,14 @@ The slip resumes at the render with the ticket numbers it already allocated, and
 
 ## The stubs
 
-The storefront talks to no real payment provider or mail server. Three rules drive its failures:
+The storefront talks to no real payment provider or mail server. The checkout asks which answer each stub gives:
 
 | Input | What happens |
 |---|---|
-| A card ending `0000` | The charge is declined and the order fails, releasing its seats |
-| A card ending `9999` | The provider is unavailable on the first attempt: the charge is dead-lettered until you replay it, then succeeds |
-| An email address at `@bounce.example` (Linus Bounce) | The confirmation email bounces and always lands in the dead letters |
+| **The payment succeeds** (the default at checkout) | The card is charged and the order goes on to its tickets |
+| **The card is declined** | The charge is declined and the order fails, releasing its seats |
+| **The payment provider is down** | The provider is unavailable on the first attempt: the charge is dead-lettered until you replay it, then succeeds |
+| **The confirmation email bounces** (unticked by default) | The confirmation email bounces and always lands in the dead letters; the entry codes stay on the order page |
 
 ## Where each Ecotone feature lives
 
@@ -255,13 +279,13 @@ yours to release it. Every request to ticketing (`tickets.hold`, `tickets.releas
 is queued on `storefront_async`, the database queue in the same transaction as the order change behind it, so it leaves
 only when that change commits. The `storefront-worker` container sends it within a fraction of a second, so a hold still
 shows on the page's next poll; with the worker stopped, clicks wait in the queue. The checkout charges the card on
-`storefront_async` through a payment stub: a card ending `0000` is declined and the order fails, one ending `9999` hits
-a provider outage on its first attempt, so the charge lands in the dead letters until you replay it (`php artisan
+`storefront_async` through a payment stub whose answer the buyer chooses on the checkout form: the payment succeeds, the
+card is declined and the order fails, or the provider is down on the first attempt, so the charge lands in the dead letters until you replay it (`php artisan
 ecotone:deadletter:replay <messageId>` in the storefront). Only transient database errors and an order another writer
 saved first are retried on the spot, so a provider outage reaches the dead letters instead of being retried away, and a
 payment reference is charged once however often its charge runs. A paid order sends `tickets.confirm`; `tickets.issued`
-shows the tickets with their entry codes on the order page and emails them, and the email to Linus Bounce
-(`@bounce.example`) always lands in the dead letters. Replaying it cannot deliver it; the entry codes stay on Linus's
+shows the tickets with their entry codes on the order page and emails them, and an email the buyer chose to bounce at
+checkout always lands in the dead letters. Replaying it cannot deliver it; the entry codes stay on the buyer's
 order page, which is where the customer gets them, and the dead letter is deleted once they have.
 
 ### The rush
@@ -274,8 +298,8 @@ demo/docker-compose.yml exec storefront php artisan demo:rush <concertId> --buye
 buyers join and moves up to 10 buyers one step, the buyers that first asked ticketing earliest before the ones yet to
 ask, so the crowd's holds and charges never queue far ahead of yours. A buyer starts an order and asks ticketing for
 free seats one at a time, exactly as the seat picker does, tries another seat when one is refused (three refusals and it
-gives up), and pays once its seats are held: the declined share with a card ending `0000`, the outage share with one
-ending `9999`, the bounce share with an `@bounce.example` address. A buyer whose seats are not held 120 seconds after it
+gives up), and pays once its seats are held: the declined share choosing a declined card, the outage share choosing the
+provider outage, the bounce share choosing that its confirmation email bounces. A buyer whose seats are not held 120 seconds after it
 asked ticketing for the first one gives up and fails its order (`RUSH_BUYER_DEADLINE_SECONDS`), and a rush lets every
 buyer still picking go 600 seconds after it started (`RUSH_DEADLINE_SECONDS`), so a rush ends on its own even when
 ticketing never answers. The status line under the panel polls `/rushes/{rushId}/state.json` every second, stops
@@ -283,9 +307,25 @@ once every buyer has had a go, and counts the buyers created and then each buyer
 now: held (seats held, not yet paying), paying, paid, issued (tickets issued), failed (declined or refused by ticketing)
 and gave up. [Run a rush](#run-a-rush) lists what to watch while it runs.
 
-Rush buyers are synthetic customers: they are not listed on `/whoami`, so their account pages are not browsable. A rush
-is safe to replay from the dead letters; a tick handled twice is skipped, and a buyer that already joined is not
+A rush is safe to replay from the dead letters; a tick handled twice is skipped, and a buyer that already joined is not
 created twice. A tick in the dead letters pauses its rush until it is replayed.
+
+### The contention
+
+`POST /concerts/{concertId}/contentions` sends one `StartContention` through the command bus. Its handler registers
+the buyers, starts their orders, and sends one `RequestSeat` per buyer with a fresh hold id. The hold requests queue on
+`storefront_async` like any seat request, one message per buyer, and reach ticketing over the Distributed Bus as fast as
+the two `storefront-worker` replicas send them, while both `ticketing-worker` replicas decide them in parallel. Measured
+on a local stack, a run had one conflicting append in 11 of 12 runs of 5 buyers and 8 of 11 runs of 10 buyers with one
+`storefront-worker`, and in 10 of 12 and 12 of 12 with two, never more than one: two ticketing workers let at most two
+requests read the free seat together, and once one hold is appended every later request reads the seat held. An order records
+`SeatRefused` when ticketing refuses its hold, and the contention fails a contending buyer's order on it with ticketing's
+reason. Orders of real customers are left open, so their owners can pick another seat. `/contentions/{contentionId}/state.json`
+derives each buyer's state from its order: pending while its hold request is unanswered, held, refused with the reason,
+or released once the winner's hold has ended.
+
+Rush and contention buyers are synthetic customers: they are not listed on `/whoami`, so their account pages are not
+browsable, except that a contention offers to continue as its winner.
 
 ## Ports and parallel stacks
 

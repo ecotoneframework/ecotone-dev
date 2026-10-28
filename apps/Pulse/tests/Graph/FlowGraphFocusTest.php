@@ -56,6 +56,19 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         self::assertStringContainsString('order.place', $refocused->filter('[data-focus] h2')->text());
     }
 
+    public function test_the_steps_are_listed_below_the_graph_closed_until_asked_for(): void
+    {
+        $client = $this->ordersAndBilling();
+
+        $focused = $this->follow($client, $client->request('GET', '/flow'), 'billing', '::create');
+
+        $steps = $focused->filter('pre.mermaid ~ details[data-focus-steps]');
+        self::assertCount(1, $steps);
+        self::assertNull($steps->attr('open'));
+        self::assertSame('Steps: 5 before, 4 after', $steps->filter('summary')->text());
+        self::assertCount(0, $focused->filter('[data-focus] [data-focus-upstream]'));
+    }
+
     public function test_handlers_sharing_an_asynchronous_channel_or_an_interceptor_are_not_part_of_each_others_flow(): void
     {
         $this->configurePulseWithServices('shipping');

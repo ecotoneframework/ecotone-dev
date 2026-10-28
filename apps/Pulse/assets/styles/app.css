@@ -137,7 +137,7 @@ pre.mermaid a{cursor:pointer}pre.mermaid a:hover rect,pre.mermaid a:hover polygo
 pre.mermaid g.cluster[class*="svc-"] rect{stroke:var(--c)!important;stroke-width:1.5px!important;fill:color-mix(in srgb,var(--c) 7%,var(--surface))!important}
 pre.mermaid g.cluster[class*="svc-"] .nodeLabel,pre.mermaid g.cluster[class*="svc-"] text{fill:var(--fg)!important}
 .legend-items{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;list-style:none;padding:0;margin:.5rem 0}
-.legend summary{cursor:pointer;font-weight:600}
+.legend summary,[data-focus-steps] summary{cursor:pointer;font-weight:600}
 .service-links{width:auto;min-width:24rem}
 b.ok{background:none;border:0}
 pre.mermaid .tracePassed>*{fill:var(--ok-bg)!important;stroke:var(--ok)!important}

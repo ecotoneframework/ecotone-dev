@@ -33,6 +33,7 @@ use App\Sales\SoldSeat;
 use DateTimeImmutable;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Headers;
@@ -44,13 +45,15 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Symfony\SymfonyConnectionReference;
 use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
+use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
+use Symfony\Component\Messenger\Transport\TransportInterface;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -137,24 +140,21 @@ final class TicketIssuanceTest extends KernelTestCase
         self::assertSame(['slipFor', 'allocateNumbers', 'grantVipLoungePasses', 'renderTickets', 'registerEntryCodes', 'announceIssuedTickets'], array_column($recorder->steps, 'step'));
     }
 
-    public function test_tickets_are_rendered_as_text_files_on_the_messenger_transport_after_their_numbers_are_allocated(): void
+    public function test_tickets_are_rendered_as_text_files_by_the_consumer_after_their_numbers_are_allocated(): void
     {
         $storefront = $this->storefrontListening();
         $ticketing = $this->ticketing();
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
-        self::assertSame(1, $this->messagesWaitingOnTheTransport());
 
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
 
-        self::assertSame(1, $this->messagesWaitingOnTheTransport());
         self::assertSame([], glob($this->ticketFilesDirectory . '/*') ?: []);
         self::assertSame([], $this->receivedByStorefront($storefront));
 
-        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertSame(0, $this->messagesWaitingOnTheTransport());
         $tickets = array_column($this->receivedByStorefront($storefront)[0]['event']['tickets'], null, 'seatId');
         $vipTicket = file_get_contents($this->ticketFilesDirectory . '/' . $tickets[$concertId . '/A-1']['ticketNumber'] . '.txt');
         self::assertStringContainsString('The Midnight Owls', $vipTicket);
@@ -192,6 +192,44 @@ final class TicketIssuanceTest extends KernelTestCase
 
         self::assertSame([$firstAnnouncement], array_column($this->receivedByStorefront($storefront), 'event'));
         self::assertSame(array_column($firstAnnouncement['tickets'], 'ticketNumber'), array_column($ticketing->sendQueryWithRouting('tickets.of_order', $orderId), 'ticketNumber'));
+    }
+
+    public function test_the_tickets_issued_announcement_is_not_published_when_the_registration_rolls_back(): void
+    {
+        $storefront = $this->storefrontListening();
+        $ticketing = $this->ticketing(recorder: $this->registrationRollingBackUntilTheConnectionIsRestored());
+        $ticketing->getGateway(DeadLetterGateway::class)->deleteAll();
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
+
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        self::assertSame([], $ticketing->sendQueryWithRouting('tickets.of_order', $orderId));
+        self::assertSame([], $this->receivedByStorefront($storefront));
+        self::assertSame(1, $ticketing->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    public function test_a_replayed_issuance_announces_the_same_tickets_once(): void
+    {
+        $storefront = $this->storefrontListening();
+        $failingRegistration = $this->registrationRollingBackUntilTheConnectionIsRestored();
+        $ticketing = $this->ticketing(recorder: $failingRegistration);
+        $ticketing->getGateway(DeadLetterGateway::class)->deleteAll();
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $failingRegistration->connectionRestored = true;
+
+        $ticketing->getGateway(DeadLetterGateway::class)->replayAll();
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $received = $this->receivedByStorefront($storefront);
+        self::assertCount(1, $received);
+        self::assertSame([$concertId . '/A-1', $concertId . '/C-1'], array_column($received[0]['event']['tickets'], 'seatId'));
+        self::assertSame(array_column($ticketing->sendQueryWithRouting('tickets.of_order', $orderId), 'ticketNumber'), array_column($received[0]['event']['tickets'], 'ticketNumber'));
+        self::assertSame(0, $ticketing->getGateway(DeadLetterGateway::class)->count());
     }
 
     public function test_the_ticket_detail_query_returns_the_ticket_with_its_seat_tier_entry_code_vip_lounge_pass_and_issue_time(): void
@@ -251,7 +289,6 @@ final class TicketIssuanceTest extends KernelTestCase
         self::assertSame([$concertId . '/A-1', $concertId . '/C-1'], array_column($received[0]['event']['tickets'], 'seatId'));
         self::assertSame(array_column($received[0]['event']['tickets'], 'ticketNumber'), array_column($ticketing->sendQueryWithRouting('tickets.of_order', $orderId), 'ticketNumber'));
         self::assertSame(0, $ticketing->getGateway(DeadLetterGateway::class)->count());
-        self::assertSame(0, $this->messagesWaitingOnTheTransport());
     }
 
     public function test_the_demo_seed_sells_its_seats_without_announcing_tickets_to_the_storefront_while_a_real_order_of_the_same_concert_still_gets_them(): void
@@ -351,6 +388,35 @@ final class TicketIssuanceTest extends KernelTestCase
         );
     }
 
+    private function registrationRollingBackUntilTheConnectionIsRestored(): object
+    {
+        return new class () {
+            public bool $connectionRestored = false;
+
+            public bool $registeredInThisAttempt = false;
+
+            #[Around(precedence: Precedence::COLLECTOR_SENDER_PRECEDENCE - 1, pointcut: AsynchronousRunningEndpoint::class)]
+            public function rollBackTheTransactionThatRegisteredTheTickets(MethodInvocation $invocation): mixed
+            {
+                $this->registeredInThisAttempt = false;
+                $result = $invocation->proceed();
+                if ($this->registeredInThisAttempt && ! $this->connectionRestored) {
+                    throw new RuntimeException('The database connection dropped before the registration of the tickets committed.');
+                }
+
+                return $result;
+            }
+
+            #[Around(pointcut: TicketIssuance::class . '::registerEntryCodes')]
+            public function noticeTheRegistration(MethodInvocation $invocation): mixed
+            {
+                $this->registeredInThisAttempt = true;
+
+                return $invocation->proceed();
+            }
+        };
+    }
+
     private function stepRecorder(): object
     {
         return new class () {
@@ -414,14 +480,9 @@ final class TicketIssuanceTest extends KernelTestCase
         ];
     }
 
-    private function transport(): MessageCountAwareInterface
+    private function transport(): TransportInterface
     {
         return self::getContainer()->get('messenger.transport.ticketing_async');
-    }
-
-    private function messagesWaitingOnTheTransport(): int
-    {
-        return $this->transport()->getMessageCount();
     }
 
     private function concertOnSale(FlowTestSupport $ticketing): string

@@ -87,7 +87,7 @@ The status line under the panel counts the buyers as they hold, pay, get their t
   faster", while a send through the command bus, such as an expiry, retries it up to three times, one `Decision
   Models` span per attempt. A payment's trace (`process Checkout::pay` in `storefront`) runs on into ticketing's
   confirm and the issuance orchestrator: `TicketIssuance::allocateNumbers` and `grantVipLoungePasses`, then a
-  `receive ticketing_async` hop into `renderTickets`, `registerEntryCodes` and `announceIssuedTickets`, and back to the
+  `receive ticketing_async` hop into `renderTickets` and `registerEntryCodes`, another into `announceIssuedTickets`, and back to the
   storefront's `MarkTicketsIssued`. A whole rush is one trace, from `RushSimulator::start` through every tick.
 
 ## Replay a dead-lettered payment
@@ -187,14 +187,15 @@ issuance starts once per order rather than once per seat: an event handler on `t
 with the `concertId` header to the `TicketIssuance` orchestrator, so the start survives a worker restart. The
 orchestrator builds its routing slip from the order: `ticket.allocate_numbers`, then `ticket.vip_lounge_pass` only when
 the order holds a VIP seat, then `ticket.render` on `ticketing_async`, which writes `var/tickets/<ticketNumber>.txt`,
-then `ticket.register_entry_codes` into the `issued_tickets` table, and `ticket.announce`, which publishes
-`tickets.issued` to the storefront. Ticket numbers are UUIDs and entry codes are random, both generated once per order,
-so issuing an issued order again announces the same tickets. The announce is effectively once rather than exactly once:
-it publishes to RabbitMQ from the asynchronous step without an outbox, so a worker that dies between the publish and
-the commit announces the same tickets again on the retry, and the storefront treats an identical set as already
-applied. Each ticket has a page at `/tickets/{ticketNumber}` on the ticketing URL, read through `ticket.detail`. In
-Jaeger, the trace of a confirm shows the allocate and VIP steps, and then, after a `receive ticketing_async` hop, the
-render, register and announce steps. `TICKETING_RENDER_FAILS_FOR_SEAT` on `ticketing-worker` makes the render of one
+then `ticket.register_entry_codes` into the `issued_tickets` table, and `ticket.announce` on `ticketing_async` again,
+which publishes `tickets.issued` to the storefront. The announce is queued in the same transaction as the
+registration, so a registration that rolls back announces nothing, and its replay announces the tickets it registered.
+Ticket numbers are UUIDs and entry codes are random, both generated once per order, so issuing an issued order again
+announces the same tickets. The announce itself is effectively once rather than exactly once: a worker that dies
+between the publish to RabbitMQ and its own commit announces the same tickets again on the retry, and the storefront
+treats an identical set as already applied. Each ticket has a page at `/tickets/{ticketNumber}` on the ticketing URL,
+read through `ticket.detail`. In Jaeger, the trace of a confirm shows the allocate and VIP steps, then, after a
+`receive ticketing_async` hop, the render and register steps, and after a second hop the announce step. `TICKETING_RENDER_FAILS_FOR_SEAT` on `ticketing-worker` makes the render of one
 seat fail, see [Force a render failure and replay it](#force-a-render-failure-and-replay-it).
 
 ### Customers and orders

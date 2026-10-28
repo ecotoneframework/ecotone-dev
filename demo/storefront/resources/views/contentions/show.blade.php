@@ -30,7 +30,7 @@
                 </li>
             @endforeach
         </ol>
-        <p class="muted">The held buyer's order is a normal held order: continue as that buyer to pay for it, or let the hold expire when its countdown runs out. Each refused buyer's order fails with ticketing's reason. In <a href="{{ $jaegerUrl }}">Jaeger</a> the contention is one trace across both services, with one <code>SeatSalesOverDistributedBus::hold</code> per buyer: a request that read the seat already held is refused in its <code>Decision Models: App\Sales\SeatSales::hold</code>, and one that raced the winner to the append fails its <code>Conditional Append</code>, marked as an error, and is refused because the seat changed.</p>
+        <p class="muted">The held buyer's order is a normal held order: continue as that buyer to pay for it, or let the hold expire when its countdown runs out. Each refused buyer's order fails with ticketing's reason. In <a href="{{ $jaegerUrl }}">Jaeger</a> the contention is one trace across both services, with one <code>SeatSalesOverDistributedBus::hold</code> per buyer: a request that read the seat already held ends in its <code>process SeatSales::hold</code> marked as an error, and one that reached the seat while another hold was being appended fails its <code>Conditional Append: ecotone_event_stream</code>, marked as an error, and is refused because the seat changed.</p>
     </main>
     <script src="{{ asset('js/contention.js') }}"></script>
 @endsection

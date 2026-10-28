@@ -94,6 +94,8 @@ final class ContentionPagesTest extends TestCase
         $response->assertSeeInOrder(['Contending buyer 4', 'refused', self::REFUSAL, 'Contending buyer 5', 'held'], escape: false);
         $response->assertSee('<input type="hidden" name="customerId" value="' . $buyers[4]['customerId'] . '">', escape: false);
         $response->assertSee('a normal held order');
+        $response->assertSee('a request that read the seat already held ends in its <code>process SeatSales::hold</code> marked as an error', escape: false);
+        $response->assertDontSee('Decision Models: App\\Sales\\SeatSales::hold');
     }
 
     public function test_the_contention_page_says_of_each_refusal_whether_the_boundary_refused_it_or_the_seat_was_already_held(): void

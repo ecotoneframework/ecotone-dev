@@ -126,8 +126,9 @@ ended: which buyer holds the seat, or, on a seat already held or sold, that no b
 
 The winner's order is a normal held order: **Continue as** that buyer to pay for it, or let the hold expire. Every
 refused buyer's order fails with ticketing's reason. In Jaeger, the contention is one trace across both services, with
-one `SeatSalesOverDistributedBus::hold` per buyer. A refusal decided on the seat's events ends in `process
-SeatSales::hold`; a lost race ends in a `Conditional Append: ecotone_event_stream` marked as an error.
+one `SeatSalesOverDistributedBus::hold` per buyer. A request that read the seat already held ends in its `process
+SeatSales::hold` marked as an error; one refused by the boundary ends in a `Conditional Append: ecotone_event_stream`
+marked as an error.
 
 ## Replay a dead-lettered payment
 

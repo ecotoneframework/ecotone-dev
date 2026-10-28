@@ -9,7 +9,6 @@ use App\Notification\OrderConfirmation;
 use App\Notification\SentEmails;
 use App\Ordering\BeginPayment;
 use App\Ordering\MarkPaid;
-use App\Ordering\MarkSeatHeld;
 use App\Ordering\MarkTicketsIssued;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -78,8 +77,8 @@ final class OrderConfirmationEmailTest extends StorefrontFlowTestCase
     private function paidOrderOf(string $name, string $email): string
     {
         $orderId = $this->startOrderOf($name, $email);
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11', expiresAt: self::EXPIRES_AT));
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-11');
         $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId));
         $this->storefront->getCommandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
 

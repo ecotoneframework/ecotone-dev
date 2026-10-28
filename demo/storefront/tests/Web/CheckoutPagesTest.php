@@ -11,6 +11,7 @@ use App\Ordering\MarkPaid;
 use App\Ordering\MarkSeatHeld;
 use App\Ordering\MarkTicketsIssued;
 use App\Ordering\RecordSeatRefusal;
+use App\Ordering\RequestSeat;
 use App\Ordering\StartOrder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
@@ -133,7 +134,8 @@ final class CheckoutPagesTest extends TestCase
     public function test_picking_a_seat_the_order_holds_is_a_conflict_naming_the_refusal(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
         $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/orders/' . $orderId . '/seats', ['seatId' => self::CONCERT_ID . '/A-1']);
 
@@ -144,7 +146,8 @@ final class CheckoutPagesTest extends TestCase
     public function test_releasing_a_held_seat_removes_it_from_the_order_state(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
         $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/orders/' . $orderId . '/seats/release', ['seatId' => self::CONCERT_ID . '/A-1']);
 
@@ -155,8 +158,10 @@ final class CheckoutPagesTest extends TestCase
     public function test_the_order_state_reports_held_seats_with_their_expiry_and_the_earliest_expiry(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', expiresAt: self::LATER_EXPIRES_AT));
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1', expiresAt: self::LATER_EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
         $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json');
 
@@ -180,7 +185,8 @@ final class CheckoutPagesTest extends TestCase
     public function test_the_order_state_reports_the_last_refusal(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
-        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', reason: 'someone was faster: seat A-1'));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused'));
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused', reason: 'someone was faster: seat A-1'));
 
         $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json');
 
@@ -191,9 +197,11 @@ final class CheckoutPagesTest extends TestCase
     {
         [$customerId, $orderId] = $this->startedOrder();
         $graceOrderId = $this->commandBus()->send(new StartOrder(customerId: $this->register('Grace Hopper', 'grace@example.com'), concertId: self::CONCERT_ID));
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $graceOrderId, seatId: self::CONCERT_ID . '/B-2', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $graceOrderId, seatId: self::CONCERT_ID . '/B-2', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $graceOrderId, seatId: self::CONCERT_ID . '/B-2', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
         $linusOrderId = $this->commandBus()->send(new StartOrder(customerId: $this->register('Linus Bounce', 'linus@bounce.example'), concertId: self::CONCERT_ID));
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $linusOrderId, seatId: self::CONCERT_ID . '/B-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $linusOrderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $linusOrderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
         $this->commandBus()->send(new FailOrder(orderId: $linusOrderId, reason: 'The card ending 0000 was declined'));
 
         $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json');
@@ -222,8 +230,10 @@ final class CheckoutPagesTest extends TestCase
     public function test_the_checkout_page_lists_the_held_seats_with_their_prices_and_the_total(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId . '/checkout');
 
@@ -236,7 +246,8 @@ final class CheckoutPagesTest extends TestCase
     public function test_the_checkout_page_names_both_ways_to_replay_the_charge_of_a_card_ending_9999(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId . '/checkout');
 
@@ -246,7 +257,8 @@ final class CheckoutPagesTest extends TestCase
     public function test_paying_on_the_checkout_page_moves_the_order_to_paying_and_shows_the_order(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->post('/orders/' . $orderId . '/checkout', ['cardNumber' => '4242424242424242']);
 
@@ -257,7 +269,8 @@ final class CheckoutPagesTest extends TestCase
     public function test_paying_with_a_card_number_that_is_not_digits_shows_the_refusal_on_the_checkout_page(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->from('/orders/' . $orderId . '/checkout')->post('/orders/' . $orderId . '/checkout', ['cardNumber' => '4242 4242']);
 
@@ -268,7 +281,8 @@ final class CheckoutPagesTest extends TestCase
     public function test_the_order_page_shows_the_held_seats_counting_down_to_their_expiry(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId);
 
@@ -281,7 +295,8 @@ final class CheckoutPagesTest extends TestCase
     public function test_the_order_page_shows_the_payment_state_while_paid(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
         $this->commandBus()->send(new BeginPayment(orderId: $orderId));
         $this->commandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
 
@@ -293,7 +308,8 @@ final class CheckoutPagesTest extends TestCase
     public function test_the_order_page_shows_the_issued_tickets_with_their_entry_codes(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
         $this->commandBus()->send(new BeginPayment(orderId: $orderId));
         $this->commandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
         $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: [['ticketNumber' => 'T-0001', 'seatId' => self::CONCERT_ID . '/A-1', 'tier' => 'vip', 'entryCode' => 'ENTRY-7F3A']]));
@@ -316,7 +332,8 @@ final class CheckoutPagesTest extends TestCase
     public function test_the_order_page_shows_the_last_refusal(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
-        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', reason: 'someone was faster: seat A-1'));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused'));
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused', reason: 'someone was faster: seat A-1'));
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId);
 

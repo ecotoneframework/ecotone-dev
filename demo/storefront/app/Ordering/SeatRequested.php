@@ -11,6 +11,7 @@ final class SeatRequested
         public readonly string $concertId,
         public readonly string $customerId,
         public readonly string $seatId,
+        public readonly string $holdId,
     ) {
     }
 }

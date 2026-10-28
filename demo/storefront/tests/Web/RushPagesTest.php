@@ -6,6 +6,7 @@ namespace Tests\Web;
 
 use App\Customer\RegisterCustomer;
 use App\Ordering\MarkSeatHeld;
+use App\Ordering\RequestSeat;
 use App\Ordering\StartOrder;
 use App\Rush\StartRush;
 use DomainException;
@@ -148,7 +149,8 @@ final class RushPagesTest extends TestCase
         $this->scheduleOnSale();
         $customerId = $this->app->make(CommandBus::class)->send(new RegisterCustomer(name: 'Rush buyer 1', email: 'rush-1@example.com'));
         $orderId = $this->app->make(CommandBus::class)->send(new StartOrder(customerId: $customerId, concertId: self::CONCERT_ID));
-        $this->app->make(CommandBus::class)->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', expiresAt: '2026-10-25T12:02:00+00:00'));
+        $this->app->make(CommandBus::class)->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1'));
+        $this->app->make(CommandBus::class)->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1', expiresAt: '2026-10-25T12:02:00+00:00'));
 
         $response = $this->getJson('/concerts/' . self::CONCERT_ID . '/taken-seats.json');
 

@@ -6,7 +6,6 @@ namespace Tests\Rush;
 
 use App\Concert\ConcertCatalogue;
 use App\Concert\ConcertProjector;
-use App\Ordering\MarkSeatHeld;
 use App\Ordering\MarkTicketsIssued;
 use App\Ordering\TicketingReplies;
 use App\Payment\Checkout;
@@ -123,7 +122,7 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
     {
         $this->concertOnSale(seats: 6);
         $adaOrderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $adaOrderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->seatIsHeld($adaOrderId, self::CONCERT_ID . '/A-1');
 
         $this->startRush(buyers: 5, seatsPerBuyer: 1);
         $this->rushRuns();

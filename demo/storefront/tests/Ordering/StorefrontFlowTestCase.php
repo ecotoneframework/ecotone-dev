@@ -11,7 +11,9 @@ use App\Infrastructure\EcotoneConfiguration;
 use App\Ordering\Order;
 use App\Ordering\OrderQueries;
 use App\Ordering\OrderRepository;
+use App\Ordering\RequestSeat;
 use App\Ordering\StartOrder;
+use App\Ordering\TicketingReplies;
 use App\Ordering\TicketingRequests;
 use App\Payment\PaymentAttempts;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -38,7 +40,7 @@ abstract class StorefrontFlowTestCase extends TestCase
     protected const CONCERT_ID = '0199f3a8-6f2a-7c1e-9a51-3d2f6c1b8e40';
     protected const EXPIRES_AT = '2026-10-25T12:02:00+00:00';
 
-    private const STOREFRONT_SERVICES = [EcotoneConfiguration::class, Order::class, OrderRepository::class, Customer::class, OrderQueries::class, CustomerDirectory::class, TicketingRequests::class];
+    private const STOREFRONT_SERVICES = [EcotoneConfiguration::class, Order::class, OrderRepository::class, Customer::class, OrderQueries::class, CustomerDirectory::class, TicketingRequests::class, TicketingReplies::class];
 
     private array $channels;
 
@@ -75,6 +77,12 @@ abstract class StorefrontFlowTestCase extends TestCase
         $customerId = $this->storefront->getCommandBus()->send(new RegisterCustomer(name: $name, email: $email));
 
         return $this->storefront->getCommandBus()->send(new StartOrder(customerId: $customerId, concertId: self::CONCERT_ID));
+    }
+
+    protected function seatIsHeld(string $orderId, string $seatId): void
+    {
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: $seatId, holdId: 'hold-1'));
+        $this->ticketingReplies();
     }
 
     protected function order(string $orderId): array
@@ -127,7 +135,7 @@ abstract class StorefrontFlowTestCase extends TestCase
             }
         };
         $this->app->instance($repository::class, $repository);
-        $services = [...self::STOREFRONT_SERVICES, ...$this->storefrontServices()];
+        $services = array_values(array_unique([...self::STOREFRONT_SERVICES, ...$this->storefrontServices()]));
         foreach ($services as $service) {
             if (interface_exists($service)) {
                 $this->app->bind($service, fn () => $this->storefront->getGateway($service));

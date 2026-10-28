@@ -21,6 +21,7 @@ final class TicketingRequests
             'concertId' => $event->concertId,
             'seatId' => $event->seatId,
             'customerId' => $event->customerId,
+            'holdId' => $event->holdId,
         ], replyRoutingKey: 'tickets.hold.result');
     }
 
@@ -28,15 +29,15 @@ final class TicketingRequests
     #[EventHandler(endpointId: 'release_seat')]
     public function releaseSeat(SeatReleased $event, #[Reference] DistributedBus $distributedBus): void
     {
-        $this->sendRelease($distributedBus, $event->orderId, $event->concertId, $event->customerId, $event->seatId);
+        $this->sendRelease($distributedBus, $event->orderId, $event->concertId, $event->customerId, $event->seatId, $event->holdId);
     }
 
     #[Asynchronous('storefront_async')]
     #[EventHandler(endpointId: 'release_seats_of_failed_order')]
     public function releaseSeatsOfFailedOrder(OrderFailed $event, #[Reference] DistributedBus $distributedBus): void
     {
-        foreach ($event->heldSeatIds as $seatId) {
-            $this->sendRelease($distributedBus, $event->orderId, $event->concertId, $event->customerId, $seatId);
+        foreach ($event->holdIdsOfHeldSeats as $seatId => $holdId) {
+            $this->sendRelease($distributedBus, $event->orderId, $event->concertId, $event->customerId, $seatId, $holdId);
         }
     }
 
@@ -53,13 +54,14 @@ final class TicketingRequests
         ], replyRoutingKey: 'tickets.confirm.result');
     }
 
-    private function sendRelease(DistributedBus $distributedBus, string $orderId, string $concertId, string $customerId, string $seatId): void
+    private function sendRelease(DistributedBus $distributedBus, string $orderId, string $concertId, string $customerId, string $seatId, string $holdId): void
     {
         $this->send($distributedBus, 'tickets.release', $orderId, $concertId, [
             'orderId' => $orderId,
             'concertId' => $concertId,
             'seatId' => $seatId,
             'customerId' => $customerId,
+            'holdId' => $holdId,
         ], replyRoutingKey: null);
     }
 

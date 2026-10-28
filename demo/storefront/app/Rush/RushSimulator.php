@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Random\Engine\Mt19937;
 use Random\Randomizer;
+use Symfony\Component\Uid\Uuid;
 
 final class RushSimulator
 {
@@ -218,7 +219,7 @@ final class RushSimulator
         }
         $pendingSeatId = $seatIdsForThisBuyer[array_rand($seatIdsForThisBuyer)];
         $freeSeatIds = array_values(array_diff($freeSeatIds, [$pendingSeatId]));
-        $commandBus->send(new RequestSeat(orderId: $buyer['order_id'], seatId: $pendingSeatId));
+        $commandBus->send(new RequestSeat(orderId: $buyer['order_id'], seatId: $pendingSeatId, holdId: Uuid::v7()->toRfc4122()));
 
         return $this->step(stage: self::PICKING, pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
     }

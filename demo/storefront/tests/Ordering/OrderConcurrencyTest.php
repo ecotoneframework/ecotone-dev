@@ -103,10 +103,11 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
         $this->app->make($this->anotherConsumer)->commitsWhileSeatIsMarkedHeld = new FailOrder(orderId: $orderId, reason: 'the rush deadline passed');
 
-        $this->expectException(ConcurrencyException::class);
-        $this->expectExceptionMessage(sprintf('Aggregate %s %s was loaded at version 1, but', Order::class, $orderId));
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
 
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
+        $this->expectException(ConcurrencyException::class);
+        $this->expectExceptionMessage(sprintf('Aggregate %s %s was loaded at version 2, but', Order::class, $orderId));
+        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
     }
 
     public function test_a_refused_held_seat_leaves_the_order_as_the_other_consumer_saved_it(): void
@@ -114,8 +115,10 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
         $this->app->make($this->anotherConsumer)->commitsWhileSeatIsMarkedHeld = new FailOrder(orderId: $orderId, reason: 'the rush deadline passed');
 
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
+
         try {
-            $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
+            $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
         } catch (ConcurrencyException) {
         }
 
@@ -128,8 +131,8 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
         $this->app->make($this->anotherConsumer)->commitsWhileSeatIsMarkedHeld = new FailOrder(orderId: $orderId, reason: 'the rush deadline passed');
-        $this->ticketingService->holdReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'outcome' => 'held', 'reason' => null, 'expiresAt' => self::EXPIRES_AT];
-        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12'));
+        $this->ticketingService->holdReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'holdId' => 'hold-1', 'outcome' => 'held', 'reason' => null, 'expiresAt' => self::EXPIRES_AT];
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
         $this->ticketingReceives();
 
         $this->storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
@@ -146,7 +149,7 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
         $this->storefront->getCommandBus()->send(new StartRush(rushId: self::RUSH_ID, concertId: self::CONCERT_ID, buyers: 1, declinedShare: 0, outageShare: 0, bounceShare: 0, seatsPerBuyer: 1));
         $this->rushRuns(rounds: 4);
         $orderId = $this->storefront->sendQueryWithRouting('rush.buyers', self::RUSH_ID)[0]['orderId'];
-        $this->app->make($this->anotherConsumer)->commitsWhileOrderFails = new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT);
+        $this->app->make($this->anotherConsumer)->commitsWhileOrderFails = new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1', expiresAt: self::EXPIRES_AT);
 
         $this->rushRuns(rounds: 20);
 
@@ -161,9 +164,8 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
     public function test_an_order_changed_one_command_after_another_saves_every_change(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11', expiresAt: self::EXPIRES_AT));
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-11');
         $this->storefront->getCommandBus()->send(new FailOrder(orderId: $orderId, reason: 'the rush deadline passed'));
 
         $order = $this->order($orderId);

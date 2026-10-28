@@ -9,6 +9,7 @@ final class MarkSeatHeld
     public function __construct(
         public readonly string $orderId,
         public readonly string $seatId,
+        public readonly string $holdId,
         public readonly string $expiresAt,
     ) {
     }

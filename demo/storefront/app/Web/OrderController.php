@@ -17,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Symfony\Component\Uid\Uuid;
 
 final class OrderController
 {
@@ -55,7 +56,7 @@ final class OrderController
         $seatId = (string) $request->input('seatId');
 
         return $this->refusedAsConflict(function () use ($order, $seatId) {
-            $this->commandBus->send(new RequestSeat(orderId: $order['orderId'], seatId: $seatId));
+            $this->commandBus->send(new RequestSeat(orderId: $order['orderId'], seatId: $seatId, holdId: Uuid::v7()->toRfc4122()));
 
             return response()->json(['requested' => $seatId], 202);
         });

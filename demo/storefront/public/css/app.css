@@ -298,26 +298,30 @@ button.seat:disabled {
     display: none !important;
 }
 
-.rush-panel {
+.rush-panel,
+.contention-panel {
     margin: 1rem 0;
     padding: 1rem;
     background: #fff;
     border-radius: 0.5rem;
 }
 
-.rush-panel h2 {
+.rush-panel h2,
+.contention-panel h2 {
     margin-top: 0;
     font-size: 1.1rem;
 }
 
-.rush-panel__form {
+.rush-panel__form,
+.contention-panel__form {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
     align-items: end;
 }
 
-.rush-panel__form label {
+.rush-panel__form label,
+.contention-panel__form label {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
@@ -332,6 +336,58 @@ button.seat:disabled {
     font-variant-numeric: tabular-nums;
 }
 
-.rush-panel__status--failed {
+.rush-panel__status--failed,
+.contention-panel__status {
     color: #b91c1c;
+}
+
+.contention-panel__form input {
+    width: 6rem;
+}
+
+.contention__buyers {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0;
+    list-style: none;
+}
+
+.contention__buyer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-left: 0.4rem solid #9ca3af;
+    border-radius: 0.4rem;
+    background: #f3f4f6;
+}
+
+.contention__buyer--held {
+    border-color: #15803d;
+    background: #dcfce7;
+}
+
+.contention__buyer--refused {
+    border-color: #b91c1c;
+    background: #fee2e2;
+}
+
+.contention__name {
+    font-weight: 700;
+}
+
+.contention__state {
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+}
+
+.contention__reason {
+    flex-basis: 100%;
+}
+
+.contention__continue {
+    margin: 0;
 }

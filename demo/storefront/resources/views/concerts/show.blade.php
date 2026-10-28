@@ -16,6 +16,7 @@
         @endif
         @if ($concert['status'] === 'on_sale')
             @include('rushes.panel', ['concertId' => $concert['concertId']])
+            @include('contentions.panel', ['concert' => $concert])
         @endif
         @if ($picksSeats)
             <div class="seat-picker-layout">

@@ -243,6 +243,60 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         self::assertEquals([new SeatUpgradedForTaggedProjection('concert-1', 'A1')], array_map(static fn (Event $event): object => $event->getPayload(), $events));
     }
 
+    public static function implementationsWhoseEventsOutliveTheApplication(): iterable
+    {
+        yield 'dbal' => ['dbal'];
+        yield 'dbal-manager-registry' => ['dbal-manager-registry'];
+    }
+
+    #[DataProvider('implementationsWhoseEventsOutliveTheApplication')]
+    public function test_a_handler_routed_by_an_event_name_no_class_of_the_application_declares_projects_the_stored_events_of_that_name_when_triggered_and_on_rebuild(string $implementation): void
+    {
+        $writer = $this->bootstrap($implementation, []);
+        $writer->sendCommand(new UpgradeSeatForTaggedProjection('concert-1', 'A1'));
+        $writer->sendCommand(new UpgradeSeatForTaggedProjection('concert-2', 'B1'));
+        $writer->sendCommand(new UpgradeSeatForTaggedProjection('concert-1', 'A2'));
+
+        $projection = new #[Projection('concert_upgrades_by_name'), FromTaggedStream('concert'), Partitioned] class () {
+            public array $seats = [];
+
+            #[EventHandler('tagged_projection.seat_upgraded')]
+            public function whenUpgraded(array $event): void
+            {
+                $this->seats[$event['concertId']][] = $event['seatId'];
+            }
+
+            #[QueryHandler('concert.upgradesByName')]
+            public function upgrades(): array
+            {
+                ksort($this->seats);
+
+                return $this->seats;
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionTagValue] string $concertId): void
+            {
+                unset($this->seats[$concertId]);
+            }
+        };
+        $reader = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$projection::class, SeatReservedForTaggedProjection::class],
+            containerOrAvailableServices: [$projection, DbalConnectionFactory::class => self::getConnectionFactory(isRegistry: $implementation === 'dbal-manager-registry')],
+            extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults(), EventSourcingConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $reader->initializeProjection('concert_upgrades_by_name')->triggerProjection('concert_upgrades_by_name');
+
+        self::assertSame(['concert-1' => ['A1', 'A2'], 'concert-2' => ['B1']], $reader->sendQueryWithRouting('concert.upgradesByName'));
+
+        $reader->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'concert_upgrades_by_name']);
+
+        self::assertSame(['concert-1' => ['A1', 'A2'], 'concert-2' => ['B1']], $reader->sendQueryWithRouting('concert.upgradesByName'));
+    }
+
     public static function implementationsWithEventSourcingModule(): iterable
     {
         yield 'in-memory' => ['in-memory'];

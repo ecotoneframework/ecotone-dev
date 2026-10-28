@@ -190,6 +190,8 @@ services:
     working_dir: /repo/demo/storefront
     command: ["worker", "storefront", "storefront_async"]
     environment: *storefront-environment
+    deploy:
+      replicas: 2
     healthcheck: *worker-healthcheck
     depends_on:
       <<: *infrastructure

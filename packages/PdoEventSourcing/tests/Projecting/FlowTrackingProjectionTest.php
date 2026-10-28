@@ -70,7 +70,7 @@ final class FlowTrackingProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new RegisterTicket('ticket-1', 'User1', 'alert'), metadata: [MessageHeaders::TRACING_ID => $tracingId]);
 
         $outage->armed = true;
-        $ecotone->run('async_projection', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->drain($ecotone);
         $outage->armed = false;
         ProjectionOutageConnection::$databaseDown = false;
 
@@ -88,10 +88,15 @@ final class FlowTrackingProjectionTest extends ProjectingTestCase
         $tracingId = Uuid::uuid4()->toString();
         $ecotone->sendCommand(new RegisterTicket('ticket-3', 'User3', 'alert'), metadata: [MessageHeaders::TRACING_ID => $tracingId]);
 
-        $ecotone->run('async_projection', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->drain($ecotone);
 
         self::assertSame(3, $projection->projected);
         self::assertTrue($ecotone->getGateway(TracingGateway::class)->isCompletedFor($tracingId));
+    }
+
+    private function drain(FlowTestSupport $ecotone): void
+    {
+        $ecotone->run('async_projection', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
     }
 
     private function ticketsProjection(): object

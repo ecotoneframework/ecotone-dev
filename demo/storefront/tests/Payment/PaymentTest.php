@@ -144,7 +144,7 @@ final class PaymentTest extends StorefrontFlowTestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageMatches(sprintf('/^The payment provider is unavailable, so payment pay_[0-9a-f-]{36} of order %s was not charged\. It is a transient outage: replay this ChargeCard message from the dead letters in Ecotone Pulse, or run php artisan ecotone:deadletter:replay <messageId> in the storefront, and the card is charged again\.$/', $orderId));
 
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
 
     public function test_a_charge_hit_by_the_provider_outage_replayed_from_the_dead_letter_pays_the_order_and_asks_ticketing_to_confirm(): void
@@ -153,7 +153,7 @@ final class PaymentTest extends StorefrontFlowTestCase
         $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::PROVIDER_OUTAGE, confirmationEmailBounces: false));
         $deadLetter = $this->storefront->getGateway(DeadLetterGateway::class);
 
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         self::assertSame(1, $deadLetter->count());
         self::assertSame('paying', $this->order($orderId)['status']);
@@ -213,6 +213,6 @@ final class PaymentTest extends StorefrontFlowTestCase
 
     private function charge(): void
     {
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
 }

@@ -10,7 +10,6 @@ use App\Rush\Contentions;
 use App\Rush\ContentionSimulator;
 use App\Rush\StartContention;
 use DomainException;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Gateway\DistributedBus;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -42,9 +41,7 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
 
         $this->contend(buyers: 5);
 
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
-        $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
-        $holds = array_values(array_filter($this->ticketingService->received, fn (array $request) => $request[0] === 'tickets.hold'));
+        $holds = array_values(array_filter($this->ticketingReceives(), fn (array $request) => $request[0] === 'tickets.hold'));
         self::assertCount(5, $holds);
         self::assertSame(array_fill(0, 5, self::SEAT_ID), array_map(fn (array $hold) => $hold[1]['seatId'], $holds));
         self::assertCount(5, array_unique(array_map(fn (array $hold) => $hold[1]['holdId'], $holds)));
@@ -63,7 +60,7 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
         $this->ticketingService->refusalReason = 'Seat A-3 is held by another order';
 
         $this->contend(buyers: 5);
-        $this->contentionRuns();
+        $this->ticketingReplies();
 
         $buyers = $this->contentionState()['buyers'];
         self::assertSame(['refused', 'refused', 'refused', 'refused', 'held'], array_column($buyers, 'state'));
@@ -89,7 +86,7 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
         $this->ticketingService->refusalReason = 'Seat A-3 is held by another order';
 
         $this->contend(buyers: 3);
-        $this->contentionRuns();
+        $this->ticketingReplies();
 
         $buyers = $this->contentionState()['buyers'];
         self::assertSame(['refused', 'refused', 'refused'], array_column($buyers, 'state'));
@@ -162,13 +159,6 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
     private function contend(int $buyers): void
     {
         $this->storefront->getCommandBus()->send(new StartContention(contentionId: self::CONTENTION_ID, concertId: self::CONCERT_ID, seatId: self::SEAT_ID, buyers: $buyers));
-    }
-
-    private function contentionRuns(): void
-    {
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
-        $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
-        $this->storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
 
     private function contentionState(): ?array

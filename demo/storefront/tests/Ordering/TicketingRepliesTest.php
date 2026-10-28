@@ -101,7 +101,7 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
         $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
         $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS, confirmationEmailBounces: false));
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $this->ticketingService->confirmReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'outcome' => 'refused', 'reason' => 'the hold of seat A-12 expired.', 'seatIds' => [self::CONCERT_ID . '/A-12']];
 
         $this->ticketingReplies();
@@ -206,7 +206,7 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
         $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
         $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::PROVIDER_OUTAGE, confirmationEmailBounces: false));
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         $this->publishFromTicketing('tickets.hold_expired', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'customerId' => $this->order($orderId)['customerId'], 'holdId' => 'hold-1']);
 
@@ -219,7 +219,7 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
         $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
         $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::PROVIDER_OUTAGE, confirmationEmailBounces: false));
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
         $this->publishFromTicketing('tickets.hold_expired', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'customerId' => $this->order($orderId)['customerId'], 'holdId' => 'hold-1']);
         $this->ticketingService->confirmReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'outcome' => 'refused', 'reason' => "Order {$orderId} cannot buy seat A-12, because its hold expired at 2026-10-25T12:02:00+00:00.", 'seatIds' => [self::CONCERT_ID . '/A-12']];
 

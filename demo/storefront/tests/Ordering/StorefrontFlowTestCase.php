@@ -93,7 +93,7 @@ abstract class StorefrontFlowTestCase extends TestCase
     protected function ticketingReceives(): array
     {
         $this->storefrontAsyncRuns();
-        $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $received = $this->ticketingService->received;
         $this->ticketingService->received = [];
 
@@ -102,12 +102,12 @@ abstract class StorefrontFlowTestCase extends TestCase
 
     protected function storefrontAsyncRuns(): void
     {
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
 
     protected function storefrontConsumes(): void
     {
-        $this->storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
 
     protected function ticketingReplies(): void

@@ -43,7 +43,7 @@ final class OrderConfirmationEmailTest extends StorefrontFlowTestCase
         $this->storefront->getCommandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: $this->tickets()));
 
         self::assertSame([], $this->sentEmails());
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         self::assertSame(
             [[
                 'order_id' => $orderId,
@@ -63,7 +63,7 @@ final class OrderConfirmationEmailTest extends StorefrontFlowTestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage($this->bounceMessageOf($orderId));
 
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
 
     public function test_a_bounced_confirmation_email_lands_in_the_dead_letter_and_records_no_sent_email(): void
@@ -71,7 +71,7 @@ final class OrderConfirmationEmailTest extends StorefrontFlowTestCase
         $orderId = $this->paidOrderOf('Linus Pauling', 'linus@example.com', confirmationEmailBounces: true);
         $this->storefront->getCommandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: $this->tickets()));
 
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         self::assertSame(1, $this->storefront->getGateway(DeadLetterGateway::class)->count());
         self::assertSame([], $this->sentEmails());
@@ -82,12 +82,12 @@ final class OrderConfirmationEmailTest extends StorefrontFlowTestCase
     {
         $orderId = $this->paidOrderOf('Linus Pauling', 'linus@example.com', confirmationEmailBounces: true);
         $this->storefront->getCommandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: $this->tickets()));
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         $orderPage = $this->withCookie('storefront_customer', $this->order($orderId)['customerId'])->get('/orders/' . $orderId);
         $deadLetters = $this->storefront->getGateway(DeadLetterGateway::class);
         $deadLetters->replayAll();
-        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         $orderPage->assertSeeInOrder(['tickets_issued', 'T-0001', 'ENTRY-7F3A', 'T-0002', 'ENTRY-9C21']);
         self::assertSame(1, $deadLetters->count());

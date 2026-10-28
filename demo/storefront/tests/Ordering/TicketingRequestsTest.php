@@ -65,7 +65,7 @@ final class TicketingRequestsTest extends StorefrontFlowTestCase
         $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
 
         $this->storefront->getCommandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
-        $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame([], $this->ticketingService->received);
         self::assertSame(['tickets.confirm'], array_column($this->ticketingReceives(), 0));

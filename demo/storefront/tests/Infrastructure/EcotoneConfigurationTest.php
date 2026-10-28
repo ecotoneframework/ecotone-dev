@@ -47,8 +47,8 @@ final class EcotoneConfigurationTest extends TestCase
         $ticketing = $this->ticketing();
 
         $storefront->runConsoleCommand('demo:ping', ['waitSeconds' => 0]);
-        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
-        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame(['pong from ticketing to storefront'], $storefront->getGateway(PongLog::class)->replies());
     }

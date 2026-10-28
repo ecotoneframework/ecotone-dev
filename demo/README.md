@@ -30,6 +30,21 @@ docker compose -f demo/docker-compose.yml exec storefront php artisan demo:ping
 It prints `Reply arrived: pong from ticketing to storefront` once ticketing's reply reaches the storefront. Stop the demo
 with `docker compose -f demo/docker-compose.yml down`, and add `-v` to drop the Postgres and RabbitMQ volumes as well.
 
+After pulling a change to the messages the two services exchange or store, start from empty volumes and a fresh
+ticketing cache, because the stored events and the queued messages still have the old shape:
+
+```bash
+docker compose -f demo/docker-compose.yml down -v
+rm -rf demo/ticketing/var/cache/dev
+docker compose -f demo/docker-compose.yml up -d --build --wait
+```
+
+Ticketing's development cache keeps each event's serialization metadata and does not notice when an event gains a
+field. The `ticketing` container deletes that metadata on each start, and the `rm` clears the rest of the cache, which
+would otherwise fail a fresh database with "Typed property ... must not be accessed before initialization". A
+`tickets.*` reply queued for the storefront before the change fails there with "Undefined array key" until the
+volumes are dropped.
+
 ## Open it
 
 | What | URL |

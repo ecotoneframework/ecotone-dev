@@ -38,9 +38,30 @@ final class TicketPageTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'The Midnight Owls');
         self::assertSelectorTextContains('.ticket-number', $ticket['ticketNumber']);
         self::assertSelectorTextContains('.seat-code', 'A-3');
-        self::assertSelectorTextContains('.tier', 'vip · VIP lounge pass included');
-        self::assertSelectorTextContains('.entry-code', $ticket['entryCode']);
+        self::assertSelectorTextContains('.tier', 'vip');
+        self::assertSelectorTextContains('.lounge-pass', 'VIP lounge pass included');
+        self::assertSelectorTextContains('.ticket-stub .entry-code', $ticket['entryCode']);
         self::assertSelectorTextContains('.order-id', $orderId);
+    }
+
+    public function test_a_standard_ticket_shows_its_entry_code_on_the_stub_and_no_lounge_pass(): void
+    {
+        $client = $this->seededClient();
+        $concertId = $this->concertIdOf('The Midnight Owls');
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->commandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/D-5', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
+        $this->commandBus()->send(new ConfirmSeats(orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/D-5'], paymentReference: 'pay-1'), metadata: ['concertId' => $concertId]);
+        $this->runTheConsumer($client);
+        $ticket = $this->queryBus()->sendWithRouting('tickets.of_order', $orderId)[0];
+
+        $client->request('GET', '/tickets/' . $ticket['ticketNumber']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.ticket-stub .entry-code', $ticket['entryCode']);
+        self::assertSelectorTextContains('.seat-code', 'D-5');
+        self::assertSelectorTextContains('.tier', 'standard');
+        self::assertSelectorNotExists('.lounge-pass');
     }
 
     public function test_the_tests_render_tickets_into_the_test_cache_and_never_into_the_ticket_files_of_a_running_stack(): void

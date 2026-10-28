@@ -79,7 +79,7 @@ final class StreamFilterRegistryModule implements AnnotationModule
             }
 
             foreach ($annotationFinder->getAnnotationsForClass($classname, FromTaggedStream::class) as $taggedStreamAttribute) {
-                $streamFilters[$projectionName][] = new StreamFilter('', null, $taggedStreamAttribute->eventStoreReferenceName, $eventNames, $taggedStreamAttribute->tag);
+                $streamFilters[$projectionName][] = new StreamFilter('', null, $taggedStreamAttribute->eventStoreReferenceName, self::eventClassesOf($annotationFinder, $eventNames), $taggedStreamAttribute->tag);
             }
 
             $isStreamingProjection = $annotationFinder->findAttributeForClass($classname, Streaming::class) !== null;
@@ -91,6 +91,20 @@ final class StreamFilterRegistryModule implements AnnotationModule
         }
 
         return $streamFilters;
+    }
+
+    /**
+     * @param string[] $eventNames
+     * @return string[]
+     */
+    private static function eventClassesOf(AnnotationFinder $annotationFinder, array $eventNames): array
+    {
+        $classesByEventName = [];
+        foreach ($annotationFinder->findAnnotatedClasses(NamedEvent::class) as $className) {
+            $classesByEventName[$annotationFinder->getAttributeForClass($className, NamedEvent::class)->getName()] = $className;
+        }
+
+        return array_map(static fn (string $eventName): string => $classesByEventName[$eventName] ?? $eventName, $eventNames);
     }
 
     /**

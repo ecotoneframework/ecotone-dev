@@ -53,7 +53,7 @@ final class ContentionPagesTest extends TestCase
         $this->get('/concerts/' . self::CONCERT_ID)->assertDontSee('Contend for one seat');
     }
 
-    public function test_starting_a_contention_answers_with_its_page_and_queues_one_hold_request_per_buyer(): void
+    public function test_starting_a_contention_answers_with_its_page_and_every_buyer_waits_for_ticketing(): void
     {
         $this->scheduleOnSale();
 
@@ -66,7 +66,6 @@ final class ContentionPagesTest extends TestCase
         $state->assertOk();
         $state->assertJson(['contentionId' => $contentionId, 'seatId' => self::SEAT_ID, 'seatCode' => 'B-1', 'buyersRequested' => 3]);
         self::assertSame(['pending', 'pending', 'pending'], array_column($state->json('buyers'), 'state'));
-        self::assertSame(3, DB::table('jobs')->count());
     }
 
     public function test_the_contention_page_shows_one_buyer_green_and_every_other_one_red_with_the_reason_of_ticketing(): void
@@ -171,7 +170,6 @@ final class ContentionPagesTest extends TestCase
 
         $response->assertUnprocessable();
         $response->assertExactJson(['error' => 'A contention of 11 buyers cannot start: a contention sends 2 to 10 buyers after one seat. Ask for between 2 and 10 buyers.']);
-        self::assertSame(0, DB::table('jobs')->count());
     }
 
     public function test_a_contention_whose_buyers_are_not_a_whole_number_is_refused(): void

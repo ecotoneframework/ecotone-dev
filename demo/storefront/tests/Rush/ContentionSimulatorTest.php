@@ -6,10 +6,12 @@ namespace Tests\Rush;
 
 use App\Concert\ConcertCatalogue;
 use App\Concert\ConcertProjector;
+use App\Ordering\RecordSeatRefusal;
 use App\Rush\Contentions;
 use App\Rush\ContentionSimulator;
 use App\Rush\StartContention;
 use DomainException;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\Gateway\DistributedBus;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -132,6 +134,26 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
 
         self::assertSame(['refused', 'released'], array_column($this->contentionState()['buyers'], 'state'));
         self::assertSame(['headline' => 'Contending buyer 2 held seat A-3 until its hold ended; ticketing refused every other buyer', 'reason' => null], $this->contentionState()['outcome']);
+    }
+
+    public function test_a_refusal_delivered_twice_fails_the_buyer_once_and_dead_letters_nothing(): void
+    {
+        $this->concertOnSale();
+        $this->ticketingService->holdsToRefuse = 1;
+        $this->ticketingService->refusalReason = 'Seat A-3 is held by another order';
+        $this->contend(buyers: 2);
+        $this->ticketingReplies();
+        $refused = $this->contentionState()['buyers'][0];
+
+        $this->storefront->getCommandBus()->send(new RecordSeatRefusal(orderId: $refused['orderId'], seatId: self::SEAT_ID, holdId: $refused['holdId'], reason: 'Seat A-3 is held by yet another order'));
+        $this->storefrontAsyncRuns();
+
+        $order = $this->order($refused['orderId']);
+        self::assertSame('failed', $order['status']);
+        self::assertSame('Contending buyer 1 lost seat A-3: ticketing refused to hold it, saying "Seat A-3 is held by another order".', $order['failureReason']);
+        self::assertSame(['refused', 'held'], array_column($this->contentionState()['buyers'], 'state'));
+        self::assertSame('Seat A-3 is held by another order', $this->contentionState()['buyers'][0]['reason']);
+        self::assertSame(0, $this->storefront->getGateway(DeadLetterGateway::class)->count());
     }
 
     #[DataProvider('seatsAlreadyTaken')]

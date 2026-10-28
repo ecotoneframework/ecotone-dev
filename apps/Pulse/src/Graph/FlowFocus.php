@@ -33,6 +33,12 @@ final readonly class FlowFocus
         foreach ($flows as $flow) {
             $byName[$flow->name] = $flow;
         }
+        if (! isset($byName[$service])) {
+            throw UnknownFlowFocus::ofService($service . ':' . $nodeId, $service, array_keys($byName));
+        }
+        if (! $byName[$service]->graph->hasNode($nodeId)) {
+            throw UnknownFlowFocus::ofNode($service . ':' . $nodeId, $service, $nodeId);
+        }
         $node = $byName[$service]->graph->node($nodeId);
         $links = DistributedLinks::between($flows);
         $isHub = in_array($node->kind, [FlowNodeKind::CHANNEL, FlowNodeKind::DISTRIBUTED_BUS], true);

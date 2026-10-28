@@ -118,6 +118,26 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         self::assertSame(['shipping' => ['Channel<br/>shipping_work', 'CommandHandler<br/>class@anonymous::pack']], $this->labelsByService(MermaidDiagram::fromPage($focused)));
     }
 
+    public function test_following_a_node_of_a_service_that_did_not_answer_is_refused_with_the_services_to_choose_from(): void
+    {
+        $client = $this->ordersAndBilling();
+
+        $client->request('GET', '/flow?focus=ghost:command:x');
+
+        self::assertResponseStatusCodeSame(404);
+        self::assertStringContainsString('Cannot follow "ghost:command:x": service "ghost" is not among the services that answered. Choose one of: billing, orders; type the name of the node into Find on the flow graph; or remove the focus parameter to see every service.', (string) $client->getResponse()->getContent());
+    }
+
+    public function test_following_a_node_the_service_no_longer_reports_is_refused_pointing_to_find(): void
+    {
+        $client = $this->ordersAndBilling();
+
+        $client->request('GET', '/flow?focus=billing:command:gone');
+
+        self::assertResponseStatusCodeSame(404);
+        self::assertStringContainsString('Cannot follow "billing:command:gone": billing reports no node "command:gone", so its flow may have changed since the link was made. Type the name of the node into Find on the flow graph, or remove the focus parameter to see every service.', (string) $client->getResponse()->getContent());
+    }
+
     private function ordersAndBilling(): KernelBrowser
     {
         $this->configurePulseWithServices('orders', 'billing');

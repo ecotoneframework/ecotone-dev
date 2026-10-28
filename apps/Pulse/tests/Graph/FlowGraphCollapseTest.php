@@ -117,6 +117,16 @@ final class FlowGraphCollapseTest extends ReleasingWebTestCase
         }
     }
 
+    public function test_collapsing_a_service_that_did_not_answer_is_refused_with_the_services_to_choose_from(): void
+    {
+        $client = $this->ordersAndBilling();
+
+        $client->request('GET', '/flow?collapse[]=orders&collapse[]=ghost');
+
+        self::assertResponseStatusCodeSame(404);
+        self::assertStringContainsString('Cannot collapse &quot;ghost&quot;: it is not among the services that answered. Choose one of: billing, orders; or remove collapse[]=ghost from the address to keep the other services as they are.', (string) $client->getResponse()->getContent());
+    }
+
     public function test_folding_anything_but_channels_is_refused_naming_what_can_be_folded(): void
     {
         $client = $this->shippingWorkingAsynchronously();

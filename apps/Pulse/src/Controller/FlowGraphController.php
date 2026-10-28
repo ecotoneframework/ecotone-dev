@@ -11,6 +11,7 @@ use App\Graph\ServiceScopeFilter;
 use App\Graph\ShortLabel;
 use App\Graph\StitchedFlowGraph;
 use App\Graph\TraceHighlight;
+use App\Graph\UnknownCollapse;
 use App\Graph\UnknownFold;
 use App\Snapshot\Snapshots;
 use App\Trace\TraceLoader;
@@ -50,7 +51,7 @@ final class FlowGraphController extends AbstractController
         $view = (string) $request->query->get('view', '');
         $focus = $this->focusOf($flows, $request->query->getString('focus'));
         $foldChannels = $this->foldsChannels($request->query->getString('fold'));
-        $collapsed = array_values(array_intersect($available, array_map('strval', $request->query->all('collapse'))));
+        $collapsed = $this->collapsedOf($available, array_map('strval', $request->query->all('collapse')));
         $crossedNodes = array_sum(array_map(fn (ServiceFlow $flow) => in_array($flow->name, $crossed, true) ? count($flow->graph->nodes()) : 0, $flows));
         $overview = $focus === null && $collapsed === [] && $requested === [] && $view !== 'detail' && match (true) {
             $view === 'overview' => true,
@@ -198,6 +199,22 @@ final class FlowGraphController extends AbstractController
         $toggled = in_array($service, $collapsed, true) ? array_values(array_diff($collapsed, [$service])) : [...$collapsed, $service];
 
         return $this->generateUrl('flow_graph', array_filter([...$request->query->all(), 'collapse' => $toggled]));
+    }
+
+    /**
+     * @param list<string> $available
+     * @param list<string> $requested
+     * @return list<string>
+     */
+    private function collapsedOf(array $available, array $requested): array
+    {
+        foreach ($requested as $service) {
+            if (! in_array($service, $available, true)) {
+                throw new UnknownCollapse($service, $available);
+            }
+        }
+
+        return array_values(array_intersect($available, $requested));
     }
 
     private function foldsChannels(string $fold): bool

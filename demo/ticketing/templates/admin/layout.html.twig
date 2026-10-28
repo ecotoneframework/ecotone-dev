@@ -5,7 +5,7 @@
 
 {% block body %}
     {% set route = app.request.attributes.get('_route') %}
-    {% set section = route starts with 'admin_venues' ? 'venues' : (route starts with 'admin_concert' or route == 'concert_seats' ? 'concerts' : 'overview') %}
+    {% set section = route starts with 'admin_venues' ? 'venues' : (route starts with 'admin_concert' ? 'concerts' : 'overview') %}
     <a class="skip-link" href="#content">Skip to content</a>
     <div class="app">
         <header class="app-sidebar">

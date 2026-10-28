@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+{% import '_icons.html.twig' as icons %}
+
+{% block body %}
+    <div class="ticket-shell">
+        <header class="ticket-topbar public-topbar">
+            <a class="brand" href="{{ path('home') }}">
+                <span class="brand-mark">{{ icons.icon('logo') }}</span>
+                <span class="brand-name">Ticketing<small>Ecotone demo</small></span>
+            </a>
+        </header>
+        <main class="{% block main_class %}ticket-page{% endblock %}" id="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+{% endblock %}

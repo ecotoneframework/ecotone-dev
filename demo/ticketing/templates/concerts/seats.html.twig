@@ -1,4 +1,4 @@
-{% extends 'admin/layout.html.twig' %}
+{% extends 'public/layout.html.twig' %}
 {% import '_icons.html.twig' as icons %}
 
 {% block title %}Seats of {{ concert.artist }}{% endblock %}
@@ -7,14 +7,12 @@
     <meta http-equiv="refresh" content="{{ refreshSeconds }}">
 {% endblock %}
 
+{% block main_class %}public-page{% endblock %}
+
 {% block content %}
     <header class="page-header">
         <div>
-            <ol class="breadcrumbs">
-                <li><a href="{{ path('admin_concerts') }}">Concerts</a></li>
-                <li><a href="{{ path('admin_concert', {concertId: concert.concertId}) }}">{{ concert.artist }}</a></li>
-                <li aria-current="page">Seat map</li>
-            </ol>
+            <p class="eyebrow">Seat map</p>
             <h1>{{ concert.artist }}</h1>
             <p class="page-meta">
                 <span class="badge status status-{{ concert.status }} badge-{{ concert.status }}">{{ concert.status|replace({'_': ' '}) }}</span>
@@ -22,9 +20,6 @@
                 <span class="meta-item">{{ icons.icon('calendar') }} {{ concert.startsAt|date('D, j M Y · H:i') }} UTC</span>
                 <span class="badge badge-live">live · refreshes every {{ refreshSeconds }} seconds</span>
             </p>
-        </div>
-        <div class="toolbar">
-            <a class="button" href="{{ path('admin_concert', {concertId: concert.concertId}) }}">{{ concert.artist }} in the admin</a>
         </div>
     </header>
 

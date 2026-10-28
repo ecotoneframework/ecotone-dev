@@ -73,8 +73,8 @@ volumes are dropped.
 
 Ticketing is the promoter's back office. `/admin` lists the concerts with their sale state and how many seats are sold,
 held and free; a concert's page shows those counts, its revenue and its sales by tier, and is where you open its sales,
-change its prices and cancel it (behind a confirmation). Each concert has a seat map (`/concerts/{concertId}/seats`)
-drawn as the hall: the stage, the VIP and standard rows, and every seat marked free, held or sold, with a legend that
+change its prices and cancel it (behind a confirmation). Each concert has a public seat map
+(`/concerts/{concertId}/seats`), outside the back office and linked from every ticket, drawn as the hall: the stage, the VIP and standard rows, and every seat marked free, held or sold, with a legend that
 counts them. The seat map and the sales ledger are projections. No page needs JavaScript; the seat map reloads itself
 every three seconds.
 

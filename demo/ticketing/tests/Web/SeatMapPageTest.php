@@ -46,6 +46,18 @@ final class SeatMapPageTest extends WebTestCase
         self::assertSelectorCount(70, '.seat-free');
     }
 
+    public function test_the_seat_map_is_a_buyer_facing_page_without_the_back_office(): void
+    {
+        $client = $this->seededClient();
+
+        $client->request('GET', '/concerts/' . $this->concertIdOf('The Midnight Owls') . '/seats');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('.public-topbar');
+        self::assertSelectorNotExists('.app-sidebar');
+        self::assertSelectorNotExists('a[href^="/admin"]');
+    }
+
     public function test_the_admin_concert_page_links_its_seat_map_and_shows_the_sales_ledger(): void
     {
         $client = $this->seededClient();

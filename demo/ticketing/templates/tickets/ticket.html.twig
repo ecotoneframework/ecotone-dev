@@ -1,54 +1,44 @@
-{% extends 'base.html.twig' %}
+{% extends 'public/layout.html.twig' %}
 {% import '_icons.html.twig' as icons %}
 
 {% block title %}{{ ticket ? 'Ticket ' ~ ticket.ticketNumber : 'No such ticket' }}{% endblock %}
 
-{% block body %}
-    <div class="ticket-shell">
-        <header class="ticket-topbar">
-            <a class="brand" href="{{ path('home') }}">
-                <span class="brand-mark">{{ icons.icon('logo') }}</span>
-                <span class="brand-name">Ticketing<small>Ecotone demo</small></span>
-            </a>
-        </header>
-        <main class="ticket-page" id="content">
-            {% if refusal %}
-                <section class="card ticket-missing">
-                    <h1>No such ticket</h1>
-                    <p class="flash refusal" role="alert">{{ icons.icon('alert') }}<span>{{ refusal }}</span></p>
-                </section>
-            {% else %}
-                <article class="ticket tier-{{ ticket.tier }}" aria-label="Ticket for {{ concert.artist }}">
-                    <div class="ticket-main">
-                        <p class="ticket-eyebrow">Admission · one person</p>
-                        <h1>{{ concert.artist }}</h1>
-                        <p class="ticket-when">
-                            <span class="meta-item">{{ icons.icon('calendar') }} {{ concert.startsAt|date('l, j F Y · H:i') }} UTC</span>
-                            <span class="meta-item">{{ icons.icon('building') }} {{ concert.venueName }}</span>
-                        </p>
-                        <dl class="ticket-facts">
-                            <div><dt>Seat</dt> <dd class="seat-code">{{ ticket.seatCode }}</dd></div>
-                            <div><dt>Row</dt> <dd>{{ ticket.seatCode|split('-')|first }}</dd></div>
-                            <div><dt>Tier</dt> <dd class="tier"><span class="badge badge-{{ ticket.tier }}">{{ ticket.tier }}</span></dd></div>
-                        </dl>
-                        {% if ticket.vipLoungePass %}
-                            <p class="lounge-pass">{{ icons.icon('star') }}<span>VIP lounge pass included<small>Show this ticket at the lounge door</small></span></p>
-                        {% endif %}
-                        <dl class="ticket-meta">
-                            <div><dt>Ticket</dt> <dd class="ticket-number"><code>{{ ticket.ticketNumber }}</code></dd></div>
-                            <div><dt>Order</dt> <dd class="order-id"><code>{{ ticket.orderId }}</code></dd></div>
-                            <div><dt>Issued</dt> <dd>{{ ticket.issuedAt|date('Y-m-d H:i:s') }} UTC</dd></div>
-                        </dl>
-                    </div>
-                    <div class="ticket-stub">
-                        <p class="stub-label">Entry code</p>
-                        <code class="entry-code">{{ ticket.entryCode }}</code>
-                        <div class="barcode" aria-hidden="true"></div>
-                        <p class="stub-seat"><span>Seat</span> {{ ticket.seatCode }}</p>
-                    </div>
-                </article>
-                <p class="ticket-links"><a href="{{ path('concert_seats', {concertId: ticket.concertId}) }}">Seat map of {{ concert.artist }}</a></p>
-            {% endif %}
-        </main>
-    </div>
+{% block content %}
+    {% if refusal %}
+        <section class="card ticket-missing">
+            <h1>No such ticket</h1>
+            <p class="flash refusal" role="alert">{{ icons.icon('alert') }}<span>{{ refusal }}</span></p>
+        </section>
+    {% else %}
+        <article class="ticket tier-{{ ticket.tier }}" aria-label="Ticket for {{ concert.artist }}">
+            <div class="ticket-main">
+                <p class="ticket-eyebrow">Admission · one person</p>
+                <h1>{{ concert.artist }}</h1>
+                <p class="ticket-when">
+                    <span class="meta-item">{{ icons.icon('calendar') }} {{ concert.startsAt|date('l, j F Y · H:i') }} UTC</span>
+                    <span class="meta-item">{{ icons.icon('building') }} {{ concert.venueName }}</span>
+                </p>
+                <dl class="ticket-facts">
+                    <div><dt>Seat</dt> <dd class="seat-code">{{ ticket.seatCode }}</dd></div>
+                    <div><dt>Row</dt> <dd>{{ ticket.seatCode|split('-')|first }}</dd></div>
+                    <div><dt>Tier</dt> <dd class="tier"><span class="badge badge-{{ ticket.tier }}">{{ ticket.tier }}</span></dd></div>
+                </dl>
+                {% if ticket.vipLoungePass %}
+                    <p class="lounge-pass">{{ icons.icon('star') }}<span>VIP lounge pass included<small>Show this ticket at the lounge door</small></span></p>
+                {% endif %}
+                <dl class="ticket-meta">
+                    <div><dt>Ticket</dt> <dd class="ticket-number"><code>{{ ticket.ticketNumber }}</code></dd></div>
+                    <div><dt>Order</dt> <dd class="order-id"><code>{{ ticket.orderId }}</code></dd></div>
+                    <div><dt>Issued</dt> <dd>{{ ticket.issuedAt|date('Y-m-d H:i:s') }} UTC</dd></div>
+                </dl>
+            </div>
+            <div class="ticket-stub">
+                <p class="stub-label">Entry code</p>
+                <code class="entry-code">{{ ticket.entryCode }}</code>
+                <div class="barcode" aria-hidden="true"></div>
+                <p class="stub-seat"><span>Seat</span> {{ ticket.seatCode }}</p>
+            </div>
+        </article>
+        <p class="ticket-links"><a href="{{ path('concert_seats', {concertId: ticket.concertId}) }}">Seat map of {{ concert.artist }}</a></p>
+    {% endif %}
 {% endblock %}

@@ -32,9 +32,11 @@ final class TicketPageTest extends WebTestCase
         $this->runTheConsumer($client);
         $ticket = $this->queryBus()->sendWithRouting('tickets.of_order', $orderId)[0];
 
-        $client->request('GET', '/tickets/' . $ticket['ticketNumber']);
+        $crawler = $client->request('GET', '/tickets/' . $ticket['ticketNumber']);
 
         self::assertResponseIsSuccessful();
+        self::assertSame('/concerts/' . $concertId . '/seats', $crawler->filter('.ticket-links a')->attr('href'));
+        self::assertSelectorNotExists('a[href^="/admin"]');
         self::assertSelectorTextContains('h1', 'The Midnight Owls');
         self::assertSelectorTextContains('.ticket-number', $ticket['ticketNumber']);
         self::assertSelectorTextContains('.seat-code', 'A-3');

@@ -137,7 +137,7 @@ The storefront talks to no real payment provider or mail server. Three rules dri
 |---|---|---|
 | Doctrine ORM aggregates | Venues and concerts, with command handlers on the entities | `ticketing/src/Catalogue/Venue.php`, `Concert.php` |
 | Eloquent aggregates | Customers and orders as Eloquent models; an order is saved under optimistic locking on its `#[Version]`, so two writers that loaded it cannot overwrite each other: the one that saves second is retried against the order as the first left it | `storefront/app/Customer/Customer.php`, `storefront/app/Ordering/Order.php`, `OrderRepository.php` |
-| Dynamic Consistency Boundary | Holds, releases, expiries and sales decided on the `SeatAvailability` and `CustomerConcertSeats` decision models, scoped by the `seat` and `customerConcert` tags of their events | `ticketing/src/Sales/SeatSales.php`, `SeatAvailability.php`, `CustomerConcertSeats.php`, `SeatHeld.php` |
+| Dynamic Consistency Boundary | Holds, releases, expiries and sales decided on the `SeatAvailability` and `CustomerConcertSeats` decision models, scoped by the `seat` and `customerConcert` tags of their events; a confirm adds the `seat` tags of its seats through a `#[DecisionBoundary]` | `ticketing/src/Sales/SeatSales.php`, `SeatAvailability.php`, `CustomerConcertSeats.php`, `SeatHeld.php` |
 | Outbox | Ticketing's announcements go out from `ticketing_async`, a Doctrine Messenger transport committed with the change; the storefront's requests to ticketing, charges and emails go out from `storefront_async`, a database queue committed with the order | `ticketing/src/Catalogue/ConcertAnnouncements.php`, `storefront/app/Ordering/TicketingRequests.php` |
 | Distributed Bus with replies | `tickets.hold` and `tickets.confirm` sent to ticketing and answered with `tickets.hold.result` and `tickets.confirm.result`; events such as `tickets.issued` published to the storefront | `ticketing/src/Sales/SeatSalesOverDistributedBus.php`, `storefront/app/Ordering/TicketingRequests.php`, `TicketingReplies.php` |
 | Delayed messages | A hold expires through a message delayed until its expiry, which frees only the hold it was scheduled for | `ticketing/src/Sales/HoldExpiry.php` |
@@ -170,12 +170,17 @@ The concert's status, seats and prices are read through `concert.detail`, not gu
 fetched aggregate without bumping its counter, so a hold racing a cancellation can succeed and the cancellation then
 releases it. A conflict on a command-bus send is retried three times, and an exhausted one is refused with "someone
 was faster"; a `tickets.hold` or `tickets.confirm` arriving over the Distributed Bus is not retried, so a conflict
-there is refused at once with that reason. Only the order, customer and concert holding a seat release it. A hold
-expires after `TICKETING_HOLD_SECONDS` (600 by default, 120 in `docker-compose.yml`), through a delayed message on
-`ticketing_async` that frees only the hold it was scheduled for. A confirm decides on the customer's holds alone, so in the milliseconds around a
-hold's expiry another customer's hold of that seat and the order's confirm can both succeed; a confirm after the
-expiry is refused. The storefront drives it with `tickets.hold`, `tickets.release` and `tickets.confirm` over the
-Distributed Bus, and gets `tickets.hold.result` and `tickets.confirm.result` replies. Each concert has a seat map at
+there is refused at once with that reason. Every hold carries the `holdId` its requester chose, and only the order,
+customer, concert and hold id of a hold release it, so a late release of an earlier hold leaves a later one in place.
+A hold expires after `TICKETING_HOLD_SECONDS` (600 by default, 120 in `docker-compose.yml`), through a delayed message
+on `ticketing_async` that frees only the hold it was scheduled for. A confirm decides on the customer's holds and,
+through a `#[DecisionBoundary]` over the `seat` tag of every seat it sells, on the seats themselves: another customer's
+hold of a seat whose hold just expired, appended while the confirm decides, makes the confirm's append conflict, and
+its retry finds the seat held by the other order and refuses, so a seat is sold once. A confirm repeated for an order
+already sold with the same payment reference replies `sold` again and sells nothing twice. The storefront drives it
+with `tickets.hold`, `tickets.release` and `tickets.confirm` over the Distributed Bus, and gets `tickets.hold.result`
+and `tickets.confirm.result` replies; a held reply for a hold id the order no longer awaits releases that hold, and a
+`tickets.hold_expired` drops a seat only when it names the order's current hold. Each concert has a seat map at
 `/concerts/{concertId}/seats` on the ticketing URL, linked from its admin page next to its sales ledger; both are
 projections on `ticketing_async`. `demo:seed` sells all but the last three seats of Neon Harbour, and selling those
 marks it sold out (`concert.sold_out`); `demo:seed --catalogueOnly` seeds the venue and the concerts without that sale.

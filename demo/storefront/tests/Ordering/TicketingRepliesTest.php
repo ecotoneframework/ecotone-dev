@@ -113,7 +113,7 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
         self::assertSame([['tickets.release', self::CONCERT_ID . '/A-12']], array_map(fn (array $request) => [$request[0], $request[1]['seatId']], $this->ticketingReceives()));
     }
 
-    public function test_a_repeated_confirm_result_of_a_sold_order_does_not_fail_or_refund_it(): void
+    public function test_a_refused_confirm_result_after_the_sold_one_does_not_fail_or_refund_the_order(): void
     {
         $orderId = $this->orderPaidWithACard();
         $this->ticketingReplies();

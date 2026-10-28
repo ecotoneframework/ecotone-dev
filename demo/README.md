@@ -180,7 +180,7 @@ appended to `ecotone_event_stream` by handlers that decide on two decision model
 per seat) and `CustomerConcertSeats` (at most 4 seats per customer and concert). The customer limit is scoped by one
 `customerConcert` tag rather than by `customer` and `concert` together, because a model scoped by `concert` would make
 every hold of a concert conflict with every other; `concert` stays on each event, captured by no model, as the
-projections' key, and is a filter-only tag for now, so that overlapping holds of one concert do not conflict on it.
+projections' key: an append only increments its counter, so overlapping holds of one concert do not conflict on it.
 The concert's status, seats and prices are read through `concert.detail`, not guarded, until Ecotone can guard a
 fetched aggregate without bumping its counter, so a hold racing a cancellation can succeed and the cancellation then
 releases it. A conflict on a command-bus send is retried three times, and an exhausted one is refused with "someone

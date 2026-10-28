@@ -67,6 +67,29 @@ final class DiagramSyntaxTest extends ReleasingWebTestCase
         self::assertMatchesRegularExpression('/^    s\d+ ==>\|"2 commands"\| s\d+$/m', $diagram);
     }
 
+    public function test_the_flow_graph_with_a_collapsed_service_and_folded_channels_highlighting_a_trace_keeps_every_subgraph_closed(): void
+    {
+        $diagram = $this->diagramOf('/flow?trace=' . self::INVOICED . '&collapse[]=billing&fold=channels', 'flow-collapsed-folded');
+
+        self::assertSame(substr_count($diagram, '    subgraph '), substr_count($diagram, "\n    end\n"));
+        self::assertMatchesRegularExpression('/^        s\d+c\["billing<br\/>\d+ nodes, collapsed"\]$/m', $diagram);
+        self::assertMatchesRegularExpression('/==>\|"async: orders_async"\|/', $diagram);
+    }
+
+    public function test_the_flow_graph_following_a_node_keeps_every_subgraph_closed(): void
+    {
+        $client = $this->pulseWithServices();
+        $this->diagramOf('/flow?trace=' . self::INVOICED, 'flow-trace', $client);
+        $nodes = json_decode($client->getCrawler()->filter('pre.mermaid')->attr('data-graph-nodes'), true, flags: JSON_THROW_ON_ERROR);
+        $invoice = array_values(array_filter($nodes, fn (array $node) => $node['service'] === 'billing' && $node['title'] === 'invoice.create'));
+
+        $diagram = $this->diagramOf($invoice[0]['href'], 'flow-focus', $client);
+
+        self::assertSame(substr_count($diagram, '    subgraph '), substr_count($diagram, "\n    end\n"));
+        self::assertStringContainsString('    classDef focused stroke-width:4px', $diagram);
+        self::assertMatchesRegularExpression('/^    class s\d+n\d+ focused$/m', $diagram);
+    }
+
     public function test_topology_diagram_connects_the_services_that_send_commands(): void
     {
         $diagram = $this->diagramOf('/topology', 'topology');
@@ -77,9 +100,9 @@ final class DiagramSyntaxTest extends ReleasingWebTestCase
         self::assertStringContainsString('["billing"]', $diagram);
     }
 
-    private function diagramOf(string $uri, string $name): string
+    private function diagramOf(string $uri, string $name, ?KernelBrowser $client = null): string
     {
-        $client = $this->pulseWithServices();
+        $client ??= $this->pulseWithServices();
         $client->request('GET', $uri);
         foreach ($this->tracedServices as $service => $application) {
             $this->runService($application, $service);

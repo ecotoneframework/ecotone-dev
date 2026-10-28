@@ -69,6 +69,25 @@ final class SeatMapPageTest extends WebTestCase
         self::assertSelectorTextContains('table.ledger tfoot', '140.00 EUR');
     }
 
+    public function test_the_concerts_page_counts_the_sold_held_and_free_seats_of_each_concert(): void
+    {
+        $client = $this->seededClient();
+        $concertId = $this->concertIdOf('The Midnight Owls');
+        $this->hold(Uuid::v7()->toRfc4122(), $concertId, 'A-1', Uuid::v7()->toRfc4122());
+        $buyingOrder = Uuid::v7()->toRfc4122();
+        $buyer = Uuid::v7()->toRfc4122();
+        $this->hold($buyingOrder, $concertId, 'A-2', $buyer);
+        $this->commandBus()->send(new ConfirmSeats(orderId: $buyingOrder, concertId: $concertId, customerId: $buyer, seatIds: [$concertId . '/A-2'], paymentReference: 'pay-1'), metadata: ['concertId' => $concertId]);
+        $this->runTheConsumer($client);
+
+        $client->request('GET', '/admin/concerts');
+
+        self::assertSelectorTextContains("table.concerts tr[id=\"{$concertId}\"] .seat-counts", '1 sold');
+        self::assertSelectorTextContains("table.concerts tr[id=\"{$concertId}\"] .seat-counts", '1 held');
+        self::assertSelectorTextContains("table.concerts tr[id=\"{$concertId}\"] .seat-counts", '70 free');
+        self::assertSelectorTextContains("table.concerts tr[id=\"{$this->concertIdOf('Aurora Strings')}\"] .seat-counts", '72 free');
+    }
+
     public function test_the_seat_map_of_an_unknown_concert_is_not_found_and_points_to_the_concerts(): void
     {
         $client = $this->seededClient();

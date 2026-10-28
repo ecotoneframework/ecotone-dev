@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Graph\FlowFocus;
 use App\Graph\ServiceFlow;
 use App\Graph\ServiceFlows;
 use App\Graph\ServiceScopeFilter;
@@ -44,22 +45,26 @@ final class FlowGraphController extends AbstractController
         $crossed = $highlight === null ? [] : array_values(array_intersect($available, $highlight->services));
         $narrowedByTrace = $requested === [] && $crossed !== [];
         $view = (string) $request->query->get('view', '');
+        $focus = $this->focusOf($flows, $request->query->getString('focus'));
         $crossedNodes = array_sum(array_map(fn (ServiceFlow $flow) => in_array($flow->name, $crossed, true) ? count($flow->graph->nodes()) : 0, $flows));
-        $overview = $requested === [] && $view !== 'detail' && match (true) {
+        $overview = $focus === null && $requested === [] && $view !== 'detail' && match (true) {
             $view === 'overview' => true,
             $narrowedByTrace => $crossedNodes > $this->defaultNodeLimit,
             default => count($available) > self::OVERVIEW_ABOVE_SERVICES || ($totalNodes > $this->defaultNodeLimit && count($available) > 1),
         };
         $shown = match (true) {
+            $focus !== null => array_values(array_intersect($available, $focus->services())),
             $narrowedByTrace && ! $overview => $crossed,
             $requested === [] => $available,
             default => array_values(array_intersect($available, array_map('strval', $requested))),
         };
 
-        $nodes = $overview ? StitchedFlowGraph::overviewDetails($flows) : StitchedFlowGraph::nodeDetails($flows, $shown);
-        $nodes = array_map(fn (array $node): array => [...$node, 'href' => $overview
-            ? $this->generateUrl('flow_graph', ['services' => [$node['service']]])
-            : $this->generateUrl('dead_letters', ['service' => $node['service']])], $nodes);
+        $nodes = $overview ? StitchedFlowGraph::overviewDetails($flows) : StitchedFlowGraph::nodeDetails($flows, $shown, $focus);
+        $nodes = array_map(fn (array $node): array => [...$node, 'href' => match (true) {
+            $overview => $this->generateUrl('flow_graph', ['services' => [$node['service']]]),
+            isset($node['node']) => $this->generateUrl('flow_graph', array_filter(['focus' => $node['service'] . ':' . $node['node'], 'trace' => $traceId])),
+            default => $this->generateUrl('dead_letters', ['service' => $node['service']]),
+        }], $nodes);
 
         return $this->render('graph/flow.html.twig', [
             'scope' => $scope,
@@ -70,11 +75,24 @@ final class FlowGraphController extends AbstractController
             'services' => $available,
             'shown' => $shown,
             'notices' => $serviceFlows->notices,
-            'diagram' => $overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::toMermaid($flows, $shown, $highlight, $scope),
+            'diagram' => $overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::toMermaid($flows, $shown, $highlight, $scope, $focus),
             'trace' => $highlight,
             'traceStates' => $traceView?->states ?? [],
             'traceEmpty' => $traceView !== null && $traceView->trace->isEmpty(),
             'waiting' => $traceView?->waiting ?? false,
         ]);
+    }
+
+    /**
+     * @param list<ServiceFlow> $flows
+     */
+    private function focusOf(array $flows, string $requested): ?FlowFocus
+    {
+        if ($requested === '') {
+            return null;
+        }
+        [$service, $nodeId] = explode(':', $requested, 2) + [1 => ''];
+
+        return FlowFocus::of($flows, $service, $nodeId);
     }
 }

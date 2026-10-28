@@ -35,6 +35,8 @@
 
     document.querySelectorAll('[data-contention]').forEach(function (page) {
         const list = page.querySelector('[data-contention-buyers]');
+        const headline = page.querySelector('[data-contention-headline]');
+        const outcomeReason = page.querySelector('[data-contention-outcome-reason]');
         const pollEveryMilliseconds = 1000;
         const maxFailedPolls = 10;
         let failedPolls = 0;
@@ -93,6 +95,9 @@
                 }
                 const contention = await response.json();
                 failedPolls = 0;
+                headline.textContent = contention.outcome.headline;
+                outcomeReason.hidden = contention.outcome.reason === null;
+                outcomeReason.textContent = contention.outcome.reason === null ? '' : 'Ticketing said: ' + contention.outcome.reason;
                 list.replaceChildren.apply(list, contention.buyers.map(buyerItem));
                 decided = contention.buyers.every(function (buyer) { return buyer.state !== 'pending'; });
             } catch (error) {

@@ -48,7 +48,7 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
         self::assertCount(5, array_unique(array_map(fn (array $hold) => $hold[1]['orderId'], $holds)));
         self::assertCount(5, array_unique(array_map(fn (array $hold) => $hold[1]['customerId'], $holds)));
         $state = $this->contentionState();
-        self::assertSame(['contentionId' => self::CONTENTION_ID, 'concertId' => self::CONCERT_ID, 'seatId' => self::SEAT_ID, 'seatCode' => 'A-3', 'buyersRequested' => 5], array_diff_key($state, ['buyers' => true]));
+        self::assertSame(['contentionId' => self::CONTENTION_ID, 'concertId' => self::CONCERT_ID, 'seatId' => self::SEAT_ID, 'seatCode' => 'A-3', 'buyersRequested' => 5, 'outcome' => ['headline' => '5 buyers ask ticketing for seat A-3', 'reason' => null]], array_diff_key($state, ['buyers' => true]));
         self::assertSame(['Contending buyer 1', 'Contending buyer 2', 'Contending buyer 3', 'Contending buyer 4', 'Contending buyer 5'], array_column($state['buyers'], 'name'));
         self::assertSame(array_fill(0, 5, 'pending'), array_column($state['buyers'], 'state'));
     }
@@ -106,6 +106,62 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
         $order = $this->order($adaOrderId);
         self::assertSame('started', $order['status']);
         self::assertSame(['seatId' => self::SEAT_ID, 'reason' => 'someone was faster: seat A-3'], $order['lastRefusal']);
+    }
+
+    public function test_a_contention_one_buyer_won_is_headlined_by_the_buyer_holding_the_seat(): void
+    {
+        $this->concertOnSale();
+        $this->ticketingService->holdsToRefuse = 4;
+
+        $this->contend(buyers: 5);
+        $this->ticketingReplies();
+
+        self::assertSame(['headline' => 'Contending buyer 5 holds seat A-3; ticketing refused every other buyer', 'reason' => null], $this->contentionState()['outcome']);
+    }
+
+    public function test_a_contention_whose_winner_let_the_hold_end_is_headlined_by_the_buyer_that_held_the_seat(): void
+    {
+        $this->concertOnSale();
+        $this->ticketingService->holdsToRefuse = 1;
+        $this->contend(buyers: 2);
+        $this->ticketingReplies();
+        $winner = $this->contentionState()['buyers'][1];
+
+        $this->ticketing->getGateway(DistributedBus::class)->convertAndPublishEvent('tickets.hold_expired', ['orderId' => $winner['orderId'], 'concertId' => self::CONCERT_ID, 'seatId' => self::SEAT_ID, 'customerId' => $winner['customerId'], 'holdId' => $winner['holdId']], metadata: ['concertId' => self::CONCERT_ID]);
+        $this->storefrontConsumes();
+
+        self::assertSame(['refused', 'released'], array_column($this->contentionState()['buyers'], 'state'));
+        self::assertSame(['headline' => 'Contending buyer 2 held seat A-3 until its hold ended; ticketing refused every other buyer', 'reason' => null], $this->contentionState()['outcome']);
+    }
+
+    #[DataProvider('seatsAlreadyTaken')]
+    public function test_a_contention_every_buyer_was_refused_is_headlined_by_no_buyer_getting_the_seat_and_why(string $reason, string $headline): void
+    {
+        $this->concertOnSale();
+        $this->ticketingService->holdsToRefuse = 3;
+        $this->ticketingService->refusalReason = $reason;
+
+        $this->contend(buyers: 3);
+        $this->ticketingReplies();
+
+        self::assertSame(['refused', 'refused', 'refused'], array_column($this->contentionState()['buyers'], 'state'));
+        self::assertSame(['headline' => $headline, 'reason' => $reason], $this->contentionState()['outcome']);
+    }
+
+    public static function seatsAlreadyTaken(): iterable
+    {
+        yield 'held by another order' => [
+            'Seat A-3 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because someone was faster: order 0199f3a8-6f2a-7c1e-9a51-00000000000b holds it until 2026-10-25T12:02:00+00:00. Pick another seat, or try this one again after that hold expires.',
+            'No buyer got seat A-3: ticketing refused every request, because the seat was already held',
+        ];
+        yield 'sold to another order' => [
+            'Seat A-3 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because someone was faster: it is sold to order 0199f3a8-6f2a-7c1e-9a51-00000000000b. Pick another seat.',
+            'No buyer got seat A-3: ticketing refused every request, because the seat was already sold',
+        ];
+        yield 'any other refusal' => [
+            'Seat A-3 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because the concert is cancelled, not on sale. Seats are held only while a concert is on sale.',
+            'No buyer got seat A-3: ticketing refused every request',
+        ];
     }
 
     #[DataProvider('refusalsOfTicketing')]

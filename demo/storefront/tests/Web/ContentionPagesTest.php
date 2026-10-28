@@ -82,6 +82,8 @@ final class ContentionPagesTest extends TestCase
         $response = $this->get('/contentions/' . $contentionId);
 
         $response->assertOk();
+        $response->assertSee('<h1 data-contention-headline>Contending buyer 5 holds seat B-1; ticketing refused every other buyer</h1>', escape: false);
+        $response->assertDontSee('one hold</h1>', escape: false);
         $response->assertSee('5 synthetic buyers asked ticketing for seat <strong>B-1</strong>', escape: false);
         $response->assertSee('within the same moment. Ticketing decides them in whatever order they arrive, and the Dynamic Consistency Boundary on the seat lets exactly one hold stand: a request that reaches the seat while another is being appended is refused by the boundary itself, a later one is refused because the seat is already held.');
         $response->assertDontSee('at the same moment');
@@ -123,6 +125,33 @@ final class ContentionPagesTest extends TestCase
 
         $response->assertSee('Send several synthetic buyers after the same seat within the same moment. Ticketing decides their requests in whatever order they arrive, and the Dynamic Consistency Boundary on the seat lets exactly one hold stand: watch one buyer turn green, and every other one turn red, refused either by the boundary while another hold was being appended or because the seat was already held.');
         $response->assertDontSee('in parallel');
+    }
+
+    public function test_the_page_of_a_contention_on_a_seat_already_taken_says_no_buyer_got_it_and_why(): void
+    {
+        $this->scheduleOnSale();
+        $contentionId = $this->postJson('/concerts/' . self::CONCERT_ID . '/contentions', ['seatId' => self::SEAT_ID, 'buyers' => 3])->json('contentionId');
+        $reason = 'Seat B-1 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because someone was faster: it is sold to order 0199f3a8-6f2a-7c1e-9a51-00000000000b. Pick another seat.';
+        foreach ($this->getJson('/contentions/' . $contentionId . '/state.json')->json('buyers') as $buyer) {
+            $this->app->make(CommandBus::class)->send(new RecordSeatRefusal(orderId: $buyer['orderId'], seatId: self::SEAT_ID, holdId: $buyer['holdId'], reason: $reason));
+        }
+
+        $response = $this->get('/contentions/' . $contentionId);
+
+        $response->assertSee('<h1 data-contention-headline>No buyer got seat B-1: ticketing refused every request, because the seat was already sold</h1>', escape: false);
+        $response->assertSee('<p class="contention__outcome-reason" data-contention-outcome-reason>Ticketing said: ' . $reason . '</p>', escape: false);
+        $response->assertDontSee('contention__buyer--held');
+    }
+
+    public function test_the_page_of_a_contention_still_waiting_for_ticketing_names_the_buyers_asking_and_no_outcome(): void
+    {
+        $this->scheduleOnSale();
+        $contentionId = $this->postJson('/concerts/' . self::CONCERT_ID . '/contentions', ['seatId' => self::SEAT_ID, 'buyers' => 3])->json('contentionId');
+
+        $response = $this->get('/contentions/' . $contentionId);
+
+        $response->assertSee('<h1 data-contention-headline>3 buyers ask ticketing for seat B-1</h1>', escape: false);
+        $response->assertSee('<p class="contention__outcome-reason" data-contention-outcome-reason hidden></p>', escape: false);
     }
 
     public function test_contending_buyers_are_synthetic_customers_not_listed_on_whoami(): void

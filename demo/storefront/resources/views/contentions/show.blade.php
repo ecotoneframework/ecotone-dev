@@ -4,7 +4,8 @@
 
 @section('body')
     <main class="contention" data-contention data-state-url="{{ url('/contentions/' . $contention['contentionId'] . '/state.json') }}">
-        <h1>One seat, {{ $contention['buyersRequested'] }} buyers, one hold</h1>
+        <h1 data-contention-headline>{{ $contention['outcome']['headline'] }}</h1>
+        <p class="contention__outcome-reason" data-contention-outcome-reason{{ $contention['outcome']['reason'] === null ? ' hidden' : '' }}>@if ($contention['outcome']['reason'] !== null)Ticketing said: {{ $contention['outcome']['reason'] }}@endif</p>
         <p>
             {{ $contention['buyersRequested'] }} synthetic buyers asked ticketing for seat <strong>{{ $contention['seatCode'] }}</strong>@if ($concert !== null) of <a href="{{ url('/concerts/' . $concert['concertId']) }}">{{ $concert['artist'] }}</a>@endif within the same moment. Ticketing decides them in whatever order they arrive, and the Dynamic Consistency Boundary on the seat lets exactly one hold stand: a request that reaches the seat while another is being appended is refused by the boundary itself, a later one is refused because the seat is already held.
         </p>

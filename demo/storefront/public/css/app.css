@@ -350,6 +350,10 @@ button.seat:disabled {
     width: 6rem;
 }
 
+.contention__outcome-reason {
+    color: #4b5563;
+}
+
 .contention__buyers {
     display: flex;
     flex-direction: column;

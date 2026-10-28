@@ -121,7 +121,8 @@ being appended is refused by the boundary itself, a later one is refused because
 contention page (`/contentions/{contentionId}`) polls their state every second. On a free seat one buyer turns green
 (held) and every other one turns red (refused), and each refusal says which of the two it was above the reason
 ticketing replied with: a request refused by the boundary is told the seat changed each time ticketing tried to hold
-it, one that read the seat already held is told who holds it and until when.
+it, one that read the seat already held is told who holds it and until when. The headline says how the contention
+ended: which buyer holds the seat, or, on a seat already held or sold, that no buyer got it, with ticketing's reason.
 
 The winner's order is a normal held order: **Continue as** that buyer to pay for it, or let the hold expire. Every
 refused buyer's order fails with ticketing's reason. In Jaeger, the contention is one trace across both services, with

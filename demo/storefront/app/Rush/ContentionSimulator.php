@@ -78,22 +78,51 @@ final class ContentionSimulator
             return null;
         }
         $seatId = $contention['seat_id'];
+        $seatCode = SeatCode::ofSeatId($seatId);
+        $buyers = array_map(fn (array $buyer) => [
+            'buyerNumber' => (int) $buyer['buyer_number'],
+            'name' => $buyer['name'],
+            'customerId' => $buyer['customer_id'],
+            'orderId' => $buyer['order_id'],
+            'holdId' => $buyer['hold_id'],
+            ...$this->stateOf($buyer, $seatId),
+        ], $contentions->buyersOf($contentionId));
 
         return [
             'contentionId' => $contention['contention_id'],
             'concertId' => $contention['concert_id'],
             'seatId' => $seatId,
-            'seatCode' => SeatCode::ofSeatId($seatId),
+            'seatCode' => $seatCode,
             'buyersRequested' => (int) $contention['buyers_requested'],
-            'buyers' => array_map(fn (array $buyer) => [
-                'buyerNumber' => (int) $buyer['buyer_number'],
-                'name' => $buyer['name'],
-                'customerId' => $buyer['customer_id'],
-                'orderId' => $buyer['order_id'],
-                'holdId' => $buyer['hold_id'],
-                ...$this->stateOf($buyer, $seatId),
-            ], $contentions->buyersOf($contentionId)),
+            'outcome' => $this->outcomeOf($buyers, $seatCode),
+            'buyers' => $buyers,
         ];
+    }
+
+    /**
+     * @return array{headline: string, reason: ?string}
+     */
+    private function outcomeOf(array $buyers, string $seatCode): array
+    {
+        $buyersIn = fn (string $state) => array_values(array_filter($buyers, fn (array $buyer) => $buyer['state'] === $state));
+        if ($buyersIn('pending') !== []) {
+            return ['headline' => sprintf('%d buyers ask ticketing for seat %s', count($buyers), $seatCode), 'reason' => null];
+        }
+        if ($buyersIn('held') !== []) {
+            return ['headline' => sprintf('%s holds seat %s; ticketing refused every other buyer', $buyersIn('held')[0]['name'], $seatCode), 'reason' => null];
+        }
+        if ($buyersIn('released') !== []) {
+            return ['headline' => sprintf('%s held seat %s until its hold ended; ticketing refused every other buyer', $buyersIn('released')[0]['name'], $seatCode), 'reason' => null];
+        }
+        $refusedAsTaken = array_values(array_filter($buyers, fn (array $buyer) => $buyer['refusal'] !== ContentionRefusal::LostTheRace->value));
+        $takenAs = array_unique(array_column($refusedAsTaken, 'refusal'));
+        $because = match ($takenAs) {
+            [ContentionRefusal::SeatAlreadyHeld->value] => ', because the seat was already held',
+            [ContentionRefusal::SeatAlreadySold->value] => ', because the seat was already sold',
+            default => '',
+        };
+
+        return ['headline' => sprintf('No buyer got seat %s: ticketing refused every request%s', $seatCode, $because), 'reason' => ($refusedAsTaken[0] ?? $buyers[0])['reason']];
     }
 
     /**

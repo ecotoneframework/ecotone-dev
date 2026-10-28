@@ -27,7 +27,7 @@ final class ContentionSimulator
     public function start(StartContention $command, #[Reference] Contentions $contentions, #[Reference] QueryBus $queryBus, #[Reference] CommandBus $commandBus): void
     {
         $concert = $queryBus->sendWithRouting('concert.detail', $command->concertId);
-        $refusal = self::refusalOf($concert, $command->concertId, $command->seatId);
+        $refusal = self::refusalOf($concert, $command->concertId, $command->seatId, $queryBus->sendWithRouting('concert.seat_states', ['concertId' => $command->concertId, 'excludingOrderId' => null]));
         if ($refusal !== null) {
             throw $refusal;
         }
@@ -41,7 +41,10 @@ final class ContentionSimulator
         }
     }
 
-    public static function refusalOf(?array $concert, string $concertId, string $seatId): ?DomainException
+    /**
+     * @param array{heldSeatIds: list<string>, soldSeatIds: list<string>} $seatStates
+     */
+    public static function refusalOf(?array $concert, string $concertId, string $seatId, array $seatStates): ?DomainException
     {
         if ($concert === null) {
             return new DomainException(sprintf('There is no concert %s in the storefront catalogue, so a contention cannot send buyers to it. Pick a concert listed on /concerts.', $concertId));
@@ -52,12 +55,29 @@ final class ContentionSimulator
         foreach ($concert['sections'] as $section) {
             foreach ($section['rows'] as $row) {
                 if (in_array($seatId, array_column($row['seats'], 'seatId'), true)) {
-                    return null;
+                    return self::refusalOfTakenSeat($concertId, $seatId, $seatStates);
                 }
             }
         }
 
         return new DomainException(sprintf('Concert %s has no seat %s, so a contention cannot send buyers after it. Pick one of the seats on the concert page.', $concertId, $seatId));
+    }
+
+    /**
+     * @param array{heldSeatIds: list<string>, soldSeatIds: list<string>} $seatStates
+     */
+    private static function refusalOfTakenSeat(string $concertId, string $seatId, array $seatStates): ?DomainException
+    {
+        $taken = match (true) {
+            in_array($seatId, $seatStates['soldSeatIds'], true) => 'sold',
+            in_array($seatId, $seatStates['heldSeatIds'], true) => 'held by someone',
+            default => null,
+        };
+        if ($taken === null) {
+            return null;
+        }
+
+        return new DomainException(sprintf('Seat %s of concert %s is already %s, so a contention for it would only show every buyer refused. Pick a free seat on the concert page; the contention panel lists only free seats.', SeatCode::ofSeatId($seatId), $concertId, $taken));
     }
 
     #[EventHandler]

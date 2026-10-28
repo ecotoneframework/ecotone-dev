@@ -31,7 +31,7 @@ final class OrderQueries
             ->value('id');
     }
 
-    #[QueryHandler('concert.taken_seats')]
+    #[QueryHandler('concert.seats_claimed_by_orders')]
     public function seatsTakenByOtherOrders(array $query): array
     {
         return Order::query()

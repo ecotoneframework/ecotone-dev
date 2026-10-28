@@ -14,9 +14,12 @@ mermaid.initialize({
     },
 });
 
-const link = (element, href, title) => {
+const link = (element, href, title, current) => {
     const anchor = document.createElementNS(SVG, 'a');
     anchor.setAttribute('href', href);
+    if (current) {
+        anchor.setAttribute('aria-current', 'true');
+    }
     const text = document.createElementNS(SVG, 'title');
     text.textContent = title;
     element.replaceWith(anchor);
@@ -32,7 +35,7 @@ const decorate = (graph, svg) => {
     svg.querySelectorAll('g.node, g.cluster').forEach((element) => {
         const id = /(?:flowchart-)?(s\d+(?:n\d+|c)?)(?:-\d+)?$/.exec(element.id)?.[1];
         if (id && nodes[id]) {
-            link(element, nodes[id].href, nodes[id].title);
+            link(element, nodes[id].href, nodes[id].title, nodes[id].current === true);
         }
     });
 };

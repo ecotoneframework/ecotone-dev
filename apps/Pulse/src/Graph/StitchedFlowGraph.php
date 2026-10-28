@@ -15,7 +15,7 @@ final class StitchedFlowGraph
      * @param list<ServiceFlow> $flows
      * @param list<string> $shownServices
      * @param list<string> $collapsed
-     * @return array<string, array{title: string, service: string, node?: string, collapsed?: true}>
+     * @return array<string, array{title: string, service: string, node?: string, collapsed?: true, current?: true}>
      */
     public static function nodeDetails(array $flows, array $shownServices, ?FlowFocus $focus = null, array $collapsed = []): array
     {
@@ -30,7 +30,7 @@ final class StitchedFlowGraph
                 if ($focus?->includes($flow->name, $node->id) === false) {
                     continue;
                 }
-                $details[sprintf('s%dn%d', $serviceIndex, $nodeIndex)] = ['title' => $node->label, 'service' => $flow->name, 'node' => $node->id];
+                $details[sprintf('s%dn%d', $serviceIndex, $nodeIndex)] = ['title' => $node->label, 'service' => $flow->name, 'node' => $node->id, ...($focus?->service === $flow->name && $focus->node->id === $node->id ? ['current' => true] : [])];
             }
         }
 

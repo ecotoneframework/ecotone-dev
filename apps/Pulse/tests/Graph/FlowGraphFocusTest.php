@@ -81,6 +81,19 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         self::assertSame('What led here starts at the step farthest from class@anonymous::create; what happens next starts at the step right after it. Both are ordered by distance, so steps of different branches at the same distance sit next to each other rather than in the order they run.', $focused->filter('[data-focus-steps] [data-focus-order]')->text());
     }
 
+    public function test_only_the_followed_node_is_marked_as_the_current_one_for_assistive_technology(): void
+    {
+        $client = $this->ordersAndBilling();
+
+        $focused = $this->follow($client, $client->request('GET', '/flow'), 'billing', '::create');
+
+        $nodes = json_decode($focused->filter('pre.mermaid')->attr('data-graph-nodes'), true, flags: JSON_THROW_ON_ERROR);
+        $current = array_values(array_filter($nodes, fn (array $node) => ($node['current'] ?? false) === true));
+        self::assertCount(1, $current);
+        self::assertSame('billing', $current[0]['service']);
+        self::assertStringEndsWith('::create', $current[0]['title']);
+    }
+
     public function test_handlers_sharing_an_asynchronous_channel_or_an_interceptor_are_not_part_of_each_others_flow(): void
     {
         $this->configurePulseWithServices('shipping');

@@ -62,12 +62,13 @@
         <p class="muted graph-view">
             {% if overview %}<span data-flow-overview>Service overview: one node per service, arrows are distributed commands, events and messages.</span> Click a service to see its flow, or <a href="{{ detailUrl }}">show every service in detail</a>.
             {% elseif services|length > 1 %}<a href="{{ overviewUrl }}">Show the service overview</a>{% endif %}
-            {% if not overview %}{% if services|length > 1 %} · {% endif %}{% if foldChannels %}<a href="{{ foldUrl }}" data-unfold-channels>Show channels</a>{% else %}<a href="{{ foldUrl }}" data-fold-channels>Fold asynchronous channels into arrows</a>{% endif %}{% endif %}
+            {% if not overview %}{% if services|length > 1 %} · {% endif %}{% if not focus %}Click a node to follow it: only what led to it and everything it causes stays drawn. {% endif %}{% if foldChannels %}<a href="{{ foldUrl }}" data-unfold-channels>Show channels</a>{% else %}<a href="{{ foldUrl }}" data-fold-channels>Fold asynchronous channels into arrows</a>{% endif %}{% endif %}
         </p>
         <pre class="mermaid" data-flow-graph data-graph-nodes="{{ nodes|json_encode }}">{{ diagram }}</pre>
         {% if focus %}
             <details class="card focus" data-focus-steps>
                 <summary>Steps: {{ focus.upstream|length }} before, {{ focus.downstream|length }} after</summary>
+                <p class="muted" data-focus-order>What led here starts at the step farthest from {{ focus.label }}; what happens next starts at the step right after it. Both are ordered by distance, so steps of different branches at the same distance sit next to each other rather than in the order they run.</p>
                 <div class="focus-steps">
                     <div>
                         <h3>What led here</h3>

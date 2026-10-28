@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Tests\Sales;
 
 use App\Catalogue\Catalogue;
+use App\Catalogue\ChangeTierPrice;
 use App\Catalogue\Concert;
 use App\Catalogue\ConcertAnnouncements;
 use App\Catalogue\CreateVenue;
 use App\Catalogue\OpenSales;
 use App\Catalogue\ScheduleConcert;
+use App\Catalogue\Tier;
 use App\Catalogue\Venue;
 use App\Infrastructure\EcotoneConfiguration;
 use App\Kernel;
@@ -188,6 +190,89 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
 
         self::assertSame('held', $this->repliesReceivedBy($storefront)[0]['reply']['outcome']);
         self::assertSame(1, $interferer->attempts);
+    }
+
+    public function test_a_hold_racing_a_tier_price_change_of_its_concert_replies_refused_naming_the_concert_and_a_new_hold_holds_the_seat(): void
+    {
+        $storefront = $this->storefront();
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public ?string $concertId = null;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::hold')]
+            public function changeThePriceOnceAfterTheDecision(MethodInvocation $invocation): mixed
+            {
+                $decision = $invocation->proceed();
+                if ($this->competitor !== null) {
+                    $competitor = $this->competitor;
+                    $this->competitor = null;
+                    $competitor->sendCommand(new ChangeTierPrice(concertId: $this->concertId, tier: Tier::VIP, priceCents: 12000));
+                }
+
+                return $decision;
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $interferer->competitor = $competitor;
+        $interferer->concertId = $concertId;
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+
+        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $reply = $this->repliesReceivedBy($storefront)[0]['reply'];
+        self::assertSame('refused', $reply['outcome']);
+        self::assertSame("Seat {$concertId}/A-1 cannot be held for order {$orderId}, because the concert changed while ticketing held the seat: its prices or status were saved after ticketing read them, so the hold could not be kept as decided. Pick the seat again to hold it at the concert's current prices, while the concert is on sale.", $reply['reason']);
+
+        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId, holdId: 'hold-2');
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame('held', $this->repliesReceivedBy($storefront)[0]['reply']['outcome']);
+    }
+
+    public function test_a_confirm_racing_a_tier_price_change_of_its_concert_replies_refused_naming_the_concert_and_sells_nothing(): void
+    {
+        $storefront = $this->storefront();
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public ?string $concertId = null;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::confirm')]
+            public function changeThePriceOnceAfterTheDecision(MethodInvocation $invocation): mixed
+            {
+                $decision = $invocation->proceed();
+                if ($this->competitor !== null) {
+                    $competitor = $this->competitor;
+                    $this->competitor = null;
+                    $competitor->sendCommand(new ChangeTierPrice(concertId: $this->concertId, tier: Tier::VIP, priceCents: 12000));
+                }
+
+                return $decision;
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->repliesReceivedBy($storefront);
+        $interferer->competitor = $competitor;
+        $interferer->concertId = $concertId;
+
+        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $reply = $this->repliesReceivedBy($storefront)[0]['reply'];
+        self::assertSame('refused', $reply['outcome']);
+        self::assertSame("Order {$orderId} cannot be confirmed, because the concert changed while ticketing sold its seats: its prices or status were saved after ticketing read them; nothing of the order was sold. Refund payment pay-1; the buyer holds seats again in a new order.", $reply['reason']);
+        self::assertSame([], $ticketing->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('seat', $concertId . '/A-1')->ofTypes(SeatSold::class))->events);
     }
 
     public function test_two_holds_racing_for_the_same_seat_reply_one_held_and_one_refused_because_someone_was_faster(): void

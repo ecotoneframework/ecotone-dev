@@ -188,6 +188,7 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
         $distributedBus = $this->ticketing->getGateway(DistributedBus::class);
         $distributedBus->convertAndPublishEvent('concert.scheduled', [
             'concertId' => self::CONCERT_ID,
+            'version' => 1,
             'venueName' => 'Ecotone Hall',
             'artist' => 'The Night Owls',
             'startsAt' => '2026-12-01T20:00:00+00:00',

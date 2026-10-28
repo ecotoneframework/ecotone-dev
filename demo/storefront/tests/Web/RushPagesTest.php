@@ -200,6 +200,7 @@ final class RushPagesTest extends TestCase
     {
         $this->app->make(EventBus::class)->publishWithRouting('concert.scheduled', [
             'concertId' => self::CONCERT_ID,
+            'version' => 1,
             'venueName' => 'Ecotone Hall',
             'artist' => 'The Night Owls',
             'startsAt' => '2026-12-01T20:00:00+00:00',

@@ -31,6 +31,7 @@ final class ConcertProjector
         }
         $catalogue->schedule(
             concertId: $event['concertId'],
+            version: $event['version'],
             artist: $event['artist'],
             venueName: $event['venueName'],
             startsAt: $event['startsAt'],
@@ -59,7 +60,7 @@ final class ConcertProjector
     #[EventHandler('concert.prices_changed')]
     public function whenPricesChanged(array $event, #[Reference] ConcertCatalogue $catalogue): void
     {
-        $catalogue->changePrices(concertId: $event['concertId'], standardPriceCents: $event['tiers']['standard'], vipPriceCents: $event['tiers']['vip']);
+        $catalogue->changePrices(concertId: $event['concertId'], version: $event['version'], standardPriceCents: $event['tiers']['standard'], vipPriceCents: $event['tiers']['vip']);
     }
 
     #[Distributed]

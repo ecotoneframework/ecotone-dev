@@ -1,15 +1,34 @@
-{% extends 'base.html.twig' %}
+{% extends 'admin/layout.html.twig' %}
+{% import '_icons.html.twig' as icons %}
 
 {% block title %}Ticketing{% endblock %}
 
-{% block body %}
-    <main>
-        <h1>Ticketing</h1>
-        <p>The Symfony ticketing service of the Ecotone demo. It answers the storefront over the Distributed Bus on RabbitMQ.</p>
-        <ul>
-            <li><a href="{{ path('admin') }}">Admin</a> manages the venues and concerts.</li>
-            <li><a href="{{ pulseUrl }}">Ecotone Pulse</a> monitors this service and the storefront.</li>
-            <li><a href="{{ jaegerUrl }}">Jaeger</a> shows the traces of every message.</li>
-        </ul>
-    </main>
+{% block content %}
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">Ecotone demo</p>
+            <h1>Ticketing</h1>
+            <p class="page-meta">The Symfony ticketing service of the Ecotone demo. It answers the storefront over the Distributed Bus on RabbitMQ.</p>
+        </div>
+    </header>
+    <div class="card-grid">
+        <section class="card link-card">
+            <span class="link-card-icon">{{ icons.icon('calendar') }}</span>
+            <h2>Back office</h2>
+            <p>Schedule concerts, open their sales, change prices, follow the seat maps and manage the venues.</p>
+            <a class="button button-primary" href="{{ path('admin') }}">Open the Admin {{ icons.icon('arrow') }}</a>
+        </section>
+        <section class="card link-card">
+            <span class="link-card-icon">{{ icons.icon('pulse') }}</span>
+            <h2>Monitoring</h2>
+            <p>Watch this service and the storefront: dead letters, projections, flows and traces.</p>
+            <a class="button button-secondary" href="{{ pulseUrl }}">Ecotone Pulse {{ icons.icon('arrow') }}</a>
+        </section>
+        <section class="card link-card">
+            <span class="link-card-icon">{{ icons.icon('trace') }}</span>
+            <h2>Tracing</h2>
+            <p>Follow every message of a flow across both services, over the Distributed Bus.</p>
+            <a class="button button-secondary" href="{{ jaegerUrl }}">Jaeger {{ icons.icon('arrow') }}</a>
+        </section>
+    </div>
 {% endblock %}

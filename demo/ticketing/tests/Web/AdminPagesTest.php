@@ -158,6 +158,34 @@ final class AdminPagesTest extends WebTestCase
         self::assertSelectorTextContains('.status', 'cancelled');
     }
 
+    public function test_the_navigation_marks_the_page_you_are_on(): void
+    {
+        $client = $this->seededClient();
+
+        $crawler = $client->request('GET', '/admin/venues');
+        self::assertSame('Venues', trim($crawler->filter('nav a[aria-current="page"]')->text()));
+
+        $crawler = $client->click($crawler->filter('nav')->selectLink('Concerts')->link());
+        self::assertSame('Concerts', trim($crawler->filter('nav a[aria-current="page"]')->text()));
+
+        $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
+        self::assertSame('Concerts', trim($client->getCrawler()->filter('nav a[aria-current="page"]')->text()));
+    }
+
+    public function test_a_notice_is_announced_as_a_status_and_a_refusal_as_an_alert(): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+        $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
+
+        $client->submitForm('Open sales');
+        self::assertSelectorExists('.refusal[role="alert"]');
+
+        $client->submitForm('Change price', ['tier' => 'vip', 'priceCents' => '12000']);
+        $client->followRedirect();
+        self::assertSelectorExists('.notice[role="status"]');
+    }
+
     #[DataProvider('adminForms')]
     public function test_an_admin_form_posted_without_its_token_is_refused(string $path, array $fields): void
     {

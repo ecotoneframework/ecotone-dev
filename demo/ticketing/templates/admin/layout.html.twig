@@ -1,20 +1,33 @@
 {% extends 'base.html.twig' %}
+{% import '_icons.html.twig' as icons %}
 
 {% macro money(cents, currency) %}{{ (cents / 100)|number_format(2, '.', '') }} {{ currency }}{% endmacro %}
 
 {% block body %}
-    <main class="admin">
-        <nav>
-            <a href="{{ path('home') }}">Ticketing</a>
-            <a href="{{ path('admin_concerts') }}">Concerts</a>
-            <a href="{{ path('admin_venues') }}">Venues</a>
-        </nav>
-        {% for notice in app.flashes('notice') %}
-            <p class="notice">{{ notice }}</p>
-        {% endfor %}
-        {% if refusal %}
-            <p class="refusal">{{ refusal }}</p>
-        {% endif %}
-        {% block content %}{% endblock %}
-    </main>
+    {% set route = app.request.attributes.get('_route') %}
+    {% set section = route starts with 'admin_venues' ? 'venues' : (route starts with 'admin_concert' or route == 'concert_seats' ? 'concerts' : 'overview') %}
+    <a class="skip-link" href="#content">Skip to content</a>
+    <div class="app">
+        <header class="app-sidebar">
+            <a class="brand" href="{{ path('home') }}">
+                <span class="brand-mark">{{ icons.icon('logo') }}</span>
+                <span class="brand-name">Ticketing<small>Back office</small></span>
+            </a>
+            <nav class="app-nav" aria-label="Main">
+                <a href="{{ path('home') }}"{% if section == 'overview' %} aria-current="page"{% endif %}>{{ icons.icon('home') }}<span>Overview</span></a>
+                <a href="{{ path('admin_concerts') }}"{% if section == 'concerts' %} aria-current="page"{% endif %}>{{ icons.icon('calendar') }}<span>Concerts</span></a>
+                <a href="{{ path('admin_venues') }}"{% if section == 'venues' %} aria-current="page"{% endif %}>{{ icons.icon('building') }}<span>Venues</span></a>
+            </nav>
+            <p class="app-sidebar-foot">Ecotone demo · Symfony</p>
+        </header>
+        <main class="app-main{% block main_class %}{% endblock %}" id="content" tabindex="-1">
+            {% for notice in app.flashes('notice') %}
+                <p class="flash notice" role="status">{{ icons.icon('check') }}<span>{{ notice }}</span></p>
+            {% endfor %}
+            {% if refusal is defined and refusal %}
+                <p class="flash refusal" role="alert">{{ icons.icon('alert') }}<span>{{ refusal }}</span></p>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
 {% endblock %}

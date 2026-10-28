@@ -13,6 +13,7 @@ use App\Catalogue\ScheduleConcert;
 use App\Catalogue\Venue;
 use App\Infrastructure\EcotoneConfiguration;
 use App\Kernel;
+use App\Sales\ConfirmSeats;
 use App\Sales\CustomerConcertSeats;
 use App\Sales\FindSeatHold;
 use App\Sales\HoldExpired;
@@ -31,6 +32,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
@@ -467,6 +469,58 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         self::assertSame('refused', $reply['outcome']);
         self::assertSame("Order {$orderId} cannot buy seat {$concertId}/A-1 with payment pay-2, because it is already sold to this order with payment pay-1. Refund payment pay-2; the seat stays sold with payment pay-1.", $reply['reason']);
         self::assertCount(1, $ticketing->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('seat', $concertId . '/A-1')->ofTypes(SeatSold::class))->events);
+    }
+
+    public function test_a_confirm_racing_a_rehold_after_expiry_over_the_distributed_bus_replies_refused_and_the_seat_is_sold_once_to_the_reholding_order(): void
+    {
+        $storefront = $this->storefront();
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public ?string $concertId = null;
+
+            public ?string $reholdingOrder = null;
+
+            public ?string $reholdingCustomer = null;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::confirm')]
+            public function reholdTheExpiredSeatOnceAfterTheDecision(MethodInvocation $invocation): mixed
+            {
+                $decision = $invocation->proceed();
+                if ($this->reholdingOrder === null) {
+                    $this->reholdingOrder = Uuid::v7()->toRfc4122();
+                    $this->reholdingCustomer = Uuid::v7()->toRfc4122();
+                    $this->competitor->changeTimeTo(new DateTimeImmutable('2026-10-25 12:10:00'));
+                    $this->competitor->sendCommand(new HoldSeat(orderId: $this->reholdingOrder, concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: $this->reholdingCustomer, holdId: 'hold-1'), metadata: ['concertId' => $this->concertId]);
+                }
+
+                return $decision;
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $interferer->competitor = $competitor;
+        $interferer->concertId = $concertId;
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->repliesReceivedBy($storefront);
+        $ticketing->changeTimeTo(new DateTimeImmutable('2026-10-25 12:09:59'));
+
+        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+        $competitor->sendCommand(new ConfirmSeats(orderId: $interferer->reholdingOrder, concertId: $concertId, customerId: $interferer->reholdingCustomer, seatIds: [$concertId . '/A-1'], paymentReference: 'pay-2'), metadata: ['concertId' => $concertId]);
+
+        self::assertSame(
+            [['outcome' => 'refused', 'reason' => "Order {$orderId} cannot be confirmed, because someone was faster: its seats changed while ticketing sold them; nothing of the order was sold. Refund payment pay-1; the buyer holds seats again in a new order."]],
+            array_map(static fn (array $received): array => ['outcome' => $received['reply']['outcome'], 'reason' => $received['reply']['reason']], $this->repliesReceivedBy($storefront)),
+        );
+        self::assertSame(
+            [$interferer->reholdingOrder],
+            array_map(static fn (Event $event): string => $event->getPayload()->orderId, $ticketing->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('seat', $concertId . '/A-1')->ofTypes(SeatSold::class))->events),
+        );
     }
 
     public function test_two_identical_confirmations_handled_by_two_consumers_at_once_both_reply_sold_and_sell_the_seat_once(): void

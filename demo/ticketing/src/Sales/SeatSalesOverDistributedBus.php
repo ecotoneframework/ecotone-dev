@@ -69,7 +69,7 @@ final class SeatSalesOverDistributedBus
         } catch (SeatRefusal $refusal) {
             return [...$reply, 'outcome' => 'refused', 'reason' => $refusal->getMessage()];
         } catch (DecisionModelConcurrencyException) {
-            return [...$reply, 'outcome' => 'refused', 'reason' => sprintf('Order %s cannot be confirmed, because someone was faster: its seats changed each time ticketing tried to sell them; nothing of the order was sold. Confirm the order again.', $order['orderId'])];
+            return [...$reply, 'outcome' => 'refused', 'reason' => sprintf('Order %s cannot be confirmed, because someone was faster: its seats changed while ticketing sold them; nothing of the order was sold. Refund payment %s; the buyer holds seats again in a new order.', $order['orderId'], $order['paymentReference'])];
         }
 
         return $reply;

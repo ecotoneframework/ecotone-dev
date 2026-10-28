@@ -175,8 +175,9 @@ customer, concert and hold id of a hold release it, so a late release of an earl
 A hold expires after `TICKETING_HOLD_SECONDS` (600 by default, 120 in `docker-compose.yml`), through a delayed message
 on `ticketing_async` that frees only the hold it was scheduled for. A confirm decides on the customer's holds and,
 through a `#[DecisionBoundary]` over the `seat` tag of every seat it sells, on the seats themselves: another customer's
-hold of a seat whose hold just expired, appended while the confirm decides, makes the confirm's append conflict, and
-its retry finds the seat held by the other order and refuses, so a seat is sold once. A confirm repeated for an order
+hold of a seat whose hold just expired, appended while the confirm decides, makes the confirm's append conflict, so a seat is sold once: the
+storefront's `tickets.confirm` is refused at once with "someone was faster", and the storefront fails the order and
+refunds it (a command-bus send would retry and refuse naming the order that holds the seat). A confirm repeated for an order
 already sold with the same payment reference replies `sold` again and sells nothing twice. The storefront drives it
 with `tickets.hold`, `tickets.release` and `tickets.confirm` over the Distributed Bus, and gets `tickets.hold.result`
 and `tickets.confirm.result` replies; a held reply for a hold id the order no longer awaits releases that hold, and a

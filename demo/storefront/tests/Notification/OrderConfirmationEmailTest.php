@@ -7,9 +7,12 @@ namespace Tests\Notification;
 use App\Notification\EmailSender;
 use App\Notification\OrderConfirmation;
 use App\Notification\SentEmails;
-use App\Ordering\BeginPayment;
-use App\Ordering\MarkPaid;
 use App\Ordering\MarkTicketsIssued;
+use App\Payment\Checkout;
+use App\Payment\Pay;
+use App\Payment\PaymentAttempts;
+use App\Payment\PaymentOutcome;
+use App\Payment\PaymentProvider;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Illuminate\Support\Facades\DB;
@@ -25,16 +28,17 @@ final class OrderConfirmationEmailTest extends StorefrontFlowTestCase
     {
         parent::setUp();
         DB::table('sent_emails')->delete();
+        DB::table('payment_attempts')->delete();
     }
 
     protected function storefrontServices(): array
     {
-        return [OrderConfirmation::class, EmailSender::class, SentEmails::class];
+        return [OrderConfirmation::class, EmailSender::class, SentEmails::class, Checkout::class, PaymentProvider::class, PaymentAttempts::class];
     }
 
     public function test_issued_tickets_send_the_confirmation_email_with_every_entry_code_once_storefront_async_runs(): void
     {
-        $orderId = $this->paidOrderOf('Ada Lovelace', 'ada@example.com');
+        $orderId = $this->paidOrderOf('Ada Lovelace', 'ada@example.com', confirmationEmailBounces: false);
 
         $this->storefront->getCommandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: $this->tickets()));
 
@@ -51,9 +55,9 @@ final class OrderConfirmationEmailTest extends StorefrontFlowTestCase
         );
     }
 
-    public function test_a_confirmation_email_to_a_bounce_example_address_fails_naming_the_address_and_the_way_out(): void
+    public function test_a_confirmation_email_chosen_to_bounce_at_checkout_fails_naming_the_recipient_and_the_way_out(): void
     {
-        $orderId = $this->paidOrderOf('Linus Bounce', 'linus@bounce.example');
+        $orderId = $this->paidOrderOf('Linus Pauling', 'linus@example.com', confirmationEmailBounces: true);
         $this->storefront->getCommandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: $this->tickets()));
 
         $this->expectException(RuntimeException::class);
@@ -64,7 +68,7 @@ final class OrderConfirmationEmailTest extends StorefrontFlowTestCase
 
     public function test_a_bounced_confirmation_email_lands_in_the_dead_letter_and_records_no_sent_email(): void
     {
-        $orderId = $this->paidOrderOf('Linus Bounce', 'linus@bounce.example');
+        $orderId = $this->paidOrderOf('Linus Pauling', 'linus@example.com', confirmationEmailBounces: true);
         $this->storefront->getCommandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: $this->tickets()));
 
         $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
@@ -76,7 +80,7 @@ final class OrderConfirmationEmailTest extends StorefrontFlowTestCase
 
     public function test_a_bounced_confirmation_email_leaves_the_entry_codes_on_the_order_page_and_its_replay_bounces_again(): void
     {
-        $orderId = $this->paidOrderOf('Linus Bounce', 'linus@bounce.example');
+        $orderId = $this->paidOrderOf('Linus Pauling', 'linus@example.com', confirmationEmailBounces: true);
         $this->storefront->getCommandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: $this->tickets()));
         $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
@@ -93,16 +97,16 @@ final class OrderConfirmationEmailTest extends StorefrontFlowTestCase
 
     private function bounceMessageOf(string $orderId): string
     {
-        return sprintf('The confirmation email for order %s bounced: linus@bounce.example is at bounce.example, which accepts no mail, so the customer has not received their entry codes by email. Replaying this message bounces again. The tickets and their entry codes are on the order page, /orders/%s in the storefront: hand them to the customer from there, then delete this message from the dead letters in Ecotone Pulse or with php artisan ecotone:deadletter:delete <messageId>. To email the next order, register the customer with an address outside bounce.example.', $orderId, $orderId);
+        return sprintf('The confirmation email for order %s to linus@example.com bounced, because the buyer chose at checkout that it bounces, so the customer has not received their entry codes by email. Replaying this message bounces again: the choice stays with the order. The tickets and their entry codes are on the order page, /orders/%s in the storefront: hand them to the customer from there, then delete this message from the dead letters in Ecotone Pulse or with php artisan ecotone:deadletter:delete <messageId>. To email the next order, leave "The confirmation email bounces" unticked at checkout.', $orderId, $orderId);
     }
 
-    private function paidOrderOf(string $name, string $email): string
+    private function paidOrderOf(string $name, string $email, bool $confirmationEmailBounces): string
     {
         $orderId = $this->startOrderOf($name, $email);
         $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
         $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-11');
-        $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId));
-        $this->storefront->getCommandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS, confirmationEmailBounces: $confirmationEmailBounces));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         return $orderId;
     }

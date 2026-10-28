@@ -74,7 +74,7 @@ final class PaymentTest extends StorefrontFlowTestCase
     {
         $orderId = $this->orderWithHeldSeat();
 
-        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS));
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS, confirmationEmailBounces: false));
 
         self::assertSame('paying', $this->order($orderId)['status']);
     }
@@ -82,7 +82,7 @@ final class PaymentTest extends StorefrontFlowTestCase
     public function test_a_charged_card_marks_the_order_paid_and_asks_ticketing_to_confirm_its_seats(): void
     {
         $orderId = $this->orderWithHeldSeat();
-        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS));
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS, confirmationEmailBounces: false));
 
         $this->charge();
 
@@ -97,7 +97,7 @@ final class PaymentTest extends StorefrontFlowTestCase
     public function test_a_charge_retried_after_a_deadlock_charges_the_card_once(): void
     {
         $orderId = $this->orderWithHeldSeat();
-        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS));
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS, confirmationEmailBounces: false));
 
         $this->charge();
 
@@ -110,7 +110,7 @@ final class PaymentTest extends StorefrontFlowTestCase
     public function test_a_charge_card_replayed_for_a_paid_order_charges_nothing_and_confirms_nothing_again(): void
     {
         $orderId = $this->orderWithHeldSeat();
-        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS));
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS, confirmationEmailBounces: false));
         $this->charge();
         $this->ticketingReceives();
         $paymentReference = $this->order($orderId)['paymentReference'];
@@ -126,7 +126,7 @@ final class PaymentTest extends StorefrontFlowTestCase
     public function test_choosing_a_declined_card_fails_the_order_releasing_its_seats(): void
     {
         $orderId = $this->orderWithHeldSeat();
-        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::DECLINED));
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::DECLINED, confirmationEmailBounces: false));
 
         $this->charge();
 
@@ -139,7 +139,7 @@ final class PaymentTest extends StorefrontFlowTestCase
     public function test_choosing_a_provider_outage_fails_the_first_charge_naming_the_replay_from_pulse(): void
     {
         $orderId = $this->orderWithHeldSeat();
-        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::PROVIDER_OUTAGE));
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::PROVIDER_OUTAGE, confirmationEmailBounces: false));
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageMatches(sprintf('/^The payment provider is unavailable, so payment pay_[0-9a-f-]{36} of order %s was not charged\. It is a transient outage: replay this ChargeCard message from the dead letters in Ecotone Pulse, or run php artisan ecotone:deadletter:replay <messageId> in the storefront, and the card is charged again\.$/', $orderId));
@@ -150,7 +150,7 @@ final class PaymentTest extends StorefrontFlowTestCase
     public function test_a_charge_hit_by_the_provider_outage_replayed_from_the_dead_letter_pays_the_order_and_asks_ticketing_to_confirm(): void
     {
         $orderId = $this->orderWithHeldSeat();
-        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::PROVIDER_OUTAGE));
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::PROVIDER_OUTAGE, confirmationEmailBounces: false));
         $deadLetter = $this->storefront->getGateway(DeadLetterGateway::class);
 
         $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
@@ -170,7 +170,7 @@ final class PaymentTest extends StorefrontFlowTestCase
     public function test_a_paid_order_that_fails_is_refunded(): void
     {
         $orderId = $this->orderWithHeldSeat();
-        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS));
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS, confirmationEmailBounces: false));
         $this->charge();
 
         $this->storefront->getCommandBus()->send(new FailOrder(orderId: $orderId, reason: 'someone was faster: seat A-12'));
@@ -182,7 +182,7 @@ final class PaymentTest extends StorefrontFlowTestCase
     public function test_a_paid_order_whose_failure_does_not_commit_is_not_refunded(): void
     {
         $orderId = $this->orderWithHeldSeat();
-        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS));
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS, confirmationEmailBounces: false));
         $this->charge();
 
         try {

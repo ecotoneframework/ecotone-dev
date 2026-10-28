@@ -200,7 +200,7 @@ final class CheckoutPagesTest extends TestCase
         $graceOrderId = $this->commandBus()->send(new StartOrder(customerId: $this->register('Grace Hopper', 'grace@example.com'), concertId: self::CONCERT_ID));
         $this->commandBus()->send(new RequestSeat(orderId: $graceOrderId, seatId: self::CONCERT_ID . '/B-2', holdId: 'hold-1'));
         $this->commandBus()->send(new MarkSeatHeld(orderId: $graceOrderId, seatId: self::CONCERT_ID . '/B-2', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
-        $linusOrderId = $this->commandBus()->send(new StartOrder(customerId: $this->register('Linus Bounce', 'linus@bounce.example'), concertId: self::CONCERT_ID));
+        $linusOrderId = $this->commandBus()->send(new StartOrder(customerId: $this->register('Linus Pauling', 'linus@example.com'), concertId: self::CONCERT_ID));
         $this->commandBus()->send(new RequestSeat(orderId: $linusOrderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1'));
         $this->commandBus()->send(new MarkSeatHeld(orderId: $linusOrderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
         $this->commandBus()->send(new FailOrder(orderId: $linusOrderId, reason: 'The card was declined'));
@@ -283,6 +283,41 @@ final class CheckoutPagesTest extends TestCase
         self::assertSame('paying', $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json')->json('status'));
     }
 
+    public function test_the_checkout_page_offers_to_let_the_confirmation_email_bounce_unticked(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId . '/checkout');
+
+        $response->assertSee('<input type="checkbox" name="confirmationEmailBounces" value="1"> The confirmation email bounces: it lands in the dead letters, and the entry codes stay on the order page', escape: false);
+    }
+
+    public function test_paying_with_the_confirmation_email_chosen_to_bounce_keeps_the_choice_with_the_order(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+
+        $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->post('/orders/' . $orderId . '/checkout', ['paymentOutcome' => 'succeeds', 'confirmationEmailBounces' => '1']);
+
+        self::assertTrue($this->app->make(QueryBus::class)->sendWithRouting('order.detail', $orderId)['confirmationEmailBounces']);
+        $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId)->assertSee('You chose at checkout that the confirmation email bounces, so the entry codes reach you here, on the order page.');
+    }
+
+    public function test_paying_without_the_bounce_ticked_sends_the_confirmation_email(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+
+        $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->post('/orders/' . $orderId . '/checkout', ['paymentOutcome' => 'succeeds']);
+
+        self::assertFalse($this->app->make(QueryBus::class)->sendWithRouting('order.detail', $orderId)['confirmationEmailBounces']);
+        $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId)->assertDontSee('the confirmation email bounces');
+    }
+
     public static function paymentOutcomes(): iterable
     {
         yield 'the payment succeeds' => ['succeeds'];
@@ -322,7 +357,7 @@ final class CheckoutPagesTest extends TestCase
         [$customerId, $orderId] = $this->startedOrder();
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
-        $this->commandBus()->send(new BeginPayment(orderId: $orderId));
+        $this->commandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
         $this->commandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId);
@@ -335,7 +370,7 @@ final class CheckoutPagesTest extends TestCase
         [$customerId, $orderId] = $this->startedOrder();
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
-        $this->commandBus()->send(new BeginPayment(orderId: $orderId));
+        $this->commandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
         $this->commandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
         $this->commandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: [['ticketNumber' => 'T-0001', 'seatId' => self::CONCERT_ID . '/A-1', 'tier' => 'vip', 'entryCode' => 'ENTRY-7F3A']]));
 

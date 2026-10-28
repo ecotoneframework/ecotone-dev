@@ -22,8 +22,8 @@ enum RushBuyerRole: string
         };
     }
 
-    public function emailOf(string $rushId, int $buyerNumber): string
+    public function confirmationEmailBounces(): bool
     {
-        return sprintf('rush-%d-%s@%s', $buyerNumber, substr($rushId, -8), $this === self::BOUNCE ? 'bounce.example' : 'example.com');
+        return $this === self::BOUNCE;
     }
 }

@@ -15,7 +15,7 @@ final class DemoCustomers
     private const CUSTOMERS = [
         'ada@example.com' => 'Ada Lovelace',
         'grace@example.com' => 'Grace Hopper',
-        'linus@bounce.example' => 'Linus Bounce',
+        'linus@example.com' => 'Linus Pauling',
     ];
 
     #[ConsoleCommand('demo:seed')]

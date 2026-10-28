@@ -38,6 +38,7 @@
                         <label><input type="radio" name="paymentOutcome" value="{{ $outcome->value }}"{{ $outcome === \App\Payment\PaymentOutcome::SUCCEEDS ? ' checked' : '' }}> {{ $outcome->label() }}</label>
                     @endforeach
                 </fieldset>
+                <label class="email-bounce"><input type="checkbox" name="confirmationEmailBounces" value="1"> The confirmation email bounces: it lands in the dead letters, and the entry codes stay on the order page</label>
                 <button type="submit">Pay {{ $concert['currency'] }} {{ number_format($totalCents / 100, 2) }}</button>
             </form>
             <p class="muted">The storefront charges through a payment stub, so you choose its answer instead of typing a card. On a provider outage the charge lands in the dead letters until you replay it from Ecotone Pulse or with <code>php artisan ecotone:deadletter:replay &lt;messageId&gt;</code> in the storefront, and the replayed charge succeeds.</p>

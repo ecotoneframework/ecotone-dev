@@ -263,6 +263,10 @@ button.seat:disabled {
     margin: 1.5rem 0 0.5rem;
 }
 
+.email-bounce {
+    flex-basis: 100%;
+}
+
 .payment-outcomes {
     display: flex;
     flex-direction: column;
@@ -273,7 +277,8 @@ button.seat:disabled {
     border-radius: 0.4rem;
 }
 
-.card-form .payment-outcomes input {
+.card-form .payment-outcomes input,
+.card-form .email-bounce input {
     display: inline;
     margin: 0 0.4rem 0 0;
 }

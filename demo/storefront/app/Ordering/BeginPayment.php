@@ -8,6 +8,7 @@ final class BeginPayment
 {
     public function __construct(
         public readonly string $orderId,
+        public readonly bool $confirmationEmailBounces,
     ) {
     }
 }

@@ -26,7 +26,7 @@ final class DemoSeedTest extends TestCase
         self::assertSame(0, Artisan::call('demo:seed'));
 
         self::assertSame(
-            [['Ada Lovelace', 'ada@example.com'], ['Grace Hopper', 'grace@example.com'], ['Linus Bounce', 'linus@bounce.example']],
+            [['Ada Lovelace', 'ada@example.com'], ['Grace Hopper', 'grace@example.com'], ['Linus Pauling', 'linus@example.com']],
             $this->customers(),
         );
     }

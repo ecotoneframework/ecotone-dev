@@ -20,7 +20,7 @@ final class Checkout
     #[CommandHandler]
     public function pay(Pay $command, #[Reference] CommandBus $commandBus): void
     {
-        $commandBus->send(new BeginPayment(orderId: $command->orderId));
+        $commandBus->send(new BeginPayment(orderId: $command->orderId, confirmationEmailBounces: $command->confirmationEmailBounces));
         $commandBus->send(new ChargeCard(
             orderId: $command->orderId,
             paymentReference: 'pay_' . Uuid::v7()->toRfc4122(),

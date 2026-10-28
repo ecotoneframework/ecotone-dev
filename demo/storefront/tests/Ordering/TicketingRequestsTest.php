@@ -45,7 +45,7 @@ final class TicketingRequestsTest extends StorefrontFlowTestCase
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
         $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
-        $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId));
+        $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
 
         try {
             $this->storefront->getCommandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'), metadata: ['failBeforeCommit' => true]);
@@ -62,7 +62,7 @@ final class TicketingRequestsTest extends StorefrontFlowTestCase
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
         $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
-        $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId));
+        $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
 
         $this->storefront->getCommandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
         $this->ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
@@ -100,7 +100,7 @@ final class TicketingRequestsTest extends StorefrontFlowTestCase
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
         $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
-        $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId));
+        $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
 
         try {
             $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11', holdId: 'hold-1'));
@@ -142,7 +142,7 @@ final class TicketingRequestsTest extends StorefrontFlowTestCase
         $customerId = $this->order($orderId)['customerId'];
         $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
         $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-11');
-        $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId));
+        $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
 
         $this->storefront->getCommandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
 

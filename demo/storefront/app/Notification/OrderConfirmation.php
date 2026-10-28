@@ -32,6 +32,7 @@ final class OrderConfirmation
                     $order['tickets'],
                 )),
             ),
+            outcome: $order['confirmationEmailBounces'] ? EmailOutcome::BOUNCES : EmailOutcome::DELIVERED,
         );
     }
 }

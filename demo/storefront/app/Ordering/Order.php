@@ -30,6 +30,7 @@ use Symfony\Component\Uid\Uuid;
  * @property string|null $payment_reference
  * @property string|null $failure_reason
  * @property bool $seats_sold
+ * @property bool $confirmation_email_bounces
  * @property int $version
  */
 #[Aggregate]
@@ -49,6 +50,7 @@ final class Order extends Model
         'last_refusal' => 'array',
         'tickets' => 'array',
         'seats_sold' => 'boolean',
+        'confirmation_email_bounces' => 'boolean',
     ];
 
     #[Version]
@@ -201,6 +203,7 @@ final class Order extends Model
     public function beginPayment(BeginPayment $command): void
     {
         $this->assertAccepts('BeginPayment', OrderStatus::SEATS_HELD);
+        $this->confirmation_email_bounces = $command->confirmationEmailBounces;
         $this->status = OrderStatus::PAYING;
     }
 

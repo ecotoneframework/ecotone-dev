@@ -341,7 +341,7 @@ final class OrderLifecycleTest extends TestCase
     {
         $orderId = $this->orderWithHeldSeats();
 
-        $this->commandBus()->send(new BeginPayment(orderId: $orderId));
+        $this->commandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
 
         self::assertSame('paying', $this->orderDetail($orderId)['status']);
     }
@@ -395,6 +395,7 @@ final class OrderLifecycleTest extends TestCase
                 'paymentReference' => null,
                 'failureReason' => null,
                 'tickets' => [],
+                'confirmationEmailBounces' => false,
             ],
             $this->orderDetail($orderId),
         );
@@ -430,7 +431,7 @@ final class OrderLifecycleTest extends TestCase
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage(sprintf('Order %s is started, so BeginPayment cannot be applied to it. BeginPayment is accepted only while the order is seats_held.', $orderId));
 
-        $this->commandBus()->send(new BeginPayment(orderId: $orderId));
+        $this->commandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
     }
 
     public function test_tickets_cannot_be_issued_for_an_unpaid_order(): void
@@ -481,7 +482,7 @@ final class OrderLifecycleTest extends TestCase
     public static function refusedCommands(): iterable
     {
         $releaseSeat = fn (string $orderId) => new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1');
-        $beginPayment = fn (string $orderId) => new BeginPayment(orderId: $orderId);
+        $beginPayment = fn (string $orderId) => new BeginPayment(orderId: $orderId, confirmationEmailBounces: false);
         $markPaid = fn (string $orderId) => new MarkPaid(orderId: $orderId, paymentReference: 'pay_456');
         $markTicketsIssued = fn (string $orderId) => new MarkTicketsIssued(orderId: $orderId, tickets: [['ticketNumber' => 'T-1', 'seatId' => self::CONCERT_ID . '/A-1', 'tier' => 'vip', 'entryCode' => 'ENTRY-1']]);
         $failOrder = fn (string $orderId) => new FailOrder(orderId: $orderId, reason: 'Too late');
@@ -530,7 +531,7 @@ final class OrderLifecycleTest extends TestCase
     private function payingOrder(): string
     {
         $orderId = $this->orderWithHeldSeats();
-        $this->commandBus()->send(new BeginPayment(orderId: $orderId));
+        $this->commandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
 
         return $orderId;
     }

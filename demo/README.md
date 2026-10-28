@@ -65,7 +65,8 @@ volumes are dropped.
    to let it go. **Go to checkout** appears once every seat you asked for is held.
 3. At checkout, choose how the payment stub answers: **the payment succeeds** (the default), **the card is declined**
    (the order fails and its seats are released) or **the payment provider is down** (the charge lands in the dead
-   letters until you replay it from Pulse, below). With the payment succeeding, the charge runs on `storefront_async`, the
+   letters until you replay it from Pulse, below), and whether **the confirmation email bounces** (unticked by default).
+   With the payment succeeding, the charge runs on `storefront_async`, the
    paid order sends `tickets.confirm`, ticketing sells the seats and issues the tickets, and the order page shows them
    with their entry codes a few seconds later. The confirmation email goes through the storefront's email stub, which
    records it in its `sent_emails` table instead of sending it.
@@ -79,7 +80,7 @@ projections, and you can schedule a concert, open its sales, change its prices a
 
 A concert's page on the storefront has a **Simulate a rush** panel: it sends a crowd of synthetic buyers after the seats
 while you pick yours. Start one with the defaults (30 buyers: 30% whose card is declined, 10% hitting a payment provider
-outage, 10% with an email address that bounces), or from the console:
+outage, 10% whose confirmation email bounces), or from the console:
 
 ```bash
 docker compose -f demo/docker-compose.yml exec storefront php artisan demo:rush <concertId> --buyers=20
@@ -91,7 +92,7 @@ The status line under the panel counts the buyers as they hold, pay, get their t
   meet "someone was faster".
 - **Pulse → Dead letters** groups the failed messages by exception: `PaymentProviderUnavailable` for the outage share
   and `EmailBounced` for the bounce share once their tickets are issued. Each one can be replayed or deleted, one at a
-  time or the whole group. A replayed `EmailBounced` bounces again, since `@bounce.example` accepts no mail: the
+  time or the whole group. A replayed `EmailBounced` bounces again, since the bounce was chosen for the order: the
   buyer's tickets and entry codes are on their order page (`/orders/{orderId}`, the account page links it), so the
   operator hands them over from there and then deletes the dead letter.
 - **Pulse → Traces** lists the flows of both services; open one to see every handler it went through, across the
@@ -140,15 +141,14 @@ The slip resumes at the render with the ticket numbers it already allocated, and
 
 ## The stubs
 
-The storefront talks to no real payment provider or mail server. The checkout asks which answer the payment stub gives,
-and an email address decides the mail stub's:
+The storefront talks to no real payment provider or mail server. The checkout asks which answer each stub gives:
 
 | Input | What happens |
 |---|---|
 | **The payment succeeds** (the default at checkout) | The card is charged and the order goes on to its tickets |
 | **The card is declined** | The charge is declined and the order fails, releasing its seats |
 | **The payment provider is down** | The provider is unavailable on the first attempt: the charge is dead-lettered until you replay it, then succeeds |
-| An email address at `@bounce.example` (Linus Bounce) | The confirmation email bounces and always lands in the dead letters |
+| **The confirmation email bounces** (unticked by default) | The confirmation email bounces and always lands in the dead letters; the entry codes stay on the order page |
 
 ## Where each Ecotone feature lives
 
@@ -247,8 +247,8 @@ card is declined and the order fails, or the provider is down on the first attem
 ecotone:deadletter:replay <messageId>` in the storefront). Only transient database errors and an order another writer
 saved first are retried on the spot, so a provider outage reaches the dead letters instead of being retried away, and a
 payment reference is charged once however often its charge runs. A paid order sends `tickets.confirm`; `tickets.issued`
-shows the tickets with their entry codes on the order page and emails them, and the email to Linus Bounce
-(`@bounce.example`) always lands in the dead letters. Replaying it cannot deliver it; the entry codes stay on Linus's
+shows the tickets with their entry codes on the order page and emails them, and an email the buyer chose to bounce at
+checkout always lands in the dead letters. Replaying it cannot deliver it; the entry codes stay on the buyer's
 order page, which is where the customer gets them, and the dead letter is deleted once they have.
 
 ### The rush
@@ -262,7 +262,7 @@ buyers join and moves up to 10 buyers one step, the buyers that first asked tick
 ask, so the crowd's holds and charges never queue far ahead of yours. A buyer starts an order and asks ticketing for
 free seats one at a time, exactly as the seat picker does, tries another seat when one is refused (three refusals and it
 gives up), and pays once its seats are held: the declined share choosing a declined card, the outage share choosing the
-provider outage, the bounce share with an `@bounce.example` address. A buyer whose seats are not held 120 seconds after it
+provider outage, the bounce share choosing that its confirmation email bounces. A buyer whose seats are not held 120 seconds after it
 asked ticketing for the first one gives up and fails its order (`RUSH_BUYER_DEADLINE_SECONDS`), and a rush lets every
 buyer still picking go 600 seconds after it started (`RUSH_DEADLINE_SECONDS`), so a rush ends on its own even when
 ticketing never answers. The status line under the panel polls `/rushes/{rushId}/state.json` every second, stops

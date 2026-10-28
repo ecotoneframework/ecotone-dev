@@ -9,6 +9,7 @@ final class Pay
     public function __construct(
         public readonly string $orderId,
         public readonly PaymentOutcome $outcome,
+        public readonly bool $confirmationEmailBounces,
     ) {
     }
 }

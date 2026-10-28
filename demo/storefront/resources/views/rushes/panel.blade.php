@@ -1,6 +1,6 @@
 <section class="rush-panel" data-rush-panel data-concert-id="{{ $concertId }}" data-start-rush-url="{{ url('/concerts/' . $concertId . '/rushes') }}">
     <h2>Simulate a rush</h2>
-    <p class="muted">Send a crowd of synthetic buyers after the seats of this concert while you pick yours. Some pay with a declined card, some hit a payment outage, some have an address that bounces: watch them land in the dead letters of Ecotone Pulse and in the traces of Jaeger.</p>
+    <p class="muted">Send a crowd of synthetic buyers after the seats of this concert while you pick yours. Some pay with a declined card, some hit a payment outage, some have their confirmation email bounce: watch them land in the dead letters of Ecotone Pulse and in the traces of Jaeger.</p>
     <form class="rush-panel__form" data-rush-form>
         <label>Buyers <input type="number" name="buyers" value="{{ \App\Rush\StartRush::DEFAULTS['buyers'] }}" min="1" max="{{ \App\Rush\StartRush::MAX_BUYERS }}"></label>
         <label>Declined cards, % <input type="number" name="declinedShare" value="{{ \App\Rush\StartRush::DEFAULTS['declinedShare'] }}" min="0" max="100"></label>

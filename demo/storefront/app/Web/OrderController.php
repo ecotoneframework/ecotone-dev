@@ -151,7 +151,7 @@ final class OrderController
             ));
         }
         try {
-            $this->commandBus->send(new Pay(orderId: $order['orderId'], outcome: $outcome));
+            $this->commandBus->send(new Pay(orderId: $order['orderId'], outcome: $outcome, confirmationEmailBounces: $request->boolean('confirmationEmailBounces')));
         } catch (DomainException $refusal) {
             return back()->with('refusal', $refusal->getMessage());
         }

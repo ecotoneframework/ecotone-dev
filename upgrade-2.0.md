@@ -715,7 +715,8 @@ application that does not register `DynamicConsistencyBoundaryConfiguration` see
 tables, and the append path stays today's single `INSERT`.
 
 **Retry — read this before using decision models.** A `DecisionModelConcurrencyException` always means *the command
-should run again*; nothing retries it automatically. Configure retry explicitly:
+should run again*. The command bus retries it by default when `DbalConfiguration` runs the command bus in a database
+transaction (its default, see [§9](#9-changed-defaults)); without one, configure retry explicitly:
 
 ```php
 #[ServiceContext]
@@ -733,8 +734,8 @@ or, Enterprise, on a custom command bus interface:
 interface MyCommandBus extends CommandBus {}
 ```
 
-Without retry configured, a conflict surfaces to the caller as a technical exception naming the tag (or the aggregate)
-and the version it was read at — not a business answer. Asynchronous endpoints already retry 3 times by default. Retry never
+Without retry, a conflict surfaces to the caller as a technical exception naming the tag (or the aggregate)
+and the version it was read at — not a business answer. Asynchronous endpoints in a database transaction retry 3 times by default too. Retry never
 fires inside an already-open database transaction; that transaction is already unsafe to continue. A conflict is not
 always another writer: a handler that sends a command from inside itself, whose handler appends to the same tag in
 the same transaction, moves the tag under its own feet and fails on every retry — decide both in one handler.
@@ -1637,7 +1638,8 @@ test needs nothing: its bootstrap sets the table up.
 | `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `createWithTestingSetup(handledMessageLimit: 1)` |
 | `ExecutionPollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
 | `PollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
-| Instant retries on asynchronous endpoints | disabled | enabled (3 retries, so up to 4 handler invocations per delivery) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
+| Instant retries on asynchronous endpoints | disabled | enabled (3 retries, so up to 4 handler invocations per delivery) when `DbalConfiguration` runs asynchronous endpoints in a database transaction (its default), except an endpoint in `withoutTransactionOnAsynchronousEndpoints()` or a handler with `#[WithoutDatabaseTransaction]`; an asynchronous projection, which manages its own transaction, always; anything else not | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)`, or `(true)` to retry without a transaction |
+| Instant retries on the command bus | disabled | enabled (3 retries, every exception) when `DbalConfiguration` runs the command bus in a database transaction (its default), except a command whose handler has `#[WithoutDatabaseTransaction]`; without one not | `InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false)`, or `(true)` to retry without a transaction |
 | Module packages | all except explicitly skipped | Core + Asynchronous + what `withEnabledModulePackageNames()` lists; with no call, all installed packages load | `ServiceConfiguration::withEnabledModulePackageNames([...])` |
 
 Test-suite impact of the new defaults:
@@ -1648,9 +1650,12 @@ Test-suite impact of the new defaults:
   `ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)`, or
   `->withTestingSetup(handledMessageLimit: 1)` on an `ExecutionPollingMetadata` it already builds (or
   `--handledMessageLimit=1` on `ecotone:run`).
-- A test that expected the first consumer run to fail and a second run to succeed now sees the failure retried instantly inside the first
-  run; disable it for that test with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)`
-  or assert the retried outcome.
+- `EcotoneLite::bootstrapFlowTesting()` does not apply the instant-retry defaults of the two rows above: a flow test retries only
+  what its `InstantRetryConfiguration` enables, so a failure reaches the test on the first attempt. To run a flow test with the
+  production defaults, pass `testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(true)`.
+  `EcotoneLite::bootstrap()` applies them, so a test booted that way that expected the first consumer run to fail and a second
+  run to succeed now sees the failure retried instantly inside the first run; disable it with
+  `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` or assert the retried outcome.
 - Instant retries multiply the delayed ones: `ErrorHandlerConfiguration` counts *deliveries*, and each delivery runs the
   handler up to `1 + asynchronousRetryTimes` times before the error channel sees it. With the default of 3 instant retries and a
   `RetryTemplateBuilder` of 3 retries, a message that always fails runs its handler 16 times before it reaches the dead letter.
@@ -2866,9 +2871,10 @@ repository of a flow test, is now checked against the version it was loaded at:
   `UPDATE … WHERE id = ? AND version = ?` and, when it matched no row, throws
   `Ecotone\Api\Messaging\ConcurrencyException::forStaleAggregate()`, as every other backend does.
 
-A conflict is a technical failure, not a business answer. Retry it by reloading: send the command again, or configure
-`InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class])`;
-asynchronous endpoints already retry. A save made earlier in the same transaction — a command sent from inside the
+A conflict is a technical failure, not a business answer. Retry it by reloading: the command bus and asynchronous
+endpoints retry by default when `DbalConfiguration` runs them in a database transaction ([§9](#9-changed-defaults));
+without one, send the command again or configure
+`InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class])`. A save made earlier in the same transaction — a command sent from inside the
 handler whose own handler saves the same aggregate — fails on every retry; decide both in one handler instead.
 
 **The document store table gains a `version` column.** A table created by Ecotone 1.x is refused on the first write
@@ -2915,6 +2921,31 @@ hand-built `AppendCondition::forAggregate()` may now see the refusal it was alwa
    writer.
 3. Add `#[Version]` to each document-store aggregate or saga that is changed concurrently.
 4. Fix flow tests that create one aggregate id twice.
+
+### Projection state is saved under a version check, not a row lock
+
+**Before:** a projection run loaded its partition's position with `SELECT ... FOR UPDATE` (except on SQLite), so a
+second run of the same partition waited for the first. **Now:** the run loads the position without a lock and saves it
+with `UPDATE ... WHERE version = ?`. When another run of the same partition saved first, the save matches no row and
+the run fails with `ConcurrencyException` ("Projection 'x' (partition: global) was loaded at version 3, but another
+run of the same partition saved it first. ..."), and its transaction rolls back, so nothing it projected is kept. For a
+synchronous projection the run is the command's transaction, so the command fails; for an asynchronous one, the
+message. Both are retried by default where a database transaction wraps them, and an asynchronous projection always
+([§9](#9-changed-defaults)), so the retry projects from the position the other run stored. A projection that sends
+mail or calls another service from its handlers can do so twice when a run is retried: only what it writes inside the
+transaction is rolled back.
+
+**How to adapt:**
+- The `ecotone_projection_state` table gains a `version` column. A table created by an earlier 2.0 beta is refused on
+  the first projection run (as is one created by 1.x `ProjectionV2`) with a `ConfigurationException` naming the statement:
+  `ALTER TABLE ecotone_projection_state ADD COLUMN version INTEGER NOT NULL DEFAULT 0;` It is safe to run on a
+  populated table; every partition keeps its position.
+- Without a database transaction around the command bus, a synchronous projection's conflict reaches the caller; enable
+  `InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class])` or send
+  the command again.
+- A `#[StateStorage]` class implementing `ProjectionStateStorage`: `loadPartition()` no longer takes `bool $lock`, and
+  `savePartition()` saves only when the stored `ProjectionPartitionState::$version` is the one the state was loaded at,
+  storing the next one, and throws `ConcurrencyException::forStaleProjection()` otherwise.
 
 ### Framework headers that never leave the process are renamed to `ecotone_{module}_{feature}_{action}`
 
@@ -3851,5 +3882,6 @@ normal section with "How to adapt" steps when it ships.
     relax its aggregate `NOT NULL` constraints — while still on 1.x; deploy 2.0 to every node; release `#[EventTag]`;
     run `ecotone:event-store:backfill-tags` and wait for it to finish; only then release `#[DecisionModel]` (§4).
 14. Add the `version` column to `ecotone_document_store`, pass an expected version (or `DocumentStore::LAST_WRITE_WINS`) to `updateDocument()` / `upsertDocument()`, and add `#[Version]` to document-store aggregates that are changed concurrently (§14).
-15. Add `ecotone:migration:database:setup --initialize` (or its `--sql` output, fed to your migration tool) to your deployment (§8).
-16. Once it ships: move framework YAML/PHP config options into `#[ServiceContext]` (§12).
+15. Add the `version` column to `ecotone_projection_state` (`ALTER TABLE ecotone_projection_state ADD COLUMN version INTEGER NOT NULL DEFAULT 0`), and check which commands and asynchronous endpoints now retry by default (§9, §14).
+16. Add `ecotone:migration:database:setup --initialize` (or its `--sql` output, fed to your migration tool) to your deployment (§8).
+17. Once it ships: move framework YAML/PHP config options into `#[ServiceContext]` (§12).

@@ -111,7 +111,14 @@ guarded update matched, so a versioned Tempest model is now refused at bootstrap
   `#[Version]`, which `outputChannelName` chains read back as `TARGET_VERSION` — fixed. It also records **R1**: a
   refused save leaves the handler's change in the stored instance on both in-memory rows (D3's root cause)
 
-**Limit 1 — projection state is a work lease, not a record write. `DbalProjectionStateStorage` keeps `FOR UPDATE`.**
+**Limit 1 — closed.** Projection state is saved under a version check (`UPDATE … WHERE version = ?`) and `FOR UPDATE` is
+gone. The failure the prototype below hit — the losing run failing its command on MySQL and MariaDB — is now the
+intended outcome: the losing run rolls back and the instant retry, on by default wherever a database transaction wraps
+the command bus or the asynchronous endpoint (and always for an asynchronous projection), runs it again from the
+position the winner stored. `ProjectionOptimisticLockingTest` proves it on PostgreSQL, MySQL and MariaDB, and the first
+draft sentence for rule 8 below is superseded. The record of the original decision follows.
+
+**(Superseded) Limit 1 — projection state is a work lease, not a record write. `DbalProjectionStateStorage` keeps `FOR UPDATE`.**
 The second run of a partition must *wait and continue from where the first got to*, not fail; a version predicate
 turns that benign catch-up into a failed command for a synchronous projection, whose transaction is the command's.
 On MySQL and MariaDB the lock also makes the read current: under REPEATABLE READ a plain `SELECT` returns the

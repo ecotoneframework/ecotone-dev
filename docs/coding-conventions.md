@@ -546,8 +546,15 @@ Locking is a version check on a write, never a pessimistic lock and never a besp
 - `ca8a1b0fc` removed InnoDB own-bump snapshot tracking, which had been tried: "the guarded `UPDATE` is the sole
   conflict mechanism". It was removed both because it was state on a service (rule 3) and because it duplicated the
   lock.
-- A conflict surfaces as `ConcurrencyException` (`packages/Ecotone/src/Messaging/Support/ConcurrencyException.php`)
+- A conflict surfaces as `ConcurrencyException` (`packages/Ecotone/Api/Messaging/ConcurrencyException.php`)
   or `DecisionModelConcurrencyException`, with a message that names what was being decided (`c9b54d3f9`).
+- This holds for a row that serialises work too, not only for a record two writers decide on. Projection state kept
+  `SELECT ... FOR UPDATE` as a "work lease" until the save was guarded on the partition's `version`: the run that loses
+  rolls back and is retried from the position the winner stored (`ProjectionOptimisticLockingTest`).
+- A conflict is resolved by running the work again, so the instant retry is on by default wherever a database
+  transaction wraps the work — the command bus and asynchronous endpoints under `DbalConfiguration`, and an
+  asynchronous projection, which opens its own (`InstantRetryByDefaultTest`). Without a transaction nothing retries by
+  default: the failed attempt's writes were never rolled back.
 - Because the check and the write must commit together, tagged appends require an active transaction and say so
   when there is none (`78bb0d244`, and `TagTransactionRequirement` in rule 1).
 

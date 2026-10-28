@@ -37,6 +37,8 @@ use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -567,6 +569,98 @@ final class SeatSalesTest extends KernelTestCase
         } catch (SeatRefusal $refusal) {
             self::assertSame("Seat A-1 of the concert of The Midnight Owls cannot be held for order {$orderId}, because someone was faster: order {$interferer->fasterOrder} holds it until 2026-10-25T12:10:00+00:00. Pick another seat, or try this one again after that hold expires.", $refusal->getMessage());
         }
+    }
+
+    public function test_a_confirm_racing_a_rehold_after_expiry_sells_a_seat_to_exactly_one_customer(): void
+    {
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public ?string $concertId = null;
+
+            public ?string $reholdingOrder = null;
+
+            public ?string $reholdingCustomer = null;
+
+            public int $attempts = 0;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::confirm')]
+            public function reholdTheExpiredSeatOnceAfterTheDecision(MethodInvocation $invocation): mixed
+            {
+                $this->attempts++;
+                $decision = $invocation->proceed();
+                if ($this->reholdingOrder === null) {
+                    $this->reholdingOrder = Uuid::v7()->toRfc4122();
+                    $this->reholdingCustomer = Uuid::v7()->toRfc4122();
+                    $this->competitor->changeTimeTo(new DateTimeImmutable('2026-10-25 12:10:00'));
+                    $this->competitor->sendCommand(new HoldSeat(orderId: $this->reholdingOrder, concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: $this->reholdingCustomer), metadata: ['concertId' => $this->concertId]);
+                }
+
+                return $decision;
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $interferer->competitor = $competitor;
+        $interferer->concertId = $concertId;
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->changeTimeTo(new DateTimeImmutable('2026-10-25 12:09:59'));
+
+        try {
+            $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+            self::fail('The confirm that lost the seat to the re-hold was expected to be refused.');
+        } catch (SeatRefusal $refusal) {
+            self::assertSame("Order {$orderId} cannot buy seat {$concertId}/A-1, because order {$interferer->reholdingOrder} holds it, not order {$orderId}. Confirm each order with its own seats; nothing of the order was sold.", $refusal->getMessage());
+        }
+        self::assertSame(2, $interferer->attempts);
+        $competitor->sendCommand(new ConfirmSeats(orderId: $interferer->reholdingOrder, concertId: $concertId, customerId: $interferer->reholdingCustomer, seatIds: [$concertId . '/A-1'], paymentReference: 'pay-2'), metadata: ['concertId' => $concertId]);
+
+        self::assertSame(
+            [$interferer->reholdingOrder],
+            array_map(
+                static fn (Event $event): string => $event->getPayload()->orderId,
+                $ticketing->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('seat', $concertId . '/A-1')->ofTypes(SeatSold::class))->events,
+            ),
+        );
+    }
+
+    public function test_holds_of_different_seats_racing_a_confirm_of_the_same_concert_do_not_conflict_with_it(): void
+    {
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public ?string $concertId = null;
+
+            public int $attempts = 0;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::confirm')]
+            public function holdAnotherSeatAfterTheDecision(MethodInvocation $invocation): mixed
+            {
+                $decision = $invocation->proceed();
+                if (++$this->attempts === 1) {
+                    $this->competitor->sendCommand(new HoldSeat(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/A-2', customerId: Uuid::v7()->toRfc4122()), metadata: ['concertId' => $this->concertId]);
+                }
+
+                return $decision;
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $interferer->competitor = $competitor;
+        $interferer->concertId = $concertId;
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->discardRecordedMessages();
+
+        $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+
+        self::assertSame(1, $interferer->attempts);
+        self::assertCount(1, $ticketing->popRecordedEventsOfType(SeatSold::class));
     }
 
     public function test_a_hold_racing_a_cancel_of_its_concert_can_succeed_and_the_cancelled_concert_releases_it(): void

@@ -104,6 +104,7 @@ final class Concert
         );
         $concert->recordThat(new ConcertScheduled(
             concertId: $concertId,
+            version: $concert->version,
             venueName: $concert->venueName,
             artist: $artist,
             startsAt: $command->startsAt,
@@ -145,6 +146,7 @@ final class Concert
         };
         $this->recordThat(new TierPriceChanged(
             concertId: $this->concertId,
+            version: $this->versionThisChangeSaves(),
             tier: $command->tier,
             priceCents: $command->priceCents,
             standardPriceCents: $this->standardPriceCents,
@@ -195,6 +197,11 @@ final class Concert
             'currency' => $this->currency,
             'seats' => $this->seats,
         ];
+    }
+
+    private function versionThisChangeSaves(): int
+    {
+        return $this->version + 1;
     }
 
     private static function assertPrice(string $artist, Tier $tier, int $priceCents): void

@@ -20,6 +20,7 @@ final class ConcertAnnouncements
             'concert.scheduled',
             [
                 'concertId' => $event->concertId,
+                'version' => $event->version,
                 'venueName' => $event->venueName,
                 'artist' => $event->artist,
                 'startsAt' => $event->startsAt->format(DateTimeInterface::ATOM),
@@ -51,7 +52,7 @@ final class ConcertAnnouncements
     {
         $distributedBus->convertAndPublishEvent(
             'concert.prices_changed',
-            ['concertId' => $event->concertId, 'tiers' => [Tier::STANDARD->value => $event->standardPriceCents, Tier::VIP->value => $event->vipPriceCents]],
+            ['concertId' => $event->concertId, 'version' => $event->version, 'tiers' => [Tier::STANDARD->value => $event->standardPriceCents, Tier::VIP->value => $event->vipPriceCents]],
             metadata: ['concertId' => $event->concertId],
         );
     }

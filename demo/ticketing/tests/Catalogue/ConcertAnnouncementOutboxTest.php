@@ -78,7 +78,8 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
         self::assertSame('concert.scheduled', $received[0]['routingKey']);
         self::assertSame($concertId, $received[0]['concertIdHeader']);
         $event = $received[0]['event'];
-        self::assertSame(['concertId', 'venueName', 'artist', 'startsAt', 'currency', 'tiers', 'seats'], array_keys($event));
+        self::assertSame(['concertId', 'version', 'venueName', 'artist', 'startsAt', 'currency', 'tiers', 'seats'], array_keys($event));
+        self::assertSame(1, $event['version']);
         self::assertSame($concertId, $event['concertId']);
         self::assertSame('Riverside Hall', $event['venueName']);
         self::assertSame('The Midnight Owls', $event['artist']);
@@ -129,8 +130,27 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
 
         self::assertSame(0, $this->announcementsWaitingOnTheTransport());
         self::assertSame(
-            [['routingKey' => 'concert.prices_changed', 'concertIdHeader' => $concertId, 'event' => ['concertId' => $concertId, 'tiers' => ['standard' => 4500, 'vip' => 12000]]]],
+            [['routingKey' => 'concert.prices_changed', 'concertIdHeader' => $concertId, 'event' => ['concertId' => $concertId, 'version' => 2, 'tiers' => ['standard' => 4500, 'vip' => 12000]]]],
             $this->receivedByStorefront($storefront),
+        );
+    }
+
+    public function test_each_price_change_announces_the_version_of_the_concert_it_produced(): void
+    {
+        $storefront = $this->storefrontListening();
+        $ticketing = $this->ticketing();
+        $concertId = $this->scheduleConcert($ticketing, $this->createRiversideHall($ticketing));
+        $ticketing->getCommandBus()->send(new OpenSales($concertId));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->receivedByStorefront($storefront);
+
+        $ticketing->getCommandBus()->send(new ChangeTierPrice(concertId: $concertId, tier: Tier::VIP, priceCents: 12000));
+        $ticketing->getCommandBus()->send(new ChangeTierPrice(concertId: $concertId, tier: Tier::STANDARD, priceCents: 5000));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(
+            [[3, ['standard' => 4500, 'vip' => 12000]], [4, ['standard' => 5000, 'vip' => 12000]]],
+            array_map(static fn (array $received): array => [$received['event']['version'], $received['event']['tiers']], $this->receivedByStorefront($storefront)),
         );
     }
 

@@ -17,6 +17,7 @@ use App\Payment\PaymentAttempts;
 use App\Payment\PaymentProvider;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DistributedBus;
 use Illuminate\Support\Facades\DB;
 
@@ -110,6 +111,43 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
         self::assertSame('Ticketing refused to confirm the seats: the hold of seat A-12 expired. A refund of the payment is queued.', $order['failureReason']);
         self::assertSame('refunded', $this->storefront->sendQueryWithRouting('payment.status', $order['paymentReference']));
         self::assertSame([['tickets.release', self::CONCERT_ID . '/A-12']], array_map(fn (array $request) => [$request[0], $request[1]['seatId']], $this->ticketingReceives()));
+    }
+
+    public function test_a_repeated_confirm_result_of_a_sold_order_does_not_fail_or_refund_it(): void
+    {
+        $orderId = $this->orderPaidWithACard();
+        $this->ticketingReplies();
+        $this->ticketingService->confirmReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'outcome' => 'refused', 'reason' => "Order {$orderId} cannot buy seat A-12, because it is already sold to order {$orderId}.", 'seatIds' => [self::CONCERT_ID . '/A-12']];
+
+        $this->confirmationIsSentAgain($orderId);
+        $this->ticketingReplies();
+        $this->storefrontAsyncRuns();
+
+        $order = $this->order($orderId);
+        self::assertSame('paid', $order['status']);
+        self::assertNull($order['failureReason']);
+        self::assertSame('charged', $this->storefront->sendQueryWithRouting('payment.status', $order['paymentReference']));
+        self::assertSame([], $this->ticketingReceives());
+        self::assertSame(0, $this->storefront->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    public function test_a_refused_confirm_result_arriving_after_the_tickets_were_issued_keeps_the_tickets_and_the_payment(): void
+    {
+        $orderId = $this->orderPaidWithACard();
+        $this->ticketingReplies();
+        $tickets = [['ticketNumber' => 'T-0001', 'seatId' => self::CONCERT_ID . '/A-12', 'tier' => 'vip', 'entryCode' => 'ENTRY-7F3A']];
+        $this->publishFromTicketing('tickets.issued', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'tickets' => $tickets]);
+        $this->ticketingService->confirmReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'outcome' => 'refused', 'reason' => "Order {$orderId} cannot buy seat A-12, because it is already sold to order {$orderId}.", 'seatIds' => [self::CONCERT_ID . '/A-12']];
+
+        $this->confirmationIsSentAgain($orderId);
+        $this->ticketingReplies();
+        $this->storefrontAsyncRuns();
+
+        $order = $this->order($orderId);
+        self::assertSame('tickets_issued', $order['status']);
+        self::assertSame($tickets, $order['tickets']);
+        self::assertSame('charged', $this->storefront->sendQueryWithRouting('payment.status', $order['paymentReference']));
+        self::assertSame(0, $this->storefront->getGateway(DeadLetterGateway::class)->count());
     }
 
     public function test_an_expired_hold_published_by_ticketing_drops_the_seat_from_the_order(): void
@@ -249,6 +287,29 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
         self::assertSame('seats_held', $order['status']);
         self::assertSame([['seatId' => self::CONCERT_ID . '/A-11', 'expiresAt' => self::EXPIRES_AT]], $order['heldSeats']);
         self::assertSame(0, $this->storefront->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    private function orderPaidWithACard(): string
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, cardNumber: '4242424242424242'));
+        $this->storefrontAsyncRuns();
+
+        return $orderId;
+    }
+
+    private function confirmationIsSentAgain(string $orderId): void
+    {
+        $order = $this->order($orderId);
+        $this->storefront->getGateway(DistributedBus::class)->sendMessage(
+            targetServiceName: 'ticketing',
+            routingKey: 'tickets.confirm',
+            payload: json_encode(['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $order['customerId'], 'seatIds' => [self::CONCERT_ID . '/A-12'], 'paymentReference' => $order['paymentReference']], JSON_THROW_ON_ERROR),
+            sourceMediaType: MediaType::APPLICATION_JSON,
+            metadata: ['concertId' => self::CONCERT_ID, 'orderId' => $orderId],
+            replyRoutingKey: 'tickets.confirm.result',
+        );
     }
 
     private function paidOrder(): string

@@ -28,6 +28,7 @@ use Symfony\Component\Uid\Uuid;
  * @property list<array{ticketNumber: string, seatId: string, tier: string, entryCode: string}> $tickets
  * @property string|null $payment_reference
  * @property string|null $failure_reason
+ * @property bool $seats_sold
  * @property int $version
  */
 #[Aggregate]
@@ -45,6 +46,7 @@ final class Order extends Model
         'held_seats' => 'array',
         'last_refusal' => 'array',
         'tickets' => 'array',
+        'seats_sold' => 'boolean',
     ];
 
     #[Version]
@@ -183,6 +185,21 @@ final class Order extends Model
         $this->payment_reference = $command->paymentReference;
         $this->status = OrderStatus::PAID;
         $this->recordThat(new OrderPaid(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatIds: $this->heldSeatIds(), paymentReference: $command->paymentReference));
+    }
+
+    #[CommandHandler]
+    public function markSeatsSold(MarkSeatsSold $command): void
+    {
+        $this->seats_sold = true;
+    }
+
+    #[CommandHandler]
+    public function recordConfirmationRefusal(RecordConfirmationRefusal $command): void
+    {
+        if ($this->seats_sold || $this->status === OrderStatus::TICKETS_ISSUED) {
+            return;
+        }
+        $this->fail(new FailOrder(orderId: $this->id, reason: $command->reason));
     }
 
     #[CommandHandler]

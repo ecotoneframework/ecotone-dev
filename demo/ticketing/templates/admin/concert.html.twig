@@ -1,64 +1,137 @@
 {% extends 'admin/layout.html.twig' %}
 {% import 'admin/layout.html.twig' as format %}
+{% import '_icons.html.twig' as icons %}
 
 {% block title %}{{ concert.artist }}{% endblock %}
 
 {% block content %}
-    <h1>{{ concert.artist }}</h1>
-    <p>
-        {{ concert.venueName }}, {{ concert.startsAt|date('Y-m-d H:i') }} UTC ·
-        <span class="status status-{{ concert.status }}">{{ concert.status|replace({'_': ' '}) }}</span>
-    </p>
-    <p class="prices">
-        Standard {{ format.money(concert.standardPriceCents, concert.currency) }} ·
-        VIP {{ format.money(concert.vipPriceCents, concert.currency) }}
-    </p>
+    <header class="page-header">
+        <div>
+            <ol class="breadcrumbs">
+                <li><a href="{{ path('admin_concerts') }}">Concerts</a></li>
+                <li aria-current="page">{{ concert.artist }}</li>
+            </ol>
+            <h1>{{ concert.artist }}</h1>
+            <p class="page-meta">
+                <span class="badge status status-{{ concert.status }} badge-{{ concert.status }}">{{ concert.status|replace({'_': ' '}) }}</span>
+                <span class="meta-item">{{ icons.icon('building') }} {{ concert.venueName }}</span>
+                <span class="meta-item">{{ icons.icon('calendar') }} {{ concert.startsAt|date('D, j M Y · H:i') }} UTC</span>
+            </p>
+        </div>
+        <div class="toolbar">
+            <a class="button seat-map-link" href="{{ path('concert_seats', {concertId: concert.concertId}) }}">{{ icons.icon('seats') }} Seat map</a>
+            {% if concert.status == 'scheduled' %}
+                <form method="post" action="{{ path('admin_concert_open_sales', {concertId: concert.concertId}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
+                    <button type="submit" class="button-primary">{{ icons.icon('play') }} Open sales</button>
+                </form>
+            {% else %}
+                <span class="action-disabled">
+                    <button type="button" disabled aria-describedby="open-sales-reason">{{ icons.icon('play') }} Open sales</button>
+                    <span class="action-reason" id="open-sales-reason">{{ concert.status == 'cancelled' ? 'The concert is cancelled.' : 'Sales are already open.' }}</span>
+                </span>
+            {% endif %}
+            {% if concert.status != 'cancelled' %}
+                <details class="confirm">
+                    <summary class="button button-ghost-danger">{{ icons.icon('x') }} Cancel concert…</summary>
+                    <div class="confirm-panel">
+                        <p><strong>Cancel {{ concert.artist }}?</strong> Sales stop for good, and the storefront is told the concert is off. Nothing changes until you press Cancel concert.</p>
+                        <form method="post" action="{{ path('admin_concert_cancel', {concertId: concert.concertId}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
+                            <button type="submit" class="button-danger">Cancel concert</button>
+                        </form>
+                    </div>
+                </details>
+            {% endif %}
+        </div>
+    </header>
 
-    <div class="actions">
-        <form method="post" action="{{ path('admin_concert_open_sales', {concertId: concert.concertId}) }}">
-            <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
-            <button type="submit">Open sales</button>
-        </form>
-        <form method="post" action="{{ path('admin_concert_price', {concertId: concert.concertId}) }}" class="inline-form">
-            <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
-            <select name="tier">
-                <option value="standard">standard</option>
-                <option value="vip">vip</option>
-            </select>
-            <input name="priceCents" type="number" min="1" placeholder="price in cents" required>
-            <button type="submit">Change price</button>
-        </form>
-        <form method="post" action="{{ path('admin_concert_cancel', {concertId: concert.concertId}) }}">
-            <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
-            <button type="submit" class="danger">Cancel concert</button>
-        </form>
+    <div class="stats">
+        <section class="stat stat-sold">
+            <h2 class="stat-label">Seats sold</h2>
+            <p class="stat-value">{{ seatCounts.sold }} <small>of {{ seatCounts.total }}</small></p>
+            {% set total = max(seatCounts.total, 1) %}
+            <div class="meter" aria-hidden="true">
+                <span class="meter-sold" style="width: {{ (seatCounts.sold / total * 100)|round(1) }}%"></span>
+                <span class="meter-held" style="width: {{ (seatCounts.held / total * 100)|round(1) }}%"></span>
+            </div>
+        </section>
+        <section class="stat stat-held">
+            <h2 class="stat-label">Held right now</h2>
+            <p class="stat-value">{{ seatCounts.held }}</p>
+            <p class="stat-note">waiting for their buyer to pay</p>
+        </section>
+        <section class="stat stat-free">
+            <h2 class="stat-label">Free</h2>
+            <p class="stat-value">{{ seatCounts.free }}</p>
+            <p class="stat-note">on the seat map</p>
+        </section>
+        <section class="stat stat-revenue">
+            <h2 class="stat-label">Revenue</h2>
+            <p class="stat-value">{{ format.money(sales.revenueCents, concert.currency) }}</p>
+            <p class="stat-note">from {{ sales.seatsSold }} tickets</p>
+        </section>
     </div>
 
-    <h2>Sales</h2>
-    <p><a class="seat-map-link" href="{{ path('concert_seats', {concertId: concert.concertId}) }}">Seat map</a></p>
-    <table class="ledger">
-        <thead>
-            <tr><th>Tier</th><th>Seats sold</th><th>Revenue</th></tr>
-        </thead>
-        <tbody>
-            {% for tier, ledger in sales.tiers %}
-                <tr><td>{{ tier }}</td><td>{{ ledger.seatsSold }}</td><td>{{ format.money(ledger.revenueCents, concert.currency) }}</td></tr>
-            {% endfor %}
-        </tbody>
-        <tfoot>
-            <tr><td>Total</td><td>{{ sales.seatsSold }} of {{ sales.seatCount }} seats sold</td><td>{{ format.money(sales.revenueCents, concert.currency) }}</td></tr>
-        </tfoot>
-    </table>
+    <div class="split">
+        <section class="card">
+            <div class="section-header">
+                <h2>Sales by tier</h2>
+            </div>
+            <div class="table-wrap table-wrap-flat">
+                <table class="ledger">
+                    <thead>
+                        <tr><th scope="col">Tier</th><th scope="col" class="numeric">Seats sold</th><th scope="col" class="numeric">Revenue</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for tier, ledger in sales.tiers %}
+                            <tr><td><span class="badge badge-{{ tier }}">{{ tier }}</span></td><td class="numeric">{{ ledger.seatsSold }}</td><td class="numeric">{{ format.money(ledger.revenueCents, concert.currency) }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr><td>Total</td><td class="numeric">{{ sales.seatsSold }} of {{ sales.seatCount }} seats sold</td><td class="numeric">{{ format.money(sales.revenueCents, concert.currency) }}</td></tr>
+                    </tfoot>
+                </table>
+            </div>
+        </section>
 
-    <h2>Seats ({{ concert.seats|length }})</h2>
-    <table class="seats">
-        <thead>
-            <tr><th>Seat</th><th>Tier</th><th>Seat id</th></tr>
-        </thead>
-        <tbody>
-            {% for seat in concert.seats %}
-                <tr><td>{{ seat.seatCode }}</td><td>{{ seat.tier }}</td><td><code>{{ seat.seatId }}</code></td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        <section class="card">
+            <div class="section-header">
+                <h2>Prices</h2>
+            </div>
+            <dl class="prices">
+                <div><dt>Standard</dt> <dd>{{ format.money(concert.standardPriceCents, concert.currency) }}</dd></div>
+                <div><dt>VIP</dt> <dd>{{ format.money(concert.vipPriceCents, concert.currency) }}</dd></div>
+            </dl>
+            <form method="post" action="{{ path('admin_concert_price', {concertId: concert.concertId}) }}" class="price-form">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
+                <label class="field">Tier
+                    <select name="tier">
+                        <option value="standard">standard</option>
+                        <option value="vip">vip</option>
+                    </select>
+                </label>
+                <label class="field">New price, in cents
+                    <input name="priceCents" type="number" min="1" placeholder="e.g. 4900" required>
+                </label>
+                <button type="submit">{{ icons.icon('tag') }} Change price</button>
+            </form>
+        </section>
+    </div>
+
+    <details class="card disclosure">
+        <summary><h2>All {{ concert.seats|length }} seats</h2><span class="muted">seat codes, tiers and ids</span></summary>
+        <div class="table-wrap table-wrap-flat">
+            <table class="seats">
+                <thead>
+                    <tr><th scope="col">Seat</th><th scope="col">Tier</th><th scope="col">Seat id</th></tr>
+                </thead>
+                <tbody>
+                    {% for seat in concert.seats %}
+                        <tr><td>{{ seat.seatCode }}</td><td><span class="badge badge-{{ seat.tier }}">{{ seat.tier }}</span></td><td><code>{{ seat.seatId }}</code></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
 {% endblock %}

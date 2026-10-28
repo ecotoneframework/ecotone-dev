@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace App\Tests\Web;
 
+use App\Sales\ConfirmSeats;
+use App\Sales\HoldSeat;
 use Doctrine\Persistence\ManagerRegistry;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @internal
@@ -69,6 +74,25 @@ final class AdminPagesTest extends WebTestCase
         self::assertSelectorTextContains('table.concerts tbody tr:nth-child(1)', 'on sale');
         self::assertSelectorTextContains('table.concerts tbody tr:nth-child(3)', 'Aurora Strings');
         self::assertSelectorTextContains('table.concerts tbody tr:nth-child(3)', 'scheduled');
+    }
+
+    public function test_the_concerts_page_counts_the_sold_held_and_free_seats_of_each_concert(): void
+    {
+        $client = $this->seededClient();
+        $concertId = $this->concertIdOf('The Midnight Owls');
+        $this->hold(Uuid::v7()->toRfc4122(), $concertId, 'A-1', Uuid::v7()->toRfc4122());
+        $buyingOrder = Uuid::v7()->toRfc4122();
+        $buyer = Uuid::v7()->toRfc4122();
+        $this->hold($buyingOrder, $concertId, 'A-2', $buyer);
+        $this->commandBus()->send(new ConfirmSeats(orderId: $buyingOrder, concertId: $concertId, customerId: $buyer, seatIds: [$concertId . '/A-2'], paymentReference: 'pay-1'), metadata: ['concertId' => $concertId]);
+        $this->runTheConsumer($client);
+
+        $client->request('GET', '/admin/concerts');
+
+        self::assertSelectorTextContains("table.concerts tr[id=\"{$concertId}\"] .seat-counts", '1 sold');
+        self::assertSelectorTextContains("table.concerts tr[id=\"{$concertId}\"] .seat-counts", '1 held');
+        self::assertSelectorTextContains("table.concerts tr[id=\"{$concertId}\"] .seat-counts", '70 free');
+        self::assertSelectorTextContains("table.concerts tr[id=\"{$this->concertIdOf('Aurora Strings')}\"] .seat-counts", '72 free');
     }
 
     public function test_the_schedule_form_creates_a_concert(): void
@@ -133,12 +157,76 @@ final class AdminPagesTest extends WebTestCase
     {
         $client = $this->seededClient();
         $crawler = $client->request('GET', '/admin/concerts');
-        $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
+        $crawler = $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
 
-        $client->submitForm('Open sales');
+        $client->request('POST', $client->getRequest()->getPathInfo() . '/open-sales', ['_token' => $crawler->filter('input[name="_token"]')->attr('value')]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('.refusal', 'cannot open, because they are already open');
+    }
+
+    public function test_the_concert_page_counts_its_held_seats_beside_the_sold_ones(): void
+    {
+        $client = $this->seededClient();
+        $concertId = $this->concertIdOf('The Midnight Owls');
+        $this->hold(Uuid::v7()->toRfc4122(), $concertId, 'A-1', Uuid::v7()->toRfc4122());
+        $this->hold(Uuid::v7()->toRfc4122(), $concertId, 'C-1', Uuid::v7()->toRfc4122());
+        $this->runTheConsumer($client);
+
+        $client->request('GET', '/admin/concerts/' . $concertId);
+
+        self::assertSelectorTextContains('.stat-held .stat-value', '2');
+        self::assertSelectorTextContains('.stat-sold .stat-value', '0 of 72');
+    }
+
+    public function test_a_scheduled_concert_offers_open_sales_as_its_primary_action_and_can_be_cancelled(): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+        $client->click($crawler->filter('table.concerts tbody tr:nth-child(3) a')->link());
+
+        self::assertSelectorExists('form[action$="/open-sales"] button.button-primary:not([disabled])');
+        self::assertSelectorNotExists('.toolbar .action-reason');
+        self::assertSelectorExists('details.confirm');
+    }
+
+    public function test_the_cancel_trigger_names_what_it_cancels_and_its_confirmation_names_the_concert(): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+        $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
+
+        self::assertSelectorTextContains('details.confirm summary', 'Cancel concert…');
+        self::assertSelectorTextContains('details.confirm .confirm-panel', 'Cancel Neon Harbour?');
+    }
+
+    public function test_a_concert_on_sale_shows_open_sales_disabled_with_the_reason_and_can_be_cancelled(): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+        $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
+
+        self::assertSelectorNotExists('form[action$="/open-sales"]');
+        self::assertSelectorNotExists('.toolbar .button-primary');
+        self::assertSelectorExists('.toolbar button[disabled]');
+        self::assertSelectorTextContains('.toolbar .action-reason', 'Sales are already open.');
+        self::assertSelectorExists('details.confirm');
+    }
+
+    public function test_a_cancelled_concert_shows_open_sales_disabled_with_the_reason_and_offers_no_cancel(): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+        $client->click($crawler->filter('table.concerts tbody tr:nth-child(3) a')->link());
+        $client->submitForm('Cancel concert');
+        $client->followRedirect();
+
+        self::assertSelectorTextContains('.status', 'cancelled');
+        self::assertSelectorNotExists('form[action$="/open-sales"]');
+        self::assertSelectorExists('.toolbar button[disabled]');
+        self::assertSelectorTextContains('.toolbar .action-reason', 'The concert is cancelled.');
+        self::assertSelectorNotExists('details.confirm');
+        self::assertSelectorNotExists('form[action$="/cancel"]');
     }
 
     public function test_the_concert_page_changes_a_tier_price_and_cancels_the_concert(): void
@@ -156,6 +244,34 @@ final class AdminPagesTest extends WebTestCase
         $client->followRedirect();
         self::assertSelectorTextContains('.notice', 'The concert is cancelled.');
         self::assertSelectorTextContains('.status', 'cancelled');
+    }
+
+    public function test_the_navigation_marks_the_page_you_are_on(): void
+    {
+        $client = $this->seededClient();
+
+        $crawler = $client->request('GET', '/admin/venues');
+        self::assertSame('Venues', trim($crawler->filter('nav a[aria-current="page"]')->text()));
+
+        $crawler = $client->click($crawler->filter('nav')->selectLink('Concerts')->link());
+        self::assertSame('Concerts', trim($crawler->filter('nav a[aria-current="page"]')->text()));
+
+        $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
+        self::assertSame('Concerts', trim($client->getCrawler()->filter('nav a[aria-current="page"]')->text()));
+    }
+
+    public function test_a_notice_is_announced_as_a_status_and_a_refusal_as_an_alert(): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+        $crawler = $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
+
+        $client->request('POST', $client->getRequest()->getPathInfo() . '/open-sales', ['_token' => $crawler->filter('input[name="_token"]')->attr('value')]);
+        self::assertSelectorExists('.refusal[role="alert"]');
+
+        $client->submitForm('Change price', ['tier' => 'vip', 'priceCents' => '12000']);
+        $client->followRedirect();
+        self::assertSelectorExists('.notice[role="status"]');
     }
 
     #[DataProvider('adminForms')]
@@ -239,11 +355,36 @@ final class AdminPagesTest extends WebTestCase
         $client = static::createClient();
         /** @var ManagerRegistry $doctrine */
         $doctrine = static::getContainer()->get('doctrine');
-        $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues, messenger_messages');
+        $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues, messenger_messages, concert_seat_map, concert_sales_ledger');
         $application = new Application($client->getKernel());
         $application->setAutoExit(false);
         self::assertSame(0, $application->run(new ArrayInput(['command' => 'demo:seed', '--catalogueOnly' => true]), new NullOutput()));
 
         return $client;
+    }
+
+    private function runTheConsumer(KernelBrowser $client): void
+    {
+        $application = new Application($client->getKernel());
+        $application->setAutoExit(false);
+        self::assertSame(0, $application->run(new ArrayInput(['command' => 'ecotone:run', 'consumerName' => 'ticketing_async', '--finishWhenNoMessages' => true, '--stopOnFailure' => true, '--executionTimeLimit' => 30000]), new NullOutput()));
+    }
+
+    private function concertIdOf(string $artist): string
+    {
+        /** @var QueryBus $queryBus */
+        $queryBus = static::getContainer()->get(QueryBus::class);
+
+        return array_column($queryBus->sendWithRouting('concerts.list'), 'concertId', 'artist')[$artist];
+    }
+
+    private function hold(string $orderId, string $concertId, string $seatCode, string $customerId): void
+    {
+        $this->commandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/' . $seatCode, customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
+    }
+
+    private function commandBus(): CommandBus
+    {
+        return static::getContainer()->get(CommandBus::class);
     }
 }

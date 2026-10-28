@@ -70,10 +70,15 @@ volumes are dropped.
    with their entry codes a few seconds later. The confirmation email goes through the storefront's email stub, which
    records it in its `sent_emails` table instead of sending it.
 4. Open a ticket in ticketing at `http://localhost:8001/tickets/<ticketNumber>`: the page a door scanner would read,
-   with the seat, the tier (a VIP seat includes its lounge pass) and the entry code.
+   laid out as a ticket with the seat and the tier, a VIP lounge pass band on a VIP seat, and the entry code on its
+   stub. It prints as the ticket alone.
 
-On ticketing, `/admin` lists the concerts; each has a seat map (`/concerts/{concertId}/seats`) and a sales ledger, both
-projections, and you can schedule a concert, open its sales, change its prices and cancel it there.
+Ticketing is the promoter's back office. `/admin` lists the concerts with their sale state and how many seats are sold,
+held and free; a concert's page shows those counts, its revenue and its sales by tier, and is where you open its sales,
+change its prices and cancel it (behind a confirmation). Each concert has a public seat map
+(`/concerts/{concertId}/seats`), outside the back office and linked from every ticket, drawn as the hall: the stage, the VIP and standard rows, and every seat marked free, held or sold, with a legend that
+counts them. The seat map and the sales ledger are projections. No page needs JavaScript; the seat map reloads itself
+every three seconds.
 
 ## Run a rush
 
@@ -87,8 +92,8 @@ docker compose -f demo/docker-compose.yml exec storefront php artisan demo:rush 
 
 The status line under the panel counts the buyers as they hold, pay, get their tickets, fail or give up. Then watch:
 
-- **The seat map** on the concert page and on ticketing greys out the seats the crowd holds, so your own clicks start to
-  meet "someone was faster".
+- **The seat map** on the storefront's concert page greys out the seats the crowd holds, so your own clicks start to
+  meet "someone was faster"; ticketing's seat map stripes them amber as held and darkens them once sold.
 - **Pulse → Dead letters** groups the failed messages by exception: `PaymentProviderUnavailable` for the outage share
   and `EmailBounced` for the bounce share once their tickets are issued. Each one can be replayed or deleted, one at a
   time or the whole group. A replayed `EmailBounced` bounces again, since `@bounce.example` accepts no mail: the

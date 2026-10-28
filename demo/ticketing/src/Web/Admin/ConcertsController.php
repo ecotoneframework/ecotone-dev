@@ -108,12 +108,25 @@ final class ConcertsController extends AbstractController
     public function seats(string $concertId): Response
     {
         return $this->onKnownConcert($concertId, function () use ($concertId): Response {
+            $seatMap = $this->queryBus->sendWithRouting('concert.seat_map', $concertId);
             $rows = [];
-            foreach ($this->queryBus->sendWithRouting('concert.seat_map', $concertId) as $seat) {
+            foreach ($seatMap as $seat) {
                 $rows[explode('-', $seat['seatCode'])[0]][] = $seat;
             }
+            $tierBlocks = [];
+            foreach ($rows as $row => $seats) {
+                if ($tierBlocks === [] || $tierBlocks[array_key_last($tierBlocks)]['tier'] !== $seats[0]['tier']) {
+                    $tierBlocks[] = ['tier' => $seats[0]['tier'], 'rows' => []];
+                }
+                $tierBlocks[array_key_last($tierBlocks)]['rows'][$row] = $seats;
+            }
 
-            return $this->render('concerts/seats.html.twig', ['concert' => $this->concert($concertId), 'rows' => $rows, 'refreshSeconds' => 3]);
+            return $this->render('concerts/seats.html.twig', [
+                'concert' => $this->concert($concertId),
+                'tierBlocks' => $tierBlocks,
+                'seatCounts' => $this->seatCountsOf($seatMap),
+                'refreshSeconds' => 3,
+            ]);
         });
     }
 
@@ -141,10 +154,16 @@ final class ConcertsController extends AbstractController
 
     private function concertsPage(?string $refusal = null, int $refusalStatus = Response::HTTP_UNPROCESSABLE_ENTITY): Response
     {
+        $concerts = $this->queryBus->sendWithRouting('concerts.list');
+
         return $this->render(
             'admin/concerts.html.twig',
             [
-                'concerts' => $this->queryBus->sendWithRouting('concerts.list'),
+                'concerts' => $concerts,
+                'seatCounts' => array_combine(
+                    array_column($concerts, 'concertId'),
+                    array_map(fn (array $concert): array => $this->seatCountsOf($this->queryBus->sendWithRouting('concert.seat_map', $concert['concertId'])), $concerts),
+                ),
                 'venues' => $this->queryBus->sendWithRouting('venues.list'),
                 'refusal' => $refusal,
             ],
@@ -156,9 +175,28 @@ final class ConcertsController extends AbstractController
     {
         return $this->render(
             'admin/concert.html.twig',
-            ['concert' => $this->concert($concertId), 'sales' => $this->queryBus->sendWithRouting('concert.sales', $concertId), 'refusal' => $refusal],
+            [
+                'concert' => $this->concert($concertId),
+                'sales' => $this->queryBus->sendWithRouting('concert.sales', $concertId),
+                'seatCounts' => $this->seatCountsOf($this->queryBus->sendWithRouting('concert.seat_map', $concertId)),
+                'refusal' => $refusal,
+            ],
             new Response(status: $refusal === null ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY),
         );
+    }
+
+    /**
+     * @param list<array{status: string}> $seatMap
+     * @return array{free: int, held: int, sold: int, total: int}
+     */
+    private function seatCountsOf(array $seatMap): array
+    {
+        $counts = ['free' => 0, 'held' => 0, 'sold' => 0];
+        foreach ($seatMap as $seat) {
+            $counts[$seat['status']]++;
+        }
+
+        return [...$counts, 'total' => count($seatMap)];
     }
 
     private function concert(string $concertId): array

@@ -11,13 +11,16 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\QueryBus;
-use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\FromTaggedStream;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\PartitionTagValue;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionDelete;
 use Ecotone\Api\Projecting\ProjectionReset;
 
 #[Projection(self::NAME)]
-#[FromStream('ecotone_event_stream')]
+#[FromTaggedStream('concert')]
+#[Partitioned]
 #[Asynchronous('ticketing_async')]
 final class ConcertSeatMap
 {
@@ -82,9 +85,9 @@ final class ConcertSeatMap
     }
 
     #[ProjectionReset]
-    public function reset(): void
+    public function reset(#[PartitionTagValue] string $concertId): void
     {
-        $this->connection->executeStatement('DELETE FROM concert_seat_map');
+        $this->connection->executeStatement('DELETE FROM concert_seat_map WHERE concert_id = ?', [$concertId]);
     }
 
     #[ProjectionDelete]

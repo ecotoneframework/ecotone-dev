@@ -46,7 +46,7 @@
     {% if focus %}
         <section class="card focus" data-focus aria-labelledby="focus-heading">
             <h2 id="focus-heading">Following {{ focus.label }} <span class="muted">in {{ focus.service }}</span></h2>
-            <p class="muted">Only what led to it and everything it causes is drawn. Follow any step to re-centre on it, or <a href="{{ path('flow_graph', trace ? {trace: trace.traceId} : {}) }}" data-focus-clear>show everything</a>.</p>
+            <p class="muted">Only what led to it and everything it causes is drawn. Follow any step to re-centre on it, or <a href="{{ focus.clearUrl }}" data-focus-clear>show everything</a>.</p>
             <div class="focus-steps">
                 <div>
                     <h3>What led here</h3>

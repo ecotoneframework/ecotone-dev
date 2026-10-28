@@ -62,8 +62,9 @@ final class FlowGraphController extends AbstractController
             default => array_values(array_intersect($available, array_map('strval', $requested))),
         };
 
+        $carried = array_filter(['trace' => $traceId, 'service' => $scope->selected, 'collapse' => $collapsed]);
         $find = trim($request->query->getString('find'));
-        $found = $find === '' ? [] : $this->found($flows, $find, $traceId);
+        $found = $find === '' ? [] : $this->found($flows, $find, $carried);
         if (count($found) === 1) {
             return $this->redirect($found[0]['href']);
         }
@@ -72,7 +73,7 @@ final class FlowGraphController extends AbstractController
         $nodes = array_map(fn (array $node): array => [...$node, 'href' => match (true) {
             $overview => $this->generateUrl('flow_graph', ['services' => [$node['service']]]),
             isset($node['collapsed']) => $this->collapseUrl($request, $collapsed, $node['service']),
-            isset($node['node']) => $this->focusUrl($node['service'], $node['node'], $traceId),
+            isset($node['node']) => $this->focusUrl($node['service'], $node['node'], $carried),
             default => $this->generateUrl('dead_letters', ['service' => $node['service']]),
         }], $nodes);
 
@@ -84,8 +85,9 @@ final class FlowGraphController extends AbstractController
             'focus' => $focus === null ? null : [
                 'label' => ShortLabel::of($focus->node->label),
                 'service' => $focus->service,
-                'upstream' => $this->stepsOf($focus->upstream, $traceId),
-                'downstream' => $this->stepsOf($focus->downstream, $traceId),
+                'clearUrl' => $this->generateUrl('flow_graph', $carried),
+                'upstream' => $this->stepsOf($focus->upstream, $carried),
+                'downstream' => $this->stepsOf($focus->downstream, $carried),
             ],
             'overview' => $overview,
             'nodes' => $nodes,
@@ -119,28 +121,33 @@ final class FlowGraphController extends AbstractController
 
     /**
      * @param list<array{service: string, node: FlowNode}> $steps
+     * @param array<string, string|list<string>> $carried
      * @return list<array{label: string, kind: string, service: string, href: string}>
      */
-    private function stepsOf(array $steps, string $traceId): array
+    private function stepsOf(array $steps, array $carried): array
     {
         return array_map(fn (array $step): array => [
             'label' => ShortLabel::of($step['node']->label),
             'kind' => $step['node']->kind->value,
             'service' => $step['service'],
-            'href' => $this->focusUrl($step['service'], $step['node']->id, $traceId),
+            'href' => $this->focusUrl($step['service'], $step['node']->id, $carried),
         ], $steps);
     }
 
-    private function focusUrl(string $service, string $nodeId, string $traceId): string
+    /**
+     * @param array<string, string|list<string>> $carried
+     */
+    private function focusUrl(string $service, string $nodeId, array $carried): string
     {
-        return $this->generateUrl('flow_graph', array_filter(['focus' => $service . ':' . $nodeId, 'trace' => $traceId]));
+        return $this->generateUrl('flow_graph', ['focus' => $service . ':' . $nodeId, ...$carried]);
     }
 
     /**
      * @param list<ServiceFlow> $flows
+     * @param array<string, string|list<string>> $carried
      * @return list<array{label: string, kind: string, service: string, href: string}>
      */
-    private function found(array $flows, string $find, string $traceId): array
+    private function found(array $flows, string $find, array $carried): array
     {
         $found = [];
         foreach ($flows as $flow) {
@@ -150,7 +157,7 @@ final class FlowGraphController extends AbstractController
                 }
             }
         }
-        $steps = $this->stepsOf($found, $traceId);
+        $steps = $this->stepsOf($found, $carried);
         usort($steps, fn (array $one, array $other): int => [$one['label'], $one['service']] <=> [$other['label'], $other['service']]);
 
         return $steps;

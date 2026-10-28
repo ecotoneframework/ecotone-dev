@@ -300,7 +300,7 @@ the buyers, starts their orders, and sends one `RequestSeat` per buyer with a fr
 `storefront_async` like any seat request, one message per buyer, and reach ticketing over the Distributed Bus as fast as
 the two `storefront-worker` replicas send them, while both `ticketing-worker` replicas decide them in parallel. Measured
 on a local stack, a run had one conflicting append in 11 of 12 runs of 5 buyers and 8 of 11 runs of 10 buyers with one
-`storefront-worker`, and in 11 of 12 and 12 of 12 with two, never more than one: two ticketing workers let at most two
+`storefront-worker`, and in 10 of 12 and 12 of 12 with two, never more than one: two ticketing workers let at most two
 requests read the free seat together, and once one hold is appended every later request reads the seat held. An order records
 `SeatRefused` when ticketing refuses its hold, and the contention fails a contending buyer's order on it with ticketing's
 reason. Orders of real customers are left open, so their owners can pick another seat. `/contentions/{contentionId}/state.json`

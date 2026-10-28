@@ -9,6 +9,7 @@ final class DropExpiredSeat
     public function __construct(
         public readonly string $orderId,
         public readonly string $seatId,
+        public readonly string $holdId,
     ) {
     }
 }

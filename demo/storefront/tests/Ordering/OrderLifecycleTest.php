@@ -13,6 +13,7 @@ use App\Ordering\MarkSeatHeld;
 use App\Ordering\MarkTicketsIssued;
 use App\Ordering\RecordSeatRefusal;
 use App\Ordering\ReleaseSeat;
+use App\Ordering\RequestSeat;
 use App\Ordering\StartOrder;
 use Closure;
 use DomainException;
@@ -136,8 +137,9 @@ final class OrderLifecycleTest extends TestCase
     public function test_a_held_seat_moves_the_order_to_seats_held_with_the_hold_expiry(): void
     {
         $orderId = $this->startOrder();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
 
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
         $order = $this->orderDetail($orderId);
         self::assertSame('seats_held', $order['status']);
@@ -147,9 +149,11 @@ final class OrderLifecycleTest extends TestCase
     public function test_seats_held_later_are_added_to_the_seats_already_held(): void
     {
         $orderId = $this->startOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', holdId: 'hold-1'));
 
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', expiresAt: self::LATER_EXPIRES_AT));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', holdId: 'hold-1', expiresAt: self::LATER_EXPIRES_AT));
 
         self::assertSame(
             [['seatId' => self::CONCERT_ID . '/A-1', 'expiresAt' => self::EXPIRES_AT], ['seatId' => self::CONCERT_ID . '/A-2', 'expiresAt' => self::LATER_EXPIRES_AT]],
@@ -157,21 +161,23 @@ final class OrderLifecycleTest extends TestCase
         );
     }
 
-    public function test_a_seat_held_again_keeps_one_hold_with_the_new_expiry(): void
+    public function test_a_held_reply_repeated_for_a_held_seat_keeps_one_hold_with_its_first_expiry(): void
     {
         $orderId = $this->startOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::LATER_EXPIRES_AT));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::LATER_EXPIRES_AT));
 
-        self::assertSame([['seatId' => self::CONCERT_ID . '/A-1', 'expiresAt' => self::LATER_EXPIRES_AT]], $this->orderDetail($orderId)['heldSeats']);
+        self::assertSame([['seatId' => self::CONCERT_ID . '/A-1', 'expiresAt' => self::EXPIRES_AT]], $this->orderDetail($orderId)['heldSeats']);
     }
 
     public function test_the_hold_expiry_is_kept_in_utc(): void
     {
         $orderId = $this->startOrder();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
 
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: '2026-10-25T14:02:00+02:00'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: '2026-10-25T14:02:00+02:00'));
 
         self::assertSame(self::EXPIRES_AT, $this->orderDetail($orderId)['heldSeats'][0]['expiresAt']);
     }
@@ -182,8 +188,9 @@ final class OrderLifecycleTest extends TestCase
 
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage(sprintf('MarkSeatHeld for seat %s/A-1 of order %s carries expiresAt "soon", which is not an ISO-8601 date, so the storefront cannot count down the hold. Ticketing sends expiresAt as ISO-8601, like "2026-10-25T12:02:00+00:00": correct the tickets.hold.result reply and replay it from the dbal_dead_letter.', self::CONCERT_ID, $orderId));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
 
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: 'soon'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: 'soon'));
     }
 
     public function test_holding_a_seat_with_no_expiry_is_refused(): void
@@ -192,8 +199,9 @@ final class OrderLifecycleTest extends TestCase
 
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage(sprintf('MarkSeatHeld for seat %s/A-1 of order %s carries expiresAt "", which is not an ISO-8601 date', self::CONCERT_ID, $orderId));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
 
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: ''));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: ''));
     }
 
     public function test_holding_a_seat_of_another_concert_is_refused(): void
@@ -203,15 +211,17 @@ final class OrderLifecycleTest extends TestCase
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage(sprintf('Seat %s/A-1 belongs to concert %s, but order %s is for concert %s, so MarkSeatHeld cannot add it. Hold a seat of concert %s, or start an order for concert %s with StartOrder.', self::OTHER_CONCERT_ID, self::OTHER_CONCERT_ID, $orderId, self::CONCERT_ID, self::CONCERT_ID, self::OTHER_CONCERT_ID));
 
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::OTHER_CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::OTHER_CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
     }
 
     public function test_a_held_seat_clears_the_refusal_of_the_same_seat(): void
     {
         $orderId = $this->startOrder();
-        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', reason: 'someone was faster: seat A-1'));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused'));
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused', reason: 'someone was faster: seat A-1'));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
 
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
         self::assertNull($this->orderDetail($orderId)['lastRefusal']);
     }
@@ -219,8 +229,9 @@ final class OrderLifecycleTest extends TestCase
     public function test_a_refused_seat_is_the_last_refusal_of_the_order(): void
     {
         $orderId = $this->orderWithHeldSeats();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', holdId: 'hold-refused'));
 
-        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', reason: 'someone was faster: seat A-2'));
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', holdId: 'hold-refused', reason: 'someone was faster: seat A-2'));
 
         $order = $this->orderDetail($orderId);
         self::assertSame(['seatId' => self::CONCERT_ID . '/A-2', 'reason' => 'someone was faster: seat A-2'], $order['lastRefusal']);
@@ -230,9 +241,11 @@ final class OrderLifecycleTest extends TestCase
     public function test_a_later_refusal_replaces_the_last_refusal(): void
     {
         $orderId = $this->startOrder();
-        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', reason: 'someone was faster: seat A-1'));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused'));
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused', reason: 'someone was faster: seat A-1'));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-3', holdId: 'hold-refused'));
 
-        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-3', reason: 'a customer holds or owns at most 4 seats per concert'));
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-3', holdId: 'hold-refused', reason: 'a customer holds or owns at most 4 seats per concert'));
 
         self::assertSame(['seatId' => self::CONCERT_ID . '/A-3', 'reason' => 'a customer holds or owns at most 4 seats per concert'], $this->orderDetail($orderId)['lastRefusal']);
     }
@@ -240,8 +253,10 @@ final class OrderLifecycleTest extends TestCase
     public function test_releasing_a_held_seat_removes_it_from_the_order(): void
     {
         $orderId = $this->startOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
         $this->commandBus()->send(new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1'));
 
@@ -275,7 +290,7 @@ final class OrderLifecycleTest extends TestCase
     {
         $orderId = $this->orderWithHeldSeats();
 
-        $this->commandBus()->send(new DropExpiredSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1'));
+        $this->commandBus()->send(new DropExpiredSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
 
         $order = $this->orderDetail($orderId);
         self::assertSame([], $order['heldSeats']);
@@ -286,7 +301,7 @@ final class OrderLifecycleTest extends TestCase
     {
         $orderId = $this->orderWithHeldSeats();
 
-        $this->commandBus()->send(new DropExpiredSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2'));
+        $this->commandBus()->send(new DropExpiredSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', holdId: 'hold-1'));
 
         $order = $this->orderDetail($orderId);
         self::assertSame([['seatId' => self::CONCERT_ID . '/A-1', 'expiresAt' => self::EXPIRES_AT]], $order['heldSeats']);
@@ -298,7 +313,7 @@ final class OrderLifecycleTest extends TestCase
     {
         $orderId = $this->orderIn($status);
 
-        $this->commandBus()->send(new DropExpiredSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1'));
+        $this->commandBus()->send(new DropExpiredSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
 
         $order = $this->orderDetail($orderId);
         self::assertSame($status, $order['status']);
@@ -317,7 +332,7 @@ final class OrderLifecycleTest extends TestCase
         $orderId = $this->orderWithHeldSeats();
         $this->commandBus()->send(new FailOrder(orderId: $orderId, reason: 'Payment declined'));
 
-        $this->commandBus()->send(new DropExpiredSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1'));
+        $this->commandBus()->send(new DropExpiredSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
 
         self::assertSame('failed', $this->orderDetail($orderId)['status']);
     }
@@ -391,7 +406,8 @@ final class OrderLifecycleTest extends TestCase
         $orderId = $this->startOrder();
 
         try {
-            $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: $seatId, expiresAt: self::EXPIRES_AT));
+            $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: $seatId, holdId: 'hold-1'));
+            $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: $seatId, holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
             self::fail('MarkSeatHeld was accepted');
         } catch (DomainException $exception) {
             self::assertSame(sprintf('Seat id "%s" is not CONCERT-ID/ROW-NUMBER, so its seat code cannot be read. Send the concert id, a slash and the seat code concert.scheduled published for the seat, like "{concert id}/A-1".', $seatId), $exception->getMessage());
@@ -505,7 +521,8 @@ final class OrderLifecycleTest extends TestCase
     private function orderWithHeldSeats(): string
     {
         $orderId = $this->startOrder();
-        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', expiresAt: self::EXPIRES_AT));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
         return $orderId;
     }

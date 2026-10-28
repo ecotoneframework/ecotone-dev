@@ -30,6 +30,21 @@ docker compose -f demo/docker-compose.yml exec storefront php artisan demo:ping
 It prints `Reply arrived: pong from ticketing to storefront` once ticketing's reply reaches the storefront. Stop the demo
 with `docker compose -f demo/docker-compose.yml down`, and add `-v` to drop the Postgres and RabbitMQ volumes as well.
 
+After pulling a change to the messages the two services exchange or store, start from empty volumes and a fresh
+ticketing cache, because the stored events and the queued messages still have the old shape:
+
+```bash
+docker compose -f demo/docker-compose.yml down -v
+rm -rf demo/ticketing/var/cache/dev
+docker compose -f demo/docker-compose.yml up -d --build --wait
+```
+
+Ticketing's development cache keeps each event's serialization metadata and does not notice when an event gains a
+field. The `ticketing` container deletes that metadata on each start, and the `rm` clears the rest of the cache, which
+would otherwise fail a fresh database with "Typed property ... must not be accessed before initialization". A
+`tickets.*` reply queued for the storefront before the change fails there with "Undefined array key" until the
+volumes are dropped.
+
 ## Open it
 
 | What | URL |
@@ -74,7 +89,9 @@ The status line under the panel counts the buyers as they hold, pay, get their t
   meet "someone was faster".
 - **Pulse → Dead letters** groups the failed messages by exception: `PaymentProviderUnavailable` for the outage share
   and `EmailBounced` for the bounce share once their tickets are issued. Each one can be replayed or deleted, one at a
-  time or the whole group.
+  time or the whole group. A replayed `EmailBounced` bounces again, since `@bounce.example` accepts no mail: the
+  buyer's tickets and entry codes are on their order page (`/orders/{orderId}`, the account page links it), so the
+  operator hands them over from there and then deletes the dead letter.
 - **Pulse → Traces** lists the flows of both services; open one to see every handler it went through, across the
   Distributed Bus.
 - **Pulse → Services → ticketing → Projections** shows the seat map and the sales ledger with their positions, and
@@ -87,7 +104,7 @@ The status line under the panel counts the buyers as they hold, pay, get their t
   faster", while a send through the command bus, such as an expiry, retries it up to three times, one `Decision
   Models` span per attempt. A payment's trace (`process Checkout::pay` in `storefront`) runs on into ticketing's
   confirm and the issuance orchestrator: `TicketIssuance::allocateNumbers` and `grantVipLoungePasses`, then a
-  `receive ticketing_async` hop into `renderTickets`, `registerEntryCodes` and `announceIssuedTickets`, and back to the
+  `receive ticketing_async` hop into `renderTickets` and `registerEntryCodes`, another into `announceIssuedTickets`, and back to the
   storefront's `MarkTicketsIssued`. A whole rush is one trace, from `RushSimulator::start` through every tick.
 
 ## Replay a dead-lettered payment
@@ -135,7 +152,7 @@ The storefront talks to no real payment provider or mail server. Three rules dri
 |---|---|---|
 | Doctrine ORM aggregates | Venues and concerts, with command handlers on the entities | `ticketing/src/Catalogue/Venue.php`, `Concert.php` |
 | Eloquent aggregates | Customers and orders as Eloquent models; an order is saved under optimistic locking on its `#[Version]`, so two writers that loaded it cannot overwrite each other: the one that saves second is retried against the order as the first left it | `storefront/app/Customer/Customer.php`, `storefront/app/Ordering/Order.php`, `OrderRepository.php` |
-| Dynamic Consistency Boundary | Holds, releases, expiries and sales decided on the `SeatAvailability` and `CustomerConcertSeats` decision models, scoped by the `seat` and `customerConcert` tags of their events | `ticketing/src/Sales/SeatSales.php`, `SeatAvailability.php`, `CustomerConcertSeats.php`, `SeatHeld.php` |
+| Dynamic Consistency Boundary | Holds, releases, expiries and sales decided on the `SeatAvailability` and `CustomerConcertSeats` decision models, scoped by the `seat` and `customerConcert` tags of their events; a confirm adds the `seat` tags of its seats through a `#[DecisionBoundary]` | `ticketing/src/Sales/SeatSales.php`, `SeatAvailability.php`, `CustomerConcertSeats.php`, `SeatHeld.php` |
 | Outbox | Ticketing's announcements go out from `ticketing_async`, a Doctrine Messenger transport committed with the change; the storefront's requests to ticketing, charges and emails go out from `storefront_async`, a database queue committed with the order | `ticketing/src/Catalogue/ConcertAnnouncements.php`, `storefront/app/Ordering/TicketingRequests.php` |
 | Distributed Bus with replies | `tickets.hold` and `tickets.confirm` sent to ticketing and answered with `tickets.hold.result` and `tickets.confirm.result`; events such as `tickets.issued` published to the storefront | `ticketing/src/Sales/SeatSalesOverDistributedBus.php`, `storefront/app/Ordering/TicketingRequests.php`, `TicketingReplies.php` |
 | Delayed messages | A hold expires through a message delayed until its expiry, which frees only the hold it was scheduled for | `ticketing/src/Sales/HoldExpiry.php` |
@@ -168,12 +185,19 @@ The concert's status, seats and prices are read through `concert.detail`, not gu
 fetched aggregate without bumping its counter, so a hold racing a cancellation can succeed and the cancellation then
 releases it. A conflict on a command-bus send is retried three times, and an exhausted one is refused with "someone
 was faster"; a `tickets.hold` or `tickets.confirm` arriving over the Distributed Bus is not retried, so a conflict
-there is refused at once with that reason. Only the order, customer and concert holding a seat release it. A hold
-expires after `TICKETING_HOLD_SECONDS` (600 by default, 120 in `docker-compose.yml`), through a delayed message on
-`ticketing_async` that frees only the hold it was scheduled for. A confirm decides on the customer's holds alone, so in the milliseconds around a
-hold's expiry another customer's hold of that seat and the order's confirm can both succeed; a confirm after the
-expiry is refused. The storefront drives it with `tickets.hold`, `tickets.release` and `tickets.confirm` over the
-Distributed Bus, and gets `tickets.hold.result` and `tickets.confirm.result` replies. Each concert has a seat map at
+there is refused at once with that reason. Every hold carries the `holdId` its requester chose, and only the order,
+customer, concert and hold id of a hold release it, so a late release of an earlier hold leaves a later one in place.
+A hold expires after `TICKETING_HOLD_SECONDS` (600 by default, 120 in `docker-compose.yml`), through a delayed message
+on `ticketing_async` that frees only the hold it was scheduled for. A confirm decides on the customer's holds and,
+through a `#[DecisionBoundary]` over the `seat` tag of every seat it sells, on the seats themselves: another customer's
+hold of a seat whose hold just expired, appended while the confirm decides, makes the confirm's append conflict, so a
+seat is sold once: the storefront's `tickets.confirm` is refused at once with "someone was faster", and the storefront
+fails the order and refunds it (a command-bus send would retry and refuse naming the order that holds the seat). A
+confirm repeated for an order already sold with the same payment reference replies `sold` again and sells nothing
+twice, also when the two copies are handled at once by two consumers. The storefront drives it
+with `tickets.hold`, `tickets.release` and `tickets.confirm` over the Distributed Bus, and gets `tickets.hold.result`
+and `tickets.confirm.result` replies; a held reply for a hold id the order no longer awaits releases that hold, and a
+`tickets.hold_expired` drops a seat only when it names the order's current hold. Each concert has a seat map at
 `/concerts/{concertId}/seats` on the ticketing URL, linked from its admin page next to its sales ledger; both are
 projections on `ticketing_async`. `demo:seed` sells all but the last three seats of Neon Harbour, and selling those
 marks it sold out (`concert.sold_out`); `demo:seed --catalogueOnly` seeds the venue and the concerts without that sale.
@@ -187,14 +211,15 @@ issuance starts once per order rather than once per seat: an event handler on `t
 with the `concertId` header to the `TicketIssuance` orchestrator, so the start survives a worker restart. The
 orchestrator builds its routing slip from the order: `ticket.allocate_numbers`, then `ticket.vip_lounge_pass` only when
 the order holds a VIP seat, then `ticket.render` on `ticketing_async`, which writes `var/tickets/<ticketNumber>.txt`,
-then `ticket.register_entry_codes` into the `issued_tickets` table, and `ticket.announce`, which publishes
-`tickets.issued` to the storefront. Ticket numbers are UUIDs and entry codes are random, both generated once per order,
-so issuing an issued order again announces the same tickets. The announce is effectively once rather than exactly once:
-it publishes to RabbitMQ from the asynchronous step without an outbox, so a worker that dies between the publish and
-the commit announces the same tickets again on the retry, and the storefront treats an identical set as already
-applied. Each ticket has a page at `/tickets/{ticketNumber}` on the ticketing URL, read through `ticket.detail`. In
-Jaeger, the trace of a confirm shows the allocate and VIP steps, and then, after a `receive ticketing_async` hop, the
-render, register and announce steps. `TICKETING_RENDER_FAILS_FOR_SEAT` on `ticketing-worker` makes the render of one
+then `ticket.register_entry_codes` into the `issued_tickets` table, and `ticket.announce` on `ticketing_async` again,
+which publishes `tickets.issued` to the storefront. The announce is queued in the same transaction as the
+registration, so a registration that rolls back announces nothing, and its replay announces the tickets it registered.
+Ticket numbers are UUIDs and entry codes are random, both generated once per order, so issuing an issued order again
+announces the same tickets. The announce itself is effectively once rather than exactly once: a worker that dies
+between the publish to RabbitMQ and its own commit announces the same tickets again on the retry, and the storefront
+treats an identical set as already applied. Each ticket has a page at `/tickets/{ticketNumber}` on the ticketing URL,
+read through `ticket.detail`. In Jaeger, the trace of a confirm shows the allocate and VIP steps, then, after a
+`receive ticketing_async` hop, the render and register steps, and after a second hop the announce step. `TICKETING_RENDER_FAILS_FOR_SEAT` on `ticketing-worker` makes the render of one
 seat fail, see [Force a render failure and replay it](#force-a-render-failure-and-replay-it).
 
 ### Customers and orders
@@ -219,7 +244,8 @@ ecotone:deadletter:replay <messageId>` in the storefront). Only transient databa
 saved first are retried on the spot, so a provider outage reaches the dead letters instead of being retried away, and a
 payment reference is charged once however often its charge runs. A paid order sends `tickets.confirm`; `tickets.issued`
 shows the tickets with their entry codes on the order page and emails them, and the email to Linus Bounce
-(`@bounce.example`) always lands in the dead letters.
+(`@bounce.example`) always lands in the dead letters. Replaying it cannot deliver it; the entry codes stay on Linus's
+order page, which is where the customer gets them, and the dead letter is deleted once they have.
 
 ### The rush
 

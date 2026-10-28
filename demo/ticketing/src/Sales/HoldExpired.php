@@ -17,6 +17,7 @@ final readonly class HoldExpired
         #[EventTag('seat')]
         public string $seatId,
         public string $customerId,
+        public string $holdId,
     ) {
     }
 

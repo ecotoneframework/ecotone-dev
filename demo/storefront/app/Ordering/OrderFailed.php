@@ -7,13 +7,13 @@ namespace App\Ordering;
 final class OrderFailed
 {
     /**
-     * @param list<string> $heldSeatIds
+     * @param array<string, string> $holdIdsOfHeldSeats
      */
     public function __construct(
         public readonly string $orderId,
         public readonly string $concertId,
         public readonly string $customerId,
-        public readonly array $heldSeatIds,
+        public readonly array $holdIdsOfHeldSeats,
         public readonly ?string $paymentReference,
         public readonly string $reason,
     ) {

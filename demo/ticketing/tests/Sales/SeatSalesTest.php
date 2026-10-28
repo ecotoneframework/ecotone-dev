@@ -37,6 +37,8 @@ use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -59,6 +61,8 @@ final class SeatSalesTest extends KernelTestCase
 {
     private const NOW = '2026-10-25 12:00:00';
 
+    private const HOLD_SECONDS = 600;
+
     private ?array $channels = null;
 
     private ?Kernel $competitorKernel = null;
@@ -80,13 +84,13 @@ final class SeatSalesTest extends KernelTestCase
 
         $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
 
-        self::assertSame(600, self::getContainer()->getParameter('ticketingHoldSeconds'));
         self::assertEquals(
             [new SeatHeld(
                 orderId: $orderId,
                 concertId: $concertId,
                 seatId: $concertId . '/A-1',
                 customerId: $customerId,
+                holdId: 'hold-1',
                 heldAt: new DateTimeImmutable(self::NOW),
                 expiresAt: new DateTimeImmutable('2026-10-25 12:10:00'),
             )],
@@ -160,7 +164,7 @@ final class SeatSalesTest extends KernelTestCase
         foreach (['A-1', 'A-2', 'A-3', 'A-4'] as $seatCode) {
             $this->hold($ticketing, $orderId, $concertId, $concertId . '/' . $seatCode, $customerId);
         }
-        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-4', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-4', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
         $ticketing->discardRecordedMessages();
 
         $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-5', $customerId);
@@ -213,11 +217,11 @@ final class SeatSalesTest extends KernelTestCase
         $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
         $ticketing->discardRecordedMessages();
 
-        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
         $this->hold($ticketing, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
 
         self::assertEquals(
-            [new HoldReleased(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId)],
+            [new HoldReleased(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1')],
             $ticketing->popRecordedEventsOfType(HoldReleased::class),
         );
         self::assertCount(1, $ticketing->popRecordedEventsOfType(SeatHeld::class));
@@ -233,9 +237,9 @@ final class SeatSalesTest extends KernelTestCase
         $this->hold($ticketing, $holdingOrder, $concertId, $concertId . '/A-1', $customerId);
 
         $this->expectException(SeatRefusal::class);
-        $this->expectExceptionMessage("Seat {$concertId}/A-1 cannot be released for order {$otherOrder} of customer {$customerId} at concert {$concertId}, because order {$holdingOrder} of customer {$customerId} holds it at concert {$concertId}. Release a seat with the order, customer and concert of its hold; only the holder releases it.");
+        $this->expectExceptionMessage("Seat {$concertId}/A-1 cannot be released for hold hold-1 of order {$otherOrder} of customer {$customerId} at concert {$concertId}, because hold hold-1 of order {$holdingOrder} of customer {$customerId} holds it at concert {$concertId}. Release a seat with the hold id, order, customer and concert of its hold; only the holder releases it, and a release of an earlier hold leaves a later one in place.");
 
-        $ticketing->sendCommand(new ReleaseSeat(orderId: $otherOrder, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $otherOrder, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
     }
 
     public function test_releasing_a_seat_for_another_customer_than_the_one_holding_it_is_refused_naming_the_holder(): void
@@ -249,10 +253,10 @@ final class SeatSalesTest extends KernelTestCase
         $ticketing->discardRecordedMessages();
 
         try {
-            $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $otherCustomer), metadata: ['concertId' => $concertId]);
+            $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $otherCustomer, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
             self::fail('Releasing a seat for another customer than the holding one was expected to be refused.');
         } catch (SeatRefusal $refusal) {
-            self::assertSame("Seat {$concertId}/A-1 cannot be released for order {$orderId} of customer {$otherCustomer} at concert {$concertId}, because order {$orderId} of customer {$holdingCustomer} holds it at concert {$concertId}. Release a seat with the order, customer and concert of its hold; only the holder releases it.", $refusal->getMessage());
+            self::assertSame("Seat {$concertId}/A-1 cannot be released for hold hold-1 of order {$orderId} of customer {$otherCustomer} at concert {$concertId}, because hold hold-1 of order {$orderId} of customer {$holdingCustomer} holds it at concert {$concertId}. Release a seat with the hold id, order, customer and concert of its hold; only the holder releases it, and a release of an earlier hold leaves a later one in place.", $refusal->getMessage());
         }
         self::assertSame([], $ticketing->popRecordedEventsOfType(HoldReleased::class));
         self::assertEquals(['orderId' => $orderId, 'expiresAt' => new DateTimeImmutable('2026-10-25 12:10:00')], $ticketing->sendQuery(new FindSeatHold($concertId . '/A-1')));
@@ -269,10 +273,10 @@ final class SeatSalesTest extends KernelTestCase
         $ticketing->discardRecordedMessages();
 
         try {
-            $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $otherConcertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $otherConcertId]);
+            $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $otherConcertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $otherConcertId]);
             self::fail('Releasing a seat for another concert than the one of its hold was expected to be refused.');
         } catch (SeatRefusal $refusal) {
-            self::assertSame("Seat {$concertId}/A-1 cannot be released for order {$orderId} of customer {$customerId} at concert {$otherConcertId}, because order {$orderId} of customer {$customerId} holds it at concert {$concertId}. Release a seat with the order, customer and concert of its hold; only the holder releases it.", $refusal->getMessage());
+            self::assertSame("Seat {$concertId}/A-1 cannot be released for hold hold-1 of order {$orderId} of customer {$customerId} at concert {$otherConcertId}, because hold hold-1 of order {$orderId} of customer {$customerId} holds it at concert {$concertId}. Release a seat with the hold id, order, customer and concert of its hold; only the holder releases it, and a release of an earlier hold leaves a later one in place.", $refusal->getMessage());
         }
         self::assertSame([], $ticketing->popRecordedEventsOfType(HoldReleased::class));
         self::assertEquals(['orderId' => $orderId, 'expiresAt' => new DateTimeImmutable('2026-10-25 12:10:00')], $ticketing->sendQuery(new FindSeatHold($concertId . '/A-1')));
@@ -287,7 +291,7 @@ final class SeatSalesTest extends KernelTestCase
         $this->expectException(SeatRefusal::class);
         $this->expectExceptionMessage("Seat {$concertId}/A-1 cannot be released for order {$orderId}, because no order holds it. Only the order holding a seat releases it.");
 
-        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: Uuid::v7()->toRfc4122()), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
     }
 
     public function test_expiring_the_live_hold_of_an_order_frees_the_seat(): void
@@ -299,11 +303,11 @@ final class SeatSalesTest extends KernelTestCase
         $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
         $ticketing->discardRecordedMessages();
 
-        $ticketing->sendCommand(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1', expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
         $this->hold($ticketing, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
 
         self::assertEquals(
-            [new HoldExpired(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId)],
+            [new HoldExpired(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1')],
             $ticketing->popRecordedEventsOfType(HoldExpired::class),
         );
         self::assertCount(1, $ticketing->popRecordedEventsOfType(SeatHeld::class));
@@ -316,10 +320,10 @@ final class SeatSalesTest extends KernelTestCase
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
         $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
-        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
         $ticketing->discardRecordedMessages();
 
-        $ticketing->sendCommand(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1', expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
 
         self::assertSame([], $ticketing->popRecordedEvents());
     }
@@ -332,11 +336,11 @@ final class SeatSalesTest extends KernelTestCase
         $customerId = Uuid::v7()->toRfc4122();
         $nextOrder = Uuid::v7()->toRfc4122();
         $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
-        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
         $this->hold($ticketing, $nextOrder, $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
         $ticketing->discardRecordedMessages();
 
-        $ticketing->sendCommand(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1', expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
 
         self::assertSame([], $ticketing->popRecordedEvents());
         $this->expectException(SeatRefusal::class);
@@ -362,7 +366,7 @@ final class SeatSalesTest extends KernelTestCase
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertEquals(
-            [new HoldExpired(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId)],
+            [new HoldExpired(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1')],
             $ticketing->popRecordedEventsOfType(HoldExpired::class),
         );
     }
@@ -374,7 +378,7 @@ final class SeatSalesTest extends KernelTestCase
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
         $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
-        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
         $ticketing->discardRecordedMessages();
 
         $ticketing->advanceTimeBy(Duration::seconds(600));
@@ -390,7 +394,7 @@ final class SeatSalesTest extends KernelTestCase
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
         $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
-        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
         $ticketing->advanceTimeBy(Duration::seconds(300));
         $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
         $ticketing->discardRecordedMessages();
@@ -478,7 +482,7 @@ final class SeatSalesTest extends KernelTestCase
         self::assertEquals(['orderId' => $nextOrder, 'expiresAt' => new DateTimeImmutable('2026-10-25 12:20:00')], $ticketing->sendQuery(new FindSeatHold($concertId . '/A-1')));
     }
 
-    public function test_confirming_seats_already_sold_to_the_order_is_refused(): void
+    public function test_confirming_seats_already_sold_to_the_order_with_the_same_payment_records_nothing_again(): void
     {
         $ticketing = $this->ticketing();
         $concertId = $this->concertOnSale($ticketing);
@@ -486,11 +490,11 @@ final class SeatSalesTest extends KernelTestCase
         $customerId = Uuid::v7()->toRfc4122();
         $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
         $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
-
-        $this->expectException(SeatRefusal::class);
-        $this->expectExceptionMessage("Order {$orderId} cannot buy seat {$concertId}/A-1, because it is already sold to order {$orderId}. Confirm only seats that are held; nothing of the order was sold.");
+        $ticketing->discardRecordedMessages();
 
         $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+
+        self::assertSame([], $ticketing->popRecordedEvents());
     }
 
     public function test_a_hold_whose_seat_changes_between_read_and_append_on_every_attempt_surfaces_the_conflict_naming_the_seat_tag_and_the_decision_model(): void
@@ -510,7 +514,7 @@ final class SeatSalesTest extends KernelTestCase
             {
                 $this->attempts++;
                 $this->competitorConnection->transactional(fn () => $this->competitorEventStore->appendTo('ecotone_event_stream', [
-                    new HoldReleased(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: Uuid::v7()->toRfc4122()),
+                    new HoldReleased(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1'),
                 ]));
 
                 return $invocation->proceed();
@@ -549,7 +553,7 @@ final class SeatSalesTest extends KernelTestCase
             {
                 if ($this->fasterOrder === null) {
                     $this->fasterOrder = Uuid::v7()->toRfc4122();
-                    $this->competitor->sendCommand(new HoldSeat(orderId: $this->fasterOrder, concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: Uuid::v7()->toRfc4122()), metadata: ['concertId' => $this->concertId]);
+                    $this->competitor->sendCommand(new HoldSeat(orderId: $this->fasterOrder, concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1'), metadata: ['concertId' => $this->concertId]);
                 }
 
                 return $invocation->proceed();
@@ -567,6 +571,131 @@ final class SeatSalesTest extends KernelTestCase
         } catch (SeatRefusal $refusal) {
             self::assertSame("Seat A-1 of the concert of The Midnight Owls cannot be held for order {$orderId}, because someone was faster: order {$interferer->fasterOrder} holds it until 2026-10-25T12:10:00+00:00. Pick another seat, or try this one again after that hold expires.", $refusal->getMessage());
         }
+    }
+
+    public function test_a_confirm_racing_a_rehold_after_expiry_sells_a_seat_to_exactly_one_customer(): void
+    {
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public ?string $concertId = null;
+
+            public ?string $reholdingOrder = null;
+
+            public ?string $reholdingCustomer = null;
+
+            public int $attempts = 0;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::confirm')]
+            public function reholdTheExpiredSeatOnceAfterTheDecision(MethodInvocation $invocation): mixed
+            {
+                $this->attempts++;
+                $decision = $invocation->proceed();
+                if ($this->reholdingOrder === null) {
+                    $this->reholdingOrder = Uuid::v7()->toRfc4122();
+                    $this->reholdingCustomer = Uuid::v7()->toRfc4122();
+                    $this->competitor->changeTimeTo(new DateTimeImmutable('2026-10-25 12:10:00'));
+                    $this->competitor->sendCommand(new HoldSeat(orderId: $this->reholdingOrder, concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: $this->reholdingCustomer, holdId: 'hold-1'), metadata: ['concertId' => $this->concertId]);
+                }
+
+                return $decision;
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $interferer->competitor = $competitor;
+        $interferer->concertId = $concertId;
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->changeTimeTo(new DateTimeImmutable('2026-10-25 12:09:59'));
+
+        try {
+            $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+            self::fail('The confirm that lost the seat to the re-hold was expected to be refused.');
+        } catch (SeatRefusal $refusal) {
+            self::assertSame("Order {$orderId} cannot buy seat {$concertId}/A-1, because order {$interferer->reholdingOrder} holds it, not order {$orderId}. Confirm each order with its own seats; nothing of the order was sold.", $refusal->getMessage());
+        }
+        self::assertSame(2, $interferer->attempts);
+        $competitor->sendCommand(new ConfirmSeats(orderId: $interferer->reholdingOrder, concertId: $concertId, customerId: $interferer->reholdingCustomer, seatIds: [$concertId . '/A-1'], paymentReference: 'pay-2'), metadata: ['concertId' => $concertId]);
+
+        self::assertSame(
+            [$interferer->reholdingOrder],
+            array_map(
+                static fn (Event $event): string => $event->getPayload()->orderId,
+                $ticketing->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('seat', $concertId . '/A-1')->ofTypes(SeatSold::class))->events,
+            ),
+        );
+    }
+
+    public function test_a_confirm_racing_the_same_confirm_on_another_connection_sells_the_seat_once_without_a_refusal(): void
+    {
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public ?ConfirmSeats $sameConfirmation = null;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::confirm')]
+            public function confirmTheSameOrderOnceMeanwhile(MethodInvocation $invocation): mixed
+            {
+                if ($this->sameConfirmation !== null) {
+                    $confirmation = $this->sameConfirmation;
+                    $this->sameConfirmation = null;
+                    $this->competitor->sendCommand($confirmation, metadata: ['concertId' => $confirmation->concertId]);
+                }
+
+                return $invocation->proceed();
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $interferer->competitor = $competitor;
+        $interferer->sameConfirmation = new ConfirmSeats(orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1'], paymentReference: 'pay-1');
+
+        $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+
+        self::assertCount(1, $ticketing->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('seat', $concertId . '/A-1')->ofTypes(SeatSold::class))->events);
+    }
+
+    public function test_holds_of_different_seats_racing_a_confirm_of_the_same_concert_do_not_conflict_with_it(): void
+    {
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public ?string $concertId = null;
+
+            public int $attempts = 0;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::confirm')]
+            public function holdAnotherSeatAfterTheDecision(MethodInvocation $invocation): mixed
+            {
+                $decision = $invocation->proceed();
+                if (++$this->attempts === 1) {
+                    $this->competitor->sendCommand(new HoldSeat(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/A-2', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1'), metadata: ['concertId' => $this->concertId]);
+                }
+
+                return $decision;
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $interferer->competitor = $competitor;
+        $interferer->concertId = $concertId;
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->discardRecordedMessages();
+
+        $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+
+        self::assertSame(1, $interferer->attempts);
+        self::assertCount(1, $ticketing->popRecordedEventsOfType(SeatSold::class));
     }
 
     public function test_a_hold_racing_a_cancel_of_its_concert_can_succeed_and_the_cancelled_concert_releases_it(): void
@@ -607,7 +736,7 @@ final class SeatSalesTest extends KernelTestCase
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertEquals(
-            [new HoldReleased(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId)],
+            [new HoldReleased(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1')],
             $ticketing->popRecordedEventsOfType(HoldReleased::class),
         );
     }
@@ -622,7 +751,7 @@ final class SeatSalesTest extends KernelTestCase
         $buyer = Uuid::v7()->toRfc4122();
         $this->hold($ticketing, $holdingOrder, $concertId, $concertId . '/A-1', $holdingCustomer);
         $this->hold($ticketing, $holdingOrder, $concertId, $concertId . '/A-2', $holdingCustomer);
-        $ticketing->sendCommand(new ReleaseSeat(orderId: $holdingOrder, concertId: $concertId, seatId: $concertId . '/A-2', customerId: $holdingCustomer), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $holdingOrder, concertId: $concertId, seatId: $concertId . '/A-2', customerId: $holdingCustomer, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
         $this->hold($ticketing, $buyingOrder, $concertId, $concertId . '/A-3', $buyer);
         $this->confirm($ticketing, $buyingOrder, $concertId, $buyer, [$concertId . '/A-3']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
@@ -632,7 +761,7 @@ final class SeatSalesTest extends KernelTestCase
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertEquals(
-            [new HoldReleased(orderId: $holdingOrder, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $holdingCustomer)],
+            [new HoldReleased(orderId: $holdingOrder, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $holdingCustomer, holdId: 'hold-1')],
             $ticketing->popRecordedEventsOfType(HoldReleased::class),
         );
         self::assertSame([], $ticketing->popRecordedEventsOfType(SeatSold::class));
@@ -652,7 +781,7 @@ final class SeatSalesTest extends KernelTestCase
             public function holdASeatMeanwhile(MethodInvocation $invocation): mixed
             {
                 if (++$this->attempts === 1) {
-                    $this->competitor->sendCommand(new HoldSeat(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: Uuid::v7()->toRfc4122()), metadata: ['concertId' => $this->concertId]);
+                    $this->competitor->sendCommand(new HoldSeat(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1'), metadata: ['concertId' => $this->concertId]);
                 }
 
                 return $invocation->proceed();
@@ -676,7 +805,7 @@ final class SeatSalesTest extends KernelTestCase
         $doctrine = self::getContainer()->get('doctrine');
         $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues');
 
-        return $this->bootstrapTicketing($doctrine, self::getContainer()->getParameter('ticketingHoldSeconds'), ...$applicationHandlers);
+        return $this->bootstrapTicketing($doctrine, ...$applicationHandlers);
     }
 
     private function competitor(): FlowTestSupport
@@ -686,10 +815,10 @@ final class SeatSalesTest extends KernelTestCase
         /** @var ManagerRegistry $doctrine */
         $doctrine = $this->competitorKernel->getContainer()->get('doctrine');
 
-        return $this->bootstrapTicketing($doctrine, $this->competitorKernel->getContainer()->getParameter('ticketingHoldSeconds'));
+        return $this->bootstrapTicketing($doctrine);
     }
 
-    private function bootstrapTicketing(ManagerRegistry $doctrine, int $holdSeconds, object ...$applicationHandlers): FlowTestSupport
+    private function bootstrapTicketing(ManagerRegistry $doctrine, object ...$applicationHandlers): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
@@ -719,7 +848,7 @@ final class SeatSalesTest extends KernelTestCase
                 ...$applicationHandlers,
                 'doctrine' => $doctrine,
             ],
-            configurationVariables: ['ticketingHoldSeconds' => $holdSeconds],
+            configurationVariables: ['ticketingHoldSeconds' => self::HOLD_SECONDS],
             extensionObjects: [...$this->channels(), SymfonyConnectionReference::defaultManagerRegistry('default')],
             pathToRootCatalog: dirname(__DIR__, 2),
             addInMemoryStateStoredRepository: false,
@@ -762,7 +891,7 @@ final class SeatSalesTest extends KernelTestCase
 
     private function hold(FlowTestSupport $ticketing, string $orderId, string $concertId, string $seatId, string $customerId): void
     {
-        $ticketing->sendCommand(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $seatId, customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $seatId, customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
     }
 
     private function confirm(FlowTestSupport $ticketing, string $orderId, string $concertId, string $customerId, array $seatIds): void

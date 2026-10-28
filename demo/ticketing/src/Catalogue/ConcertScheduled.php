@@ -13,6 +13,7 @@ final readonly class ConcertScheduled
      */
     public function __construct(
         public string $concertId,
+        public int $version,
         public string $venueName,
         public string $artist,
         public DateTimeImmutable $startsAt,

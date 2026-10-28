@@ -8,6 +8,7 @@ final readonly class TierPriceChanged
 {
     public function __construct(
         public string $concertId,
+        public int $version,
         public Tier $tier,
         public int $priceCents,
         public int $standardPriceCents,

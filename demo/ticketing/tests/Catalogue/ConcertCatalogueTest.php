@@ -228,7 +228,7 @@ final class ConcertCatalogueTest extends KernelTestCase
         self::assertSame('concert.scheduled', $received[0]['routingKey']);
         self::assertSame($concertId, $received[0]['concertIdHeader']);
         $event = $received[0]['event'];
-        self::assertSame(['concertId', 'venueName', 'artist', 'startsAt', 'currency', 'tiers', 'seats'], array_keys($event));
+        self::assertSame(['concertId', 'version', 'venueName', 'artist', 'startsAt', 'currency', 'tiers', 'seats'], array_keys($event));
         self::assertSame($concertId, $event['concertId']);
         self::assertSame('Riverside Hall', $event['venueName']);
         self::assertSame('The Midnight Owls', $event['artist']);

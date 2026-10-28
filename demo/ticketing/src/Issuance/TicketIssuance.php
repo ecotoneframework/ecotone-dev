@@ -105,7 +105,8 @@ final class TicketIssuance
         return $issuedTickets->withTickets($this->registry->ticketsOfOrder($issuedTickets->orderId));
     }
 
-    #[InternalHandler(inputChannelName: 'ticket.announce')]
+    #[Asynchronous('ticketing_async')]
+    #[InternalHandler(inputChannelName: 'ticket.announce', endpointId: 'announce_issued_tickets')]
     public function announceIssuedTickets(IssuedTickets $issuedTickets, DistributedBus $distributedBus): void
     {
         $distributedBus->convertAndPublishEvent(

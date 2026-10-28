@@ -17,6 +17,7 @@ use App\Payment\PaymentAttempts;
 use App\Payment\PaymentProvider;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DistributedBus;
 use Illuminate\Support\Facades\DB;
 
@@ -39,7 +40,7 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
     public function test_a_held_reply_marks_the_requested_seat_held_until_its_expiry(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12'));
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
 
         $this->ticketingReplies();
 
@@ -51,7 +52,7 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
     public function test_a_refused_reply_records_the_reason_for_the_requested_seat(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12'));
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
         $this->ticketingService->holdReplies[] = $this->holdReply($orderId, outcome: 'refused', reason: 'someone was faster: seat A-12', expiresAt: null);
 
         $this->ticketingReplies();
@@ -65,7 +66,7 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
     public function test_a_hold_reply_with_an_outcome_outside_the_contract_is_refused_naming_the_outcomes_it_has(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12'));
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
         $this->ticketingService->holdReplies[] = $this->holdReply($orderId, outcome: 'pending', reason: null, expiresAt: null);
         $this->ticketingReceives();
 
@@ -97,7 +98,7 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
     public function test_a_refused_confirmation_fails_the_order_with_the_reason_refunds_it_and_releases_its_seats(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
         $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, cardNumber: '4242424242424242'));
         $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup());
         $this->ticketingService->confirmReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'outcome' => 'refused', 'reason' => 'the hold of seat A-12 expired.', 'seatIds' => [self::CONCERT_ID . '/A-12']];
@@ -112,13 +113,134 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
         self::assertSame([['tickets.release', self::CONCERT_ID . '/A-12']], array_map(fn (array $request) => [$request[0], $request[1]['seatId']], $this->ticketingReceives()));
     }
 
+    public function test_a_refused_confirm_result_after_the_sold_one_does_not_fail_or_refund_the_order(): void
+    {
+        $orderId = $this->orderPaidWithACard();
+        $this->ticketingReplies();
+        $this->ticketingService->confirmReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'outcome' => 'refused', 'reason' => "Order {$orderId} cannot buy seat A-12, because it is already sold to order {$orderId}.", 'seatIds' => [self::CONCERT_ID . '/A-12']];
+
+        $this->confirmationIsSentAgain($orderId);
+        $this->ticketingReplies();
+        $this->storefrontAsyncRuns();
+
+        $order = $this->order($orderId);
+        self::assertSame('paid', $order['status']);
+        self::assertNull($order['failureReason']);
+        self::assertSame('charged', $this->storefront->sendQueryWithRouting('payment.status', $order['paymentReference']));
+        self::assertSame([], $this->ticketingReceives());
+        self::assertSame(0, $this->storefront->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    public function test_a_refused_confirm_result_arriving_after_the_tickets_were_issued_keeps_the_tickets_and_the_payment(): void
+    {
+        $orderId = $this->orderPaidWithACard();
+        $this->ticketingReplies();
+        $tickets = [['ticketNumber' => 'T-0001', 'seatId' => self::CONCERT_ID . '/A-12', 'tier' => 'vip', 'entryCode' => 'ENTRY-7F3A']];
+        $this->publishFromTicketing('tickets.issued', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'tickets' => $tickets]);
+        $this->ticketingService->confirmReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'outcome' => 'refused', 'reason' => "Order {$orderId} cannot buy seat A-12, because it is already sold to order {$orderId}.", 'seatIds' => [self::CONCERT_ID . '/A-12']];
+
+        $this->confirmationIsSentAgain($orderId);
+        $this->ticketingReplies();
+        $this->storefrontAsyncRuns();
+
+        $order = $this->order($orderId);
+        self::assertSame('tickets_issued', $order['status']);
+        self::assertSame($tickets, $order['tickets']);
+        self::assertSame('charged', $this->storefront->sendQueryWithRouting('payment.status', $order['paymentReference']));
+        self::assertSame(0, $this->storefront->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    public function test_a_late_held_reply_after_a_release_does_not_restore_the_seat_and_releases_it_in_ticketing(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
+        $this->ticketingReplies();
+        $this->storefront->getCommandBus()->send(new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12'));
+        $this->ticketingReceives();
+
+        $this->holdRequestIsSentAgain($orderId, self::CONCERT_ID . '/A-12', 'hold-1');
+        $this->ticketingReplies();
+        $this->storefrontAsyncRuns();
+
+        $order = $this->order($orderId);
+        self::assertSame('started', $order['status']);
+        self::assertSame([], $order['heldSeats']);
+        self::assertSame([['tickets.release', self::CONCERT_ID . '/A-12', 'hold-1']], array_map(fn (array $request) => [$request[0], $request[1]['seatId'], $request[1]['holdId']], $this->ticketingReceives()));
+    }
+
+    public function test_a_seat_released_while_its_hold_request_is_in_flight_stays_released_when_ticketing_answers_held(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
+        $this->ticketingReceives();
+
+        $this->storefront->getCommandBus()->send(new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12'));
+        $this->storefrontConsumes();
+        $this->storefrontAsyncRuns();
+
+        $order = $this->order($orderId);
+        self::assertSame('started', $order['status']);
+        self::assertSame([], $order['heldSeats']);
+        self::assertSame([['tickets.release', self::CONCERT_ID . '/A-12', 'hold-1']], array_map(fn (array $request) => [$request[0], $request[1]['seatId'], $request[1]['holdId']], $this->ticketingReceives()));
+    }
+
+    public function test_an_expiry_of_an_old_hold_does_not_drop_the_seat_held_again(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
+        $this->ticketingReplies();
+        $this->storefront->getCommandBus()->send(new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12'));
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-2'));
+        $this->ticketingReplies();
+
+        $this->publishFromTicketing('tickets.hold_expired', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'customerId' => $this->order($orderId)['customerId'], 'holdId' => 'hold-1']);
+
+        $order = $this->order($orderId);
+        self::assertSame('seats_held', $order['status']);
+        self::assertSame([['seatId' => self::CONCERT_ID . '/A-12', 'expiresAt' => self::EXPIRES_AT]], $order['heldSeats']);
+    }
+
+    public function test_an_expired_hold_of_a_paying_order_is_available_to_another_buyer(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, cardNumber: '4111111111119999'));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $this->publishFromTicketing('tickets.hold_expired', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'customerId' => $this->order($orderId)['customerId'], 'holdId' => 'hold-1']);
+
+        self::assertSame('paying', $this->order($orderId)['status']);
+        self::assertSame([], $this->storefront->sendQueryWithRouting('concert.taken_seats', ['concertId' => self::CONCERT_ID, 'excludingOrderId' => null]));
+    }
+
+    public function test_a_payment_that_succeeds_after_the_hold_expired_ends_in_a_refunded_order(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, cardNumber: '4111111111119999'));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $this->publishFromTicketing('tickets.hold_expired', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'customerId' => $this->order($orderId)['customerId'], 'holdId' => 'hold-1']);
+        $this->ticketingService->confirmReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'outcome' => 'refused', 'reason' => "Order {$orderId} cannot buy seat A-12, because its hold expired at 2026-10-25T12:02:00+00:00.", 'seatIds' => [self::CONCERT_ID . '/A-12']];
+
+        $this->storefront->getGateway(DeadLetterGateway::class)->replayAll();
+        $this->storefrontAsyncRuns();
+        $this->ticketingReplies();
+        $this->storefrontAsyncRuns();
+
+        $order = $this->order($orderId);
+        self::assertSame('failed', $order['status']);
+        self::assertSame("Ticketing refused to confirm the seats: Order {$orderId} cannot buy seat A-12, because its hold expired at 2026-10-25T12:02:00+00:00. A refund of the payment is queued.", $order['failureReason']);
+        self::assertSame('refunded', $this->storefront->sendQueryWithRouting('payment.status', $order['paymentReference']));
+        self::assertSame(0, $this->storefront->getGateway(DeadLetterGateway::class)->count());
+    }
+
     public function test_an_expired_hold_published_by_ticketing_drops_the_seat_from_the_order(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11', expiresAt: self::EXPIRES_AT));
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-11');
 
-        $this->publishFromTicketing('tickets.hold_expired', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'customerId' => $this->order($orderId)['customerId']]);
+        $this->publishFromTicketing('tickets.hold_expired', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'customerId' => $this->order($orderId)['customerId'], 'holdId' => 'hold-1']);
 
         self::assertSame([['seatId' => self::CONCERT_ID . '/A-11', 'expiresAt' => self::EXPIRES_AT]], $this->order($orderId)['heldSeats']);
     }
@@ -191,8 +313,8 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
     public function test_a_held_reply_arriving_after_payment_began_releases_the_seat_in_ticketing(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
-        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11'));
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11', holdId: 'hold-1'));
         $this->ticketingReceives();
         $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId));
 
@@ -207,11 +329,11 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
     public function test_a_held_reply_repeated_for_a_seat_the_paying_order_holds_keeps_it_and_releases_nothing(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12'));
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
         $this->ticketingReplies();
         $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId));
 
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
+        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
 
         $order = $this->order($orderId);
         self::assertSame('paying', $order['status']);
@@ -222,8 +344,8 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
     public function test_a_refused_reply_arriving_after_payment_began_changes_nothing(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
-        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11'));
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11', holdId: 'hold-1'));
         $this->ticketingService->holdReplies[] = [...$this->holdReply($orderId, outcome: 'refused', reason: 'someone was faster: seat A-11', expiresAt: null), 'seatId' => self::CONCERT_ID . '/A-11'];
         $this->ticketingReceives();
         $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId));
@@ -239,11 +361,11 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
     public function test_an_expired_hold_of_a_seat_already_released_changes_nothing(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11', expiresAt: self::EXPIRES_AT));
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-11');
         $this->storefront->getCommandBus()->send(new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12'));
 
-        $this->publishFromTicketing('tickets.hold_expired', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'customerId' => $this->order($orderId)['customerId']]);
+        $this->publishFromTicketing('tickets.hold_expired', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'customerId' => $this->order($orderId)['customerId'], 'holdId' => 'hold-1']);
 
         $order = $this->order($orderId);
         self::assertSame('seats_held', $order['status']);
@@ -251,10 +373,45 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
         self::assertSame(0, $this->storefront->getGateway(DeadLetterGateway::class)->count());
     }
 
+    private function orderPaidWithACard(): string
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, cardNumber: '4242424242424242'));
+        $this->storefrontAsyncRuns();
+
+        return $orderId;
+    }
+
+    private function holdRequestIsSentAgain(string $orderId, string $seatId, string $holdId): void
+    {
+        $this->storefront->getGateway(DistributedBus::class)->sendMessage(
+            targetServiceName: 'ticketing',
+            routingKey: 'tickets.hold',
+            payload: json_encode(['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => $seatId, 'customerId' => $this->order($orderId)['customerId'], 'holdId' => $holdId], JSON_THROW_ON_ERROR),
+            sourceMediaType: MediaType::APPLICATION_JSON,
+            metadata: ['concertId' => self::CONCERT_ID, 'orderId' => $orderId],
+            replyRoutingKey: 'tickets.hold.result',
+        );
+    }
+
+    private function confirmationIsSentAgain(string $orderId): void
+    {
+        $order = $this->order($orderId);
+        $this->storefront->getGateway(DistributedBus::class)->sendMessage(
+            targetServiceName: 'ticketing',
+            routingKey: 'tickets.confirm',
+            payload: json_encode(['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $order['customerId'], 'seatIds' => [self::CONCERT_ID . '/A-12'], 'paymentReference' => $order['paymentReference']], JSON_THROW_ON_ERROR),
+            sourceMediaType: MediaType::APPLICATION_JSON,
+            metadata: ['concertId' => self::CONCERT_ID, 'orderId' => $orderId],
+            replyRoutingKey: 'tickets.confirm.result',
+        );
+    }
+
     private function paidOrder(): string
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
         $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId));
         $this->storefront->getCommandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
 
@@ -268,6 +425,7 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
             'concertId' => self::CONCERT_ID,
             'seatId' => self::CONCERT_ID . '/A-12',
             'customerId' => $this->order($orderId)['customerId'],
+            'holdId' => 'hold-1',
             'outcome' => $outcome,
             'reason' => $reason,
             'expiresAt' => $expiresAt,

@@ -23,11 +23,13 @@ use Symfony\Component\Uid\Uuid;
  * @property string $customer_id
  * @property string $concert_id
  * @property OrderStatus $status
- * @property list<array{seatId: string, expiresAt: string}> $held_seats
+ * @property list<array{seatId: string, holdId: string, expiresAt: string, expired?: bool}> $held_seats
+ * @property array<string, string> $requested_holds
  * @property array{seatId: string, reason: string}|null $last_refusal
  * @property list<array{ticketNumber: string, seatId: string, tier: string, entryCode: string}> $tickets
  * @property string|null $payment_reference
  * @property string|null $failure_reason
+ * @property bool $seats_sold
  * @property int $version
  */
 #[Aggregate]
@@ -39,12 +41,14 @@ final class Order extends Model
 
     public $incrementing = false;
     protected $keyType = 'string';
-    protected $fillable = ['id', 'customer_id', 'concert_id', 'status', 'held_seats', 'tickets'];
+    protected $fillable = ['id', 'customer_id', 'concert_id', 'status', 'held_seats', 'requested_holds', 'tickets'];
     protected $casts = [
         'status' => OrderStatus::class,
         'held_seats' => 'array',
+        'requested_holds' => 'array',
         'last_refusal' => 'array',
         'tickets' => 'array',
+        'seats_sold' => 'boolean',
     ];
 
     #[Version]
@@ -74,6 +78,7 @@ final class Order extends Model
             'concert_id' => $command->concertId,
             'status' => OrderStatus::STARTED,
             'held_seats' => [],
+            'requested_holds' => [],
             'tickets' => [],
         ]);
     }
@@ -102,17 +107,24 @@ final class Order extends Model
         if (in_array($command->seatId, $this->heldSeatIds(), true)) {
             throw new DomainException(sprintf('Order %s already holds seat %s, so RequestSeat does not ask ticketing for it again. Pick another seat, or release this one with ReleaseSeat.', $this->id, $command->seatId));
         }
-        $this->recordThat(new SeatRequested(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId));
+        $this->requested_holds = [...$this->requested_holds, $command->seatId => $command->holdId];
+        $this->recordThat(new SeatRequested(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId, holdId: $command->holdId));
     }
 
     #[CommandHandler]
     public function markSeatHeld(MarkSeatHeld $command): void
     {
         $this->assertSeatOfThisConcert($command->seatId, 'MarkSeatHeld');
-        if (! in_array($this->status, self::OPEN_STATUSES, true)) {
-            if (! in_array($command->seatId, $this->heldSeatIds(), true)) {
-                $this->recordThat(new SeatReleased(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId));
+        if (($this->requested_holds[$command->seatId] ?? null) !== $command->holdId) {
+            if ($this->holdIdOf($command->seatId) !== $command->holdId) {
+                $this->recordThat(new SeatReleased(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId, holdId: $command->holdId));
             }
+
+            return;
+        }
+        if (! in_array($this->status, self::OPEN_STATUSES, true)) {
+            $this->forgetRequestOf($command->seatId);
+            $this->recordThat(new SeatReleased(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId, holdId: $command->holdId));
 
             return;
         }
@@ -125,7 +137,8 @@ final class Order extends Model
             throw new DomainException(sprintf('MarkSeatHeld for seat %s of order %s carries expiresAt "%s", which is not an ISO-8601 date, so the storefront cannot count down the hold. Ticketing sends expiresAt as ISO-8601, like "2026-10-25T12:02:00+00:00": correct the tickets.hold.result reply and replay it from the dbal_dead_letter.', $command->seatId, $this->id, $command->expiresAt));
         }
 
-        $this->held_seats = [...$this->heldSeatsWithout($command->seatId), ['seatId' => $command->seatId, 'expiresAt' => $expiresAt]];
+        $this->forgetRequestOf($command->seatId);
+        $this->held_seats = [...$this->heldSeatsWithout($command->seatId), ['seatId' => $command->seatId, 'holdId' => $command->holdId, 'expiresAt' => $expiresAt]];
         if ($this->last_refusal !== null && $this->last_refusal['seatId'] === $command->seatId) {
             $this->last_refusal = null;
         }
@@ -135,6 +148,10 @@ final class Order extends Model
     #[CommandHandler]
     public function recordSeatRefusal(RecordSeatRefusal $command): void
     {
+        if (($this->requested_holds[$command->seatId] ?? null) !== $command->holdId) {
+            return;
+        }
+        $this->forgetRequestOf($command->seatId);
         if (! in_array($this->status, self::OPEN_STATUSES, true)) {
             return;
         }
@@ -145,6 +162,11 @@ final class Order extends Model
     public function releaseSeat(ReleaseSeat $command): void
     {
         $this->assertAccepts('ReleaseSeat', ...self::OPEN_STATUSES);
+        if (isset($this->requested_holds[$command->seatId]) && ! in_array($command->seatId, $this->heldSeatIds(), true)) {
+            $this->forgetRequestOf($command->seatId);
+
+            return;
+        }
         if (! in_array($command->seatId, $this->heldSeatIds(), true)) {
             throw new DomainException(sprintf(
                 'Order %s does not hold seat %s, so ReleaseSeat cannot release it. The order holds %s: release one of those, or leave the seat alone.',
@@ -153,17 +175,25 @@ final class Order extends Model
                 $this->held_seats === [] ? 'no seats' : implode(', ', array_map(SeatCode::ofSeatId(...), $this->heldSeatIds())),
             ));
         }
+        $holdId = $this->holdIdOf($command->seatId);
         $this->dropHeldSeat($command->seatId);
-        $this->recordThat(new SeatReleased(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId));
+        $this->recordThat(new SeatReleased(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId, holdId: $holdId));
     }
 
     #[CommandHandler]
     public function dropExpiredSeat(DropExpiredSeat $command): void
     {
-        if (! in_array($this->status, self::OPEN_STATUSES, true)) {
+        if ($this->holdIdOf($command->seatId) !== $command->holdId) {
             return;
         }
-        $this->dropHeldSeat($command->seatId);
+        if (in_array($this->status, self::OPEN_STATUSES, true)) {
+            $this->dropHeldSeat($command->seatId);
+
+            return;
+        }
+        if (in_array($this->status, [OrderStatus::PAYING, OrderStatus::PAID], true) && ! $this->seats_sold) {
+            $this->held_seats = array_map(fn (array $heldSeat) => $heldSeat['seatId'] === $command->seatId ? [...$heldSeat, 'expired' => true] : $heldSeat, $this->held_seats);
+        }
     }
 
     #[CommandHandler]
@@ -183,6 +213,21 @@ final class Order extends Model
         $this->payment_reference = $command->paymentReference;
         $this->status = OrderStatus::PAID;
         $this->recordThat(new OrderPaid(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatIds: $this->heldSeatIds(), paymentReference: $command->paymentReference));
+    }
+
+    #[CommandHandler]
+    public function markSeatsSold(MarkSeatsSold $command): void
+    {
+        $this->seats_sold = true;
+    }
+
+    #[CommandHandler]
+    public function recordConfirmationRefusal(RecordConfirmationRefusal $command): void
+    {
+        if ($this->seats_sold || $this->status === OrderStatus::TICKETS_ISSUED) {
+            return;
+        }
+        $this->fail(new FailOrder(orderId: $this->id, reason: $command->reason));
     }
 
     #[CommandHandler]
@@ -229,7 +274,7 @@ final class Order extends Model
         $this->assertAccepts('FailOrder', OrderStatus::STARTED, OrderStatus::SEATS_HELD, OrderStatus::PAYING, OrderStatus::PAID);
         $this->failure_reason = $command->reason;
         $this->status = OrderStatus::FAILED;
-        $this->recordThat(new OrderFailed(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, heldSeatIds: $this->heldSeatIds(), paymentReference: $this->payment_reference, reason: $command->reason));
+        $this->recordThat(new OrderFailed(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, holdIdsOfHeldSeats: array_column($this->held_seats, 'holdId', 'seatId'), paymentReference: $this->payment_reference, reason: $command->reason));
     }
 
     /**
@@ -238,6 +283,14 @@ final class Order extends Model
     public function heldSeatIds(): array
     {
         return array_column($this->held_seats, 'seatId');
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function claimedSeatIds(): array
+    {
+        return array_column(array_filter($this->held_seats, fn (array $heldSeat) => ! ($heldSeat['expired'] ?? false)), 'seatId');
     }
 
     private static function sameTickets(array $tickets, array $otherTickets): bool
@@ -268,6 +321,24 @@ final class Order extends Model
         if ($this->held_seats === []) {
             $this->status = OrderStatus::STARTED;
         }
+    }
+
+    private function holdIdOf(string $seatId): ?string
+    {
+        foreach ($this->held_seats as $heldSeat) {
+            if ($heldSeat['seatId'] === $seatId) {
+                return $heldSeat['holdId'];
+            }
+        }
+
+        return null;
+    }
+
+    private function forgetRequestOf(string $seatId): void
+    {
+        $requestedHolds = $this->requested_holds;
+        unset($requestedHolds[$seatId]);
+        $this->requested_holds = $requestedHolds;
     }
 
     private function heldSeatsWithout(string $seatId): array

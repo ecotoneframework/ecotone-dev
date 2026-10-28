@@ -207,7 +207,7 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
+        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'version' => 2, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
         $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
         $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
 
@@ -221,7 +221,7 @@ final class ConcertCatalogueTest extends TestCase
         $ticketing = $this->ticketing();
 
         $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
+        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'version' => 2, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
         $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
         $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
 
@@ -312,11 +312,25 @@ final class ConcertCatalogueTest extends TestCase
         $ticketing = $this->ticketing();
 
         $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
+        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'version' => 2, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
         $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
 
         $concert = $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT);
         self::assertSame([5500, 14000], [$concert['standardPriceCents'], $concert['vipPriceCents']]);
+    }
+
+    public function test_prices_changed_consumed_out_of_order_keep_the_latest_ticketing_price(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+
+        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'version' => 3, 'tiers' => ['standard' => 5000, 'vip' => 15000]]);
+        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'version' => 2, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
+        $storefront->run('storefront', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $concert = $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT);
+        self::assertSame([5000, 15000], [$concert['standardPriceCents'], $concert['vipPriceCents']]);
     }
 
     public function test_a_sold_out_concert_is_marked_sold_out(): void
@@ -383,6 +397,7 @@ final class ConcertCatalogueTest extends TestCase
     {
         return [
             'concertId' => $concertId,
+            'version' => 1,
             'venueName' => 'Ecotone Hall',
             'artist' => $artist,
             'startsAt' => $startsAt,

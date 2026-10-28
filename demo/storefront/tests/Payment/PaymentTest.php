@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Payment;
 
 use App\Ordering\FailOrder;
-use App\Ordering\MarkSeatHeld;
 use App\Ordering\Order;
 use App\Payment\ChargeCard;
 use App\Payment\Checkout;
@@ -229,7 +228,7 @@ final class PaymentTest extends StorefrontFlowTestCase
     private function orderWithHeldSeat(): string
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', expiresAt: self::EXPIRES_AT));
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
 
         return $orderId;
     }

@@ -39,7 +39,7 @@ final class OrderQueries
             ->where('status', '<>', OrderStatus::FAILED)
             ->when($query['excludingOrderId'] !== null, fn ($orders) => $orders->where('id', '<>', $query['excludingOrderId']))
             ->get()
-            ->flatMap(fn (Order $order) => $order->heldSeatIds())
+            ->flatMap(fn (Order $order) => $order->claimedSeatIds())
             ->unique()
             ->values()
             ->all();
@@ -55,7 +55,7 @@ final class OrderQueries
             'customerId' => $order->customer_id,
             'concertId' => $order->concert_id,
             'status' => $order->status->value,
-            'heldSeats' => $order->held_seats,
+            'heldSeats' => array_map(fn (array $heldSeat) => ['seatId' => $heldSeat['seatId'], 'expiresAt' => $heldSeat['expiresAt']], $order->held_seats),
             'lastRefusal' => $order->last_refusal,
             'paymentReference' => $order->payment_reference,
             'failureReason' => $order->failure_reason,

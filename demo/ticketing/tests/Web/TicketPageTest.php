@@ -27,7 +27,7 @@ final class TicketPageTest extends WebTestCase
         $concertId = $this->concertIdOf('The Midnight Owls');
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->commandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-3', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $this->commandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-3', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
         $this->commandBus()->send(new ConfirmSeats(orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-3'], paymentReference: 'pay-1'), metadata: ['concertId' => $concertId]);
         $this->runTheConsumer($client);
         $ticket = $this->queryBus()->sendWithRouting('tickets.of_order', $orderId)[0];
@@ -49,7 +49,7 @@ final class TicketPageTest extends WebTestCase
         $concertId = $this->concertIdOf('The Midnight Owls');
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->commandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/C-3', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $this->commandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/C-3', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
         $this->commandBus()->send(new ConfirmSeats(orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/C-3'], paymentReference: 'pay-1'), metadata: ['concertId' => $concertId]);
 
         $this->runTheConsumer($client);

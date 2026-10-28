@@ -16,17 +16,22 @@ final class SeatAvailability
 
     private ?string $holdingCustomerId = null;
 
+    private ?string $holdingHoldId = null;
+
     private ?string $holdingConcertId = null;
 
     private ?DateTimeImmutable $heldUntil = null;
 
     private ?string $soldToOrderId = null;
 
+    private ?string $soldWithPaymentReference = null;
+
     #[Apply]
     public function held(SeatHeld $event): void
     {
         $this->holdingOrderId = $event->orderId;
         $this->holdingCustomerId = $event->customerId;
+        $this->holdingHoldId = $event->holdId;
         $this->holdingConcertId = $event->concertId;
         $this->heldUntil = $event->expiresAt;
     }
@@ -48,11 +53,17 @@ final class SeatAvailability
     {
         $this->free();
         $this->soldToOrderId = $event->orderId;
+        $this->soldWithPaymentReference = $event->paymentReference;
     }
 
     public function soldToOrderId(): ?string
     {
         return $this->soldToOrderId;
+    }
+
+    public function soldWithPaymentReference(): ?string
+    {
+        return $this->soldWithPaymentReference;
     }
 
     public function holdingOrderId(): ?string
@@ -63,6 +74,11 @@ final class SeatAvailability
     public function holdingCustomerId(): ?string
     {
         return $this->holdingCustomerId;
+    }
+
+    public function holdingHoldId(): ?string
+    {
+        return $this->holdingHoldId;
     }
 
     public function holdingConcertId(): ?string
@@ -84,6 +100,7 @@ final class SeatAvailability
     {
         $this->holdingOrderId = null;
         $this->holdingCustomerId = null;
+        $this->holdingHoldId = null;
         $this->holdingConcertId = null;
         $this->heldUntil = null;
     }

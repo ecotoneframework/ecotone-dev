@@ -104,6 +104,7 @@ final class Concert
         );
         $concert->recordThat(new ConcertScheduled(
             concertId: $concertId,
+            version: $concert->version,
             venueName: $concert->venueName,
             artist: $artist,
             startsAt: $command->startsAt,
@@ -138,6 +139,9 @@ final class Concert
             throw CatalogueRefusal::because(sprintf('The %s price of %s cannot change, because the concert is %s. Prices change only while a concert is scheduled or on sale.', $command->tier->value, $this->describe(), $this->statusInWords()));
         }
         self::assertPrice($this->artist, $command->tier, $command->priceCents);
+        if ($this->priceOf($command->tier) === $command->priceCents) {
+            return;
+        }
 
         match ($command->tier) {
             Tier::STANDARD => $this->standardPriceCents = $command->priceCents,
@@ -145,6 +149,7 @@ final class Concert
         };
         $this->recordThat(new TierPriceChanged(
             concertId: $this->concertId,
+            version: $this->versionThisChangeSaves(),
             tier: $command->tier,
             priceCents: $command->priceCents,
             standardPriceCents: $this->standardPriceCents,
@@ -195,6 +200,19 @@ final class Concert
             'currency' => $this->currency,
             'seats' => $this->seats,
         ];
+    }
+
+    private function priceOf(Tier $tier): int
+    {
+        return match ($tier) {
+            Tier::STANDARD => $this->standardPriceCents,
+            Tier::VIP => $this->vipPriceCents,
+        };
+    }
+
+    private function versionThisChangeSaves(): int
+    {
+        return $this->version + 1;
     }
 
     private static function assertPrice(string $artist, Tier $tier, int $priceCents): void

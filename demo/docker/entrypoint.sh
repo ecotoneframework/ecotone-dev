@@ -58,6 +58,7 @@ fi
 if [ "$DEMO_APP" = ticketing ]; then
     console=(php bin/console)
     prepare() {
+        find "var/cache/${APP_ENV:-dev}/ecotone/jms/metadata" -type f -delete 2>/dev/null || true
         "${console[@]}" importmap:install
         "${console[@]}" doctrine:migrations:migrate --no-interaction --allow-no-migration
         "${console[@]}" messenger:setup-transports

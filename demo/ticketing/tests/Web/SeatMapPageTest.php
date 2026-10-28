@@ -110,7 +110,7 @@ final class SeatMapPageTest extends WebTestCase
 
     private function hold(string $orderId, string $concertId, string $seatCode, string $customerId): void
     {
-        $this->commandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/' . $seatCode, customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $this->commandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/' . $seatCode, customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
     }
 
     private function commandBus(): CommandBus

@@ -78,6 +78,7 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
 
         self::assertStringContainsString('Click a node to follow it: only what led to it and everything it causes stays drawn.', $client->request('GET', '/flow?view=detail')->filter('.graph-view')->text());
         $focused = $this->follow($client, $client->request('GET', '/flow'), 'billing', '::create');
+        self::assertStringContainsString('Only what led to it and what it causes, as far as the services report it, is drawn: a send the source code hides, such as one with its routing key in a variable, is not.', $focused->filter('[data-focus]')->text());
         self::assertSame('What led here starts at the step farthest from class@anonymous::create; what happens next starts at the step right after it. Both are ordered by distance, so steps of different branches at the same distance sit next to each other rather than in the order they run.', $focused->filter('[data-focus-steps] [data-focus-order]')->text());
     }
 

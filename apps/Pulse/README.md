@@ -118,7 +118,7 @@ services, or above 150 nodes, it opens as the service overview, one node per ser
 Drag to pan, and zoom with the buttons, Ctrl and the mouse wheel, or `+` and `-` once the graph has keyboard focus.
 
 To read one path rather than the whole system, click any node, or type its name into **Find a node** (it suggests every node
-name) and press Enter: `/flow?focus={service}:{node}` draws only what led to that node and everything it causes, across
+name) and press Enter: `/flow?focus={service}:{node}` draws only what led to that node and what it causes, as far as the services report it, across
 services, with the node outlined, and lists the steps before and after it under the graph, closed until opened, as links
 that re-centre the flow on them. The path
 never runs through a Distributed Bus, an interceptor, or an asynchronous channel into the other handlers it runs, which

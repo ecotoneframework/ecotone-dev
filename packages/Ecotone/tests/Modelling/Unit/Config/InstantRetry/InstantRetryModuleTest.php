@@ -7,6 +7,7 @@ namespace Test\Ecotone\Modelling\Unit\Config\InstantRetry;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -267,5 +268,32 @@ final class InstantRetryModuleTest extends TestCase
             ],
             $ecotoneLite->sendQueryWithRouting('interceptor.getCalls')
         );
+    }
+
+    public function test_without_a_database_transaction_neither_the_command_bus_nor_an_asynchronous_endpoint_is_retried_by_default()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [RetriedCommandHandler::class],
+            [
+                new RetriedCommandHandler(),
+            ],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ],
+            enabledModules: [],
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(true),
+        );
+
+        try {
+            $ecotoneLite->sendCommandWithRouting('retried.synchronous', 2);
+            $this->fail('RuntimeException was not thrown');
+        } catch (RuntimeException) {
+        }
+        $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('retried.getCallCount'));
+
+        $ecotoneLite
+            ->sendCommandWithRouting('retried.asynchronous', 3)
+            ->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+        $this->assertEquals(2, $ecotoneLite->sendQueryWithRouting('retried.getCallCount'));
     }
 }

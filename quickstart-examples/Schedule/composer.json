@@ -22,8 +22,8 @@
         }
     },
     "require": {
-        "ecotone/dbal": "~2.0.0-beta.6",
-        "ecotone/jms-converter": "~2.0.0-beta.6"
+        "ecotone/dbal": "~2.0.0-beta.7",
+        "ecotone/jms-converter": "~2.0.0-beta.7"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.6|^10.5|^11.0"

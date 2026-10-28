@@ -22,10 +22,10 @@
         }
     },
     "require": {
-        "ecotone/dbal": "~2.0.0-beta.6",
-        "ecotone/jms-converter": "~2.0.0-beta.6",
-        "ecotone/pdo-event-sourcing": "~2.0.0-beta.6",
-        "ecotone/symfony-bundle": "~2.0.0-beta.6",
+        "ecotone/dbal": "~2.0.0-beta.7",
+        "ecotone/jms-converter": "~2.0.0-beta.7",
+        "ecotone/pdo-event-sourcing": "~2.0.0-beta.7",
+        "ecotone/symfony-bundle": "~2.0.0-beta.7",
         "ramsey/uuid": "^4.0",
         "symfony/expression-language": "^6.4|^7.0|^8.0",
         "symfony/framework-bundle": "^6.4|^7.0|^8.0",

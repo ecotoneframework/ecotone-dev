@@ -3,6 +3,24 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0-beta.7] - 2026-10-28
+
+## What's Changed
+* feat(dbal): replay dead letter messages to a chosen channel by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/726
+* feat: send a distributed message's result back to the sender on a reply routing key by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/727
+* refactor(dbal): take the dead letter replay target channel as a --targetChannel option by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/728
+* test: keep polling multi-message flow conformance stages until the queue is empty by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/729
+* feat: Ecotone Pulse, a dashboard to monitor and operate Ecotone services over the Distributed Bus by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/730
+* fix: answer Pulse requests on services that have the JMS converter installed by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/732
+* test: drain a Pulse fake service's channel until it is empty by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/733
+* test: keep the Pulse awaited requests tests independent of responder start-up timing by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/735
+* fix: an append checks a fetched aggregate's counter by a guarded write and bumps only the tags its events carry by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/734
+* feat: partition a projection by a tag's value with #[FromTaggedStream] by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/731
+* test: keep the distributed reply and asynchronous projection flow tracking tests independent of runner speed by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/736
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/2.0.0-beta.6...2.0.0-beta.7
+
 ## [2.0.0-beta.6] - 2026-10-19
 
 ## What's Changed

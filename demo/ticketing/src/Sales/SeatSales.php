@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Sales;
 
+use App\Catalogue\Concert;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -28,12 +29,14 @@ final class SeatSales
         #[Fetch(static function (#[Payload] HoldSeat $command): string {
             return CustomerConcertSeats::scopeOf(customerId: $command->customerId, concertId: $command->concertId);
         })] CustomerConcertSeats $customerSeats,
-        QueryBus $queryBus,
+        #[Fetch(static function (#[Payload] HoldSeat $command): string {
+            return $command->concertId;
+        })] ?Concert $fetchedConcert,
         EcotoneClockInterface $clock,
         #[ConfigurationVariable('ticketingHoldSeconds')] int $holdSeconds,
     ): array {
         $now = DateTimeImmutable::createFromInterface($clock->now());
-        $concert = ConcertForSale::find($queryBus, $command->concertId);
+        $concert = ConcertForSale::of($fetchedConcert);
         if ($concert === null) {
             throw SeatRefusal::because(sprintf('Seat %s cannot be held for order %s, because ticketing has no concert %s. Pick a concert from concert.scheduled announcements, or ask ticketing to publish concert.scheduled again.', $command->seatId, $command->orderId, $command->concertId));
         }
@@ -145,10 +148,13 @@ final class SeatSales
         #[Fetch(static function (#[Payload] ConfirmSeats $command): string {
             return CustomerConcertSeats::scopeOf(customerId: $command->customerId, concertId: $command->concertId);
         })] CustomerConcertSeats $customerSeats,
+        #[Fetch(static function (#[Payload] ConfirmSeats $command): string {
+            return $command->concertId;
+        })] ?Concert $fetchedConcert,
         QueryBus $queryBus,
         EcotoneClockInterface $clock,
     ): array {
-        $sold = $this->sell(order: $command, customerSeats: $customerSeats, queryBus: $queryBus, now: $clock->now());
+        $sold = $this->sell(order: $command, customerSeats: $customerSeats, fetchedConcert: $fetchedConcert, queryBus: $queryBus, now: $clock->now());
         if ($sold === []) {
             return [];
         }
@@ -174,10 +180,13 @@ final class SeatSales
         #[Fetch(static function (#[Payload] ConfirmSeedOrder $command): string {
             return CustomerConcertSeats::scopeOf(customerId: $command->customerId, concertId: $command->concertId);
         })] CustomerConcertSeats $customerSeats,
+        #[Fetch(static function (#[Payload] ConfirmSeedOrder $command): string {
+            return $command->concertId;
+        })] ?Concert $fetchedConcert,
         QueryBus $queryBus,
         EcotoneClockInterface $clock,
     ): array {
-        return $this->sell(order: $command, customerSeats: $customerSeats, queryBus: $queryBus, now: $clock->now());
+        return $this->sell(order: $command, customerSeats: $customerSeats, fetchedConcert: $fetchedConcert, queryBus: $queryBus, now: $clock->now());
     }
 
     /**
@@ -215,7 +224,7 @@ final class SeatSales
     /**
      * @return list<SeatSold>
      */
-    private function sell(ConfirmSeats|ConfirmSeedOrder $order, CustomerConcertSeats $customerSeats, QueryBus $queryBus, DateTimeInterface $now): array
+    private function sell(ConfirmSeats|ConfirmSeedOrder $order, CustomerConcertSeats $customerSeats, ?Concert $fetchedConcert, QueryBus $queryBus, DateTimeInterface $now): array
     {
         $seatIds = array_values(array_unique($order->seatIds));
         if ($seatIds === []) {
@@ -226,7 +235,7 @@ final class SeatSales
             return [];
         }
 
-        $concert = ConcertForSale::find($queryBus, $order->concertId);
+        $concert = ConcertForSale::of($fetchedConcert);
         if ($concert === null) {
             throw SeatRefusal::because(sprintf('Order %s cannot buy seats of concert %s, because ticketing has no such concert. Pick a concert from concert.scheduled announcements, or ask ticketing to publish concert.scheduled again.', $order->orderId, $order->concertId));
         }

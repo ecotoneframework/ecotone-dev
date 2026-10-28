@@ -30,8 +30,10 @@ docker compose -f demo/docker-compose.yml exec storefront php artisan demo:ping
 It prints `Reply arrived: pong from ticketing to storefront` once ticketing's reply reaches the storefront. Stop the demo
 with `docker compose -f demo/docker-compose.yml down`, and add `-v` to drop the Postgres and RabbitMQ volumes as well.
 
-After pulling a change to the messages the two services exchange or store, start from empty volumes and a fresh
-ticketing cache, because the stored events and the queued messages still have the old shape:
+After pulling a change to the messages the two services exchange or store, or to how ticketing indexes them, start
+from empty volumes and a fresh ticketing cache, because the stored events and the queued messages still have the old
+shape. Events stored while `concert` was a filter-only tag carry no position in it, so the seat map and sales ledger,
+partitioned per concert, cannot resume past them:
 
 ```bash
 docker compose -f demo/docker-compose.yml down -v
@@ -180,12 +182,14 @@ appended to `ecotone_event_stream` by handlers that decide on two decision model
 per seat) and `CustomerConcertSeats` (at most 4 seats per customer and concert). The customer limit is scoped by one
 `customerConcert` tag rather than by `customer` and `concert` together, because a model scoped by `concert` would make
 every hold of a concert conflict with every other; `concert` stays on each event, captured by no model, as the
-projections' key, and is a filter-only tag for now, so that overlapping holds of one concert do not conflict on it.
-The concert's status, seats and prices are read through `concert.detail`, not guarded, until Ecotone can guard a
-fetched aggregate without bumping its counter, so a hold racing a cancellation can succeed and the cancellation then
-releases it. A conflict on a command-bus send is retried three times, and an exhausted one is refused with "someone
+projections' key: an append only increments its counter, so overlapping holds of one concert do not conflict on it.
+A hold and a confirm fetch the `Concert` read-only with `#[Fetch]`: holds of different seats of one concert never conflict
+on the concert, while a cancellation or price change saved between their read and their append makes them conflict, and the
+retry decides again on the concert as it now is; a hold that lands before a cancellation is released by it. A conflict on a command-bus send is retried three times, and an exhausted one is refused with "someone
 was faster"; a `tickets.hold` or `tickets.confirm` arriving over the Distributed Bus is not retried, so a conflict
-there is refused at once with that reason. Every hold carries the `holdId` its requester chose, and only the order,
+there is refused at once with that reason, or, when the concert changed, with a reason naming the concert's change:
+a refused hold is held again at the current prices on the buyer's next click, a refused confirm sells nothing and is
+refunded. Every hold carries the `holdId` its requester chose, and only the order,
 customer, concert and hold id of a hold release it, so a late release of an earlier hold leaves a later one in place.
 A hold expires after `TICKETING_HOLD_SECONDS` (600 by default, 120 in `docker-compose.yml`), through a delayed message
 on `ticketing_async` that frees only the hold it was scheduled for. A confirm decides on the customer's holds and,
@@ -203,6 +207,14 @@ projections on `ticketing_async`. `demo:seed` sells all but the last three seats
 marks it sold out (`concert.sold_out`); `demo:seed --catalogueOnly` seeds the venue and the concerts without that sale.
 The seed confirms its orders with `ConfirmSeedOrder`, which records their `SeatSold` events without `SeatsSoldToOrder`:
 those orders exist only in ticketing, so they get no tickets and the storefront is never told about them.
+
+### Partitioned seat map and sales ledger
+
+`ConcertSeatMap` and `ConcertSalesLedger` are partitioned per concert with `#[FromTaggedStream('concert')]` and
+`#[Partitioned]`: each concert's partition reads only the seat events tagged with its id, in the order of that tag,
+and keeps its own position, so a busy concert never holds back another. A rebuild or backfill, from the console or from
+Pulse, which lists both projections as partitioned, resets and replays one concert at a time: the `#[ProjectionReset]`
+takes the concert's id through `#[PartitionTagValue]` and deletes only that concert's rows.
 
 ### Ticket issuance
 

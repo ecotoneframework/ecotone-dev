@@ -25,6 +25,7 @@ namespace Ecotone\EventSourcing\Projecting;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ManagerRegistryConnectionFactory;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
@@ -42,7 +43,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
      * @param array<string> $partitionedProjections List of projection names this provider handles
      */
     public function __construct(
-        private DbalConnectionFactory|MultiTenantConnectionFactory|AlreadyConnectedDbalConnectionFactory $connectionFactory,
+        private DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory|AlreadyConnectedDbalConnectionFactory $connectionFactory,
         private StreamTableRegistry $streamTableRegistry,
         private MissingEventStreamTable $missingEventStreamTable,
         private array $partitionedProjections = [],

@@ -16,6 +16,8 @@ final class SeatSalesOverDistributedBus
 {
     private const SEAT_FIELDS = ['orderId', 'concertId', 'seatId', 'customerId', 'holdId'];
 
+    private const CONCERT_COUNTER_TAG = 'aggregate_concert';
+
     /**
      * @return array{orderId: string, concertId: string, seatId: string, customerId: string, holdId: string, outcome: string, reason: ?string, expiresAt: ?string}
      */
@@ -29,8 +31,10 @@ final class SeatSalesOverDistributedBus
             $commandBus->send(new HoldSeat(...$seat), metadata: ['concertId' => $seat['concertId']]);
         } catch (SeatRefusal $refusal) {
             return [...$reply, 'reason' => $refusal->getMessage()];
-        } catch (DecisionModelConcurrencyException) {
-            return [...$reply, 'reason' => sprintf('Seat %s cannot be held for order %s, because someone was faster: the seat changed each time ticketing tried to hold it. Pick the seat again, or choose another one.', $seat['seatId'], $seat['orderId'])];
+        } catch (DecisionModelConcurrencyException $conflict) {
+            return [...$reply, 'reason' => self::isOnTheConcert($conflict)
+                ? sprintf('Seat %s cannot be held for order %s, because the concert changed while ticketing held the seat: its prices or status were saved after ticketing read them, so the hold could not be kept as decided. Pick the seat again to hold it at the concert\'s current prices, while the concert is on sale.', $seat['seatId'], $seat['orderId'])
+                : sprintf('Seat %s cannot be held for order %s, because someone was faster: the seat changed each time ticketing tried to hold it. Pick the seat again, or choose another one.', $seat['seatId'], $seat['orderId'])];
         }
         $hold = $queryBus->send(new FindSeatHold($seat['seatId']));
 
@@ -68,11 +72,18 @@ final class SeatSalesOverDistributedBus
             $commandBus->send(new ConfirmSeats(...$order), metadata: ['concertId' => $order['concertId']]);
         } catch (SeatRefusal $refusal) {
             return [...$reply, 'outcome' => 'refused', 'reason' => $refusal->getMessage()];
-        } catch (DecisionModelConcurrencyException) {
-            return [...$reply, 'outcome' => 'refused', 'reason' => sprintf('Order %s cannot be confirmed, because someone was faster: its seats changed while ticketing sold them; nothing of the order was sold. Refund payment %s; the buyer holds seats again in a new order.', $order['orderId'], $order['paymentReference'])];
+        } catch (DecisionModelConcurrencyException $conflict) {
+            return [...$reply, 'outcome' => 'refused', 'reason' => self::isOnTheConcert($conflict)
+                ? sprintf('Order %s cannot be confirmed, because the concert changed while ticketing sold its seats: its prices or status were saved after ticketing read them; nothing of the order was sold. Refund payment %s; the buyer holds seats again in a new order.', $order['orderId'], $order['paymentReference'])
+                : sprintf('Order %s cannot be confirmed, because someone was faster: its seats changed while ticketing sold them; nothing of the order was sold. Refund payment %s; the buyer holds seats again in a new order.', $order['orderId'], $order['paymentReference'])];
         }
 
         return $reply;
+    }
+
+    private static function isOnTheConcert(DecisionModelConcurrencyException $conflict): bool
+    {
+        return $conflict->conflictingTagName() === self::CONCERT_COUNTER_TAG;
     }
 
     /**

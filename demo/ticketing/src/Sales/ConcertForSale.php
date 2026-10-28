@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Sales;
 
+use App\Catalogue\Concert;
 use App\Catalogue\ConcertStatus;
 use App\Catalogue\Seat;
 use App\Catalogue\Tier;
-use Ecotone\Api\Gateway\QueryBus;
-use Ecotone\Api\Modelling\AggregateNotFoundException;
 
 final readonly class ConcertForSale
 {
@@ -19,13 +18,9 @@ final readonly class ConcertForSale
     {
     }
 
-    public static function find(QueryBus $queryBus, string $concertId): ?self
+    public static function of(?Concert $concert): ?self
     {
-        try {
-            return new self($queryBus->sendWithRouting('concert.detail', metadata: ['aggregate.id' => $concertId]));
-        } catch (AggregateNotFoundException) {
-            return null;
-        }
+        return $concert === null ? null : new self($concert->detail());
     }
 
     public function isOnSale(): bool

@@ -28,6 +28,25 @@ final class FlowGraphParametersTest extends ReleasingWebTestCase
         self::assertSame($message . ' (400 Bad Request)', $client->getCrawler()->filter('title')->text());
     }
 
+    #[DataProvider('settings_following_overrides')]
+    public function test_following_a_node_together_with_a_setting_it_would_override_is_refused(string $query, string $message): void
+    {
+        $this->configurePulseWithServices('orders', 'billing');
+        $client = $this->pulseWebClient();
+        $this->pulseHavingHeardFrom($client, ['orders' => $this->ordersSendingInvoiceCommandToBilling(), 'billing' => $this->billingCreatingInvoices()]);
+
+        $client->request('GET', '/flow?focus=orders:message:order.place&' . $query);
+
+        self::assertResponseStatusCodeSame(400);
+        self::assertSame($message . ' (400 Bad Request)', $client->getCrawler()->filter('title')->text());
+    }
+
+    public static function settings_following_overrides(): iterable
+    {
+        yield 'chosen services' => ['services[]=billing', 'Cannot follow "orders:message:order.place" and show services[] at once: following draws the path of the node across whichever services it crosses. Remove services[] to follow the node, or remove focus to choose the services.'];
+        yield 'a view' => ['view=detail', 'Cannot follow "orders:message:order.place" and show view=detail at once: following draws the path of the node across whichever services it crosses. Remove view to follow the node, or remove focus to choose the view.'];
+    }
+
     public static function malformed_parameters(): iterable
     {
         yield 'a list given one value' => ['collapse=billing', 'Cannot read collapse=billing: collapse takes a list, one collapse[]={service} per service. Write collapse[]=billing, or remove collapse to draw every service in detail.'];

@@ -49,6 +49,11 @@ final class MalformedFlowParameter extends InvalidArgumentException
         return new self(sprintf('Cannot read %1$s[]: one of its values is empty. Name a service in each %2$s, or remove the empty %1$s[] %3$s.', $name, $shape, $without));
     }
 
+    public static function focusOverriding(string $focus, string $setting, string $parameter, string $chosen): self
+    {
+        return new self(sprintf('Cannot follow "%s" and show %s at once: following draws the path of the node across whichever services it crosses. Remove %s to follow the node, or remove focus to choose %s.', $focus, $setting, $parameter, $chosen));
+    }
+
     public static function focusWithoutServiceAndNode(string $focus): self
     {
         return new self(sprintf('Cannot follow "%s": focus takes {service}:{node id}, the service and the node joined by a colon. Click the node on the flow graph, type its name into Find, or remove focus %s.', $focus, self::SHAPES['focus'][1]));

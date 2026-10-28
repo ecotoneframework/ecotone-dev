@@ -51,6 +51,12 @@ final class FlowGraphController extends AbstractController
         $narrowedByTrace = $requested === [] && $crossed !== [];
         $view = $this->oneOf($request, 'view');
         $focus = $this->focusOf($flows, $this->oneOf($request, 'focus'));
+        if ($focus !== null && $this->listOf($request, 'services') !== []) {
+            throw MalformedFlowParameter::focusOverriding($this->oneOf($request, 'focus'), 'services[]', 'services[]', 'the services');
+        }
+        if ($focus !== null && $view !== '') {
+            throw MalformedFlowParameter::focusOverriding($this->oneOf($request, 'focus'), 'view=' . $view, 'view', 'the view');
+        }
         $foldChannels = $this->foldsChannels($this->oneOf($request, 'fold'));
         $collapsed = $this->collapsedOf($available, $this->listOf($request, 'collapse'));
         $crossedNodes = array_sum(array_map(fn (ServiceFlow $flow) => in_array($flow->name, $crossed, true) ? count($flow->graph->nodes()) : 0, $flows));

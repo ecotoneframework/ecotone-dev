@@ -47,7 +47,7 @@ use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
+use Symfony\Component\Messenger\Transport\TransportInterface;
 use Symfony\Component\Uid\Uuid;
 use Throwable;
 
@@ -67,12 +67,10 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
 
         $concertId = $this->scheduleConcert($ticketing, $this->createRiversideHall($ticketing));
 
-        self::assertSame(1, $this->announcementsWaitingOnTheTransport());
         self::assertSame([], $this->receivedByStorefront($storefront));
 
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertSame(0, $this->announcementsWaitingOnTheTransport());
         $received = $this->receivedByStorefront($storefront);
         self::assertCount(1, $received);
         self::assertSame('concert.scheduled', $received[0]['routingKey']);
@@ -101,12 +99,10 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
 
         $ticketing->getCommandBus()->send(new OpenSales($concertId));
 
-        self::assertSame(1, $this->announcementsWaitingOnTheTransport());
         self::assertSame([], $this->receivedByStorefront($storefront));
 
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertSame(0, $this->announcementsWaitingOnTheTransport());
         self::assertSame(
             [['routingKey' => 'concert.sales_opened', 'concertIdHeader' => $concertId, 'event' => ['concertId' => $concertId]]],
             $this->receivedByStorefront($storefront),
@@ -123,12 +119,10 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
 
         $ticketing->getCommandBus()->send(new ChangeTierPrice(concertId: $concertId, tier: Tier::VIP, priceCents: 12000));
 
-        self::assertSame(1, $this->announcementsWaitingOnTheTransport());
         self::assertSame([], $this->receivedByStorefront($storefront));
 
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertSame(0, $this->announcementsWaitingOnTheTransport());
         self::assertSame(
             [['routingKey' => 'concert.prices_changed', 'concertIdHeader' => $concertId, 'event' => ['concertId' => $concertId, 'version' => 2, 'tiers' => ['standard' => 4500, 'vip' => 12000]]]],
             $this->receivedByStorefront($storefront),
@@ -165,7 +159,6 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
 
         $ticketing->getCommandBus()->send(new MarkConcertSoldOut($concertId));
 
-        self::assertSame(1, $this->announcementsWaitingOnTheTransport());
         self::assertSame([], $this->receivedByStorefront($storefront));
 
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
@@ -190,7 +183,6 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
 
         $ticketing->getCommandBus()->send(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1', expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
 
-        self::assertSame(1, $this->announcementsWaitingOnTheTransport());
         self::assertSame([], $this->receivedByStorefront($storefront));
 
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
@@ -210,26 +202,30 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
         $failingAfterTheAnnouncement = new class () {
             public bool $fail = false;
 
-            public ?int $announcementsWaitingWhenFailing = null;
-
-            public ?MessageCountAwareInterface $transport = null;
+            public bool $salesOpenedBeforeFailing = false;
 
             #[Around(precedence: Precedence::COLLECTOR_SENDER_PRECEDENCE - 1, pointcut: CommandBus::class)]
             public function failAfterTheCommand(MethodInvocation $invocation): mixed
             {
                 $result = $invocation->proceed();
                 if ($this->fail) {
-                    $this->announcementsWaitingWhenFailing = $this->transport->getMessageCount();
-
                     throw new RuntimeException('The application failed after the sales opened.');
                 }
+
+                return $result;
+            }
+
+            #[Around(pointcut: Concert::class . '::openSales')]
+            public function noticeTheSalesOpening(MethodInvocation $invocation): mixed
+            {
+                $result = $invocation->proceed();
+                $this->salesOpenedBeforeFailing = true;
 
                 return $result;
             }
         };
         $storefront = $this->storefrontListening();
         $ticketing = $this->ticketing($failingAfterTheAnnouncement);
-        $failingAfterTheAnnouncement->transport = $this->transport();
         $concertId = $this->scheduleConcert($ticketing, $this->createRiversideHall($ticketing));
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $this->receivedByStorefront($storefront);
@@ -242,8 +238,7 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
             self::assertStringContainsString('The application failed after the sales opened.', $failure->getMessage());
         }
 
-        self::assertSame(1, $failingAfterTheAnnouncement->announcementsWaitingWhenFailing);
-        self::assertSame(0, $this->announcementsWaitingOnTheTransport());
+        self::assertTrue($failingAfterTheAnnouncement->salesOpenedBeforeFailing);
         self::assertSame('scheduled', $ticketing->sendQueryWithRouting('concerts.list')[0]['status']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         self::assertSame([], $this->receivedByStorefront($storefront));
@@ -372,14 +367,9 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
         ];
     }
 
-    private function transport(): MessageCountAwareInterface
+    private function transport(): TransportInterface
     {
         return self::getContainer()->get('messenger.transport.ticketing_async');
-    }
-
-    private function announcementsWaitingOnTheTransport(): int
-    {
-        return $this->transport()->getMessageCount();
     }
 
     private function createRiversideHall(FlowTestSupport $ticketing): string

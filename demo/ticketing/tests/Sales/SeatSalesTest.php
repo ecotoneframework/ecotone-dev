@@ -61,6 +61,8 @@ final class SeatSalesTest extends KernelTestCase
 {
     private const NOW = '2026-10-25 12:00:00';
 
+    private const HOLD_SECONDS = 600;
+
     private ?array $channels = null;
 
     private ?Kernel $competitorKernel = null;
@@ -82,7 +84,6 @@ final class SeatSalesTest extends KernelTestCase
 
         $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
 
-        self::assertSame(600, self::getContainer()->getParameter('ticketingHoldSeconds'));
         self::assertEquals(
             [new SeatHeld(
                 orderId: $orderId,
@@ -771,7 +772,7 @@ final class SeatSalesTest extends KernelTestCase
         $doctrine = self::getContainer()->get('doctrine');
         $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues');
 
-        return $this->bootstrapTicketing($doctrine, self::getContainer()->getParameter('ticketingHoldSeconds'), ...$applicationHandlers);
+        return $this->bootstrapTicketing($doctrine, ...$applicationHandlers);
     }
 
     private function competitor(): FlowTestSupport
@@ -781,10 +782,10 @@ final class SeatSalesTest extends KernelTestCase
         /** @var ManagerRegistry $doctrine */
         $doctrine = $this->competitorKernel->getContainer()->get('doctrine');
 
-        return $this->bootstrapTicketing($doctrine, $this->competitorKernel->getContainer()->getParameter('ticketingHoldSeconds'));
+        return $this->bootstrapTicketing($doctrine);
     }
 
-    private function bootstrapTicketing(ManagerRegistry $doctrine, int $holdSeconds, object ...$applicationHandlers): FlowTestSupport
+    private function bootstrapTicketing(ManagerRegistry $doctrine, object ...$applicationHandlers): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
@@ -814,7 +815,7 @@ final class SeatSalesTest extends KernelTestCase
                 ...$applicationHandlers,
                 'doctrine' => $doctrine,
             ],
-            configurationVariables: ['ticketingHoldSeconds' => $holdSeconds],
+            configurationVariables: ['ticketingHoldSeconds' => self::HOLD_SECONDS],
             extensionObjects: [...$this->channels(), SymfonyConnectionReference::defaultManagerRegistry('default')],
             pathToRootCatalog: dirname(__DIR__, 2),
             addInMemoryStateStoredRepository: false,

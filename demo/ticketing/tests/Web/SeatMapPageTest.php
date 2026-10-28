@@ -69,6 +69,31 @@ final class SeatMapPageTest extends WebTestCase
         self::assertSelectorTextContains('table.ledger tfoot', '140.00 EUR');
     }
 
+    public function test_the_seat_map_names_the_state_of_a_held_and_a_sold_seat_counts_them_in_its_legend_and_offers_no_control_on_a_seat(): void
+    {
+        $client = $this->seededClient();
+        $concertId = $this->concertIdOf('The Midnight Owls');
+        $this->hold(Uuid::v7()->toRfc4122(), $concertId, 'A-1', Uuid::v7()->toRfc4122());
+        $buyingOrder = Uuid::v7()->toRfc4122();
+        $buyer = Uuid::v7()->toRfc4122();
+        $this->hold($buyingOrder, $concertId, 'C-2', $buyer);
+        $this->commandBus()->send(new ConfirmSeats(orderId: $buyingOrder, concertId: $concertId, customerId: $buyer, seatIds: [$concertId . '/C-2'], paymentReference: 'pay-1'), metadata: ['concertId' => $concertId]);
+        $this->runTheConsumer($client);
+
+        $client->request('GET', '/concerts/' . $concertId . '/seats');
+
+        self::assertSelectorExists('.seat-held[aria-label^="A-1, vip, held"]');
+        self::assertSelectorExists('.seat-sold[aria-label^="C-2, standard, sold"]');
+        self::assertSelectorExists('.seat-free[aria-label="A-2, vip, free"]');
+        self::assertSelectorTextContains('.legend .legend-held', '1 held');
+        self::assertSelectorTextContains('.legend .legend-sold', '1 sold');
+        self::assertSelectorTextContains('.legend .legend-free', '70 free');
+        self::assertSelectorNotExists('.venue a, .venue button, .venue input, .venue [tabindex]');
+        self::assertSelectorTextContains('.seat-block-vip', 'VIP');
+        self::assertSelectorCount(24, '.seat-block-vip .seat');
+        self::assertSelectorCount(48, '.seat-block-standard .seat');
+    }
+
     public function test_the_concerts_page_counts_the_sold_held_and_free_seats_of_each_concert(): void
     {
         $client = $this->seededClient();

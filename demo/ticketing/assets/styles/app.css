@@ -934,68 +934,156 @@ select:focus-visible {
     overflow: auto;
 }
 
-/* Legacy page styles, replaced page by page */
+/* Seat map */
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+}
+
+.legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.venue-scroll {
+    overflow-x: auto;
+}
+
+.venue-floor {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-4);
+    min-width: max-content;
+    margin: 0 auto;
+}
 
 .stage {
+    width: 80%;
+    min-width: 14rem;
+    padding: var(--space-3) 0 var(--space-5);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.3em;
     text-align: center;
-    padding: 0.4rem;
-    margin-bottom: 1rem;
-    background: #cbd2d9;
-    border-radius: 0.3rem;
+    text-transform: uppercase;
+    color: var(--color-stage-text);
+    background: var(--color-stage);
+    border-radius: var(--radius-sm) var(--radius-sm) 50% 50% / var(--radius-sm) var(--radius-sm) 100% 100%;
+    box-shadow: var(--shadow-md);
+}
+
+.seat-block {
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-md);
+}
+
+.seat-block-vip {
+    background: #fffbeb;
+    border-color: var(--color-vip);
+}
+
+.seat-block-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+.seat-block-vip .seat-block-label {
+    color: var(--color-vip-on-soft);
 }
 
 .seat-row {
     display: flex;
-    gap: 0.3rem;
     align-items: center;
-    margin-bottom: 0.3rem;
+    gap: 0.3rem;
 }
 
 .row-label {
-    width: 1.5rem;
-    font-weight: bold;
+    width: 1.25rem;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    text-align: center;
+    color: var(--color-text-muted);
+}
+
+.aisle {
+    width: 1.25rem;
+}
+
+.seat,
+.swatch {
+    display: inline-grid;
+    place-items: center;
+    border: 2px solid transparent;
+    border-radius: 0.45rem 0.45rem 0.25rem 0.25rem;
 }
 
 .seat {
-    display: inline-block;
-    min-width: 2.6rem;
-    padding: 0.3rem 0;
-    text-align: center;
-    font-size: 0.75rem;
-    border-radius: 0.3rem;
-    border: 2px solid transparent;
+    width: 2.1rem;
+    height: 2.1rem;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    font-variant-numeric: tabular-nums;
+    cursor: default;
 }
 
-.seat.tier-vip {
-    border-color: #b8860b;
+.swatch {
+    width: 1.25rem;
+    height: 1.25rem;
 }
 
 .seat-free,
 .swatch-free {
-    background: #e3f9e5;
-    color: #05400a;
+    color: var(--color-seat-free-text);
+    background: var(--color-seat-free);
+    border-color: var(--color-seat-free-border);
 }
 
 .seat-held,
 .swatch-held {
-    background: #fff3c4;
-    color: #8d2b0b;
+    color: var(--color-seat-held-text);
+    background: repeating-linear-gradient(45deg, var(--color-seat-held) 0 4px, var(--color-seat-held-stripe) 4px 8px);
+    border-color: #d97706;
 }
 
 .seat-sold,
 .swatch-sold {
-    background: #ffe3e3;
-    color: #610404;
+    color: var(--color-seat-sold-text);
+    background:
+        linear-gradient(to top right, transparent calc(50% - 1px), rgb(255 255 255 / 0.35) 50%, transparent calc(50% + 1px)),
+        var(--color-seat-sold);
+    border-color: var(--color-seat-sold);
 }
 
-.swatch {
-    padding: 0.3rem 0.6rem;
-    border-radius: 0.3rem;
-    font-size: 0.75rem;
+.seat.tier-vip,
+.swatch.tier-vip {
+    box-shadow: inset 0 3px 0 var(--color-vip);
 }
 
-main.ticket,
-main.seat-map {
+.venue-back {
+    font-size: var(--font-size-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+/* Legacy page styles, replaced page by page */
+
+main.ticket {
     max-width: 64rem;
     margin: 3rem auto;
     padding: 0 1rem;
@@ -1120,6 +1208,50 @@ main.seat-map {
     .confirm-panel {
         right: auto;
         left: 0;
+    }
+
+    .venue.card {
+        padding: var(--space-3) var(--space-2);
+    }
+
+    .venue-floor {
+        min-width: 0;
+    }
+
+    .stage {
+        width: 90%;
+    }
+
+    .seat-block {
+        width: 100%;
+    }
+
+    .seat-row {
+        justify-content: center;
+        gap: 0.15rem;
+    }
+
+    .seat {
+        flex: 1 1 0;
+        width: auto;
+        min-width: 1.25rem;
+        max-width: 2rem;
+        height: auto;
+        aspect-ratio: 1;
+        font-size: 0.625rem;
+        border-width: 1.5px;
+    }
+
+    .row-label {
+        width: 1rem;
+    }
+
+    .aisle {
+        width: 0.6rem;
+    }
+
+    .seat-block {
+        padding: var(--space-2) var(--space-2) var(--space-3);
     }
 
     .table-stack thead {

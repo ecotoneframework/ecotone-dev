@@ -108,12 +108,25 @@ final class ConcertsController extends AbstractController
     public function seats(string $concertId): Response
     {
         return $this->onKnownConcert($concertId, function () use ($concertId): Response {
+            $seatMap = $this->queryBus->sendWithRouting('concert.seat_map', $concertId);
             $rows = [];
-            foreach ($this->queryBus->sendWithRouting('concert.seat_map', $concertId) as $seat) {
+            foreach ($seatMap as $seat) {
                 $rows[explode('-', $seat['seatCode'])[0]][] = $seat;
             }
+            $tierBlocks = [];
+            foreach ($rows as $row => $seats) {
+                if ($tierBlocks === [] || $tierBlocks[array_key_last($tierBlocks)]['tier'] !== $seats[0]['tier']) {
+                    $tierBlocks[] = ['tier' => $seats[0]['tier'], 'rows' => []];
+                }
+                $tierBlocks[array_key_last($tierBlocks)]['rows'][$row] = $seats;
+            }
 
-            return $this->render('concerts/seats.html.twig', ['concert' => $this->concert($concertId), 'rows' => $rows, 'refreshSeconds' => 3]);
+            return $this->render('concerts/seats.html.twig', [
+                'concert' => $this->concert($concertId),
+                'tierBlocks' => $tierBlocks,
+                'seatCounts' => $this->seatCountsOf($seatMap),
+                'refreshSeconds' => 3,
+            ]);
         });
     }
 

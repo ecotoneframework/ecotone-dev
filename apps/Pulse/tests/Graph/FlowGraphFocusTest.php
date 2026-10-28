@@ -5,6 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Graph;
 
 use App\Tests\Support\DistributedServicesTrait;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use App\Tests\Support\MermaidDiagram;
 use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -45,6 +51,37 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         self::assertSame(['invoice.created', 'Distributed Bus', 'invoice.created', 'class@anonymous::whenInvoiceCreated'], $focused->filter('[data-focus-downstream] a')->each(fn (Crawler $link) => $link->text()));
         $refocused = $client->request('GET', $focused->filter('[data-focus-upstream] a')->first()->attr('href'));
         self::assertStringContainsString('order.place', $refocused->filter('[data-focus] h2')->text());
+    }
+
+    public function test_handlers_sharing_an_asynchronous_channel_or_an_interceptor_are_not_part_of_each_others_flow(): void
+    {
+        $this->configurePulseWithServices('shipping');
+        $client = $this->pulseWebClient();
+        $handlers = new class () {
+            #[Asynchronous('shipping_work')]
+            #[CommandHandler('shipping.pack', endpointId: 'shipping.pack.handler')]
+            public function pack(array $payload): void
+            {
+            }
+
+            #[Asynchronous('shipping_work')]
+            #[CommandHandler('shipping.label', endpointId: 'shipping.label.handler')]
+            public function label(array $payload): void
+            {
+            }
+        };
+        $interceptor = new class () {
+            #[Around(pointcut: CommandHandler::class)]
+            public function measure(MethodInvocation $invocation): mixed
+            {
+                return $invocation->proceed();
+            }
+        };
+        $this->pulseHavingHeardFrom($client, ['shipping' => $this->distributedService('shipping', $handlers, DistributedServiceMap::initialize(), [SimpleMessageChannelBuilder::createQueueChannel('shipping_work')], [$interceptor])]);
+
+        $focused = $this->follow($client, $client->request('GET', '/flow'), 'shipping', '::pack');
+
+        self::assertSame(['shipping' => ['Channel<br/>shipping_work', 'CommandHandler<br/>class@anonymous::pack', 'shipping.pack']], $this->labelsByService(MermaidDiagram::fromPage($focused)));
     }
 
     private function ordersAndBilling(): KernelBrowser

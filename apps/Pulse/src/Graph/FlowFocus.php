@@ -97,7 +97,7 @@ final readonly class FlowFocus
                 continue;
             }
             $next = $downstream ? $edge->to : $edge->from;
-            $neighbours[] = [$service, $next, $edge->kind !== FlowEdgeKind::ASYNCHRONOUS && $flow->graph->node($next)->kind !== FlowNodeKind::DISTRIBUTED_BUS];
+            $neighbours[] = [$service, $next, $flow->graph->node($next)->kind !== FlowNodeKind::DISTRIBUTED_BUS];
         }
         foreach ($links as $link) {
             if ($downstream && $link->fromService === $service && $link->fromNodeId === $nodeId) {

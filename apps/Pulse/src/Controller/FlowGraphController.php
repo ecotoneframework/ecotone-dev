@@ -153,15 +153,18 @@ final class FlowGraphController extends AbstractController
      */
     private function found(array $flows, string $find, array $carried): array
     {
-        $found = [];
+        $exact = [];
+        $containing = [];
         foreach ($flows as $flow) {
             foreach ($flow->graph->nodes() as $node) {
-                if (mb_stripos(ShortLabel::of($node->label), $find) !== false || mb_stripos($node->label, $find) !== false) {
-                    $found[] = ['service' => $flow->name, 'node' => $node];
+                if (mb_strtolower(ShortLabel::of($node->label)) === mb_strtolower($find) || mb_strtolower($node->label) === mb_strtolower($find)) {
+                    $exact[] = ['service' => $flow->name, 'node' => $node];
+                } elseif (mb_stripos(ShortLabel::of($node->label), $find) !== false || mb_stripos($node->label, $find) !== false) {
+                    $containing[] = ['service' => $flow->name, 'node' => $node];
                 }
             }
         }
-        $steps = $this->stepsOf($found, $carried);
+        $steps = $this->stepsOf($exact === [] ? $containing : $exact, $carried);
         usort($steps, fn (array $one, array $other): int => [$one['label'], $one['service']] <=> [$other['label'], $other['service']]);
 
         return $steps;

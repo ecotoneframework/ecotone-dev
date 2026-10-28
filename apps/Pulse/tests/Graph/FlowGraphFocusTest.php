@@ -150,6 +150,39 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         self::assertStringContainsString('orders', $focused->filter('[data-focus] h2')->text());
     }
 
+    public function test_finding_the_exact_name_of_one_node_follows_it_even_when_other_names_contain_it(): void
+    {
+        $this->configurePulseWithServices('shipping');
+        $client = $this->pulseWebClient();
+        $handlers = new class () {
+            #[CommandHandler('shipping.pack', endpointId: 'shipping.pack.handler')]
+            public function pack(array $payload): void
+            {
+            }
+
+            #[CommandHandler('shipping.pack.later', endpointId: 'shipping.pack.later.handler')]
+            public function packLater(array $payload): void
+            {
+            }
+        };
+        $this->pulseHavingHeardFrom($client, ['shipping' => $this->distributedService('shipping', $handlers, DistributedServiceMap::initialize())]);
+
+        $client->request('GET', '/flow?find=Shipping.Pack');
+
+        self::assertResponseRedirects();
+        self::assertStringContainsString('shipping.pack', $client->followRedirect()->filter('[data-focus] h2')->text());
+        self::assertStringNotContainsString('later', $client->getCrawler()->filter('[data-focus] h2')->text());
+    }
+
+    public function test_finding_the_exact_name_of_several_nodes_lists_only_those(): void
+    {
+        $client = $this->ordersAndBilling();
+
+        $found = $client->request('GET', '/flow?find=invoice.create');
+
+        self::assertSame(['invoice.create command · billing', 'invoice.create command · orders'], $found->filter('[data-find-results] li')->each(fn (Crawler $item) => $item->text()));
+    }
+
     public function test_finding_a_name_that_matches_several_nodes_lists_them_to_follow(): void
     {
         $client = $this->ordersAndBilling();

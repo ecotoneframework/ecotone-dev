@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Graph\FlowFocus;
+use App\Graph\MalformedFlowParameter;
 use App\Graph\ServiceFlow;
 use App\Graph\ServiceFlows;
 use App\Graph\ServiceScopeFilter;
@@ -38,20 +39,20 @@ final class FlowGraphController extends AbstractController
     {
         $snapshots = $this->snapshots->viewAndRequestStale();
         $serviceFlows = ServiceFlows::of($snapshots);
-        $traceId = trim((string) $request->query->get('trace', ''));
+        $traceId = trim($this->oneOf($request, 'trace'));
         $traceView = $traceId === '' ? null : $this->traces->load($traceId, $snapshots);
         $highlight = $traceView === null ? null : TraceHighlight::of($traceId, $traceView->trace, $serviceFlows->flows);
         $flows = $serviceFlows->flows;
         $available = array_map(fn (ServiceFlow $flow) => $flow->name, $flows);
-        $scope = ServiceScopeFilter::of($flows, $request->query->getString('service'));
-        $requested = $scope->isNarrowed() ? $scope->visible() : $request->query->all('services');
+        $scope = ServiceScopeFilter::of($flows, $this->oneOf($request, 'service'));
+        $requested = $scope->isNarrowed() ? $scope->visible() : $this->listOf($request, 'services');
         $totalNodes = array_sum(array_map(fn (ServiceFlow $flow) => count($flow->graph->nodes()), $flows));
         $crossed = $highlight === null ? [] : array_values(array_intersect($available, $highlight->services));
         $narrowedByTrace = $requested === [] && $crossed !== [];
-        $view = (string) $request->query->get('view', '');
-        $focus = $this->focusOf($flows, $request->query->getString('focus'));
-        $foldChannels = $this->foldsChannels($request->query->getString('fold'));
-        $collapsed = $this->collapsedOf($available, array_map('strval', $request->query->all('collapse')));
+        $view = $this->oneOf($request, 'view');
+        $focus = $this->focusOf($flows, $this->oneOf($request, 'focus'));
+        $foldChannels = $this->foldsChannels($this->oneOf($request, 'fold'));
+        $collapsed = $this->collapsedOf($available, $this->listOf($request, 'collapse'));
         $crossedNodes = array_sum(array_map(fn (ServiceFlow $flow) => in_array($flow->name, $crossed, true) ? count($flow->graph->nodes()) : 0, $flows));
         $overview = $focus === null && $collapsed === [] && $requested === [] && $view !== 'detail' && match (true) {
             $view === 'overview' => true,
@@ -62,11 +63,11 @@ final class FlowGraphController extends AbstractController
             $focus !== null => array_values(array_intersect($available, $focus->services())),
             $narrowedByTrace && ! $overview => $crossed,
             $requested === [] => $available,
-            default => array_values(array_intersect($available, array_map('strval', $requested))),
+            default => array_values(array_intersect($available, $requested)),
         };
 
         $carried = array_filter(['trace' => $traceId, 'service' => $scope->selected, 'collapse' => $collapsed, 'fold' => $foldChannels ? 'channels' : '']);
-        $find = trim($request->query->getString('find'));
+        $find = trim($this->oneOf($request, 'find'));
         $found = $find === '' ? [] : $this->found($flows, $find, $carried);
         if (count($found) === 1) {
             return $this->redirect($found[0]['href']);
@@ -122,6 +123,9 @@ final class FlowGraphController extends AbstractController
             return null;
         }
         [$service, $nodeId] = explode(':', $requested, 2) + [1 => ''];
+        if ($service === '' || $nodeId === '') {
+            throw MalformedFlowParameter::focusWithoutServiceAndNode($requested);
+        }
 
         return FlowFocus::of($flows, $service, $nodeId);
     }
@@ -215,6 +219,39 @@ final class FlowGraphController extends AbstractController
         }
 
         return array_values(array_intersect($available, $requested));
+    }
+
+    private function oneOf(Request $request, string $name): string
+    {
+        $value = $request->query->all()[$name] ?? '';
+        if (is_array($value)) {
+            throw MalformedFlowParameter::oneValueGivenAList($name);
+        }
+
+        return (string) $value;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function listOf(Request $request, string $name): array
+    {
+        $values = $request->query->all()[$name] ?? [];
+        if (! is_array($values)) {
+            throw MalformedFlowParameter::listGivenOneValue($name, (string) $values);
+        }
+        $list = [];
+        foreach ($values as $value) {
+            if (is_array($value)) {
+                throw MalformedFlowParameter::listHoldingAList($name, (string) (array_values(array_filter($value, 'is_string'))[0] ?? '{service}'));
+            }
+            if ((string) $value === '') {
+                throw MalformedFlowParameter::listHoldingAnEmptyValue($name);
+            }
+            $list[] = (string) $value;
+        }
+
+        return $list;
     }
 
     private function foldsChannels(string $fold): bool

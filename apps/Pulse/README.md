@@ -129,6 +129,8 @@ a name matching several nodes lists them to choose from.
 (`collapse[]={service}`). **Fold asynchronous channels into arrows** (`fold=channels`) drops an asynchronous channel and
 labels the arrow from the message to its handler with the channel instead. Following a node, finding one, choosing the
 services and changing the scope all keep the highlighted trace, the service scope, the collapsed services and the folding.
+A parameter Pulse cannot read, such as `collapse=ticketing` for `collapse[]=ticketing` or a `focus` without a colon, is
+refused with the shape it takes; an empty single value counts as absent.
 
 ## Traces
 

@@ -63,7 +63,9 @@ volumes are dropped.
    "asking ticketing" while the storefront sends `tickets.hold` over the Distributed Bus, then yours, with a countdown
    to the hold's expiry: ticketing holds a seat for 120 seconds in the demo (`TICKETING_HOLD_SECONDS`). Click it again
    to let it go. **Go to checkout** appears once every seat you asked for is held.
-3. Pay with any card number without spaces, `4242424242424242` for example. The charge runs on `storefront_async`, the
+3. At checkout, choose how the payment stub answers: **the payment succeeds** (the default), **the card is declined**
+   (the order fails and its seats are released) or **the payment provider is down** (the charge lands in the dead
+   letters until you replay it from Pulse, below). With the payment succeeding, the charge runs on `storefront_async`, the
    paid order sends `tickets.confirm`, ticketing sells the seats and issues the tickets, and the order page shows them
    with their entry codes a few seconds later. The confirmation email goes through the storefront's email stub, which
    records it in its `sent_emails` table instead of sending it.
@@ -76,7 +78,7 @@ projections, and you can schedule a concert, open its sales, change its prices a
 ## Run a rush
 
 A concert's page on the storefront has a **Simulate a rush** panel: it sends a crowd of synthetic buyers after the seats
-while you pick yours. Start one with the defaults (30 buyers: 30% with a declined card, 10% hitting a payment provider
+while you pick yours. Start one with the defaults (30 buyers: 30% whose card is declined, 10% hitting a payment provider
 outage, 10% with an email address that bounces), or from the console:
 
 ```bash
@@ -109,7 +111,7 @@ The status line under the panel counts the buyers as they hold, pay, get their t
 
 ## Replay a dead-lettered payment
 
-A buyer of the outage share, or you with a card ending `9999`, hits the payment provider outage on the first attempt,
+A buyer of the outage share, or you choosing **the payment provider is down** at checkout, hits the outage on the first attempt,
 so the charge lands in the dead letters and the order stays paying. Open **Pulse → Dead letters**, expand
 `PaymentProviderUnavailable` and press **Replay all** (or tick one message and **Replay selected**): the charge runs
 again, succeeds this time, and the order completes: paid, confirmed by ticketing, tickets issued. Replay it while the
@@ -138,12 +140,14 @@ The slip resumes at the render with the ticket numbers it already allocated, and
 
 ## The stubs
 
-The storefront talks to no real payment provider or mail server. Three rules drive its failures:
+The storefront talks to no real payment provider or mail server. The checkout asks which answer the payment stub gives,
+and an email address decides the mail stub's:
 
 | Input | What happens |
 |---|---|
-| A card ending `0000` | The charge is declined and the order fails, releasing its seats |
-| A card ending `9999` | The provider is unavailable on the first attempt: the charge is dead-lettered until you replay it, then succeeds |
+| **The payment succeeds** (the default at checkout) | The card is charged and the order goes on to its tickets |
+| **The card is declined** | The charge is declined and the order fails, releasing its seats |
+| **The payment provider is down** | The provider is unavailable on the first attempt: the charge is dead-lettered until you replay it, then succeeds |
 | An email address at `@bounce.example` (Linus Bounce) | The confirmation email bounces and always lands in the dead letters |
 
 ## Where each Ecotone feature lives
@@ -238,8 +242,8 @@ yours to release it. Every request to ticketing (`tickets.hold`, `tickets.releas
 is queued on `storefront_async`, the database queue in the same transaction as the order change behind it, so it leaves
 only when that change commits. The `storefront-worker` container sends it within a fraction of a second, so a hold still
 shows on the page's next poll; with the worker stopped, clicks wait in the queue. The checkout charges the card on
-`storefront_async` through a payment stub: a card ending `0000` is declined and the order fails, one ending `9999` hits
-a provider outage on its first attempt, so the charge lands in the dead letters until you replay it (`php artisan
+`storefront_async` through a payment stub whose answer the buyer chooses on the checkout form: the payment succeeds, the
+card is declined and the order fails, or the provider is down on the first attempt, so the charge lands in the dead letters until you replay it (`php artisan
 ecotone:deadletter:replay <messageId>` in the storefront). Only transient database errors and an order another writer
 saved first are retried on the spot, so a provider outage reaches the dead letters instead of being retried away, and a
 payment reference is charged once however often its charge runs. A paid order sends `tickets.confirm`; `tickets.issued`
@@ -257,8 +261,8 @@ demo/docker-compose.yml exec storefront php artisan demo:rush <concertId> --buye
 buyers join and moves up to 10 buyers one step, the buyers that first asked ticketing earliest before the ones yet to
 ask, so the crowd's holds and charges never queue far ahead of yours. A buyer starts an order and asks ticketing for
 free seats one at a time, exactly as the seat picker does, tries another seat when one is refused (three refusals and it
-gives up), and pays once its seats are held: the declined share with a card ending `0000`, the outage share with one
-ending `9999`, the bounce share with an `@bounce.example` address. A buyer whose seats are not held 120 seconds after it
+gives up), and pays once its seats are held: the declined share choosing a declined card, the outage share choosing the
+provider outage, the bounce share with an `@bounce.example` address. A buyer whose seats are not held 120 seconds after it
 asked ticketing for the first one gives up and fails its order (`RUSH_BUYER_DEADLINE_SECONDS`), and a rush lets every
 buyer still picking go 600 seconds after it started (`RUSH_DEADLINE_SECONDS`), so a rush ends on its own even when
 ticketing never answers. The status line under the panel polls `/rushes/{rushId}/state.json` every second, stops

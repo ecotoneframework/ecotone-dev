@@ -9,7 +9,7 @@ final class ChargeCard
     public function __construct(
         public readonly string $orderId,
         public readonly string $paymentReference,
-        public readonly string $cardEnding,
+        public readonly PaymentOutcome $outcome,
     ) {
     }
 }

@@ -9,6 +9,7 @@ use App\Ordering\ReleaseSeat;
 use App\Ordering\RequestSeat;
 use App\Ordering\StartOrder;
 use App\Payment\Pay;
+use App\Payment\PaymentOutcome;
 use DomainException;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
@@ -137,8 +138,20 @@ final class OrderController
     public function pay(Request $request, string $orderId): RedirectResponse
     {
         $order = $this->ownedOrder($request, $orderId);
+        $outcome = PaymentOutcome::tryFrom((string) $request->input('paymentOutcome'));
+        if ($outcome === null) {
+            $choices = array_map(fn (PaymentOutcome $outcome) => sprintf('%s (%s)', $outcome->value, $outcome->shortLabel()), PaymentOutcome::cases());
+
+            return back()->with('refusal', sprintf(
+                'The payment outcome "%s" is not one the demo payment provider plays, so order %s is not paid. Choose %s or %s.',
+                (string) $request->input('paymentOutcome'),
+                $order['orderId'],
+                implode(', ', array_slice($choices, 0, -1)),
+                end($choices),
+            ));
+        }
         try {
-            $this->commandBus->send(new Pay(orderId: $order['orderId'], cardNumber: (string) $request->input('cardNumber')));
+            $this->commandBus->send(new Pay(orderId: $order['orderId'], outcome: $outcome));
         } catch (DomainException $refusal) {
             return back()->with('refusal', $refusal->getMessage());
         }

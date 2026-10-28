@@ -154,7 +154,7 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         self::assertSame('charged', $this->storefront->sendQueryWithRouting('payment.status', $order['paymentReference']));
     }
 
-    public function test_the_buyers_pay_with_cards_in_the_shares_of_the_rush(): void
+    public function test_the_buyers_choose_payment_outcomes_in_the_shares_of_the_rush(): void
     {
         $this->concertOnSale(seats: 12);
 
@@ -171,7 +171,7 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         self::assertNotNull($state['finishedAt']);
         self::assertSame(1, $this->storefront->getGateway(DeadLetterGateway::class)->count());
         $failureReasons = array_filter(array_map(fn (array $buyer) => $this->order($buyer['orderId'])['failureReason'], $this->buyers()));
-        self::assertSame(array_fill(0, 3, 'The card ending 0000 was declined, so the order is not paid and its seats are released. Pick the seats again and pay with another card.'), array_values($failureReasons));
+        self::assertSame(array_fill(0, 3, 'The card was declined, so the order is not paid and its seats are released. Pick the seats again and pay with another card.'), array_values($failureReasons));
         $emails = array_map(fn (array $buyer) => $this->storefront->sendQueryWithRouting('customer.detail', $buyer['customerId'])['email'], $this->buyers());
         self::assertCount(1, array_filter($emails, fn (string $email) => str_ends_with($email, '@bounce.example')));
         self::assertCount(9, array_filter($emails, fn (string $email) => str_ends_with($email, '@example.com')));

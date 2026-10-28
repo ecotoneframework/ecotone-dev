@@ -8,7 +8,7 @@ final class Pay
 {
     public function __construct(
         public readonly string $orderId,
-        public readonly string $cardNumber,
+        public readonly PaymentOutcome $outcome,
     ) {
     }
 }

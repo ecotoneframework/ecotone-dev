@@ -159,7 +159,7 @@ final class TicketingRequestsTest extends StorefrontFlowTestCase
         $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
         $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-11');
 
-        $this->storefront->getCommandBus()->send(new FailOrder(orderId: $orderId, reason: 'Card ending 0000 was declined'));
+        $this->storefront->getCommandBus()->send(new FailOrder(orderId: $orderId, reason: 'The card was declined'));
 
         self::assertSame(
             [
@@ -174,7 +174,7 @@ final class TicketingRequestsTest extends StorefrontFlowTestCase
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
 
-        $this->storefront->getCommandBus()->send(new FailOrder(orderId: $orderId, reason: 'Card ending 0000 was declined'));
+        $this->storefront->getCommandBus()->send(new FailOrder(orderId: $orderId, reason: 'The card was declined'));
 
         self::assertSame([], $this->ticketingReceives());
     }

@@ -203,7 +203,7 @@ final class RushSimulator
             return $this->step(stage: $this->giveUp($commandBus, $buyer['order_id'], sprintf('Rush buyer %d gave up: the rush ended %d seconds after it started, the deadline of a rush set by RUSH_DEADLINE_SECONDS.', $buyerNumber, (int) Carbon::parse($rush['started_at'])->diffInSeconds(Carbon::parse($rush['deadline_at'])))), pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
         }
         if ($pendingSeatId === null && count($heldSeatIds) >= (int) $rush['seats_per_buyer']) {
-            $commandBus->send(new Pay(orderId: $buyer['order_id'], cardNumber: RushBuyerRole::from($buyer['role'])->cardNumber()));
+            $commandBus->send(new Pay(orderId: $buyer['order_id'], outcome: RushBuyerRole::from($buyer['role'])->paymentOutcome()));
 
             return $this->step(stage: self::PAYING, pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
         }

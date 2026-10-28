@@ -32,10 +32,15 @@
             @endif
             <form method="post" action="{{ url('/orders/' . $order['orderId'] . '/checkout') }}" class="card-form">
                 @csrf
-                <label>Card number <input type="text" name="cardNumber" inputmode="numeric" autocomplete="off" value="4242424242424242"></label>
+                <fieldset class="payment-outcomes">
+                    <legend>How should the demo payment provider answer?</legend>
+                    @foreach (\App\Payment\PaymentOutcome::cases() as $outcome)
+                        <label><input type="radio" name="paymentOutcome" value="{{ $outcome->value }}"{{ $outcome === \App\Payment\PaymentOutcome::SUCCEEDS ? ' checked' : '' }}> {{ $outcome->label() }}</label>
+                    @endforeach
+                </fieldset>
                 <button type="submit">Pay {{ $concert['currency'] }} {{ number_format($totalCents / 100, 2) }}</button>
             </form>
-            <p class="muted">Demo cards: any number pays; one ending in 0000 is declined; one ending in 9999 hits a payment provider outage, so the charge lands in the dead letters until you replay it from Ecotone Pulse or with <code>php artisan ecotone:deadletter:replay &lt;messageId&gt;</code> in the storefront.</p>
+            <p class="muted">The storefront charges through a payment stub, so you choose its answer instead of typing a card. On a provider outage the charge lands in the dead letters until you replay it from Ecotone Pulse or with <code>php artisan ecotone:deadletter:replay &lt;messageId&gt;</code> in the storefront, and the replayed charge succeeds.</p>
         @endif
     </main>
     <script src="{{ asset('js/countdown.js') }}"></script>

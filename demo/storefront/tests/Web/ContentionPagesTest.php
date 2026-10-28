@@ -93,6 +93,15 @@ final class ContentionPagesTest extends TestCase
         $response->assertSee('a normal held order');
     }
 
+    public function test_contending_buyers_are_synthetic_customers_not_listed_on_whoami(): void
+    {
+        $this->scheduleOnSale();
+
+        $this->postJson('/concerts/' . self::CONCERT_ID . '/contentions', ['seatId' => self::SEAT_ID, 'buyers' => 2]);
+
+        $this->get('/whoami')->assertOk()->assertDontSee('Contending buyer');
+    }
+
     public function test_a_contention_of_more_than_10_buyers_is_refused_with_the_bounds(): void
     {
         $this->scheduleOnSale();

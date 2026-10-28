@@ -30,7 +30,7 @@ const decorate = (graph, svg) => {
         cluster.classList.add('svc-' + ((service === undefined ? index : Number(service)) % 8));
     });
     svg.querySelectorAll('g.node, g.cluster').forEach((element) => {
-        const id = /(?:flowchart-)?(s\d+(?:n\d+)?)(?:-\d+)?$/.exec(element.id)?.[1];
+        const id = /(?:flowchart-)?(s\d+(?:n\d+|c)?)(?:-\d+)?$/.exec(element.id)?.[1];
         if (id && nodes[id]) {
             link(element, nodes[id].href, nodes[id].title);
         }

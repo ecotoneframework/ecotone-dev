@@ -48,8 +48,9 @@ final class FlowGraphController extends AbstractController
         $narrowedByTrace = $requested === [] && $crossed !== [];
         $view = (string) $request->query->get('view', '');
         $focus = $this->focusOf($flows, $request->query->getString('focus'));
+        $collapsed = array_values(array_intersect($available, array_map('strval', $request->query->all('collapse'))));
         $crossedNodes = array_sum(array_map(fn (ServiceFlow $flow) => in_array($flow->name, $crossed, true) ? count($flow->graph->nodes()) : 0, $flows));
-        $overview = $focus === null && $requested === [] && $view !== 'detail' && match (true) {
+        $overview = $focus === null && $collapsed === [] && $requested === [] && $view !== 'detail' && match (true) {
             $view === 'overview' => true,
             $narrowedByTrace => $crossedNodes > $this->defaultNodeLimit,
             default => count($available) > self::OVERVIEW_ABOVE_SERVICES || ($totalNodes > $this->defaultNodeLimit && count($available) > 1),
@@ -67,9 +68,10 @@ final class FlowGraphController extends AbstractController
             return $this->redirect($found[0]['href']);
         }
 
-        $nodes = $overview ? StitchedFlowGraph::overviewDetails($flows) : StitchedFlowGraph::nodeDetails($flows, $shown, $focus);
+        $nodes = $overview ? StitchedFlowGraph::overviewDetails($flows) : StitchedFlowGraph::nodeDetails($flows, $shown, $focus, $collapsed);
         $nodes = array_map(fn (array $node): array => [...$node, 'href' => match (true) {
             $overview => $this->generateUrl('flow_graph', ['services' => [$node['service']]]),
+            isset($node['collapsed']) => $this->collapseUrl($request, $collapsed, $node['service']),
             isset($node['node']) => $this->focusUrl($node['service'], $node['node'], $traceId),
             default => $this->generateUrl('dead_letters', ['service' => $node['service']]),
         }], $nodes);
@@ -91,8 +93,10 @@ final class FlowGraphController extends AbstractController
             'detailUrl' => $this->generateUrl('flow_graph', array_filter(['view' => 'detail', 'trace' => $traceId])),
             'services' => $available,
             'shown' => $shown,
+            'collapsed' => $collapsed,
+            'collapseUrls' => array_combine($shown, array_map(fn (string $service): string => $this->collapseUrl($request, $collapsed, $service), $shown)),
             'notices' => $serviceFlows->notices,
-            'diagram' => $overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::toMermaid($flows, $shown, $highlight, $scope, $focus),
+            'diagram' => $overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::toMermaid($flows, $shown, $highlight, $scope, $focus, $collapsed),
             'trace' => $highlight,
             'traceStates' => $traceView?->states ?? [],
             'traceEmpty' => $traceView !== null && $traceView->trace->isEmpty(),
@@ -168,5 +172,15 @@ final class FlowGraphController extends AbstractController
         sort($names);
 
         return array_map('strval', $names);
+    }
+
+    /**
+     * @param list<string> $collapsed
+     */
+    private function collapseUrl(Request $request, array $collapsed, string $service): string
+    {
+        $toggled = in_array($service, $collapsed, true) ? array_values(array_diff($collapsed, [$service])) : [...$collapsed, $service];
+
+        return $this->generateUrl('flow_graph', array_filter([...$request->query->all(), 'collapse' => $toggled]));
     }
 }

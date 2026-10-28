@@ -66,7 +66,7 @@
     <form method="get" class="service-toggles">
         {% if trace %}<input type="hidden" name="trace" value="{{ trace.traceId }}">{% endif %}
         {% for service in services %}
-            <label><input type="checkbox" name="services[]" value="{{ service }}"{% if service in shown %} checked{% endif %}> {{ service }}</label>
+            <label><input type="checkbox" name="services[]" value="{{ service }}"{% if service in shown %} checked{% endif %}> {{ service }}</label>{% if collapseUrls[service] is defined %} <a class="collapse-link" href="{{ collapseUrls[service] }}" {% if service in collapsed %}data-expand="{{ service }}" aria-label="Expand {{ service }}">expand{% else %}data-collapse="{{ service }}" aria-label="Collapse {{ service }}">collapse{% endif %}</a>{% endif %}
         {% endfor %}
         <button type="submit">Show</button>
     </form>

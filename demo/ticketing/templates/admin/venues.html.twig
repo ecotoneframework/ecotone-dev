@@ -1,31 +1,51 @@
 {% extends 'admin/layout.html.twig' %}
+{% import '_icons.html.twig' as icons %}
 
 {% block title %}Venues{% endblock %}
 
 {% block content %}
-    <h1>Venues</h1>
-    <table class="venues">
-        <thead>
-            <tr><th>Name</th><th>Seats</th></tr>
-        </thead>
-        <tbody>
-            {% for venue in venues %}
-                <tr><td>{{ venue.name }}</td><td>{{ venue.seatCount }}</td></tr>
-            {% else %}
-                <tr><td colspan="2">No venues yet.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">Back office</p>
+            <h1>Venues</h1>
+            <p class="page-meta">The halls concerts are scheduled in. A venue's rows and seats become each of its concerts' seat map.</p>
+        </div>
+        <div class="toolbar">
+            <a class="button button-primary" href="#create">{{ icons.icon('plus') }} Create a venue</a>
+        </div>
+    </header>
 
-    <h2>Create a venue</h2>
-    <form method="post" action="{{ path('admin_venues_create') }}" class="admin-form">
-        <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
-        <label>Name <input name="name" required></label>
-        <label>Sections, comma separated <input name="sections" placeholder="Stalls, Balcony" required></label>
-        <label>Rows per section <input name="rowsPerSection" type="number" min="1" value="3" required></label>
-        <label>Seats per row <input name="seatsPerRow" type="number" min="1" value="12" required></label>
-        <label>VIP rows, comma separated <input name="vipRows" placeholder="A, B"></label>
-        <p class="hint">Rows are lettered A, B, C… across the sections in order; a seat is its row and number, like A-12.</p>
-        <button type="submit">Create venue</button>
-    </form>
+    <div class="table-wrap">
+        <table class="venues">
+            <thead>
+                <tr><th scope="col">Name</th><th scope="col" class="numeric">Seats</th></tr>
+            </thead>
+            <tbody>
+                {% for venue in venues %}
+                    <tr>
+                        <td><span class="cell-with-icon">{{ icons.icon('building') }}<strong>{{ venue.name }}</strong></span></td>
+                        <td class="numeric">{{ venue.seatCount }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="2" class="empty-state">No venues yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <section class="card" id="create">
+        <h2>Create a venue</h2>
+        <form method="post" action="{{ path('admin_venues_create') }}" class="admin-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
+            <label>Name <input name="name" required></label>
+            <label>Sections, comma separated <input name="sections" placeholder="Stalls, Balcony" required></label>
+            <label>Rows per section <input name="rowsPerSection" type="number" min="1" value="3" required></label>
+            <label>Seats per row <input name="seatsPerRow" type="number" min="1" value="12" required></label>
+            <label>VIP rows, comma separated <input name="vipRows" placeholder="A, B"></label>
+            <p class="hint">Rows are lettered A, B, C… across the sections in order; a seat is its row and number, like A-12.</p>
+            <div class="form-actions">
+                <button type="submit" class="button-primary">Create venue</button>
+            </div>
+        </form>
+    </section>
 {% endblock %}

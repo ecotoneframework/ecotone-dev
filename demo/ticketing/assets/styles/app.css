@@ -623,6 +623,16 @@ td.row-action {
     text-decoration: underline;
 }
 
+.cell-with-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.cell-with-icon .icon {
+    color: var(--color-text-muted);
+}
+
 .cell-title small,
 .muted {
     color: var(--color-text-muted);
@@ -878,7 +888,11 @@ main.seat-map {
     }
 
     .app-nav a {
-        padding: var(--space-2) var(--space-3);
+        flex: 1 1 0;
+        justify-content: center;
+        gap: var(--space-2);
+        padding: var(--space-2);
+        font-size: var(--font-size-sm);
     }
 
     .app-nav a[aria-current="page"] {

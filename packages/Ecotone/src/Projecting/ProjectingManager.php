@@ -101,6 +101,7 @@ class ProjectingManager
                     null,
                     null,
                     $projectionState->status,
+                    $projectionState->version,
                 );
             }
 
@@ -171,7 +172,7 @@ class ProjectingManager
 
     public function isSetUp(): bool
     {
-        return $this->getProjectionStateStorage()->loadPartition($this->projectionName, null, lock: false) !== null;
+        return $this->getProjectionStateStorage()->loadPartition($this->projectionName) !== null;
     }
 
     public function getProjectionName(): string
@@ -337,7 +338,7 @@ class ProjectingManager
     private function ensurePartitionInitialized(?string $partitionKeyValue): void
     {
         $storage = $this->getProjectionStateStorage();
-        if ($storage->loadPartition($this->projectionName, $partitionKeyValue, lock: false) !== null) {
+        if ($storage->loadPartition($this->projectionName, $partitionKeyValue) !== null) {
             return;
         }
 

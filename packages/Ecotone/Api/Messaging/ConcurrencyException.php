@@ -82,6 +82,20 @@ class ConcurrencyException extends MessagingException
         ), self::errorCode());
     }
 
+    public static function forStaleProjection(string $projectionName, ?string $partitionKey, int $loadedVersion): self
+    {
+        return new self(sprintf(
+            "Projection '%s' (partition: %s) was loaded at version %d, but another run of the same partition saved it first. "
+            . 'Nothing this run projected was saved: its transaction is rolled back, and the events are projected from the position the other run stored when it runs again. '
+            . 'For a synchronous projection that run is the command, for an asynchronous one the message: the command bus and asynchronous endpoints retry by default when DbalConfiguration runs them in a database transaction, '
+            . 'and an asynchronous projection is always retried. Without one, enable InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class]), '
+            . 'or send the command again.',
+            $projectionName,
+            $partitionKey ?? 'global',
+            $loadedVersion,
+        ), self::errorCode());
+    }
+
     private static function whereItIsNow(int $expectedVersion, int $currentVersion): string
     {
         return $currentVersion === $expectedVersion

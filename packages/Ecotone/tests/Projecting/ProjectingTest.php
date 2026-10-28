@@ -1013,7 +1013,7 @@ class ProjectingTest extends TestCase
                 return $projectionName === 'userland_storage_projection';
             }
 
-            public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ?ProjectionPartitionState
+            public function loadPartition(string $projectionName, ?string $partitionKey = null): ?ProjectionPartitionState
             {
                 $this->wasUsed = true;
                 $key = $projectionName . ($partitionKey ? '-' . $partitionKey : '');

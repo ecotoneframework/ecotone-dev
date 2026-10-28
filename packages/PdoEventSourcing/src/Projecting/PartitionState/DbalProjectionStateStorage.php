@@ -8,10 +8,11 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Projecting\PartitionState;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\InvalidFieldNameException;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ManagerRegistryConnectionFactory;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
 use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
@@ -62,19 +63,13 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         return $this->connectionFactory->createContext()->getDbalConnection();
     }
 
-    public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ?ProjectionPartitionState
+    public function loadPartition(string $projectionName, ?string $partitionKey = null): ?ProjectionPartitionState
     {
         $tableName = $this->getTableName();
-        $query = <<<SQL
-            SELECT last_position, user_state, metadata FROM {$tableName}
+        $row = $this->onTable(fn () => $this->getConnection()->fetchAssociative(<<<SQL
+            SELECT last_position, user_state, metadata, version FROM {$tableName}
             WHERE projection_name = :projectionName AND partition_key = :partitionKey
-            SQL;
-
-        if ($lock && ! $this->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
-            $query .= ' FOR UPDATE';
-        }
-
-        $row = $this->onTable(fn () => $this->getConnection()->fetchAssociative($query, [
+            SQL, [
             'projectionName' => $projectionName,
             'partitionKey' => $partitionKey ?? '',
         ]));
@@ -84,7 +79,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
         $metadata = $row['metadata'] ? json_decode($row['metadata'], true) : null;
         $status = isset($metadata[self::INITIALIZATION_STATUS_KEY]) ? ProjectionInitializationStatus::from($metadata[self::INITIALIZATION_STATUS_KEY]) : null;
-        return new ProjectionPartitionState($projectionName, $partitionKey, $row['last_position'], json_decode($row['user_state'], true), $status);
+        return new ProjectionPartitionState($projectionName, $partitionKey, $row['last_position'], json_decode($row['user_state'], true), $status, (int) $row['version']);
     }
 
     public function initPartition(string $projectionName, ?string $partitionKey = null): ?ProjectionPartitionState
@@ -107,7 +102,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         };
 
         $metadata = [
-            self::INITIALIZATION_STATUS_KEY => $projectionState->status?->value ?? ProjectionInitializationStatus::UNINITIALIZED->value,
+            self::INITIALIZATION_STATUS_KEY => ProjectionInitializationStatus::UNINITIALIZED->value,
         ];
         $rowsAffected = $this->onTable(fn () => $connection->executeStatement($insertQuery, [
             'projectionName' => $projectionName,
@@ -123,37 +118,32 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         }
 
         // Return the newly created state
-        return new ProjectionPartitionState($projectionName, $partitionKey, null, null, ProjectionInitializationStatus::UNINITIALIZED);
+        return new ProjectionPartitionState($projectionName, $partitionKey, null, null, ProjectionInitializationStatus::UNINITIALIZED, 0);
     }
 
     public function savePartition(ProjectionPartitionState $projectionState): void
     {
-        $connection = $this->getConnection();
         $tableName = $this->getTableName();
-
-        $saveStateQuery = match (true) {
-            $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform => <<<SQL
-                INSERT INTO {$tableName} (projection_name, partition_key, last_position, user_state, metadata)
-                VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :metadata)
-                ON DUPLICATE KEY UPDATE last_position = :lastPosition, user_state = :userState, metadata = :metadata
-                SQL,
-            default => <<<SQL
-                INSERT INTO {$tableName} (projection_name, partition_key, last_position, user_state, metadata)
-                VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :metadata)
-                ON CONFLICT (projection_name, partition_key) DO UPDATE SET last_position = :lastPosition, user_state = :userState, metadata = :metadata
-                SQL,
-        };
-
         $metadata = [
             self::INITIALIZATION_STATUS_KEY => $projectionState->status?->value ?? ProjectionInitializationStatus::INITIALIZED->value,
         ];
-        $this->onTable(fn () => $connection->executeStatement($saveStateQuery, [
+
+        $savedRows = $this->onTable(fn () => $this->getConnection()->executeStatement(<<<SQL
+            UPDATE {$tableName}
+            SET last_position = :lastPosition, user_state = :userState, metadata = :metadata, version = version + 1
+            WHERE projection_name = :projectionName AND partition_key = :partitionKey AND version = :version
+            SQL, [
             'projectionName' => $projectionState->projectionName,
             'partitionKey' => $projectionState->partitionKey ?? '',
             'lastPosition' => $projectionState->lastPosition,
             'userState' => json_encode($projectionState->userState, JSON_THROW_ON_ERROR),
             'metadata' => json_encode($metadata, JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
+            'version' => $projectionState->version,
         ]));
+
+        if ($savedRows === 0) {
+            throw ConcurrencyException::forStaleProjection($projectionState->projectionName, $projectionState->partitionKey, $projectionState->version);
+        }
     }
 
     public function init(string $projectionName): void
@@ -177,6 +167,8 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
     {
         try {
             return $statement();
+        } catch (InvalidFieldNameException) {
+            throw ConfigurationException::create($this->tableManager->getMissingVersionColumnInstructions());
         } catch (Throwable $failure) {
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }

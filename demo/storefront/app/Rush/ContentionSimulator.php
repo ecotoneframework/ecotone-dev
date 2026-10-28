@@ -97,23 +97,25 @@ final class ContentionSimulator
     }
 
     /**
-     * @return array{state: string, reason: ?string}
+     * @return array{state: string, reason: ?string, refusal: ?string, refusalExplanation: ?string}
      */
     private function stateOf(array $buyer, string $seatId): array
     {
         $lastRefusal = $buyer['last_refusal'] === null ? null : json_decode($buyer['last_refusal'], true, flags: JSON_THROW_ON_ERROR);
         if (($lastRefusal['seatId'] ?? null) === $seatId) {
-            return ['state' => 'refused', 'reason' => $lastRefusal['reason']];
+            $refusal = ContentionRefusal::ofReason($lastRefusal['reason']);
+
+            return ['state' => 'refused', 'reason' => $lastRefusal['reason'], 'refusal' => $refusal->value, 'refusalExplanation' => $refusal->explanation()];
         }
         foreach (json_decode($buyer['held_seats'], true, flags: JSON_THROW_ON_ERROR) as $heldSeat) {
             if ($heldSeat['seatId'] === $seatId && $heldSeat['holdId'] === $buyer['hold_id']) {
-                return ['state' => 'held', 'reason' => null];
+                return ['state' => 'held', 'reason' => null, 'refusal' => null, 'refusalExplanation' => null];
             }
         }
         if ((json_decode($buyer['requested_holds'], true, flags: JSON_THROW_ON_ERROR)[$seatId] ?? null) === $buyer['hold_id']) {
-            return ['state' => 'pending', 'reason' => null];
+            return ['state' => 'pending', 'reason' => null, 'refusal' => null, 'refusalExplanation' => null];
         }
 
-        return ['state' => 'released', 'reason' => null];
+        return ['state' => 'released', 'reason' => null, 'refusal' => null, 'refusalExplanation' => null];
     }
 }

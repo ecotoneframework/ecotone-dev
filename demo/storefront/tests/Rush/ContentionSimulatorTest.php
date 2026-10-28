@@ -108,6 +108,47 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
         self::assertSame(['seatId' => self::SEAT_ID, 'reason' => 'someone was faster: seat A-3'], $order['lastRefusal']);
     }
 
+    #[DataProvider('refusalsOfTicketing')]
+    public function test_each_refusal_says_whether_the_boundary_refused_it_during_another_append_or_the_seat_was_already_taken(string $reason, string $refusal, string $refusalExplanation): void
+    {
+        $this->concertOnSale();
+        $this->ticketingService->holdsToRefuse = 1;
+        $this->ticketingService->refusalReason = $reason;
+
+        $this->contend(buyers: 2);
+        $this->ticketingReplies();
+
+        $buyers = $this->contentionState()['buyers'];
+        self::assertSame(['refused', 'held'], array_column($buyers, 'state'));
+        self::assertSame([$reason, null], array_column($buyers, 'reason'));
+        self::assertSame([$refusal, null], array_column($buyers, 'refusal'));
+        self::assertSame([$refusalExplanation, null], array_column($buyers, 'refusalExplanation'));
+    }
+
+    public static function refusalsOfTicketing(): iterable
+    {
+        yield 'lost the race to the append' => [
+            sprintf('Seat %s cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because someone was faster: the seat changed each time ticketing tried to hold it. Pick the seat again, or choose another one.', self::SEAT_ID),
+            'lost_the_race',
+            'Refused by the consistency boundary: another hold of the seat was being appended at the same time.',
+        ];
+        yield 'seat already held' => [
+            'Seat A-3 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because someone was faster: order 0199f3a8-6f2a-7c1e-9a51-00000000000b holds it until 2026-10-25T12:02:00+00:00. Pick another seat, or try this one again after that hold expires.',
+            'seat_already_held',
+            'Refused because the seat was already held.',
+        ];
+        yield 'seat already sold' => [
+            'Seat A-3 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because someone was faster: it is sold to order 0199f3a8-6f2a-7c1e-9a51-00000000000b. Pick another seat.',
+            'seat_already_sold',
+            'Refused because the seat was already sold.',
+        ];
+        yield 'any other refusal' => [
+            'Seat A-3 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because the concert is cancelled, not on sale. Seats are held only while a concert is on sale.',
+            'other',
+            'Refused by ticketing.',
+        ];
+    }
+
     #[DataProvider('buyerCountsOutOfBounds')]
     public function test_a_contention_of_fewer_than_2_or_more_than_10_buyers_is_refused(int $buyers): void
     {

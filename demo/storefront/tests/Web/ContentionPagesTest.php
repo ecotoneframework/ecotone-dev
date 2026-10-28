@@ -82,8 +82,10 @@ final class ContentionPagesTest extends TestCase
         $response = $this->get('/contentions/' . $contentionId);
 
         $response->assertOk();
-        $response->assertSee('One seat, 5 buyers, one hold');
-        $response->assertSee('the seat is a consistency boundary');
+        $response->assertSee('5 synthetic buyers asked ticketing for seat <strong>B-1</strong>', escape: false);
+        $response->assertSee('within the same moment. Ticketing decides them in whatever order they arrive, and the Dynamic Consistency Boundary on the seat lets exactly one hold stand: a request that reaches the seat while another is being appended is refused by the boundary itself, a later one is refused because the seat is already held.');
+        $response->assertDontSee('at the same moment');
+        $response->assertDontSee('in parallel');
         $response->assertSee('data-state-url="http://localhost/contentions/' . $contentionId . '/state.json"', escape: false);
         self::assertSame(1, substr_count($response->getContent(), 'contention__buyer--held'));
         self::assertSame(4, substr_count($response->getContent(), 'contention__buyer--refused'));
@@ -91,6 +93,36 @@ final class ContentionPagesTest extends TestCase
         $response->assertSeeInOrder(['Contending buyer 4', 'refused', self::REFUSAL, 'Contending buyer 5', 'held'], escape: false);
         $response->assertSee('<input type="hidden" name="customerId" value="' . $buyers[4]['customerId'] . '">', escape: false);
         $response->assertSee('a normal held order');
+    }
+
+    public function test_the_contention_page_says_of_each_refusal_whether_the_boundary_refused_it_or_the_seat_was_already_held(): void
+    {
+        $this->scheduleOnSale();
+        $contentionId = $this->postJson('/concerts/' . self::CONCERT_ID . '/contentions', ['seatId' => self::SEAT_ID, 'buyers' => 3])->json('contentionId');
+        $buyers = $this->getJson('/contentions/' . $contentionId . '/state.json')->json('buyers');
+        $commandBus = $this->app->make(CommandBus::class);
+        $commandBus->send(new MarkSeatHeld(orderId: $buyers[0]['orderId'], seatId: self::SEAT_ID, holdId: $buyers[0]['holdId'], expiresAt: '2026-10-25T12:02:00+00:00'));
+        $commandBus->send(new RecordSeatRefusal(orderId: $buyers[1]['orderId'], seatId: self::SEAT_ID, holdId: $buyers[1]['holdId'], reason: 'Seat ' . self::SEAT_ID . ' cannot be held for order ' . $buyers[1]['orderId'] . ', because someone was faster: the seat changed each time ticketing tried to hold it. Pick the seat again, or choose another one.'));
+        $commandBus->send(new RecordSeatRefusal(orderId: $buyers[2]['orderId'], seatId: self::SEAT_ID, holdId: $buyers[2]['holdId'], reason: 'Seat B-1 of The Night Owls cannot be held for order ' . $buyers[2]['orderId'] . ', because someone was faster: order ' . $buyers[0]['orderId'] . ' holds it until 2026-10-25T12:02:00+00:00. Pick another seat, or try this one again after that hold expires.'));
+
+        $response = $this->get('/contentions/' . $contentionId);
+
+        $response->assertSeeInOrder([
+            'Contending buyer 2', 'refused', 'Refused by the consistency boundary: another hold of the seat was being appended at the same time.', 'the seat changed each time ticketing tried to hold it',
+            'Contending buyer 3', 'refused', 'Refused because the seat was already held.', 'holds it until',
+        ]);
+        $response->assertSee('contention__refusal contention__refusal--lost_the_race', escape: false);
+        $response->assertSee('contention__refusal contention__refusal--seat_already_held', escape: false);
+    }
+
+    public function test_the_contention_panel_says_the_requests_are_decided_in_the_order_they_arrive(): void
+    {
+        $this->scheduleOnSale();
+
+        $response = $this->get('/concerts/' . self::CONCERT_ID);
+
+        $response->assertSee('Send several synthetic buyers after the same seat within the same moment. Ticketing decides their requests in whatever order they arrive, and the Dynamic Consistency Boundary on the seat lets exactly one hold stand: watch one buyer turn green, and every other one turn red, refused either by the boundary while another hold was being appended or because the seat was already held.');
+        $response->assertDontSee('in parallel');
     }
 
     public function test_contending_buyers_are_synthetic_customers_not_listed_on_whoami(): void

@@ -389,6 +389,15 @@ button.seat:disabled {
     letter-spacing: 0.05em;
 }
 
+.contention__refusal {
+    flex-basis: 100%;
+    font-weight: 600;
+}
+
+.contention__refusal--lost_the_race {
+    color: #7c2d12;
+}
+
 .contention__reason {
     flex-basis: 100%;
 }

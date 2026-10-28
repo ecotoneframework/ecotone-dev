@@ -1,6 +1,6 @@
 <section class="contention-panel" data-contention-panel data-start-contention-url="{{ url('/concerts/' . $concert['concertId'] . '/contentions') }}">
     <h2>Contend for one seat</h2>
-    <p class="muted">Send several synthetic buyers after the same seat at the same moment. Each asks ticketing to hold it, the requests are handled in parallel, and exactly one of them gets the seat: watch one turn green and every other one red with ticketing's reason.</p>
+    <p class="muted">Send several synthetic buyers after the same seat within the same moment. Ticketing decides their requests in whatever order they arrive, and the Dynamic Consistency Boundary on the seat lets exactly one hold stand: watch one buyer turn green, and every other one turn red, refused either by the boundary while another hold was being appended or because the seat was already held.</p>
     <form class="contention-panel__form" data-contention-form>
         <label>Seat
             <select name="seatId">

@@ -6,16 +6,16 @@
     <main class="contention" data-contention data-state-url="{{ url('/contentions/' . $contention['contentionId'] . '/state.json') }}">
         <h1>One seat, {{ $contention['buyersRequested'] }} buyers, one hold</h1>
         <p>
-            {{ $contention['buyersRequested'] }} synthetic buyers asked ticketing at the same moment to hold seat <strong>{{ $contention['seatCode'] }}</strong>@if ($concert !== null) of <a href="{{ url('/concerts/' . $concert['concertId']) }}">{{ $concert['artist'] }}</a>@endif.
-            Their requests travel over the Distributed Bus and two ticketing workers decide them in parallel, but the seat is a consistency boundary:
-            ticketing decides a hold on the events of that one seat and appends it only if no other decision changed the seat since it read them.
-            So exactly one request is held, and every other one is refused with the reason ticketing replied with.
+            {{ $contention['buyersRequested'] }} synthetic buyers asked ticketing for seat <strong>{{ $contention['seatCode'] }}</strong>@if ($concert !== null) of <a href="{{ url('/concerts/' . $concert['concertId']) }}">{{ $concert['artist'] }}</a>@endif within the same moment. Ticketing decides them in whatever order they arrive, and the Dynamic Consistency Boundary on the seat lets exactly one hold stand: a request that reaches the seat while another is being appended is refused by the boundary itself, a later one is refused because the seat is already held.
         </p>
         <ol class="contention__buyers" data-contention-buyers>
             @foreach ($contention['buyers'] as $buyer)
                 <li class="contention__buyer contention__buyer--{{ $buyer['state'] }}">
                     <span class="contention__name">{{ $buyer['name'] }}</span>
                     <span class="contention__state">{{ $buyer['state'] }}</span>
+                    @if ($buyer['refusal'] !== null)
+                        <span class="contention__refusal contention__refusal--{{ $buyer['refusal'] }}">{{ $buyer['refusalExplanation'] }}</span>
+                    @endif
                     @if ($buyer['reason'] !== null)
                         <span class="contention__reason">{{ $buyer['reason'] }}</span>
                     @endif

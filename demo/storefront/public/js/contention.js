@@ -49,6 +49,12 @@
             state.className = 'contention__state';
             state.textContent = buyer.state;
             item.append(name, ' ', state);
+            if (buyer.refusal !== null) {
+                const refusal = document.createElement('span');
+                refusal.className = 'contention__refusal contention__refusal--' + buyer.refusal;
+                refusal.textContent = buyer.refusalExplanation;
+                item.append(' ', refusal);
+            }
             if (buyer.reason !== null) {
                 const reason = document.createElement('span');
                 reason.className = 'contention__reason';

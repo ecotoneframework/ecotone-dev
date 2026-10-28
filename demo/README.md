@@ -114,11 +114,14 @@ The status line under the panel counts the buyers as they hold, pay, get their t
 
 The **Contend for one seat** panel on a concert's page shows the Dynamic Consistency Boundary on a single seat. Pick a
 seat that ticketing has not sold and a number of buyers (2 to 10, 5 by default), then press **Contend for this seat with
-5 buyers**. The storefront creates that many synthetic buyers. Each starts an order and asks ticketing to hold the same
-seat, each with its own hold id, all at the same moment. The contention page (`/contentions/{contentionId}`) polls
-their state every second. Exactly one buyer turns green (held) and every other one turns red (refused), each with the
-reason ticketing replied with. A buyer whose request read the seat already held is told who holds it and until when.
-A buyer whose request raced the winner to the append is told the seat changed each time ticketing tried to hold it.
+5 buyers**. The storefront creates that many synthetic buyers. Each starts an order and asks ticketing for the same
+seat, each with its own hold id, within the same moment. Ticketing decides them in whatever order they arrive, and the
+Dynamic Consistency Boundary on the seat lets exactly one hold stand: a request that reaches the seat while another is
+being appended is refused by the boundary itself, a later one is refused because the seat is already held. The
+contention page (`/contentions/{contentionId}`) polls their state every second. On a free seat one buyer turns green
+(held) and every other one turns red (refused), and each refusal says which of the two it was above the reason
+ticketing replied with: a request refused by the boundary is told the seat changed each time ticketing tried to hold
+it, one that read the seat already held is told who holds it and until when.
 
 The winner's order is a normal held order: **Continue as** that buyer to pay for it, or let the hold expire. Every
 refused buyer's order fails with ticketing's reason. In Jaeger, the contention is one trace across both services, with

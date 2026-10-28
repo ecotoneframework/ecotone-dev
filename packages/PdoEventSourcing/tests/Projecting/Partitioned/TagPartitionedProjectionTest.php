@@ -181,7 +181,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         self::assertSame(['concert-1' => ['A1', 'pass-1'], 'concert-2' => ['pass-1']], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
         self::assertSame([], $ecotone->sendQueryWithRouting('concert.sales'));
 
-        $ecotone->run('concert_projections', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('concert_projections', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['concert-1' => 2, 'concert-2' => 1], $ecotone->sendQueryWithRouting('concert.sales'));
     }
@@ -327,7 +327,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         $ecotone = $this->bootstrap($implementation, [$seats, $sales], [SimpleMessageChannelBuilder::createQueueChannel('concert_projections')]);
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
-        $ecotone->run('concert_projections', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('concert_projections', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         $ecotone->resetProjection('concert_sales');
 
@@ -373,8 +373,8 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         );
         $askPulse = function (string $routingKey, string $payload) use ($pulse, $pulseService, $concertService): array {
             $pulseService->getDistributedBus()->sendMessage('concert_service', $routingKey, $payload, MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
-            $concertService->run('concert_service_channel', ExecutionPollingMetadata::createWithTestingSetup());
-            $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+            $concertService->run('concert_service_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+            $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
             return json_decode(array_pop($pulse->snapshots), true, flags: JSON_THROW_ON_ERROR);
         };
@@ -382,7 +382,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         $concertService->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
         $concertService->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
         $behind = $askPulse('ecotone.pulse.snapshot', '{}')['projections'][0];
-        $concertService->run('concert_projections', ExecutionPollingMetadata::createWithTestingSetup());
+        $concertService->run('concert_projections', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
         $caughtUp = $askPulse('ecotone.pulse.snapshot', '{}')['projections'][0];
 
         self::assertSame(['concert_sales', true], [$behind['name'], $behind['partitioned']]);

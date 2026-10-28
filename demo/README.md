@@ -110,6 +110,21 @@ The status line under the panel counts the buyers as they hold, pay, get their t
   `receive ticketing_async` hop into `renderTickets` and `registerEntryCodes`, another into `announceIssuedTickets`, and back to the
   storefront's `MarkTicketsIssued`. A whole rush is one trace, from `RushSimulator::start` through every tick.
 
+## Contend for one seat
+
+The **Contend for one seat** panel on a concert's page shows the Dynamic Consistency Boundary on a single seat. Pick a
+seat that ticketing has not sold and a number of buyers (2 to 10, 5 by default), then press **Contend for this seat with
+5 buyers**. The storefront creates that many synthetic buyers. Each starts an order and asks ticketing to hold the same
+seat, each with its own hold id, all at the same moment. The contention page (`/contentions/{contentionId}`) polls
+their state every second. Exactly one buyer turns green (held) and every other one turns red (refused), each with the
+reason ticketing replied with. A buyer whose request read the seat already held is told who holds it and until when.
+A buyer whose request raced the winner to the append is told the seat changed each time ticketing tried to hold it.
+
+The winner's order is a normal held order: **Continue as** that buyer to pay for it, or let the hold expire. Every
+refused buyer's order fails with ticketing's reason. In Jaeger, the contention is one trace across both services, with
+one `SeatSalesOverDistributedBus::hold` per buyer. A refusal decided on the seat's events ends in `process
+SeatSales::hold`; a lost race ends in a `Conditional Append: ecotone_event_stream` marked as an error.
+
 ## Replay a dead-lettered payment
 
 A buyer of the outage share, or you choosing **the payment provider is down** at checkout, hits the outage on the first attempt,
@@ -270,9 +285,22 @@ once every buyer has had a go, and counts the buyers created and then each buyer
 now: held (seats held, not yet paying), paying, paid, issued (tickets issued), failed (declined or refused by ticketing)
 and gave up. [Run a rush](#run-a-rush) lists what to watch while it runs.
 
-Rush buyers are synthetic customers: they are not listed on `/whoami`, so their account pages are not browsable. A rush
-is safe to replay from the dead letters; a tick handled twice is skipped, and a buyer that already joined is not
+A rush is safe to replay from the dead letters; a tick handled twice is skipped, and a buyer that already joined is not
 created twice. A tick in the dead letters pauses its rush until it is replayed.
+
+### The contention
+
+`POST /concerts/{concertId}/contentions` sends one `StartContention` through the command bus. Its handler registers
+the buyers, starts their orders, and sends one `RequestSeat` per buyer with a fresh hold id. The hold requests queue on
+`storefront_async` like any seat request and reach ticketing over the Distributed Bus as fast as the
+`storefront-worker` sends them, while both `ticketing-worker` replicas decide them in parallel. An order records
+`SeatRefused` when ticketing refuses its hold, and the contention fails a contending buyer's order on it with ticketing's
+reason. Orders of real customers are left open, so their owners can pick another seat. `/contentions/{contentionId}/state.json`
+derives each buyer's state from its order: pending while its hold request is unanswered, held, refused with the reason,
+or released once the winner's hold has ended.
+
+Rush and contention buyers are synthetic customers: they are not listed on `/whoami`, so their account pages are not
+browsable, except that a contention offers to continue as its winner.
 
 ## Ports and parallel stacks
 

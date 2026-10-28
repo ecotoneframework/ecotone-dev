@@ -33,9 +33,9 @@
             {% endif %}
             {% if concert.status != 'cancelled' %}
                 <details class="confirm">
-                    <summary class="button button-ghost-danger">{{ icons.icon('x') }} Cancel…</summary>
+                    <summary class="button button-ghost-danger">{{ icons.icon('x') }} Cancel concert…</summary>
                     <div class="confirm-panel">
-                        <p><strong>Cancel {{ concert.artist }}?</strong> Sales stop for good, and the storefront is told the concert is off.</p>
+                        <p><strong>Cancel {{ concert.artist }}?</strong> Sales stop for good, and the storefront is told the concert is off. Nothing changes until you press Cancel concert.</p>
                         <form method="post" action="{{ path('admin_concert_cancel', {concertId: concert.concertId}) }}">
                             <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
                             <button type="submit" class="button-danger">Cancel concert</button>

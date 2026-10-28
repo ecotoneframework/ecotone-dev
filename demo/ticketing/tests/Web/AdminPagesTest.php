@@ -152,6 +152,16 @@ final class AdminPagesTest extends WebTestCase
         self::assertSelectorExists('details.confirm');
     }
 
+    public function test_the_cancel_trigger_names_what_it_cancels_and_its_confirmation_names_the_concert(): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+        $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
+
+        self::assertSelectorTextContains('details.confirm summary', 'Cancel concert…');
+        self::assertSelectorTextContains('details.confirm .confirm-panel', 'Cancel Neon Harbour?');
+    }
+
     public function test_a_concert_on_sale_shows_open_sales_disabled_with_the_reason_and_can_be_cancelled(): void
     {
         $client = $this->seededClient();

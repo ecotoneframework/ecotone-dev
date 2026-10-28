@@ -35,8 +35,9 @@ final readonly class FlowFocus
         }
         $node = $byName[$service]->graph->node($nodeId);
         $links = DistributedLinks::between($flows);
-        $upstream = self::walk($byName, $links, $service, $nodeId, downstream: false);
-        $downstream = self::walk($byName, $links, $service, $nodeId, downstream: true);
+        $isHub = in_array($node->kind, [FlowNodeKind::CHANNEL, FlowNodeKind::DISTRIBUTED_BUS], true);
+        $upstream = self::walk($byName, $links, $service, $nodeId, downstream: false, oneStep: $isHub);
+        $downstream = self::walk($byName, $links, $service, $nodeId, downstream: true, oneStep: $isHub);
         $members = [$service => [$nodeId => true]];
         foreach ([...$upstream, ...$downstream] as $step) {
             $members[$step['service']][$step['node']->id] = true;
@@ -63,7 +64,7 @@ final readonly class FlowFocus
      * @param list<DistributedLink> $links
      * @return list<array{service: string, node: FlowNode}>
      */
-    private static function walk(array $flows, array $links, string $service, string $nodeId, bool $downstream): array
+    private static function walk(array $flows, array $links, string $service, string $nodeId, bool $downstream, bool $oneStep): array
     {
         $seen = [$service => [$nodeId => true]];
         $queue = [[$service, $nodeId]];
@@ -76,7 +77,7 @@ final readonly class FlowFocus
                 }
                 $seen[$nextService][$nextId] = true;
                 $steps[] = ['service' => $nextService, 'node' => $flows[$nextService]->graph->node($nextId)];
-                if ($continues) {
+                if ($continues && ! $oneStep) {
                     $queue[] = [$nextService, $nextId];
                 }
             }

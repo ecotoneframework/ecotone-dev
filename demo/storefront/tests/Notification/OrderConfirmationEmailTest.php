@@ -57,7 +57,7 @@ final class OrderConfirmationEmailTest extends StorefrontFlowTestCase
         $this->storefront->getCommandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: $this->tickets()));
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage(sprintf('The confirmation email for order %s bounced: linus@bounce.example is at bounce.example, which accepts no mail, so the customer has not received their entry codes. Replaying this message bounces again. Use another address: register the customer with an address outside bounce.example and buy the tickets as that customer, then delete this message from the dead letters in Ecotone Pulse.', $orderId));
+        $this->expectExceptionMessage($this->bounceMessageOf($orderId));
 
         $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup());
     }
@@ -72,6 +72,28 @@ final class OrderConfirmationEmailTest extends StorefrontFlowTestCase
         self::assertSame(1, $this->storefront->getGateway(DeadLetterGateway::class)->count());
         self::assertSame([], $this->sentEmails());
         self::assertSame('tickets_issued', $this->order($orderId)['status']);
+    }
+
+    public function test_a_bounced_confirmation_email_leaves_the_entry_codes_on_the_order_page_and_its_replay_bounces_again(): void
+    {
+        $orderId = $this->paidOrderOf('Linus Bounce', 'linus@bounce.example');
+        $this->storefront->getCommandBus()->send(new MarkTicketsIssued(orderId: $orderId, tickets: $this->tickets()));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $orderPage = $this->withCookie('storefront_customer', $this->order($orderId)['customerId'])->get('/orders/' . $orderId);
+        $deadLetters = $this->storefront->getGateway(DeadLetterGateway::class);
+        $deadLetters->replayAll();
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $orderPage->assertSeeInOrder(['tickets_issued', 'T-0001', 'ENTRY-7F3A', 'T-0002', 'ENTRY-9C21']);
+        self::assertSame(1, $deadLetters->count());
+        self::assertStringContainsString($this->bounceMessageOf($orderId), $deadLetters->list(1, 0)[0]->getMessage());
+        self::assertSame([], $this->sentEmails());
+    }
+
+    private function bounceMessageOf(string $orderId): string
+    {
+        return sprintf('The confirmation email for order %s bounced: linus@bounce.example is at bounce.example, which accepts no mail, so the customer has not received their entry codes by email. Replaying this message bounces again. The tickets and their entry codes are on the order page, /orders/%s in the storefront: hand them to the customer from there, then delete this message from the dead letters in Ecotone Pulse or with php artisan ecotone:deadletter:delete <messageId>. To email the next order, register the customer with an address outside bounce.example.', $orderId, $orderId);
     }
 
     private function paidOrderOf(string $name, string $email): string

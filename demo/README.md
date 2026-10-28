@@ -74,7 +74,9 @@ The status line under the panel counts the buyers as they hold, pay, get their t
   meet "someone was faster".
 - **Pulse → Dead letters** groups the failed messages by exception: `PaymentProviderUnavailable` for the outage share
   and `EmailBounced` for the bounce share once their tickets are issued. Each one can be replayed or deleted, one at a
-  time or the whole group.
+  time or the whole group. A replayed `EmailBounced` bounces again, since `@bounce.example` accepts no mail: the
+  buyer's tickets and entry codes are on their order page (`/orders/{orderId}`, the account page links it), so the
+  operator hands them over from there and then deletes the dead letter.
 - **Pulse → Traces** lists the flows of both services; open one to see every handler it went through, across the
   Distributed Bus.
 - **Pulse → Services → ticketing → Projections** shows the seat map and the sales ledger with their positions, and
@@ -220,7 +222,8 @@ ecotone:deadletter:replay <messageId>` in the storefront). Only transient databa
 saved first are retried on the spot, so a provider outage reaches the dead letters instead of being retried away, and a
 payment reference is charged once however often its charge runs. A paid order sends `tickets.confirm`; `tickets.issued`
 shows the tickets with their entry codes on the order page and emails them, and the email to Linus Bounce
-(`@bounce.example`) always lands in the dead letters.
+(`@bounce.example`) always lands in the dead letters. Replaying it cannot deliver it; the entry codes stay on Linus's
+order page, which is where the customer gets them, and the dead letter is deleted once they have.
 
 ### The rush
 

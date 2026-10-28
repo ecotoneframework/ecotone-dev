@@ -148,6 +148,26 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
         );
     }
 
+    public function test_a_price_change_to_the_current_price_announces_nothing_so_the_next_change_announces_a_version_no_other_announcement_carries(): void
+    {
+        $storefront = $this->storefrontListening();
+        $ticketing = $this->ticketing();
+        $concertId = $this->scheduleConcert($ticketing, $this->createRiversideHall($ticketing));
+        $ticketing->getCommandBus()->send(new OpenSales($concertId));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->receivedByStorefront($storefront);
+
+        $ticketing->getCommandBus()->send(new ChangeTierPrice(concertId: $concertId, tier: Tier::VIP, priceCents: 9500));
+        $ticketing->getCommandBus()->send(new ChangeTierPrice(concertId: $concertId, tier: Tier::VIP, priceCents: 12000));
+        $ticketing->getCommandBus()->send(new ChangeTierPrice(concertId: $concertId, tier: Tier::STANDARD, priceCents: 5000));
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(
+            [[3, ['standard' => 4500, 'vip' => 12000]], [4, ['standard' => 5000, 'vip' => 12000]]],
+            array_map(static fn (array $received): array => [$received['event']['version'], $received['event']['tiers']], $this->receivedByStorefront($storefront)),
+        );
+    }
+
     public function test_a_sold_out_concert_waits_on_the_messenger_transport_and_reaches_the_storefront_after_the_consumer_runs(): void
     {
         $storefront = $this->storefrontListening();

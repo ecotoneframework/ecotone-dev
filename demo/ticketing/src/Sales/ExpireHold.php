@@ -13,6 +13,7 @@ final readonly class ExpireHold
         public string $concertId,
         public string $seatId,
         public string $customerId,
+        public string $holdId,
         public DateTimeImmutable $expiresAt,
     ) {
     }

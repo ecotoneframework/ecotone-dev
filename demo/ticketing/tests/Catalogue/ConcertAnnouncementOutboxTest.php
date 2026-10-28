@@ -166,9 +166,9 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
         $this->receivedByStorefront($storefront);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $ticketing->getCommandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->getCommandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
 
-        $ticketing->getCommandBus()->send(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
+        $ticketing->getCommandBus()->send(new ExpireHold(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1', expiresAt: new DateTimeImmutable('2026-10-25 12:10:00')), metadata: ['concertId' => $concertId]);
 
         self::assertSame(1, $this->announcementsWaitingOnTheTransport());
         self::assertSame([], $this->receivedByStorefront($storefront));
@@ -179,7 +179,7 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
             [[
                 'routingKey' => 'tickets.hold_expired',
                 'concertIdHeader' => $concertId,
-                'event' => ['orderId' => $orderId, 'concertId' => $concertId, 'seatId' => $concertId . '/A-1', 'customerId' => $customerId],
+                'event' => ['orderId' => $orderId, 'concertId' => $concertId, 'seatId' => $concertId . '/A-1', 'customerId' => $customerId, 'holdId' => 'hold-1'],
             ]],
             $this->receivedByStorefront($storefront),
         );

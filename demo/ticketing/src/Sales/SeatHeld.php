@@ -18,6 +18,7 @@ final readonly class SeatHeld
         #[EventTag('seat')]
         public string $seatId,
         public string $customerId,
+        public string $holdId,
         public DateTimeImmutable $heldAt,
         public DateTimeImmutable $expiresAt,
     ) {

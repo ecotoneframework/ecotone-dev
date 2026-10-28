@@ -11,6 +11,7 @@ final readonly class ReleaseSeat
         public string $concertId,
         public string $seatId,
         public string $customerId,
+        public string $holdId,
     ) {
     }
 }

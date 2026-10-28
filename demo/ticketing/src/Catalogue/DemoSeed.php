@@ -69,7 +69,7 @@ final class DemoSeed
             $heldSeatIds = [];
             foreach ($seatIdsOfTheBuyer as $seatId) {
                 try {
-                    $commandBus->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $seatId, customerId: $customerId), metadata: ['concertId' => $concertId]);
+                    $commandBus->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $seatId, customerId: $customerId, holdId: 'demo-seed-' . $orderId), metadata: ['concertId' => $concertId]);
                     $heldSeatIds[] = $seatId;
                 } catch (SeatRefusal) {
                 }

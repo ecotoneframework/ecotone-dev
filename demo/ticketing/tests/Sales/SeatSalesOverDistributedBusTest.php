@@ -14,6 +14,7 @@ use App\Catalogue\Venue;
 use App\Infrastructure\EcotoneConfiguration;
 use App\Kernel;
 use App\Sales\CustomerConcertSeats;
+use App\Sales\FindSeatHold;
 use App\Sales\HoldExpired;
 use App\Sales\HoldExpiry;
 use App\Sales\HoldReleased;
@@ -88,6 +89,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
                     'concertId' => $concertId,
                     'seatId' => $concertId . '/A-1',
                     'customerId' => $customerId,
+                    'holdId' => 'hold-1',
                     'outcome' => 'held',
                     'reason' => null,
                     'expiresAt' => '2026-10-25T12:10:00+00:00',
@@ -141,6 +143,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
                     'concertId' => $concertId,
                     'seatId' => $concertId . '/A-1',
                     'customerId' => $customerId,
+                    'holdId' => 'hold-1',
                     'outcome' => 'refused',
                     'reason' => "Seat A-1 of the concert of The Midnight Owls cannot be held for order {$secondOrder}, because someone was faster: order {$firstOrder} holds it until 2026-10-25T12:10:00+00:00. Pick another seat, or try this one again after that hold expires.",
                     'expiresAt' => null,
@@ -166,7 +169,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
             {
                 if (++$this->attempts === 1) {
                     foreach (range(2, 12) as $seatNumber) {
-                        $this->competitor->sendCommand(new HoldSeat(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/A-' . $seatNumber, customerId: Uuid::v7()->toRfc4122()), metadata: ['concertId' => $this->concertId]);
+                        $this->competitor->sendCommand(new HoldSeat(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/A-' . $seatNumber, customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1'), metadata: ['concertId' => $this->concertId]);
                     }
                 }
 
@@ -201,7 +204,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
             {
                 if ($this->fasterOrder === null) {
                     $this->fasterOrder = Uuid::v7()->toRfc4122();
-                    $this->competitor->sendCommand(new HoldSeat(orderId: $this->fasterOrder, concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: Uuid::v7()->toRfc4122()), metadata: ['concertId' => $this->concertId]);
+                    $this->competitor->sendCommand(new HoldSeat(orderId: $this->fasterOrder, concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1'), metadata: ['concertId' => $this->concertId]);
                 }
 
                 return $invocation->proceed();
@@ -236,7 +239,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
             public function releaseTheSameSeatMeanwhile(MethodInvocation $invocation): mixed
             {
                 $this->competitorConnection->transactional(fn () => $this->competitorEventStore->appendTo('ecotone_event_stream', [
-                    new HoldReleased(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: Uuid::v7()->toRfc4122()),
+                    new HoldReleased(orderId: Uuid::v7()->toRfc4122(), concertId: $this->concertId, seatId: $this->concertId . '/A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1'),
                 ]));
 
                 return $invocation->proceed();
@@ -269,13 +272,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
 
-        $storefront->getDistributedBus()->sendMessage(
-            'ticketing',
-            'tickets.release',
-            json_encode(['orderId' => $orderId, 'concertId' => $concertId, 'seatId' => $concertId . '/A-1', 'customerId' => $customerId]),
-            MediaType::APPLICATION_JSON,
-            metadata: ['concertId' => $concertId],
-        );
+        $this->sendRelease($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId, 'hold-1');
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->sendHold($storefront, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
@@ -290,13 +287,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $ticketing->discardRecordedMessages();
 
-        $storefront->getDistributedBus()->sendMessage(
-            'ticketing',
-            'tickets.release',
-            json_encode(['orderId' => Uuid::v7()->toRfc4122(), 'concertId' => $concertId, 'seatId' => $concertId . '/A-1', 'customerId' => Uuid::v7()->toRfc4122()]),
-            MediaType::APPLICATION_JSON,
-            metadata: ['concertId' => $concertId],
-        );
+        $this->sendRelease($storefront, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122(), 'hold-1');
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame([], $ticketing->popRecordedEventsOfType(HoldReleased::class));
@@ -314,19 +305,56 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $this->repliesReceivedBy($storefront);
         $ticketing->discardRecordedMessages();
 
-        $storefront->getDistributedBus()->sendMessage(
-            'ticketing',
-            'tickets.release',
-            json_encode(['orderId' => $orderId, 'concertId' => $concertId, 'seatId' => $concertId . '/A-1', 'customerId' => Uuid::v7()->toRfc4122()]),
-            MediaType::APPLICATION_JSON,
-            metadata: ['concertId' => $concertId],
-        );
+        $this->sendRelease($storefront, $orderId, $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122(), 'hold-1');
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->sendHold($storefront, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame([], $ticketing->popRecordedEventsOfType(HoldReleased::class));
         self::assertSame(['refused'], array_map(static fn (array $received): string => $received['reply']['outcome'], $this->repliesReceivedBy($storefront)));
+    }
+
+    public function test_a_hold_of_a_seat_the_order_holds_under_another_hold_id_replies_held_under_the_new_one_and_a_late_release_of_the_old_one_leaves_it_held(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId, holdId: 'hold-1');
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->repliesReceivedBy($storefront);
+        $ticketing->changeTimeTo(new DateTimeImmutable('2026-10-25 12:05:00'));
+
+        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId, holdId: 'hold-2');
+        $this->sendRelease($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId, 'hold-1');
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(
+            [['holdId' => 'hold-2', 'outcome' => 'held', 'expiresAt' => '2026-10-25T12:15:00+00:00']],
+            array_map(static fn (array $received): array => ['holdId' => $received['reply']['holdId'], 'outcome' => $received['reply']['outcome'], 'expiresAt' => $received['reply']['expiresAt']], $this->repliesReceivedBy($storefront)),
+        );
+        self::assertEquals(['orderId' => $orderId, 'expiresAt' => new DateTimeImmutable('2026-10-25 12:15:00')], $ticketing->sendQuery(new FindSeatHold($concertId . '/A-1')));
+    }
+
+    public function test_a_hold_without_a_hold_id_names_the_missing_field_and_the_contract(): void
+    {
+        $storefront = $this->storefront();
+        $ticketing = $this->ticketing();
+        $concertId = $this->concertOnSale($ticketing);
+
+        $storefront->getDistributedBus()->sendMessage(
+            'ticketing',
+            'tickets.hold',
+            json_encode(['orderId' => 'order-1', 'concertId' => $concertId, 'seatId' => $concertId . '/A-1', 'customerId' => 'customer-1']),
+            MediaType::APPLICATION_JSON,
+            metadata: ['concertId' => $concertId],
+            replyRoutingKey: 'tickets.hold.result',
+        );
+
+        $this->expectExceptionMessage('ticketing received tickets.hold without holdId: the payload carries orderId, concertId, seatId, customerId. Send tickets.hold as a JSON object of orderId, concertId, seatId, customerId, holdId, each a non-empty string.');
+
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
     }
 
     public function test_a_confirm_sent_over_the_distributed_bus_replies_sold_with_the_seat_ids(): void
@@ -448,7 +476,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
 
         $storefront->getDistributedBus()->sendMessage('ticketing', 'tickets.hold', json_encode(['orderId' => 'order-1', 'seatId' => 'seat-1']), MediaType::APPLICATION_JSON, replyRoutingKey: 'tickets.hold.result');
 
-        $this->expectExceptionMessage('ticketing received tickets.hold without concertId, customerId: the payload carries orderId, seatId. Send tickets.hold as a JSON object of orderId, concertId, seatId, customerId, each a non-empty string.');
+        $this->expectExceptionMessage('ticketing received tickets.hold without concertId, customerId, holdId: the payload carries orderId, seatId. Send tickets.hold as a JSON object of orderId, concertId, seatId, customerId, holdId, each a non-empty string.');
 
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
     }
@@ -580,15 +608,26 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         return $concertId;
     }
 
-    private function sendHold(FlowTestSupport $storefront, string $orderId, string $concertId, string $seatId, string $customerId): void
+    private function sendHold(FlowTestSupport $storefront, string $orderId, string $concertId, string $seatId, string $customerId, string $holdId = 'hold-1'): void
     {
         $storefront->getDistributedBus()->sendMessage(
             'ticketing',
             'tickets.hold',
-            json_encode(['orderId' => $orderId, 'concertId' => $concertId, 'seatId' => $seatId, 'customerId' => $customerId]),
+            json_encode(['orderId' => $orderId, 'concertId' => $concertId, 'seatId' => $seatId, 'customerId' => $customerId, 'holdId' => $holdId]),
             MediaType::APPLICATION_JSON,
             metadata: ['concertId' => $concertId],
             replyRoutingKey: 'tickets.hold.result',
+        );
+    }
+
+    private function sendRelease(FlowTestSupport $storefront, string $orderId, string $concertId, string $seatId, string $customerId, string $holdId): void
+    {
+        $storefront->getDistributedBus()->sendMessage(
+            'ticketing',
+            'tickets.release',
+            json_encode(['orderId' => $orderId, 'concertId' => $concertId, 'seatId' => $seatId, 'customerId' => $customerId, 'holdId' => $holdId]),
+            MediaType::APPLICATION_JSON,
+            metadata: ['concertId' => $concertId],
         );
     }
 

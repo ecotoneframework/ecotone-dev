@@ -31,7 +31,7 @@ final class CancelledConcertHolds
         foreach ($liveHolds as $hold) {
             try {
                 $commandBus->send(
-                    new ReleaseSeat(orderId: $hold->orderId, concertId: $hold->concertId, seatId: $hold->seatId, customerId: $hold->customerId),
+                    new ReleaseSeat(orderId: $hold->orderId, concertId: $hold->concertId, seatId: $hold->seatId, customerId: $hold->customerId, holdId: $hold->holdId),
                     metadata: ['concertId' => $hold->concertId],
                 );
             } catch (SeatRefusal) {

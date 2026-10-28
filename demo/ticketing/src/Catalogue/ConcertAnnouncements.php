@@ -69,7 +69,7 @@ final class ConcertAnnouncements
     {
         $distributedBus->convertAndPublishEvent(
             'tickets.hold_expired',
-            ['orderId' => $event->orderId, 'concertId' => $event->concertId, 'seatId' => $event->seatId, 'customerId' => $event->customerId],
+            ['orderId' => $event->orderId, 'concertId' => $event->concertId, 'seatId' => $event->seatId, 'customerId' => $event->customerId, 'holdId' => $event->holdId],
             metadata: ['concertId' => $event->concertId],
         );
     }

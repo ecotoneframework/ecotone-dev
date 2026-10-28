@@ -16,6 +16,8 @@ final class SeatAvailability
 
     private ?string $holdingCustomerId = null;
 
+    private ?string $holdingHoldId = null;
+
     private ?string $holdingConcertId = null;
 
     private ?DateTimeImmutable $heldUntil = null;
@@ -27,6 +29,7 @@ final class SeatAvailability
     {
         $this->holdingOrderId = $event->orderId;
         $this->holdingCustomerId = $event->customerId;
+        $this->holdingHoldId = $event->holdId;
         $this->holdingConcertId = $event->concertId;
         $this->heldUntil = $event->expiresAt;
     }
@@ -65,6 +68,11 @@ final class SeatAvailability
         return $this->holdingCustomerId;
     }
 
+    public function holdingHoldId(): ?string
+    {
+        return $this->holdingHoldId;
+    }
+
     public function holdingConcertId(): ?string
     {
         return $this->holdingConcertId;
@@ -84,6 +92,7 @@ final class SeatAvailability
     {
         $this->holdingOrderId = null;
         $this->holdingCustomerId = null;
+        $this->holdingHoldId = null;
         $this->holdingConcertId = null;
         $this->heldUntil = null;
     }

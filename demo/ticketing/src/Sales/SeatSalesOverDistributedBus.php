@@ -14,10 +14,10 @@ use InvalidArgumentException;
 
 final class SeatSalesOverDistributedBus
 {
-    private const SEAT_FIELDS = ['orderId', 'concertId', 'seatId', 'customerId'];
+    private const SEAT_FIELDS = ['orderId', 'concertId', 'seatId', 'customerId', 'holdId'];
 
     /**
-     * @return array{orderId: string, concertId: string, seatId: string, customerId: string, outcome: string, reason: ?string, expiresAt: ?string}
+     * @return array{orderId: string, concertId: string, seatId: string, customerId: string, holdId: string, outcome: string, reason: ?string, expiresAt: ?string}
      */
     #[Distributed]
     #[CommandHandler('tickets.hold')]
@@ -77,13 +77,13 @@ final class SeatSalesOverDistributedBus
 
     /**
      * @param array<string, mixed> $payload
-     * @return array{orderId: string, concertId: string, seatId: string, customerId: string}
+     * @return array{orderId: string, concertId: string, seatId: string, customerId: string, holdId: string}
      */
     private static function seatFields(string $routingKey, array $payload): array
     {
         self::assertStringFields(routingKey: $routingKey, payload: $payload, fields: self::SEAT_FIELDS, contract: sprintf('Send %s as a JSON object of %s, each a non-empty string.', $routingKey, implode(', ', self::SEAT_FIELDS)));
 
-        return ['orderId' => $payload['orderId'], 'concertId' => $payload['concertId'], 'seatId' => $payload['seatId'], 'customerId' => $payload['customerId']];
+        return ['orderId' => $payload['orderId'], 'concertId' => $payload['concertId'], 'seatId' => $payload['seatId'], 'customerId' => $payload['customerId'], 'holdId' => $payload['holdId']];
     }
 
     /**

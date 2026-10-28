@@ -49,14 +49,14 @@ final class SeatSales
             throw SeatRefusal::because(sprintf('%s, because someone was faster: it is sold to order %s. Pick another seat.', $refusedSeat, $seat->soldToOrderId()));
         }
         $holdingOrderId = $seat->liveHoldingOrderIdAt($now);
-        if ($holdingOrderId === $command->orderId) {
+        if ($holdingOrderId === $command->orderId && $seat->holdingHoldId() === $command->holdId) {
             return [];
         }
-        if ($holdingOrderId !== null) {
+        if ($holdingOrderId !== null && $holdingOrderId !== $command->orderId) {
             throw SeatRefusal::because(sprintf('%s, because someone was faster: order %s holds it until %s. Pick another seat, or try this one again after that hold expires.', $refusedSeat, $holdingOrderId, $seat->heldUntil()->format(DateTimeInterface::ATOM)));
         }
         $takenSeatIds = $customerSeats->seatIdsTakenAt($now);
-        if (count($takenSeatIds) >= CustomerConcertSeats::MAXIMUM_SEATS) {
+        if ($holdingOrderId === null && count($takenSeatIds) >= CustomerConcertSeats::MAXIMUM_SEATS) {
             throw SeatRefusal::because(sprintf(
                 '%s, because customer %s already holds or owns %d seats of this concert (%s), and a customer gets at most %d. Release one of those holds first, or buy with another customer.',
                 $refusedSeat,
@@ -72,6 +72,7 @@ final class SeatSales
             concertId: $command->concertId,
             seatId: $command->seatId,
             customerId: $command->customerId,
+            holdId: $command->holdId,
             heldAt: $now,
             expiresAt: $now->modify(sprintf('+%d seconds', $holdSeconds)),
         )];
@@ -92,20 +93,22 @@ final class SeatSales
                 $seat->soldToOrderId() !== null ? sprintf('it is sold to order %s', $seat->soldToOrderId()) : 'no order holds it',
             ));
         }
-        if ($holdingOrderId !== $command->orderId || $seat->holdingCustomerId() !== $command->customerId || $seat->holdingConcertId() !== $command->concertId) {
+        if ($holdingOrderId !== $command->orderId || $seat->holdingCustomerId() !== $command->customerId || $seat->holdingConcertId() !== $command->concertId || $seat->holdingHoldId() !== $command->holdId) {
             throw SeatRefusal::because(sprintf(
-                'Seat %s cannot be released for order %s of customer %s at concert %s, because order %s of customer %s holds it at concert %s. Release a seat with the order, customer and concert of its hold; only the holder releases it.',
+                'Seat %s cannot be released for hold %s of order %s of customer %s at concert %s, because hold %s of order %s of customer %s holds it at concert %s. Release a seat with the hold id, order, customer and concert of its hold; only the holder releases it, and a release of an earlier hold leaves a later one in place.',
                 $command->seatId,
+                $command->holdId,
                 $command->orderId,
                 $command->customerId,
                 $command->concertId,
+                $seat->holdingHoldId(),
                 $holdingOrderId,
                 $seat->holdingCustomerId(),
                 $seat->holdingConcertId(),
             ));
         }
 
-        return [new HoldReleased(orderId: $command->orderId, concertId: $command->concertId, seatId: $command->seatId, customerId: $command->customerId)];
+        return [new HoldReleased(orderId: $command->orderId, concertId: $command->concertId, seatId: $command->seatId, customerId: $command->customerId, holdId: $command->holdId)];
     }
 
     /**
@@ -114,11 +117,11 @@ final class SeatSales
     #[CommandHandler]
     public function expire(ExpireHold $command, SeatAvailability $seat): array
     {
-        if ($seat->holdingOrderId() !== $command->orderId || $seat->heldUntil() != $command->expiresAt) {
+        if ($seat->holdingOrderId() !== $command->orderId || $seat->holdingHoldId() !== $command->holdId || $seat->heldUntil() != $command->expiresAt) {
             return [];
         }
 
-        return [new HoldExpired(orderId: $command->orderId, concertId: $command->concertId, seatId: $command->seatId, customerId: $command->customerId)];
+        return [new HoldExpired(orderId: $command->orderId, concertId: $command->concertId, seatId: $command->seatId, customerId: $command->customerId, holdId: $command->holdId)];
     }
 
     #[DecisionBoundary]

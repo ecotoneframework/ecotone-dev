@@ -91,7 +91,7 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         $this->hold($ticketing, $orderId, $concertId, 'A-2', $customerId);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
-        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
         $ticketing->changeTimeTo(new DateTimeImmutable('2026-10-25 12:10:00'));
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
@@ -303,7 +303,7 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
 
     private function hold(FlowTestSupport $ticketing, string $orderId, string $concertId, string $seatCode, string $customerId): void
     {
-        $ticketing->sendCommand(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/' . $seatCode, customerId: $customerId), metadata: ['concertId' => $concertId]);
+        $ticketing->sendCommand(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/' . $seatCode, customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
     }
 
     private function confirm(FlowTestSupport $ticketing, string $orderId, string $concertId, string $customerId, array $seatCodes): void

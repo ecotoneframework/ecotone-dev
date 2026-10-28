@@ -446,7 +446,7 @@ final class TicketIssuanceTest extends KernelTestCase
     private function buy(FlowTestSupport $ticketing, string $orderId, string $concertId, string $customerId, array $seatCodes): void
     {
         foreach ($seatCodes as $seatCode) {
-            $ticketing->sendCommand(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/' . $seatCode, customerId: $customerId), metadata: ['concertId' => $concertId]);
+            $ticketing->sendCommand(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/' . $seatCode, customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
         }
         $ticketing->sendCommand(
             new ConfirmSeats(orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: array_map(static fn (string $seatCode): string => $concertId . '/' . $seatCode, $seatCodes), paymentReference: 'pay-1'),

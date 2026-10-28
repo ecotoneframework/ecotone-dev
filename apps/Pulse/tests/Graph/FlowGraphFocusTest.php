@@ -16,6 +16,9 @@ use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionBackfill;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -120,6 +123,33 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
             self::assertTrue($diagram->hasEdge('ticketing', 'seat.held', 'async: ticketing_async', 'ticketing', '::whenSeatHeld', '==>'));
             self::assertSame([], array_values(array_filter($diagram->nodes, fn (array $node) => $node['label'] === 'Channel<br/>ticketing_async')));
         }
+    }
+
+    public function test_a_channel_a_projection_backfills_through_does_not_join_the_projection_to_the_handlers_running_on_it(): void
+    {
+        $this->configurePulseWithServices('ticketing');
+        $client = $this->pulseWebClient();
+        $handlers = new class () {
+            #[Asynchronous('ticketing_async')]
+            #[CommandHandler('tickets.hold', endpointId: 'tickets.hold.handler')]
+            public function hold(array $payload): void
+            {
+            }
+        };
+        $projection = new #[Projection('seat_map'), FromStream('seats'), ProjectionBackfill(asyncChannelName: 'ticketing_async')] class () {
+            #[EventHandler('seat.held')]
+            public function whenSeatHeld(array $event): void
+            {
+            }
+        };
+        $this->pulseHavingHeardFrom($client, ['ticketing' => $this->distributedService('ticketing', $handlers, DistributedServiceMap::initialize(), [SimpleMessageChannelBuilder::createQueueChannel('ticketing_async')], [$projection])]);
+
+        $projectionFlow = $this->labelsByService(MermaidDiagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('ticketing:' . $this->nodeIdOf($client, 'ticketing', 'seat_map')))))['ticketing'];
+        $holdFlow = $this->labelsByService(MermaidDiagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('ticketing:' . $this->nodeIdOf($client, 'ticketing', 'tickets.hold')))))['ticketing'];
+
+        self::assertContains('Channel<br/>ticketing_async', $projectionFlow);
+        self::assertNotContains('CommandHandler<br/>class@anonymous::hold', $projectionFlow);
+        self::assertNotContains('seat_map', $holdFlow);
     }
 
     public function test_following_a_distributed_bus_shows_only_what_it_receives_and_what_it_sends_to(): void

@@ -77,7 +77,7 @@ final readonly class FlowFocus
         $steps = [];
         while ($queue !== []) {
             [$currentService, $currentId] = array_shift($queue);
-            foreach (self::neighbours($flows[$currentService], $links, $currentService, $currentId, $downstream) as [$nextService, $nextId, $continues]) {
+            foreach (self::neighbours($flows[$currentService], $links, $currentService, $currentId, $downstream, isStart: [$currentService, $currentId] === [$service, $nodeId]) as [$nextService, $nextId, $continues]) {
                 if (isset($seen[$nextService][$nextId])) {
                     continue;
                 }
@@ -96,15 +96,19 @@ final readonly class FlowFocus
      * @param list<DistributedLink> $links
      * @return list<array{string, string, bool}>
      */
-    private static function neighbours(ServiceFlow $flow, array $links, string $service, string $nodeId, bool $downstream): array
+    private static function neighbours(ServiceFlow $flow, array $links, string $service, string $nodeId, bool $downstream, bool $isStart): array
     {
         $neighbours = [];
         foreach ($downstream ? $flow->graph->edgesFrom($nodeId) : $flow->graph->edgesTo($nodeId) as $edge) {
             if ($edge->kind === FlowEdgeKind::INTERCEPTED_BY) {
                 continue;
             }
+            $hostedOnChannel = $edge->kind === FlowEdgeKind::ASYNCHRONOUS && $flow->graph->node($edge->from)->kind === FlowNodeKind::CHANNEL;
+            if ($hostedOnChannel && $downstream && ! $isStart) {
+                continue;
+            }
             $next = $downstream ? $edge->to : $edge->from;
-            $neighbours[] = [$service, $next, $flow->graph->node($next)->kind !== FlowNodeKind::DISTRIBUTED_BUS];
+            $neighbours[] = [$service, $next, $flow->graph->node($next)->kind !== FlowNodeKind::DISTRIBUTED_BUS && ! $hostedOnChannel];
         }
         foreach ($links as $link) {
             if ($downstream && $link->fromService === $service && $link->fromNodeId === $nodeId) {

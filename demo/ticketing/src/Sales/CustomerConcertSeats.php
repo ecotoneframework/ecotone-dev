@@ -25,7 +25,7 @@ final class CustomerConcertSeats
     private array $heldSeats = [];
 
     /**
-     * @var array<string, string>
+     * @var array<string, array{orderId: string, paymentReference: string}>
      */
     private array $soldSeats = [];
 
@@ -51,7 +51,7 @@ final class CustomerConcertSeats
     public function sold(SeatSold $event): void
     {
         unset($this->heldSeats[$event->seatId]);
-        $this->soldSeats[$event->seatId] = $event->orderId;
+        $this->soldSeats[$event->seatId] = ['orderId' => $event->orderId, 'paymentReference' => $event->paymentReference];
     }
 
     /**
@@ -64,9 +64,26 @@ final class CustomerConcertSeats
         return [...array_keys($this->soldSeats), ...$liveHolds];
     }
 
-    public function soldToOrderId(string $seatId): ?string
+    /**
+     * @return array{orderId: string, paymentReference: string}|null
+     */
+    public function saleOf(string $seatId): ?array
     {
         return $this->soldSeats[$seatId] ?? null;
+    }
+
+    /**
+     * @param list<string> $seatIds
+     */
+    public function soldEveryOneTo(array $seatIds, string $orderId, string $paymentReference): bool
+    {
+        foreach ($seatIds as $seatId) {
+            if (($this->soldSeats[$seatId] ?? null) !== ['orderId' => $orderId, 'paymentReference' => $paymentReference]) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

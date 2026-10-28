@@ -478,7 +478,7 @@ final class SeatSalesTest extends KernelTestCase
         self::assertEquals(['orderId' => $nextOrder, 'expiresAt' => new DateTimeImmutable('2026-10-25 12:20:00')], $ticketing->sendQuery(new FindSeatHold($concertId . '/A-1')));
     }
 
-    public function test_confirming_seats_already_sold_to_the_order_is_refused(): void
+    public function test_confirming_seats_already_sold_to_the_order_with_the_same_payment_records_nothing_again(): void
     {
         $ticketing = $this->ticketing();
         $concertId = $this->concertOnSale($ticketing);
@@ -486,11 +486,11 @@ final class SeatSalesTest extends KernelTestCase
         $customerId = Uuid::v7()->toRfc4122();
         $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
         $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
-
-        $this->expectException(SeatRefusal::class);
-        $this->expectExceptionMessage("Order {$orderId} cannot buy seat {$concertId}/A-1, because it is already sold to order {$orderId}. Confirm only seats that are held; nothing of the order was sold.");
+        $ticketing->discardRecordedMessages();
 
         $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+
+        self::assertSame([], $ticketing->popRecordedEvents());
     }
 
     public function test_a_hold_whose_seat_changes_between_read_and_append_on_every_attempt_surfaces_the_conflict_naming_the_seat_tag_and_the_decision_model(): void

@@ -111,6 +111,23 @@ Service status:
 
 The **Refresh** button on the Services page requests new snapshots regardless of their age.
 
+## Flow graph
+
+`/flow` joins every service's message flow along the distributed commands, events and messages between them. Above six
+services, or above 150 nodes, it opens as the service overview, one node per service; a click on a service shows its flow.
+Drag to pan, and zoom with the buttons, Ctrl and the mouse wheel, or `+` and `-` once the graph has keyboard focus.
+
+To read one path rather than the whole system, click any node, or type its name into **Find a node** (it suggests every node
+name) and press Enter: `/flow?focus={service}:{node}` draws only what led to that node and everything it causes, across
+services, with the node outlined, and lists the steps before and after it as links that re-centre the flow on them. The path
+never runs through a Distributed Bus or an interceptor, which many unrelated flows share; following a channel or a Distributed
+Bus itself shows only what feeds it and what it feeds. A name matching several nodes lists them to choose from.
+
+**collapse** next to a service draws it as one node carrying its distributed arrows, and **expand** brings its detail back
+(`collapse[]={service}`). **Fold asynchronous channels into arrows** (`fold=channels`) drops an asynchronous channel and
+labels the arrow from the message to its handler with the channel instead. Following a node keeps the highlighted trace,
+the service scope, the collapsed services and the folding.
+
 ## Traces
 
 The **Traces** pages need flow tracking in the service (`FlowTrackingConfiguration::createWithDefaults()` returned from a
@@ -331,11 +348,11 @@ the running application never reaches out to a CDN.
 
 Two checks need a browser engine, so they run on the host (Node 22 in CI; 20 or newer works), not in the PHP container.
 
-* `tests/Mermaid` parses with the real Mermaid parser every diagram the test suite renders (`/flow`, `/flow?trace=…`, `/topology`).
+* `tests/Mermaid` parses with the real Mermaid parser every diagram the test suite renders (`/flow`, `/flow?trace=…`, `/flow?focus=…`, `/topology`).
   The PHP tests write the diagrams to `var/mermaid`; then `cd tests/Mermaid && npm ci && node parse.mjs ../../var/mermaid`.
   CI runs it after `composer tests:ci`. A diagram whose `subgraph` is not closed passes every text assertion and still renders as
   "Syntax error in text", which is why it is parsed rather than matched.
-* `tests/Accessibility` crawls a running Pulse from its navigation, then runs axe-core on every page (two per page kind), in light
+* `tests/Accessibility` crawls a running Pulse from its navigation, then runs axe-core on every page (two per page kind, plus a followed node, folded channels and a Find result on `/flow`), in light
   and dark, at 1440px and 390px, and fails on a serious or critical violation or a horizontal page scroll:
   `cd tests/Accessibility && npm ci && node axe.mjs http://localhost:8080` (`CHROME_PATH` selects the Chrome binary). It also audits the
   first-visit splash. `PULSE_EXPECTED_VERSION=<the running PULSE_VERSION> node intro.mjs http://localhost:8080` checks the splash itself:

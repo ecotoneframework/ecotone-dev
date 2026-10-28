@@ -51,6 +51,7 @@ use Ecotone\Projecting\Pulse\PulseProjections;
 use Ecotone\Projecting\SinglePartitionProvider;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Projecting\StreamSourceRegistry;
+use Ecotone\Projecting\TaggedStream\TagPartitionKeysBuilder;
 
 /**
  * This module allows to configure projections in a standard way
@@ -79,6 +80,9 @@ final class ProjectingModule implements AnnotationModule
 
         if (! empty($projectionBuilders) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             foreach ($projectionBuilders as $builder) {
+                if ($builder->partitionTag() !== null) {
+                    throw LicensingException::create("#[FromTaggedStream] on projection '{$builder->projectionName()}' requires Ecotone Enterprise licence. Partitioning a projection by the value of the tag '{$builder->partitionTag()}' is part of Ecotone Enterprise: either obtain a licence (see https://docs.ecotone.tech/enterprise) and pass it as the licenceKey of your framework's Ecotone configuration or of EcotoneLite::bootstrap(), or read the events with #[FromStream] for a projection over the whole stream.");
+                }
                 if (! $builder instanceof EcotoneProjectionExecutorBuilder || ! $builder->isOpenSourceEligible()) {
                     throw LicensingException::create('Projections with enterprise features (Partitioned, Streaming, Polling, ProjectionRebuild, ProjectionDeployment, async backfill) require Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
                 }
@@ -141,18 +145,27 @@ final class ProjectingModule implements AnnotationModule
 
             $handlerBuilder = MessageProcessorActivatorBuilder::create()
                 ->chainInterceptedProcessor(
-                    MethodInvokerBuilder::create(
-                        $projectingManagerReference,
-                        InterfaceToCallReference::create(ProjectingManager::class, 'execute'),
-                        [
-                            $projectionBuilder->partitionHeader()
-                                ? HeaderBuilder::create('partitionKeyValue', $projectionBuilder->partitionHeader())
-                                : ($projectionBuilder->isPartitioned()
-                                    ? new PartitionHeaderBuilder('partitionKeyValue')
-                                    : ValueBuilder::create('partitionKeyValue', null)),
-                            HeaderBuilder::createOptional('manualInitialization', ProjectingHeaders::MANUAL_INITIALIZATION),
-                        ],
-                    )
+                    $projectionBuilder->partitionTag() !== null
+                        ? MethodInvokerBuilder::create(
+                            $projectingManagerReference,
+                            InterfaceToCallReference::create(ProjectingManager::class, 'executeForPartitions'),
+                            [
+                                new TagPartitionKeysBuilder('partitionKeyValues', $projectionBuilder->partitionTag()),
+                                HeaderBuilder::createOptional('manualInitialization', ProjectingHeaders::MANUAL_INITIALIZATION),
+                            ],
+                        )
+                        : MethodInvokerBuilder::create(
+                            $projectingManagerReference,
+                            InterfaceToCallReference::create(ProjectingManager::class, 'execute'),
+                            [
+                                $projectionBuilder->partitionHeader()
+                                    ? HeaderBuilder::create('partitionKeyValue', $projectionBuilder->partitionHeader())
+                                    : ($projectionBuilder->isPartitioned()
+                                        ? new PartitionHeaderBuilder('partitionKeyValue')
+                                        : ValueBuilder::create('partitionKeyValue', null)),
+                                HeaderBuilder::createOptional('manualInitialization', ProjectingHeaders::MANUAL_INITIALIZATION),
+                            ],
+                        )
                 )
                 ->withEndpointId(self::endpointIdForProjection($projectionName))
                 ->withInputChannelName(self::inputChannelForProjectingManager($projectionName));
@@ -265,6 +278,7 @@ final class ProjectingModule implements AnnotationModule
                             HeaderBuilder::createOptional('eventStoreReferenceName', 'partitionBatch.eventStoreReferenceName'),
                             HeaderBuilder::createOptional('shouldReset', 'partitionBatch.shouldReset'),
                             HeaderBuilder::createOptional('batchCount', ProjectingHeaders::REBUILD_BATCH_COUNT),
+                            HeaderBuilder::createOptional('tag', 'partitionBatch.tag'),
                         ],
                     )
                 )

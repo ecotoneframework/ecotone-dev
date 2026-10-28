@@ -71,6 +71,11 @@ final class EnterpriseInMemoryTagCollaborator implements InMemoryTagCollaborator
         $this->index->deleteStream($streamName);
     }
 
+    public function valuesOfTag(string $tagName): array
+    {
+        return $this->index->valuesOf($tagName);
+    }
+
     public function bumpTagsGuarded(AppendCondition $appendCondition): void
     {
         $appended = $this->tagResolver->resolveGuardedBump($appendCondition);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Dbal\Tag;
 
 use function array_values;
+use function count;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableNotFoundException;
@@ -52,19 +53,63 @@ final class DbalTaggedEventReader
             return new LoadedEvents([], AppendCondition::empty());
         }
 
+        $captured = $this->readingIndex($eventStore, fn (): array => $this->versions->capture($connection, $this->tagResolver->countedTagsOfCriteria($criteria)));
+
+        return new LoadedEvents(
+            $criteria->limit === null ? $this->everyEventMatching($eventStore, $connection, $criteria, $tags) : $this->pageOfEventsMatching($eventStore, $connection, $criteria, $tags),
+            AppendCondition::fromCapturedVersions(array_values($captured))
+        );
+    }
+
+    /**
+     * @param array<string, array{name: string, value: string}> $tags
+     * @return Event[]
+     */
+    private function everyEventMatching(DbalEventStore $eventStore, Connection $connection, EventCriteria $criteria, array $tags): array
+    {
+        $flags = $this->readingIndex($eventStore, fn (): array => $this->index->flagsFor($connection, $tags, $this->tagResolver->pushDownableTagSequenceLowerBounds($criteria)));
+
+        return $this->matchingEvents($criteria, $flags, $this->index->eventsReferencedBy($eventStore, $connection, $flags));
+    }
+
+    /**
+     * @param array<string, array{name: string, value: string}> $tags
+     * @return Event[]
+     */
+    private function pageOfEventsMatching(DbalEventStore $eventStore, Connection $connection, EventCriteria $criteria, array $tags): array
+    {
+        $positionTag = $this->tagResolver->positionTagOf($criteria);
+        $positionTagKey = TagKey::of($positionTag['name'], $positionTag['value']);
+        $afterTagSequence = $criteria->tagSequenceLowerBound;
+        $events = [];
+
+        do {
+            $sequences = $this->readingIndex($eventStore, fn (): array => $this->index->sequencesOfTagAfter($connection, $positionTag, $afterTagSequence, $criteria->limit));
+            if ($sequences === []) {
+                break;
+            }
+
+            $upToTagSequence = $sequences[count($sequences) - 1];
+            $flags = $this->readingIndex($eventStore, fn (): array => $this->index->flagsWithinSequences($connection, $tags, $positionTagKey, $afterTagSequence, $upToTagSequence));
+            $events = [...$events, ...$this->matchingEvents($criteria, $flags, $this->index->eventsReferencedBy($eventStore, $connection, $flags))];
+            $afterTagSequence = $upToTagSequence;
+        } while (count($events) < $criteria->limit && count($sequences) === $criteria->limit);
+
+        return $this->tagResolver->pageOf($events, $criteria);
+    }
+
+    /**
+     * @template T
+     * @param callable(): T $read
+     * @return T
+     */
+    private function readingIndex(DbalEventStore $eventStore, callable $read): mixed
+    {
         try {
-            $captured = $this->versions->capture($connection, $this->tagResolver->countedTagsOfCriteria($criteria));
-            $flags = $this->index->flagsFor($connection, $tags, $this->tagResolver->pushDownableTagSequenceLowerBounds($criteria));
+            return $read();
         } catch (TableNotFoundException) {
             throw $this->tables->missingTablesException($eventStore);
         }
-
-        $eventsByStream = $this->index->eventsReferencedBy($eventStore, $connection, $flags);
-
-        return new LoadedEvents(
-            $this->matchingEvents($criteria, $flags, $eventsByStream),
-            AppendCondition::fromCapturedVersions(array_values($captured))
-        );
     }
 
     /**

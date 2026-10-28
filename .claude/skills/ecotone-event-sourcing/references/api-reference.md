@@ -74,6 +74,31 @@ readonly class FromAggregateStream
 
 Requires the referenced class to be an `#[EventSourcingAggregate]`.
 
+## FromTaggedStream Attribute (Enterprise)
+
+Source: `Ecotone\Api\Projecting\FromTaggedStream`
+
+```php
+#[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
+final readonly class FromTaggedStream
+{
+    public function __construct(
+        public string $tag,
+        public string $eventStoreReferenceName = EventStore::class,
+    )
+}
+```
+
+Requires `#[Partitioned]` (no header name): the partition key is the event's value of `$tag`. Reads through
+`EventStore::loadByCriteria(EventCriteria::tag($tag, $value)->afterTagSequence($position)->limit($batchSize))`.
+Repeating it, or combining it with `#[FromStream]`/`#[FromAggregateStream]`, is refused.
+
+## PartitionTagValue Parameter Attribute (Enterprise)
+
+Source: `Ecotone\Api\Projecting\PartitionTagValue` -- extends `Header`, reads `PartitionTagValue::HEADER_NAME`
+(`ecotone_projection_partition_tag_value`). The tag value of the partition a `#[FromTaggedStream]` projection's event
+handler, or the `#[ProjectionReset]` of a per-partition rebuild, runs for.
+
 ## Partitioned Attribute
 
 Source: `Ecotone\Api\Projecting\Partitioned`
@@ -88,7 +113,7 @@ class Partitioned
 }
 ```
 
-- Default partition key: `MessageHeaders::EVENT_AGGREGATE_ID`
+- Default partition key: `MessageHeaders::EVENT_AGGREGATE_ID`; with `#[FromTaggedStream]`, the tag's value
 - Custom key: `#[Partitioned('custom_header')]`
 
 ## Polling Attribute
@@ -275,3 +300,4 @@ public function onEvent(SomeEvent $event, EventStreamEmitter $emitter): void
 5. `#[Partitioned]` + `#[Streaming]` -> not allowed
 6. Projection names must be unique
 7. Backfill batch size must be >= 1
+8. `#[FromTaggedStream]` without `#[Partitioned]`, with `#[Partitioned('header')]`, repeated, beside another source, over a tag no `#[EventTag]` declares, or over a filter-only tag -> ConfigurationException; without a licence -> LicensingException

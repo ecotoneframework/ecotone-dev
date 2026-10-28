@@ -33,7 +33,7 @@ use App\Sales\SoldSeat;
 use DateTimeImmutable;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Api\Attribute\Around;
-use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Api\Attribute\ChannelInterceptor;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Headers;
@@ -45,7 +45,6 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Interceptor\MethodInvocation;
-use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Symfony\SymfonyConnectionReference;
@@ -395,16 +394,13 @@ final class TicketIssuanceTest extends KernelTestCase
 
             public bool $registeredInThisAttempt = false;
 
-            #[Around(precedence: Precedence::COLLECTOR_SENDER_PRECEDENCE - 1, pointcut: AsynchronousRunningEndpoint::class)]
-            public function rollBackTheTransactionThatRegisteredTheTickets(MethodInvocation $invocation): mixed
+            #[ChannelInterceptor('ticketing_async')]
+            public function dropTheConnectionWhenTheRegistrationQueuesItsNextStep(): void
             {
-                $this->registeredInThisAttempt = false;
-                $result = $invocation->proceed();
                 if ($this->registeredInThisAttempt && ! $this->connectionRestored) {
+                    $this->registeredInThisAttempt = false;
                     throw new RuntimeException('The database connection dropped before the registration of the tickets committed.');
                 }
-
-                return $result;
             }
 
             #[Around(pointcut: TicketIssuance::class . '::registerEntryCodes')]

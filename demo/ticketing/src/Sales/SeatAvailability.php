@@ -24,6 +24,8 @@ final class SeatAvailability
 
     private ?string $soldToOrderId = null;
 
+    private ?string $soldWithPaymentReference = null;
+
     #[Apply]
     public function held(SeatHeld $event): void
     {
@@ -51,11 +53,17 @@ final class SeatAvailability
     {
         $this->free();
         $this->soldToOrderId = $event->orderId;
+        $this->soldWithPaymentReference = $event->paymentReference;
     }
 
     public function soldToOrderId(): ?string
     {
         return $this->soldToOrderId;
+    }
+
+    public function soldWithPaymentReference(): ?string
+    {
+        return $this->soldWithPaymentReference;
     }
 
     public function holdingOrderId(): ?string

@@ -629,6 +629,39 @@ final class SeatSalesTest extends KernelTestCase
         );
     }
 
+    public function test_a_confirm_racing_the_same_confirm_on_another_connection_sells_the_seat_once_without_a_refusal(): void
+    {
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public ?ConfirmSeats $sameConfirmation = null;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::confirm')]
+            public function confirmTheSameOrderOnceMeanwhile(MethodInvocation $invocation): mixed
+            {
+                if ($this->sameConfirmation !== null) {
+                    $confirmation = $this->sameConfirmation;
+                    $this->sameConfirmation = null;
+                    $this->competitor->sendCommand($confirmation, metadata: ['concertId' => $confirmation->concertId]);
+                }
+
+                return $invocation->proceed();
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $interferer->competitor = $competitor;
+        $interferer->sameConfirmation = new ConfirmSeats(orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1'], paymentReference: 'pay-1');
+
+        $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+
+        self::assertCount(1, $ticketing->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('seat', $concertId . '/A-1')->ofTypes(SeatSold::class))->events);
+    }
+
     public function test_holds_of_different_seats_racing_a_confirm_of_the_same_concert_do_not_conflict_with_it(): void
     {
         $competitor = $this->competitor();

@@ -469,6 +469,86 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         self::assertCount(1, $ticketing->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('seat', $concertId . '/A-1')->ofTypes(SeatSold::class))->events);
     }
 
+    public function test_two_identical_confirmations_handled_by_two_consumers_at_once_both_reply_sold_and_sell_the_seat_once(): void
+    {
+        $storefront = $this->storefront();
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public bool $raced = false;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::confirm')]
+            public function handleTheSameConfirmationOnTheOtherConsumerMeanwhile(MethodInvocation $invocation): mixed
+            {
+                if (! $this->raced) {
+                    $this->raced = true;
+                    $this->competitor->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+                }
+
+                return $invocation->proceed();
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->repliesReceivedBy($storefront);
+        $interferer->competitor = $competitor;
+
+        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(
+            [['outcome' => 'sold', 'reason' => null], ['outcome' => 'sold', 'reason' => null]],
+            array_map(static fn (array $received): array => ['outcome' => $received['reply']['outcome'], 'reason' => $received['reply']['reason']], $this->repliesReceivedBy($storefront)),
+        );
+        self::assertCount(1, $ticketing->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('seat', $concertId . '/A-1')->ofTypes(SeatSold::class))->events);
+    }
+
+    public function test_two_confirmations_of_one_order_with_different_payments_handled_by_two_consumers_at_once_refuse_the_later_one_naming_both_payments(): void
+    {
+        $storefront = $this->storefront();
+        $competitor = $this->competitor();
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public bool $raced = false;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: SeatSales::class . '::confirm')]
+            public function handleTheSameConfirmationOnTheOtherConsumerMeanwhile(MethodInvocation $invocation): mixed
+            {
+                if (! $this->raced) {
+                    $this->raced = true;
+                    $this->competitor->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+                }
+
+                return $invocation->proceed();
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->repliesReceivedBy($storefront);
+        $interferer->competitor = $competitor;
+
+        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1'], paymentReference: 'pay-2');
+        $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(
+            [['outcome' => 'sold', 'reason' => null], ['outcome' => 'refused', 'reason' => "Order {$orderId} cannot buy seat {$concertId}/A-1 with payment pay-1, because it is already sold to this order with payment pay-2. Refund payment pay-1; the seat stays sold with payment pay-2."]],
+            array_map(static fn (array $received): array => ['outcome' => $received['reply']['outcome'], 'reason' => $received['reply']['reason']], $this->repliesReceivedBy($storefront)),
+        );
+        self::assertCount(1, $ticketing->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('seat', $concertId . '/A-1')->ofTypes(SeatSold::class))->events);
+    }
+
     public function test_a_hold_missing_a_field_names_the_missing_field_and_the_contract(): void
     {
         $storefront = $this->storefront();

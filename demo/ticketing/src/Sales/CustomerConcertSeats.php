@@ -73,20 +73,6 @@ final class CustomerConcertSeats
     }
 
     /**
-     * @param list<string> $seatIds
-     */
-    public function soldEveryOneTo(array $seatIds, string $orderId, string $paymentReference): bool
-    {
-        foreach ($seatIds as $seatId) {
-            if (($this->soldSeats[$seatId] ?? null) !== ['orderId' => $orderId, 'paymentReference' => $paymentReference]) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * @return array{orderId: string, heldUntil: ?DateTimeImmutable}|null
      */
     public function holdOf(string $seatId): ?array

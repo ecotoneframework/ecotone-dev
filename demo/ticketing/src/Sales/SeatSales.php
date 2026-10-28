@@ -194,12 +194,12 @@ final class SeatSales
     }
 
     /**
-     * @return array{holdingOrderId: ?string, soldToOrderId: ?string}
+     * @return array{holdingOrderId: ?string, soldToOrderId: ?string, soldWithPaymentReference: ?string}
      */
     #[QueryHandler]
     public function ownerOf(FindSeatOwner $query, SeatAvailability $seat): array
     {
-        return ['holdingOrderId' => $seat->holdingOrderId(), 'soldToOrderId' => $seat->soldToOrderId()];
+        return ['holdingOrderId' => $seat->holdingOrderId(), 'soldToOrderId' => $seat->soldToOrderId(), 'soldWithPaymentReference' => $seat->soldWithPaymentReference()];
     }
 
     private static function seatsOf(ConfirmSeats|ConfirmSeedOrder $order): EventCriteria
@@ -221,7 +221,8 @@ final class SeatSales
         if ($seatIds === []) {
             throw SeatRefusal::because(sprintf('Order %s names no seats to buy. Confirm the order with the ids of the seats it holds.', $order->orderId));
         }
-        if ($customerSeats->soldEveryOneTo(seatIds: $seatIds, orderId: $order->orderId, paymentReference: $order->paymentReference)) {
+        $owners = array_combine($seatIds, array_map(static fn (string $seatId): array => $queryBus->send(new FindSeatOwner($seatId)), $seatIds));
+        if (self::soldEveryOneWithThePaymentOf($order, $owners)) {
             return [];
         }
 
@@ -236,7 +237,7 @@ final class SeatSales
         $sold = [];
         foreach ($seatIds as $seatId) {
             $this->assertLiveHoldOfTheOrder(order: $order, customerSeats: $customerSeats, seatId: $seatId, now: $now);
-            $this->assertNoOtherOrderTookTheSeat(order: $order, owner: $queryBus->send(new FindSeatOwner($seatId)), seatId: $seatId);
+            $this->assertNoOtherOrderTookTheSeat(order: $order, owner: $owners[$seatId], seatId: $seatId);
             $tier = $concert->seat($seatId)->tier;
             $sold[] = new SeatSold(
                 orderId: $order->orderId,
@@ -250,6 +251,20 @@ final class SeatSales
         }
 
         return $sold;
+    }
+
+    /**
+     * @param array<string, array{holdingOrderId: ?string, soldToOrderId: ?string, soldWithPaymentReference: ?string}> $owners
+     */
+    private static function soldEveryOneWithThePaymentOf(ConfirmSeats|ConfirmSeedOrder $order, array $owners): bool
+    {
+        foreach ($owners as $owner) {
+            if ($owner['soldToOrderId'] !== $order->orderId || $owner['soldWithPaymentReference'] !== $order->paymentReference) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function assertLiveHoldOfTheOrder(ConfirmSeats|ConfirmSeedOrder $order, CustomerConcertSeats $customerSeats, string $seatId, DateTimeInterface $now): void
@@ -276,11 +291,14 @@ final class SeatSales
     }
 
     /**
-     * @param array{holdingOrderId: ?string, soldToOrderId: ?string} $owner
+     * @param array{holdingOrderId: ?string, soldToOrderId: ?string, soldWithPaymentReference: ?string} $owner
      */
     private function assertNoOtherOrderTookTheSeat(ConfirmSeats|ConfirmSeedOrder $order, array $owner, string $seatId): void
     {
         $refusedSeat = sprintf('Order %s cannot buy seat %s', $order->orderId, $seatId);
+        if ($owner['soldToOrderId'] === $order->orderId && $owner['soldWithPaymentReference'] !== $order->paymentReference) {
+            throw SeatRefusal::because(sprintf('%s with payment %s, because it is already sold to this order with payment %s. Refund payment %s; the seat stays sold with payment %s.', $refusedSeat, $order->paymentReference, $owner['soldWithPaymentReference'], $order->paymentReference, $owner['soldWithPaymentReference']));
+        }
         if ($owner['soldToOrderId'] !== null) {
             throw SeatRefusal::because(sprintf('%s, because it is already sold to order %s. Confirm only seats that are held; nothing of the order was sold.', $refusedSeat, $owner['soldToOrderId']));
         }

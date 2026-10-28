@@ -66,6 +66,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         yield 'in-memory' => ['in-memory'];
         yield 'in-memory-without-event-sourcing-module' => ['in-memory-without-event-sourcing-module'];
         yield 'dbal' => ['dbal'];
+        yield 'dbal-manager-registry' => ['dbal-manager-registry'];
     }
 
     #[DataProvider('implementations')]
@@ -480,7 +481,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
 
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
-            containerOrAvailableServices: [...$services, DbalConnectionFactory::class => self::getConnectionFactory()],
+            containerOrAvailableServices: [...$services, DbalConnectionFactory::class => self::getConnectionFactory(isRegistry: $implementation === 'dbal-manager-registry')],
             extensionObjects: [
                 DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                 ...$extensionObjects,

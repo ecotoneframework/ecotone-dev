@@ -7,6 +7,7 @@ namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -75,6 +76,27 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new CloseTicket('123'));
         $ecotone->sendCommand(new RegisterTicket('124', 'Johnny', 'info'));
         self::assertEquals([['ticket_id' => '124', 'ticket_type' => 'info']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+    }
+
+    public function test_building_synchronous_partitioned_projection_on_a_manager_registry_connection(): void
+    {
+        $projection = $this->createInProgressTicketListProjection();
+
+        $ecotone = $this->bootstrapFlowTesting(
+            classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
+            containerOrAvailableServices: [$projection, new TicketEventConverter(), DbalConnectionFactory::class => self::getConnectionFactory(isRegistry: true)],
+            extensionObjects: [DbalConfiguration::createForTesting()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+        $ecotone->resetProjection($projection::NAME)
+            ->triggerProjection($projection::NAME);
+
+        self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
 
     public function test_operations_on_synchronous_partitioned_projection(): void

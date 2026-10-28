@@ -138,6 +138,55 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         self::assertStringContainsString('Cannot follow "billing:command:gone": billing reports no node "command:gone", so its flow may have changed since the link was made. Type the name of the node into Find on the flow graph, or remove the focus parameter to see every service.', (string) $client->getResponse()->getContent());
     }
 
+    public function test_finding_a_name_that_matches_one_node_follows_it(): void
+    {
+        $client = $this->ordersAndBilling();
+
+        $client->request('GET', '/flow?find=ORDER.PLACE');
+
+        self::assertResponseRedirects();
+        $focused = $client->followRedirect();
+        self::assertStringContainsString('order.place', $focused->filter('[data-focus] h2')->text());
+        self::assertStringContainsString('orders', $focused->filter('[data-focus] h2')->text());
+    }
+
+    public function test_finding_a_name_that_matches_several_nodes_lists_them_to_follow(): void
+    {
+        $client = $this->ordersAndBilling();
+
+        $found = $client->request('GET', '/flow?find=invoice.created');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['invoice.created event · billing', 'invoice.created event · orders'], $found->filter('[data-find-results] li')->each(fn (Crawler $item) => $item->text()));
+        $followed = $client->request('GET', $found->filter('[data-find-results] a')->first()->attr('href'));
+        self::assertStringContainsString('billing', $followed->filter('[data-focus] h2')->text());
+    }
+
+    public function test_finding_a_name_that_matches_nothing_says_so_and_keeps_what_was_typed(): void
+    {
+        $client = $this->ordersAndBilling();
+
+        $found = $client->request('GET', '/flow?find=shipment');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('No node matches "shipment"', $found->filter('[data-find-none]')->text());
+        self::assertSame('shipment', $found->filter('[data-flow-find] input[name="find"]')->attr('value'));
+    }
+
+    public function test_the_find_box_is_labelled_and_suggests_the_names_of_the_nodes(): void
+    {
+        $client = $this->ordersAndBilling();
+
+        $page = $client->request('GET', '/flow');
+
+        $input = $page->filter('[data-flow-find] input[name="find"]');
+        self::assertSame('Find a node', $page->filter('[data-flow-find] label[for="' . $input->attr('id') . '"]')->text());
+        $suggestions = $page->filter('datalist#' . $input->attr('list') . ' option')->each(fn (Crawler $option) => $option->attr('value'));
+        self::assertContains('order.place', $suggestions);
+        self::assertContains('class@anonymous::create', $suggestions);
+        self::assertSame(count(array_unique($suggestions)), count($suggestions));
+    }
+
     private function ordersAndBilling(): KernelBrowser
     {
         $this->configurePulseWithServices('orders', 'billing');

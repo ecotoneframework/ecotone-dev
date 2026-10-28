@@ -26,6 +26,23 @@
         </section>
     {% endif %}
     {% include 'graph/_scope.html.twig' with {carry: trace ? {trace: trace.traceId} : {}} %}
+    <form method="get" action="{{ path('flow_graph') }}" class="flow-find" role="search" data-flow-find>
+        <label for="flow-find">Find a node</label>
+        <input id="flow-find" type="search" name="find" list="flow-node-names" value="{{ find }}" autocomplete="off">
+        {% if trace %}<input type="hidden" name="trace" value="{{ trace.traceId }}">{% endif %}
+        <button type="submit">Follow</button>
+        <datalist id="flow-node-names">{% for name in nodeNames %}<option value="{{ name }}"></option>{% endfor %}</datalist>
+    </form>
+    {% if find != '' %}
+        {% if found is empty %}
+            <p class="notice" data-find-none>No node matches "{{ find }}". Names are matched anywhere in the label, ignoring case; the suggestions under the box list every node.</p>
+        {% else %}
+            <section class="card" aria-labelledby="find-heading">
+                <h2 id="find-heading">{{ found|length }} nodes match "{{ find }}"</h2>
+                <ul data-find-results>{% for step in found %}<li><a href="{{ step.href }}">{{ step.label }}</a> <span class="muted">{{ step.kind }} · {{ step.service }}</span></li>{% endfor %}</ul>
+            </section>
+        {% endif %}
+    {% endif %}
     {% if focus %}
         <section class="card focus" data-focus aria-labelledby="focus-heading">
             <h2 id="focus-heading">Following {{ focus.label }} <span class="muted">in {{ focus.service }}</span></h2>

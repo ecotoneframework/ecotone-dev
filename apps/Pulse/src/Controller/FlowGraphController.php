@@ -61,6 +61,12 @@ final class FlowGraphController extends AbstractController
             default => array_values(array_intersect($available, array_map('strval', $requested))),
         };
 
+        $find = trim($request->query->getString('find'));
+        $found = $find === '' ? [] : $this->found($flows, $find, $traceId);
+        if (count($found) === 1) {
+            return $this->redirect($found[0]['href']);
+        }
+
         $nodes = $overview ? StitchedFlowGraph::overviewDetails($flows) : StitchedFlowGraph::nodeDetails($flows, $shown, $focus);
         $nodes = array_map(fn (array $node): array => [...$node, 'href' => match (true) {
             $overview => $this->generateUrl('flow_graph', ['services' => [$node['service']]]),
@@ -70,6 +76,9 @@ final class FlowGraphController extends AbstractController
 
         return $this->render('graph/flow.html.twig', [
             'scope' => $scope,
+            'find' => $find,
+            'found' => $found,
+            'nodeNames' => $this->nodeNamesOf($flows),
             'focus' => $focus === null ? null : [
                 'label' => ShortLabel::of($focus->node->label),
                 'service' => $focus->service,
@@ -121,5 +130,43 @@ final class FlowGraphController extends AbstractController
     private function focusUrl(string $service, string $nodeId, string $traceId): string
     {
         return $this->generateUrl('flow_graph', array_filter(['focus' => $service . ':' . $nodeId, 'trace' => $traceId]));
+    }
+
+    /**
+     * @param list<ServiceFlow> $flows
+     * @return list<array{label: string, kind: string, service: string, href: string}>
+     */
+    private function found(array $flows, string $find, string $traceId): array
+    {
+        $found = [];
+        foreach ($flows as $flow) {
+            foreach ($flow->graph->nodes() as $node) {
+                if (mb_stripos(ShortLabel::of($node->label), $find) !== false || mb_stripos($node->label, $find) !== false) {
+                    $found[] = ['service' => $flow->name, 'node' => $node];
+                }
+            }
+        }
+        $steps = $this->stepsOf($found, $traceId);
+        usort($steps, fn (array $one, array $other): int => [$one['label'], $one['service']] <=> [$other['label'], $other['service']]);
+
+        return $steps;
+    }
+
+    /**
+     * @param list<ServiceFlow> $flows
+     * @return list<string>
+     */
+    private function nodeNamesOf(array $flows): array
+    {
+        $names = [];
+        foreach ($flows as $flow) {
+            foreach ($flow->graph->nodes() as $node) {
+                $names[ShortLabel::of($node->label)] = true;
+            }
+        }
+        $names = array_keys($names);
+        sort($names);
+
+        return array_map('strval', $names);
     }
 }

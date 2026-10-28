@@ -429,6 +429,26 @@ button:hover {
     background: var(--color-surface-muted);
 }
 
+button:disabled,
+button:disabled:hover {
+    color: var(--color-text-muted);
+    cursor: not-allowed;
+    background: var(--color-surface-muted);
+    border-color: var(--color-border);
+    box-shadow: none;
+}
+
+.action-disabled {
+    display: inline-flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.action-reason {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
 .button-primary,
 button.button-primary {
     color: #ffffff;

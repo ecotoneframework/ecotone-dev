@@ -20,20 +20,29 @@
         </div>
         <div class="toolbar">
             <a class="button seat-map-link" href="{{ path('concert_seats', {concertId: concert.concertId}) }}">{{ icons.icon('seats') }} Seat map</a>
-            <form method="post" action="{{ path('admin_concert_open_sales', {concertId: concert.concertId}) }}">
-                <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
-                <button type="submit" class="button-primary">{{ icons.icon('play') }} Open sales</button>
-            </form>
-            <details class="confirm">
-                <summary class="button button-ghost-danger">{{ icons.icon('x') }} Cancel…</summary>
-                <div class="confirm-panel">
-                    <p><strong>Cancel {{ concert.artist }}?</strong> Sales stop for good, and the storefront is told the concert is off.</p>
-                    <form method="post" action="{{ path('admin_concert_cancel', {concertId: concert.concertId}) }}">
-                        <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
-                        <button type="submit" class="button-danger">Cancel concert</button>
-                    </form>
-                </div>
-            </details>
+            {% if concert.status == 'scheduled' %}
+                <form method="post" action="{{ path('admin_concert_open_sales', {concertId: concert.concertId}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
+                    <button type="submit" class="button-primary">{{ icons.icon('play') }} Open sales</button>
+                </form>
+            {% else %}
+                <span class="action-disabled">
+                    <button type="button" disabled aria-describedby="open-sales-reason">{{ icons.icon('play') }} Open sales</button>
+                    <span class="action-reason" id="open-sales-reason">{{ concert.status == 'cancelled' ? 'The concert is cancelled.' : 'Sales are already open.' }}</span>
+                </span>
+            {% endif %}
+            {% if concert.status != 'cancelled' %}
+                <details class="confirm">
+                    <summary class="button button-ghost-danger">{{ icons.icon('x') }} Cancel…</summary>
+                    <div class="confirm-panel">
+                        <p><strong>Cancel {{ concert.artist }}?</strong> Sales stop for good, and the storefront is told the concert is off.</p>
+                        <form method="post" action="{{ path('admin_concert_cancel', {concertId: concert.concertId}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
+                            <button type="submit" class="button-danger">Cancel concert</button>
+                        </form>
+                    </div>
+                </details>
+            {% endif %}
         </div>
     </header>
 

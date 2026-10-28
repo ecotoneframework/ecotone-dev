@@ -133,12 +133,52 @@ final class AdminPagesTest extends WebTestCase
     {
         $client = $this->seededClient();
         $crawler = $client->request('GET', '/admin/concerts');
-        $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
+        $crawler = $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
 
-        $client->submitForm('Open sales');
+        $client->request('POST', $client->getRequest()->getPathInfo() . '/open-sales', ['_token' => $crawler->filter('input[name="_token"]')->attr('value')]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('.refusal', 'cannot open, because they are already open');
+    }
+
+    public function test_a_scheduled_concert_offers_open_sales_as_its_primary_action_and_can_be_cancelled(): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+        $client->click($crawler->filter('table.concerts tbody tr:nth-child(3) a')->link());
+
+        self::assertSelectorExists('form[action$="/open-sales"] button.button-primary:not([disabled])');
+        self::assertSelectorNotExists('.toolbar .action-reason');
+        self::assertSelectorExists('details.confirm');
+    }
+
+    public function test_a_concert_on_sale_shows_open_sales_disabled_with_the_reason_and_can_be_cancelled(): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+        $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
+
+        self::assertSelectorNotExists('form[action$="/open-sales"]');
+        self::assertSelectorNotExists('.toolbar .button-primary');
+        self::assertSelectorExists('.toolbar button[disabled]');
+        self::assertSelectorTextContains('.toolbar .action-reason', 'Sales are already open.');
+        self::assertSelectorExists('details.confirm');
+    }
+
+    public function test_a_cancelled_concert_shows_open_sales_disabled_with_the_reason_and_offers_no_cancel(): void
+    {
+        $client = $this->seededClient();
+        $crawler = $client->request('GET', '/admin/concerts');
+        $client->click($crawler->filter('table.concerts tbody tr:nth-child(3) a')->link());
+        $client->submitForm('Cancel concert');
+        $client->followRedirect();
+
+        self::assertSelectorTextContains('.status', 'cancelled');
+        self::assertSelectorNotExists('form[action$="/open-sales"]');
+        self::assertSelectorExists('.toolbar button[disabled]');
+        self::assertSelectorTextContains('.toolbar .action-reason', 'The concert is cancelled.');
+        self::assertSelectorNotExists('details.confirm');
+        self::assertSelectorNotExists('form[action$="/cancel"]');
     }
 
     public function test_the_concert_page_changes_a_tier_price_and_cancels_the_concert(): void
@@ -176,9 +216,9 @@ final class AdminPagesTest extends WebTestCase
     {
         $client = $this->seededClient();
         $crawler = $client->request('GET', '/admin/concerts');
-        $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
+        $crawler = $client->click($crawler->filter('table.concerts tbody tr:nth-child(1) a')->link());
 
-        $client->submitForm('Open sales');
+        $client->request('POST', $client->getRequest()->getPathInfo() . '/open-sales', ['_token' => $crawler->filter('input[name="_token"]')->attr('value')]);
         self::assertSelectorExists('.refusal[role="alert"]');
 
         $client->submitForm('Change price', ['tier' => 'vip', 'priceCents' => '12000']);

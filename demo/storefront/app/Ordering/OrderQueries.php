@@ -39,7 +39,7 @@ final class OrderQueries
             ->where('status', '<>', OrderStatus::FAILED)
             ->when($query['excludingOrderId'] !== null, fn ($orders) => $orders->where('id', '<>', $query['excludingOrderId']))
             ->get()
-            ->flatMap(fn (Order $order) => $order->heldSeatIds())
+            ->flatMap(fn (Order $order) => $order->claimedSeatIds())
             ->unique()
             ->values()
             ->all();

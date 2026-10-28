@@ -23,7 +23,7 @@ use Symfony\Component\Uid\Uuid;
  * @property string $customer_id
  * @property string $concert_id
  * @property OrderStatus $status
- * @property list<array{seatId: string, holdId: string, expiresAt: string}> $held_seats
+ * @property list<array{seatId: string, holdId: string, expiresAt: string, expired?: bool}> $held_seats
  * @property array<string, string> $requested_holds
  * @property array{seatId: string, reason: string}|null $last_refusal
  * @property list<array{ticketNumber: string, seatId: string, tier: string, entryCode: string}> $tickets
@@ -183,10 +183,17 @@ final class Order extends Model
     #[CommandHandler]
     public function dropExpiredSeat(DropExpiredSeat $command): void
     {
-        if (! in_array($this->status, self::OPEN_STATUSES, true) || $this->holdIdOf($command->seatId) !== $command->holdId) {
+        if ($this->holdIdOf($command->seatId) !== $command->holdId) {
             return;
         }
-        $this->dropHeldSeat($command->seatId);
+        if (in_array($this->status, self::OPEN_STATUSES, true)) {
+            $this->dropHeldSeat($command->seatId);
+
+            return;
+        }
+        if (in_array($this->status, [OrderStatus::PAYING, OrderStatus::PAID], true) && ! $this->seats_sold) {
+            $this->held_seats = array_map(fn (array $heldSeat) => $heldSeat['seatId'] === $command->seatId ? [...$heldSeat, 'expired' => true] : $heldSeat, $this->held_seats);
+        }
     }
 
     #[CommandHandler]
@@ -276,6 +283,14 @@ final class Order extends Model
     public function heldSeatIds(): array
     {
         return array_column($this->held_seats, 'seatId');
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function claimedSeatIds(): array
+    {
+        return array_column(array_filter($this->held_seats, fn (array $heldSeat) => ! ($heldSeat['expired'] ?? false)), 'seatId');
     }
 
     private static function sameTickets(array $tickets, array $otherTickets): bool

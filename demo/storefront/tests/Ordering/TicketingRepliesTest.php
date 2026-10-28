@@ -200,6 +200,40 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
         self::assertSame([['seatId' => self::CONCERT_ID . '/A-12', 'expiresAt' => self::EXPIRES_AT]], $order['heldSeats']);
     }
 
+    public function test_an_expired_hold_of_a_paying_order_is_available_to_another_buyer(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, cardNumber: '4111111111119999'));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $this->publishFromTicketing('tickets.hold_expired', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'customerId' => $this->order($orderId)['customerId'], 'holdId' => 'hold-1']);
+
+        self::assertSame('paying', $this->order($orderId)['status']);
+        self::assertSame([], $this->storefront->sendQueryWithRouting('concert.taken_seats', ['concertId' => self::CONCERT_ID, 'excludingOrderId' => null]));
+    }
+
+    public function test_a_payment_that_succeeds_after_the_hold_expired_ends_in_a_refunded_order(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, cardNumber: '4111111111119999'));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $this->publishFromTicketing('tickets.hold_expired', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'customerId' => $this->order($orderId)['customerId'], 'holdId' => 'hold-1']);
+        $this->ticketingService->confirmReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'outcome' => 'refused', 'reason' => "Order {$orderId} cannot buy seat A-12, because its hold expired at 2026-10-25T12:02:00+00:00.", 'seatIds' => [self::CONCERT_ID . '/A-12']];
+
+        $this->storefront->getGateway(DeadLetterGateway::class)->replayAll();
+        $this->storefrontAsyncRuns();
+        $this->ticketingReplies();
+        $this->storefrontAsyncRuns();
+
+        $order = $this->order($orderId);
+        self::assertSame('failed', $order['status']);
+        self::assertSame("Ticketing refused to confirm the seats: Order {$orderId} cannot buy seat A-12, because its hold expired at 2026-10-25T12:02:00+00:00. A refund of the payment is queued.", $order['failureReason']);
+        self::assertSame('refunded', $this->storefront->sendQueryWithRouting('payment.status', $order['paymentReference']));
+        self::assertSame(0, $this->storefront->getGateway(DeadLetterGateway::class)->count());
+    }
+
     public function test_an_expired_hold_published_by_ticketing_drops_the_seat_from_the_order(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');

@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Awaited;
 
-use App\Tests\Support\ConcurrentRespondersTrait;
 use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
+use App\Tests\Support\RespondingWhileWaitingTrait;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
@@ -16,14 +15,14 @@ use Symfony\Component\DomCrawler\Crawler;
 final class AwaitedRefreshTest extends ReleasingWebTestCase
 {
     use PulseServicesTrait;
-    use ConcurrentRespondersTrait;
+    use RespondingWhileWaitingTrait;
 
     public function test_a_refresh_renders_the_fresh_snapshot_in_the_same_response_when_the_service_answers(): void
     {
         $this->configurePulseWithServices('orders');
         $this->awaitRepliesFor(30);
         $client = $this->pulseClient();
-        $this->respondInBackground(['orders']);
+        $this->respondWhileWaiting($client->getKernel(), ['orders' => $this->realService('orders')]);
 
         $client->request('POST', '/refresh');
         $crawler = $client->followRedirect();
@@ -39,10 +38,5 @@ final class AwaitedRefreshTest extends ReleasingWebTestCase
         $this->setUpPulseDatabase($client->getKernel());
 
         return $client;
-    }
-
-    private function statusOf(Crawler $crawler, string $service): string
-    {
-        return $crawler->filter(sprintf('[data-service="%s"] [data-status]', $service))->attr('data-status');
     }
 }

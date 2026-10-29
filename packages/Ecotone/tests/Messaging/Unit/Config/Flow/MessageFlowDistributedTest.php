@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
+use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -79,6 +81,50 @@ final class MessageFlowDistributedTest extends TestCase
             array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::hold', $bus), 'attributes'),
         );
         self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::release', $bus));
+    }
+
+    public function test_only_a_declared_return_type_other_than_void_or_self_draws_a_reply(): void
+    {
+        $service = new class () {
+            #[Distributed]
+            #[CommandHandler('tickets.hold')]
+            public function hold(array $payload): array
+            {
+                return ['outcome' => 'held'];
+            }
+
+            #[Distributed]
+            #[CommandHandler('tickets.note')]
+            public function note(array $payload)
+            {
+            }
+        };
+        $aggregate = new #[Aggregate] class ('ticket-1') {
+            public function __construct(#[Identifier] public string $ticketId)
+            {
+            }
+
+            #[Distributed]
+            #[CommandHandler('tickets.open')]
+            public static function open(array $payload): self
+            {
+                return new self($payload['ticketId']);
+            }
+
+            #[Distributed]
+            #[CommandHandler('tickets.reopen')]
+            public static function reopen(array $payload): static
+            {
+                return new static($payload['ticketId']);
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class, $aggregate::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        $repliesOf = fn (string $handler) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $handler, 'distributed:' . DistributedBus::class), 'attributes');
+        self::assertSame([['via' => 'replyRoutingKey']], $repliesOf($service::class . '::hold'));
+        self::assertSame([], $repliesOf($service::class . '::note'));
+        self::assertSame([], $repliesOf($aggregate::class . '::open'));
+        self::assertSame([], $repliesOf($aggregate::class . '::reopen'));
     }
 
     public function test_distributed_command_handler_that_replies_and_sends_an_unresolved_message_shows_both(): void

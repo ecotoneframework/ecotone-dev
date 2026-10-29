@@ -265,7 +265,7 @@ final class MessageFlowDiscovery
                     $this->edges[] = new FlowEdge($this->distributedBusOf($registration)->id, $message->id, FlowEdgeKind::DISTRIBUTES);
                 }
             }
-            if ($distributed && $handlerKind === FlowNodeKind::COMMAND_HANDLER && $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->canReturnValue()) {
+            if ($distributed && $handlerKind === FlowNodeKind::COMMAND_HANDLER && $this->replies($registration)) {
                 $this->edges[] = new FlowEdge($handlerId, $this->distributedBusOf($registration)->id, FlowEdgeKind::SENDS_TO, ['via' => 'replyRoutingKey']);
             }
             $this->registerOutput($handlerId, $annotation->getOutputChannelName());
@@ -302,9 +302,16 @@ final class MessageFlowDiscovery
     {
         $busId = $this->distributedBusOf($registration)->id;
         $this->edges[] = new FlowEdge($busId, $this->channelNode($inputChannelName)->id, FlowEdgeKind::DISTRIBUTES);
-        if ($this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->canReturnValue()) {
+        if ($this->replies($registration)) {
             $this->edges[] = new FlowEdge($handlerId, $busId, FlowEdgeKind::SENDS_TO, ['via' => 'replyRoutingKey']);
         }
+    }
+
+    private function replies(AnnotatedFinding $registration): bool
+    {
+        $returnType = $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->getReturnType();
+
+        return $returnType !== null && ! $returnType->isVoid() && ! $returnType->isAnything() && ! $returnType->equals(Type::object($registration->getClassName()));
     }
 
     private function discoverRouters(): void

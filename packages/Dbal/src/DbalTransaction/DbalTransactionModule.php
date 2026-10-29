@@ -64,7 +64,7 @@ class DbalTransactionModule implements AnnotationModule
         $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionFactory::class];
 
         $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [
-            array_map(fn (string $id) => new Reference($id), $connectionFactories),
+            array_combine($connectionFactories, array_map(fn (string $id) => new Reference($id), $connectionFactories)),
             $dbalConfiguration->getDisabledTransactionsOnAsynchronousEndpointNames(),
             new Reference(RetryRunner::class),
             new Reference(LoggingGateway::class),

@@ -3543,8 +3543,9 @@ the target handled the same business request twice. The only defence was making 
 **Now:** `sendCommand()`, `convertAndSendCommand()`, `publishEvent()`, `convertAndPublishEvent()` and `sendMessage()`
 take an optional `idempotencyKey`, carried in the `ecotone_distributed_idempotency_key` header
 (`DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY`). The target's deduplication (`ecotone/dbal`, on by default for
-asynchronous endpoints, in memory or on the database) keys on it in place of the message id, so the same key is handled
-once per consuming endpoint and different keys are each handled. A `#[Deduplicated]` handler that names its own header or
+asynchronous endpoints, in memory or on the database) keys on it in place of the message id, scoped by the routing key
+and the consuming endpoint: the same key on one routing key is handled once by each endpoint that consumes it, and the
+same key on two routing keys (`tickets.confirm` and `tickets.cancel` both keyed by the order id) is handled for each. A `#[Deduplicated]` handler that names its own header or
 expression keeps using that; a plain `#[Deduplicated]` uses the key too. The key is a framework header, so it is not
 copied onto the messages the target sends onwards, and the reply of a `sendMessage()` does not carry it. A send skipped
 as a duplicate produces no second reply. A blank key is refused with `InvalidArgumentException`, because it would make
@@ -3555,7 +3556,7 @@ every send that carries it one request. A send without a key behaves as before.
 #[CommandHandler('order.confirm', endpointId: 'order.confirm.endpoint')]
 public function confirm(string $orderId, DistributedBus $distributedBus): void
 {
-    $distributedBus->sendMessage('ticketing', 'tickets.confirm', $orderId, idempotencyKey: 'tickets.confirm.' . $orderId);
+    $distributedBus->sendMessage('ticketing', 'tickets.confirm', $orderId, idempotencyKey: $orderId);
 }
 ```
 

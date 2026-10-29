@@ -46,14 +46,14 @@
     }
 
     function seatStateOf(seatId, yours, taken, sold, refusal) {
-        if (pendingSeatIds.has(seatId)) {
-            return 'pending';
+        if (sold.has(seatId)) {
+            return 'sold';
         }
         if (yours.has(seatId)) {
             return 'yours';
         }
-        if (sold.has(seatId)) {
-            return 'sold';
+        if (pendingSeatIds.has(seatId)) {
+            return 'pending';
         }
         if (taken.has(seatId)) {
             return 'held';

@@ -11,6 +11,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -61,6 +62,68 @@ final class MessageFlowDeclaredSendTest extends TestCase
         self::assertSame(
             [['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold']],
             array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::holdRequestedSeat', 'distributed:' . DistributedBus::class), 'attributes'),
+        );
+    }
+
+    public function test_declared_reply_key_contradicting_the_one_the_source_sends_is_refused_at_bootstrap(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold', replyRoutingKey: 'tickets.hold.result')]
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', 'tickets.hold', '{}', replyRoutingKey: 'tickets.hold.answer');
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf(
+            "#[SendsDistributedMessage] on %s::holdRequestedSeat() declares the route to 'ticketing' with routing key 'tickets.hold' answered on 'tickets.hold.result', but the source of holdRequestedSeat() sends it with replyRoutingKey 'tickets.hold.answer'. One sent message is answered on one key, so only one of them can be right. Correct the replyRoutingKey of the attribute or of the sendMessage() call, so both name the key the target service answers on.",
+            $service::class,
+        ));
+
+        $this->bootstrap($service);
+    }
+
+    public function test_declared_reply_key_on_a_route_the_source_sends_without_one_is_refused_at_bootstrap(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold', replyRoutingKey: 'tickets.hold.result')]
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event, DistributedBus $distributedBus): void
+            {
+                $this->send($distributedBus, 'tickets.hold');
+            }
+
+            private function send(DistributedBus $distributedBus, string $routingKey): void
+            {
+                $distributedBus->sendMessage('ticketing', $routingKey, '{}');
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf(
+            "#[SendsDistributedMessage] on %s::holdRequestedSeat() declares the route to 'ticketing' with routing key 'tickets.hold' answered on 'tickets.hold.result', but the source of holdRequestedSeat() sends it with no reply. One sent message is answered on one key, so only one of them can be right. Correct the replyRoutingKey of the attribute or of the sendMessage() call, so both name the key the target service answers on.",
+            $service::class,
+        ));
+
+        $this->bootstrap($service);
+    }
+
+    public function test_declared_reply_key_stands_when_the_source_computes_its_reply_key_at_runtime(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold', replyRoutingKey: 'tickets.hold.result')]
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', 'tickets.hold', '{}', replyRoutingKey: $event['replyTo']);
+            }
+        };
+
+        self::assertSame(
+            [['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result']],
+            array_column($this->graphOf($service)->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::holdRequestedSeat', 'distributed:' . DistributedBus::class), 'attributes'),
         );
     }
 
@@ -203,6 +266,11 @@ final class MessageFlowDeclaredSendTest extends TestCase
 
     private function graphOf(object $service): MessageFlowGraph
     {
+        return $this->bootstrap($service)->getMessageFlowGraph();
+    }
+
+    private function bootstrap(object $service): FlowTestSupport
+    {
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$service::class],
             containerOrAvailableServices: [$service],
@@ -213,6 +281,6 @@ final class MessageFlowDeclaredSendTest extends TestCase
             ],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
-        )->getMessageFlowGraph();
+        );
     }
 }

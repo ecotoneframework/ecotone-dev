@@ -41,11 +41,13 @@ final class MessageFlowModule implements AnnotationModule
         }
 
         $declared = MessageFlowDiscovery::discover($this->annotationFinder, $interfaceToCallRegistry, $extensionObjects);
+        $distributedBusParameters = self::distributedBusParameters($interfaceToCallRegistry);
+        (new MessageFlowGraphBuilder($declared->graph, $declared->collaborators, $declared->namedEvents, $distributedBusParameters, new HandlerSourceScanner()))->checkDeclaredSends();
         $messagingConfiguration->registerServiceDefinition(MessageFlowGraphBuilder::class, new Definition(MessageFlowGraphBuilder::class, [
             $declared->graph->getDefinition(),
             $declared->collaborators,
             $declared->namedEvents,
-            self::distributedBusParameters($interfaceToCallRegistry),
+            $distributedBusParameters,
             new Definition(HandlerSourceScanner::class),
         ]));
         $messagingConfiguration->registerServiceDefinition(MessageFlowConsoleCommands::class, new Definition(MessageFlowConsoleCommands::class));

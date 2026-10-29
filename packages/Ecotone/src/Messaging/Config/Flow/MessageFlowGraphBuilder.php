@@ -29,6 +29,7 @@ use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Messaging\Flow\FlowNode;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 
 final class MessageFlowGraphBuilder
@@ -38,6 +39,7 @@ final class MessageFlowGraphBuilder
     private const ROUTING_KEY_CALLS = ['publishWithRouting', 'sendWithRouting'];
     private const DISTRIBUTED_COMMAND_CALLS = ['sendCommand', 'convertAndSendCommand'];
     private const DISTRIBUTED_EVENT_CALLS = ['publishEvent', 'convertAndPublishEvent'];
+    private const SCANNED_KINDS = [FlowNodeKind::COMMAND_HANDLER, FlowNodeKind::EVENT_HANDLER, FlowNodeKind::QUERY_HANDLER, FlowNodeKind::INTERNAL_HANDLER, FlowNodeKind::ROUTER, FlowNodeKind::SPLITTER, FlowNodeKind::TRANSFORMER, FlowNodeKind::ORCHESTRATOR, FlowNodeKind::SCHEDULED, FlowNodeKind::INTERCEPTOR];
 
     /**
      * @param array<string, array<string, string>> $collaborators handler node id => (receiver => class)
@@ -55,12 +57,8 @@ final class MessageFlowGraphBuilder
 
     public function build(): MessageFlowGraph
     {
-        $handlers = $this->declared->nodesOfKind(FlowNodeKind::COMMAND_HANDLER, FlowNodeKind::EVENT_HANDLER, FlowNodeKind::QUERY_HANDLER, FlowNodeKind::INTERNAL_HANDLER, FlowNodeKind::ROUTER, FlowNodeKind::SPLITTER, FlowNodeKind::TRANSFORMER, FlowNodeKind::ORCHESTRATOR, FlowNodeKind::SCHEDULED, FlowNodeKind::INTERCEPTOR);
-        $targets = [];
-        foreach ($handlers as $handler) {
-            $targets[$handler->id] = [(string) $handler->attributes['class'], (string) $handler->attributes['method']];
-        }
-        $facts = $this->scanner->scan($targets);
+        $handlers = $this->declared->nodesOfKind(...self::SCANNED_KINDS);
+        $facts = $this->factsOf($handlers);
 
         $inferred = new InferredFlow($this->declared);
         foreach ($handlers as $handler) {
@@ -75,6 +73,35 @@ final class MessageFlowGraphBuilder
         $this->connectEventRoutes($inferred);
 
         return $inferred->graph();
+    }
+
+    public function checkDeclaredSends(): void
+    {
+        $senders = [];
+        foreach ($this->declared->edgesOfKind(FlowEdgeKind::SENDS_TO) as $edge) {
+            if (($edge->attributes['declared'] ?? false) === true) {
+                $senders[$edge->from] = $this->declared->node($edge->from);
+            }
+        }
+        $facts = $this->factsOf(array_values($senders));
+        $inferred = new InferredFlow($this->declared);
+        foreach ($senders as $sender) {
+            $this->inferDistribution($inferred, $sender, $facts[$sender->id]);
+        }
+    }
+
+    /**
+     * @param list<FlowNode> $handlers
+     * @return array<string, MethodSourceFacts>
+     */
+    private function factsOf(array $handlers): array
+    {
+        $targets = [];
+        foreach ($handlers as $handler) {
+            $targets[$handler->id] = [(string) $handler->attributes['class'], (string) $handler->attributes['method']];
+        }
+
+        return $this->scanner->scan($targets);
     }
 
     private function connectEventRoutes(InferredFlow $flow): void
@@ -192,6 +219,9 @@ final class MessageFlowGraphBuilder
                 $this->addDistributedMessage($flow, $handler->id, $busId, $routingKey, FlowNodeKind::EVENT, $call['method'], []);
             } elseif ($call['method'] === 'sendMessage' && $targetService !== null && $routingKey !== null) {
                 $replyChannel = $this->distributedArgument($call, 'replyRoutingKey');
+                if ($replyChannel !== null || $this->distributedArgumentOf($call, 'replyRoutingKey') === null) {
+                    $this->refuseContradictingDeclaredReply($handler, $busId, $targetService, $routingKey, $replyChannel);
+                }
                 $flow->addEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => 'sendMessage', 'targetService' => $targetService, 'targetChannel' => $routingKey] + ($replyChannel === null ? [] : ['replyChannel' => $replyChannel])));
             } elseif (in_array($call['method'], [...self::DISTRIBUTED_COMMAND_CALLS, ...self::DISTRIBUTED_EVENT_CALLS, 'sendMessage'], true)) {
                 $flow->addEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => $call['method']]));
@@ -204,10 +234,38 @@ final class MessageFlowGraphBuilder
      */
     private function distributedArgument(array $call, string $parameter): ?string
     {
-        $position = array_search($parameter, $this->distributedBusParameters[$call['method']] ?? [], true);
-        $argument = $call['arguments'][$parameter] ?? ($position === false ? null : ($call['arguments'][$position] ?? null));
+        $argument = $this->distributedArgumentOf($call, $parameter);
 
         return ($argument['kind'] ?? null) === 'literal' ? $argument['value'] : null;
+    }
+
+    /**
+     * @param array{method: string, arguments: array<int|string, array{kind: string, value: string}>} $call
+     * @return array{kind: string, value: string}|null
+     */
+    private function distributedArgumentOf(array $call, string $parameter): ?array
+    {
+        $position = array_search($parameter, $this->distributedBusParameters[$call['method']] ?? [], true);
+
+        return $call['arguments'][$parameter] ?? ($position === false ? null : ($call['arguments'][$position] ?? null));
+    }
+
+    private function refuseContradictingDeclaredReply(FlowNode $handler, string $busId, string $targetService, string $routingKey, ?string $replyChannel): void
+    {
+        foreach ($this->declared->edgesOfKind(FlowEdgeKind::SENDS_TO, $handler->id, $busId) as $declared) {
+            if (($declared->attributes['declared'] ?? false) !== true || $declared->attributes['targetService'] !== $targetService || $declared->attributes['targetChannel'] !== $routingKey) {
+                continue;
+            }
+            $declaredReply = $declared->attributes['replyChannel'] ?? null;
+            if ($declaredReply === $replyChannel) {
+                continue;
+            }
+            $method = $handler->attributes['method'];
+            $declaredPart = $declaredReply === null ? 'with no reply' : "answered on '{$declaredReply}'";
+            $sourcePart = $replyChannel === null ? 'with no reply' : "with replyRoutingKey '{$replyChannel}'";
+
+            throw ConfigurationException::create("#[SendsDistributedMessage] on {$handler->attributes['class']}::{$method}() declares the route to '{$targetService}' with routing key '{$routingKey}' {$declaredPart}, but the source of {$method}() sends it {$sourcePart}. One sent message is answered on one key, so only one of them can be right. Correct the replyRoutingKey of the attribute or of the sendMessage() call, so both name the key the target service answers on.");
+        }
     }
 
     /**

@@ -14,6 +14,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -204,6 +205,89 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(['reservation of seat-7'], $userService->sendQueryWithRouting('order.reservations'));
+    }
+
+    #[DataProvider('deduplicationStores')]
+    public function test_a_distributed_message_sent_twice_with_the_same_idempotency_key_over_a_dbal_channel_is_handled_once(bool $inMemory): void
+    {
+        $channels = [DbalBackedMessageChannelBuilder::create('ticket_channel')];
+        $tickets = $this->recordingHandlers();
+        $userService = $this->sender($channels, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel'));
+        $ticketService = $this->target('ticket_service', $tickets, $channels, $inMemory);
+
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'order-1');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'order-1');
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['seat-7'], $tickets->handled);
+    }
+
+    #[DataProvider('deduplicationStores')]
+    public function test_a_distributed_event_with_an_idempotency_key_is_handled_once_by_each_service_subscribed_to_it(bool $inMemory): void
+    {
+        $channels = [SimpleMessageChannelBuilder::createQueueChannel('ticket_channel'), SimpleMessageChannelBuilder::createQueueChannel('billing_channel')];
+        $tickets = $this->recordingHandlers();
+        $billing = $this->recordingHandlers();
+        $userService = $this->sender($channels, DistributedServiceMap::initialize()
+            ->withEventMapping(channelName: 'ticket_channel', subscriptionKeys: ['user.*'])
+            ->withEventMapping(channelName: 'billing_channel', subscriptionKeys: ['user.*']));
+        $ticketService = $this->target('ticket_service', $tickets, $channels, $inMemory);
+        $billingService = $this->target('billing_service', $billing, $channels, $inMemory);
+
+        $userService->getDistributedBus()->publishEvent('user.registered', 'johny', idempotencyKey: 'registration-1');
+        $userService->getDistributedBus()->publishEvent('user.registered', 'johny', idempotencyKey: 'registration-1');
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $billingService->run('billing_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['johny'], $tickets->handled);
+        self::assertSame(['johny'], $billing->handled);
+    }
+
+    private function recordingHandlers(): object
+    {
+        return new class () {
+            public array $handled = [];
+
+            #[Distributed]
+            #[InternalHandler('ticket.confirm')]
+            public function confirm(string $seat): void
+            {
+                $this->handled[] = $seat;
+            }
+
+            #[Distributed]
+            #[EventHandler('user.registered')]
+            public function whenRegistered(string $name): void
+            {
+                $this->handled[] = $name;
+            }
+        };
+    }
+
+    private function sender(array $channels, DistributedServiceMap $serviceMap): FlowTestSupport
+    {
+        return $this->bootstrapFlowTesting(
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
+            extensionObjects: [...$channels, $serviceMap, ServiceConfiguration::createWithDefaults()->withServiceName('user_service')],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    private function target(string $serviceName, object $handlers, array $channels, bool $inMemoryDeduplication): FlowTestSupport
+    {
+        return $this->bootstrapFlowTesting(
+            classesToResolve: [$handlers::class],
+            containerOrAvailableServices: [$handlers, DbalConnectionFactory::class => $this->getConnectionFactory()],
+            extensionObjects: [
+                ...$channels,
+                DistributedServiceMap::initialize(),
+                ServiceConfiguration::createWithDefaults()->withServiceName($serviceName),
+                DbalConfiguration::createWithDefaults()->withDeduplication(inMemory: $inMemoryDeduplication),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 
     /**

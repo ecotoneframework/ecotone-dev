@@ -29,7 +29,7 @@
         "ecotone/lite-application": "~1.328.2",
         "ecotone/lite-event-sourcing-starter": "^1.0",
         "ecotone/pdo-event-sourcing": "~1.328.2",
-        "laravel/laravel": "^10.0",
+        "laravel/laravel": "^12.0",
         "ramsey/uuid": "^4.0"
     },
     "require-dev": {

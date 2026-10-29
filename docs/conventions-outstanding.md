@@ -89,10 +89,10 @@ shared-container setup) and the `Type`/`MediaType` caches (value objects, never 
 
 ### Rule 8 — what shipped, and four limits of the rule as written
 
-**The finding: "always use optimistic locking" is achievable today on two of five storage paths** — the DBAL event
-store and the document store. On the other three it describes an aspiration, not a convention the tree follows:
-projection state is a work lease, not a record; three of the four state-stored backends have no version to compare
-for an aggregate without `#[Version]`; and Tempest cannot observe whether a
+**The finding: "always use optimistic locking" is achievable today on four of five storage paths** — the DBAL event
+store, the document store, projection state (Limit 1, closed) and Eloquent models with `#[Version]` (Limit 3,
+closed). It stops where there is nothing to compare or nothing to observe: three of the four state-stored backends
+have no version for an aggregate without `#[Version]` (Limit 2), and Tempest cannot observe whether a
 guarded update matched, so a versioned Tempest model is now refused at bootstrap (Limit 4). Each limit below carries its evidence, so none of them is re-filed as a violation.
 
 **Shipped** (`0f47c62f6`, `b403ebfb8`, `4036d4c20`, `8c2d96d8b`):
@@ -146,14 +146,21 @@ the guarded write *beside* `Model::save()` rather than through it or instead of 
 - `save()` of a loaded model first runs `UPDATE … SET <version> = <next> WHERE <key> = ? AND <version> = <loaded>`
   through the query builder, whose affected-row count *is* observable, and throws
   `ConcurrencyException::forStaleAggregate()` on zero rows; only then does `Model::save()` write the changed
-  attributes, so the model's events and timestamps run as before. A first save inserts at the version Ecotone set
-  (1), and a duplicate key on that insert is the same `ConcurrencyException`
+  attributes, so the model's events and timestamps run as before. Both statements run in one transaction on the
+  model's connection (a savepoint inside the application's), so a failed save, or one a listener cancels by returning
+  `false` (refused with `EloquentSaveCancelled`), leaves the version where it was. When Ecotone hands no loaded
+  version — a save through a `#[Repository]` interface — the version column the model was loaded with is the
+  expected one. A first save inserts at the version Ecotone set (1); a unique violation on that insert is the same
+  `ConcurrencyException` only when a row is stored under the key, and Laravel's own exception otherwise
 
 A model without `#[Version]` is unchanged (Limit 2). The bootstrap-refusal shape was not needed. Proved in
-`packages/Laravel/tests/EloquentRepositoryTest.php` through the command bus on SQLite: two loads with the second save
-refused (declared property and `WithAggregateVersioning`), sequential saves moving the version, a chained handler
-after creation, a create under a stored id, model events on every save, and the unversioned model keeping last write
-wins.
+`packages/Laravel/tests/EloquentRepositoryTest.php` on PostgreSQL, MySQL and SQLite (`DATABASE_DSN`), through the
+command bus, a factory command and a `#[Repository]` interface: two loads with the second save refused (declared
+property and `WithAggregateVersioning`), sequential saves moving the version, a chained handler after creation, a
+create under a stored id (also inside an application transaction, the PostgreSQL 25P02 case), a collision on another
+unique column, model events on every save, a cancelled and a failing save leaving the version, and the unversioned
+model keeping last write wins. The column name is fixed to the property name; a bootstrap check cannot see the
+schema, so a different name surfaces as the database's missing-column error.
 
 **Limit 4 — Tempest cannot observe a guarded update.** `UpdateQueryBuilder::execute()` returns `?PrimaryKey`,
 `Database::execute()` returns `void`, `GenericDatabase` keeps the `PDOStatement` in a private property, and

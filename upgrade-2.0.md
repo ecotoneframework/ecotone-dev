@@ -2872,14 +2872,20 @@ repository of a flow test, is now checked against the version it was loaded at:
   on every load, and concurrent saves overwrote each other — so applications registered a `#[Repository]` of their own
   running `UPDATE … WHERE id = ? AND version = ?`. **Now:** Ecotone's Eloquent repository keeps the `#[Version]`
   property in a column of the same name: `findBy()` sets the property from the column, the first save inserts the row
-  at version 1, and every later save moves the column from the version it loaded to the next one with
-  `UPDATE … WHERE <key> = ? AND <version column> = ?` before Eloquent's own `save()` writes the changed attributes. A
-  save whose loaded version is no longer stored, and a create under
-  an id that is already stored, throw `Ecotone\Api\Messaging\ConcurrencyException::forStaleAggregate()`, as every
-  other backend does. **How to adapt:** give the table a non-null integer column named after the `#[Version]`
-  property (`$table->integer('version')`); a repository of your own written only to get the check can be removed.
-  An Eloquent model without `#[Version]` is unchanged: last write wins, and a duplicate id raises Laravel's own
-  `UniqueConstraintViolationException`.
+  at version 1, and every later save — through the command bus or through a `#[Repository]` interface — moves the
+  column from the version it loaded to the next one with `UPDATE … WHERE <key> = ? AND <version column> = ?`, then
+  lets Eloquent's own `save()` write the changed attributes. Both run in one transaction on the model's connection (a
+  savepoint inside yours), so a failed save leaves the version where it was. A save whose loaded version is no longer
+  stored, and a create under an id that is already stored, throw
+  `Ecotone\Api\Messaging\ConcurrencyException::forStaleAggregate()`, as every other backend does; a create that
+  collides on another unique column raises Laravel's `UniqueConstraintViolationException` unchanged. A save that a
+  `saving`, `creating` or `updating` listener cancels by returning `false` is refused with
+  `Ecotone\Laravel\EloquentSaveCancelled` instead of being reported as handled. **How to adapt:** add an integer
+  column named after the `#[Version]` property — `$table->integer('version')` on a new table,
+  `$table->integer('version')->default(0)` on a table that already has rows, which then start at version 0. Keep it
+  non-null: a `NULL` version matches no guarded update, so that row would refuse every save. A repository of your own
+  written only to get the check can be removed. An Eloquent model without `#[Version]` is unchanged: last write wins,
+  and a duplicate id raises Laravel's own `UniqueConstraintViolationException`.
 
 A conflict is a technical failure, not a business answer. Retry it by reloading: the command bus and asynchronous
 endpoints retry by default when `DbalConfiguration` runs them in a database transaction ([§9](#9-changed-defaults));

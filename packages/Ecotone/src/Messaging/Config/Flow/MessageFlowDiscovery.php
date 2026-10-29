@@ -468,7 +468,7 @@ final class MessageFlowDiscovery
         foreach ($declaredMethods as $method => $registration) {
             $senders = array_filter(
                 $this->nodes,
-                fn (FlowNode $node) => in_array($node->id, ['handler:' . $method, 'scheduled:' . $method], true) || str_starts_with($node->id, 'handler:' . $method . ':'),
+                fn (FlowNode $node) => in_array($node->id, ['handler:' . $method, 'scheduled:' . $method, 'interceptor:' . $method], true) || str_starts_with($node->id, 'handler:' . $method . ':'),
             );
             foreach ($registration->getMethodAnnotationsWithType(SendsDistributedMessage::class) as $declaration) {
                 $busId = $this->distributedBusNode($declaration->distributionReference)->id;

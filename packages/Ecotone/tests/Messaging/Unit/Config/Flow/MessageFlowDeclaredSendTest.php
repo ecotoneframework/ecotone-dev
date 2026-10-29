@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
 use Ecotone\AnnotationFinder\ConfigurationException as AnnotationConfigurationException;
+use Ecotone\Api\Attribute\Before;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\SendsDistributedMessage;
+use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -128,6 +131,32 @@ final class MessageFlowDeclaredSendTest extends TestCase
         );
     }
 
+    public function test_declared_send_is_recorded_on_a_transformer_and_an_interceptor(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold')]
+            #[Transformer('seat.requests')]
+            public function enrich(array $payload): array
+            {
+                return $payload;
+            }
+
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.audit')]
+            #[Before(pointcut: CommandBus::class)]
+            public function audit(): void
+            {
+            }
+        };
+        $graph = $this->graphOf($service);
+
+        foreach (['handler:' . $service::class . '::enrich' => 'tickets.hold', 'interceptor:' . $service::class . '::audit' => 'tickets.audit'] as $sender => $routingKey) {
+            self::assertSame(
+                [['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => $routingKey]],
+                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $sender, 'distributed:' . DistributedBus::class), 'attributes'),
+            );
+        }
+    }
+
     public function test_declaration_naming_a_service_no_service_map_knows_is_refused(): void
     {
         $service = new class () {
@@ -160,7 +189,7 @@ final class MessageFlowDeclaredSendTest extends TestCase
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(sprintf(
-            '#[SendsDistributedMessage] on %s::send() declares what a message handler sends, but send() is not a message handler: it has none of #[CommandHandler], #[EventHandler], #[QueryHandler], #[InternalHandler] or #[Scheduled]. Move the attribute to the handler that calls send(), or make send() a handler.',
+            '#[SendsDistributedMessage] on %s::send() declares what a method sends, but send() is not one the message flow graph reads: it has none of #[CommandHandler], #[EventHandler], #[QueryHandler], #[InternalHandler], #[Router], #[Splitter], #[Transformer], #[Orchestrator], #[Scheduled], #[Presend], #[Before], #[Around] or #[After]. Move the attribute to the handler that calls send(), or make send() a handler.',
             $service::class,
         ));
 

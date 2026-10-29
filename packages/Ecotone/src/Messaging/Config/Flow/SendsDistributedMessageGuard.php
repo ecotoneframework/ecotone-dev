@@ -9,19 +9,27 @@ namespace Ecotone\Messaging\Config\Flow;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\After;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Before;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Orchestrator;
+use Ecotone\Api\Attribute\Presend;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\Attribute\SendsDistributedMessage;
+use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\ConfigurationException;
 
 final class SendsDistributedMessageGuard
 {
-    private const HANDLER_ATTRIBUTES = [CommandHandler::class, EventHandler::class, QueryHandler::class, InternalHandler::class, Scheduled::class];
+    private const SCANNED_ATTRIBUTES = [CommandHandler::class, EventHandler::class, QueryHandler::class, InternalHandler::class, Router::class, Splitter::class, Transformer::class, Orchestrator::class, Scheduled::class, Presend::class, Before::class, Around::class, After::class];
 
     /**
      * @param object[] $extensionObjects
@@ -62,14 +70,14 @@ final class SendsDistributedMessageGuard
 
     private static function checkPlacement(AnnotatedFinding $registration, string $method): void
     {
-        foreach (self::HANDLER_ATTRIBUTES as $handlerAttribute) {
-            if ($registration->hasMethodAnnotation($handlerAttribute)) {
+        foreach (self::SCANNED_ATTRIBUTES as $scannedAttribute) {
+            if ($registration->hasMethodAnnotation($scannedAttribute)) {
                 return;
             }
         }
         $methodName = $registration->getMethodName();
 
-        throw ConfigurationException::create("#[SendsDistributedMessage] on {$method}() declares what a message handler sends, but {$methodName}() is not a message handler: it has none of #[CommandHandler], #[EventHandler], #[QueryHandler], #[InternalHandler] or #[Scheduled]. Move the attribute to the handler that calls {$methodName}(), or make {$methodName}() a handler.");
+        throw ConfigurationException::create("#[SendsDistributedMessage] on {$method}() declares what a method sends, but {$methodName}() is not one the message flow graph reads: it has none of #[CommandHandler], #[EventHandler], #[QueryHandler], #[InternalHandler], #[Router], #[Splitter], #[Transformer], #[Orchestrator], #[Scheduled], #[Presend], #[Before], #[Around] or #[After]. Move the attribute to the handler that calls {$methodName}(), or make {$methodName}() a handler.");
     }
 
     /**

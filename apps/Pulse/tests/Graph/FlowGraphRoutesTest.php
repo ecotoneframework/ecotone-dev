@@ -18,6 +18,7 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionBackfill;
 
 /**
  * @internal
@@ -109,6 +110,40 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
 
         self::assertTrue($diagram->hasEdge('ticketing', '::seatHeld', 'projects into', 'ticketing', 'concert_seat_map', '-->'));
         self::assertContains('concert_seat_map', $this->labelsByService($diagram)['ticketing']);
+    }
+
+    public function test_following_an_event_stops_at_the_backfill_channel_its_projection_shares_with_another(): void
+    {
+        $this->configurePulseWithServices('ticketing');
+        $client = $this->pulseWebClient();
+        $handlers = new class () {
+            #[CommandHandler('tickets.hold', endpointId: 'tickets.hold.handler')]
+            public function hold(array $payload, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('seat.held', $payload);
+            }
+        };
+        $seatMap = new #[Projection('concert_seat_map'), FromStream('seats'), ProjectionBackfill(asyncChannelName: 'projections')] class () {
+            #[EventHandler('seat.held', endpointId: 'concert_seat_map.seat_held')]
+            public function seatHeld(array $event): void
+            {
+            }
+        };
+        $otherMap = new #[Projection('other_map'), FromStream('seats'), ProjectionBackfill(asyncChannelName: 'projections')] class () {
+            #[EventHandler('seat.cancelled', endpointId: 'other_map.seat_cancelled')]
+            public function seatCancelled(array $event): void
+            {
+            }
+        };
+        $this->pulseHavingHeardFrom($client, ['ticketing' => $this->distributedService('ticketing', $handlers, DistributedServiceMap::initialize(), [], [$seatMap, $otherMap])]);
+
+        foreach (['ticketing:message:seat.held', 'ticketing:projection:concert_seat_map'] as $focus) {
+            $labels = $this->labelsByService(MermaidDiagram::fromPage($client->request('GET', '/flow?focus=' . urlencode($focus))))['ticketing'];
+
+            self::assertContains('concert_seat_map', $labels);
+            self::assertNotContains('other_map', $labels);
+            self::assertNotContains('EventHandler<br/>class@anonymous::seatCancelled', $labels);
+        }
     }
 
     private function storefrontSendingThroughAHelper(): FlowTestSupport

@@ -9,7 +9,7 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSectionIsolation;
 use Interop\Queue\ConnectionFactory;
 
@@ -40,7 +40,7 @@ final class PulseSavepointIsolation implements PulseSectionIsolation
     /**
      * @param ConnectionFactory[] $connectionFactories
      */
-    public function __construct(private array $connectionFactories, private EcotoneClockInterface $clock)
+    public function __construct(private array $connectionFactories, private EcotoneClockInterface $clock, private CachedConnectionFactories $cachedConnectionFactories)
     {
     }
 
@@ -73,7 +73,7 @@ final class PulseSavepointIsolation implements PulseSectionIsolation
             }
 
             /** @var DbalContext $context */
-            $context = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connectionFactory, $this->clock))->createContext();
+            $context = $this->cachedConnectionFactories->cachedFor(new DbalReconnectableConnectionFactory($connectionFactory, $this->clock))->createContext();
             $connection = $context->getDbalConnection();
             if ($connection->isTransactionActive() && ! in_array($connection, $connections, true)) {
                 $connections[] = $connection;

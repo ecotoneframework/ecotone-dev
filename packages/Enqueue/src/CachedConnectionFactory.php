@@ -14,23 +14,12 @@ use Interop\Queue\Producer;
  */
 class CachedConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 {
-    private static $instances = [];
-
     private ReconnectableConnectionFactory $connectionFactory;
     private array $cachedContext = [];
 
-    private function __construct(ReconnectableConnectionFactory $reconnectableConnectionFactory)
+    public function __construct(ReconnectableConnectionFactory $reconnectableConnectionFactory)
     {
         $this->connectionFactory = $reconnectableConnectionFactory;
-    }
-
-    public static function createFor(ReconnectableConnectionFactory $reconnectableConnectionFactory): self
-    {
-        if (! isset(self::$instances[$reconnectableConnectionFactory->getConnectionInstanceId()])) {
-            self::$instances[$reconnectableConnectionFactory->getConnectionInstanceId()] = new self($reconnectableConnectionFactory);
-        }
-
-        return self::$instances[$reconnectableConnectionFactory->getConnectionInstanceId()];
     }
 
     public function createContext(): Context
@@ -49,16 +38,6 @@ class CachedConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
     {
         $this->connectionFactory->reconnect();
         $this->cachedContext = [];
-    }
-
-    /**
-     * Clear all cached connection factory instances.
-     * This is useful in tests to ensure clean state between test runs,
-     * especially when switching between different channel modes (confirm vs tx).
-     */
-    public static function clearInstances(): void
-    {
-        self::$instances = [];
     }
 
     public function getConsumer(Destination $destination): Consumer

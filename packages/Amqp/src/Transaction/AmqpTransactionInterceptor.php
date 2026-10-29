@@ -8,6 +8,7 @@ use Ecotone\Amqp\AmqpReconnectableConnectionFactory;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
@@ -32,7 +33,7 @@ class AmqpTransactionInterceptor
     /**
      * @param array<string, AmqpConnectionFactory> $connectionFactories
      */
-    public function __construct(private array $connectionFactories, private LoggingGateway $logger, private RetryRunner $retryRunner)
+    public function __construct(private array $connectionFactories, private LoggingGateway $logger, private RetryRunner $retryRunner, private CachedConnectionFactories $cachedConnectionFactories)
     {
     }
 
@@ -48,7 +49,7 @@ class AmqpTransactionInterceptor
         }
         /** @var CachedConnectionFactory[] $connectionFactories */
         $connectionFactories = array_map(function (AmqpConnectionFactory $connectionFactory) {
-            return CachedConnectionFactory::createFor(new AmqpReconnectableConnectionFactory($connectionFactory));
+            return $this->cachedConnectionFactories->cachedFor(new AmqpReconnectableConnectionFactory($connectionFactory));
         }, $possibleFactories);
 
         if ($this->isRunningTransaction) {

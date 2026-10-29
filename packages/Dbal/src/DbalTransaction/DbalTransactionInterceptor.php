@@ -16,7 +16,7 @@ use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\Pulse\PulseSnapshotRequest;
-use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Modelling\Config\DatabaseTransaction\CommandsWithoutDatabaseTransaction;
@@ -39,7 +39,7 @@ class DbalTransactionInterceptor
      * @param array<string, DbalConnectionFactory|ManagerRegistryConnectionFactory> $connectionFactories
      * @param string[] $disableTransactionOnAsynchronousEndpoints
      */
-    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private EcotoneClockInterface $clock, private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction)
+    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private EcotoneClockInterface $clock, private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction, private CachedConnectionFactories $cachedConnectionFactories)
     {
     }
 
@@ -65,7 +65,7 @@ class DbalTransactionInterceptor
 
             /** @var Connection[] $connections */
             $possibleConnections = array_map(function (ConnectionFactory $connectionFactory) {
-                $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connectionFactory, $this->clock));
+                $connectionFactory = $this->cachedConnectionFactories->cachedFor(new DbalReconnectableConnectionFactory($connectionFactory, $this->clock));
 
                 /** @var DbalContext $context */
                 $context = $connectionFactory->createContext();

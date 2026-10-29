@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Amqp;
 
 use Ecotone\Api\Amqp\AmqpConnectionReference;
-use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\InboundMessageConverter;
@@ -35,12 +35,13 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $connectionFactory = new Definition(CachedConnectionFactory::class, [
+        $connectionFactory = CachedConnectionFactories::definitionFor(
             new Definition(AmqpReconnectableConnectionFactory::class, [
                 new Reference($this->connectionReferenceName),
                 Uuid::v7()->toRfc4122(),
             ]),
-        ], 'createFor');
+            $builder,
+        );
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
             $this->endpointId,
             $this->acknowledgeMode,

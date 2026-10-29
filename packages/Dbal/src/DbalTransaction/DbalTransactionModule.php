@@ -15,6 +15,7 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Pulse\PulseSavepointIsolation;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
@@ -74,6 +75,7 @@ final class DbalTransactionModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(PulseSavepointIsolation::class, [
             array_map(fn (string $id) => new Reference($id), $connectionFactories),
             new Reference(EcotoneClockInterface::class),
+            CachedConnectionFactories::registerIn($messagingConfiguration),
         ]);
 
         $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [
@@ -84,6 +86,7 @@ final class DbalTransactionModule implements AnnotationModule
             new Reference(TransactionStatusTracker::class),
             new Reference(EcotoneClockInterface::class),
             new Reference(CommandsWithoutDatabaseTransaction::class),
+            CachedConnectionFactories::registerIn($messagingConfiguration),
         ]);
 
         $messagingConfiguration

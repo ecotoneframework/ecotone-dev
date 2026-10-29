@@ -49,6 +49,7 @@ use Ecotone\Dbal\Tracing\Pulse\PulseTraceQueries;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracesNotConfigured;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracing;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracingStorage;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -169,7 +170,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         $messagingConfiguration->registerServiceDefinition(
             TraceStore::class,
             $storesOnDatabase
-                ? new Definition(DbalTraceStore::class, [new Reference($connectionReference), new Reference(SpansTableManager::class), new Reference(EcotoneClockInterface::class)])
+                ? new Definition(DbalTraceStore::class, [new Reference($connectionReference), new Reference(SpansTableManager::class), new Reference(EcotoneClockInterface::class), CachedConnectionFactories::registerIn($messagingConfiguration)])
                 : new Definition(InMemoryTraceStore::class)
         );
         $messagingConfiguration->registerServiceDefinition(
@@ -252,7 +253,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         $messagingConfiguration->registerServiceDefinition(
             TrackingStore::class,
             $storesOnDatabase
-                ? new Definition(DbalTrackingStore::class, [new Reference($connectionReference), new Reference(PulseTrackingTableManager::class), new Reference(EcotoneClockInterface::class)])
+                ? new Definition(DbalTrackingStore::class, [new Reference($connectionReference), new Reference(PulseTrackingTableManager::class), new Reference(EcotoneClockInterface::class), CachedConnectionFactories::registerIn($messagingConfiguration)])
                 : new Definition(InMemoryTrackingStore::class, [new Reference($connectionReference)])
         );
         $untracedSpans = PulseTrackings::class . '.untraced_spans';

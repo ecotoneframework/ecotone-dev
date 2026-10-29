@@ -14,7 +14,7 @@ use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Dbal\Database\PulseTrackingTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Interop\Queue\ConnectionFactory;
 use Throwable;
@@ -45,6 +45,7 @@ final class DbalTrackingStore implements TrackingStore
         private ConnectionFactory $connectionFactory,
         private PulseTrackingTableManager $tableManager,
         private EcotoneClockInterface $clock,
+        private CachedConnectionFactories $cachedConnectionFactories,
     ) {
     }
 
@@ -105,7 +106,7 @@ final class DbalTrackingStore implements TrackingStore
     private function connection(): Connection
     {
         /** @var DbalContext $context */
-        $context = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->connectionFactory, $this->clock))->createContext();
+        $context = $this->cachedConnectionFactories->cachedFor(new DbalReconnectableConnectionFactory($this->connectionFactory, $this->clock))->createContext();
 
         return $context->getDbalConnection();
     }

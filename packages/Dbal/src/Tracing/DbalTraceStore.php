@@ -21,7 +21,7 @@ use Ecotone\Dbal\Database\MissingColumnFailure;
 use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Dbal\Database\SpansTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Interop\Queue\ConnectionFactory;
 
 use function json_decode;
@@ -53,6 +53,7 @@ final class DbalTraceStore implements TraceStore
         private ConnectionFactory $connectionFactory,
         private SpansTableManager $spansTableManager,
         private EcotoneClockInterface $clock,
+        private CachedConnectionFactories $cachedConnectionFactories,
     ) {
     }
 
@@ -337,7 +338,7 @@ final class DbalTraceStore implements TraceStore
     private function connection(): Connection
     {
         /** @var DbalContext $context */
-        $context = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->connectionFactory, $this->clock))->createContext();
+        $context = $this->cachedConnectionFactories->cachedFor(new DbalReconnectableConnectionFactory($this->connectionFactory, $this->clock))->createContext();
 
         return $context->getDbalConnection();
     }

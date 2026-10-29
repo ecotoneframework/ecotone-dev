@@ -14,6 +14,7 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\BootstrapConfiguration;
@@ -92,6 +93,7 @@ final class DeduplicationModule implements AnnotationModule
                     $dbalConfiguration->deduplicationRemovalBatchSize,
                     new Reference(DeduplicationTableManager::class),
                     new Reference(EcotoneClockInterface::class),
+                    CachedConnectionFactories::registerIn($messagingConfiguration),
                 ])
         );
 

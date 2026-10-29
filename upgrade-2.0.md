@@ -2543,6 +2543,13 @@ own. One that registers it under the literal pre-release string has to use the c
   time, before raising the setup instructions. **Now:** the `ConfigurationException` naming the
   `ecotone:migration:database:setup` command is raised on the first attempt; a lost connection is still retried, as
   before. Nothing to adapt.
+- **A discarded application releases its broker and database connections.** **Before:** every DBAL, AMQP, SQS and
+  Redis connection Ecotone opened was cached for the life of the PHP process, so a test suite booting an application
+  per test kept one connection open per bootstrap until the database ran out of `max_connections`, and
+  `CachedConnectionFactory::clearInstances()` was the way to reset it. **Now:** the connections belong to the booted
+  application: its channels, transactions and stores still share one connection, and it is closed once the
+  application is garbage-collected. **How to adapt:** remove calls to `CachedConnectionFactory::clearInstances()` and
+  `CachedConnectionFactory::createFor()`, and any workaround that terminated leftover backends between tests.
 - **An unknown case name for a pure enum is reported as a `ValueError`.** Converting a scalar to a non-backed enum
   (a header `'PENDING'` into a `#[Header] Status $status` parameter, say) failed with a `MethodInvocationException`
   whose cause was a `ReflectionException` ("Case … does not exist"); the cause is now a `ValueError` reading

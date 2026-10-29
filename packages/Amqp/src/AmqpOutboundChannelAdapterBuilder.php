@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Amqp;
 
 use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
-use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
@@ -166,13 +166,14 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             Assert::isTrue($this->publisherConfirms, 'Non blocking confirmation requires publisher confirms to be enabled.');
         }
 
-        $connectionFactory = new Definition(CachedConnectionFactory::class, [
+        $connectionFactory = CachedConnectionFactories::definitionFor(
             new Definition(AmqpReconnectableConnectionFactory::class, [
                 new Reference($this->amqpConnectionFactoryReferenceName),
                 null,
                 $this->publisherConfirms,
             ]),
-        ], 'createFor');
+            $builder,
+        );
 
         $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
             $this->headerMapper,

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Redis;
 
 use Ecotone\Api\Redis\RedisConnectionReference;
-use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
@@ -30,11 +30,12 @@ final class RedisInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapt
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $connectionFactory = new Definition(CachedConnectionFactory::class, [
+        $connectionFactory = CachedConnectionFactories::definitionFor(
             new Definition(HttpReconnectableConnectionFactory::class, [
                 new Reference($this->connectionReferenceName),
             ]),
-        ], 'createFor');
+            $builder,
+        );
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
             $this->endpointId,
             $this->acknowledgeMode,

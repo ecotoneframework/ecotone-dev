@@ -20,7 +20,7 @@ use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetterActions;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetters;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLettersNotConfigured;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetterStatus;
-use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -217,12 +217,13 @@ final class DbalDeadLetterModule implements AnnotationModule
                     Reference::to(MessageBuilder::class),
                 ])
                 : new Definition(DbalDeadLetterStore::class, [
-                    new Definition(CachedConnectionFactory::class, [
+                    CachedConnectionFactories::definitionFor(
                         new Definition(DbalReconnectableConnectionFactory::class, [
                             new Reference($connectionFactoryReference),
                             new Reference(EcotoneClockInterface::class),
                         ]),
-                    ], 'createFor'),
+                        $configuration,
+                    ),
                     DefaultHeaderMapper::createAllHeadersMapping(),
                     Reference::to(ConversionService::REFERENCE_NAME),
                     Reference::to(RetryRunner::class),

@@ -14,6 +14,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
@@ -69,6 +70,7 @@ final class AmqpTransactionModule implements AnnotationModule
             array_map(fn (string $connectionFactory) => Reference::to($connectionFactory), $connectionFactories),
             Reference::to(LoggingGateway::class),
             Reference::to(RetryRunner::class),
+            CachedConnectionFactories::registerIn($messagingConfiguration),
         ]);
 
         $messagingConfiguration

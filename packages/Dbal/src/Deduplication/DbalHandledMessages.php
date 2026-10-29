@@ -14,7 +14,7 @@ use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\CachedConnectionFactories;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
@@ -31,6 +31,7 @@ final class DbalHandledMessages implements HandledMessages
         private int $removalBatchSize,
         private DeduplicationTableManager $tableManager,
         private EcotoneClockInterface $clock,
+        private CachedConnectionFactories $cachedConnectionFactories,
     ) {
     }
 
@@ -125,7 +126,7 @@ final class DbalHandledMessages implements HandledMessages
     private function connection(): Connection
     {
         /** @var DbalContext $context */
-        $context = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->connectionFactory, $this->clock))->createContext();
+        $context = $this->cachedConnectionFactories->cachedFor(new DbalReconnectableConnectionFactory($this->connectionFactory, $this->clock))->createContext();
 
         return $context->getDbalConnection();
     }

@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 use Tempest\Container\Container;
+use Tempest\Container\GenericContainer;
 use Tempest\Container\Initializer;
 use Tempest\Container\Singleton;
 use Tempest\Discovery\Composer;
@@ -70,7 +71,7 @@ final class MessagingSystemInitializer implements Initializer
             $applicationConfiguration,
             $config->test,
             $cacheDirectory,
-            $container,
+            GenericContainer::instance() ?? $container,
         );
 
         self::$registeredCommands = $ecotoneContainer->getRegisteredConsoleCommands();

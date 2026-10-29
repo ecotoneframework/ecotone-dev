@@ -2725,7 +2725,8 @@ On a pinned test clock that took about ten polls, and against a broker each empt
 timeout, so a test run of an idle AMQP queue took about ten seconds.
 
 **Now:** the run stops on the first receive that returns no message, so an idle queue ends a run after one receive
-timeout.
+timeout. A receive that failed — a lost connection retried through the connection retry template — is not an empty
+one: the run keeps going and handles the messages waiting behind it, where before that failed poll ended the run.
 
 **How to adapt:** nothing, unless a test relied on a message becoming available a few milliseconds after the channel
 went empty within the same run: call `run()` again after it arrives.

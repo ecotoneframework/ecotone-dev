@@ -74,9 +74,10 @@ class JMSConverterBuilder implements CompilableBuilder
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         $configuration = new Definition(JMSConverterConfiguration::class, [
-            $this->jmsConverterConfiguration->namingStrategy,
-            $this->jmsConverterConfiguration->defaultNullSerialization,
-            $this->jmsConverterConfiguration->enableEnumSupport,
+            'namingStrategy' => $this->jmsConverterConfiguration->namingStrategy,
+            'defaultNullSerialization' => $this->jmsConverterConfiguration->defaultNullSerialization,
+            'enableEnumSupport' => $this->jmsConverterConfiguration->enableEnumSupport,
+            'metadataCacheFreshnessCheck' => $this->jmsConverterConfiguration->metadataCacheFreshnessCheck,
         ]);
         $converterHandlers = [];
         foreach ($this->converterHandlerBuilders as $converterHandlerBuilder) {

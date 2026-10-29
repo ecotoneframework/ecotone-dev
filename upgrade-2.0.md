@@ -3137,8 +3137,12 @@ initialization" — until the directory was deleted by hand.
 **Now:** outside production the cache compares each entry with its class file and re-reads a class that changed.
 Production — the `prod` or `production` environment (Symfony's `kernel.environment`, Laravel's `APP_ENV`,
 `EcotoneLite`'s `environment:`) — keeps trusting the cache as before, so a deployment still clears Ecotone's cache.
+Any other environment name checks freshness, `staging` included. `EcotoneLite`'s `environment:` defaults to `dev`, so a
+Lite deployment that never passed it now checks freshness in production too: one `filemtime` per cached class per
+process, never a wrong result.
 
-**How to adapt:** nothing. To decide it yourself, return
+**How to adapt:** nothing. To keep the old behaviour in such a deployment, pass `environment: 'prod'` to `EcotoneLite`.
+To decide it yourself in any environment, return
 `JMSConverterConfiguration::createWithDefaults()->withMetadataCacheFreshnessCheck(true)` (or `false`) from a
 `#[ServiceContext]` method.
 

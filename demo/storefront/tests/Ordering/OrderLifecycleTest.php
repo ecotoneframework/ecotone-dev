@@ -392,6 +392,7 @@ final class OrderLifecycleTest extends TestCase
                 'status' => 'started',
                 'heldSeats' => [],
                 'lastRefusal' => null,
+                'askingSeatIds' => [],
                 'paymentReference' => null,
                 'failureReason' => null,
                 'tickets' => [],

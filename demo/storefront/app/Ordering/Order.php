@@ -317,6 +317,14 @@ final class Order extends Model
     /**
      * @return list<string>
      */
+    public function askingSeatIds(): array
+    {
+        return array_keys($this->requested_holds);
+    }
+
+    /**
+     * @return list<string>
+     */
     public function claimedSeatIdsAt(DateTimeImmutable $now): array
     {
         return array_column(array_filter($this->held_seats, fn (array $heldSeat) => ! ($heldSeat['expired'] ?? false) && ($this->isSold() || new DateTimeImmutable($heldSeat['expiresAt']) > $now)), 'seatId');

@@ -168,6 +168,7 @@ final class TicketingRequestsTest extends StorefrontFlowTestCase
             [['tickets.release', self::CONCERT_ID . '/A-12', 'hold-2']],
             array_map(fn (array $received) => [$received[0], $received[1]['seatId'], $received[1]['holdId']], $this->ticketingReceives()),
         );
+        self::assertSame([], $this->order($orderId)['askingSeatIds']);
     }
 
     public function test_requesting_a_seat_the_order_already_holds_is_refused(): void

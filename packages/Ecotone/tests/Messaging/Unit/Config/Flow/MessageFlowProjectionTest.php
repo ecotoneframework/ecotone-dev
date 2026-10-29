@@ -124,6 +124,11 @@ final class MessageFlowProjectionTest extends TestCase
             {
             }
 
+            #[EventHandler('seat.*')]
+            public function seatChanged(array $event): void
+            {
+            }
+
             #[QueryHandler('seat.map')]
             public function seatMap(): array
             {
@@ -136,6 +141,7 @@ final class MessageFlowProjectionTest extends TestCase
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:' . ProjectionEventForFlow::class, $handler('seatHeld')));
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::PROJECTS_INTO, $handler('seatHeld'), 'projection:seat.map'));
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::PROJECTS_INTO, $handler('seatReleased'), 'projection:seat.map'));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::PROJECTS_INTO, $handler('seatChanged'), 'projection:seat.map'));
         self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::PROJECTS_INTO, $handler('seatMap')));
         self::assertSame(['seats', 'concerts'], $graph->node('projection:seat.map')->attributes['fromStreams']);
     }

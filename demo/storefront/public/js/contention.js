@@ -5,6 +5,9 @@
         const form = panel.querySelector('[data-contention-form]');
         const status = panel.querySelector('[data-contention-status]');
         const buyersCount = panel.querySelector('[data-contention-buyers-count]');
+        if (form === null) {
+            return;
+        }
 
         form.elements.buyers.addEventListener('input', function () {
             buyersCount.textContent = form.elements.buyers.value;

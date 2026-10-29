@@ -1535,21 +1535,27 @@ SQLite it also works inside one, because DDL is transactional there.
   `ecotone:projection:delete`, which like `ecotone:projection:init` and `ecotone:projection:backfill` runs outside the
   console-command transaction — and `ecotone:migration:database:setup --initialize` recreates the dropped stream table
   before the rebuild emits into it again.
-- `#[ProjectionInitialization]` handlers now run **before** the projection-state transaction is opened, instead of
-  inside it. Previously a partition's first batch opened the transaction and then called your initialization handler
-  from within it, so DDL in that handler triggered MySQL's implicit commit and broke the later commit. Your handler
-  may still create its read-model tables, but it is no longer covered by the projection-state transaction: if
-  initialization succeeds and the batch then fails, the initialization is not rolled back. Make initialization
-  idempotent — `CREATE TABLE IF NOT EXISTS` rather than a bare `CREATE TABLE` — since it may be re-attempted.
+- `#[ProjectionInitialization]` runs only when the projection is initialized, never while Ecotone handles a message.
+  **Before:** the first event of a projection that nobody had initialized ran its `#[ProjectionInitialization]` inside
+  that event's transaction — the command's, or the asynchronous endpoint's — so DDL in it committed implicitly on
+  MySQL/MariaDB and the event failed with `There is no active transaction`; a partitioned projection ran it again for
+  every new partition. **Now:** `ecotone:projection:init <name>` (or `--all`) runs it once, outside any transaction,
+  and records the projection as initialized; running the command again leaves an initialized projection as it is, so
+  it belongs in every deployment, after `ecotone:migration:database:setup`. A new partition of an initialized
+  projection only gets its position recorded. An event reaching a projection that was never initialized is refused
+  with a `ConfigurationException` naming the projection and the command. `#[ProjectionDeployment(manualKickOff: true)]`
+  keeps its meaning for an initialized projection: it waits for `ecotone:projection:backfill` before projecting.
+  **How to adapt:** add `ecotone:projection:init --all` to your deployment, or create what your projections project
+  into in your own migrations and initialize them the same way. An EcotoneLite flow test initializes every projection
+  on bootstrap together with the database tables, and `$ecotone->setupDatabaseTables()` does too —
+  `setupDatabaseTables(initializeProjections: false)` sets up the tables only.
 - **Before (early 2.0):** `ecotone:projection:init` and `ecotone:projection:delete` ran inside the console-command
   transaction, so a projection whose `#[ProjectionInitialization]` or `#[ProjectionDelete]` issues DDL failed on
   MySQL/MariaDB with `There is no active transaction`; and `ecotone:projection:init` left a global projection's state
   unrecorded, so its first event ran the initialization handler again, inside the command's transaction.
   **Now:** both commands run outside the console-command transaction, as `ecotone:projection:backfill` already did,
   and `ecotone:projection:init` records a global projection's state, so its first event does not initialize it again.
-  **How to adapt:** drop `withTransactionOnConsoleCommands(false)` if you set it only for these commands. A projection
-  that relies on automatic initialization on its first event still initializes inside that event's transaction: on
-  MySQL/MariaDB, run `ecotone:projection:init <name>` once at deploy time, or create its tables in your migrations.
+  **How to adapt:** drop `withTransactionOnConsoleCommands(false)` if you set it only for these commands.
 - **Before:** a synchronous `#[CommandHandler]` marked `#[WithoutDatabaseTransaction]` was only honoured when it ran
   through a `#[ConsoleCommand]` or an asynchronous endpoint. Dispatched through `CommandBus` (`send()` /
   `sendWithRouting()`), the transaction was still opened around the whole gateway call before routing picked a
@@ -1650,12 +1656,14 @@ Test-suite impact of the new defaults:
   `ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)`, or
   `->withTestingSetup(handledMessageLimit: 1)` on an `ExecutionPollingMetadata` it already builds (or
   `--handledMessageLimit=1` on `ecotone:run`).
-- `EcotoneLite::bootstrapFlowTesting()` does not apply the instant-retry defaults of the two rows above: a flow test retries only
-  what its `InstantRetryConfiguration` enables, so a failure reaches the test on the first attempt. To run a flow test with the
-  production defaults, pass `testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(true)`.
-  `EcotoneLite::bootstrap()` applies them, so a test booted that way that expected the first consumer run to fail and a second
-  run to succeed now sees the failure retried instantly inside the first run; disable it with
-  `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` or assert the retried outcome.
+- Instant retry never retries a `ConfigurationException`, whatever `InstantRetryConfiguration` or `#[InstantRetry]` lists:
+  a missing table, a refused setup or an uninitialized projection fails the same way on every attempt, so it reaches the
+  caller or the error channel on the first one.
+- A flow test applies the instant-retry defaults of the two rows above too. A test that expected the first consumer run to fail
+  and a second run to succeed now sees the failure retried instantly inside the first run, and a test that expects a command or
+  a consumer to fail runs it up to 4 times before the failure reaches it. Switch the defaults off for such a test with
+  `testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false)` — an `InstantRetryConfiguration`
+  the test sets still applies — or assert the retried outcome.
 - Instant retries multiply the delayed ones: `ErrorHandlerConfiguration` counts *deliveries*, and each delivery runs the
   handler up to `1 + asynchronousRetryTimes` times before the error channel sees it. With the default of 3 instant retries and a
   `RetryTemplateBuilder` of 3 retries, a message that always fails runs its handler 16 times before it reaches the dead letter.
@@ -3882,6 +3890,6 @@ normal section with "How to adapt" steps when it ships.
     relax its aggregate `NOT NULL` constraints — while still on 1.x; deploy 2.0 to every node; release `#[EventTag]`;
     run `ecotone:event-store:backfill-tags` and wait for it to finish; only then release `#[DecisionModel]` (§4).
 14. Add the `version` column to `ecotone_document_store`, pass an expected version (or `DocumentStore::LAST_WRITE_WINS`) to `updateDocument()` / `upsertDocument()`, and add `#[Version]` to document-store aggregates that are changed concurrently (§14).
-15. Add the `version` column to `ecotone_projection_state` (`ALTER TABLE ecotone_projection_state ADD COLUMN version INTEGER NOT NULL DEFAULT 0`), and check which commands and asynchronous endpoints now retry by default (§9, §14).
+15. Add `ecotone:projection:init --all` to your deployment, after the database setup (§8). Add the `version` column to `ecotone_projection_state` (`ALTER TABLE ecotone_projection_state ADD COLUMN version INTEGER NOT NULL DEFAULT 0`), and check which commands and asynchronous endpoints now retry by default (§9, §14).
 16. Add `ecotone:migration:database:setup --initialize` (or its `--sql` output, fed to your migration tool) to your deployment (§8).
 17. Once it ships: move framework YAML/PHP config options into `#[ServiceContext]` (§12).

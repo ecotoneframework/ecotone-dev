@@ -85,6 +85,91 @@ final class TicketingRequestsTest extends StorefrontFlowTestCase
         );
     }
 
+    public function test_two_seats_requested_at_once_are_asked_of_ticketing_one_after_the_other(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $customerId = $this->order($orderId)['customerId'];
+
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11', holdId: 'hold-2'));
+
+        self::assertSame(
+            [['tickets.hold', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'customerId' => $customerId, 'holdId' => 'hold-1'], self::CONCERT_ID, $orderId]],
+            $this->ticketingReceives(),
+        );
+        self::assertSame([], $this->ticketingReceives());
+        $this->storefrontConsumes();
+        self::assertSame(
+            [['tickets.hold', ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-11', 'customerId' => $customerId, 'holdId' => 'hold-2'], self::CONCERT_ID, $orderId]],
+            $this->ticketingReceives(),
+        );
+        $this->storefrontConsumes();
+        self::assertSame([self::CONCERT_ID . '/A-12', self::CONCERT_ID . '/A-11'], array_column($this->order($orderId)['heldSeats'], 'seatId'));
+    }
+
+    public function test_a_refusal_of_the_first_requested_seat_still_asks_ticketing_for_the_next_one(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->ticketingService->holdsToRefuse = 1;
+
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11', holdId: 'hold-2'));
+
+        self::assertSame([[self::CONCERT_ID . '/A-12', 'hold-1']], $this->holdsTicketingReceives());
+        $this->storefrontConsumes();
+        self::assertSame([[self::CONCERT_ID . '/A-11', 'hold-2']], $this->holdsTicketingReceives());
+        $this->storefrontConsumes();
+        self::assertSame([self::CONCERT_ID . '/A-11'], array_column($this->order($orderId)['heldSeats'], 'seatId'));
+        self::assertSame(self::CONCERT_ID . '/A-12', $this->order($orderId)['lastRefusal']['seatId']);
+    }
+
+    public function test_releasing_a_seat_still_waiting_for_its_turn_never_asks_ticketing_to_hold_it(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11', holdId: 'hold-2'));
+
+        $this->storefront->getCommandBus()->send(new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11'));
+
+        self::assertSame([[self::CONCERT_ID . '/A-12', 'hold-1']], $this->holdsTicketingReceives());
+        $this->storefrontConsumes();
+        self::assertSame([], $this->ticketingReceives());
+        self::assertSame([self::CONCERT_ID . '/A-12'], array_column($this->order($orderId)['heldSeats'], 'seatId'));
+    }
+
+    public function test_releasing_the_seat_ticketing_is_answering_asks_for_the_next_one_only_after_the_reply(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11', holdId: 'hold-2'));
+
+        $this->storefront->getCommandBus()->send(new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12'));
+
+        self::assertSame([[self::CONCERT_ID . '/A-12', 'hold-1']], $this->holdsTicketingReceives());
+        $this->storefrontConsumes();
+        self::assertSame(
+            [['tickets.release', self::CONCERT_ID . '/A-12', 'hold-1'], ['tickets.hold', self::CONCERT_ID . '/A-11', 'hold-2']],
+            array_map(fn (array $received) => [$received[0], $received[1]['seatId'], $received[1]['holdId']], $this->ticketingReceives()),
+        );
+    }
+
+    public function test_a_seat_requested_while_another_is_asked_is_dropped_without_a_hold_once_payment_began(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-10');
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-2'));
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-11', holdId: 'hold-3'));
+        self::assertSame([[self::CONCERT_ID . '/A-12', 'hold-2']], $this->holdsTicketingReceives());
+
+        $this->storefront->getCommandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
+        $this->storefrontConsumes();
+
+        self::assertSame(
+            [['tickets.release', self::CONCERT_ID . '/A-12', 'hold-2']],
+            array_map(fn (array $received) => [$received[0], $received[1]['seatId'], $received[1]['holdId']], $this->ticketingReceives()),
+        );
+    }
+
     public function test_requesting_a_seat_the_order_already_holds_is_refused(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
@@ -177,5 +262,10 @@ final class TicketingRequestsTest extends StorefrontFlowTestCase
         $this->storefront->getCommandBus()->send(new FailOrder(orderId: $orderId, reason: 'The card was declined'));
 
         self::assertSame([], $this->ticketingReceives());
+    }
+
+    private function holdsTicketingReceives(): array
+    {
+        return array_values(array_map(fn (array $received) => [$received[1]['seatId'], $received[1]['holdId']], array_filter($this->ticketingReceives(), fn (array $received) => $received[0] === 'tickets.hold')));
     }
 }

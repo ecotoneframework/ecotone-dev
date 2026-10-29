@@ -34,7 +34,7 @@ final readonly class ServiceFlow
         }
 
         try {
-            $graph = MessageFlowGraph::fromArray($snapshot->snapshot['flowGraph']);
+            $graph = MessageFlowGraph::fromArray(self::withKnownEdgeKinds($snapshot->snapshot['flowGraph']));
         } catch (Throwable) {
             return null;
         }
@@ -42,6 +42,19 @@ final readonly class ServiceFlow
         $serviceMaps = $snapshot->snapshot['topology']['serviceMaps'] ?? [];
 
         return new self($snapshot->service, $snapshot->channel, $graph, is_array($serviceMaps) ? array_values($serviceMaps) : [], $snapshot->status, $snapshot->ageSeconds);
+    }
+
+    /**
+     * @param array<string, mixed> $flowGraph
+     * @return array<string, mixed>
+     */
+    private static function withKnownEdgeKinds(array $flowGraph): array
+    {
+        if (is_array($flowGraph['edges'] ?? null)) {
+            $flowGraph['edges'] = array_values(array_filter($flowGraph['edges'], fn (mixed $edge) => ! is_array($edge) || ! is_string($edge['kind'] ?? null) || FlowEdgeKind::tryFrom($edge['kind']) !== null));
+        }
+
+        return $flowGraph;
     }
 
     public function isStale(): bool
@@ -73,7 +86,7 @@ final readonly class ServiceFlow
     }
 
     /**
-     * @return list<array{handler: FlowNode, targetService: string, targetChannel: string}>
+     * @return list<array{handler: FlowNode, targetService: string, targetChannel: string, replyChannel: string|null}>
      */
     public function sentMessages(): array
     {
@@ -81,12 +94,48 @@ final readonly class ServiceFlow
         foreach ($this->graph->edgesOfKind(FlowEdgeKind::SENDS_TO) as $edge) {
             $service = $edge->attributes['targetService'] ?? null;
             $channel = $edge->attributes['targetChannel'] ?? null;
+            $replyChannel = $edge->attributes['replyChannel'] ?? null;
             if (($edge->attributes['via'] ?? null) === 'sendMessage' && is_string($service) && is_string($channel) && $this->graph->node($edge->to)->kind === FlowNodeKind::DISTRIBUTED_BUS) {
-                $sent[] = ['handler' => $this->graph->node($edge->from), 'targetService' => $service, 'targetChannel' => $channel];
+                $sent[] = ['handler' => $this->graph->node($edge->from), 'targetService' => $service, 'targetChannel' => $channel, 'replyChannel' => is_string($replyChannel) ? $replyChannel : null];
             }
         }
 
         return $sent;
+    }
+
+    /**
+     * @return list<array{command: FlowNode, handler: FlowNode, routingKey: string, replies: bool}>
+     */
+    public function distributedCommandHandlers(): array
+    {
+        $handlers = [];
+        foreach ($this->distributedReceivers() as $received) {
+            if ($received['node']->kind !== FlowNodeKind::COMMAND) {
+                continue;
+            }
+            foreach ($this->graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, from: $received['node']->id) as $routed) {
+                $handler = $this->graph->node($routed->to);
+                $handlers[] = ['command' => $received['node'], 'handler' => $handler, 'routingKey' => $received['routingKey'], 'replies' => $this->replies($handler)];
+            }
+        }
+
+        return $handlers;
+    }
+
+    public function replyTargetOf(FlowNode $sendingHandler, ?string $replyChannel): string
+    {
+        return $replyChannel !== null && $this->graph->hasNode('channel:' . $replyChannel) ? 'channel:' . $replyChannel : $sendingHandler->id;
+    }
+
+    private function replies(FlowNode $handler): bool
+    {
+        foreach ($this->graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: $handler->id) as $edge) {
+            if (($edge->attributes['via'] ?? null) === 'replyRoutingKey') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -102,11 +151,7 @@ final readonly class ServiceFlow
             }
             foreach ($this->graph->edgesOfKind(FlowEdgeKind::INPUT, from: $channel->id) as $input) {
                 $handler = $this->graph->node($input->to);
-                $replies = array_filter(
-                    $this->graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: $handler->id),
-                    fn ($edge) => ($edge->attributes['via'] ?? null) === 'replyRoutingKey'
-                );
-                $handlers[] = ['handler' => $handler, 'channel' => $channel->label, 'replies' => $replies !== []];
+                $handlers[] = ['handler' => $handler, 'channel' => $channel->label, 'replies' => $this->replies($handler)];
             }
         }
 

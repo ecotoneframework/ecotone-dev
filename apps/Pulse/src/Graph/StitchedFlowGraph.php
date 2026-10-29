@@ -291,6 +291,7 @@ final class StitchedFlowGraph
             FlowEdgeKind::EMITS => 'emits',
             FlowEdgeKind::ASYNCHRONOUS => 'async',
             FlowEdgeKind::SENDS_TO => $edge->isInferred() ? 'sends' : 'to ' . ($edge->attributes['targetService'] ?? ''),
+            FlowEdgeKind::PROJECTS_INTO => 'projects into',
             FlowEdgeKind::ROUTED_TO, FlowEdgeKind::INPUT => '',
             default => $edge->kind->value,
         };

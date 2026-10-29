@@ -174,6 +174,9 @@ final class Concert
     #[CommandHandler]
     public function markSoldOut(MarkConcertSoldOut $command): void
     {
+        if ($this->status === ConcertStatus::SOLD_OUT) {
+            return;
+        }
         if ($this->status !== ConcertStatus::ON_SALE) {
             throw CatalogueRefusal::because(sprintf('%s cannot be marked sold out, because it is %s. Only a concert on sale sells out.', ucfirst($this->describe()), $this->statusInWords()));
         }

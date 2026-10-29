@@ -11,11 +11,13 @@ use App\Catalogue\ConcertAnnouncements;
 use App\Catalogue\ConcertSoldOut;
 use App\Catalogue\CreateVenue;
 use App\Catalogue\DemoSeed;
+use App\Catalogue\MarkConcertSoldOut;
 use App\Catalogue\OpenSales;
 use App\Catalogue\ScheduleConcert;
 use App\Catalogue\Tier;
 use App\Catalogue\Venue;
 use App\Infrastructure\EcotoneConfiguration;
+use App\Kernel;
 use App\Sales\ConcertSalesLedger;
 use App\Sales\ConcertSeatMap;
 use App\Sales\ConfirmSeats;
@@ -32,10 +34,14 @@ use App\Sales\SeatSold;
 use App\Sales\SoldOutWatch;
 use DateTimeImmutable;
 use Doctrine\Persistence\ManagerRegistry;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Symfony\SymfonyConnectionReference;
 use Ecotone\Test\LicenceTesting;
@@ -48,6 +54,15 @@ use Symfony\Component\Uid\Uuid;
 final class ConcertSalesProjectionsTest extends KernelTestCase
 {
     private const NOW = '2026-10-25 12:00:00';
+
+    private ?Kernel $competitorKernel = null;
+
+    protected function tearDown(): void
+    {
+        $this->competitorKernel?->shutdown();
+        $this->competitorKernel = null;
+        parent::tearDown();
+    }
 
     public function test_the_seat_map_shows_every_seat_free_until_the_asynchronous_projection_catches_up_with_holds_and_sales(): void
     {
@@ -198,6 +213,47 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         self::assertEquals([new ConcertSoldOut($concertId)], $ticketing->popRecordedEventsOfType(ConcertSoldOut::class));
     }
 
+    public function test_the_worker_losing_the_race_to_mark_the_concert_sold_out_leaves_it_sold_out_once_with_nothing_dead_lettered(): void
+    {
+        $interferer = new class () {
+            public ?FlowTestSupport $competitor = null;
+
+            public ?string $concertId = null;
+
+            #[Around(precedence: Precedence::DEFAULT_PRECEDENCE + 1, pointcut: Concert::class . '::markSoldOut')]
+            public function markItSoldOutOnTheOtherWorkerMeanwhile(MethodInvocation $invocation): mixed
+            {
+                if ($this->competitor !== null) {
+                    $competitor = $this->competitor;
+                    $this->competitor = null;
+                    $competitor->sendCommand(new MarkConcertSoldOut($this->concertId), metadata: ['concertId' => $this->concertId]);
+                }
+
+                return $invocation->proceed();
+            }
+        };
+        $ticketing = $this->ticketing($interferer);
+        $competitor = $this->competitor();
+        $ticketing->getGateway(DeadLetterGateway::class)->deleteAll();
+        $concertId = $this->concertOnSale($ticketing, rowsPerSection: 1, seatsPerRow: 2);
+        $orderId = Uuid::v7()->toRfc4122();
+        $customerId = Uuid::v7()->toRfc4122();
+        foreach (['A-1', 'A-2', 'B-1', 'B-2'] as $seatCode) {
+            $this->hold($ticketing, $orderId, $concertId, $seatCode, $customerId);
+        }
+        $this->confirm($ticketing, $orderId, $concertId, $customerId, ['A-1', 'A-2', 'B-1', 'B-2']);
+        $ticketing->discardRecordedMessages();
+        $interferer->competitor = $competitor;
+        $interferer->concertId = $concertId;
+
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        self::assertSame('sold_out', $this->statusOf($ticketing, $concertId));
+        self::assertSame([], $ticketing->popRecordedEventsOfType(ConcertSoldOut::class));
+        self::assertEquals([new ConcertSoldOut($concertId)], $competitor->popRecordedEventsOfType(ConcertSoldOut::class));
+        self::assertSame(0, $ticketing->getGateway(DeadLetterGateway::class)->count());
+    }
+
     public function test_seeding_the_demo_sells_all_but_the_last_three_seats_of_neon_harbour(): void
     {
         $ticketing = $this->ticketing();
@@ -257,13 +313,26 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         self::assertSame(69, $ticketing->sendQueryWithRouting('concert.sales', $this->concertIdOf($ticketing, 'Neon Harbour'))['seatsSold']);
     }
 
-    private function ticketing(): FlowTestSupport
+    private function ticketing(object ...$applicationHandlers): FlowTestSupport
     {
         self::bootKernel();
         /** @var ManagerRegistry $doctrine */
         $doctrine = self::getContainer()->get('doctrine');
         $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues, concert_seat_map, concert_sales_ledger');
 
+        return $this->bootstrapTicketing($doctrine, ...$applicationHandlers);
+    }
+
+    private function competitor(): FlowTestSupport
+    {
+        $this->competitorKernel = new Kernel('test', true);
+        $this->competitorKernel->boot();
+
+        return $this->bootstrapTicketing($this->competitorKernel->getContainer()->get('doctrine'));
+    }
+
+    private function bootstrapTicketing(ManagerRegistry $doctrine, object ...$applicationHandlers): FlowTestSupport
+    {
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
                 EcotoneConfiguration::class,
@@ -283,6 +352,7 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
                 HoldReleased::class,
                 HoldExpired::class,
                 SeatSold::class,
+                ...array_map(static fn (object $handler): string => $handler::class, $applicationHandlers),
             ],
             containerOrAvailableServices: [
                 new EcotoneConfiguration(),
@@ -294,6 +364,7 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
                 new ConcertSalesLedger($doctrine->getConnection()),
                 new SoldOutWatch(),
                 new DemoSeed(),
+                ...$applicationHandlers,
                 'doctrine' => $doctrine,
             ],
             configurationVariables: ['ticketingHoldSeconds' => 600],

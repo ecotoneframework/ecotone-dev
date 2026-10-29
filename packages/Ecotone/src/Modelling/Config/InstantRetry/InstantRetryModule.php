@@ -98,8 +98,8 @@ final class InstantRetryModule implements AnnotationModule
                 settings: self::settingsOf($configuration->isEnabledForAsynchronousEndpoints, $configuration->asynchronousRetryTimes, $configuration->asynchronousExceptions),
                 handlers: $this->endpointOverrides,
                 hint: $configuration->isEnabledForAsynchronousEndpoints
-                    ? sprintf('A message an asynchronous endpoint fails on is handled once and, when that fails, tried again right away up to %d more times (%d attempts in total) on %s, before it goes to the error channel. An endpoint with #[InstantRetry] uses its own count instead.', $configuration->asynchronousRetryTimes, $configuration->asynchronousRetryTimes + 1, PulseFeature::exceptionsOf($configuration->asynchronousExceptions))
-                    : 'A message an asynchronous endpoint fails on goes straight to the error channel, with no immediate second attempt.',
+                    ? sprintf('A message an asynchronous endpoint fails on is handled once and, when that fails, tried again right away up to %d more times (%d attempts in total) on %s, before the failure is handed on to the error channel, when one is set. An endpoint with #[InstantRetry] uses its own count instead.', $configuration->asynchronousRetryTimes, $configuration->asynchronousRetryTimes + 1, PulseFeature::exceptionsOf($configuration->asynchronousExceptions))
+                    : 'A message an asynchronous endpoint fails on is handed straight on to the error channel, when one is set, with no immediate second attempt.',
                 configuration: sprintf('InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: %d, retryExceptions: %s)', $configuration->asynchronousRetryTimes, PulseFeature::exceptionClassesOf($configuration->asynchronousExceptions)),
             ),
             new PulseFeature(

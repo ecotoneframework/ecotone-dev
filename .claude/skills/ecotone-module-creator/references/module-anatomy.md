@@ -74,6 +74,7 @@ To register a new package:
 1. Add constant to `ModulePackageList`: `public const MY_PACKAGE = 'myPackage';`
 2. Add it to `ModuleClassList::packageNames()`
 3. Add a `MY_PACKAGE_MODULES` constant and a match case in `ModuleClassList::forPackage()`
+4. Add a match case in `ModuleClassList::composerPackageNameOf()` naming its Composer package, which Pulse shows next to the package
 
 ## AnnotationModule Interface
 

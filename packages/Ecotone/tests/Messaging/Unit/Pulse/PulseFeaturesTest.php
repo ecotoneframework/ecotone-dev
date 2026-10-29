@@ -88,7 +88,7 @@ final class PulseFeaturesTest extends TestCase
         self::assertSame(['PulseInstantRetryCommandBus: 5 extra attempts on InvalidArgumentException'], $commandBus['handlers']);
         self::assertStringContainsString('up to 2 more times (3 attempts in total) on RuntimeException', $commandBus['hint']);
         self::assertFalse($features['Instant retries on asynchronous endpoints']['enabled']);
-        self::assertStringContainsString('goes straight to the error channel', $features['Instant retries on asynchronous endpoints']['hint']);
+        self::assertStringContainsString('with no immediate second attempt', $features['Instant retries on asynchronous endpoints']['hint']);
     }
 
     public function test_without_a_default_error_channel_error_handling_is_reported_as_disabled_with_the_call_that_enables_it(): void

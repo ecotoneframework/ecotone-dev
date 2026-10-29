@@ -17,6 +17,7 @@ use Ecotone\Api\Dbal\Attribute\OnTenantDeactivation;
 use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
@@ -43,6 +44,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Psr\Container\ContainerInterface;
 
@@ -248,6 +250,30 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                 )
             );
         }
+    }
+
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
+    {
+        if (! PulseFeature::isReportedFor($serviceExtensions)) {
+            return [];
+        }
+        $configurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $serviceExtensions);
+        $settings = [];
+        foreach ($configurations as $configuration) {
+            $settings['Tenants of ' . PulseFeature::shortNameOf($configuration->getReferenceName())] = implode(', ', array_keys($configuration->tenantToConnectionMapping)) . ' (header ' . $configuration->tenantHeaderName . ')';
+        }
+
+        return [new PulseFeature(
+            package: ModulePackageList::DBAL_PACKAGE,
+            name: 'Multi-tenant connections',
+            enabled: $configurations !== [],
+            settings: $settings,
+            handlers: [],
+            hint: $configurations === []
+                ? 'Every message uses the same database connections, whichever tenant it belongs to.'
+                : 'Each message runs on the database connection of its tenant, chosen by the tenant header it carries, so the tenants keep their data, outbox and dead letters apart. Pulse asks for each tenant separately.',
+            configuration: "MultiTenantConfiguration::create(tenantHeaderName: 'tenant', tenantToConnectionMapping: ['tenant_a' => 'tenant_a_connection'])",
+        )];
     }
 
     public function getModulePackageName(): string

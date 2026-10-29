@@ -25,6 +25,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Store\Document\DocumentStoreMessageChannel;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 #[ModuleAnnotation]
 /**
@@ -250,6 +251,25 @@ final class DbalDocumentStoreModule implements AnnotationModule
                 $dbalConfiguration->documentStoreRelatedAggregates
             );
         }
+        if (! PulseFeature::isReportedFor($serviceExtensions)) {
+            return $extensions;
+        }
+
+        $storage = $dbalConfiguration->inMemoryDocumentStore ? 'in memory' : 'database, connection ' . $dbalConfiguration->documentStoreConnectionReference;
+        $extensions[] = new PulseFeature(
+            package: ModulePackageList::DBAL_PACKAGE,
+            name: 'Document store',
+            enabled: $dbalConfiguration->enableDbalDocumentStore,
+            settings: $dbalConfiguration->enableDbalDocumentStore ? [
+                'Storage' => $storage,
+                'Aggregate repository' => PulseFeature::onOff($dbalConfiguration->enableDocumentStoreStateStoredRepository),
+            ] : [],
+            handlers: [],
+            hint: $dbalConfiguration->enableDbalDocumentStore
+                ? sprintf('The document store keeps JSON documents in named collections (%s), read and written by id through the DocumentStore gateway.', $storage) . ($dbalConfiguration->enableDocumentStoreStateStoredRepository ? ' State-stored aggregates are saved in it too, one document per aggregate.' : ' State-stored aggregates are not saved in it; withDocumentStore(enableDocumentStoreStateStoredRepository: true) does that.')
+                : 'No DocumentStore is registered on the database, so neither the application nor Ecotone can keep documents there.',
+            configuration: 'DbalConfiguration::createWithDefaults()->withDocumentStore(isDocumentStoreEnabled: true)',
+        );
 
         return $extensions;
     }

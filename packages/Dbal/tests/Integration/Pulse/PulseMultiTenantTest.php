@@ -96,6 +96,16 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         self::assertArrayNotHasKey('tenant', $snapshot);
     }
 
+    public function test_the_multi_tenant_connections_feature_lists_the_tenants_and_their_header(): void
+    {
+        $this->bootstrap();
+
+        $features = array_column(array_column($this->requestSnapshot()['packages'], 'features', 'name')['dbal'], null, 'name');
+
+        self::assertTrue($features['Multi-tenant connections']['enabled']);
+        self::assertSame(['tenant_a, tenant_b (header tenant)'], array_values($features['Multi-tenant connections']['settings']));
+    }
+
     public function test_a_snapshot_request_with_a_tenant_carries_the_dead_letters_of_that_tenant_only(): void
     {
         $this->bootstrap();

@@ -57,6 +57,24 @@ final class PulseFeature
     }
 
     /**
+     * @param list<string> $publishers
+     */
+    public static function messagePublishers(string $package, string $broker, array $publishers, string $configuration): self
+    {
+        return new self(
+            package: $package,
+            name: $broker . ' message publishers',
+            enabled: $publishers !== [],
+            settings: ['Publishers' => (string) count($publishers)],
+            handlers: $publishers,
+            hint: $publishers === []
+                ? sprintf('No message publisher sends to %s, so the application reaches it only through message channels.', $broker)
+                : sprintf('The application sends messages straight to %s through each MessagePublisher listed here, fetched by its reference name, to the destination named next to it. High-throughput publishing batches the sends and confirms them without blocking: https://docs.ecotone.tech/modelling/microservices-php/message-publisher', $broker),
+            configuration: $configuration,
+        );
+    }
+
+    /**
      * @param string[] $exceptionClasses
      */
     public static function exceptionsOf(array $exceptionClasses): string

@@ -3109,6 +3109,20 @@ the class itself.
 `#[ServiceContext]` method returning the chained configuration. A subclass that added state of its own becomes a
 separate extension object, registered beside the configuration rather than inside it.
 
+### `JMSConverterConfiguration` returns a copy from every `with*()` and is `final`
+
+**Before:** `withNamingStrategy()`, `withDefaultNullSerialization()` and `withDefaultEnumSupport()` changed the
+instance they were called on and returned it, so `$configuration->withDefaultNullSerialization(false);` written as a
+statement kept its change. The class was open to extension.
+
+**Now:** each `with*()` returns a changed copy and leaves the instance alone — its properties are `readonly` — and the
+class is `final`. A statement-form call still runs, but its value never reaches the configuration Ecotone uses.
+
+**How to adapt:** assign the result or chain the calls,
+`$configuration = $configuration->withDefaultNullSerialization(false);`. Configuration returned from a
+`#[ServiceContext]` method as a chained expression is unaffected. A subclass becomes a `#[ServiceContext]` method
+returning the chained configuration.
+
 ### `AmqpQueue` and `AmqpExchange` name their mutators `set*()`
 
 **Before:** both classes named nine mutators `with*()` — `withArgument()`, `withDurability()`,

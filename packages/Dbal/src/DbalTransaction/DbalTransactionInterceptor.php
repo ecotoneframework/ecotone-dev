@@ -5,6 +5,7 @@ namespace Ecotone\Dbal\DbalTransaction;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\ConnectionException;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
+use Ecotone\Api\Dbal\Attribute\DbalTransaction;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ManagerRegistryConnectionFactory;
 use Ecotone\Api\ExtensionObject\PollingMetadata;

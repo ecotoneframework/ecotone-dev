@@ -2482,6 +2482,7 @@ extends `EnqueueMessageChannelBuilder`, as `AmqpBackedMessageChannelBuilder` alr
 | `Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration` | `Ecotone\Api\DataProtection\ChannelProtectionConfiguration` | returned from a `#[ServiceContext]` method, it protects one channel (Enterprise) |
 | `Ecotone\DataProtection\Encryption\Key` | `Ecotone\Api\DataProtection\Key` | an application creates or loads a key (`Key::createNewRandomKey()`, `Key::loadFromAsciiSafeString()`) to pass to `DataProtectionConfiguration` |
 | `Ecotone\EventSourcing\EventStreamEmitter` | `Ecotone\Api\EventSourcing\EventStreamEmitter` | a projection handler takes it as a parameter to `emit()` or `linkTo()` events (§3) |
+| `Ecotone\Dbal\DbalTransaction\DbalTransaction` | `Ecotone\Api\Dbal\Attribute\DbalTransaction` | written on a handler or its class, it runs that handler in a transaction on the connections it names — `#[DbalTransaction(connectionReferenceNames: [...])]`, the default connection when it names none; the list was a writable property, and is now a constructor argument |
 
 **How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Clear Ecotone's cache on
 deploy, since the compiled container records class names. **One container id changes:** `EventStreamEmitter` is a

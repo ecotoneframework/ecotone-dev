@@ -123,6 +123,46 @@ final class MessageFlowDeclaredSendTest extends TestCase
         $this->graphOf($service);
     }
 
+    public function test_one_route_declared_with_two_reply_keys_is_refused(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold', replyRoutingKey: 'tickets.hold.result')]
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold', replyRoutingKey: 'tickets.hold.answer')]
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf(
+            "#[SendsDistributedMessage] on %s::holdRequestedSeat() names two reply keys for the route to 'ticketing' with routing key 'tickets.hold': 'tickets.hold.result' and 'tickets.hold.answer'. One sent message is answered on one key, so only one of them can be right. Keep the declaration with the replyRoutingKey the target service answers on, and remove the other.",
+            $service::class,
+        ));
+
+        $this->graphOf($service);
+    }
+
+    public function test_one_route_declared_with_and_without_a_reply_key_is_refused(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold')]
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold', replyRoutingKey: 'tickets.hold.result')]
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf(
+            "#[SendsDistributedMessage] on %s::holdRequestedSeat() names two reply keys for the route to 'ticketing' with routing key 'tickets.hold': no reply and 'tickets.hold.result'. One sent message is answered on one key, so only one of them can be right. Keep the declaration with the replyRoutingKey the target service answers on, and remove the other.",
+            $service::class,
+        ));
+
+        $this->graphOf($service);
+    }
+
     public function test_declaration_with_an_empty_routing_key_or_reply_key_is_refused(): void
     {
         $service = new class () {

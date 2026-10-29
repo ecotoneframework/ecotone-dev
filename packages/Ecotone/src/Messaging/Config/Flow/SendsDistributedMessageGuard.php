@@ -46,11 +46,16 @@ final class SendsDistributedMessageGuard
             $declared = [];
             foreach ($registration->getMethodAnnotationsWithType(SendsDistributedMessage::class) as $declaration) {
                 self::checkDeclaration($declaration, $method, $mappedServices[$declaration->distributionReference] ?? []);
-                $route = serialize([$declaration->targetServiceName, $declaration->routingKey, $declaration->replyRoutingKey, $declaration->distributionReference]);
+                $route = serialize([$declaration->targetServiceName, $declaration->routingKey, $declaration->distributionReference]);
+                if (isset($declared[$route]) && $declared[$route]->replyRoutingKey !== $declaration->replyRoutingKey) {
+                    $replyKeys = implode(' and ', array_map(fn (?string $replyKey) => $replyKey === null ? 'no reply' : "'{$replyKey}'", [$declared[$route]->replyRoutingKey, $declaration->replyRoutingKey]));
+
+                    throw ConfigurationException::create("#[SendsDistributedMessage] on {$method}() names two reply keys for the route to '{$declaration->targetServiceName}' with routing key '{$declaration->routingKey}': {$replyKeys}. One sent message is answered on one key, so only one of them can be right. Keep the declaration with the replyRoutingKey the target service answers on, and remove the other.");
+                }
                 if (isset($declared[$route])) {
                     throw ConfigurationException::create("#[SendsDistributedMessage] on {$method}() declares the route to '{$declaration->targetServiceName}' with routing key '{$declaration->routingKey}' twice, so it cannot tell whether a second route was meant. Remove the repeated attribute, or correct the routing key of the one that names a different route.");
                 }
-                $declared[$route] = true;
+                $declared[$route] = $declaration;
             }
         }
     }

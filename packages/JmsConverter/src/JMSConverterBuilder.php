@@ -37,12 +37,12 @@ class JMSConverterBuilder implements CompilableBuilder
     {
         $builder = SerializerBuilder::create()
             ->setPropertyNamingStrategy(
-                $jmsConverterConfiguration->getNamingStrategy() === JMSConverterConfiguration::IDENTICAL_PROPERTY_NAMING_STRATEGY
+                $jmsConverterConfiguration->namingStrategy === JMSConverterConfiguration::IDENTICAL_PROPERTY_NAMING_STRATEGY
                     ? new IdenticalPropertyNamingStrategy()
                     : new CamelCaseNamingStrategy()
             )
             ->setDocBlockTypeResolver(true)
-            ->enableEnumSupport($jmsConverterConfiguration->isEnumSupportEnabled())
+            ->enableEnumSupport($jmsConverterConfiguration->enableEnumSupport)
             ->addDefaultHandlers()
             ->configureHandlers(function (HandlerRegistry $registry) use ($convertersHandlers) {
                 $registry->registerSubscribingHandler(new DateHandler(self::DATE_TIME_FORMAT_WITH_MICROSECONDS, 'UTC', true, [self::DATE_TIME_FORMAT_WITH_MICROSECONDS, DateTimeInterface::ATOM]));
@@ -74,9 +74,9 @@ class JMSConverterBuilder implements CompilableBuilder
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         $configuration = new Definition(JMSConverterConfiguration::class, [
-            $this->jmsConverterConfiguration->getNamingStrategy(),
-            $this->jmsConverterConfiguration->getDefaultNullSerialization(),
-            $this->jmsConverterConfiguration->isEnumSupportEnabled(),
+            $this->jmsConverterConfiguration->namingStrategy,
+            $this->jmsConverterConfiguration->defaultNullSerialization,
+            $this->jmsConverterConfiguration->enableEnumSupport,
         ]);
         $converterHandlers = [];
         foreach ($this->converterHandlerBuilders as $converterHandlerBuilder) {

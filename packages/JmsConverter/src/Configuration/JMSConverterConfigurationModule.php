@@ -98,7 +98,7 @@ final class JMSConverterConfigurationModule extends NoExternalConfigurationModul
         $messagingConfiguration->registerConverter(new JMSConverterBuilder(
             $this->jmsHandlerAdapters,
             $jmsConverterConfiguration,
-            checkMetadataCacheFreshness: $jmsConverterConfiguration->getMetadataCacheFreshnessCheck() ?? ! $bootstrapConfiguration->isProductionConfiguration(),
+            checkMetadataCacheFreshness: $jmsConverterConfiguration->metadataCacheFreshnessCheck ?? ! $bootstrapConfiguration->isProductionConfiguration(),
         ));
     }
 
@@ -123,10 +123,10 @@ final class JMSConverterConfigurationModule extends NoExternalConfigurationModul
     {
         return sprintf(
             'naming strategy %s, null serialization %s, enum support %s and the metadata cache freshness check %s',
-            $configuration->getNamingStrategy(),
-            $configuration->getDefaultNullSerialization() ? 'on' : 'off',
-            $configuration->isEnumSupportEnabled() ? 'on' : 'off',
-            match ($configuration->getMetadataCacheFreshnessCheck()) {
+            $configuration->namingStrategy,
+            $configuration->defaultNullSerialization ? 'on' : 'off',
+            $configuration->enableEnumSupport ? 'on' : 'off',
+            match ($configuration->metadataCacheFreshnessCheck) {
                 null => 'following the environment',
                 true => 'on',
                 false => 'off',

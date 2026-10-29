@@ -11,10 +11,10 @@ final class JMSConverterConfiguration
     public const CAMEL_CASE_PROPERTY_NAMING_STRATEGY = 'camelCasePropertyNamingStrategy';
 
     public function __construct(
-        private readonly string $namingStrategy = self::IDENTICAL_PROPERTY_NAMING_STRATEGY,
-        private readonly bool $defaultNullSerialization = true,
-        private readonly bool $enableEnumSupport = true,
-        private readonly ?bool $metadataCacheFreshnessCheck = null,
+        public readonly string $namingStrategy = self::IDENTICAL_PROPERTY_NAMING_STRATEGY,
+        public readonly bool $defaultNullSerialization = true,
+        public readonly bool $enableEnumSupport = true,
+        public readonly ?bool $metadataCacheFreshnessCheck = null,
     ) {
     }
 
@@ -41,25 +41,5 @@ final class JMSConverterConfiguration
     public function withMetadataCacheFreshnessCheck(bool $enabled): self
     {
         return new self(...[...get_object_vars($this), 'metadataCacheFreshnessCheck' => $enabled]);
-    }
-
-    public function getNamingStrategy(): string
-    {
-        return $this->namingStrategy;
-    }
-
-    public function getDefaultNullSerialization(): bool
-    {
-        return $this->defaultNullSerialization;
-    }
-
-    public function isEnumSupportEnabled(): bool
-    {
-        return $this->enableEnumSupport;
-    }
-
-    public function getMetadataCacheFreshnessCheck(): ?bool
-    {
-        return $this->metadataCacheFreshnessCheck;
     }
 }

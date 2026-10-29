@@ -41,6 +41,10 @@ trait ConsumerInterceptorTrait
     {
     }
 
+    public function postReceive(bool $messageReceived): void
+    {
+    }
+
     /**
      * Called after each sending message to request channel
      */

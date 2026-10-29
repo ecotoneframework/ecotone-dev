@@ -2718,6 +2718,18 @@ own polling metadata says.
 only if you relied on it being ignored. An endpoint whose `PollingMetadata` sets a limit and calls
 `withFinishWhenNoMessages(true)` now honours that limit; remove the limit to drain the channel in one run.
 
+### Finish-when-no-messages stops on the first empty receive
+
+**Before:** a run with finish-when-no-messages stopped only once 10 ms of the clock had passed without a message.
+On a pinned test clock that took about ten polls, and against a broker each empty poll waits for the broker's receive
+timeout, so a test run of an idle AMQP queue took about ten seconds.
+
+**Now:** the run stops on the first receive that returns no message, so an idle queue ends a run after one receive
+timeout.
+
+**How to adapt:** nothing, unless a test relied on a message becoming available a few milliseconds after the channel
+went empty within the same run: call `run()` again after it arrives.
+
 ### Symfony and Laravel `defaultConnectionExceptionRetry` is applied as configured
 
 **Before:** both integrations passed `maxAttempts` as the back-off multiplier and `multiplier` as a maximum delay in

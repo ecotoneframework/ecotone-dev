@@ -23,6 +23,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 #[ModuleAnnotation]
 /**
@@ -84,7 +85,33 @@ final class AmqpTransactionModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [];
+        if (! PulseFeature::isReportedFor($serviceExtensions)) {
+            return [];
+        }
+        $amqpConfiguration = ExtensionObjectResolver::resolveUnique(AmqpConfiguration::class, $serviceExtensions, AmqpConfiguration::createWithDefaults());
+        $connections = implode(', ', $amqpConfiguration->getDefaultConnectionReferenceNames() ?: [AmqpConnectionReference::DEFAULT]);
+        $entryPoints = array_keys(array_filter([
+            'command sent through the command bus' => $amqpConfiguration->isTransactionOnCommandBus(),
+            'message an asynchronous endpoint consumes' => $amqpConfiguration->isTransactionOnAsynchronousEndpoints(),
+            'console command' => $amqpConfiguration->isTransactionOnConsoleCommands(),
+        ]));
+
+        return [new PulseFeature(
+            package: ModulePackageList::AMQP_PACKAGE,
+            name: 'RabbitMQ transactions',
+            enabled: $entryPoints !== [],
+            settings: [
+                'Command bus' => PulseFeature::onOff($amqpConfiguration->isTransactionOnCommandBus()),
+                'Asynchronous endpoints' => PulseFeature::onOff($amqpConfiguration->isTransactionOnAsynchronousEndpoints()),
+                'Console commands' => PulseFeature::onOff($amqpConfiguration->isTransactionOnConsoleCommands()),
+                'Connections' => $connections,
+            ],
+            handlers: [],
+            hint: $entryPoints === []
+                ? 'No entry point opens a RabbitMQ transaction, so a message a handler publishes to RabbitMQ is sent at once, even when the handler fails after publishing it.'
+                : sprintf('Each %s runs inside a RabbitMQ transaction on %s: the messages its handler publishes to RabbitMQ are sent when it succeeds, and none of them when it fails.', implode(', each ', $entryPoints), $connections),
+            configuration: 'AmqpConfiguration::createWithDefaults()->withTransactionOnCommandBus(true)->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnConsoleCommands(true)',
+        )];
     }
 
     /**

@@ -7,6 +7,7 @@ namespace Test\Ecotone\Dbal\Integration\Deduplication;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
@@ -166,13 +167,40 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
         self::assertSame(['printed: seat-7 front', 'printed: seat-7 back'], $tickets->handled);
     }
 
+    #[DataProvider('deduplicationStores')]
+    public function test_a_deduplicated_handler_honours_the_idempotency_key_when_asynchronous_endpoints_are_not_deduplicated(bool $inMemory): void
+    {
+        [$userService, $ticketService, $tickets] = $this->services($inMemory, deduplicateAsynchronousEndpoints: false);
+
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.reserve', 'seat-7', idempotencyKey: 'reserve-1');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.reserve', 'seat-7', idempotencyKey: 'reserve-1');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.reserve', 'seat-8', idempotencyKey: 'reserve-2');
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['reserved: seat-7', 'reserved: seat-8'], $tickets->handled);
+    }
+
+    #[DataProvider('deduplicationStores')]
+    public function test_a_distributed_message_sent_twice_with_the_same_idempotency_key_is_replied_to_once(bool $inMemory): void
+    {
+        [$userService, $ticketService] = $this->services($inMemory);
+
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.reserve', 'seat-7', replyRoutingKey: 'ticket.reserved', idempotencyKey: 'reserve-1');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.reserve', 'seat-7', replyRoutingKey: 'ticket.reserved', idempotencyKey: 'reserve-1');
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['reservation of seat-7'], $userService->sendQueryWithRouting('order.reservations'));
+    }
+
     /**
      * @return array{FlowTestSupport, FlowTestSupport, object}
      */
-    private function services(bool $inMemoryDeduplication): array
+    private function services(bool $inMemoryDeduplication, bool $deduplicateAsynchronousEndpoints = true): array
     {
         $channels = [
             SimpleMessageChannelBuilder::createQueueChannel('ticket_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('user_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('ticket_work'),
             SimpleMessageChannelBuilder::createQueueChannel('user_outbox', delayable: false),
         ];
@@ -200,6 +228,16 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
                 $this->handled[] = 'message: ' . $seat;
             }
 
+            #[Deduplicated]
+            #[Distributed]
+            #[InternalHandler('ticket.reserve', endpointId: 'ticket.reserve.endpoint')]
+            public function reserve(string $seat): string
+            {
+                $this->handled[] = 'reserved: ' . $seat;
+
+                return 'reservation of ' . $seat;
+            }
+
             #[Distributed]
             #[InternalHandler('ticket.issue')]
             public function issue(string $seat, CommandBus $commandBus): void
@@ -217,6 +255,20 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
         };
         $orders = new class () {
             private int $attempts = 0;
+            private array $reservations = [];
+
+            #[Distributed]
+            #[InternalHandler('ticket.reserved')]
+            public function reserved(string $reservation): void
+            {
+                $this->reservations[] = $reservation;
+            }
+
+            #[QueryHandler('order.reservations')]
+            public function reservations(): array
+            {
+                return $this->reservations;
+            }
 
             #[Asynchronous('user_outbox', asynchronousExecution: [new DelayedRetry(initialDelayInMilliseconds: 0, maxRetries: 1)])]
             #[CommandHandler('order.confirm', endpointId: 'order.confirm.endpoint')]
@@ -262,9 +314,9 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
             containerOrAvailableServices: [$tickets, DbalConnectionFactory::class => $this->getConnectionFactory()],
             extensionObjects: [
                 ...$channels,
-                DistributedServiceMap::initialize(),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'user_service', channelName: 'user_channel'),
                 ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'),
-                DbalConfiguration::createWithDefaults()->withDeduplication(inMemory: $inMemoryDeduplication),
+                DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: $deduplicateAsynchronousEndpoints, inMemory: $inMemoryDeduplication),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,

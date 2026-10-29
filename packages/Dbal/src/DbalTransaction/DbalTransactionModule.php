@@ -78,7 +78,7 @@ final class DbalTransactionModule implements AnnotationModule
         ]);
 
         $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [
-            array_map(fn (string $id) => new Reference($id), $connectionFactories),
+            array_combine($connectionFactories, array_map(fn (string $id) => new Reference($id), $connectionFactories)),
             $dbalConfiguration->disableTransactionsOnAsynchronousEndpointNames,
             new Reference(RetryRunner::class),
             new Reference(LoggingGateway::class),

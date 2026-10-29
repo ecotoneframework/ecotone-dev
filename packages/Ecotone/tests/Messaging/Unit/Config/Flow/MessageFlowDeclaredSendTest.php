@@ -1,0 +1,159 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Test\Ecotone\Messaging\Unit\Config\Flow;
+
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\SendsDistributedMessage;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
+use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
+use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * licence Apache-2.0
+ * @internal
+ */
+final class MessageFlowDeclaredSendTest extends TestCase
+{
+    public function test_declared_send_records_the_route_that_inference_cannot_see(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold', replyRoutingKey: 'tickets.hold.result')]
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.release')]
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', 'tickets.' . $event['action'], '{}');
+            }
+        };
+        $graph = $this->graphOf($service);
+
+        self::assertSame(
+            [
+                ['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result'],
+                ['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.release'],
+                ['inferred' => true, 'via' => 'sendMessage'],
+            ],
+            array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::holdRequestedSeat', 'distributed:' . DistributedBus::class), 'attributes'),
+        );
+    }
+
+    public function test_route_both_declared_and_inferred_is_recorded_once(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold')]
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', 'tickets.hold', '{}');
+            }
+        };
+        $graph = $this->graphOf($service);
+
+        self::assertSame(
+            [['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold']],
+            array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::holdRequestedSeat', 'distributed:' . DistributedBus::class), 'attributes'),
+        );
+    }
+
+    public function test_declaration_naming_a_service_no_service_map_knows_is_refused(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketting', routingKey: 'tickets.hold')]
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf(
+            "#[SendsDistributedMessage] on %s::holdRequestedSeat() sends to service 'ticketting', but no DistributedServiceMap for %s maps that service, so DistributedBus::sendMessage() to it would fail at runtime. Mapped services: ticketing. Correct targetServiceName, or map the service in a #[ServiceContext] with DistributedServiceMap::initialize()->withCommandMapping('ticketting', '<channel name>').",
+            $service::class,
+            DistributedBus::class,
+        ));
+
+        $this->graphOf($service);
+    }
+
+    public function test_declaration_on_a_method_that_is_not_a_handler_is_refused_whatever_the_licence(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold')]
+            public function send(DistributedBus $distributedBus, string $routingKey): void
+            {
+                $distributedBus->sendMessage('ticketing', $routingKey, '{}');
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf(
+            '#[SendsDistributedMessage] on %s::send() declares what a message handler sends, but send() is not a message handler: it has none of #[CommandHandler], #[EventHandler], #[QueryHandler], #[InternalHandler] or #[Scheduled]. Move the attribute to the handler that calls send(), or make send() a handler.',
+            $service::class,
+        ));
+
+        EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: []);
+    }
+
+    public function test_the_same_declaration_twice_on_one_handler_is_refused(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold')]
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold')]
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf(
+            "#[SendsDistributedMessage] on %s::holdRequestedSeat() declares the route to 'ticketing' with routing key 'tickets.hold' twice, so it cannot tell whether a second route was meant. Remove the repeated attribute, or correct the routing key of the one that names a different route.",
+            $service::class,
+        ));
+
+        $this->graphOf($service);
+    }
+
+    public function test_declaration_with_an_empty_routing_key_or_reply_key_is_refused(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold', replyRoutingKey: '')]
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf(
+            '#[SendsDistributedMessage] on %s::holdRequestedSeat() has an empty routingKey or replyRoutingKey, but a distributed message is routed and replied to by that key, so an empty one names no handler. Pass the routing key the target service handles, and leave replyRoutingKey out when the target does not reply.',
+            $service::class,
+        ));
+
+        $this->graphOf($service);
+    }
+
+    private function graphOf(object $service): MessageFlowGraph
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$service::class],
+            containerOrAvailableServices: [$service],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('ticketing_channel'),
+                DistributedServiceMap::initialize()->withCommandMapping('ticketing', 'ticketing_channel'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('storefront'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->getMessageFlowGraph();
+    }
+}

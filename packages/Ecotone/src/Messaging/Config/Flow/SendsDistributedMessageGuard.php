@@ -1,0 +1,84 @@
+<?php
+
+/*
+ * licence Apache-2.0
+ */
+declare(strict_types=1);
+
+namespace Ecotone\Messaging\Config\Flow;
+
+use Ecotone\AnnotationFinder\AnnotatedFinding;
+use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\Attribute\SendsDistributedMessage;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
+use Ecotone\Messaging\Config\ConfigurationException;
+
+final class SendsDistributedMessageGuard
+{
+    private const HANDLER_ATTRIBUTES = [CommandHandler::class, EventHandler::class, QueryHandler::class, InternalHandler::class, Scheduled::class];
+
+    /**
+     * @param object[] $extensionObjects
+     */
+    public static function check(AnnotationFinder $annotationFinder, array $extensionObjects): void
+    {
+        $mappedServices = [];
+        foreach (ExtensionObjectResolver::resolve(DistributedServiceMap::class, $extensionObjects) as $serviceMap) {
+            foreach (array_keys($serviceMap->commandMapping) as $targetService) {
+                $mappedServices[$serviceMap->getReferenceName()][$targetService] = true;
+            }
+        }
+
+        $checked = [];
+        foreach ($annotationFinder->findAnnotatedMethods(SendsDistributedMessage::class) as $registration) {
+            $method = $registration->getClassName() . '::' . $registration->getMethodName();
+            if (isset($checked[$method])) {
+                continue;
+            }
+            $checked[$method] = true;
+            self::checkPlacement($registration, $method);
+            $declared = [];
+            foreach ($registration->getMethodAnnotationsWithType(SendsDistributedMessage::class) as $declaration) {
+                self::checkDeclaration($declaration, $method, $mappedServices[$declaration->distributionReference] ?? []);
+                $route = serialize([$declaration->targetServiceName, $declaration->routingKey, $declaration->replyRoutingKey, $declaration->distributionReference]);
+                if (isset($declared[$route])) {
+                    throw ConfigurationException::create("#[SendsDistributedMessage] on {$method}() declares the route to '{$declaration->targetServiceName}' with routing key '{$declaration->routingKey}' twice, so it cannot tell whether a second route was meant. Remove the repeated attribute, or correct the routing key of the one that names a different route.");
+                }
+                $declared[$route] = true;
+            }
+        }
+    }
+
+    private static function checkPlacement(AnnotatedFinding $registration, string $method): void
+    {
+        foreach (self::HANDLER_ATTRIBUTES as $handlerAttribute) {
+            if ($registration->hasMethodAnnotation($handlerAttribute)) {
+                return;
+            }
+        }
+        $methodName = $registration->getMethodName();
+
+        throw ConfigurationException::create("#[SendsDistributedMessage] on {$method}() declares what a message handler sends, but {$methodName}() is not a message handler: it has none of #[CommandHandler], #[EventHandler], #[QueryHandler], #[InternalHandler] or #[Scheduled]. Move the attribute to the handler that calls {$methodName}(), or make {$methodName}() a handler.");
+    }
+
+    /**
+     * @param array<string, bool> $mappedServices
+     */
+    private static function checkDeclaration(SendsDistributedMessage $declaration, string $method, array $mappedServices): void
+    {
+        if ($declaration->routingKey === '' || $declaration->replyRoutingKey === '') {
+            throw ConfigurationException::create("#[SendsDistributedMessage] on {$method}() has an empty routingKey or replyRoutingKey, but a distributed message is routed and replied to by that key, so an empty one names no handler. Pass the routing key the target service handles, and leave replyRoutingKey out when the target does not reply.");
+        }
+        if (! isset($mappedServices[$declaration->targetServiceName])) {
+            $known = $mappedServices === [] ? 'none' : implode(', ', array_keys($mappedServices));
+
+            throw ConfigurationException::create("#[SendsDistributedMessage] on {$method}() sends to service '{$declaration->targetServiceName}', but no DistributedServiceMap for {$declaration->distributionReference} maps that service, so DistributedBus::sendMessage() to it would fail at runtime. Mapped services: {$known}. Correct targetServiceName, or map the service in a #[ServiceContext] with DistributedServiceMap::initialize()->withCommandMapping('{$declaration->targetServiceName}', '<channel name>').");
+        }
+    }
+}

@@ -35,6 +35,7 @@ final class MessageFlowModule implements AnnotationModule
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        SendsDistributedMessageGuard::check($this->annotationFinder, $extensionObjects);
         if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             return;
         }

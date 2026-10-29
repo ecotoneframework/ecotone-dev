@@ -44,6 +44,7 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\Attribute\SendsDistributedMessage;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
@@ -139,6 +140,7 @@ final class MessageFlowDiscovery
         $this->discoverAppliedEvents();
         $this->discoverGateways();
         $this->discoverScheduled();
+        $this->discoverDeclaredSends();
         foreach (DecisionModelHandlers::scan($this->annotationFinder, $this->interfaceToCallRegistry)->appendingTheirResult() as $handler) {
             $id = 'handler:' . $handler->className() . '::' . $handler->methodName();
             if (isset($this->nodes[$id])) {
@@ -453,6 +455,31 @@ final class MessageFlowDiscovery
             ]);
             if ($annotation->requestChannelName !== NullableMessageChannel::CHANNEL_NAME) {
                 $this->edges[] = new FlowEdge($id, $this->channelNode($annotation->requestChannelName)->id, FlowEdgeKind::SENDS_TO);
+            }
+        }
+    }
+
+    private function discoverDeclaredSends(): void
+    {
+        $declaredMethods = [];
+        foreach ($this->applicationMethods(SendsDistributedMessage::class) as $registration) {
+            $declaredMethods[$registration->getClassName() . '::' . $registration->getMethodName()] = $registration;
+        }
+        foreach ($declaredMethods as $method => $registration) {
+            $senders = array_filter(
+                $this->nodes,
+                fn (FlowNode $node) => in_array($node->id, ['handler:' . $method, 'scheduled:' . $method], true) || str_starts_with($node->id, 'handler:' . $method . ':'),
+            );
+            foreach ($registration->getMethodAnnotationsWithType(SendsDistributedMessage::class) as $declaration) {
+                $busId = $this->distributedBusNode($declaration->distributionReference)->id;
+                foreach ($senders as $sender) {
+                    $this->edges[] = new FlowEdge($sender->id, $busId, FlowEdgeKind::SENDS_TO, [
+                        'declared' => true,
+                        'via' => 'sendMessage',
+                        'targetService' => $declaration->targetServiceName,
+                        'targetChannel' => $declaration->routingKey,
+                    ] + ($declaration->replyRoutingKey === null ? [] : ['replyChannel' => $declaration->replyRoutingKey]));
+                }
             }
         }
     }

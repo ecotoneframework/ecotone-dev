@@ -64,6 +64,23 @@ final class StorefrontPagesTest extends TestCase
         $response->assertSeeInOrder(['<strong data-seat-count="free">1</strong> free', '<strong data-seat-count="held">1</strong> held by someone', '<strong data-seat-count="sold">1</strong> sold'], escape: false);
     }
 
+    public function test_the_empty_order_panel_shows_no_total_no_countdown_and_no_focusable_checkout_link(): void
+    {
+        $this->schedule();
+        $this->openSales();
+        $customerId = $this->register('Ada Lovelace', 'ada@example.com');
+
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/concerts/' . self::CONCERT_ID);
+
+        $response->assertOk();
+        $response->assertSee('<link rel="stylesheet" href="http://localhost/css/app.css">', escape: false);
+        $response->assertSee('<p class="basket__expiry" data-basket-expiry hidden>', escape: false);
+        $response->assertSee('<p class="basket__total" data-basket-total hidden>', escape: false);
+        $response->assertSee('<a class="button button--block" data-basket-checkout hidden>', escape: false);
+        $response->assertDontSee('href="#"', escape: false);
+        self::assertMatchesRegularExpression('/^\[hidden\] \{\n    display: none !important;\n\}$/m', file_get_contents(public_path('css/app.css')));
+    }
+
     public function test_whoami_lists_the_customers_to_pick_from(): void
     {
         $this->register('Ada Lovelace', 'ada@example.com');

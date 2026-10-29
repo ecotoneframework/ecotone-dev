@@ -48,7 +48,7 @@
                 <ul class="basket__seats" data-basket-seats></ul>
                 <p class="basket__expiry" data-basket-expiry hidden><x-icon name="clock"/><span>Your seats are held for <span class="countdown" data-basket-countdown></span></span></p>
                 <p class="basket__total" data-basket-total hidden><span>Total</span><span data-basket-total-amount></span></p>
-                <p><a class="button button--block" data-basket-checkout hidden href="#">Continue to checkout <x-icon name="arrow"/></a></p>
+                <p><a class="button button--block" data-basket-checkout hidden>Continue to checkout <x-icon name="arrow"/></a></p>
             </aside>
         </div>
         <script src="{{ asset('js/countdown.js') }}"></script>

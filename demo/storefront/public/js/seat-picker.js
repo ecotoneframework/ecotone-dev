@@ -125,8 +125,10 @@
         refusalLine.textContent = shownRefusal || '';
 
         const checkout = basket.querySelector('[data-basket-checkout]');
-        checkout.hidden = !(state && state.status === 'seats_held') || pendingSeatIds.size > 0;
-        if (orderId !== null) {
+        checkout.hidden = !(state && state.status === 'seats_held') || pendingSeatIds.size > 0 || orderId === null;
+        if (checkout.hidden) {
+            checkout.removeAttribute('href');
+        } else {
             checkout.href = ordersUrl + '/' + orderId + '/checkout';
         }
         window.demoCountdown.tick();

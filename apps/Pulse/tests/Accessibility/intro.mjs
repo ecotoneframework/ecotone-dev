@@ -1,9 +1,8 @@
 import {chromium} from 'playwright-core';
 
 const base = (process.argv[2] ?? process.env.PULSE_URL ?? '').replace(/\/$/, '');
-const version = process.env.PULSE_EXPECTED_VERSION ?? '';
-if (base === '' || version === '') {
-    console.error('Usage: PULSE_EXPECTED_VERSION=<PULSE_VERSION of the running Pulse> node intro.mjs <pulse url>');
+if (base === '') {
+    console.error('Usage: node intro.mjs <pulse url>');
     process.exit(2);
 }
 
@@ -25,7 +24,12 @@ const open = async (options = {}, init = null) => {
 };
 const intro = (page) => page.$('html.intro-pending [data-intro]');
 const gone = (page, milliseconds) => page.waitForSelector('[data-intro]', {state: 'detached', timeout: milliseconds}).then(() => true, () => false);
-const seen = (page) => page.evaluate(() => localStorage.getItem('ecotone-pulse.intro-seen'));
+const seen = (page) => page.evaluate(() => localStorage.getItem('ecotone-pulse.intro-seen-on'));
+const today = (page) => page.evaluate(() => {
+    const now = new Date();
+
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+});
 
 {
     const {context, page} = await open();
@@ -34,13 +38,13 @@ const seen = (page) => page.evaluate(() => localStorage.getItem('ecotone-pulse.i
     await page.waitForTimeout(900);
     check('the heart is beating', await page.$eval('[data-intro-heart]', (heart) => getComputedStyle(heart).animationName === 'intro-beat' && getComputedStyle(heart).opacity === '1'));
     check('the splash gives way to the dashboard', await gone(page, 5000));
-    check('the version is stored once the splash is done', (await seen(page)) === version);
+    check('the day is stored once the splash is done', (await seen(page)) === (await today(page)));
     check('the header logo stays on the page', (await page.$('header.topbar a.brand svg[aria-hidden="true"]')) !== null);
     await page.reload();
-    check('a reload for the same version goes straight to the dashboard', (await intro(page)) === null);
-    await page.evaluate(() => localStorage.setItem('ecotone-pulse.intro-seen', 'an-older-version'));
+    check('a reload on the same day goes straight to the dashboard', (await intro(page)) === null);
+    await page.evaluate(() => localStorage.setItem('ecotone-pulse.intro-seen-on', '2000-01-01'));
     await page.reload();
-    check('a different version shows the splash again', (await intro(page)) !== null);
+    check('the next day shows the splash again', (await intro(page)) !== null);
     await context.close();
 }
 
@@ -50,7 +54,7 @@ for (const [name, act] of [['a click', (page) => page.mouse.click(300, 300)], ['
     await page.waitForTimeout(300);
     await act(page);
     check(`${name} skips the splash`, await gone(page, 1500));
-    check(`${name} stores the version`, (await seen(page)) === version);
+    check(`${name} stores the day`, (await seen(page)) === (await today(page)));
     await context.close();
 }
 

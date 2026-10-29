@@ -57,7 +57,7 @@ final readonly class PulseSettings
 
         $version = $read('PULSE_VERSION');
         if ($version === null) {
-            throw new PulseConfigurationException('PULSE_VERSION is not set, so Pulse cannot tell which image version a browser has already seen the intro for. The Docker image sets it from its build argument: build with --build-arg PULSE_VERSION=<tag>, or when running outside the image set PULSE_VERSION to any non-empty value such as dev.');
+            throw new PulseConfigurationException('PULSE_VERSION is not set, so Pulse cannot say which version of the image it runs. The Docker image sets it from its build argument: build with --build-arg PULSE_VERSION=<tag>, or when running outside the image set PULSE_VERSION to any non-empty value such as dev.');
         }
 
         $serviceName = self::name($read('PULSE_SERVICE_NAME', 'ecotone_pulse'), 'PULSE_SERVICE_NAME');

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Ordering;
 
+use App\Concert\SeatStateProjector;
+use App\Concert\SeatStates;
 use App\Customer\Customer;
 use App\Customer\CustomerDirectory;
 use App\Customer\RegisterCustomer;
@@ -26,12 +28,14 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Laravel\LaravelConnectionReference;
 use Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\StateStoredRepository;
 use Ecotone\Test\LicenceTesting;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -40,7 +44,7 @@ abstract class StorefrontFlowTestCase extends TestCase
     protected const CONCERT_ID = '0199f3a8-6f2a-7c1e-9a51-3d2f6c1b8e40';
     protected const EXPIRES_AT = '2026-10-25T12:02:00+00:00';
 
-    private const STOREFRONT_SERVICES = [EcotoneConfiguration::class, Order::class, OrderRepository::class, Customer::class, OrderQueries::class, CustomerDirectory::class, TicketingRequests::class, TicketingReplies::class];
+    private const STOREFRONT_SERVICES = [EcotoneConfiguration::class, Order::class, OrderRepository::class, Customer::class, OrderQueries::class, SeatStateProjector::class, SeatStates::class, CustomerDirectory::class, TicketingRequests::class, TicketingReplies::class];
 
     private array $channels;
 
@@ -57,6 +61,8 @@ abstract class StorefrontFlowTestCase extends TestCase
         DB::table('customers')->delete();
         DB::table('concerts')->delete();
         DB::table('jobs')->delete();
+        DB::table('seat_holds')->delete();
+        DB::table('sold_seats')->delete();
         $this->channels = [
             SimpleMessageChannelBuilder::createQueueChannel('storefront'),
             SimpleMessageChannelBuilder::createQueueChannel('ticketing'),
@@ -65,6 +71,13 @@ abstract class StorefrontFlowTestCase extends TestCase
         $this->storefront = $this->storefront();
         $this->storefront->getGateway(DeadLetterGateway::class)->deleteAll();
         $this->ticketing = $this->ticketing();
+        Carbon::setTestNow('2026-10-25 12:00:00');
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     protected function storefrontServices(): array
@@ -98,6 +111,12 @@ abstract class StorefrontFlowTestCase extends TestCase
         $this->ticketingService->received = [];
 
         return $received;
+    }
+
+    protected function ticketingAnnounces(string $routingKey, array $event): void
+    {
+        $this->ticketing->getGateway(DistributedBus::class)->convertAndPublishEvent($routingKey, $event, metadata: ['concertId' => $event['concertId']]);
+        $this->storefrontConsumes();
     }
 
     protected function storefrontAsyncRuns(): void

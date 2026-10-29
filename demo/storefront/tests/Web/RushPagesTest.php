@@ -13,6 +13,7 @@ use DomainException;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -35,6 +36,13 @@ final class RushPagesTest extends TestCase
         DB::table('customers')->delete();
         DB::table('concerts')->delete();
         DB::table('jobs')->delete();
+        Carbon::setTestNow('2026-10-25 12:00:00');
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     public function test_a_concert_on_sale_offers_to_simulate_a_rush_of_buyers(): void
@@ -155,7 +163,7 @@ final class RushPagesTest extends TestCase
         $response = $this->getJson('/concerts/' . self::CONCERT_ID . '/taken-seats.json');
 
         $response->assertOk();
-        $response->assertExactJson(['takenSeatIds' => [self::CONCERT_ID . '/B-1']]);
+        $response->assertExactJson(['takenSeatIds' => [self::CONCERT_ID . '/B-1'], 'soldSeatIds' => []]);
         $adaId = $this->app->make(CommandBus::class)->send(new RegisterCustomer(name: 'Ada Lovelace', email: 'ada@example.com'));
         $this->withCookie(self::CUSTOMER_COOKIE, $adaId)->get('/concerts/' . self::CONCERT_ID)->assertSee('data-taken-seats-url="http://localhost/concerts/' . self::CONCERT_ID . '/taken-seats.json"', escape: false);
     }

@@ -24,7 +24,6 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
-use Ecotone\Api\Messaging\ConcurrencyException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -43,13 +42,6 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
         DB::table('rush_buyers')->delete();
         DB::table('rushes')->delete();
         DB::table('payment_attempts')->delete();
-        Carbon::setTestNow('2026-10-25 12:00:00');
-    }
-
-    protected function tearDown(): void
-    {
-        Carbon::setTestNow();
-        parent::tearDown();
     }
 
     protected function storefrontServices(): array
@@ -98,33 +90,19 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
         return [$this->anotherConsumer, TicketingReplies::class, RushSimulator::class, Rushes::class, ConcertProjector::class, ConcertCatalogue::class, Checkout::class, PaymentProvider::class, PaymentAttempts::class];
     }
 
-    public function test_a_held_seat_marked_while_another_consumer_fails_the_same_order_is_refused_naming_both_versions(): void
+    public function test_a_held_seat_marked_on_the_command_bus_while_another_consumer_fails_the_same_order_is_retried_and_releases_the_seat(): void
     {
         $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
         $this->app->make($this->anotherConsumer)->commitsWhileSeatIsMarkedHeld = new FailOrder(orderId: $orderId, reason: 'the rush deadline passed');
-
         $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
+        $this->ticketingReceives();
 
-        $this->expectException(ConcurrencyException::class);
-        $this->expectExceptionMessage(sprintf('Aggregate %s %s was loaded at version 2, but', Order::class, $orderId));
         $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
-    }
-
-    public function test_a_refused_held_seat_leaves_the_order_as_the_other_consumer_saved_it(): void
-    {
-        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->app->make($this->anotherConsumer)->commitsWhileSeatIsMarkedHeld = new FailOrder(orderId: $orderId, reason: 'the rush deadline passed');
-
-        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
-
-        try {
-            $this->storefront->getCommandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
-        } catch (ConcurrencyException) {
-        }
 
         $order = $this->order($orderId);
         self::assertSame('failed', $order['status']);
         self::assertSame([], $order['heldSeats']);
+        self::assertContains(['tickets.release', self::CONCERT_ID . '/A-12'], array_map(fn (array $request) => [$request[0], $request[1]['seatId']], $this->ticketingReceives()));
     }
 
     public function test_a_held_reply_that_loses_to_a_failure_of_its_order_is_retried_and_releases_the_seat(): void

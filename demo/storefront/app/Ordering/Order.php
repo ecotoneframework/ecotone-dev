@@ -109,6 +109,9 @@ final class Order extends Model
         if (in_array($command->seatId, $this->heldSeatIds(), true)) {
             throw new DomainException(sprintf('Order %s already holds seat %s, so RequestSeat does not ask ticketing for it again. Pick another seat, or release this one with ReleaseSeat.', $this->id, $command->seatId));
         }
+        if (isset($this->requested_holds[$command->seatId])) {
+            return;
+        }
         $this->requested_holds = [...$this->requested_holds, $command->seatId => $command->holdId];
         $this->recordThat(new SeatRequested(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId, holdId: $command->holdId));
     }
@@ -292,9 +295,14 @@ final class Order extends Model
     /**
      * @return list<string>
      */
-    public function claimedSeatIds(): array
+    public function claimedSeatIdsAt(DateTimeImmutable $now): array
     {
-        return array_column(array_filter($this->held_seats, fn (array $heldSeat) => ! ($heldSeat['expired'] ?? false)), 'seatId');
+        return array_column(array_filter($this->held_seats, fn (array $heldSeat) => ! ($heldSeat['expired'] ?? false) && ($this->isSold() || new DateTimeImmutable($heldSeat['expiresAt']) > $now)), 'seatId');
+    }
+
+    private function isSold(): bool
+    {
+        return in_array($this->status, [OrderStatus::PAID, OrderStatus::TICKETS_ISSUED], true);
     }
 
     private static function sameTickets(array $tickets, array $otherTickets): bool

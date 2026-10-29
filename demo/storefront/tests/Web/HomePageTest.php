@@ -16,7 +16,8 @@ final class HomePageTest extends TestCase
         $response = $this->get('/');
 
         $response->assertOk();
-        $response->assertSee('<h1>Storefront</h1>', escape: false);
+        $response->assertSee('<h1 id="hero-title">Your seat for the night is waiting</h1>', escape: false);
+        $response->assertSee('<title>Tickets for live music · Stagefront</title>', escape: false);
         $response->assertSee('<a href="http://localhost:8080">Ecotone Pulse</a>', escape: false);
         $response->assertSee('<a href="http://localhost:16686/search?service=storefront">Jaeger</a>', escape: false);
     }

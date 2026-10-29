@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Web;
 
 use App\Concert\SeatCode;
+use App\Concert\SeatStateProjector;
 use App\Ordering\ReleaseSeat;
 use App\Ordering\RequestSeat;
 use App\Ordering\StartOrder;
@@ -78,6 +79,7 @@ final class OrderController
     public function state(Request $request, string $orderId): JsonResponse
     {
         $order = $this->ownedOrder($request, $orderId);
+        $seatStates = $this->queryBus->sendWithRouting('concert.seat_states', ['concertId' => $order['concertId'], 'excludingOrderId' => $order['orderId']]);
         $heldSeats = array_map(fn (array $heldSeat) => [
             'seatId' => $heldSeat['seatId'],
             'seatCode' => SeatCode::ofSeatId($heldSeat['seatId']),
@@ -91,7 +93,8 @@ final class OrderController
             'heldSeats' => $heldSeats,
             'earliestExpiresAt' => $heldSeats === [] ? null : min(array_column($heldSeats, 'expiresAt')),
             'lastRefusal' => $order['lastRefusal'],
-            'takenSeatIds' => $this->queryBus->sendWithRouting('concert.taken_seats', ['concertId' => $order['concertId'], 'excludingOrderId' => $order['orderId']]),
+            'takenSeatIds' => SeatStateProjector::takenOf($seatStates),
+            'soldSeatIds' => $seatStates['soldSeatIds'],
             'failureReason' => $order['failureReason'],
             'tickets' => $order['tickets'],
         ]);
@@ -103,6 +106,7 @@ final class OrderController
 
         return view('orders.show', [
             'order' => $order,
+            'customer' => $this->currentCustomer->of($request),
             'concert' => $this->queryBus->sendWithRouting('concert.detail', $order['concertId']),
             'paymentStatus' => $order['paymentReference'] === null ? null : $this->queryBus->sendWithRouting('payment.status', $order['paymentReference']),
         ]);
@@ -112,23 +116,17 @@ final class OrderController
     {
         $order = $this->ownedOrder($request, $orderId);
         $concert = $this->queryBus->sendWithRouting('concert.detail', $order['concertId']);
-        $tiers = [];
-        foreach ($concert['sections'] as $section) {
-            foreach ($section['rows'] as $row) {
-                foreach ($row['seats'] as $seat) {
-                    $tiers[$seat['seatId']] = $seat['tier'];
-                }
-            }
-        }
+        $tiers = SeatPrices::tiersOf($concert);
         $lines = array_map(fn (array $heldSeat) => [
             'seatCode' => SeatCode::ofSeatId($heldSeat['seatId']),
             'tier' => $tiers[$heldSeat['seatId']],
-            'priceCents' => $tiers[$heldSeat['seatId']] === 'vip' ? $concert['vipPriceCents'] : $concert['standardPriceCents'],
+            'priceCents' => SeatPrices::priceCentsOf($concert, $tiers[$heldSeat['seatId']]),
             'expiresAt' => $heldSeat['expiresAt'],
         ], $order['heldSeats']);
 
         return view('orders.checkout', [
             'order' => $order,
+            'customer' => $this->currentCustomer->of($request),
             'concert' => $concert,
             'lines' => $lines,
             'totalCents' => array_sum(array_column($lines, 'priceCents')),

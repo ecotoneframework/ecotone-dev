@@ -8,10 +8,7 @@ use App\Web\RushController;
 use App\Web\StorefrontController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => view('home', [
-    'pulseUrl' => config('demo.pulse_url'),
-    'jaegerUrl' => config('demo.jaeger_url') . '/search?service=storefront',
-]));
+Route::get('/', [StorefrontController::class, 'home']);
 Route::get('/whoami', [StorefrontController::class, 'whoami']);
 Route::post('/whoami', [StorefrontController::class, 'chooseCustomer']);
 Route::get('/concerts', [StorefrontController::class, 'concerts']);

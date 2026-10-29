@@ -5,6 +5,9 @@
         const form = panel.querySelector('[data-contention-form]');
         const status = panel.querySelector('[data-contention-status]');
         const buyersCount = panel.querySelector('[data-contention-buyers-count]');
+        if (form === null) {
+            return;
+        }
 
         form.elements.buyers.addEventListener('input', function () {
             buyersCount.textContent = form.elements.buyers.value;
@@ -48,7 +51,7 @@
             name.className = 'contention__name';
             name.textContent = buyer.name;
             const state = document.createElement('span');
-            state.className = 'contention__state';
+            state.className = 'contention__state badge badge--' + buyer.state;
             state.textContent = buyer.state;
             item.append(name, ' ', state);
             if (buyer.refusal !== null) {

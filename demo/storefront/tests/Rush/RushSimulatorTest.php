@@ -43,13 +43,6 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         DB::table('rush_buyers')->delete();
         DB::table('rushes')->delete();
         DB::table('payment_attempts')->delete();
-        Carbon::setTestNow('2026-10-25 12:00:00');
-    }
-
-    protected function tearDown(): void
-    {
-        Carbon::setTestNow();
-        parent::tearDown();
     }
 
     protected function storefrontServices(): array
@@ -137,6 +130,22 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         $adaOrder = $this->order($adaOrderId);
         self::assertSame('seats_held', $adaOrder['status']);
         self::assertSame([['seatId' => self::CONCERT_ID . '/A-1', 'expiresAt' => self::EXPIRES_AT]], $adaOrder['heldSeats']);
+    }
+
+    public function test_rush_buyers_never_ask_ticketing_for_seats_it_announced_held_or_sold(): void
+    {
+        $this->concertOnSale(seats: 6);
+        $this->ticketingAnnounces('tickets.seat_sold', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-1', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000b']);
+        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-2', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000c', 'holdId' => 'hold-elsewhere', 'expiresAt' => '2026-10-25T12:10:00+00:00']);
+
+        $this->startRush(buyers: 4, seatsPerBuyer: 1);
+        $this->rushRuns();
+
+        $holds = array_values(array_filter($this->ticketingService->received, fn (array $request) => $request[0] === 'tickets.hold'));
+        self::assertEqualsCanonicalizing(
+            array_map(fn (int $number) => self::CONCERT_ID . '/A-' . $number, range(3, 6)),
+            array_map(fn (array $hold) => $hold[1]['seatId'], $holds),
+        );
     }
 
     public function test_a_buyer_holds_its_seats_one_after_another_and_pays_once_all_are_held(): void

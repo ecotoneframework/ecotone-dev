@@ -16,6 +16,7 @@ use App\Ordering\StartOrder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -37,6 +38,77 @@ final class CheckoutPagesTest extends TestCase
         DB::table('customers')->delete();
         DB::table('concerts')->delete();
         DB::table('payment_attempts')->delete();
+        DB::table('seat_holds')->delete();
+        DB::table('sold_seats')->delete();
+        Carbon::setTestNow('2026-10-25 12:00:00');
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
+
+    public function test_the_seat_picker_greys_out_the_seats_ticketing_holds_or_sold_with_their_state_and_counts_them(): void
+    {
+        $this->scheduleOnSale();
+        $customerId = $this->register('Ada Lovelace', 'ada@example.com');
+        $this->ticketingAnnounces('tickets.seat_sold', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-1', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000b']);
+        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-2', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000c', 'holdId' => 'hold-1', 'expiresAt' => '2026-10-25T12:10:00+00:00']);
+
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/concerts/' . self::CONCERT_ID);
+
+        $response->assertSee('<button type="button" class="seat seat--vip seat--sold" data-seat-id="' . self::CONCERT_ID . '/A-1" data-seat-code="A-1" data-tier="vip" aria-label="A-1, VIP, sold" title="A-1, VIP, sold" disabled>1</button>', escape: false);
+        $response->assertSee('<button type="button" class="seat seat--standard seat--held" data-seat-id="' . self::CONCERT_ID . '/B-2" data-seat-code="B-2" data-tier="standard" aria-label="B-2, Standard, held by someone" title="B-2, Standard, held by someone" disabled>2</button>', escape: false);
+        $response->assertSee('<button type="button" class="seat seat--standard" data-seat-id="' . self::CONCERT_ID . '/B-1" data-seat-code="B-1" data-tier="standard" aria-label="B-1, Standard, free" title="B-1, Standard, free">1</button>', escape: false);
+        $response->assertSeeInOrder(['<strong data-seat-count="free">1</strong> free', '<strong data-seat-count="yours">0</strong> yours', '<strong data-seat-count="held">1</strong> held by someone', '<strong data-seat-count="sold">1</strong> sold'], escape: false);
+        $response->assertSee('data-sold-seat-ids="' . e(json_encode([self::CONCERT_ID . '/A-1'])) . '"', escape: false);
+    }
+
+    public function test_the_seat_picker_shows_the_seats_the_customer_holds_as_theirs_although_ticketing_announced_the_hold(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-1', 'orderId' => $orderId, 'holdId' => 'hold-1', 'expiresAt' => '2026-10-25T12:10:00+00:00']);
+
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/concerts/' . self::CONCERT_ID);
+
+        $response->assertSee('<button type="button" class="seat seat--standard seat--yours" data-seat-id="' . self::CONCERT_ID . '/B-1" data-seat-code="B-1" data-tier="standard" aria-label="B-1, Standard, yours" title="B-1, Standard, yours">1</button>', escape: false);
+        $response->assertSee('<strong data-seat-count="yours">1</strong> yours', escape: false);
+        $response->assertSee('<strong data-seat-count="held">0</strong> held by someone', escape: false);
+    }
+
+    public function test_the_order_state_lists_the_seats_ticketing_sold_apart_from_the_held_ones(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->ticketingAnnounces('tickets.seat_sold', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-1', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000b']);
+        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-2', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000c', 'holdId' => 'hold-1', 'expiresAt' => '2026-10-25T12:10:00+00:00']);
+
+        $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json');
+
+        $response->assertJsonPath('takenSeatIds', [self::CONCERT_ID . '/A-1', self::CONCERT_ID . '/B-2']);
+        $response->assertJsonPath('soldSeatIds', [self::CONCERT_ID . '/A-1']);
+    }
+
+    public function test_the_checkout_page_keeps_the_demo_choices_in_a_demo_controls_box_apart_from_the_pay_button(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId . '/checkout');
+
+        $response->assertSeeInOrder([
+            'Paying as <strong>Ada Lovelace</strong>',
+            '<div class="demo-controls" role="group" aria-labelledby="demo-controls-title">',
+            'Demo controls',
+            'This shop has no real payment provider or mail server: choose how the stubs answer.',
+            'name="paymentOutcome"',
+            'name="confirmationEmailBounces"',
+            '</div>',
+            '<button type="submit" class="button button--block">Pay EUR 120.00</button>',
+        ], escape: false);
     }
 
     public function test_a_chosen_customer_picks_seats_of_a_concert_on_sale_with_the_seat_picker(): void
@@ -47,7 +119,7 @@ final class CheckoutPagesTest extends TestCase
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/concerts/' . self::CONCERT_ID);
 
         $response->assertOk();
-        $response->assertSee('<button type="button" class="seat seat--vip" data-seat-id="' . self::CONCERT_ID . '/A-1">A-1</button>', escape: false);
+        $response->assertSee('<button type="button" class="seat seat--vip" data-seat-id="' . self::CONCERT_ID . '/A-1" data-seat-code="A-1" data-tier="vip" aria-label="A-1, VIP, free" title="A-1, VIP, free">1</button>', escape: false);
         $response->assertSee('data-start-order-url="http://localhost/concerts/' . self::CONCERT_ID . '/orders"', escape: false);
         $response->assertSee('data-order-id=""', escape: false);
         $response->assertSee('<script src="http://localhost/js/seat-picker.js"></script>', escape: false);
@@ -132,6 +204,21 @@ final class CheckoutPagesTest extends TestCase
         $response->assertJson(['requested' => self::CONCERT_ID . '/A-1']);
     }
 
+    public function test_a_seat_picked_twice_at_once_is_asked_of_ticketing_once_and_ends_held_without_an_error(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->theOtherClickCommitsFirst(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-of-the-other-click'));
+
+        $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/orders/' . $orderId . '/seats', ['seatId' => self::CONCERT_ID . '/A-1']);
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-of-the-other-click', expiresAt: self::EXPIRES_AT));
+
+        $response->assertAccepted();
+        $response->assertJson(['requested' => self::CONCERT_ID . '/A-1']);
+        $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json')
+            ->assertJsonPath('status', 'seats_held')
+            ->assertJsonPath('heldSeats', [['seatId' => self::CONCERT_ID . '/A-1', 'seatCode' => 'A-1', 'expiresAt' => self::EXPIRES_AT]]);
+    }
+
     public function test_picking_a_seat_the_order_holds_is_a_conflict_naming_the_refusal(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
@@ -178,6 +265,7 @@ final class CheckoutPagesTest extends TestCase
             'earliestExpiresAt' => self::EXPIRES_AT,
             'lastRefusal' => null,
             'takenSeatIds' => [],
+            'soldSeatIds' => [],
             'failureReason' => null,
             'tickets' => [],
         ]);
@@ -347,9 +435,9 @@ final class CheckoutPagesTest extends TestCase
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId);
 
         $response->assertOk();
-        $response->assertSeeInOrder(['The Night Owls', 'seats_held', 'A-1']);
+        $response->assertSeeInOrder(['The Night Owls', 'Seats held', 'A-1']);
         $response->assertSee('<span class="countdown" data-expires-at="' . self::EXPIRES_AT . '"></span>', escape: false);
-        $response->assertSee('<a href="http://localhost/orders/' . $orderId . '/checkout">Pay for these seats</a>', escape: false);
+        $response->assertSee('<a class="button" href="http://localhost/orders/' . $orderId . '/checkout">Pay for these seats</a>', escape: false);
     }
 
     public function test_the_order_page_shows_the_payment_state_while_paid(): void
@@ -376,7 +464,7 @@ final class CheckoutPagesTest extends TestCase
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId);
 
-        $response->assertSeeInOrder(['tickets_issued', 'Tickets', 'T-0001', 'A-1', 'VIP', 'ENTRY-7F3A']);
+        $response->assertSeeInOrder(['Tickets issued', 'Tickets', '<li class="ticket-stub ticket-stub--vip">', 'The Night Owls', 'A-1', 'VIP', 'T-0001', '<code class="entry-code">ENTRY-7F3A</code>'], escape: false);
     }
 
     public function test_the_order_page_shows_why_the_order_failed(): void
@@ -406,7 +494,33 @@ final class CheckoutPagesTest extends TestCase
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/account');
 
-        $response->assertSee('<a href="http://localhost/orders/' . $orderId . '"><code>' . $orderId . '</code></a>', escape: false);
+        $response->assertSee('<a class="button button--secondary" href="http://localhost/orders/' . $orderId . '">View tickets', escape: false);
+        $response->assertSee('Order <code>' . $orderId . '</code>', escape: false);
+    }
+
+    private function theOtherClickCommitsFirst(RequestSeat $otherClick): void
+    {
+        config(['database.connections.other_click' => config('database.connections.pgsql')]);
+        $pending = $otherClick;
+        DB::connection()->beforeExecuting(function (string $query) use (&$pending) {
+            if ($pending === null || ! str_starts_with($query, 'update "orders"')) {
+                return;
+            }
+            $otherClick = $pending;
+            $pending = null;
+            $connection = DB::getDefaultConnection();
+            DB::setDefaultConnection('other_click');
+            try {
+                $this->commandBus()->send($otherClick);
+            } finally {
+                DB::setDefaultConnection($connection);
+            }
+        });
+    }
+
+    private function ticketingAnnounces(string $routingKey, array $event): void
+    {
+        $this->app->make(EventBus::class)->publishWithRouting($routingKey, $event, metadata: ['concertId' => $event['concertId']]);
     }
 
     private function startedOrder(): array

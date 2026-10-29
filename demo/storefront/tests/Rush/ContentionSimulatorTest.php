@@ -79,11 +79,9 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
         self::assertSame([['seatId' => self::SEAT_ID, 'expiresAt' => self::EXPIRES_AT]], $orders[4]['heldSeats']);
     }
 
-    public function test_a_contention_on_a_seat_already_held_ends_with_every_buyer_refused_with_the_reason(): void
+    public function test_a_contention_on_a_seat_ticketing_held_before_the_storefront_heard_of_it_ends_with_every_buyer_refused_with_the_reason(): void
     {
         $this->concertOnSale();
-        $adaOrderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
-        $this->seatIsHeld($adaOrderId, self::SEAT_ID);
         $this->ticketingService->holdsToRefuse = 3;
         $this->ticketingService->refusalReason = 'Seat A-3 is held by another order';
 
@@ -94,6 +92,36 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
         self::assertSame(['refused', 'refused', 'refused'], array_column($buyers, 'state'));
         self::assertSame(array_fill(0, 3, 'Seat A-3 is held by another order'), array_column($buyers, 'reason'));
         self::assertSame(['failed', 'failed', 'failed'], array_map(fn (array $buyer) => $this->order($buyer['orderId'])['status'], $buyers));
+    }
+
+    public function test_a_contention_on_a_seat_ticketing_announced_sold_is_refused_naming_the_seat_and_the_way_out(): void
+    {
+        $this->concertOnSale();
+        $this->ticketingAnnounces('tickets.seat_sold', ['concertId' => self::CONCERT_ID, 'seatId' => self::SEAT_ID, 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000b']);
+
+        try {
+            $this->contend(buyers: 3);
+            self::fail('The contention started');
+        } catch (DomainException $refusal) {
+            self::assertSame(sprintf('Seat A-3 of concert %s is already sold, so a contention for it would only show every buyer refused. Pick a free seat on the concert page; the contention panel lists only free seats.', self::CONCERT_ID), $refusal->getMessage());
+        }
+        self::assertNull($this->contentionState());
+        self::assertSame([], $this->ticketingReceives());
+    }
+
+    public function test_a_contention_on_a_seat_another_order_holds_is_refused_naming_the_seat_and_the_way_out(): void
+    {
+        $this->concertOnSale();
+        $adaOrderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->seatIsHeld($adaOrderId, self::SEAT_ID);
+
+        try {
+            $this->contend(buyers: 3);
+            self::fail('The contention started');
+        } catch (DomainException $refusal) {
+            self::assertSame(sprintf('Seat A-3 of concert %s is already held by someone, so a contention for it would only show every buyer refused. Pick a free seat on the concert page; the contention panel lists only free seats.', self::CONCERT_ID), $refusal->getMessage());
+        }
+        self::assertNull($this->contentionState());
         self::assertSame('seats_held', $this->order($adaOrderId)['status']);
     }
 

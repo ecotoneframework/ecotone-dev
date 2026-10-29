@@ -51,8 +51,15 @@ final class SeatStateProjector
     #[QueryHandler('concert.taken_seats')]
     public function takenSeats(array $query, #[Reference] QueryBus $queryBus): array
     {
-        $seatStates = $queryBus->sendWithRouting('concert.seat_states', $query);
+        return self::takenOf($queryBus->sendWithRouting('concert.seat_states', $query));
+    }
 
+    /**
+     * @param array{heldSeatIds: list<string>, soldSeatIds: list<string>} $seatStates
+     * @return list<string>
+     */
+    public static function takenOf(array $seatStates): array
+    {
         return self::sorted([...$seatStates['heldSeatIds'], ...$seatStates['soldSeatIds']]);
     }
 

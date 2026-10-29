@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Web;
 
+use App\Concert\SeatStateProjector;
 use Ecotone\Api\Gateway\QueryBus;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -73,7 +74,7 @@ final class StorefrontController
             'customer' => $customer,
             'picksSeats' => $customer !== null && $concert['status'] === 'on_sale',
             'openOrderId' => $openOrderId,
-            'takenSeatIds' => [...$seatStates['heldSeatIds'], ...$seatStates['soldSeatIds']],
+            'takenSeatIds' => SeatStateProjector::takenOf($seatStates),
             'soldSeatIds' => $seatStates['soldSeatIds'],
             'seatStateOf' => $seatStateOf,
             'seatCounts' => array_merge(['free' => 0, 'yours' => 0, 'held' => 0, 'sold' => 0], array_count_values($seatStateOf)),
@@ -87,7 +88,7 @@ final class StorefrontController
         $seatStates = $this->queryBus->sendWithRouting('concert.seat_states', ['concertId' => $concertId, 'excludingOrderId' => null]);
 
         return response()->json([
-            'takenSeatIds' => $this->queryBus->sendWithRouting('concert.taken_seats', ['concertId' => $concertId, 'excludingOrderId' => null]),
+            'takenSeatIds' => SeatStateProjector::takenOf($seatStates),
             'soldSeatIds' => $seatStates['soldSeatIds'],
         ]);
     }

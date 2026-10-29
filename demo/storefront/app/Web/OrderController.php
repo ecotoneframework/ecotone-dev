@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Web;
 
 use App\Concert\SeatCode;
+use App\Concert\SeatStateProjector;
 use App\Ordering\ReleaseSeat;
 use App\Ordering\RequestSeat;
 use App\Ordering\StartOrder;
@@ -78,6 +79,7 @@ final class OrderController
     public function state(Request $request, string $orderId): JsonResponse
     {
         $order = $this->ownedOrder($request, $orderId);
+        $seatStates = $this->queryBus->sendWithRouting('concert.seat_states', ['concertId' => $order['concertId'], 'excludingOrderId' => $order['orderId']]);
         $heldSeats = array_map(fn (array $heldSeat) => [
             'seatId' => $heldSeat['seatId'],
             'seatCode' => SeatCode::ofSeatId($heldSeat['seatId']),
@@ -91,8 +93,8 @@ final class OrderController
             'heldSeats' => $heldSeats,
             'earliestExpiresAt' => $heldSeats === [] ? null : min(array_column($heldSeats, 'expiresAt')),
             'lastRefusal' => $order['lastRefusal'],
-            'takenSeatIds' => $this->queryBus->sendWithRouting('concert.taken_seats', ['concertId' => $order['concertId'], 'excludingOrderId' => $order['orderId']]),
-            'soldSeatIds' => $this->queryBus->sendWithRouting('concert.seat_states', ['concertId' => $order['concertId'], 'excludingOrderId' => $order['orderId']])['soldSeatIds'],
+            'takenSeatIds' => SeatStateProjector::takenOf($seatStates),
+            'soldSeatIds' => $seatStates['soldSeatIds'],
             'failureReason' => $order['failureReason'],
             'tickets' => $order['tickets'],
         ]);

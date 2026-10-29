@@ -1585,14 +1585,30 @@ button.seat--yours {
         margin-top: var(--space-6);
     }
 
+    .site-header {
+        position: static;
+    }
+
+    .site-header__inner {
+        gap: var(--space-1) var(--space-3);
+        padding-block: var(--space-2);
+    }
+
     .site-nav {
-        order: 3;
-        width: 100%;
         margin-right: 0;
+        margin-left: auto;
+    }
+
+    .site-nav a {
+        padding-inline: var(--space-2);
+    }
+
+    .site-nav .icon {
+        display: none;
     }
 
     .customer-chip {
-        margin-left: auto;
+        width: 100%;
     }
 
     .hero__inner {

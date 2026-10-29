@@ -96,6 +96,20 @@ final class MessageFlowProjectionTest extends TestCase
         }
     }
 
+    public function test_mermaid_draws_the_projection_as_the_subgraph_around_its_event_handlers_instead_of_an_edge_into_it(): void
+    {
+        $projection = new #[Projection('seat.map'), FromStream('seats')] class () {
+            #[EventHandler('seat.released')]
+            public function seatReleased(array $event): void
+            {
+            }
+        };
+        $mermaid = EcotoneLite::bootstrapFlowTesting([$projection::class], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph()->toMermaid();
+
+        self::assertSame(1, preg_match('/^    subgraph (n\d+) \["Projection: seat\.map"\]\n        n\d+.*::seatReleased"\]\n    end$/m', $mermaid, $match));
+        self::assertDoesNotMatchRegularExpression('/^    \w+ \S+ ' . $match[1] . '$/m', $mermaid);
+    }
+
     public function test_projection_from_aggregate_stream_keeps_event_handler_ownership(): void
     {
         $projection = new #[Projection('aggregate.view'), FromAggregateStream(ProjectionAggregateForFlow::class)] class () {

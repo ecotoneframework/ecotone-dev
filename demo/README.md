@@ -49,6 +49,30 @@ would otherwise fail a fresh database with "Typed property ... must not be acces
 `tickets.*` reply queued for the storefront before the change fails there with "Undefined array key" until the
 volumes are dropped.
 
+## What it looks like
+
+The storefront's hall during a rush: free seats, seats held by someone and sold seats greyed out, two seats held by
+you, and the order panel with the countdown and the total.
+
+![The storefront's concert hall during a rush](docs/screenshots/storefront-concert-hall.png)
+
+A contention of five buyers for one free seat: the Dynamic Consistency Boundary lets one hold stand and refuses the
+other four, each with its reason.
+
+![A contention of five buyers for one seat](docs/screenshots/storefront-contention.png)
+
+A concert in ticketing's back office: seats sold, held and free, revenue, sales by tier, and the actions on the
+concert.
+
+![A concert in ticketing's back office](docs/screenshots/ticketing-concert.png)
+
+Pulse's dead letters after a rush, grouped by exception, `EmailBounced` and `PaymentProviderUnavailable`, each with
+Replay and Delete.
+
+![Pulse's dead letters after a rush](docs/screenshots/pulse-dead-letters.png)
+
+The rest are in [`docs/screenshots`](docs/screenshots).
+
 ## Open it
 
 | What | URL |

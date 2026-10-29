@@ -83,7 +83,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
 
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Marcus', 'alert'));
 
@@ -108,7 +108,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
 
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('1', 'Marcus', 'alert'));
         $ecotone->sendCommand(new RegisterTicket('2', 'Andrew', 'alert'));
@@ -137,7 +137,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $projection = $this->createInProgressTicketListProjection();
 
         $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         // Register tickets for different partitions (aggregate IDs)
         $ecotone->sendCommand(new RegisterTicket('ticket-1', 'Johnny', 'alert'));

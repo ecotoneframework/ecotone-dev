@@ -41,6 +41,7 @@ $ecotoneLite = EcotoneLite::bootstrap(
     pathToRootCatalog: __DIR__,
 );
 $ecotoneLite->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
+$ecotoneLite->runConsoleCommand('ecotone:projection:init', ['all' => true]);
 
 $commandBus = $ecotoneLite->getCommandBus();
 $queryBus = $ecotoneLite->getQueryBus();

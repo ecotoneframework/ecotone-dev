@@ -8,6 +8,7 @@ use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Dbal\Test\StoredFlowVerifier;
@@ -46,7 +47,9 @@ final class FlowTrackingScenarioConformanceTest extends DbalMessagingTestCase
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
-        )->setupDatabaseTables();
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
+        )->setupDatabaseTables(initializeProjections: false);
+        $recorder->clear();
         $tracing = $ecotone->getGateway(TracingGateway::class);
 
         foreach (array_keys($scenario->stages) as $index) {

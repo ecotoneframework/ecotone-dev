@@ -56,7 +56,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
 
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
         $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
@@ -78,7 +78,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
 
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
         $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
@@ -109,7 +109,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
 
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('1', 'Marcus', 'alert'));
         $ecotone->sendCommand(new RegisterTicket('2', 'Andrew', 'alert'));
@@ -147,7 +147,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
 
@@ -173,7 +173,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
 
@@ -193,7 +193,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
 
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('1', 'Marcus', 'alert'));
         $ecotone->sendCommand(new RegisterTicket('2', 'Andrew', 'alert'));

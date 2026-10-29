@@ -56,7 +56,7 @@ final class ProjectionWithStateTest extends ProjectingTestCase
         $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
 
         $ecotone->initializeProjection($projection::NAME);
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
 
@@ -83,7 +83,7 @@ final class ProjectionWithStateTest extends ProjectingTestCase
         $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
 
         $ecotone->initializeProjection($projection::NAME);
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'))
             ->sendCommand(new RegisterTicket('124', 'Johnny', 'alert'))
@@ -109,7 +109,7 @@ final class ProjectionWithStateTest extends ProjectingTestCase
         $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
 
         $ecotone->initializeProjection($projection::NAME);
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         // Register and close tickets for different partitions (aggregate IDs)
         $ecotone->sendCommand(new RegisterTicket('ticket-1', 'Johnny', 'alert'));
@@ -129,7 +129,7 @@ final class ProjectionWithStateTest extends ProjectingTestCase
         $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
 
         $ecotone->initializeProjection($projection::NAME);
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'))
             ->sendCommand(new CloseTicket('123'));

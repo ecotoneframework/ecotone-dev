@@ -8,6 +8,7 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Projection;
@@ -56,6 +57,7 @@ final class ProjectionStateTableWithoutVersionTest extends ProjectingTestCase
     {
         $ecotone = $this->bootstrap();
         self::getConnection()->executeStatement('ALTER TABLE ecotone_projection_state ADD COLUMN version INTEGER NOT NULL DEFAULT 0');
+        $ecotone->initializeProjection('state_table_without_version');
         $ecotone->sendCommand(new RegisterTicket('ticket-1', 'Anna', 'alert'));
 
         $ecotone->sendCommand(new RegisterTicket('ticket-2', 'Ben', 'alert'));
@@ -85,7 +87,8 @@ final class ProjectionStateTableWithoutVersionTest extends ProjectingTestCase
             classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [$projection, new TicketEventConverter(), self::getConnectionFactory()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
-        );
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)->withDefaultInstantRetries(false),
+        )->setupDatabaseTables(initializeProjections: false);
     }
 
     private function createTableAsAnEarlier2BetaDid(): void

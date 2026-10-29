@@ -39,6 +39,29 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', 'Channel<br/>tickets.hold.result', '-.->'));
         self::assertTrue($diagram->hasEdge('storefront', 'Channel<br/>tickets.hold.result', '', 'storefront', '::whenHoldAnswered', '-->'));
         self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'replies', 'ticketing', 'Distributed Bus', '-->'));
+        self::assertTrue($diagram->hasEdge('storefront', '::releaseSeat', 'distributed message', 'ticketing', 'tickets.release', '==>'));
+        self::assertFalse($diagram->hasEdge('ticketing', '::release', 'reply', 'storefront', ''));
+        self::assertFalse($diagram->hasEdge('ticketing', '::release', 'replies', 'ticketing', ''));
+    }
+
+    public function test_a_distributed_internal_handler_that_answers_replies_on_the_sender_reply_channel(): void
+    {
+        $this->configurePulseWithServices('storefront', 'ticketing');
+        $client = $this->pulseWebClient();
+        $ticketing = new class () {
+            #[Distributed]
+            #[InternalHandler('tickets.hold', endpointId: 'tickets.hold.handler')]
+            public function hold(array $payload): array
+            {
+                return ['outcome' => 'held'];
+            }
+        };
+        $this->pulseHavingHeardFrom($client, ['storefront' => $this->storefrontSendingThroughAHelper(), 'ticketing' => $this->distributedService('ticketing', $ticketing, DistributedServiceMap::initialize())]);
+
+        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow'));
+
+        self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', 'Channel<br/>tickets.hold.result', '-.->'));
+        self::assertFalse($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', '::holdRequestedSeat'));
     }
 
     public function test_following_a_distributed_command_starts_at_the_sender_and_comes_back_through_the_reply_handler(): void
@@ -53,6 +76,8 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         self::assertContains('Channel<br/>tickets.hold.result', $labels['storefront']);
         self::assertContains('InternalHandler<br/>class@anonymous::whenHoldAnswered', $labels['storefront']);
         self::assertContains('CommandHandler<br/>class@anonymous::hold', $labels['ticketing']);
+        self::assertNotContains('EventHandler<br/>class@anonymous::releaseSeat', $labels['storefront']);
+        self::assertNotContains('CommandHandler<br/>class@anonymous::release', $labels['ticketing']);
     }
 
     public function test_a_report_without_the_reply_channel_draws_the_reply_back_to_the_sending_handler(): void
@@ -71,6 +96,7 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
 
         self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', 'tickets.hold', '==>'));
         self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', '::holdRequestedSeat', '-.->'));
+        self::assertFalse($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', 'Channel<br/>tickets.hold.result'));
     }
 
     public function test_a_report_carrying_an_edge_kind_this_pulse_does_not_know_keeps_the_rest_of_that_service_graph(): void
@@ -155,6 +181,12 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
                 $this->send($distributedBus, 'tickets.hold', ['seatId' => $event['seatId']], replyRoutingKey: 'tickets.hold.result');
             }
 
+            #[EventHandler('seat.released', endpointId: 'release_seat')]
+            public function releaseSeat(array $event, #[Reference] DistributedBus $distributedBus): void
+            {
+                $this->send($distributedBus, 'tickets.release', ['seatId' => $event['seatId']], replyRoutingKey: null);
+            }
+
             #[InternalHandler('tickets.hold.result', endpointId: 'tickets.hold.result.handler')]
             public function whenHoldAnswered(array $result): void
             {
@@ -183,6 +215,12 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
             public function hold(array $payload): array
             {
                 return ['outcome' => 'held'];
+            }
+
+            #[Distributed]
+            #[CommandHandler('tickets.release', endpointId: 'tickets.release.handler')]
+            public function release(array $payload): void
+            {
             }
         };
 

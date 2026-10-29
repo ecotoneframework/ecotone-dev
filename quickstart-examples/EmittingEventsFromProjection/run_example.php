@@ -21,6 +21,7 @@ $messagingSystem = EcotoneLite::bootstrap(
     namespaces: ['App'],
 );
 $messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
+$messagingSystem->runConsoleCommand('ecotone:projection:init', ['all' => true]);
 $commandBus = $messagingSystem->getCommandBus();
 $queryBus = $messagingSystem->getQueryBus();
 

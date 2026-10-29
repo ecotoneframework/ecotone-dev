@@ -12,6 +12,7 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Lite\Test\DatabaseTablesSetUp;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Projecting\ProjectionOperations;
 
 use function implode;
 
@@ -25,12 +26,28 @@ final class DbalDatabaseTablesSetUp implements DatabaseTablesSetUp
     /**
      * @param array<string, ConnectionFactory|null> $connectionFactories
      * @param array<string, DbalTableManager[]> $tableManagersByConnection
+     * @param array<string, string[]> $tenantsByHeader
      */
     public function __construct(
         private array $connectionFactories,
         private array $tableManagersByConnection,
         private EcotoneClockInterface $clock,
+        private ProjectionOperations $projectionOperations,
+        private array $tenantsByHeader,
+        private bool $hasConnectionWithoutTenant,
     ) {
+    }
+
+    public function initializeProjections(): void
+    {
+        if ($this->hasConnectionWithoutTenant) {
+            $this->projectionOperations->initializeAll();
+        }
+        foreach ($this->tenantsByHeader as $tenantHeaderName => $tenants) {
+            foreach ($tenants as $tenant) {
+                $this->projectionOperations->initializeAll([$tenantHeaderName => $tenant]);
+            }
+        }
     }
 
     public function setUpEveryTable(): void

@@ -4,10 +4,8 @@ namespace Ecotone\Dbal\DbalTransaction;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -26,6 +24,8 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
+use Ecotone\Modelling\Config\DatabaseTransaction\CommandsWithoutDatabaseTransaction;
+use Ecotone\Modelling\Config\DatabaseTransaction\DatabaseTransactionRegistration;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSectionIsolationRegistration;
 use Ecotone\Projecting\Config\ProjectingConsoleCommands;
@@ -36,7 +36,7 @@ use Ecotone\Projecting\Config\ProjectingConsoleCommands;
  */
 final class DbalTransactionModule implements AnnotationModule
 {
-    private function __construct(private AnnotationFinder $annotationFinder)
+    private function __construct()
     {
     }
 
@@ -45,7 +45,7 @@ final class DbalTransactionModule implements AnnotationModule
      */
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self($annotationRegistrationService);
+        return new self();
     }
 
     /**
@@ -71,10 +71,6 @@ final class DbalTransactionModule implements AnnotationModule
         }
         $connectionFactories = $dbalConfiguration->defaultConnectionReferenceNames ?: [DbalConnectionReference::DEFAULT];
 
-        [$commandRoutingKeysWithoutTransaction, $commandClassesWithoutTransaction] = $dbalConfiguration->transactionOnCommandBus
-            ? $this->findCommandHandlersWithoutTransaction($interfaceToCallRegistry)
-            : [[], []];
-
         $messagingConfiguration->registerServiceDefinition(PulseSavepointIsolation::class, [
             array_map(fn (string $id) => new Reference($id), $connectionFactories),
             new Reference(EcotoneClockInterface::class),
@@ -87,8 +83,7 @@ final class DbalTransactionModule implements AnnotationModule
             new Reference(LoggingGateway::class),
             new Reference(TransactionStatusTracker::class),
             new Reference(EcotoneClockInterface::class),
-            $commandRoutingKeysWithoutTransaction,
-            $commandClassesWithoutTransaction,
+            new Reference(CommandsWithoutDatabaseTransaction::class),
         ]);
 
         $messagingConfiguration
@@ -103,38 +98,6 @@ final class DbalTransactionModule implements AnnotationModule
     }
 
     /**
-     * @return array{0: string[], 1: string[]}
-     */
-    private function findCommandHandlersWithoutTransaction(InterfaceToCallRegistry $interfaceToCallRegistry): array
-    {
-        $routingKeys = [];
-        $commandClasses = [];
-        foreach ($this->annotationFinder->findAnnotatedMethods(WithoutDatabaseTransaction::class) as $annotatedMethod) {
-            if (! $annotatedMethod->hasMethodAnnotation(CommandHandler::class)) {
-                continue;
-            }
-
-            foreach ($annotatedMethod->getMethodAnnotationsWithType(CommandHandler::class) as $commandHandler) {
-                if ($commandHandler->getInputChannelName() !== '') {
-                    $routingKeys[] = $commandHandler->getInputChannelName();
-                    continue;
-                }
-
-                $interfaceToCall = $interfaceToCallRegistry->getFor($annotatedMethod->getClassName(), $annotatedMethod->getMethodName());
-                if ($interfaceToCall->hasNoParameters()) {
-                    continue;
-                }
-
-                foreach ($interfaceToCall->getFirstParameter()->getTypeDescriptor()->getUnionTypes() as $unionType) {
-                    $commandClasses[] = (string) $unionType;
-                }
-            }
-        }
-
-        return [$routingKeys, $commandClasses];
-    }
-
-    /**
      * @inheritDoc
      */
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
@@ -142,7 +105,15 @@ final class DbalTransactionModule implements AnnotationModule
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
         $opensTransactions = $dbalConfiguration->transactionOnAsynchronousEndpoints || $dbalConfiguration->transactionOnCommandBus || $dbalConfiguration->transactionOnConsoleCommands;
 
-        return $opensTransactions && ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== [] ? [new PulseSectionIsolationRegistration(PulseSavepointIsolation::class)] : [];
+        $databaseTransactions = new DatabaseTransactionRegistration(
+            onCommandBus: $dbalConfiguration->transactionOnCommandBus,
+            onAsynchronousEndpoints: $dbalConfiguration->transactionOnAsynchronousEndpoints,
+            asynchronousEndpointsWithoutTransaction: $dbalConfiguration->disableTransactionsOnAsynchronousEndpointNames,
+        );
+
+        return $opensTransactions && ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []
+            ? [$databaseTransactions, new PulseSectionIsolationRegistration(PulseSavepointIsolation::class)]
+            : [$databaseTransactions];
     }
 
     public function getModulePackageName(): string

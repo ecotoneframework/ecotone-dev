@@ -19,6 +19,7 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
@@ -144,6 +145,7 @@ final class PulseDeadLettersFromFailuresTest extends DbalMessagingTestCase
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
         $this->orderService->setupDatabaseTables();
         $this->orderService->getGateway(DeadLetterGateway::class)->deleteAll();
@@ -157,6 +159,7 @@ final class PulseDeadLettersFromFailuresTest extends DbalMessagingTestCase
             ],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
     }
 

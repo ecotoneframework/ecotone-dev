@@ -19,6 +19,7 @@ $messagingSystem = EcotoneLite::bootstrap(
     namespaces: ['App'],
 );
 $messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
+$messagingSystem->runConsoleCommand('ecotone:projection:init', ['all' => true]);
 
 $productId = random_int(1, PHP_INT_MAX);
 $messagingSystem->getCommandBus()->send(new RegisterProduct($productId, 100));

@@ -72,7 +72,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
-            ->deleteProjection($projection::NAME)
+            ->deleteProjection($projection::NAME)->initializeProjection($projection::NAME)
             ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
             ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
             ->sendQueryWithRouting('getTicketsCount');
@@ -150,7 +150,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         // Delete any existing data
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
-            ->deleteProjection($projection::NAME);
+            ->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
+        $projection->initCallCount = 0;
 
         // Send events - should auto-initialize and process
         $ticketId = Uuid::v7()->toRfc4122();
@@ -160,7 +161,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         self::assertSame(1, $ticketsCount, 'Projection should process events in auto mode');
         self::assertSame('assigned', $ecotone->sendQueryWithRouting('getTicketStatus', $ticketId));
-        self::assertSame(1, $projection->initCallCount, 'Init should be called once in auto mode');
+        self::assertSame(0, $projection->initCallCount);
     }
 
     public function test_skip_initialization_mode_skips_events(): void
@@ -187,14 +188,15 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         // Delete any existing data
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
-            ->deleteProjection($projection::NAME);
+            ->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
+        $projection->initCallCount = 0;
 
         // Send events - should skip processing
         $ticketId = Uuid::v7()->toRfc4122();
         $ecotone->sendCommand(new CreateTicketCommand($ticketId))
             ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId]);
 
-        self::assertSame(0, $projection->initCallCount, 'Init should not be called in skip mode');
+        self::assertSame(0, $projection->initCallCount);
     }
 
     public function test_force_execution_bypasses_skip_mode(): void
@@ -221,7 +223,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         // Delete any existing data
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
-            ->deleteProjection($projection::NAME);
+            ->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
+        $projection->initCallCount = 0;
 
         // Send events first (should be skipped)
         $ticketId = Uuid::v7()->toRfc4122();
@@ -234,7 +237,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         self::assertSame(1, $ticketsCount, 'Projection should process events when forced');
         self::assertSame('assigned', $ecotone->sendQueryWithRouting('getTicketStatus', $ticketId));
-        self::assertSame(1, $projection->initCallCount, 'Init should be called when forced');
+        self::assertSame(0, $projection->initCallCount);
     }
 
     public function test_concurrent_initialization_protection(): void
@@ -261,7 +264,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         // Delete any existing data
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
-            ->deleteProjection($projection::NAME);
+            ->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
+        $projection->initCallCount = 0;
 
         // Send multiple events concurrently - should only initialize once
         $ticketId1 = Uuid::v7()->toRfc4122();
@@ -277,7 +281,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(3, $ticketsCount, 'All events should be processed');
-        self::assertSame(1, $projection->initCallCount, 'Init should only be called once due to concurrency protection');
+        self::assertSame(0, $projection->initCallCount);
     }
 
     public function test_projection_state_persistence_across_restarts(): void
@@ -304,7 +308,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         $ecotone1->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
-            ->deleteProjection($projection::NAME);
+            ->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
+        $projection->initCallCount = 0;
 
         $ticketId1 = Uuid::v7()->toRfc4122();
         $ticketsCount1 = $ecotone1->sendCommand(new CreateTicketCommand($ticketId1))
@@ -312,7 +317,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(1, $ticketsCount1, 'First run should process events');
-        self::assertSame(1, $projection->initCallCount, 'Init should be called on first run');
+        self::assertSame(0, $projection->initCallCount);
 
         // Reset projection state for second run
         $projection->initCallCount = 0;
@@ -332,7 +337,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         // Should process new events but not re-initialize
         self::assertSame(2, $ticketsCount2, 'Second run should process new events');
-        self::assertSame(0, $projection->initCallCount, 'Init should not be called on second run');
+        self::assertSame(0, $projection->initCallCount);
     }
 
     public function test_partitioned_projection_with_auto_mode(): void
@@ -359,7 +364,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         // Delete any existing data
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
-            ->deleteProjection($projection::NAME);
+            ->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
+        $projection->initCallCount = 0;
 
         // Send events for different partitions
         $ticketId1 = Uuid::v7()->toRfc4122();
@@ -372,7 +378,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(2, $ticketsCount, 'Partitioned projection should process all events');
-        self::assertSame(2, $projection->initCallCount, 'Init should be called once for each partition');
+        self::assertSame(0, $projection->initCallCount);
     }
 
     public function test_it_handles_batches(): void
@@ -397,7 +403,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         // Delete any existing data
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
-            ->deleteProjection($projection::NAME);
+            ->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         // Send multiple events
         for ($i = 1; $i <= 5; $i++) {
@@ -443,7 +449,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
-            ->deleteProjection($projection::NAME);
+            ->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         for ($i = 1; $i <= 5; $i++) {
             $ecotone->sendCommand(new CreateTicketCommand(Uuid::v7()->toRfc4122()));
@@ -477,7 +483,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         )
             ->deleteEventStream(Basket::BASKET_STREAM)->setupDatabaseTables()
-            ->deleteProjection($basketProjection::NAME)
+            ->deleteProjection($basketProjection::NAME)->initializeProjection($basketProjection::NAME)
             ->sendCommand(new CreateBasket(Uuid::v7()->toRfc4122()))
             ->sendCommand(new CreateBasket(Uuid::v7()->toRfc4122()));
 
@@ -506,12 +512,13 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
-            ->deleteProjection($projection::NAME);
+            ->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
+        $projection->initCallCount = 0;
 
         $ecotone->triggerProjection($projection::NAME);
         $ecotone->triggerProjection($projection::NAME);
 
-        self::assertSame(1, $projection->initCallCount, 'Init should be called once');
+        self::assertSame(0, $projection->initCallCount);
     }
 
     public function test_projecting_with_already_connected_dbal_connection_factory(): void
@@ -532,7 +539,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
-            ->deleteProjection($projection::NAME)
+            ->deleteProjection($projection::NAME)->initializeProjection($projection::NAME)
             ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
             ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
             ->sendQueryWithRouting('getTicketsCount');
@@ -567,7 +574,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
-            ->deleteProjection($projection::NAME);
+            ->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
+        $projection->initCallCount = 0;
 
         $ticketId1 = Uuid::v7()->toRfc4122();
         $ticketId2 = Uuid::v7()->toRfc4122();
@@ -579,7 +587,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(2, $ticketsCount);
-        self::assertSame(2, $projection->initCallCount);
+        self::assertSame(0, $projection->initCallCount);
     }
 
     public function test_object_manager_interceptor_flushes_and_clears_on_each_batch(): void
@@ -626,7 +634,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
-            ->deleteProjection($projection::NAME);
+            ->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         for ($i = 1; $i <= 5; $i++) {
             $ecotone->sendCommand(new CreateTicketCommand(Uuid::v7()->toRfc4122()));

@@ -36,6 +36,7 @@ $ecotoneLite = EcotoneLite::bootstrap(
     namespaces: ['App'],
 );
 $ecotoneLite->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
+$ecotoneLite->runConsoleCommand('ecotone:projection:init', ['all' => true]);
 $commandBus = $ecotoneLite->getCommandBus();
 $queryBus = $ecotoneLite->getQueryBus();
 

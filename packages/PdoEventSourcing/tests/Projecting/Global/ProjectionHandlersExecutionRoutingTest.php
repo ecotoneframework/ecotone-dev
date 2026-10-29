@@ -25,6 +25,7 @@ namespace Test\Ecotone\EventSourcing\Projecting\Global;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -52,6 +53,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $ecotone->sendCommandWithRouting('create', '123');
@@ -75,6 +77,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
     }
 
@@ -87,6 +90,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $ecotone->sendCommandWithRouting('create', '123');
@@ -123,6 +127,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $ecotone->sendCommandWithRouting('create', '123');

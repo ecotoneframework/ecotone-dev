@@ -25,6 +25,7 @@ namespace Test\Ecotone\EventSourcing\Projecting;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\EventSourcing\Projecting\App\ConsoleProcessTrait;
+use Test\Ecotone\EventSourcing\Projecting\App\Ordering\OrderListProjection;
 
 /**
  * @internal
@@ -43,6 +44,7 @@ class ProjectingConcurrencyTest extends TestCase
 
         self::$ecotone = self::bootEcotone();
         self::$ecotone->getServiceFromContainer('Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager')->initializeAll();
+        self::$ecotone->runConsoleCommand('ecotone:projection:init', ['name' => OrderListProjection::PROJECTION_NAME]);
         self::$ecotone->getServiceFromContainer('Ecotone\Api\Dbal\DbalConnectionFactory')->establishConnection()->executeStatement(<<<SQL
             CREATE TABLE IF NOT EXISTS order_list_projection (
                 order_id VARCHAR(255) PRIMARY KEY,

@@ -20,6 +20,7 @@ use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
@@ -570,7 +571,7 @@ final class FlowTrackingTest extends TestCase
                 }
             }
         };
-        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]);
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true)]);
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 

@@ -7,10 +7,6 @@ namespace Monorepo\CrossModuleTests\Tests;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
-use Ecotone\Api\Dbal\DbalConnectionFactory;
-use Ecotone\EventSourcing\Database\EventStreamTableManager;
-use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
-use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
@@ -37,25 +33,18 @@ final class EventSourcingStackTest extends FullAppTestCase
     }
 
     /**
-     * Symfony, Laravel and Lite all point at the same DATABASE_DSN, so the tables this scenario
-     * needs only have to be provisioned once here rather than in each executeFor*() implementation.
+     * Symfony, Laravel and Lite all point at the same DATABASE_DSN, so the tables and the projection this
+     * scenario needs only have to be set up once here rather than in each executeFor*() implementation.
      */
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
 
-        $connection = (new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'))
-            ->createContext()
-            ->getDbalConnection();
-
-        foreach ([
-            new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true),
-            new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true),
-        ] as $tableManager) {
-            if (! $tableManager->isInitialized($connection)) {
-                $tableManager->createTable($connection);
-            }
-        }
+        putenv(sprintf('APP_ENABLED_MODULE_PACKAGE_NAMES=%s', json_encode(self::enabledModulePackageNames(), JSON_THROW_ON_ERROR)));
+        $bootstrap = require self::getProjectDir() . '/Lite/app.php';
+        $messagingSystem = $bootstrap(false);
+        $messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
+        $messagingSystem->runConsoleCommand('ecotone:projection:init', ['all' => true]);
     }
 
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void

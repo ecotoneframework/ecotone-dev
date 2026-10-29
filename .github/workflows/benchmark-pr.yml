@@ -159,6 +159,8 @@ jobs:
       # their tables beforehand. The baseline step used to leave them behind as a side effect of
       # 1.x lazy creation, but it is skipped on a cache hit, which made the job pass or fail on
       # whatever the previous run happened to leave in the database.
+      # The script drops the tables first, so a table the base branch created in an older shape
+      # is recreated in the PR's shape, and it initializes the projections the benchmarks feed.
       - name: Set up benchmark database tables
         run: php Monorepo/Benchmark/setup-database.php
 

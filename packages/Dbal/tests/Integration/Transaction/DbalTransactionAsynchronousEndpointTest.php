@@ -14,6 +14,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Modelling\AggregateNotFoundException;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
@@ -59,6 +60,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             addInMemoryStateStoredRepository: false,
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
@@ -110,6 +112,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             addInMemoryStateStoredRepository: false,
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         // Send a command to ensure the deduplication table is created
@@ -153,6 +156,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             addInMemoryStateStoredRepository: false,
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         // Send a command to ensure the deduplication table is created
@@ -176,6 +180,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             addInMemoryStateStoredRepository: false,
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $ecotoneLite->sendCommandWithRouting('singeInternalCommand', ['personId' => 100, 'personName' => 'Johny', 'exception' => true]);
@@ -213,6 +218,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
             addInMemoryStateStoredRepository: false,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
@@ -266,6 +272,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
             addInMemoryStateStoredRepository: false,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
@@ -323,6 +330,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
             addInMemoryStateStoredRepository: false,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
@@ -399,6 +407,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             addInMemoryStateStoredRepository: false,
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [
@@ -451,6 +460,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $ecotoneLite->sendCommandWithRouting('dispatch.sql.command', 'test');
@@ -489,6 +499,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $ecotoneLite->sendCommandWithRouting('dispatch.sql.command', 'test');

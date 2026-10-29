@@ -21,6 +21,7 @@ use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -181,6 +182,7 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
             cacheDirectoryPath: sys_get_temp_dir().'/ecotone-test-'.uniqid(),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
         $ecotone->setupDatabaseTables();
 

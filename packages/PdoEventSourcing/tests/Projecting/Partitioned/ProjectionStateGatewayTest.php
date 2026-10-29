@@ -58,7 +58,7 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
         );
 
         $ecotone->initializeProjection($projection::NAME);
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('ticket-1', 'Johnny', 'alert'));
         $ecotone->sendCommand(new RegisterTicket('ticket-2', 'Marcus', 'info'));
@@ -124,7 +124,7 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
         );
 
         $ecotone->initializeProjection($projection::NAME);
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('ticket-1', 'Johnny', 'alert'));
         $ecotone->sendCommand(new CloseTicket('ticket-1'));

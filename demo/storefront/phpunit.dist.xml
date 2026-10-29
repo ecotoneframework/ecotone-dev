@@ -49,8 +49,8 @@
         <server name="DB_USERNAME" value="ecotone"/>
         <env name="DB_PASSWORD" value="secret"/>
         <server name="DB_PASSWORD" value="secret"/>
-        <env name="DATABASE_DSN" value="pgsql://ecotone:secret@postgres:5432/storefront_test" force="true"/>
-        <server name="DATABASE_DSN" value="pgsql://ecotone:secret@postgres:5432/storefront_test" force="true"/>
+        <env name="DATABASE_DSN" value="pgsql://ecotone:secret@postgres:5432/storefront_test"/>
+        <server name="DATABASE_DSN" value="pgsql://ecotone:secret@postgres:5432/storefront_test"/>
         <env name="CACHE_STORE" value="array" force="true"/>
         <server name="CACHE_STORE" value="array" force="true"/>
         <env name="DB_CACHE_CONNECTION" value="" force="true"/>

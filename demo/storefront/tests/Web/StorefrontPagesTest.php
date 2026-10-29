@@ -196,7 +196,7 @@ final class StorefrontPagesTest extends TestCase
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/account');
 
         $response->assertOk();
-        $response->assertSeeInOrder(['The Night Owls', 'Seats held', 'A-1', $heldOrderId]);
+        $response->assertSeeInOrder(['The Night Owls', 'Seats held', '1 Dec 2026, 20:00', 'A-1', 'Total <strong>EUR 120.00</strong>', '<a class="button button--secondary" href="http://localhost/orders/' . $heldOrderId . '">View tickets', $heldOrderId], escape: false);
         $response->assertDontSee($otherOrderId);
     }
 

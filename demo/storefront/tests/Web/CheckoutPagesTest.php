@@ -494,7 +494,8 @@ final class CheckoutPagesTest extends TestCase
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/account');
 
-        $response->assertSee('<a href="http://localhost/orders/' . $orderId . '"><code>' . $orderId . '</code></a>', escape: false);
+        $response->assertSee('<a class="button button--secondary" href="http://localhost/orders/' . $orderId . '">View tickets', escape: false);
+        $response->assertSee('Order <code>' . $orderId . '</code>', escape: false);
     }
 
     private function theOtherClickCommitsFirst(RequestSeat $otherClick): void

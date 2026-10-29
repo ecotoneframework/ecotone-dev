@@ -20,8 +20,19 @@
                             <strong>{{ $order['artist'] }}</strong>
                             <span class="badge badge--{{ $order['status'] }}"><span class="status">{{ \App\Web\Labels::orderStatus($order['status']) }}</span></span>
                         </div>
-                        <span class="meta"><span class="meta-item"><x-icon name="seats"/>{{ $order['seatIds'] === [] ? 'No seats' : implode(', ', array_map(\App\Concert\SeatCode::ofSeatId(...), $order['seatIds'])) }}</span></span>
-                        <a href="{{ url('/orders/' . $order['orderId']) }}"><code>{{ $order['orderId'] }}</code></a>
+                        <span class="meta">
+                            @if ($order['startsAt'] !== null)
+                                <span class="meta-item"><x-icon name="calendar"/>{{ \App\Web\Labels::startsAt($order['startsAt']) }}</span>
+                            @endif
+                            <span class="meta-item"><x-icon name="seats"/>{{ $order['seatIds'] === [] ? 'No seats' : implode(', ', array_map(\App\Concert\SeatCode::ofSeatId(...), $order['seatIds'])) }}</span>
+                        </span>
+                        @if ($order['total'] !== null)
+                            <p class="order-card__total">Total <strong>{{ $order['total'] }}</strong></p>
+                        @endif
+                        <div class="order-card__foot">
+                            <a class="button button--secondary" href="{{ url('/orders/' . $order['orderId']) }}">View tickets <x-icon name="arrow"/></a>
+                            <span class="muted">Order <code>{{ $order['orderId'] }}</code></span>
+                        </div>
                     </div>
                 </li>
             @endforeach

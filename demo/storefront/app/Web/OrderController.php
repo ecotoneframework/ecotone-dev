@@ -116,18 +116,11 @@ final class OrderController
     {
         $order = $this->ownedOrder($request, $orderId);
         $concert = $this->queryBus->sendWithRouting('concert.detail', $order['concertId']);
-        $tiers = [];
-        foreach ($concert['sections'] as $section) {
-            foreach ($section['rows'] as $row) {
-                foreach ($row['seats'] as $seat) {
-                    $tiers[$seat['seatId']] = $seat['tier'];
-                }
-            }
-        }
+        $tiers = SeatPrices::tiersOf($concert);
         $lines = array_map(fn (array $heldSeat) => [
             'seatCode' => SeatCode::ofSeatId($heldSeat['seatId']),
             'tier' => $tiers[$heldSeat['seatId']],
-            'priceCents' => $tiers[$heldSeat['seatId']] === 'vip' ? $concert['vipPriceCents'] : $concert['standardPriceCents'],
+            'priceCents' => SeatPrices::priceCentsOf($concert, $tiers[$heldSeat['seatId']]),
             'expiresAt' => $heldSeat['expiresAt'],
         ], $order['heldSeats']);
 

@@ -100,13 +100,19 @@ final class StorefrontController
             return redirect('/whoami');
         }
 
-        $concerts = array_column($this->queryBus->sendWithRouting('concerts.list'), null, 'concertId');
+        $concerts = [];
+        $orders = [];
+        foreach ($this->queryBus->sendWithRouting('customer.orders', $customer['customerId']) as $order) {
+            $concert = $concerts[$order['concertId']] ??= $this->queryBus->sendWithRouting('concert.detail', $order['concertId']);
+            $tiers = $concert === null ? [] : SeatPrices::tiersOf($concert);
+            $orders[] = [
+                ...$order,
+                'artist' => $concert['artist'] ?? $order['concertId'],
+                'startsAt' => $concert['startsAt'] ?? null,
+                'total' => $concert === null ? null : Labels::price($concert['currency'], array_sum(array_map(fn (string $seatId) => SeatPrices::priceCentsOf($concert, $tiers[$seatId]), $order['seatIds']))),
+            ];
+        }
 
-        return view('account', [
-            'orders' => array_map(
-                fn (array $order) => [...$order, 'artist' => $concerts[$order['concertId']]['artist'] ?? $order['concertId']],
-                $this->queryBus->sendWithRouting('customer.orders', $customer['customerId']),
-            ),
-        ]);
+        return view('account', ['orders' => $orders]);
     }
 }

@@ -2547,8 +2547,10 @@ own. One that registers it under the literal pre-release string has to use the c
   Redis connection Ecotone opened was cached for the life of the PHP process, so a test suite booting an application
   per test kept one connection open per bootstrap until the database ran out of `max_connections`, and
   `CachedConnectionFactory::clearInstances()` was the way to reset it. **Now:** the connections belong to the booted
-  application: its channels, transactions and stores still share one connection, and it is closed once the
-  application is garbage-collected. **How to adapt:** remove calls to `CachedConnectionFactory::clearInstances()` and
+  application: its channels, transactions and stores still share one connection, and Ecotone no longer keeps it
+  open. Once the application is discarded, the connection is closed unless something else still holds its connection
+  factory, such as a `DbalConnectionFactory` kept in a test property or a framework's database manager. **How to
+  adapt:** remove calls to `CachedConnectionFactory::clearInstances()` and
   `CachedConnectionFactory::createFor()`, and any workaround that terminated leftover backends between tests.
 - **An unknown case name for a pure enum is reported as a `ValueError`.** Converting a scalar to a non-backed enum
   (a header `'PENDING'` into a `#[Header] Status $status` parameter, say) failed with a `MethodInvocationException`

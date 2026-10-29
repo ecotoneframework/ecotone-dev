@@ -107,20 +107,85 @@ final class HandlerSourceScanner
                     continue;
                 }
                 $helper = $this->scanMethods([$helperKey => [$className, $call['method']]], $path, $files, $methodFacts)[$helperKey];
+                $bindings = $this->bindingsOf(new ReflectionMethod($className, $call['method']), $call['arguments']);
                 foreach ($helper->instantiations as $instantiation) {
                     if ($instantiation['enclosingCall'] === null) {
                         $instantiation['enclosingCall'] = $call['enclosingCall'];
                         $instantiation['receiver'] = $call['receiver'];
+                    } else {
+                        $instantiation['receiver'] = $this->boundReceiver($instantiation['receiver'], $bindings);
                     }
                     $instantiations[] = $instantiation;
                 }
-                $calls = [...$calls, ...$helper->calls];
+                foreach ($helper->calls as $helperCall) {
+                    $calls[] = $this->boundCall($helperCall, $bindings);
+                }
                 $literals = [...$literals, ...$helper->stringLiterals];
             }
             $facts[$key] = new MethodSourceFacts($instantiations, $calls, array_values(array_unique($literals)));
         }
 
         return $facts;
+    }
+
+    /**
+     * @param array<int|string, array{kind: string, value: string}> $arguments
+     * @return array<string, array{kind: string, value: string}|null>
+     */
+    private function bindingsOf(ReflectionMethod $helper, array $arguments): array
+    {
+        $bindings = [];
+        foreach ($helper->getParameters() as $parameter) {
+            $argument = $arguments[$parameter->getName()] ?? $arguments[$parameter->getPosition()] ?? null;
+            if ($argument === null && $parameter->isDefaultValueAvailable() && is_string($parameter->getDefaultValue())) {
+                $argument = ['kind' => 'literal', 'value' => $parameter->getDefaultValue()];
+            }
+            $bindings[$parameter->getName()] = $argument;
+        }
+
+        return $bindings;
+    }
+
+    /**
+     * @param array{receiver: string|null, method: string, enclosingCall: string|null, arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null} $call
+     * @param array<string, array{kind: string, value: string}|null> $bindings
+     * @return array{receiver: string|null, method: string, enclosingCall: string|null, arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null}
+     */
+    private function boundCall(array $call, array $bindings): array
+    {
+        $arguments = [];
+        foreach ($call['arguments'] as $key => $argument) {
+            $bound = $argument['kind'] === 'variable' ? ($bindings[$argument['value']] ?? null) : $argument;
+            if ($bound !== null) {
+                $arguments[$key] = $bound;
+            }
+        }
+
+        return ['receiver' => $this->boundReceiver($call['receiver'], $bindings), 'arguments' => $arguments, 'literalArguments' => $this->leadingLiteralsOf($arguments)] + $call;
+    }
+
+    /**
+     * @param array<string, array{kind: string, value: string}|null> $bindings
+     */
+    private function boundReceiver(?string $receiver, array $bindings): ?string
+    {
+        $bound = $receiver === null ? null : ($bindings[$receiver] ?? null);
+
+        return $bound !== null && $bound['kind'] === 'variable' ? $bound['value'] : $receiver;
+    }
+
+    /**
+     * @param array<int|string, array{kind: string, value: string}> $arguments
+     * @return list<string>
+     */
+    private function leadingLiteralsOf(array $arguments): array
+    {
+        $literals = [];
+        for ($position = 0; ($arguments[$position]['kind'] ?? null) === 'literal'; $position++) {
+            $literals[] = $arguments[$position]['value'];
+        }
+
+        return $literals;
     }
 
     /**
@@ -228,6 +293,7 @@ final class HandlerSourceScanner
         $literals = [];
         $enclosingCalls = [];
         $variables = [];
+        $assigned = $this->assignedVariablesOf($tokens);
         $returning = false;
         foreach ($tokens as $index => $token) {
             $id = $token->id;
@@ -259,7 +325,7 @@ final class HandlerSourceScanner
                     if ($argument?->is(T_VARIABLE) && isset($variables[$argument->text]) && in_array($call['method'], ['publish', 'recordThat', 'send'], true)) {
                         array_unshift($instantiations, ['class' => $variables[$argument->text], 'returned' => false, 'enclosingCall' => $call['method'], 'receiver' => $call['receiver']]);
                     }
-                    $calls[] = $call + ['enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null] + $this->argumentsAt($tokens, $index + 1, $className, $namespace, $imports);
+                    $calls[] = $call + ['enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null] + $this->argumentsAt($tokens, $index + 1, $assigned, $className, $namespace, $imports);
                 }
                 $enclosingCalls[] = $call;
             } elseif ($id === 41) {
@@ -303,29 +369,101 @@ final class HandlerSourceScanner
 
     /**
      * @param list<PhpToken> $tokens
-     * @param array<string, string> $imports
-     * @return array{literalArguments: list<string>, firstArgumentClass: string|null}
+     * @return array<string, bool>
      */
-    private function argumentsAt(array $tokens, int $index, string $className, string $namespace, array $imports): array
+    private function assignedVariablesOf(array $tokens): array
+    {
+        $assigned = [];
+        $body = false;
+        foreach ($tokens as $index => $token) {
+            $body = $body || $token->text === '{';
+            if (! $body || ! $token->is(T_VARIABLE)) {
+                continue;
+            }
+            $next = $tokens[$index + 1] ?? null;
+            $previous = $tokens[$index - 1] ?? null;
+            $assignedByOperator = $next !== null && ($next->text === '=' || str_ends_with($next->text, '=') && ! in_array($next->text, ['==', '===', '!=', '!==', '<=', '>=', '<=>'], true));
+            $assignedByForeach = $previous !== null && ($previous->is(T_AS) || $previous->is(T_DOUBLE_ARROW) && ($tokens[$index - 3] ?? null)?->is(T_AS));
+            if ($assignedByOperator || $assignedByForeach || $previous?->text === '&') {
+                $assigned[$token->text] = true;
+            }
+        }
+
+        return $assigned;
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @param array<string, bool> $assigned
+     * @param array<string, string> $imports
+     * @return array{arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null}
+     */
+    private function argumentsAt(array $tokens, int $index, array $assigned, string $className, string $namespace, array $imports): array
     {
         $first = $tokens[$index] ?? null;
         if ($first?->is(T_NEW) && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
-            return ['literalArguments' => [], 'firstArgumentClass' => $this->resolve($tokens[$index + 1], $className, $namespace, $imports)];
+            return ['arguments' => [], 'literalArguments' => [], 'firstArgumentClass' => $this->resolve($tokens[$index + 1], $className, $namespace, $imports)];
         }
-        $literals = [];
-        while (isset($tokens[$index])) {
-            [$literal, $end] = $this->literalArgumentAt($tokens, $index, $className, $namespace, $imports);
-            if ($literal === null || ! in_array(($tokens[$end + 1] ?? null)?->text, [',', ')'], true)) {
+        $arguments = [];
+        $position = 0;
+        while (isset($tokens[$index]) && $tokens[$index]->text !== ')' && ! $tokens[$index]->is(T_ELLIPSIS)) {
+            $name = null;
+            if ($tokens[$index]->is(T_STRING) && ($tokens[$index + 1] ?? null)?->text === ':') {
+                $name = $tokens[$index]->text;
+                $index += 2;
+            }
+            $end = $this->argumentEndAt($tokens, $index);
+            if ($end === null) {
                 break;
             }
-            $literals[] = $literal;
-            if ($tokens[$end + 1]->text !== ',') {
-                break;
+            $value = $this->argumentValueAt($tokens, $index, $end, $assigned, $className, $namespace, $imports);
+            if ($value !== null) {
+                $arguments[$name ?? $position] = $value;
             }
-            $index = $end + 2;
+            if ($name === null) {
+                $position++;
+            }
+            $index = $tokens[$end]->text === ',' ? $end + 1 : $end;
         }
 
-        return ['literalArguments' => $literals, 'firstArgumentClass' => null];
+        return ['arguments' => $arguments, 'literalArguments' => $this->leadingLiteralsOf($arguments), 'firstArgumentClass' => null];
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     */
+    private function argumentEndAt(array $tokens, int $index): ?int
+    {
+        $depth = 0;
+        for ($current = $index; isset($tokens[$current]); $current++) {
+            $token = $tokens[$current];
+            if (in_array($token->text, ['(', '[', '{'], true) || $token->is(T_CURLY_OPEN) || $token->is(T_DOLLAR_OPEN_CURLY_BRACES) || $token->is(T_ATTRIBUTE)) {
+                $depth++;
+            } elseif ($depth === 0 && in_array($token->text, [',', ')'], true)) {
+                return $current;
+            } elseif (in_array($token->text, [')', ']', '}'], true)) {
+                $depth--;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @param array<string, bool> $assigned
+     * @param array<string, string> $imports
+     * @return array{kind: string, value: string}|null
+     */
+    private function argumentValueAt(array $tokens, int $index, int $end, array $assigned, string $className, string $namespace, array $imports): ?array
+    {
+        $token = $tokens[$index];
+        if ($end === $index + 1 && $token->is(T_VARIABLE)) {
+            return $token->text === '$this' || isset($assigned[$token->text]) ? null : ['kind' => 'variable', 'value' => ltrim($token->text, '$')];
+        }
+        [$literal, $literalEnd] = $this->literalArgumentAt($tokens, $index, $className, $namespace, $imports);
+
+        return $literal !== null && $literalEnd === $end - 1 ? ['kind' => 'literal', 'value' => $literal] : null;
     }
 
     private function literalArgumentAt(array $tokens, int $index, string $className, string $namespace, array $imports): array

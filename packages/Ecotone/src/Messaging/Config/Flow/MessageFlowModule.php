@@ -11,6 +11,7 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -43,6 +44,7 @@ final class MessageFlowModule implements AnnotationModule
             $declared->graph->getDefinition(),
             $declared->collaborators,
             $declared->namedEvents,
+            self::distributedBusParameters($interfaceToCallRegistry),
             new Definition(HandlerSourceScanner::class),
         ]));
         $messagingConfiguration->registerServiceDefinition(MessageFlowConsoleCommands::class, new Definition(MessageFlowConsoleCommands::class));
@@ -57,6 +59,21 @@ final class MessageFlowModule implements AnnotationModule
         $messagingConfiguration
             ->registerMessageHandler($messageHandlerBuilder)
             ->registerConsoleCommand($consoleCommandConfiguration);
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    private static function distributedBusParameters(InterfaceToCallRegistry $interfaceToCallRegistry): array
+    {
+        $parameters = [];
+        foreach (['sendCommand', 'convertAndSendCommand', 'publishEvent', 'convertAndPublishEvent', 'sendMessage'] as $method) {
+            foreach ($interfaceToCallRegistry->getFor(DistributedBus::class, $method)->getInterfaceParameters() as $parameter) {
+                $parameters[$method][] = $parameter->getName();
+            }
+        }
+
+        return $parameters;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

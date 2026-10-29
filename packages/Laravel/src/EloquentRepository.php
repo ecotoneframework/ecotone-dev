@@ -33,8 +33,7 @@ class EloquentRepository implements StateStoredRepository
         $versionColumn = $this->versionColumnOf($aggregateClassName);
 
         if ($aggregate !== null && $versionColumn !== null) {
-            $storedVersion = (int) $aggregate->getAttribute($versionColumn);
-            (fn () => $this->{$versionColumn} = $storedVersion)->call($aggregate);
+            $this->writeVersionProperty($aggregate, $versionColumn, (int) $aggregate->getAttribute($versionColumn));
         }
 
         return $aggregate;
@@ -49,11 +48,15 @@ class EloquentRepository implements StateStoredRepository
             return;
         }
 
+        if ($aggregate->exists && $versionBeforeHandling === null) {
+            $versionBeforeHandling = (int) $aggregate->getOriginal($versionColumn);
+            $this->writeVersionProperty($aggregate, $versionColumn, $versionBeforeHandling + 1);
+        }
         $versionAfterHandling = $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($versionColumn), $aggregate);
         $aggregate->setAttribute($versionColumn, $versionAfterHandling);
 
         if ($aggregate->exists) {
-            $this->claimVersion($identifiers, $aggregate, $versionColumn, (int) $versionBeforeHandling, $versionAfterHandling);
+            $this->claimVersion($identifiers, $aggregate, $versionColumn, $versionBeforeHandling, $versionAfterHandling);
             $aggregate->save();
 
             return;
@@ -86,6 +89,11 @@ class EloquentRepository implements StateStoredRepository
             $versionBeforeHandling,
             (int) $aggregate->newQueryWithoutScopes()->whereKey($aggregate->getKey())->value($versionColumn),
         );
+    }
+
+    private function writeVersionProperty(Model $aggregate, string $versionProperty, int $version): void
+    {
+        (fn () => $this->{$versionProperty} = $version)->call($aggregate);
     }
 
     private function versionColumnOf(string $aggregateClassName): ?string

@@ -58,15 +58,14 @@ class EloquentRepositoryTest extends TestCase
 
     public function test_a_versioned_eloquent_aggregate_loaded_twice_refuses_the_second_save_naming_the_way_out(): void
     {
-        $ticket = $this->versionedTicket();
-        $ecotone = $this->bootstrapWith($ticket::class);
+        $ecotone = $this->bootstrapWith(EloquentRepositoryTicket::class);
         $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
 
         try {
             $ecotone->sendCommandWithRouting('ticket.renameWhileAnotherRenameLands', metadata: ['aggregate.id' => 't-1', 'title' => 'Overwritten']);
             $this->fail('Expected the second save of the ticket to be refused');
         } catch (ConcurrencyException $exception) {
-            $this->assertStringContainsString('Aggregate ' . $ticket::class . ' t-1 was loaded at version 1, but it is at version 2 now', $exception->getMessage());
+            $this->assertStringContainsString('Aggregate ' . EloquentRepositoryTicket::class . ' t-1 was loaded at version 1, but it is at version 2 now', $exception->getMessage());
             $this->assertStringContainsString('Load it again and retry the command', $exception->getMessage());
         }
 
@@ -76,7 +75,7 @@ class EloquentRepositoryTest extends TestCase
 
     public function test_sequential_commands_on_a_versioned_eloquent_aggregate_each_save_and_move_its_version(): void
     {
-        $ecotone = $this->bootstrapWith($this->versionedTicket()::class);
+        $ecotone = $this->bootstrapWith(EloquentRepositoryTicket::class);
 
         $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
         $this->assertSame(1, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-1']));
@@ -91,7 +90,7 @@ class EloquentRepositoryTest extends TestCase
 
     public function test_a_handler_chained_after_creating_a_versioned_eloquent_aggregate_saves_it_again(): void
     {
-        $ecotone = $this->bootstrapWith($this->versionedTicket()::class);
+        $ecotone = $this->bootstrapWith(EloquentRepositoryTicket::class);
 
         $ecotone->sendCommandWithRouting('ticket.openTitled', metadata: ['ticketId' => 't-1', 'title' => 'Titled']);
 
@@ -101,8 +100,7 @@ class EloquentRepositoryTest extends TestCase
 
     public function test_creating_a_versioned_eloquent_aggregate_under_an_id_that_is_already_stored_is_refused(): void
     {
-        $ticket = $this->versionedTicket();
-        $ecotone = $this->bootstrapWith($ticket::class);
+        $ecotone = $this->bootstrapWith(EloquentRepositoryTicket::class);
         $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
         $ecotone->sendCommandWithRouting('ticket.rename', metadata: ['aggregate.id' => 't-1', 'title' => 'Kept']);
 
@@ -110,10 +108,57 @@ class EloquentRepositoryTest extends TestCase
             $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
             $this->fail('Expected the stored ticket to be kept');
         } catch (ConcurrencyException $exception) {
-            $this->assertStringContainsString('Aggregate ' . $ticket::class . ' t-1 was loaded at version 0, but it is at version 2 now', $exception->getMessage());
+            $this->assertStringContainsString('Aggregate ' . EloquentRepositoryTicket::class . ' t-1 was loaded at version 0, but it is at version 2 now', $exception->getMessage());
         }
 
         $this->assertSame('Kept', $ecotone->sendQueryWithRouting('ticket.title', metadata: ['aggregate.id' => 't-1']));
+    }
+
+    public function test_a_loaded_versioned_eloquent_aggregate_saved_through_a_repository_interface_is_stored_and_moves_its_version(): void
+    {
+        $ecotone = $this->bootstrapWith(EloquentRepositoryTicket::class, EloquentRepositoryTicketRepository::class);
+        $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
+        $ecotone->sendCommandWithRouting('ticket.rename', metadata: ['aggregate.id' => 't-1', 'title' => 'Renamed']);
+        $repository = $ecotone->getGateway(EloquentRepositoryTicketRepository::class);
+
+        $ticket = $repository->get('t-1');
+        $ticket->title = 'Through the repository';
+        $repository->save($ticket);
+
+        $this->assertSame('Through the repository', $ecotone->sendQueryWithRouting('ticket.title', metadata: ['aggregate.id' => 't-1']));
+        $this->assertSame(3, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-1']));
+    }
+
+    public function test_a_versioned_eloquent_aggregate_loaded_twice_through_a_repository_interface_refuses_the_second_save(): void
+    {
+        $ecotone = $this->bootstrapWith(EloquentRepositoryTicket::class, EloquentRepositoryTicketRepository::class);
+        $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
+        $repository = $ecotone->getGateway(EloquentRepositoryTicketRepository::class);
+        $first = $repository->get('t-1');
+        $second = $repository->get('t-1');
+        $first->title = 'Saved first';
+        $repository->save($first);
+        $second->title = 'Saved second';
+
+        try {
+            $repository->save($second);
+            $this->fail('Expected the second save of the ticket to be refused');
+        } catch (ConcurrencyException $exception) {
+            $this->assertStringContainsString('Aggregate ' . EloquentRepositoryTicket::class . ' t-1 was loaded at version 1, but it is at version 2 now', $exception->getMessage());
+        }
+
+        $this->assertSame('Saved first', $ecotone->sendQueryWithRouting('ticket.title', metadata: ['aggregate.id' => 't-1']));
+        $this->assertSame(2, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-1']));
+    }
+
+    public function test_a_new_versioned_eloquent_aggregate_saved_through_a_repository_interface_is_stored_at_version_one(): void
+    {
+        $ecotone = $this->bootstrapWith(EloquentRepositoryTicket::class, EloquentRepositoryTicketRepository::class);
+
+        $ecotone->getGateway(EloquentRepositoryTicketRepository::class)->save(EloquentRepositoryTicket::open('t-1'));
+
+        $this->assertSame('Untitled', $ecotone->sendQueryWithRouting('ticket.title', metadata: ['aggregate.id' => 't-1']));
+        $this->assertSame(1, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-1']));
     }
 
     public function test_an_eloquent_aggregate_versioned_through_the_trait_loaded_twice_refuses_the_second_save(): void
@@ -328,80 +373,88 @@ class EloquentRepositoryTest extends TestCase
         $this->assertSame([['versionBeforeHandling' => 7, 'version' => 8]], $repository->saved);
     }
 
-    private function bootstrapWith(string $aggregateClass): FlowTestSupport
+    private function bootstrapWith(string ...$classes): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [$aggregateClass],
+            $classes,
             extensionObjects: [new EloquentRepositoryBuilder()],
             enabledModules: [],
             addInMemoryStateStoredRepository: false,
         );
     }
+}
 
-    private function versionedTicket(): Model
+#[Aggregate]
+class EloquentRepositoryTicket extends Model
+{
+    protected $table = 'eloquent_repository_tickets';
+    protected $primaryKey = 'ticket_id';
+    protected $keyType = 'string';
+    public $incrementing = false;
+    public $timestamps = false;
+
+    #[Version]
+    private int $version;
+
+    #[CommandHandler('ticket.open')]
+    public static function open(#[Header('ticketId')] string $ticketId): self
     {
-        return new #[Aggregate] class () extends Model {
-            protected $table = 'eloquent_repository_tickets';
-            protected $primaryKey = 'ticket_id';
-            protected $keyType = 'string';
-            public $incrementing = false;
-            public $timestamps = false;
+        $ticket = new self();
+        $ticket->ticket_id = $ticketId;
+        $ticket->title = 'Untitled';
 
-            #[Version]
-            private int $version;
-
-            #[CommandHandler('ticket.open')]
-            public static function open(#[Header('ticketId')] string $ticketId): self
-            {
-                $ticket = new self();
-                $ticket->ticket_id = $ticketId;
-                $ticket->title = 'Untitled';
-
-                return $ticket;
-            }
-
-            #[CommandHandler(routingKey: 'ticket.openTitled', outputChannelName: 'ticket.retitle', identifierMetadataMapping: ['ticketId' => 'ticketId'])]
-            public static function openTitled(#[Header('ticketId')] string $ticketId): self
-            {
-                return self::open($ticketId);
-            }
-
-            #[CommandHandler('ticket.retitle')]
-            public function retitle(#[Header('title')] string $title): void
-            {
-                $this->title = $title;
-            }
-
-            #[CommandHandler('ticket.rename')]
-            public function rename(#[Header('title')] string $title): void
-            {
-                $this->title = $title;
-            }
-
-            #[CommandHandler('ticket.renameWhileAnotherRenameLands')]
-            public function renameWhileAnotherRenameLands(#[Header('title')] string $title, CommandBus $commandBus): void
-            {
-                $commandBus->sendWithRouting('ticket.rename', metadata: ['aggregate.id' => $this->ticket_id, 'title' => 'Landed first']);
-                $this->title = $title;
-            }
-
-            #[QueryHandler('ticket.title')]
-            public function title(): string
-            {
-                return $this->title;
-            }
-
-            #[QueryHandler('ticket.version')]
-            public function version(): int
-            {
-                return $this->version;
-            }
-
-            #[IdentifierMethod('ticketId')]
-            public function ticketId(): string
-            {
-                return $this->getKey();
-            }
-        };
+        return $ticket;
     }
+
+    #[CommandHandler(routingKey: 'ticket.openTitled', outputChannelName: 'ticket.retitle', identifierMetadataMapping: ['ticketId' => 'ticketId'])]
+    public static function openTitled(#[Header('ticketId')] string $ticketId): self
+    {
+        return self::open($ticketId);
+    }
+
+    #[CommandHandler('ticket.retitle')]
+    public function retitle(#[Header('title')] string $title): void
+    {
+        $this->title = $title;
+    }
+
+    #[CommandHandler('ticket.rename')]
+    public function rename(#[Header('title')] string $title): void
+    {
+        $this->title = $title;
+    }
+
+    #[CommandHandler('ticket.renameWhileAnotherRenameLands')]
+    public function renameWhileAnotherRenameLands(#[Header('title')] string $title, CommandBus $commandBus): void
+    {
+        $commandBus->sendWithRouting('ticket.rename', metadata: ['aggregate.id' => $this->ticket_id, 'title' => 'Landed first']);
+        $this->title = $title;
+    }
+
+    #[QueryHandler('ticket.title')]
+    public function title(): string
+    {
+        return $this->title;
+    }
+
+    #[QueryHandler('ticket.version')]
+    public function version(): int
+    {
+        return $this->version;
+    }
+
+    #[IdentifierMethod('ticketId')]
+    public function ticketId(): string
+    {
+        return $this->getKey();
+    }
+}
+
+interface EloquentRepositoryTicketRepository
+{
+    #[Repository]
+    public function get(string $ticketId): ?EloquentRepositoryTicket;
+
+    #[Repository]
+    public function save(EloquentRepositoryTicket $ticket): void;
 }

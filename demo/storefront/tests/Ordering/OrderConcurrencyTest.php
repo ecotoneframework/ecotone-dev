@@ -58,7 +58,7 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
                 $command = $this->commitsWhileSeatIsMarkedHeld;
                 $this->commitsWhileSeatIsMarkedHeld = null;
 
-                return $this->commitFirst($command, $invocation, $commandBus);
+                return $this->commitFirst(command: $command, invocation: $invocation, commandBus: $commandBus);
             }
 
             #[Around(pointcut: Order::class . '::fail')]
@@ -67,7 +67,7 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
                 $command = $this->commitsWhileOrderFails;
                 $this->commitsWhileOrderFails = null;
 
-                return $this->commitFirst($command, $invocation, $commandBus);
+                return $this->commitFirst(command: $command, invocation: $invocation, commandBus: $commandBus);
             }
 
             private function commitFirst(?object $command, MethodInvocation $invocation, CommandBus $commandBus): mixed

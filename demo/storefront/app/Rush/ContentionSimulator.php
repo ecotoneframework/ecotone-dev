@@ -27,7 +27,7 @@ final class ContentionSimulator
     public function start(StartContention $command, #[Reference] Contentions $contentions, #[Reference] QueryBus $queryBus, #[Reference] CommandBus $commandBus): void
     {
         $concert = $queryBus->sendWithRouting('concert.detail', $command->concertId);
-        $refusal = self::refusalOf($concert, $command->concertId, $command->seatId, $queryBus->sendWithRouting('concert.seat_states', ['concertId' => $command->concertId, 'excludingOrderId' => null]));
+        $refusal = self::refusalOf(concert: $concert, concertId: $command->concertId, seatId: $command->seatId, seatStates: $queryBus->sendWithRouting('concert.seat_states', ['concertId' => $command->concertId, 'excludingOrderId' => null]));
         if ($refusal !== null) {
             throw $refusal;
         }
@@ -55,7 +55,7 @@ final class ContentionSimulator
         foreach ($concert['sections'] as $section) {
             foreach ($section['rows'] as $row) {
                 if (in_array($seatId, array_column($row['seats'], 'seatId'), true)) {
-                    return self::refusalOfTakenSeat($concertId, $seatId, $seatStates);
+                    return self::refusalOfTakenSeat(concertId: $concertId, seatId: $seatId, seatStates: $seatStates);
                 }
             }
         }

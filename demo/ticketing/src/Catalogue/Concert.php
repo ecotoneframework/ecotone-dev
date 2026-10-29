@@ -82,8 +82,8 @@ final class Concert
         if ($command->startsAt <= $now) {
             throw CatalogueRefusal::because(sprintf('The concert of %s cannot be scheduled for %s, because that is in the past: it is now %s. Pick a start time after now.', $artist, $command->startsAt->format(DateTimeInterface::ATOM), $now->format(DateTimeInterface::ATOM)));
         }
-        self::assertPrice($artist, Tier::STANDARD, $command->standardPriceCents);
-        self::assertPrice($artist, Tier::VIP, $command->vipPriceCents);
+        self::assertPrice(artist: $artist, tier: Tier::STANDARD, priceCents: $command->standardPriceCents);
+        self::assertPrice(artist: $artist, tier: Tier::VIP, priceCents: $command->vipPriceCents);
         $currency = strtoupper(trim($command->currency));
         if (preg_match('/^[A-Z]{3}$/', $currency) !== 1) {
             throw CatalogueRefusal::because(sprintf('The concert of %s cannot be priced in "%s", because a currency is a three-letter ISO 4217 code. Use a code like EUR, USD or GBP.', $artist, $command->currency));
@@ -138,7 +138,7 @@ final class Concert
         if (! in_array($this->status, [ConcertStatus::SCHEDULED, ConcertStatus::ON_SALE], true)) {
             throw CatalogueRefusal::because(sprintf('The %s price of %s cannot change, because the concert is %s. Prices change only while a concert is scheduled or on sale.', $command->tier->value, $this->describe(), $this->statusInWords()));
         }
-        self::assertPrice($this->artist, $command->tier, $command->priceCents);
+        self::assertPrice(artist: $this->artist, tier: $command->tier, priceCents: $command->priceCents);
         if ($this->priceOf($command->tier) === $command->priceCents) {
             return;
         }

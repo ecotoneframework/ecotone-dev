@@ -81,7 +81,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
 
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(
@@ -111,12 +111,12 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
         $ticketing->changeTimeTo(new DateTimeImmutable('2026-10-25 12:05:00'));
 
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         $replies = $this->repliesReceivedBy($storefront);
@@ -132,11 +132,11 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $firstOrder = Uuid::v7()->toRfc4122();
         $secondOrder = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->sendHold($storefront, $firstOrder, $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        $this->sendHold(storefront: $storefront, orderId: $firstOrder, concertId: $concertId, seatId: $concertId . '/A-1', customerId: Uuid::v7()->toRfc4122());
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
 
-        $this->sendHold($storefront, $secondOrder, $concertId, $concertId . '/A-1', $customerId);
+        $this->sendHold(storefront: $storefront, orderId: $secondOrder, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(
@@ -187,7 +187,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $interferer->competitor = $competitor;
         $interferer->concertId = $concertId;
 
-        $this->sendHold($storefront, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        $this->sendHold(storefront: $storefront, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, seatId: $concertId . '/A-1', customerId: Uuid::v7()->toRfc4122());
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame('held', $this->repliesReceivedBy($storefront)[0]['reply']['outcome']);
@@ -223,7 +223,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
 
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         $reply = $this->repliesReceivedBy($storefront)[0]['reply'];
@@ -231,7 +231,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         self::assertSame("Seat {$concertId}/A-1 cannot be held for order {$orderId}, because the concert changed while ticketing held the seat: its prices or status were saved after ticketing read them, so the hold could not be kept as decided. Pick the seat again to hold it at the concert's current prices, while the concert is on sale.", $reply['reason']);
         self::assertSame('concert_changed', $reply['reasonCode']);
 
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId, holdId: 'hold-2');
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-2');
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame('held', $this->repliesReceivedBy($storefront)[0]['reply']['outcome']);
@@ -263,13 +263,13 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
         $interferer->competitor = $competitor;
         $interferer->concertId = $concertId;
 
-        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+        $this->sendConfirm(storefront: $storefront, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1']);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         $reply = $this->repliesReceivedBy($storefront)[0]['reply'];
@@ -307,7 +307,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $interferer->concertId = $concertId;
         $orderId = Uuid::v7()->toRfc4122();
 
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: Uuid::v7()->toRfc4122());
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         $reply = $this->repliesReceivedBy($storefront)[0]['reply'];
@@ -344,7 +344,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $interferer->concertId = $concertId;
         $orderId = Uuid::v7()->toRfc4122();
 
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: Uuid::v7()->toRfc4122());
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         $reply = $this->repliesReceivedBy($storefront)[0]['reply'];
@@ -361,13 +361,13 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
 
-        $this->sendRelease($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId, 'hold-1');
+        $this->sendRelease(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1');
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->sendHold($storefront, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        $this->sendHold(storefront: $storefront, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, seatId: $concertId . '/A-1', customerId: Uuid::v7()->toRfc4122());
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(['held'], array_map(static fn (array $received): string => $received['reply']['outcome'], $this->repliesReceivedBy($storefront)));
@@ -380,7 +380,7 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $ticketing->discardRecordedMessages();
 
-        $this->sendRelease($storefront, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122(), 'hold-1');
+        $this->sendRelease(storefront: $storefront, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, seatId: $concertId . '/A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1');
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame([], $ticketing->popRecordedEventsOfType(HoldReleased::class));
@@ -393,14 +393,14 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $ticketing = $this->ticketing();
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: Uuid::v7()->toRfc4122());
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
         $ticketing->discardRecordedMessages();
 
-        $this->sendRelease($storefront, $orderId, $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122(), 'hold-1');
+        $this->sendRelease(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1');
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->sendHold($storefront, Uuid::v7()->toRfc4122(), $concertId, $concertId . '/A-1', Uuid::v7()->toRfc4122());
+        $this->sendHold(storefront: $storefront, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, seatId: $concertId . '/A-1', customerId: Uuid::v7()->toRfc4122());
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame([], $ticketing->popRecordedEventsOfType(HoldReleased::class));
@@ -414,13 +414,13 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId, holdId: 'hold-1');
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1');
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
         $ticketing->changeTimeTo(new DateTimeImmutable('2026-10-25 12:05:00'));
 
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId, holdId: 'hold-2');
-        $this->sendRelease($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId, 'hold-1');
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-2');
+        $this->sendRelease(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1');
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(
@@ -458,12 +458,12 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
         foreach (['A-1', 'A-2'] as $seatCode) {
-            $this->sendHold($storefront, $orderId, $concertId, $concertId . '/' . $seatCode, $customerId);
+            $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/' . $seatCode, customerId: $customerId);
         }
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
 
-        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1', $concertId . '/A-2']);
+        $this->sendConfirm(storefront: $storefront, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1', $concertId . '/A-2']);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(
@@ -496,19 +496,19 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $otherCustomer = Uuid::v7()->toRfc4122();
         $otherOrder = Uuid::v7()->toRfc4122();
 
-        $this->sendHold($storefront, Uuid::v7()->toRfc4122(), $unknownConcertId, $unknownConcertId . '/A-1', $customer);
-        $this->sendHold($storefront, $holdingOrder, $concertId, $concertId . '/Z-99', $customer);
+        $this->sendHold(storefront: $storefront, orderId: Uuid::v7()->toRfc4122(), concertId: $unknownConcertId, seatId: $unknownConcertId . '/A-1', customerId: $customer);
+        $this->sendHold(storefront: $storefront, orderId: $holdingOrder, concertId: $concertId, seatId: $concertId . '/Z-99', customerId: $customer);
         foreach (['A-1', 'A-2', 'A-3', 'A-4', 'A-5'] as $seatCode) {
-            $this->sendHold($storefront, $holdingOrder, $concertId, $concertId . '/' . $seatCode, $customer);
+            $this->sendHold(storefront: $storefront, orderId: $holdingOrder, concertId: $concertId, seatId: $concertId . '/' . $seatCode, customerId: $customer);
         }
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->sendConfirm($storefront, $holdingOrder, $concertId, $customer, [$concertId . '/A-1']);
+        $this->sendConfirm(storefront: $storefront, orderId: $holdingOrder, concertId: $concertId, customerId: $customer, seatIds: [$concertId . '/A-1']);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->sendHold($storefront, $otherOrder, $concertId, $concertId . '/A-1', $otherCustomer);
-        $this->sendConfirm($storefront, $otherOrder, $concertId, $otherCustomer, []);
-        $this->sendConfirm($storefront, $otherOrder, $concertId, $otherCustomer, [$concertId . '/A-6']);
-        $this->sendConfirm($storefront, Uuid::v7()->toRfc4122(), $concertId, $customer, [$concertId . '/A-2']);
-        $this->sendConfirm($storefront, $holdingOrder, $concertId, $customer, [$concertId . '/A-1'], paymentReference: 'pay-2');
+        $this->sendHold(storefront: $storefront, orderId: $otherOrder, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $otherCustomer);
+        $this->sendConfirm(storefront: $storefront, orderId: $otherOrder, concertId: $concertId, customerId: $otherCustomer, seatIds: []);
+        $this->sendConfirm(storefront: $storefront, orderId: $otherOrder, concertId: $concertId, customerId: $otherCustomer, seatIds: [$concertId . '/A-6']);
+        $this->sendConfirm(storefront: $storefront, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, customerId: $customer, seatIds: [$concertId . '/A-2']);
+        $this->sendConfirm(storefront: $storefront, orderId: $holdingOrder, concertId: $concertId, customerId: $customer, seatIds: [$concertId . '/A-1'], paymentReference: 'pay-2');
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(
@@ -538,11 +538,11 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
 
-        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1', $concertId . '/A-2']);
+        $this->sendConfirm(storefront: $storefront, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1', $concertId . '/A-2']);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(
@@ -570,14 +570,14 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+        $this->sendConfirm(storefront: $storefront, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1']);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
         $ticketing->discardRecordedMessages();
 
-        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+        $this->sendConfirm(storefront: $storefront, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1']);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(
@@ -595,13 +595,13 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+        $this->sendConfirm(storefront: $storefront, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1']);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
 
-        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1'], paymentReference: 'pay-2');
+        $this->sendConfirm(storefront: $storefront, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1'], paymentReference: 'pay-2');
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         $reply = $this->repliesReceivedBy($storefront)[0]['reply'];
@@ -644,12 +644,12 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $interferer->concertId = $concertId;
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
         $ticketing->changeTimeTo(new DateTimeImmutable('2026-10-25 12:09:59'));
 
-        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+        $this->sendConfirm(storefront: $storefront, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1']);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $competitor->sendCommand(new ConfirmSeats(orderId: $interferer->reholdingOrder, concertId: $concertId, customerId: $interferer->reholdingCustomer, seatIds: [$concertId . '/A-1'], paymentReference: 'pay-2'), metadata: ['concertId' => $concertId]);
 
@@ -687,13 +687,13 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
         $interferer->competitor = $competitor;
 
-        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
-        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+        $this->sendConfirm(storefront: $storefront, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1']);
+        $this->sendConfirm(storefront: $storefront, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1']);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(
@@ -727,13 +727,13 @@ final class SeatSalesOverDistributedBusTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->sendHold($storefront, $orderId, $concertId, $concertId . '/A-1', $customerId);
+        $this->sendHold(storefront: $storefront, orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId);
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
         $this->repliesReceivedBy($storefront);
         $interferer->competitor = $competitor;
 
-        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
-        $this->sendConfirm($storefront, $orderId, $concertId, $customerId, [$concertId . '/A-1'], paymentReference: 'pay-2');
+        $this->sendConfirm(storefront: $storefront, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1']);
+        $this->sendConfirm(storefront: $storefront, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatIds: [$concertId . '/A-1'], paymentReference: 'pay-2');
         $ticketing->run('ticketing', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(

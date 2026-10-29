@@ -195,7 +195,7 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
         $this->storefront->getCommandBus()->send(new ReleaseSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12'));
         $this->ticketingReceives();
 
-        $this->holdRequestIsSentAgain($orderId, self::CONCERT_ID . '/A-12', 'hold-1');
+        $this->holdRequestIsSentAgain(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1');
         $this->ticketingReplies();
         $this->storefrontAsyncRuns();
 

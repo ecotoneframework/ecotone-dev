@@ -65,7 +65,7 @@ final class SeatStateAnnouncementTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing, $storefront);
         $orderId = Uuid::v7()->toRfc4122();
 
-        $this->hold($ticketing, $orderId, $concertId, 'A-1', Uuid::v7()->toRfc4122(), 'hold-1');
+        $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1');
 
         self::assertSame([], $this->receivedByStorefront($storefront));
 
@@ -83,12 +83,12 @@ final class SeatStateAnnouncementTest extends KernelTestCase
         $ticketing = $this->ticketing();
         $concertId = $this->concertOnSale($ticketing, $storefront);
         $otherOrderId = Uuid::v7()->toRfc4122();
-        $this->hold($ticketing, Uuid::v7()->toRfc4122(), $concertId, 'A-1', Uuid::v7()->toRfc4122(), 'hold-1');
+        $this->hold(ticketing: $ticketing, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, seatCode: 'A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1');
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $this->receivedByStorefront($storefront);
 
         $ticketing->advanceTimeBy(Duration::seconds(601));
-        $this->hold($ticketing, $otherOrderId, $concertId, 'A-1', Uuid::v7()->toRfc4122(), 'hold-2');
+        $this->hold(ticketing: $ticketing, orderId: $otherOrderId, concertId: $concertId, seatCode: 'A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-2');
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(
@@ -104,7 +104,7 @@ final class SeatStateAnnouncementTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing, $storefront);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->hold($ticketing, $orderId, $concertId, 'A-1', $customerId, 'hold-1');
+        $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'A-1', customerId: $customerId, holdId: 'hold-1');
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $this->receivedByStorefront($storefront);
 
@@ -124,7 +124,7 @@ final class SeatStateAnnouncementTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing, $storefront);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->hold($ticketing, $orderId, $concertId, 'A-1', $customerId, 'hold-1');
+        $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'A-1', customerId: $customerId, holdId: 'hold-1');
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $this->receivedByStorefront($storefront);
 
@@ -145,7 +145,7 @@ final class SeatStateAnnouncementTest extends KernelTestCase
         $ticketing = $this->ticketing();
         $concertId = $this->concertOnSale($ticketing, $storefront);
         $orderId = Uuid::v7()->toRfc4122();
-        $this->hold($ticketing, $orderId, $concertId, 'A-1', Uuid::v7()->toRfc4122(), 'hold-1');
+        $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1');
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $this->receivedByStorefront($storefront);
 
@@ -166,8 +166,8 @@ final class SeatStateAnnouncementTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing, $storefront);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->hold($ticketing, $orderId, $concertId, 'A-1', $customerId, 'hold-1');
-        $this->hold($ticketing, $orderId, $concertId, 'C-1', $customerId, 'hold-2');
+        $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'A-1', customerId: $customerId, holdId: 'hold-1');
+        $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'C-1', customerId: $customerId, holdId: 'hold-2');
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $this->receivedByStorefront($storefront);
 
@@ -190,7 +190,7 @@ final class SeatStateAnnouncementTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing, $storefront);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->hold($ticketing, $orderId, $concertId, 'B-3', $customerId, 'demo-seed-' . $orderId);
+        $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'B-3', customerId: $customerId, holdId: 'demo-seed-' . $orderId);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $this->receivedByStorefront($storefront);
 
@@ -208,12 +208,12 @@ final class SeatStateAnnouncementTest extends KernelTestCase
         $storefront = $this->storefrontListening();
         $ticketing = $this->ticketing();
         $concertId = $this->concertOnSale($ticketing, $storefront);
-        $this->hold($ticketing, Uuid::v7()->toRfc4122(), $concertId, 'A-1', Uuid::v7()->toRfc4122(), 'hold-1');
+        $this->hold(ticketing: $ticketing, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, seatCode: 'A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-1');
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $this->receivedByStorefront($storefront);
 
         try {
-            $this->hold($ticketing, Uuid::v7()->toRfc4122(), $concertId, 'A-1', Uuid::v7()->toRfc4122(), 'hold-2');
+            $this->hold(ticketing: $ticketing, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, seatCode: 'A-1', customerId: Uuid::v7()->toRfc4122(), holdId: 'hold-2');
         } catch (SeatRefusal) {
         }
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());

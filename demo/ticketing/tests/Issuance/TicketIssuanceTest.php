@@ -97,7 +97,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
 
-        $this->buy($ticketing, $orderId, $concertId, $customerId, ['C-1', 'C-2']);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatCodes: ['C-1', 'C-2']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         $received = $this->receivedByStorefront($storefront);
@@ -126,7 +126,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing = $this->ticketing($recorder);
         $concertId = $this->concertOnSale($ticketing);
 
-        $this->buy($ticketing, Uuid::v7()->toRfc4122(), $concertId, Uuid::v7()->toRfc4122(), ['C-1']);
+        $this->buy(ticketing: $ticketing, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['C-1']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(['slipFor', 'allocateNumbers', 'renderTickets', 'registerEntryCodes', 'announceIssuedTickets'], array_column($recorder->steps, 'step'));
@@ -140,7 +140,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing = $this->ticketing($recorder);
         $concertId = $this->concertOnSale($ticketing);
 
-        $this->buy($ticketing, Uuid::v7()->toRfc4122(), $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
+        $this->buy(ticketing: $ticketing, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1', 'C-1']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(['slipFor', 'allocateNumbers', 'grantVipLoungePasses', 'renderTickets', 'registerEntryCodes', 'announceIssuedTickets'], array_column($recorder->steps, 'step'));
@@ -152,7 +152,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing = $this->ticketing();
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
-        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1', 'C-1']);
 
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
 
@@ -181,7 +181,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->buy($ticketing, $orderId, $concertId, $customerId, ['A-1', 'C-1']);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatCodes: ['A-1', 'C-1']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $firstAnnouncement = $this->receivedByStorefront($storefront)[0]['event'];
 
@@ -207,7 +207,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing->getGateway(DeadLetterGateway::class)->deleteAll();
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
-        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1', 'C-1']);
 
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
@@ -224,7 +224,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing->getGateway(DeadLetterGateway::class)->deleteAll();
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
-        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1', 'C-1']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
         $failingRegistration->connectionRestored = true;
 
@@ -244,7 +244,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing = $this->ticketing();
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
-        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1']);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $ticket = $this->receivedByStorefront($storefront)[0]['event']['tickets'][0];
 
@@ -285,7 +285,7 @@ final class TicketIssuanceTest extends KernelTestCase
                 mkdir(self::realPathOf($path), $mode, true);
                 self::$createdTheDirectory = true;
                 if ((error_reporting() & ~(E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR | E_RECOVERABLE_ERROR)) !== 0) {
-                    throw new ErrorException('Warning: mkdir(): File exists', 0, E_WARNING);
+                    throw new ErrorException(message: 'Warning: mkdir(): File exists', code: 0, severity: E_WARNING);
                 }
 
                 return false;
@@ -329,7 +329,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing->getGateway(DeadLetterGateway::class)->deleteAll();
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
-        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1', 'C-1']);
 
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
@@ -346,7 +346,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing = $this->ticketing(ticketFilesDirectory: $this->ticketFilesDirectory . '/tickets');
         $ticketing->getGateway(DeadLetterGateway::class)->deleteAll();
         $concertId = $this->concertOnSale($ticketing);
-        $this->buy($ticketing, Uuid::v7()->toRfc4122(), $concertId, Uuid::v7()->toRfc4122(), ['A-1']);
+        $this->buy(ticketing: $ticketing, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1']);
 
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
@@ -366,7 +366,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $failingTicketing->getGateway(DeadLetterGateway::class)->deleteAll();
         $concertId = $this->concertOnSale($failingTicketing);
         $orderId = Uuid::v7()->toRfc4122();
-        $this->buy($failingTicketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
+        $this->buy(ticketing: $failingTicketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1', 'C-1']);
 
         $failingTicketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
@@ -405,7 +405,7 @@ final class TicketIssuanceTest extends KernelTestCase
 
         $orderId = Uuid::v7()->toRfc4122();
         $lastSeatCode = substr(strrchr(array_column($ticketing->sendQueryWithRouting('concert.detail', metadata: ['aggregate.id' => $concertId])['seats'], 'seatId')[71], '/'), 1);
-        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), [$lastSeatCode]);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: [$lastSeatCode]);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame([$orderId], array_column(array_column($this->receivedByStorefront($storefront), 'event'), 'orderId'));
@@ -415,7 +415,7 @@ final class TicketIssuanceTest extends KernelTestCase
     {
         $this->bootKernelOnEmptyTables();
 
-        return $this->bootstrapTicketing($renderFailsForSeat, $recorder === null ? [] : [$recorder], $ticketFilesDirectory ?? $this->ticketFilesDirectory);
+        return $this->bootstrapTicketing(renderFailsForSeat: $renderFailsForSeat, applicationHandlers: $recorder === null ? [] : [$recorder], ticketFilesDirectory: $ticketFilesDirectory ?? $this->ticketFilesDirectory);
     }
 
     private function ticketingWithTheDemoSeed(): FlowTestSupport

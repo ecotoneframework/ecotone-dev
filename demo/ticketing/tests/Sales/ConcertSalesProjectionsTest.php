@@ -71,9 +71,9 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         $holdingOrder = Uuid::v7()->toRfc4122();
         $buyingOrder = Uuid::v7()->toRfc4122();
         $buyer = Uuid::v7()->toRfc4122();
-        $this->hold($ticketing, $holdingOrder, $concertId, 'A-1', Uuid::v7()->toRfc4122());
-        $this->hold($ticketing, $buyingOrder, $concertId, 'C-2', $buyer);
-        $this->confirm($ticketing, $buyingOrder, $concertId, $buyer, ['C-2']);
+        $this->hold(ticketing: $ticketing, orderId: $holdingOrder, concertId: $concertId, seatCode: 'A-1', customerId: Uuid::v7()->toRfc4122());
+        $this->hold(ticketing: $ticketing, orderId: $buyingOrder, concertId: $concertId, seatCode: 'C-2', customerId: $buyer);
+        $this->confirm(ticketing: $ticketing, orderId: $buyingOrder, concertId: $concertId, customerId: $buyer, seatCodes: ['C-2']);
 
         self::assertSame(['free' => 72], $this->statusCounts($ticketing, $concertId));
 
@@ -102,8 +102,8 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->hold($ticketing, $orderId, $concertId, 'A-1', $customerId);
-        $this->hold($ticketing, $orderId, $concertId, 'A-2', $customerId);
+        $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'A-1', customerId: $customerId);
+        $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'A-2', customerId: $customerId);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         $ticketing->sendCommand(new ReleaseSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/A-1', customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
@@ -120,14 +120,14 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->hold($ticketing, $orderId, $concertId, 'A-1', $customerId);
-        $this->hold($ticketing, $orderId, $concertId, 'C-1', $customerId);
-        $this->confirm($ticketing, $orderId, $concertId, $customerId, ['A-1', 'C-1']);
+        $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'A-1', customerId: $customerId);
+        $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'C-1', customerId: $customerId);
+        $this->confirm(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatCodes: ['A-1', 'C-1']);
         $ticketing->sendCommand(new ChangeTierPrice(concertId: $concertId, tier: Tier::STANDARD, priceCents: 5000));
         $secondOrder = Uuid::v7()->toRfc4122();
         $secondCustomer = Uuid::v7()->toRfc4122();
-        $this->hold($ticketing, $secondOrder, $concertId, 'C-2', $secondCustomer);
-        $this->confirm($ticketing, $secondOrder, $concertId, $secondCustomer, ['C-2']);
+        $this->hold(ticketing: $ticketing, orderId: $secondOrder, concertId: $concertId, seatCode: 'C-2', customerId: $secondCustomer);
+        $this->confirm(ticketing: $ticketing, orderId: $secondOrder, concertId: $concertId, customerId: $secondCustomer, seatCodes: ['C-2']);
 
         self::assertSame(
             ['concertId' => $concertId, 'seatCount' => 72, 'seatsSold' => 0, 'revenueCents' => 0, 'tiers' => ['standard' => ['seatsSold' => 0, 'revenueCents' => 0], 'vip' => ['seatsSold' => 0, 'revenueCents' => 0]]],
@@ -148,9 +148,9 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->hold($ticketing, $orderId, $concertId, 'A-1', $customerId);
-        $this->hold($ticketing, $orderId, $concertId, 'A-2', $customerId);
-        $this->confirm($ticketing, $orderId, $concertId, $customerId, ['A-2']);
+        $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'A-1', customerId: $customerId);
+        $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'A-2', customerId: $customerId);
+        $this->confirm(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatCodes: ['A-2']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $seatMap = $ticketing->sendQueryWithRouting('concert.seat_map', $concertId);
         $sales = $ticketing->sendQueryWithRouting('concert.sales', $concertId);
@@ -170,9 +170,9 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         foreach ([$firstConcert, $secondConcert] as $concertId) {
             $orderId = Uuid::v7()->toRfc4122();
             $customerId = Uuid::v7()->toRfc4122();
-            $this->hold($ticketing, $orderId, $concertId, 'A-1', $customerId);
-            $this->hold($ticketing, $orderId, $concertId, 'C-1', $customerId);
-            $this->confirm($ticketing, $orderId, $concertId, $customerId, ['C-1']);
+            $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'A-1', customerId: $customerId);
+            $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'C-1', customerId: $customerId);
+            $this->confirm(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatCodes: ['C-1']);
         }
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $seatMaps = [$firstConcert => $ticketing->sendQueryWithRouting('concert.seat_map', $firstConcert), $secondConcert => $ticketing->sendQueryWithRouting('concert.seat_map', $secondConcert)];
@@ -195,17 +195,17 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
         foreach (['A-1', 'A-2', 'B-1'] as $seatCode) {
-            $this->hold($ticketing, $orderId, $concertId, $seatCode, $customerId);
+            $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: $seatCode, customerId: $customerId);
         }
-        $this->confirm($ticketing, $orderId, $concertId, $customerId, ['A-1', 'A-2', 'B-1']);
+        $this->confirm(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatCodes: ['A-1', 'A-2', 'B-1']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame('on_sale', $this->statusOf($ticketing, $concertId));
 
         $lastOrder = Uuid::v7()->toRfc4122();
         $lastCustomer = Uuid::v7()->toRfc4122();
-        $this->hold($ticketing, $lastOrder, $concertId, 'B-2', $lastCustomer);
-        $this->confirm($ticketing, $lastOrder, $concertId, $lastCustomer, ['B-2']);
+        $this->hold(ticketing: $ticketing, orderId: $lastOrder, concertId: $concertId, seatCode: 'B-2', customerId: $lastCustomer);
+        $this->confirm(ticketing: $ticketing, orderId: $lastOrder, concertId: $concertId, customerId: $lastCustomer, seatCodes: ['B-2']);
         $ticketing->discardRecordedMessages();
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
@@ -239,9 +239,9 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
         foreach (['A-1', 'A-2', 'B-1', 'B-2'] as $seatCode) {
-            $this->hold($ticketing, $orderId, $concertId, $seatCode, $customerId);
+            $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: $seatCode, customerId: $customerId);
         }
-        $this->confirm($ticketing, $orderId, $concertId, $customerId, ['A-1', 'A-2', 'B-1', 'B-2']);
+        $this->confirm(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatCodes: ['A-1', 'A-2', 'B-1', 'B-2']);
         $ticketing->discardRecordedMessages();
         $interferer->competitor = $competitor;
         $interferer->concertId = $concertId;

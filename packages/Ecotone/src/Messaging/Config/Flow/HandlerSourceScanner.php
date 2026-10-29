@@ -31,6 +31,7 @@ final class HandlerSourceScanner
 {
     private const IGNORED_NAMES = ['parent', 'class'];
     private const IGNORED_TOKENS = [T_WHITESPACE => true, T_COMMENT => true, T_DOC_COMMENT => true, T_OPEN_TAG => true, T_INLINE_HTML => true];
+    private const UNRESOLVED = ['kind' => 'unresolved', 'value' => ''];
     private const NAME_TOKENS = [T_STRING => true, T_NAME_QUALIFIED => true, T_NAME_FULLY_QUALIFIED => true, T_NAME_RELATIVE => true, T_STATIC => true];
 
     /**
@@ -155,10 +156,7 @@ final class HandlerSourceScanner
     {
         $arguments = [];
         foreach ($call['arguments'] as $key => $argument) {
-            $bound = $argument['kind'] === 'variable' ? ($bindings[$argument['value']] ?? null) : $argument;
-            if ($bound !== null) {
-                $arguments[$key] = $bound;
-            }
+            $arguments[$key] = $argument['kind'] === 'variable' ? ($bindings[$argument['value']] ?? self::UNRESOLVED) : $argument;
         }
 
         return ['receiver' => $this->boundReceiver($call['receiver'], $bindings), 'arguments' => $arguments, 'literalArguments' => $this->leadingLiteralsOf($arguments)] + $call;
@@ -416,10 +414,7 @@ final class HandlerSourceScanner
             if ($end === null) {
                 break;
             }
-            $value = $this->argumentValueAt($tokens, $index, $end, $assigned, $className, $namespace, $imports);
-            if ($value !== null) {
-                $arguments[$name ?? $position] = $value;
-            }
+            $arguments[$name ?? $position] = $this->argumentValueAt($tokens, $index, $end, $assigned, $className, $namespace, $imports);
             if ($name === null) {
                 $position++;
             }
@@ -453,17 +448,17 @@ final class HandlerSourceScanner
      * @param list<PhpToken> $tokens
      * @param array<string, bool> $assigned
      * @param array<string, string> $imports
-     * @return array{kind: string, value: string}|null
+     * @return array{kind: string, value: string}
      */
-    private function argumentValueAt(array $tokens, int $index, int $end, array $assigned, string $className, string $namespace, array $imports): ?array
+    private function argumentValueAt(array $tokens, int $index, int $end, array $assigned, string $className, string $namespace, array $imports): array
     {
         $token = $tokens[$index];
         if ($end === $index + 1 && $token->is(T_VARIABLE)) {
-            return $token->text === '$this' || isset($assigned[$token->text]) ? null : ['kind' => 'variable', 'value' => ltrim($token->text, '$')];
+            return $token->text === '$this' || isset($assigned[$token->text]) ? self::UNRESOLVED : ['kind' => 'variable', 'value' => ltrim($token->text, '$')];
         }
         [$literal, $literalEnd] = $this->literalArgumentAt($tokens, $index, $className, $namespace, $imports);
 
-        return $literal !== null && $literalEnd === $end - 1 ? ['kind' => 'literal', 'value' => $literal] : null;
+        return $literal !== null && $literalEnd === $end - 1 ? ['kind' => 'literal', 'value' => $literal] : self::UNRESOLVED;
     }
 
     private function literalArgumentAt(array $tokens, int $index, string $className, string $namespace, array $imports): array

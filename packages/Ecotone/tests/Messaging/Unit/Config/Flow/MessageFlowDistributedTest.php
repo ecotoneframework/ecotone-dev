@@ -193,6 +193,40 @@ final class MessageFlowDistributedTest extends TestCase
         }
     }
 
+    public function test_helper_default_routing_key_applies_only_when_the_call_site_omits_the_argument(): void
+    {
+        $service = new class () {
+            #[EventHandler('seat.requested')]
+            public function omitted(array $event, DistributedBus $distributedBus): void
+            {
+                $this->send($distributedBus);
+            }
+
+            #[EventHandler('seat.released')]
+            public function readFromThePayload(array $event, DistributedBus $distributedBus): void
+            {
+                $this->send($distributedBus, $event['route']);
+            }
+
+            #[EventHandler('order.paid')]
+            public function namedAndConcatenated(array $event, DistributedBus $distributedBus): void
+            {
+                $this->send(distributedBus: $distributedBus, routingKey: 'tickets.' . $event['action']);
+            }
+
+            private function send(DistributedBus $distributedBus, string $routingKey = 'tickets.hold'): void
+            {
+                $distributedBus->sendMessage('ticketing', $routingKey, '{}');
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes');
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold']], $sendsOf('omitted'));
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage']], $sendsOf('readFromThePayload'));
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage']], $sendsOf('namedAndConcatenated'));
+    }
+
     public function test_helpers_calling_each_other_resolve_the_key_once_and_stop(): void
     {
         $service = new class () {

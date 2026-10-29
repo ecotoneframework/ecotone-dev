@@ -81,6 +81,26 @@ final class MessageFlowDistributedTest extends TestCase
         self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::release', $bus));
     }
 
+    public function test_distributed_command_handler_that_replies_and_sends_an_unresolved_message_shows_both(): void
+    {
+        $service = new class () {
+            #[Distributed]
+            #[CommandHandler('tickets.hold')]
+            public function hold(array $payload, DistributedBus $distributedBus): array
+            {
+                $distributedBus->sendMessage('ticketing', $payload['route'], '{}');
+
+                return ['outcome' => 'held'];
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        self::assertSame(
+            [['via' => 'replyRoutingKey'], ['inferred' => true, 'via' => 'sendMessage']],
+            array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::hold', 'distributed:' . DistributedBus::class), 'attributes'),
+        );
+    }
+
     public function test_send_through_a_helper_whose_routing_key_is_a_parameter_records_the_route_of_each_call_site(): void
     {
         $service = new class () {

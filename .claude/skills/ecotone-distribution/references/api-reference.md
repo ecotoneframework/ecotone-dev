@@ -13,35 +13,41 @@ interface DistributedBus
         string $routingKey,
         string $command,
         string $sourceMediaType = MediaType::TEXT_PLAIN,
-        array $metadata = []
+        array $metadata = [],
+        ?string $idempotencyKey = null
     ): void;
 
     public function convertAndSendCommand(
         string $targetServiceName,
         string $routingKey,
         object|array $command,
-        array $metadata = []
+        array $metadata = [],
+        ?string $idempotencyKey = null
     ): void;
 
     public function publishEvent(
         string $routingKey,
         string $event,
         string $sourceMediaType = MediaType::TEXT_PLAIN,
-        array $metadata = []
+        array $metadata = [],
+        ?string $idempotencyKey = null
     ): void;
 
     public function convertAndPublishEvent(
         string $routingKey,
         object|array $event,
-        array $metadata = []
+        array $metadata = [],
+        ?string $idempotencyKey = null
     ): void;
 
     public function sendMessage(
         string $targetServiceName,
-        string $targetChannelName,
+        string $routingKey,
         string $payload,
         string $sourceMediaType = MediaType::TEXT_PLAIN,
-        array $metadata = []
+        array $metadata = [],
+        ?string $replyRoutingKey = null,
+        ?string $idempotencyKey = null
     ): void;
 }
 ```
@@ -54,7 +60,18 @@ interface DistributedBus
 | `convertAndSendCommand` | Specific service | Object/array (auto-converted) |
 | `publishEvent` | All subscribers | Raw string |
 | `convertAndPublishEvent` | All subscribers | Object/array (auto-converted) |
-| `sendMessage` | Specific service + channel | Raw string |
+| `sendMessage` | Specific service + routing key | Raw string |
+
+### Idempotency key
+
+Every method takes an optional `idempotencyKey`. The target's deduplication (`ecotone/dbal`, on by default for
+asynchronous endpoints) keys on it in place of the message id, so a send repeated by a retried handler is handled once.
+Name the business request (`'tickets.confirm.' . $orderId`); a blank key is refused. The key is not copied onto the
+messages the target sends onwards.
+
+```php
+$distributedBus->sendMessage('ticketing', 'tickets.confirm', $orderId, idempotencyKey: 'tickets.confirm.' . $orderId);
+```
 
 ## MessagePublisher Interface
 
@@ -72,7 +89,8 @@ interface MessagePublisher
     public function sendWithMetadata(
         string $data,
         string $sourceMediaType = MediaType::TEXT_PLAIN,
-        array $metadata = []
+        array $metadata = [],
+        ?string $idempotencyKey = null
     ): void;
 
     public function convertAndSend(object|array $data): void;

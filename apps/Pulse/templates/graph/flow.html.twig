@@ -25,11 +25,34 @@
             {% endfor %}
         </section>
     {% endif %}
-    {% include 'graph/_scope.html.twig' with {carry: trace ? {trace: trace.traceId} : {}} %}
+    {% include 'graph/_scope.html.twig' with {carry: carried|filter((value, name) => name != 'service')|merge(focus ? {focus: focus.parameter} : {})} %}
+    <form method="get" action="{{ path('flow_graph') }}" class="flow-find" role="search" data-flow-find>
+        <label for="flow-find">Find a node</label>
+        <input id="flow-find" type="search" name="find" list="flow-node-names" value="{{ find }}" autocomplete="off">
+        {% include 'graph/_carried.html.twig' with {carry: carried} only %}
+        <button type="submit">Follow</button>
+        <datalist id="flow-node-names">{% for name in nodeNames %}<option value="{{ name }}"></option>{% endfor %}</datalist>
+    </form>
+    {% if find != '' %}
+        {% if found is empty %}
+            <p class="notice" data-find-none>No node matches "{{ find }}". Names are matched anywhere in the label, ignoring case; the suggestions under the box list every node.</p>
+        {% else %}
+            <section class="card" aria-labelledby="find-heading">
+                <h2 id="find-heading">{{ found|length }} nodes match "{{ find }}"</h2>
+                <ul data-find-results>{% for step in found %}<li><a href="{{ step.href }}">{{ step.label }}</a> <span class="muted">{{ step.kind }} · {{ step.service }}</span></li>{% endfor %}</ul>
+            </section>
+        {% endif %}
+    {% endif %}
+    {% if focus %}
+        <section class="card focus" data-focus aria-labelledby="focus-heading">
+            <h2 id="focus-heading">Following {{ focus.label }} <span class="muted">in {{ focus.service }}</span></h2>
+            <p class="muted">Only what led to it and what it causes, as far as the services report it, is drawn: a send the source code hides, such as one with its routing key in a variable, is not. Click a node, or a step listed under the graph, to re-centre on it, or <a href="{{ focus.clearUrl }}" data-focus-clear>show everything</a>.</p>
+        </section>
+    {% endif %}
     <form method="get" class="service-toggles">
-        {% if trace %}<input type="hidden" name="trace" value="{{ trace.traceId }}">{% endif %}
+        {% include 'graph/_carried.html.twig' with {carry: carried|filter((value, name) => name != 'service')} only %}
         {% for service in services %}
-            <label><input type="checkbox" name="services[]" value="{{ service }}"{% if service in shown %} checked{% endif %}> {{ service }}</label>
+            <label><input type="checkbox" name="services[]" value="{{ service }}"{% if service in shown %} checked{% endif %}> {{ service }}</label>{% if collapseUrls[service] is defined %} <a class="collapse-link" href="{{ collapseUrls[service] }}" {% if service in collapsed %}data-expand="{{ service }}" aria-label="Expand {{ service }}">expand{% else %}data-collapse="{{ service }}" aria-label="Collapse {{ service }}">collapse{% endif %}</a>{% endif %}
         {% endfor %}
         <button type="submit">Show</button>
     </form>
@@ -39,8 +62,29 @@
         <p class="muted graph-view">
             {% if overview %}<span data-flow-overview>Service overview: one node per service, arrows are distributed commands, events and messages.</span> Click a service to see its flow, or <a href="{{ detailUrl }}">show every service in detail</a>.
             {% elseif services|length > 1 %}<a href="{{ overviewUrl }}">Show the service overview</a>{% endif %}
+            {% if not overview %}{% if services|length > 1 %} · {% endif %}{% if not focus %}Click a node to follow it: only what led to it and everything it causes stays drawn. {% endif %}{% if foldChannels %}<a href="{{ foldUrl }}" data-unfold-channels>Show channels</a>{% else %}<a href="{{ foldUrl }}" data-fold-channels>Fold asynchronous channels into arrows</a>{% endif %}{% endif %}
         </p>
         <pre class="mermaid" data-flow-graph data-graph-nodes="{{ nodes|json_encode }}">{{ diagram }}</pre>
+        {% if focus %}
+            <details class="card focus" data-focus-steps>
+                <summary>Steps: {{ focus.upstream|length }} before, {{ focus.downstream|length }} after</summary>
+                <p class="muted" data-focus-order>What led here starts at the step farthest from {{ focus.label }}; what happens next starts at the step right after it. Both are ordered by distance, so steps of different branches at the same distance sit next to each other rather than in the order they run.</p>
+                <div class="focus-steps">
+                    <div>
+                        <h3>What led here</h3>
+                        {% if focus.upstream is empty %}<p class="muted">Nothing: this is where the flow starts.</p>{% else %}
+                        <ol data-focus-upstream>{% for step in focus.upstream %}<li><a href="{{ step.href }}">{{ step.label }}</a> <span class="muted">{{ step.kind }} · {{ step.service }}</span></li>{% endfor %}</ol>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h3>What happens next</h3>
+                        {% if focus.downstream is empty %}<p class="muted">Nothing: the flow ends here.</p>{% else %}
+                        <ol data-focus-downstream>{% for step in focus.downstream %}<li><a href="{{ step.href }}">{{ step.label }}</a> <span class="muted">{{ step.kind }} · {{ step.service }}</span></li>{% endfor %}</ol>
+                        {% endif %}
+                    </div>
+                </div>
+            </details>
+        {% endif %}
         <details class="card legend" data-graph-legend open>
             <summary>Legend</summary>
             <ul class="legend-items">

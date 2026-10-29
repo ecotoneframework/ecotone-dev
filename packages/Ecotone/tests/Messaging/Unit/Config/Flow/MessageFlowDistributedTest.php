@@ -237,9 +237,9 @@ final class MessageFlowDistributedTest extends TestCase
             }
 
             #[EventHandler('seat.released')]
-            public function listCall(array $event, DistributedBus $distributedBus): void
+            public function keyedShortArray(array $event, DistributedBus $distributedBus): void
             {
-                $this->sendList($distributedBus, 'tickets.hold');
+                $this->sendKeyed($distributedBus, 'tickets.hold');
             }
 
             #[EventHandler('order.paid')]
@@ -249,9 +249,9 @@ final class MessageFlowDistributedTest extends TestCase
             }
 
             #[EventHandler('order.failed')]
-            public function keyedInForeachList(array $event, DistributedBus $distributedBus): void
+            public function keyedInForeachWithItsKey(array $event, DistributedBus $distributedBus): void
             {
-                $this->sendForeachList($distributedBus, 'tickets.hold', $event['routes']);
+                $this->sendForeachWithKey($distributedBus, 'tickets.hold', $event['routes']);
             }
 
             private function sendShortArray(DistributedBus $distributedBus, string $routingKey): void
@@ -260,9 +260,9 @@ final class MessageFlowDistributedTest extends TestCase
                 $distributedBus->sendMessage('ticketing', $routingKey, $version);
             }
 
-            private function sendList(DistributedBus $distributedBus, string $routingKey): void
+            private function sendKeyed(DistributedBus $distributedBus, string $routingKey): void
             {
-                list('route' => $routingKey) = ['route' => $routingKey . '.v2'];
+                ['route' => $routingKey] = ['route' => $routingKey . '.v2'];
                 $distributedBus->sendMessage('ticketing', $routingKey, '{}');
             }
 
@@ -273,16 +273,16 @@ final class MessageFlowDistributedTest extends TestCase
                 }
             }
 
-            private function sendForeachList(DistributedBus $distributedBus, string $routingKey, array $routes): void
+            private function sendForeachWithKey(DistributedBus $distributedBus, string $routingKey, array $routes): void
             {
-                foreach ($routes as $index => list($routingKey)) {
+                foreach ($routes as $index => [$routingKey]) {
                     $distributedBus->sendMessage('ticketing', $routingKey, (string) $index);
                 }
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
-        foreach (['shortArray', 'listCall', 'keyedInForeach', 'keyedInForeachList'] as $method) {
+        foreach (['shortArray', 'keyedShortArray', 'keyedInForeach', 'keyedInForeachWithItsKey'] as $method) {
             self::assertSame(
                 [['inferred' => true, 'via' => 'sendMessage']],
                 array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes'),

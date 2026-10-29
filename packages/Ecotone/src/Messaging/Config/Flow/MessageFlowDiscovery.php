@@ -242,11 +242,12 @@ final class MessageFlowDiscovery
                 $message = $this->messageNode($routingKey, $messageKind, handled: true);
                 $this->edges[] = new FlowEdge($message->id, $handlerId, FlowEdgeKind::ROUTED_TO);
                 if ($distributed) {
-                    /** @var Distributed $distributedAttribute */
-                    $distributedAttribute = $registration->getAnnotationsByImportanceOrder(Distributed::class)[0];
                     $this->nodes[$message->id] = $message->withAttributes(['distributed' => true]);
-                    $this->edges[] = new FlowEdge($this->distributedBusNode($distributedAttribute->distributionReference)->id, $message->id, FlowEdgeKind::DISTRIBUTES);
+                    $this->edges[] = new FlowEdge($this->distributedBusOf($registration)->id, $message->id, FlowEdgeKind::DISTRIBUTES);
                 }
+            }
+            if ($distributed && $handlerKind === FlowNodeKind::COMMAND_HANDLER && $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->canReturnValue()) {
+                $this->edges[] = new FlowEdge($handlerId, $this->distributedBusOf($registration)->id, FlowEdgeKind::SENDS_TO, ['via' => 'replyRoutingKey']);
             }
             $this->registerOutput($handlerId, $annotation->getOutputChannelName());
             if ($handlerKind !== FlowNodeKind::QUERY_HANDLER) {
@@ -270,11 +271,17 @@ final class MessageFlowDiscovery
         }
     }
 
-    private function registerDistributedChannelHandler(string $handlerId, string $inputChannelName, AnnotatedFinding $registration): void
+    private function distributedBusOf(AnnotatedFinding $registration): FlowNode
     {
         /** @var Distributed $distributedAttribute */
         $distributedAttribute = $registration->getAnnotationsByImportanceOrder(Distributed::class)[0];
-        $busId = $this->distributedBusNode($distributedAttribute->distributionReference)->id;
+
+        return $this->distributedBusNode($distributedAttribute->distributionReference);
+    }
+
+    private function registerDistributedChannelHandler(string $handlerId, string $inputChannelName, AnnotatedFinding $registration): void
+    {
+        $busId = $this->distributedBusOf($registration)->id;
         $this->edges[] = new FlowEdge($busId, $this->channelNode($inputChannelName)->id, FlowEdgeKind::DISTRIBUTES);
         if ($this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->canReturnValue()) {
             $this->edges[] = new FlowEdge($handlerId, $busId, FlowEdgeKind::SENDS_TO, ['via' => 'replyRoutingKey']);

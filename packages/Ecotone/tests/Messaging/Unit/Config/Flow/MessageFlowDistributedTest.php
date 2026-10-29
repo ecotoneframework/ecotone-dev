@@ -55,6 +55,32 @@ final class MessageFlowDistributedTest extends TestCase
         self::assertCount(1, $graph->nodesOfKind(FlowNodeKind::COMMAND));
     }
 
+    public function test_distributed_command_handler_returning_a_value_replies_through_its_bus_and_a_void_one_does_not(): void
+    {
+        $service = new class () {
+            #[Distributed]
+            #[CommandHandler('tickets.hold')]
+            public function hold(array $payload): array
+            {
+                return ['outcome' => 'held'];
+            }
+
+            #[Distributed]
+            #[CommandHandler('tickets.release')]
+            public function release(array $payload): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        $bus = 'distributed:' . DistributedBus::class;
+        self::assertSame(
+            [['via' => 'replyRoutingKey']],
+            array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::hold', $bus), 'attributes'),
+        );
+        self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::release', $bus));
+    }
+
     public function test_send_through_a_helper_whose_routing_key_is_a_parameter_records_the_route_of_each_call_site(): void
     {
         $service = new class () {

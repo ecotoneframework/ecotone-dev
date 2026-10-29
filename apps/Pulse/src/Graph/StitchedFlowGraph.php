@@ -290,7 +290,11 @@ final class StitchedFlowGraph
         $label = match ($edge->kind) {
             FlowEdgeKind::EMITS => 'emits',
             FlowEdgeKind::ASYNCHRONOUS => 'async',
-            FlowEdgeKind::SENDS_TO => $edge->isInferred() ? 'sends' : 'to ' . ($edge->attributes['targetService'] ?? ''),
+            FlowEdgeKind::SENDS_TO => match (true) {
+                $edge->isInferred() => 'sends',
+                ($edge->attributes['via'] ?? null) === 'replyRoutingKey' => 'replies',
+                default => 'to ' . ($edge->attributes['targetService'] ?? ''),
+            },
             FlowEdgeKind::PROJECTS_INTO => 'projects into',
             FlowEdgeKind::ROUTED_TO, FlowEdgeKind::INPUT => '',
             default => $edge->kind->value,

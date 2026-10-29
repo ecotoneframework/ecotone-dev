@@ -37,6 +37,7 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', 'tickets.hold', '==>'));
         self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', 'Channel<br/>tickets.hold.result', '-.->'));
         self::assertTrue($diagram->hasEdge('storefront', 'Channel<br/>tickets.hold.result', '', 'storefront', '::whenHoldAnswered', '-->'));
+        self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'replies', 'ticketing', 'Distributed Bus', '-->'));
     }
 
     public function test_following_a_distributed_command_starts_at_the_sender_and_comes_back_through_the_reply_handler(): void

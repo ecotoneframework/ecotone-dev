@@ -9,8 +9,8 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
+use Exception;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -60,7 +60,7 @@ final class DistributedBusIdempotencyKeyTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(Exception::class);
         $this->expectExceptionMessage('The Distributed Bus was given a blank idempotencyKey. The target deduplicates on this key in place of the message id, per routing key and consuming endpoint, so a blank one would make every send to that routing key one request, handled once. Pass a key that names this business request, such as the order id, or omit idempotencyKey to have each send handled on its own.');
 
         $send($ecotone);

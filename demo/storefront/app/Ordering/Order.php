@@ -25,6 +25,7 @@ use Symfony\Component\Uid\Uuid;
  * @property OrderStatus $status
  * @property list<array{seatId: string, holdId: string, expiresAt: string, expired?: bool}> $held_seats
  * @property array<string, string> $requested_holds
+ * @property array{seatId: string, holdId: string}|null $asked_hold
  * @property array{seatId: string, reason: string}|null $last_refusal
  * @property list<array{ticketNumber: string, seatId: string, tier: string, entryCode: string}> $tickets
  * @property string|null $payment_reference
@@ -47,6 +48,7 @@ final class Order extends Model
         'status' => OrderStatus::class,
         'held_seats' => 'array',
         'requested_holds' => 'array',
+        'asked_hold' => 'array',
         'last_refusal' => 'array',
         'tickets' => 'array',
         'seats_sold' => 'boolean',
@@ -113,11 +115,32 @@ final class Order extends Model
             return;
         }
         $this->requested_holds = [...$this->requested_holds, $command->seatId => $command->holdId];
-        $this->recordThat(new SeatRequested(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId, holdId: $command->holdId));
+        if ($this->asked_hold === null) {
+            $this->askNextHold();
+        }
     }
 
     #[CommandHandler]
     public function markSeatHeld(MarkSeatHeld $command): void
+    {
+        $answersAskedHold = $this->isAskedHold($command->seatId, $command->holdId);
+        $this->applyHeldReply($command);
+        if ($answersAskedHold) {
+            $this->askNextHold();
+        }
+    }
+
+    #[CommandHandler]
+    public function recordSeatRefusal(RecordSeatRefusal $command): void
+    {
+        $answersAskedHold = $this->isAskedHold($command->seatId, $command->holdId);
+        $this->applyRefusal($command);
+        if ($answersAskedHold) {
+            $this->askNextHold();
+        }
+    }
+
+    private function applyHeldReply(MarkSeatHeld $command): void
     {
         $this->assertSeatOfThisConcert($command->seatId, 'MarkSeatHeld');
         if (($this->requested_holds[$command->seatId] ?? null) !== $command->holdId) {
@@ -150,8 +173,7 @@ final class Order extends Model
         $this->status = OrderStatus::SEATS_HELD;
     }
 
-    #[CommandHandler]
-    public function recordSeatRefusal(RecordSeatRefusal $command): void
+    private function applyRefusal(RecordSeatRefusal $command): void
     {
         if (($this->requested_holds[$command->seatId] ?? null) !== $command->holdId) {
             return;
@@ -295,6 +317,14 @@ final class Order extends Model
     /**
      * @return list<string>
      */
+    public function askingSeatIds(): array
+    {
+        return array_keys($this->requested_holds);
+    }
+
+    /**
+     * @return list<string>
+     */
     public function claimedSeatIdsAt(DateTimeImmutable $now): array
     {
         return array_column(array_filter($this->held_seats, fn (array $heldSeat) => ! ($heldSeat['expired'] ?? false) && ($this->isSold() || new DateTimeImmutable($heldSeat['expiresAt']) > $now)), 'seatId');
@@ -344,6 +374,27 @@ final class Order extends Model
         }
 
         return null;
+    }
+
+    private function isAskedHold(string $seatId, string $holdId): bool
+    {
+        return $this->asked_hold === ['seatId' => $seatId, 'holdId' => $holdId];
+    }
+
+    private function askNextHold(): void
+    {
+        $this->asked_hold = null;
+        if (! in_array($this->status, self::OPEN_STATUSES, true)) {
+            $this->requested_holds = [];
+
+            return;
+        }
+        $seatId = array_key_first($this->requested_holds);
+        if ($seatId === null) {
+            return;
+        }
+        $this->asked_hold = ['seatId' => $seatId, 'holdId' => $this->requested_holds[$seatId]];
+        $this->recordThat(new SeatRequested(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $seatId, holdId: $this->requested_holds[$seatId]));
     }
 
     private function forgetRequestOf(string $seatId): void

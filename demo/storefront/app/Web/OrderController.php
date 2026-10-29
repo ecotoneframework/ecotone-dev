@@ -93,6 +93,7 @@ final class OrderController
             'heldSeats' => $heldSeats,
             'earliestExpiresAt' => $heldSeats === [] ? null : min(array_column($heldSeats, 'expiresAt')),
             'lastRefusal' => $order['lastRefusal'],
+            'askingSeatIds' => $order['askingSeatIds'],
             'takenSeatIds' => SeatStateProjector::takenOf($seatStates),
             'soldSeatIds' => $seatStates['soldSeatIds'],
             'failureReason' => $order['failureReason'],

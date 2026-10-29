@@ -264,11 +264,26 @@ final class CheckoutPagesTest extends TestCase
             ],
             'earliestExpiresAt' => self::EXPIRES_AT,
             'lastRefusal' => null,
+            'askingSeatIds' => [],
             'takenSeatIds' => [],
             'soldSeatIds' => [],
             'failureReason' => null,
             'tickets' => [],
         ]);
+    }
+
+    public function test_the_order_state_lists_every_seat_still_asking_ticketing_until_its_reply_arrives(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-2'));
+        $askingSeatIds = fn () => $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json')->json('askingSeatIds');
+
+        self::assertSame([self::CONCERT_ID . '/A-1', self::CONCERT_ID . '/B-1'], $askingSeatIds());
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+        self::assertSame([self::CONCERT_ID . '/B-1'], $askingSeatIds());
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-2', reason: 'someone was faster: seat B-1'));
+        self::assertSame([], $askingSeatIds());
     }
 
     public function test_the_order_state_reports_the_last_refusal(): void

@@ -58,6 +58,7 @@ final class OrderQueries
             'status' => $order->status->value,
             'heldSeats' => array_map(fn (array $heldSeat) => ['seatId' => $heldSeat['seatId'], 'expiresAt' => $heldSeat['expiresAt']], $order->held_seats),
             'lastRefusal' => $order->last_refusal,
+            'askingSeatIds' => $order->askingSeatIds(),
             'paymentReference' => $order->payment_reference,
             'failureReason' => $order->failure_reason,
             'tickets' => $order->tickets,

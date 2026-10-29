@@ -9,7 +9,7 @@
     const currency = picker.dataset.currency;
     const priceCents = { vip: Number(picker.dataset.vipPriceCents), standard: Number(picker.dataset.standardPriceCents) };
     const tierLabels = { vip: 'VIP', standard: 'Standard' };
-    const pendingSeatIds = new Set();
+    const postingSeatIds = new Set();
     let orderId = picker.dataset.orderId || null;
     let state = null;
     let startingOrder = null;
@@ -45,14 +45,18 @@
         return picker.querySelectorAll('[data-seat-id]');
     }
 
-    function seatStateOf(seatId, yours, taken, sold, refusal) {
+    function pendingSeatIds() {
+        return new Set([...postingSeatIds, ...(state ? state.askingSeatIds : [])]);
+    }
+
+    function seatStateOf(seatId, yours, pending, taken, sold, refusal) {
         if (sold.has(seatId)) {
             return 'sold';
         }
         if (yours.has(seatId)) {
             return 'yours';
         }
-        if (pendingSeatIds.has(seatId)) {
+        if (pending.has(seatId)) {
             return 'pending';
         }
         if (taken.has(seatId)) {
@@ -69,6 +73,7 @@
         const taken = new Set(state ? state.takenSeatIds : JSON.parse(picker.dataset.takenSeatIds || '[]'));
         const sold = new Set(state ? state.soldSeatIds : JSON.parse(picker.dataset.soldSeatIds || '[]'));
         const refusal = state ? state.lastRefusal : null;
+        const pending = pendingSeatIds();
         const open = state === null || state.status === 'started' || state.status === 'seats_held';
         const counts = { free: 0, yours: 0, pending: 0, held: 0, sold: 0, refused: 0 };
         const labels = { free: 'free', yours: 'yours', pending: 'asking ticketing', held: 'held by someone', sold: 'sold' };
@@ -76,7 +81,7 @@
 
         seatButtons().forEach(function (button) {
             const seatId = button.dataset.seatId;
-            const seatState = seatStateOf(seatId, yours, taken, sold, refusal);
+            const seatState = seatStateOf(seatId, yours, pending, taken, sold, refusal);
             counts[seatState]++;
             tiers.set(seatId, button.dataset.tier);
             ['yours', 'pending', 'held', 'sold', 'refused'].forEach(function (name) {
@@ -111,7 +116,7 @@
             item.append(code, details, countdown);
             return item;
         }));
-        basket.querySelector('[data-basket-empty]').hidden = yours.size > 0 || pendingSeatIds.size > 0;
+        basket.querySelector('[data-basket-empty]').hidden = yours.size > 0 || pending.size > 0;
         basket.querySelector('[data-basket-total]').hidden = yours.size === 0;
         basket.querySelector('[data-basket-total-amount]').textContent = price(totalCents);
 
@@ -127,7 +132,7 @@
         refusalLine.textContent = shownRefusal || '';
 
         const checkout = basket.querySelector('[data-basket-checkout]');
-        checkout.hidden = !(state && state.status === 'seats_held') || pendingSeatIds.size > 0 || orderId === null;
+        checkout.hidden = !(state && state.status === 'seats_held') || pending.size > 0 || orderId === null;
         if (checkout.hidden) {
             checkout.removeAttribute('href');
         } else {
@@ -152,13 +157,6 @@
             return;
         }
         state = await response.json();
-        state.heldSeats.forEach(function (seat) { pendingSeatIds.delete(seat.seatId); });
-        if (state.lastRefusal !== null) {
-            pendingSeatIds.delete(state.lastRefusal.seatId);
-        }
-        if (state.status !== 'started' && state.status !== 'seats_held') {
-            pendingSeatIds.clear();
-        }
         render();
     }
 
@@ -173,15 +171,15 @@
             if (button.classList.contains('seat--yours')) {
                 await post(ordersUrl + '/' + orderId + '/seats/release', { seatId: seatId });
             } else {
-                pendingSeatIds.add(seatId);
+                postingSeatIds.add(seatId);
                 render();
                 await post(ordersUrl + '/' + (await openOrder()) + '/seats', { seatId: seatId });
             }
         } catch (error) {
-            pendingSeatIds.delete(seatId);
             message = error.message;
         }
         await refresh();
+        postingSeatIds.delete(seatId);
         render();
     });
 

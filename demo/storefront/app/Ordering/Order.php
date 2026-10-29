@@ -253,7 +253,7 @@ final class Order extends Model
     #[CommandHandler]
     public function recordConfirmationRefusal(RecordConfirmationRefusal $command): void
     {
-        if ($this->seats_sold || $this->status === OrderStatus::TICKETS_ISSUED) {
+        if ($this->seats_sold || in_array($this->status, [OrderStatus::TICKETS_ISSUED, OrderStatus::FAILED], true)) {
             return;
         }
         $this->fail(new FailOrder(orderId: $this->id, reason: $command->reason));

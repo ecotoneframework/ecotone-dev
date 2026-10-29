@@ -114,6 +114,30 @@ final class TicketingRepliesTest extends StorefrontFlowTestCase
         self::assertSame([['tickets.release', self::CONCERT_ID . '/A-12']], array_map(fn (array $request) => [$request[0], $request[1]['seatId']], $this->ticketingReceives()));
     }
 
+    public function test_a_refused_confirm_result_delivered_again_keeps_the_order_failed_with_its_reason_and_dead_letters_nothing(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
+        $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS, confirmationEmailBounces: false));
+        $this->storefront->run('storefront_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $refused = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'customerId' => $this->order($orderId)['customerId'], 'outcome' => 'refused', 'reason' => 'the hold of seat A-12 expired.', 'seatIds' => [self::CONCERT_ID . '/A-12']];
+        $this->ticketingService->confirmReplies[] = $refused;
+        $this->ticketingReplies();
+        $this->ticketingReceives();
+        $this->ticketingService->confirmReplies[] = $refused;
+
+        $this->confirmationIsSentAgain($orderId);
+        $this->ticketingReplies();
+        $this->storefrontAsyncRuns();
+
+        $order = $this->order($orderId);
+        self::assertSame('failed', $order['status']);
+        self::assertSame('Ticketing refused to confirm the seats: the hold of seat A-12 expired. A refund of the payment is queued.', $order['failureReason']);
+        self::assertSame('refunded', $this->storefront->sendQueryWithRouting('payment.status', $order['paymentReference']));
+        self::assertSame([], $this->ticketingReceives());
+        self::assertSame(0, $this->storefront->getGateway(DeadLetterGateway::class)->count());
+    }
+
     public function test_a_refused_confirm_result_after_the_sold_one_does_not_fail_or_refund_the_order(): void
     {
         $orderId = $this->orderPaidWithACard();

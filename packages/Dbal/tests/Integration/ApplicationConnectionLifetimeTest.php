@@ -27,6 +27,7 @@ final class ApplicationConnectionLifetimeTest extends DbalMessagingTestCase
             $this->markTestSkipped('SQLite has no server side connections to count');
         }
 
+        gc_collect_cycles();
         $connectionsBefore = $this->openConnections();
 
         for ($application = 1; $application <= 3; $application++) {
@@ -49,6 +50,7 @@ final class ApplicationConnectionLifetimeTest extends DbalMessagingTestCase
             $this->markTestSkipped('SQLite has no server side connections to count');
         }
 
+        gc_collect_cycles();
         $connectionsBefore = $this->openConnections();
 
         $ecotoneLite = $this->bootstrapApplicationOn(new DbalConnectionFactory(getenv('DATABASE_DSN')));

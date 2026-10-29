@@ -7,6 +7,7 @@ namespace App\Tests\Settings;
 use App\Settings\PulseConfigurationException;
 use App\Settings\PulseSettings;
 use App\Tests\Support\PulseEnvironmentTrait;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -31,6 +32,15 @@ final class EnvironmentRefusalTest extends KernelTestCase
         $settings = PulseSettings::fromEnvironment(['ECOTONE_LICENCE_KEY' => 'key', 'PULSE_VERSION' => '2.0.1', 'PULSE_TRANSPORT_DSN' => 'amqp://guest:guest@rabbitmq:5672', 'PULSE_SERVICES' => 'orders'], __DIR__);
 
         self::assertSame('2.0.1', $settings->version);
+    }
+
+    public function test_pulse_on_its_own_licence_is_not_the_demo_version(): void
+    {
+        $own = PulseSettings::fromEnvironment(['ECOTONE_LICENCE_KEY' => 'key', 'PULSE_VERSION' => 'test', 'PULSE_TRANSPORT_DSN' => 'amqp://guest:guest@rabbitmq:5672', 'PULSE_SERVICES' => 'orders'], __DIR__);
+        $testing = PulseSettings::fromEnvironment(['ECOTONE_LICENCE_KEY' => LicenceTesting::VALID_LICENCE, 'PULSE_VERSION' => 'test', 'PULSE_TRANSPORT_DSN' => 'amqp://guest:guest@rabbitmq:5672', 'PULSE_SERVICES' => 'orders'], __DIR__);
+
+        self::assertFalse($own->runsOnTestingLicence);
+        self::assertTrue($testing->runsOnTestingLicence);
     }
 
     public function test_services_listed_by_name_consume_a_channel_named_like_the_service(): void

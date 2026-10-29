@@ -81,7 +81,7 @@
                 <dt>Ecotone</dt><dd>{{ service.ecotoneVersion ?? 'unknown' }}</dd>
                 <dt>PHP</dt><dd>{{ service.snapshot.overview.phpVersion|default('unknown') }}</dd>
                 <dt>Framework</dt><dd>{{ service.snapshot.overview.framework|default('unknown') }}</dd>
-                <dt>Licence expires</dt><dd>{{ service.snapshot.overview.licence.expiresAt|default('never') }}</dd>
+                <dt>Licence expires</dt><dd>{% include '_licence.html.twig' with {snapshot: service.snapshot} only %}</dd>
             </dl>
         </section>
 

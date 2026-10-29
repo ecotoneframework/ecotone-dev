@@ -55,7 +55,7 @@
                         <td{% if versions|length > 1 and version is not null and version != versions|last %} class="drifted" data-drifted{% endif %}>{{ version ?? 'unknown' }}</td>
                         <td class="hide-narrow">{{ service.snapshot.overview.phpVersion|default('unknown') }}</td>
                         <td class="hide-narrow">{{ service.snapshot.overview.framework|default('unknown') }}</td>
-                        <td class="hide-narrow">{{ service.snapshot.overview.licence.expiresAt|default('never') }}</td>
+                        <td class="hide-narrow">{% include '_licence.html.twig' with {snapshot: service.snapshot} only %}</td>
                         <td class="num">{% if service.isMultiTenant %}<span data-dead-letters>{{ deadLetterTotals[service.service] ?? 0 }}</span>{% elseif service.failureCount is not null %}<span data-dead-letters>{% if service.failureCount > 0 %}<a href="{{ path('dead_letters', {service: service.service}) }}">{{ service.failureCount }}</a>{% else %}{{ service.failureCount }}{% endif %}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
                         <td class="num"><span data-channels-over>{% if channelsOver[service.service] > 0 %}<a href="{{ path('service_hub', {service: service.service}) }}#channels">{{ channelsOver[service.service] }}</a>{% else %}{{ channelsOver[service.service] }}{% endif %}</span></td>
                     {% else %}

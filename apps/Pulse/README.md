@@ -18,7 +18,7 @@ You need Docker and an Ecotone Enterprise licence key (trial: https://ecotone.te
 docker compose -f apps/Pulse/docker-compose.example.yml --profile demo up --build
 ```
 
-The demo needs no licence key: it runs on Ecotone's testing licence (a key you pass in `ECOTONE_LICENCE_KEY` still wins). Your own services need your Ecotone Enterprise key ([trial](https://ecotone.tech/pricing)).
+The demo needs no licence key: it runs on Ecotone's testing licence (a key you pass in `ECOTONE_LICENCE_KEY` still wins). On the testing licence every page says **Demo Version** at the top, and a service on the testing licence shows "Testing licence" where a service on its own key shows the day its licence expires. Your own services need your Ecotone Enterprise key ([trial](https://ecotone.tech/pricing)).
 
 Open http://localhost:8080. No file is edited. The first page a browser opens on a day shows a short splash, the Ecotone logo with a beating heart, before the dashboard (any click or key skips it; reduced motion shortens it). After about 40 seconds the **Services** page shows `orders` and `billing`
 as **Connected**; the demo services run a few orders in the background, so **Dead letters** holds failed messages you can

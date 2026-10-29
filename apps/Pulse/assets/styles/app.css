@@ -25,6 +25,7 @@ main{max-width:76rem;margin:0 auto;padding:1.5rem 1.25rem;min-width:0}
 .topbar{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;align-items:center;padding:.6rem 1.25rem;background:color-mix(in srgb,var(--surface) 78%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:6}
 .brand{font-weight:700;letter-spacing:.01em;display:flex;gap:.5rem;align-items:center;color:var(--fg);text-decoration:none}
 .brand-logo{height:28px;width:auto;flex:none}
+.demo-version{flex:none;font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.2rem .55rem;border-radius:999px;color:var(--wait);background:var(--wait-bg);border:1px solid var(--wait)}
 .intro{display:none}
 .intro-pending .intro{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;position:fixed;inset:0;z-index:50;background:var(--bg);color:var(--magenta);transition:opacity .5s;cursor:pointer}
 .intro-pending .intro.intro-leaving{opacity:0}

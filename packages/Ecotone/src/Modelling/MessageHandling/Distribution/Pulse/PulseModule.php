@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\MessageHandling\Distribution\Pulse;
 
+use DateTimeInterface;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\ModuleAnnotation;
@@ -26,6 +27,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\Licence\LicenceService;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PolledMessageFailureAnswer;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
@@ -36,6 +38,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Test\LicenceTesting;
 
 #[ModuleAnnotation]
 /**
@@ -123,6 +126,7 @@ final class PulseModule implements AnnotationModule
                 self::sectionReferences($sectionRegistrations, tenantScoped: false),
                 self::sectionReferences($sectionRegistrations, tenantScoped: true),
                 $tenancy === null ? [] : ['header' => $tenancy->tenantHeaderName, 'tenants' => $tenancy->tenants],
+                self::licenceOf((string) $bootstrapConfiguration->licenceKey),
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),
                 new Reference(ExtensionObjectResolver::resolve(PulseSectionIsolationRegistration::class, $extensionObjects)[0]->serviceReference ?? NoPulseSectionIsolation::class),
@@ -212,6 +216,18 @@ final class PulseModule implements AnnotationModule
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;
+    }
+
+    /**
+     * @return array{enterprise: bool, expiresAt: string, testing: bool}
+     */
+    private static function licenceOf(string $licenceKey): array
+    {
+        return [
+            'enterprise' => true,
+            'expiresAt' => (new LicenceService())->expiresAt($licenceKey)->format(DateTimeInterface::ATOM),
+            'testing' => $licenceKey === LicenceTesting::VALID_LICENCE,
+        ];
     }
 
     /**

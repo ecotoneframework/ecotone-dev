@@ -69,7 +69,7 @@ final class PulseSnapshotResponderTest extends TestCase
         self::assertSame('2026-10-20T12:00:00+00:00', $snapshot['takenAt']);
         self::assertSame(PHP_VERSION, $snapshot['overview']['phpVersion']);
         self::assertSame('lite', $snapshot['overview']['framework']);
-        self::assertSame(['enterprise' => true, 'expiresAt' => null], $snapshot['overview']['licence']);
+        self::assertSame(['enterprise' => true, 'expiresAt' => '2032-10-11T00:00:00+00:00', 'testing' => true], $snapshot['overview']['licence']);
         self::assertIsString($snapshot['overview']['ecotoneVersion']);
         self::assertNotSame('', $snapshot['overview']['ecotoneVersion']);
         self::assertArrayHasKey('nodes', $snapshot['flowGraph']);

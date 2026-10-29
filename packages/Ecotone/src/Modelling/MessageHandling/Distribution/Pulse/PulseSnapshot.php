@@ -54,6 +54,7 @@ final class PulseSnapshot
      * @param array<string, PulseSnapshotSection> $tenantIndependentSections
      * @param array<string, PulseSnapshotSection> $tenantScopedSections
      * @param array{header: string, tenants: list<string>}|array{} $tenancy
+     * @param array{enterprise: bool, expiresAt: string, testing: bool} $licence
      */
     public function __construct(
         private string $serviceName,
@@ -65,6 +66,7 @@ final class PulseSnapshot
         private array $tenantIndependentSections,
         private array $tenantScopedSections,
         private array $tenancy,
+        private array $licence,
         private ConfiguredMessagingSystem $messagingSystem,
         private EcotoneClockInterface $clock,
         private PulseSectionIsolation $sectionIsolation,
@@ -136,7 +138,7 @@ final class PulseSnapshot
      *     schemaVersion: int,
      *     serviceName: string,
      *     takenAt: string,
-     *     overview: array{ecotoneVersion: string|null, phpVersion: string, framework: string, licence: array{enterprise: bool, expiresAt: string|null}},
+     *     overview: array{ecotoneVersion: string|null, phpVersion: string, framework: string, licence: array{enterprise: bool, expiresAt: string, testing: bool}},
      *     flowGraph: array<string, mixed>,
      *     topology: array{serviceMaps: array<mixed>},
      *     channels: list<array{name: string, kind: string, ready: int|null, delayed: int|null, inFlight: int|null, consumers: int|null, probeError: string|null, consumerToRun: string|null, handlers: list<string>, setUp: bool|null}>,
@@ -152,7 +154,7 @@ final class PulseSnapshot
                 'ecotoneVersion' => InstalledVersions::isInstalled('ecotone/ecotone') ? InstalledVersions::getPrettyVersion('ecotone/ecotone') : null,
                 'phpVersion' => PHP_VERSION,
                 'framework' => $this->framework,
-                'licence' => ['enterprise' => true, 'expiresAt' => null],
+                'licence' => $this->licence,
             ],
             'flowGraph' => $this->messagingSystem->getMessageFlowGraph()->toArray(),
             'topology' => ['serviceMaps' => $this->serviceMaps],

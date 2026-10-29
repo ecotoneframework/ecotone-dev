@@ -19,6 +19,9 @@ putenv(sprintf(
 ));
 
 $bootstrap = require __DIR__ . '/../ExampleAppEventSourcing/Lite/app.php';
-$bootstrap(false)->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
+$messagingSystem = $bootstrap(false);
+$messagingSystem->runConsoleCommand('ecotone:migration:database:delete', ['force' => true]);
+$messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
+$messagingSystem->runConsoleCommand('ecotone:projection:init', ['all' => true]);
 
 echo "Benchmark database tables are set up.\n";

@@ -79,6 +79,7 @@ use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\MessageBusChannel;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 use Ecotone\Projecting\ProjectingHeaders;
 use Symfony\Component\Uid\Uuid;
 
@@ -463,7 +464,27 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
             ...$this->buildEventSourcingRepositoryBuilder($serviceExtensions),
             ...$tableManagerReferences,
             new DbalTableManagerReference(TagTableManager::class),
+            ...(PulseFeature::isReportedFor($serviceExtensions) ? [self::eventStoreFeature($eventSourcingConfiguration)] : []),
         ];
+    }
+
+    private static function eventStoreFeature(EventSourcingConfiguration $configuration): PulseFeature
+    {
+        $storage = $configuration->isInMemory() ? 'in memory' : 'database, connection ' . $configuration->getConnectionReferenceName();
+
+        return new PulseFeature(
+            package: ModulePackageList::EVENT_SOURCING_PACKAGE,
+            name: 'Event store',
+            enabled: true,
+            settings: [
+                'Storage' => $storage,
+                'Default stream table' => $configuration->getDefaultEventStreamTableName(),
+                'Load batch size' => (string) $configuration->getLoadBatchSize(),
+            ],
+            handlers: [],
+            hint: sprintf('The events of event-sourced aggregates are appended to their event streams (%s, in table %s unless a stream names its own) and read back %d events at a time, when an aggregate is loaded and when a projection catches up.', $storage, $configuration->getDefaultEventStreamTableName(), $configuration->getLoadBatchSize()),
+            configuration: sprintf("EventSourcingConfiguration::createWithDefaults()->withLoadBatchSize(%d)->withDefaultEventStreamTableName('%s')", $configuration->getLoadBatchSize(), $configuration->getDefaultEventStreamTableName()),
+        );
     }
 
     private function buildEventSourcingRepositoryBuilder(array $serviceExtensions): array

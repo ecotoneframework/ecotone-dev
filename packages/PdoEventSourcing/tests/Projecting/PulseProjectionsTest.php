@@ -132,6 +132,19 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
     }
 
     #[DataProvider('storages')]
+    public function test_the_event_store_feature_reports_where_events_are_stored_and_how_many_are_read_at_a_time(string $storage): void
+    {
+        $this->bootstrap($storage, []);
+
+        $features = array_column(array_column($this->requestSnapshot()['packages'], 'features', 'name')['eventSourcing'], null, 'name');
+
+        self::assertTrue($features['Event store']['enabled']);
+        self::assertSame($storage === 'dbal' ? 'database, connection ' . DbalConnectionFactory::class : 'in memory', $features['Event store']['settings']['Storage']);
+        self::assertSame('1000', $features['Event store']['settings']['Load batch size']);
+        self::assertStringContainsString('read back 1000 events at a time', $features['Event store']['hint']);
+    }
+
+    #[DataProvider('storages')]
     public function test_a_service_without_projections_reports_an_empty_projections_list(string $storage): void
     {
         $this->bootstrap($storage, []);

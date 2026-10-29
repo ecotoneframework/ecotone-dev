@@ -148,6 +148,35 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
         self::assertStringContainsString('subgraph', $crawler->filter('pre.mermaid')->text());
     }
 
+    public function test_a_collapsed_service_takes_the_trace_state_of_the_service_and_the_arrow_the_trace_crossed_stays_highlighted(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $graph = new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::INVOICED . '&collapse[]=billing'));
+
+        self::assertTrue($graph->hasNode('tracePassed', 'billing', 'collapsed'));
+        self::assertTrue($graph->hasNode('tracePassed', 'orders', '::invoice'));
+        self::assertTrue($graph->isEdgeHighlighted('orders', 'invoice.create', 'distributed command', 'billing', 'collapsed'));
+    }
+
+    public function test_following_a_node_of_a_highlighted_trace_keeps_the_highlight_on_its_flow(): void
+    {
+        $client = $this->pulseWithAllServices();
+        $page = $this->traceView($client, '/flow?trace=' . self::INVOICED);
+        $nodes = json_decode($page->filter('pre.mermaid')->attr('data-graph-nodes'), true, flags: JSON_THROW_ON_ERROR);
+        $invoice = array_values(array_filter($nodes, fn (array $node) => $node['service'] === 'billing' && $node['title'] === 'invoice.create'));
+
+        $focused = $this->traceView($client, $invoice[0]['href']);
+
+        self::assertCount(1, $focused->filter('[data-focus]'));
+        $graph = new HighlightedDiagram($focused);
+        self::assertTrue($graph->hasNode('tracePassed', 'orders', '::invoice'));
+        self::assertTrue($graph->isEdgeHighlighted('orders', 'invoice.create', 'distributed command', 'billing', 'invoice.create'));
+        foreach ($focused->filter('[data-focus-upstream] a, [data-focus-downstream] a') as $link) {
+            self::assertStringContainsString('trace=' . self::INVOICED, (string) $link->getAttribute('href'));
+        }
+    }
+
     /**
      * @return array{services: array<string, string>, lines: list<string>}
      */

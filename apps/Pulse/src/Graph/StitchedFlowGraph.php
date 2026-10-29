@@ -14,15 +14,23 @@ final class StitchedFlowGraph
     /**
      * @param list<ServiceFlow> $flows
      * @param list<string> $shownServices
-     * @return array<string, array{title: string, service: string}>
+     * @param list<string> $collapsed
+     * @return array<string, array{title: string, service: string, node?: string, collapsed?: true, current?: true}>
      */
-    public static function nodeDetails(array $flows, array $shownServices): array
+    public static function nodeDetails(array $flows, array $shownServices, ?FlowFocus $focus = null, array $collapsed = []): array
     {
         $details = [];
         foreach (self::shownOf($flows, $shownServices) as $serviceIndex => $flow) {
             $details[sprintf('s%d', $serviceIndex)] = ['title' => $flow->name, 'service' => $flow->name];
+            if (in_array($flow->name, $collapsed, true)) {
+                $details[sprintf('s%dc', $serviceIndex)] = ['title' => sprintf('%s: %d nodes, collapsed', $flow->name, self::countShown($flow, $focus)), 'service' => $flow->name, 'collapsed' => true];
+                continue;
+            }
             foreach ($flow->graph->nodes() as $nodeIndex => $node) {
-                $details[sprintf('s%dn%d', $serviceIndex, $nodeIndex)] = ['title' => $node->label, 'service' => $flow->name];
+                if ($focus?->includes($flow->name, $node->id) === false) {
+                    continue;
+                }
+                $details[sprintf('s%dn%d', $serviceIndex, $nodeIndex)] = ['title' => $node->label, 'service' => $flow->name, 'node' => $node->id, ...($focus?->service === $flow->name && $focus->node->id === $node->id ? ['current' => true] : [])];
             }
         }
 
@@ -119,24 +127,55 @@ final class StitchedFlowGraph
     /**
      * @param list<ServiceFlow> $flows
      * @param list<string> $shownServices
+     * @param list<string> $collapsed
      */
-    public static function toMermaid(array $flows, array $shownServices, ?TraceHighlight $highlight = null, ?ServiceScopeFilter $scope = null): string
+    public static function toMermaid(array $flows, array $shownServices, ?TraceHighlight $highlight = null, ?ServiceScopeFilter $scope = null, ?FlowFocus $focus = null, array $collapsed = [], bool $foldChannels = false): string
     {
         $shown = self::shownOf($flows, $shownServices);
         $ids = [];
+        $asyncVia = [];
         $lines = ['flowchart LR'];
         foreach ($shown as $serviceIndex => $flow) {
             $lines[] = sprintf('    subgraph s%d ["%s"]', $serviceIndex, MermaidText::escape($flow->name));
+            if (in_array($flow->name, $collapsed, true)) {
+                $lines[] = sprintf('        s%dc["%s<br/>%d nodes, collapsed"]', $serviceIndex, MermaidText::escape(ShortLabel::of($flow->name)), self::countShown($flow, $focus));
+                foreach ($flow->graph->nodes() as $node) {
+                    if ($focus?->includes($flow->name, $node->id) !== false) {
+                        $ids[$flow->name][$node->id] = sprintf('s%dc', $serviceIndex);
+                    }
+                }
+                $lines[] = '    end';
+                continue;
+            }
+            $folded = $foldChannels ? self::foldedChannels($flow, $focus) : [];
+            foreach ($folded as $channelId => $handlers) {
+                foreach ($handlers as $handlerId) {
+                    $asyncVia[$flow->name][$handlerId] = $flow->graph->node($channelId)->label;
+                }
+            }
             foreach ($flow->graph->nodes() as $nodeIndex => $node) {
+                if ($focus?->includes($flow->name, $node->id) === false || isset($folded[$node->id])) {
+                    continue;
+                }
                 $ids[$flow->name][$node->id] = sprintf('s%dn%d', $serviceIndex, $nodeIndex);
                 $lines[] = '        ' . $ids[$flow->name][$node->id] . self::shape($node, $highlight?->stateOf($flow->name, $node->id) === null ? null : $highlight->durationLabelOf($flow->name, $node->id));
+            }
+            foreach ($flow->graph->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS) as $edge) {
+                if (isset($ids[$flow->name][$edge->to]) && ! isset($ids[$flow->name][$edge->from]) && $flow->graph->node($edge->from)->kind === FlowNodeKind::CHANNEL) {
+                    $asyncVia[$flow->name][$edge->to] = $flow->graph->node($edge->from)->label;
+                }
             }
             $lines[] = '    end';
         }
         $edges = [];
         foreach ($shown as $flow) {
             foreach ($flow->graph->edges() as $edge) {
-                $line = sprintf('    %s %s %s', $ids[$flow->name][$edge->from], self::arrow($edge), $ids[$flow->name][$edge->to]);
+                if (in_array($flow->name, $collapsed, true) || ! isset($ids[$flow->name][$edge->from], $ids[$flow->name][$edge->to])) {
+                    continue;
+                }
+                $channel = $edge->kind === FlowEdgeKind::ASYNCHRONOUS ? null : ($asyncVia[$flow->name][$edge->to] ?? null);
+                $arrow = $channel === null ? self::arrow($edge) : '==>|"' . MermaidText::escape('async: ' . $channel) . '"|';
+                $line = sprintf('    %s %s %s', $ids[$flow->name][$edge->from], $arrow, $ids[$flow->name][$edge->to]);
                 $edges[$line] = ($edges[$line] ?? false) || ($highlight?->passes($flow->name, $edge->from, $edge->to) ?? false);
             }
         }
@@ -152,38 +191,84 @@ final class StitchedFlowGraph
         $greyedLines = [];
         foreach ($shown as $flow) {
             if ($scope?->isGreyed($flow->name) === true) {
-                array_push($greyedLines, ...array_map(static fn (string $id): string => $id, array_values($ids[$flow->name] ?? [])));
+                array_push($greyedLines, ...array_values(array_unique($ids[$flow->name] ?? [])));
             }
         }
         if ($greyedLines !== []) {
             $greyedLines = ['    classDef greyed opacity:0.45', '    class ' . implode(',', $greyedLines) . ' greyed'];
         }
 
-        return implode("\n", [...$lines, ...self::highlightLines($shown, $ids, array_values($edges), $highlight), ...$greyedLines]) . "\n";
+        $focusedLines = $focus === null ? [] : ['    classDef focused stroke-width:4px', sprintf('    class %s focused', $ids[$focus->service][$focus->node->id])];
+
+        return implode("\n", [...$lines, ...self::highlightLines($shown, $ids, array_values($edges), $highlight, $collapsed), ...$greyedLines, ...$focusedLines]) . "\n";
     }
 
     /**
      * @param list<ServiceFlow> $shown
      * @param array<string, array<string, string>> $ids
      * @param list<bool> $highlightedEdges
+     * @param list<string> $collapsed
      * @return list<string>
      */
-    private static function highlightLines(array $shown, array $ids, array $highlightedEdges, ?TraceHighlight $highlight): array
+    private static function highlightLines(array $shown, array $ids, array $highlightedEdges, ?TraceHighlight $highlight, array $collapsed): array
     {
         if ($highlight === null) {
             return [];
         }
         $byState = [];
-        foreach ($shown as $flow) {
+        foreach ($shown as $serviceIndex => $flow) {
+            if (in_array($flow->name, $collapsed, true)) {
+                $state = $highlight->stateOfService($flow->name);
+                if ($state !== null) {
+                    $byState[$state][] = sprintf('s%dc', $serviceIndex);
+                }
+                continue;
+            }
             foreach ($flow->graph->nodes() as $node) {
                 $state = $highlight->stateOf($flow->name, $node->id);
-                if ($state !== null) {
+                if ($state !== null && isset($ids[$flow->name][$node->id])) {
                     $byState[$state][] = $ids[$flow->name][$node->id];
                 }
             }
         }
 
         return [...self::highlightClassLines($byState), ...self::highlightedLinkLines($highlightedEdges)];
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    private static function foldedChannels(ServiceFlow $flow, ?FlowFocus $focus): array
+    {
+        $shown = fn (string $nodeId): bool => $focus?->includes($flow->name, $nodeId) !== false;
+        $folded = [];
+        foreach ($flow->graph->nodesOfKind(FlowNodeKind::CHANNEL) as $channel) {
+            $outgoing = $flow->graph->edgesFrom($channel->id);
+            if (! $shown($channel->id) || $outgoing === [] || $flow->graph->edgesTo($channel->id) !== []) {
+                continue;
+            }
+            $handlers = [];
+            foreach ($outgoing as $edge) {
+                $fedOtherwise = array_filter($flow->graph->edgesTo($edge->to), fn (FlowEdge $into) => $into->kind !== FlowEdgeKind::ASYNCHRONOUS && $shown($into->from));
+                if ($edge->kind === FlowEdgeKind::ASYNCHRONOUS && ! $shown($edge->to)) {
+                    continue;
+                }
+                if ($edge->kind !== FlowEdgeKind::ASYNCHRONOUS || $fedOtherwise === []) {
+                    continue 2;
+                }
+                $handlers[] = $edge->to;
+            }
+            if ($handlers !== []) {
+                $folded[$channel->id] = $handlers;
+            }
+        }
+
+        return $folded;
+    }
+
+    private static function countShown(ServiceFlow $flow, ?FlowFocus $focus): int
+    {
+        return count(array_filter($flow->graph->nodes(), fn (FlowNode $node) => $focus?->includes($flow->name, $node->id) !== false));
     }
 
     private static function shape(FlowNode $node, ?string $duration = null): string

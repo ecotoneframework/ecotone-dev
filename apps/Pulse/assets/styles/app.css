@@ -137,12 +137,14 @@ pre.mermaid a{cursor:pointer}pre.mermaid a:hover rect,pre.mermaid a:hover polygo
 pre.mermaid g.cluster[class*="svc-"] rect{stroke:var(--c)!important;stroke-width:1.5px!important;fill:color-mix(in srgb,var(--c) 7%,var(--surface))!important}
 pre.mermaid g.cluster[class*="svc-"] .nodeLabel,pre.mermaid g.cluster[class*="svc-"] text{fill:var(--fg)!important}
 .legend-items{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;list-style:none;padding:0;margin:.5rem 0}
-.legend summary{cursor:pointer;font-weight:600}
+.legend summary,[data-focus-steps] summary{cursor:pointer;font-weight:600}
 .service-links{width:auto;min-width:24rem}
 b.ok{background:none;border:0}
 pre.mermaid .tracePassed>*{fill:var(--ok-bg)!important;stroke:var(--ok)!important}
 pre.mermaid .tracePending>*{fill:var(--wait-bg)!important;stroke:var(--wait)!important;stroke-dasharray:4 2!important}
 pre.mermaid .traceFailed>*{fill:var(--bad-bg)!important;stroke:var(--bad)!important}
+pre.mermaid .focused>*{stroke:var(--accent)!important;stroke-width:4px!important;filter:drop-shadow(0 0 6px var(--glow))}
+.focus-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));gap:1rem}.focus-steps ol{margin:.25rem 0;padding-left:1.4rem}.focus-steps li{margin:.15rem 0;overflow-wrap:anywhere}.focus h3{margin:.5rem 0 .25rem;font-size:1rem}
 pre.mermaid path[style*="stroke-width:3px"],pre.mermaid path[style*="stroke-width: 3px"]{stroke:var(--ok)!important}
 .waterfall{min-width:62rem}
 .waterfall td[data-column=startedAt],.waterfall td[data-column=kind],.waterfall td.num,.waterfall td[data-column=status]{white-space:nowrap}
@@ -205,5 +207,5 @@ td details form{margin-top:.5rem}
 
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(20rem,1fr));gap:1rem}.tiles .card{margin:0}.tiles ul{list-style:none;padding:0;margin:0 0 .5rem}.tiles li{margin:.35rem 0}
 .tenant-switcher{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}.tenant-switcher a[aria-current=page]{font-weight:700;text-decoration:underline}
-.scope-filter{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem}.greyed,.greyed h2,.greyed th{color:var(--muted)}
+.scope-filter,.flow-find{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem}.greyed,.greyed h2,.greyed th{color:var(--muted)}
 section[data-group],.card.flush{overflow-x:auto}

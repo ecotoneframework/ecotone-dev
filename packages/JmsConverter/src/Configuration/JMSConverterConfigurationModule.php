@@ -108,11 +108,22 @@ final class JMSConverterConfigurationModule extends NoExternalConfigurationModul
     private function resolveConfiguration(array $configurations): JMSConverterConfiguration
     {
         if (count($configurations) > 1) {
+            $descriptions = array_map(fn (JMSConverterConfiguration $configuration): string => $this->describe($configuration), $configurations);
+            $wayOut = 'Keep one #[ServiceContext] method returning JMSConverterConfiguration::createWithDefaults() and move every with*() call onto it, or pass a single JMSConverterConfiguration in extensionObjects.';
+
+            if (count(array_unique($descriptions)) === 1) {
+                throw ConfigurationException::create(
+                    sprintf('Ecotone was given %s identical JMSConverterConfigurations, each with %s. ', count($configurations) === 2 ? 'two' : count($configurations), $descriptions[0])
+                    . 'Ecotone reads exactly one, so the second registration is a mistake. '
+                    . $wayOut
+                );
+            }
+
             throw ConfigurationException::create(
                 'Ecotone was given more than one JMSConverterConfiguration: '
-                . implode(', and ', array_map(fn (JMSConverterConfiguration $configuration): string => 'one with ' . $this->describe($configuration), $configurations))
+                . implode(', and ', array_map(fn (string $description): string => 'one with ' . $description, $descriptions))
                 . '. Ecotone reads exactly one, so it cannot tell which of them to apply. '
-                . 'Keep one #[ServiceContext] method returning JMSConverterConfiguration::createWithDefaults() and move every with*() call onto it, or pass a single JMSConverterConfiguration in extensionObjects.'
+                . $wayOut
             );
         }
 

@@ -2745,6 +2745,20 @@ message is redelivered, and the worker keeps handling messages.
 
 **How to adapt:** nothing.
 
+### A Tempest connection recovers after the database restarts
+
+**Before:** a `TempestConnectionReference::create($configTag)` handed Ecotone the PDO object the Tempest connection held
+when Ecotone first used it, and `TempestConnectionReference::defaultConnection()` kept using the Tempest connection's
+PDO after it was lost. After a database restart a consumer on a DBAL channel, the dead letter or the outbox failed every
+message with `no connection to the server` until the worker was restarted.
+
+**Now:** Ecotone connects through the Tempest connection each time it connects. A failure that reports a lost
+connection closes the Tempest connection and is raised as Doctrine's `ConnectionLost`, so the next connect opens a new
+one for Ecotone and for the Tempest ORM alike, the failed message is redelivered, and the worker keeps handling
+messages.
+
+**How to adapt:** nothing.
+
 ### `#[Partitioned]` with `#[ProjectionDeployment(manualKickOff: true)]` is refused at bootstrap
 
 **Before:** a partitioned projection ignored `manualKickOff: true` without a word — each partition initialized and

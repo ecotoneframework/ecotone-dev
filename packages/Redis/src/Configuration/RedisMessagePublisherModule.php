@@ -24,6 +24,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaders
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 use Ecotone\Redis\RedisOutboundChannelAdapterBuilder;
 
 #[ModuleAnnotation]
@@ -88,6 +89,23 @@ final class RedisMessagePublisherModule extends NoExternalConfigurationModule im
 
             DeferredPublishingGatewayRegistration::registerFor($messagingConfiguration, $messagePublisher->getReferenceName(), nonBlockingConfirmationEnabled: false);
         }
+    }
+
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
+    {
+        if (! PulseFeature::isReportedFor($serviceExtensions)) {
+            return [];
+        }
+
+        return [PulseFeature::messagePublishers(
+            ModulePackageList::REDIS_PACKAGE,
+            'Redis',
+            array_map(
+                static fn (RedisMessagePublisherConfiguration $publisher): string => sprintf("%s: queue '%s'%s", PulseFeature::shortNameOf($publisher->getReferenceName()), $publisher->getQueueName(), $publisher->isBatchPublishingEnabled() ? ', batch publishing' : ''),
+                ExtensionObjectResolver::resolve(RedisMessagePublisherConfiguration::class, $serviceExtensions),
+            ),
+            "RedisMessagePublisherConfiguration::create(MessagePublisher::class, queueName: 'orders')",
+        )];
     }
 
     public function getModulePackageName(): string

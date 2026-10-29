@@ -8,6 +8,7 @@ use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
@@ -35,6 +36,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayload
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 /**
  * licence Enterprise
@@ -214,6 +216,23 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
             . "Pass the licence key - licenceKey in your framework's Ecotone configuration, or EcotoneLite::bootstrapFlowTesting(..., licenceKey: '...') in a test - "
             . 'or remove the Kafka configuration listed. See https://docs.ecotone.tech/enterprise for details.'
         );
+    }
+
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
+    {
+        if (! PulseFeature::isReportedFor($serviceExtensions)) {
+            return [];
+        }
+
+        return [PulseFeature::messagePublishers(
+            ModulePackageList::KAFKA_PACKAGE,
+            'Kafka',
+            array_map(
+                static fn (KafkaPublisherConfiguration $publisher): string => sprintf("%s: topic '%s'%s", PulseFeature::shortNameOf($publisher->getReferenceName()), $publisher->defaultTopicName, $publisher->isBatchPublishingEnabled() ? ', batch publishing' : ''),
+                ExtensionObjectResolver::resolve(KafkaPublisherConfiguration::class, $serviceExtensions),
+            ),
+            "KafkaPublisherConfiguration::createWithDefaults(topicName: 'orders')",
+        )];
     }
 
     public function getModulePackageName(): string

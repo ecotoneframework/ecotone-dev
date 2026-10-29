@@ -399,6 +399,122 @@ final class MessageFlowDistributedTest extends TestCase
         self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::holdRequestedSeat'));
     }
 
+    public function test_routing_key_the_helper_may_no_longer_hold_stays_unresolved(): void
+    {
+        $service = new class () {
+            private ?object $routes = null;
+
+            #[EventHandler('seat.requested')]
+            public function shadowedByAnArrowFunction(array $event, DistributedBus $distributedBus): void
+            {
+                $this->sendEachArrow($distributedBus, 'tickets.hold', $event['routes']);
+            }
+
+            #[EventHandler('seat.released')]
+            public function shadowedByAClosure(array $event, DistributedBus $distributedBus): void
+            {
+                $this->sendEachClosure($distributedBus, 'tickets.hold', $event['routes']);
+            }
+
+            #[EventHandler('order.paid')]
+            public function passedToAFunction(array $event, DistributedBus $distributedBus): void
+            {
+                $this->sendScanned($distributedBus, 'tickets.hold', $event['subject']);
+            }
+
+            #[EventHandler('order.failed')]
+            public function passedToAMethod(array $event, DistributedBus $distributedBus): void
+            {
+                $this->sendRewritten($distributedBus, 'tickets.hold');
+            }
+
+            #[EventHandler('order.cancelled')]
+            public function extracted(array $event, DistributedBus $distributedBus): void
+            {
+                $this->sendExtracted($distributedBus, 'tickets.hold', $event);
+            }
+
+            private function sendEachArrow(DistributedBus $distributedBus, string $routingKey, array $routes): void
+            {
+                array_map(fn (string $routingKey) => $distributedBus->sendMessage('ticketing', $routingKey, '{}'), $routes);
+            }
+
+            private function sendEachClosure(DistributedBus $distributedBus, string $routingKey, array $routes): void
+            {
+                foreach ($routes as $route) {
+                    (function (string $routingKey) use ($distributedBus): void {
+                        $distributedBus->sendMessage('ticketing', $routingKey, '{}');
+                    })($route);
+                }
+            }
+
+            private function sendScanned(DistributedBus $distributedBus, string $routingKey, string $subject): void
+            {
+                sscanf($subject, 'route:%s', $routingKey);
+                $distributedBus->sendMessage('ticketing', $routingKey, '{}');
+            }
+
+            private function sendRewritten(DistributedBus $distributedBus, string $routingKey): void
+            {
+                $this->routes?->rewrite($routingKey);
+                $distributedBus->sendMessage('ticketing', $routingKey, '{}');
+            }
+
+            private function sendExtracted(DistributedBus $distributedBus, string $routingKey, array $options): void
+            {
+                extract($options);
+                $distributedBus->sendMessage('ticketing', $routingKey, '{}');
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        foreach (['shadowedByAnArrowFunction', 'shadowedByAClosure', 'passedToAFunction', 'passedToAMethod', 'extracted'] as $method) {
+            self::assertSame(
+                [['inferred' => true, 'via' => 'sendMessage']],
+                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes'),
+            );
+        }
+    }
+
+    public function test_routing_key_stays_resolved_outside_a_shadowing_closure_and_before_a_call_that_may_reassign_it(): void
+    {
+        $service = new class () {
+            private ?object $routes = null;
+
+            #[EventHandler('seat.requested')]
+            public function outsideTheClosure(array $event, DistributedBus $distributedBus): void
+            {
+                $this->sendThenMap($distributedBus, 'tickets.hold', $event['routes']);
+            }
+
+            #[EventHandler('seat.released')]
+            public function beforeTheCall(array $event, DistributedBus $distributedBus): void
+            {
+                $this->sendThenRewrite($distributedBus, 'tickets.hold');
+            }
+
+            private function sendThenMap(DistributedBus $distributedBus, string $routingKey, array $routes): void
+            {
+                $distributedBus->sendMessage('ticketing', $routingKey, '{}');
+                array_map(fn (string $routingKey) => strtoupper($routingKey), $routes);
+            }
+
+            private function sendThenRewrite(DistributedBus $distributedBus, string $routingKey): void
+            {
+                $distributedBus->sendMessage('ticketing', $routingKey, '{}');
+                $this->routes?->rewrite($routingKey);
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        foreach (['outsideTheClosure', 'beforeTheCall'] as $method) {
+            self::assertSame(
+                [['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold']],
+                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes'),
+            );
+        }
+    }
+
     public function test_helpers_calling_each_other_resolve_the_key_once_and_stop(): void
     {
         $service = new class () {

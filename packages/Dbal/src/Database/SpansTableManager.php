@@ -10,6 +10,7 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Dbal\Tracing\FlowEntries;
 use Ecotone\Messaging\Config\Container\Definition;
 
@@ -47,6 +48,11 @@ final class SpansTableManager implements DbalTableManager
     public function getFeatureName(): string
     {
         return self::FEATURE_NAME;
+    }
+
+    public function getModulePackageName(): string
+    {
+        return ModulePackageList::DBAL_PACKAGE;
     }
 
     public function isUsed(): bool

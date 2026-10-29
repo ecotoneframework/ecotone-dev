@@ -382,6 +382,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         self::assertArrayNotHasKey('tenantTables', $withoutTenant['setup']);
         self::assertSame([], array_filter($ofTenantA['setup']['tenantTables'], static fn (array $table): bool => $table['initialized'] !== true));
         self::assertNotSame([], $ofTenantB['setup']['tenantTables']);
+        self::assertSame(['dbal'], array_values(array_unique(array_column($ofTenantB['setup']['tenantTables'], 'package'))));
         self::assertSame([], array_filter($ofTenantB['setup']['tenantTables'], static fn (array $table): bool => $table['initialized'] !== false));
         self::assertArrayNotHasKey('sectionErrors', $ofTenantA);
         self::assertArrayHasKey('deadLetters', $ofTenantB['sectionErrors']);

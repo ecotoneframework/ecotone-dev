@@ -38,7 +38,7 @@ final class PulseSetupStatus implements PulseSnapshotSection
     }
 
     /**
-     * @return array{tables: list<array{feature: string, connection: string, initialized: bool|null, error: string|null}>}
+     * @return array{tables: list<array{feature: string, package: string, connection: string, initialized: bool|null, error: string|null}>}
      */
     public function snapshot(): array
     {

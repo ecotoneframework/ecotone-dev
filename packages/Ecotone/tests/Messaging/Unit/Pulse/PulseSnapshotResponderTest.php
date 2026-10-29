@@ -86,6 +86,25 @@ final class PulseSnapshotResponderTest extends TestCase
         );
     }
 
+    public function test_the_snapshot_lists_every_installed_ecotone_package_of_the_service_even_one_without_features(): void
+    {
+        $pulse = $this->pulseReplies();
+        $channels = $this->channels();
+        $orderService = $this->orderService($this->orders(), $channels);
+        $pulseService = $this->pulseService($pulse, $channels);
+
+        $pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $packages = json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['packages'];
+        $byName = array_column($packages, null, 'name');
+        self::assertSame(['core', 'test'], array_column($packages, 'name'));
+        self::assertSame('ecotone/ecotone', $byName['core']['composerPackage']);
+        self::assertSame($byName['core']['version'], json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['overview']['ecotoneVersion']);
+        self::assertIsArray($byName['test']['features']);
+    }
+
     public function test_the_snapshot_lists_the_asynchronous_channels_a_dead_letter_can_be_replayed_to_with_their_kind(): void
     {
         $handlers = new class () {

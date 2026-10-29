@@ -28,6 +28,7 @@ use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\Licence\LicenceService;
+use Ecotone\Messaging\Config\ModuleClassList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PolledMessageFailureAnswer;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
@@ -127,6 +128,7 @@ final class PulseModule implements AnnotationModule
                 self::sectionReferences($sectionRegistrations, tenantScoped: true),
                 $tenancy === null ? [] : ['header' => $tenancy->tenantHeaderName, 'tenants' => $tenancy->tenants],
                 self::licenceOf((string) $bootstrapConfiguration->licenceKey),
+                self::packagesOf($bootstrapConfiguration, ExtensionObjectResolver::resolve(PulseFeature::class, $extensionObjects)),
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),
                 new Reference(ExtensionObjectResolver::resolve(PulseSectionIsolationRegistration::class, $extensionObjects)[0]->serviceReference ?? NoPulseSectionIsolation::class),
@@ -216,6 +218,25 @@ final class PulseModule implements AnnotationModule
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;
+    }
+
+    /**
+     * @param PulseFeature[] $features
+     * @return list<array{name: string, composerPackage: string, features: list<array<string, mixed>>}>
+     */
+    private static function packagesOf(BootstrapConfiguration $bootstrapConfiguration, array $features): array
+    {
+        return array_map(
+            static fn (string $packageName): array => [
+                'name' => $packageName,
+                'composerPackage' => ModuleClassList::composerPackageNameOf($packageName),
+                'features' => array_values(array_map(
+                    static fn (PulseFeature $feature): array => $feature->toArray(),
+                    array_filter($features, static fn (PulseFeature $feature): bool => $feature->package === $packageName),
+                )),
+            ],
+            ModuleClassList::installedPackageNames($bootstrapConfiguration->getEnabledModulePackageNames()),
+        );
     }
 
     /**

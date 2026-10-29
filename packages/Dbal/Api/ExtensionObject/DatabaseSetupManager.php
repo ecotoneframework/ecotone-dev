@@ -40,6 +40,11 @@ final class DatabaseSetupManager implements DefinedObject
         );
     }
 
+    public function getModulePackageNameOf(string $featureName): string
+    {
+        return $this->findManager($featureName)->getModulePackageName();
+    }
+
     /**
      * @return string[]
      */

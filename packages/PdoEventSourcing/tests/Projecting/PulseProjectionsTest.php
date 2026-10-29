@@ -118,6 +118,19 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         self::assertSame('initialized', array_column($after, 'initialization', 'name')['tickets_sync']);
     }
 
+    public function test_the_event_store_tables_are_reported_under_the_event_sourcing_package(): void
+    {
+        $this->bootstrap('dbal', [$this->asynchronousProjection()]);
+
+        $snapshot = $this->requestSnapshot();
+        $tables = array_column($snapshot['setup']['tables'], 'package', 'feature');
+
+        self::assertSame('eventSourcing', $tables['event_stream']);
+        self::assertSame('eventSourcing', $tables['projection_state']);
+        self::assertSame('dbal', $tables['dead_letter']);
+        self::assertSame(['core', 'dbal', 'eventSourcing', 'test'], array_column($snapshot['packages'], 'name'));
+    }
+
     #[DataProvider('storages')]
     public function test_a_service_without_projections_reports_an_empty_projections_list(string $storage): void
     {

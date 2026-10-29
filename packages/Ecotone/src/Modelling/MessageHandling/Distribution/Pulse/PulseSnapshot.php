@@ -45,7 +45,7 @@ final class PulseSnapshot
     public const ROUTING_KEY = 'ecotone.pulse.snapshot';
     public const REPLY_ROUTING_KEY = 'ecotone.pulse.snapshot_received';
     public const PROBE_BUDGET_IN_MILLISECONDS = 2000;
-    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels', 'tenancy', 'tenant', 'sectionErrors'];
+    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels', 'tenancy', 'tenant', 'sectionErrors', 'packages'];
 
     /**
      * @param array<array{referenceName: string, commandMapping: array<string, string>, eventSubscriptions: array<array{channel: string, subscriptionKeys: string[], excludePublishingServices: string[], includePublishingServices: string[]}>, asynchronousChannel: string|null}> $serviceMaps
@@ -55,6 +55,7 @@ final class PulseSnapshot
      * @param array<string, PulseSnapshotSection> $tenantScopedSections
      * @param array{header: string, tenants: list<string>}|array{} $tenancy
      * @param array{enterprise: bool, expiresAt: string, testing: bool} $licence
+     * @param list<array{name: string, composerPackage: string, features: list<array<string, mixed>>}> $packages
      */
     public function __construct(
         private string $serviceName,
@@ -67,6 +68,7 @@ final class PulseSnapshot
         private array $tenantScopedSections,
         private array $tenancy,
         private array $licence,
+        private array $packages,
         private ConfiguredMessagingSystem $messagingSystem,
         private EcotoneClockInterface $clock,
         private PulseSectionIsolation $sectionIsolation,
@@ -159,6 +161,10 @@ final class PulseSnapshot
             'flowGraph' => $this->messagingSystem->getMessageFlowGraph()->toArray(),
             'topology' => ['serviceMaps' => $this->serviceMaps],
             'channels' => $this->channelsWithDepth(forTenant: false),
+            'packages' => array_map(
+                static fn (array $package): array => [...$package, 'version' => InstalledVersions::isInstalled($package['composerPackage']) ? InstalledVersions::getPrettyVersion($package['composerPackage']) : null],
+                $this->packages,
+            ),
         ];
 
         if ($this->isMultiTenant()) {

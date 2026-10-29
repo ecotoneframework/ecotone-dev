@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**
@@ -28,6 +29,11 @@ class DeduplicationTableManager implements DbalTableManager
     public function getFeatureName(): string
     {
         return self::FEATURE_NAME;
+    }
+
+    public function getModulePackageName(): string
+    {
+        return ModulePackageList::DBAL_PACKAGE;
     }
 
     public function isUsed(): bool

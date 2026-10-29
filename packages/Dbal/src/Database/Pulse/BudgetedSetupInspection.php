@@ -40,7 +40,7 @@ final class BudgetedSetupInspection
     }
 
     /**
-     * @return list<array{feature: string, connection: string, initialized: bool|null, error: string|null}>
+     * @return list<array{feature: string, package: string, connection: string, initialized: bool|null, error: string|null}>
      */
     public function of(DatabaseSetupManager $manager, string $connectionReferenceName, bool $onCurrentConnection): array
     {
@@ -52,7 +52,7 @@ final class BudgetedSetupInspection
                 $failure = self::NOT_CHECKED_IN_TIME;
             }
             if ($failure !== null) {
-                $tables[] = ['feature' => $feature, 'connection' => $connectionReferenceName, 'initialized' => null, 'error' => $failure];
+                $tables[] = ['feature' => $feature, 'package' => $manager->getModulePackageNameOf($feature), 'connection' => $connectionReferenceName, 'initialized' => null, 'error' => $failure];
                 continue;
             }
 
@@ -60,10 +60,10 @@ final class BudgetedSetupInspection
                 $initialized = $onCurrentConnection
                     ? $manager->isFeatureInitializedOnCurrentConnectionWithin($feature, $remaining)
                     : $manager->isFeatureInitializedWithin($feature, $remaining);
-                $tables[] = ['feature' => $feature, 'connection' => $connectionReferenceName, 'initialized' => $initialized, 'error' => null];
+                $tables[] = ['feature' => $feature, 'package' => $manager->getModulePackageNameOf($feature), 'connection' => $connectionReferenceName, 'initialized' => $initialized, 'error' => null];
             } catch (Throwable $exception) {
                 $failure = $this->remainingMilliseconds() <= 0 ? self::NOT_CHECKED_IN_TIME : $exception->getMessage();
-                $tables[] = ['feature' => $feature, 'connection' => $connectionReferenceName, 'initialized' => null, 'error' => $failure];
+                $tables[] = ['feature' => $feature, 'package' => $manager->getModulePackageNameOf($feature), 'connection' => $connectionReferenceName, 'initialized' => null, 'error' => $failure];
             }
         }
 

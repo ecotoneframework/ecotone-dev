@@ -22,6 +22,8 @@ interface DbalTableManager extends DefinedObject
      */
     public function getFeatureName(): string;
 
+    public function getModulePackageName(): string;
+
     /**
      * Returns whether this table manager is used based on configuration.
      * Unused managers can be filtered during setup/drop operations.

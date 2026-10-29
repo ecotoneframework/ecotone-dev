@@ -66,6 +66,16 @@ final class PulseSetupStatusTest extends DbalMessagingTestCase
         self::assertSame(DbalConnectionFactory::class, $tables['message_queue']['connection']);
     }
 
+    public function test_every_table_names_the_ecotone_package_that_owns_it(): void
+    {
+        $this->bootstrap();
+
+        $tables = $this->tablesByFeature($this->requestSnapshot());
+
+        self::assertSame('dbal', $tables['message_queue']['package']);
+        self::assertSame('dbal', $tables['dead_letter']['package']);
+    }
+
     public function test_a_missing_table_is_reported_as_not_set_up_and_the_snapshot_still_arrives(): void
     {
         $this->bootstrap();

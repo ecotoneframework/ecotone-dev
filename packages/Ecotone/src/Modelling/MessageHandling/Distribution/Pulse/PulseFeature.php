@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\MessageHandling\Distribution\Pulse;
 
+use Ecotone\AnnotationFinder\AnnotatedFinding;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Messaging\Attribute\EndpointAnnotation;
+use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 
 /**
@@ -50,6 +54,64 @@ final class PulseFeature
     public static function isReportedFor(array $serviceExtensions): bool
     {
         return ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== [];
+    }
+
+    /**
+     * @param string[] $exceptionClasses
+     */
+    public static function exceptionsOf(array $exceptionClasses): string
+    {
+        return $exceptionClasses === [] ? 'any exception' : implode(', ', array_map(self::shortNameOf(...), $exceptionClasses));
+    }
+
+    /**
+     * @param string[] $exceptionClasses
+     */
+    public static function exceptionClassesOf(array $exceptionClasses): string
+    {
+        return '[' . implode(', ', array_map(static fn (string $class): string => self::shortNameOf($class) . '::class', $exceptionClasses)) . ']';
+    }
+
+    public static function handlerOf(AnnotatedFinding $registration): string
+    {
+        $routingKey = '';
+        foreach ($registration->getMethodAnnotationsWithType(IdentifiedAnnotation::class) as $handler) {
+            $routingKey = match (true) {
+                $handler instanceof EventHandler => $handler->listenTo,
+                $handler instanceof EndpointAnnotation => $handler->getInputChannelName(),
+                default => '',
+            };
+            if ($routingKey !== '') {
+                break;
+            }
+        }
+
+        return ($routingKey === '' ? self::shortNameOf($registration->getClassName()) : $routingKey) . ' → ' . $registration->getMethodName();
+    }
+
+    public static function durationOf(int $milliseconds): string
+    {
+        foreach (['day' => 86_400_000, 'hour' => 3_600_000, 'minute' => 60_000, 'second' => 1000] as $unit => $length) {
+            if ($milliseconds >= $length && $milliseconds % $length === 0) {
+                $count = intdiv($milliseconds, $length);
+
+                return $count . ' ' . $unit . ($count === 1 ? '' : 's');
+            }
+        }
+
+        return $milliseconds . ' ms';
+    }
+
+    public static function onOff(bool $isOn): string
+    {
+        return $isOn ? 'on' : 'off';
+    }
+
+    public static function shortNameOf(string $className): string
+    {
+        $position = strrpos($className, '\\');
+
+        return str_contains($className, '@anonymous') ? 'class@anonymous' : ($position === false ? $className : substr($className, $position + 1));
     }
 
     /**

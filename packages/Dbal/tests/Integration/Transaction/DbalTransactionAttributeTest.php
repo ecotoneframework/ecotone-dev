@@ -12,6 +12,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Interop\Queue\ConnectionFactory;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -160,6 +161,42 @@ final class DbalTransactionAttributeTest extends DbalMessagingTestCase
 
         self::assertSame(1, $ecotone->sendQueryWithRouting('persons.count'));
         self::assertSame(0, $ecotone->sendQueryWithRouting('persons.countOnSecondary'));
+    }
+
+    public function test_dbal_transaction_on_a_handler_naming_a_connection_ecotone_was_not_configured_with_is_refused_at_bootstrap(): void
+    {
+        $handler = new class () {
+            #[DbalTransaction(connectionReferenceNames: ['reporting'])]
+            #[CommandHandler('person.register')]
+            public function register(int $personId): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            '#[DbalTransaction] on ' . $handler::class . '::register() names the connection "reporting", '
+            . 'but Ecotone opens transactions only on the connections in DbalConfiguration::withDefaultConnectionReferenceNames(): "'
+            . DbalConnectionReference::DEFAULT . '". Either add "reporting" to DbalConfiguration::withDefaultConnectionReferenceNames([...]) '
+            . 'in a #[ServiceContext] method, or name one of the configured connections in #[DbalTransaction(connectionReferenceNames: [...])].'
+        );
+
+        $this->bootstrapWithoutBusTransaction($handler);
+    }
+
+    public function test_dbal_transaction_on_a_class_naming_a_connection_ecotone_was_not_configured_with_is_refused_at_bootstrap(): void
+    {
+        $handler = new #[DbalTransaction(connectionReferenceNames: ['reporting'])] class () {
+            #[CommandHandler('person.register')]
+            public function register(int $personId): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('#[DbalTransaction] on ' . $handler::class . ' names the connection "reporting"');
+
+        $this->bootstrapWithoutBusTransaction($handler);
     }
 
     private function bootstrapWithoutBusTransaction(object $handler): FlowTestSupport

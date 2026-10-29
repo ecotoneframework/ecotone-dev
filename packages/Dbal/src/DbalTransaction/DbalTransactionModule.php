@@ -19,6 +19,7 @@ use Ecotone\Dbal\Pulse\PulseSavepointIsolation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -37,7 +38,7 @@ use Ecotone\Projecting\Config\ProjectingConsoleCommands;
  */
 final class DbalTransactionModule implements AnnotationModule
 {
-    private function __construct()
+    private function __construct(private AnnotationFinder $annotationFinder)
     {
     }
 
@@ -46,7 +47,7 @@ final class DbalTransactionModule implements AnnotationModule
      */
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self();
+        return new self($annotationRegistrationService);
     }
 
     /**
@@ -71,6 +72,7 @@ final class DbalTransactionModule implements AnnotationModule
             $pointcut .= '&&not(' . ProjectingConsoleCommands::class . '::' . $projectionCommandWithoutTransaction . ')';
         }
         $connectionFactories = $dbalConfiguration->defaultConnectionReferenceNames ?: [DbalConnectionReference::DEFAULT];
+        $this->refuseDbalTransactionOnUnconfiguredConnection($connectionFactories);
 
         $messagingConfiguration->registerServiceDefinition(PulseSavepointIsolation::class, [
             array_map(fn (string $id) => new Reference($id), $connectionFactories),
@@ -96,6 +98,35 @@ final class DbalTransactionModule implements AnnotationModule
                     $pointcut
                 )
             );
+    }
+
+    /**
+     * @param string[] $configuredConnectionReferenceNames
+     */
+    private function refuseDbalTransactionOnUnconfiguredConnection(array $configuredConnectionReferenceNames): void
+    {
+        $placements = [];
+        foreach ($this->annotationFinder->findAnnotatedMethods(DbalTransaction::class) as $annotatedMethod) {
+            $placements[$annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName() . '()'] = $annotatedMethod->getAnnotationForMethod();
+        }
+        foreach ($this->annotationFinder->findAnnotatedClasses(DbalTransaction::class) as $className) {
+            $placements[$className] = $this->annotationFinder->getAttributeForClass($className, DbalTransaction::class);
+        }
+
+        foreach ($placements as $placement => $dbalTransaction) {
+            foreach ($dbalTransaction->connectionReferenceNames as $connectionReferenceName) {
+                if (in_array($connectionReferenceName, $configuredConnectionReferenceNames, true)) {
+                    continue;
+                }
+
+                throw ConfigurationException::create(
+                    "#[DbalTransaction] on {$placement} names the connection \"{$connectionReferenceName}\", "
+                    . 'but Ecotone opens transactions only on the connections in DbalConfiguration::withDefaultConnectionReferenceNames(): "'
+                    . implode('", "', $configuredConnectionReferenceNames) . "\". Either add \"{$connectionReferenceName}\" to DbalConfiguration::withDefaultConnectionReferenceNames([...]) "
+                    . 'in a #[ServiceContext] method, or name one of the configured connections in #[DbalTransaction(connectionReferenceNames: [...])].'
+                );
+            }
+        }
     }
 
     /**

@@ -70,17 +70,29 @@ final class Connection implements DriverConnection, ServerVersionProvider
 
     public function beginTransaction(): void
     {
-        $this->pdo->beginTransaction();
+        try {
+            $this->pdo->beginTransaction();
+        } catch (PDOException $e) {
+            throw Exception::new($e);
+        }
     }
 
     public function commit(): void
     {
-        $this->pdo->commit();
+        try {
+            $this->pdo->commit();
+        } catch (PDOException $e) {
+            throw Exception::new($e);
+        }
     }
 
     public function rollBack(): void
     {
-        $this->pdo->rollBack();
+        try {
+            $this->pdo->rollBack();
+        } catch (PDOException $e) {
+            throw Exception::new($e);
+        }
     }
 
     public function quote(string $value): string

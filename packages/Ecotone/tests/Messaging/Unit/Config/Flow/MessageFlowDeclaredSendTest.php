@@ -157,6 +157,23 @@ final class MessageFlowDeclaredSendTest extends TestCase
         }
     }
 
+    public function test_declared_reply_key_stands_when_the_source_spreads_the_reply_key_into_the_call(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold', replyRoutingKey: 'tickets.hold.result')]
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', 'tickets.hold', ...$event['arguments']);
+            }
+        };
+
+        self::assertSame(
+            [['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result']],
+            array_column($this->graphOf($service)->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::holdRequestedSeat', 'distributed:' . DistributedBus::class), 'attributes'),
+        );
+    }
+
     public function test_declaration_naming_a_service_no_service_map_knows_is_refused(): void
     {
         $service = new class () {

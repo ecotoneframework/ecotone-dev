@@ -293,6 +293,28 @@ final class MessageFlowDistributedTest extends TestCase
         self::assertSame([['inferred' => true, 'via' => 'sendMessage']], $sendsOf('namedAndConcatenated'));
     }
 
+    public function test_helper_default_does_not_fill_a_parameter_the_call_site_spreads_into(): void
+    {
+        $service = new class () {
+            #[EventHandler('seat.requested')]
+            public function spread(array $event, DistributedBus $distributedBus): void
+            {
+                $this->send($distributedBus, ...$event['arguments']);
+            }
+
+            private function send(DistributedBus $distributedBus, string $routingKey = 'tickets.hold'): void
+            {
+                $distributedBus->sendMessage('ticketing', $routingKey, '{}');
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        self::assertSame(
+            [['inferred' => true, 'via' => 'sendMessage']],
+            array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::spread', 'distributed:' . DistributedBus::class), 'attributes'),
+        );
+    }
+
     public function test_routing_key_destructured_in_the_helper_stays_unresolved(): void
     {
         $service = new class () {

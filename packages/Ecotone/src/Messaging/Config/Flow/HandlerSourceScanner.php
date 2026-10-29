@@ -110,7 +110,7 @@ final class HandlerSourceScanner
                     continue;
                 }
                 $helper = $this->scanMethods([$helperKey => [$className, $call['method']]], $path, $files, $methodFacts, $reflections)[$helperKey];
-                $bindings = $this->bindingsOf($reflections[$helperKey] ??= new ReflectionMethod($className, $call['method']), $call['arguments']);
+                $bindings = $this->bindingsOf($reflections[$helperKey] ??= new ReflectionMethod($className, $call['method']), $call);
                 foreach ($helper->instantiations as $instantiation) {
                     if ($instantiation['enclosingCall'] === null) {
                         $instantiation['enclosingCall'] = $call['enclosingCall'];
@@ -132,14 +132,17 @@ final class HandlerSourceScanner
     }
 
     /**
-     * @param array<int|string, array{kind: string, value: string}> $arguments
+     * @param array{arguments: array<int|string, array{kind: string, value: string}>, unresolvedFrom: int|null} $call
      * @return array<string, array{kind: string, value: string}|null>
      */
-    private function bindingsOf(ReflectionMethod $helper, array $arguments): array
+    private function bindingsOf(ReflectionMethod $helper, array $call): array
     {
         $bindings = [];
         foreach ($helper->getParameters() as $parameter) {
-            $argument = $arguments[$parameter->getName()] ?? $arguments[$parameter->getPosition()] ?? null;
+            $argument = $call['arguments'][$parameter->getName()] ?? $call['arguments'][$parameter->getPosition()] ?? null;
+            if ($argument === null && $call['unresolvedFrom'] !== null && $parameter->getPosition() >= $call['unresolvedFrom']) {
+                $argument = self::UNRESOLVED;
+            }
             if ($argument === null && $parameter->isDefaultValueAvailable() && is_string($parameter->getDefaultValue())) {
                 $argument = ['kind' => 'literal', 'value' => $parameter->getDefaultValue()];
             }
@@ -150,9 +153,9 @@ final class HandlerSourceScanner
     }
 
     /**
-     * @param array{receiver: string|null, method: string, enclosingCall: string|null, arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null} $call
+     * @param array{receiver: string|null, method: string, enclosingCall: string|null, arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null, unresolvedFrom: int|null} $call
      * @param array<string, array{kind: string, value: string}|null> $bindings
-     * @return array{receiver: string|null, method: string, enclosingCall: string|null, arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null}
+     * @return array{receiver: string|null, method: string, enclosingCall: string|null, arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null, unresolvedFrom: int|null}
      */
     private function boundCall(array $call, array $bindings): array
     {
@@ -435,17 +438,22 @@ final class HandlerSourceScanner
      * @param list<PhpToken> $tokens
      * @param array<string, bool> $assigned
      * @param array<string, string> $imports
-     * @return array{arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null}
+     * @return array{arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null, unresolvedFrom: int|null}
      */
     private function argumentsAt(array $tokens, int $index, array $assigned, string $className, string $namespace, array $imports): array
     {
         $first = $tokens[$index] ?? null;
         if ($first?->is(T_NEW) && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
-            return ['arguments' => [], 'literalArguments' => [], 'firstArgumentClass' => $this->resolve($tokens[$index + 1], $className, $namespace, $imports)];
+            return ['arguments' => [], 'literalArguments' => [], 'firstArgumentClass' => $this->resolve($tokens[$index + 1], $className, $namespace, $imports), 'unresolvedFrom' => 0];
         }
         $arguments = [];
         $position = 0;
-        while (isset($tokens[$index]) && $tokens[$index]->text !== ')' && ! $tokens[$index]->is(T_ELLIPSIS)) {
+        $unresolvedFrom = null;
+        while (isset($tokens[$index]) && $tokens[$index]->text !== ')') {
+            if ($tokens[$index]->is(T_ELLIPSIS)) {
+                $unresolvedFrom = $position;
+                break;
+            }
             $name = null;
             if ($tokens[$index]->is(T_STRING) && ($tokens[$index + 1] ?? null)?->text === ':') {
                 $name = $tokens[$index]->text;
@@ -453,6 +461,7 @@ final class HandlerSourceScanner
             }
             $end = $this->argumentEndAt($tokens, $index);
             if ($end === null) {
+                $unresolvedFrom = $position;
                 break;
             }
             $arguments[$name ?? $position] = $this->argumentValueAt($tokens, $index, $end, $assigned, $className, $namespace, $imports);
@@ -462,7 +471,7 @@ final class HandlerSourceScanner
             $index = $tokens[$end]->text === ',' ? $end + 1 : $end;
         }
 
-        return ['arguments' => $arguments, 'literalArguments' => $this->leadingLiteralsOf($arguments), 'firstArgumentClass' => null];
+        return ['arguments' => $arguments, 'literalArguments' => $this->leadingLiteralsOf($arguments), 'firstArgumentClass' => null, 'unresolvedFrom' => $unresolvedFrom];
     }
 
     /**

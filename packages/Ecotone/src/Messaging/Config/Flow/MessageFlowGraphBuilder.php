@@ -230,7 +230,7 @@ final class MessageFlowGraphBuilder
     }
 
     /**
-     * @param array{method: string, arguments: array<int|string, array{kind: string, value: string}>} $call
+     * @param array{method: string, arguments: array<int|string, array{kind: string, value: string}>, unresolvedFrom: int|null} $call
      */
     private function distributedArgument(array $call, string $parameter): ?string
     {
@@ -240,14 +240,18 @@ final class MessageFlowGraphBuilder
     }
 
     /**
-     * @param array{method: string, arguments: array<int|string, array{kind: string, value: string}>} $call
+     * @param array{method: string, arguments: array<int|string, array{kind: string, value: string}>, unresolvedFrom: int|null} $call
      * @return array{kind: string, value: string}|null
      */
     private function distributedArgumentOf(array $call, string $parameter): ?array
     {
         $position = array_search($parameter, $this->distributedBusParameters[$call['method']] ?? [], true);
+        $argument = $call['arguments'][$parameter] ?? ($position === false ? null : ($call['arguments'][$position] ?? null));
+        if ($argument === null && $position !== false && $call['unresolvedFrom'] !== null && $position >= $call['unresolvedFrom']) {
+            return ['kind' => 'unresolved', 'value' => ''];
+        }
 
-        return $call['arguments'][$parameter] ?? ($position === false ? null : ($call['arguments'][$position] ?? null));
+        return $argument;
     }
 
     private function refuseContradictingDeclaredReply(FlowNode $handler, string $busId, string $targetService, string $routingKey, ?string $replyChannel): void

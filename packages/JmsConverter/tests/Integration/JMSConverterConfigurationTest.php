@@ -104,5 +104,4 @@ final class JMSConverterConfigurationTest extends TestCase
             enabledModules: [ModulePackageList::JMS_CONVERTER_PACKAGE],
         );
     }
-
 }

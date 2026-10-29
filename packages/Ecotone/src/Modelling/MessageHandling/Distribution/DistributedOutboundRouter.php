@@ -12,6 +12,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 
 use function in_array;
 use function sprintf;
+use function trim;
 
 /**
  * licence Enterprise
@@ -47,7 +48,13 @@ final class DistributedOutboundRouter
         ?string $targetedServiceName,
         #[Header(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY)]
         $routingKey,
+        #[Header(DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY)]
+        ?string $idempotencyKey,
     ): array {
+        if ($idempotencyKey !== null && trim($idempotencyKey) === '') {
+            throw InvalidArgumentException::create('The Distributed Bus was given a blank idempotencyKey. The target deduplicates on this key in place of the message id, so a blank one would make every send that carries it one request, handled once. Pass a key that names this business request, such as the order or reservation id, or omit idempotencyKey to have each send handled on its own.');
+        }
+
         if ($payloadType === 'event') {
             return $this->distributedServiceMap->getAllSubscriptionChannels($this->thisServiceName, $routingKey);
         } elseif (in_array($payloadType, ['command', 'message'])) {

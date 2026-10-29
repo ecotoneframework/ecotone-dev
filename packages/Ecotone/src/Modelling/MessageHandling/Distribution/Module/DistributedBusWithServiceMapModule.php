@@ -124,6 +124,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                             HeaderBuilder::create('payloadType', DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE),
                             HeaderBuilder::createOptional('targetedServiceName', DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME),
                             HeaderBuilder::create('routingKey', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
+                            HeaderBuilder::createOptional('idempotencyKey', DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY),
                         ]
                     )
                     ->setResolutionRequired(false)

@@ -42,8 +42,9 @@ final class HandlerSourceScanner
     {
         $files = [];
         $methodFacts = [];
+        $reflections = [];
 
-        return $this->scanMethods($targets, [], $files, $methodFacts);
+        return $this->scanMethods($targets, [], $files, $methodFacts, $reflections);
     }
 
     /**
@@ -51,9 +52,10 @@ final class HandlerSourceScanner
      * @param array<string, bool> $visited
      * @param array<string, array{list<PhpToken>, array<int, int>, int, array<int, array{string, array<string, string>}>}> $files
      * @param array<string, MethodSourceFacts> $methodFacts
+     * @param array<string, ReflectionMethod> $reflections
      * @return array<string, MethodSourceFacts>
      */
-    private function scanMethods(array $targets, array $visited, array &$files, array &$methodFacts): array
+    private function scanMethods(array $targets, array $visited, array &$files, array &$methodFacts, array &$reflections): array
     {
         $facts = [];
         $methodsByFile = [];
@@ -63,7 +65,7 @@ final class HandlerSourceScanner
                 $facts[$key] = $methodFacts[$methodKey];
                 continue;
             }
-            $method = new ReflectionMethod($className, $methodName);
+            $method = $reflections[$methodKey] ??= new ReflectionMethod($className, $methodName);
             $fileName = $method->getFileName();
             if ($fileName === false || ! is_file($fileName) || ! is_readable($fileName) || $method->getStartLine() === false || $method->getEndLine() === false) {
                 $facts[$key] = $methodFacts[$methodKey] = MethodSourceFacts::none();
@@ -107,8 +109,8 @@ final class HandlerSourceScanner
                 if (! in_array($call['receiver'], ['this', 'self', 'static'], true) || isset($path[$helperKey]) || ! method_exists($className, $call['method'])) {
                     continue;
                 }
-                $helper = $this->scanMethods([$helperKey => [$className, $call['method']]], $path, $files, $methodFacts)[$helperKey];
-                $bindings = $this->bindingsOf(new ReflectionMethod($className, $call['method']), $call['arguments']);
+                $helper = $this->scanMethods([$helperKey => [$className, $call['method']]], $path, $files, $methodFacts, $reflections)[$helperKey];
+                $bindings = $this->bindingsOf($reflections[$helperKey] ??= new ReflectionMethod($className, $call['method']), $call['arguments']);
                 foreach ($helper->instantiations as $instantiation) {
                     if ($instantiation['enclosingCall'] === null) {
                         $instantiation['enclosingCall'] = $call['enclosingCall'];

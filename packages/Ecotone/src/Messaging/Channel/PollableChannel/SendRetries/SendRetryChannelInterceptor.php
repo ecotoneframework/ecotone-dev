@@ -16,6 +16,7 @@ use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\Config\DatabaseTransaction\DatabaseTransactionLost;
 use Exception;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -44,6 +45,15 @@ final class SendRetryChannelInterceptor extends AbstractChannelInterceptor imple
 
     public function recover(Message $message, MessageChannel $messageChannel, Throwable $exception): SendRecovery
     {
+        if ($exception instanceof DatabaseTransactionLost) {
+            $this->logger->info($exception->getMessage(), [
+                'exception' => $exception->getPrevious()?->getMessage(),
+                'relatedChannel' => $this->relatedChannel,
+            ]);
+
+            return SendRecovery::Failed;
+        }
+
         $messageToRedeliver = $this->messageContainingOnlyFailedDeliveries($message, $exception);
 
         if ($exception !== null) {

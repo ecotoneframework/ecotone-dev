@@ -17,10 +17,12 @@ use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Modelling\StateStoredRepository;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Laravel\EloquentRepositoryBuilder;
+use Ecotone\Laravel\EloquentSaveCancelled;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Orchestra\Testbench\TestCase;
+use RuntimeException;
 
 /**
  * licence Apache-2.0
@@ -271,6 +273,41 @@ class EloquentRepositoryTest extends TestCase
         $this->assertSame(['creating Untitled', 'saved Untitled', 'updating Renamed', 'saved Renamed'], $ticket::$events);
     }
 
+    public function test_a_save_cancelled_by_a_model_listener_is_refused_and_leaves_the_version_where_it_was(): void
+    {
+        $ticket = $this->ticketWithAnUpdatingListener();
+        $ecotone = $this->bootstrapWith($ticket::class);
+        $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
+
+        try {
+            $ecotone->sendCommandWithRouting('ticket.rename', metadata: ['aggregate.id' => 't-1', 'title' => 'Cancelled']);
+            $this->fail('Expected the cancelled save to be refused');
+        } catch (EloquentSaveCancelled $exception) {
+            $this->assertStringContainsString('Eloquent model ' . $ticket::class . ' t-1 was not saved: one of its saving, creating or updating listeners returned false', $exception->getMessage());
+            $this->assertStringContainsString('let the listener throw an exception that names why', $exception->getMessage());
+        }
+
+        $this->assertSame('Untitled', $ecotone->sendQueryWithRouting('ticket.title', metadata: ['aggregate.id' => 't-1']));
+        $this->assertSame(1, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-1']));
+    }
+
+    public function test_a_save_failing_in_a_model_listener_leaves_the_version_where_it_was(): void
+    {
+        $ticket = $this->ticketWithAnUpdatingListener();
+        $ecotone = $this->bootstrapWith($ticket::class);
+        $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
+
+        try {
+            $ecotone->sendCommandWithRouting('ticket.rename', metadata: ['aggregate.id' => 't-1', 'title' => 'Broken']);
+            $this->fail('Expected the failing save to be raised');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('The ticket cannot be broken', $exception->getMessage());
+        }
+
+        $this->assertSame('Untitled', $ecotone->sendQueryWithRouting('ticket.title', metadata: ['aggregate.id' => 't-1']));
+        $this->assertSame(1, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-1']));
+    }
+
     public function test_an_eloquent_aggregate_without_a_version_saves_the_last_write_as_before(): void
     {
         $note = new #[Aggregate] class () extends Model {
@@ -371,6 +408,65 @@ class EloquentRepositoryTest extends TestCase
         )->sendCommandWithRouting('ticket.close', metadata: ['aggregate.id' => 'ticket-1']);
 
         $this->assertSame([['versionBeforeHandling' => 7, 'version' => 8]], $repository->saved);
+    }
+
+    private function ticketWithAnUpdatingListener(): Model
+    {
+        return new #[Aggregate] class () extends Model {
+            protected $table = 'eloquent_repository_tickets';
+            protected $primaryKey = 'ticket_id';
+            protected $keyType = 'string';
+            public $incrementing = false;
+            public $timestamps = false;
+
+            #[Version]
+            private int $version;
+
+            protected static function booted(): void
+            {
+                static::updating(function (self $ticket) {
+                    if ($ticket->title === 'Broken') {
+                        throw new RuntimeException('The ticket cannot be broken');
+                    }
+
+                    return $ticket->title !== 'Cancelled';
+                });
+            }
+
+            #[CommandHandler('ticket.open')]
+            public static function open(#[Header('ticketId')] string $ticketId): self
+            {
+                $ticket = new self();
+                $ticket->ticket_id = $ticketId;
+                $ticket->title = 'Untitled';
+
+                return $ticket;
+            }
+
+            #[CommandHandler('ticket.rename')]
+            public function rename(#[Header('title')] string $title): void
+            {
+                $this->title = $title;
+            }
+
+            #[QueryHandler('ticket.title')]
+            public function title(): string
+            {
+                return $this->title;
+            }
+
+            #[QueryHandler('ticket.version')]
+            public function version(): int
+            {
+                return $this->version;
+            }
+
+            #[IdentifierMethod('ticketId')]
+            public function ticketId(): string
+            {
+                return $this->getKey();
+            }
+        };
     }
 
     private function bootstrapWith(string ...$classes): FlowTestSupport

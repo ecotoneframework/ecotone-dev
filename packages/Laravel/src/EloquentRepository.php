@@ -55,17 +55,23 @@ class EloquentRepository implements StateStoredRepository
         $versionAfterHandling = $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($versionColumn), $aggregate);
         $aggregate->setAttribute($versionColumn, $versionAfterHandling);
 
-        if ($aggregate->exists) {
-            $this->claimVersion($identifiers, $aggregate, $versionColumn, $versionBeforeHandling, $versionAfterHandling);
-            $aggregate->save();
-
-            return;
-        }
-
         try {
-            $aggregate->save();
+            $aggregate->getConnection()->transaction(
+                fn () => $this->claimVersionAndSave($identifiers, $aggregate, $versionColumn, (int) $versionBeforeHandling, $versionAfterHandling)
+            );
         } catch (UniqueConstraintViolationException) {
             throw $this->staleAggregate($identifiers, $aggregate, $versionColumn, (int) $versionBeforeHandling);
+        }
+    }
+
+    private function claimVersionAndSave(array $identifiers, Model $aggregate, string $versionColumn, int $versionBeforeHandling, int $versionAfterHandling): void
+    {
+        if ($aggregate->exists) {
+            $this->claimVersion($identifiers, $aggregate, $versionColumn, $versionBeforeHandling, $versionAfterHandling);
+        }
+
+        if ($aggregate->save() === false) {
+            throw EloquentSaveCancelled::for($aggregate::class, AggregateIdString::from($identifiers));
         }
     }
 

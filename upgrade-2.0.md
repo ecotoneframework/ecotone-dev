@@ -2715,6 +2715,36 @@ attempts before the consumer gives up.
 **How to adapt:** check that the configured values describe the reconnection behaviour you want — they now take effect.
 The key itself has since moved to `ServiceConfiguration::withConnectionRetryTemplate()` in a `#[ServiceContext]` method (§12).
 
+### A DBAL channel send that lost its transaction's connection is not retried in place
+
+**Before:** a message that failed to reach a DBAL channel was retried in place by the channel's send retries (or sent
+to its error channel), even when the failure was the database connection of the transaction it was sent in being lost
+(a database restart). Doctrine reset that connection, and the retry wrote the message on a fresh connection in
+autocommit, outside the transaction it belonged to. The transaction then failed to commit, the command or consumed
+message ran again, and the outbox message was sent twice.
+
+**Now:** such a send fails with `DatabaseTransactionLost`, which the send retries and the channel's error channel
+leave alone: the transaction rolls back and the whole command or consumed message is retried — by the instant retries
+a transactional command bus and asynchronous endpoint have by default (§9), or by the consumer's redelivery. Every
+other send failure is retried and dead-lettered as before, inside a transaction or outside one, on DBAL and on brokers.
+
+**How to adapt:** nothing for most applications. With a transactional command bus whose instant retries are turned
+off (`InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false)`), such a command now fails; turn
+the command bus retry back on, or retry the command in the caller.
+
+### A Laravel connection recovers after the database restarts
+
+**Before:** Ecotone wrapped the PDO object the Laravel connection held when Ecotone first used it. After a database
+restart a consumer on a DBAL channel, the dead letter or the outbox over a `LaravelConnectionReference` reconnected to
+that same dead PDO: every message failed with `no connection to the server`, then `There is already an active
+transaction`, until the worker was restarted.
+
+**Now:** Ecotone connects through the Laravel connection each time it connects. A failure Laravel recognises as a lost
+connection drops Laravel's PDO and is raised as Doctrine's `ConnectionLost`, so the consumer reconnects, the failed
+message is redelivered, and the worker keeps handling messages.
+
+**How to adapt:** nothing.
+
 ### `#[Partitioned]` with `#[ProjectionDeployment(manualKickOff: true)]` is refused at bootstrap
 
 **Before:** a partitioned projection ignored `manualKickOff: true` without a word — each partition initialized and

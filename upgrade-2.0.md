@@ -3534,6 +3534,35 @@ Unreachable, and is asked again once the 60 seconds after which a snapshot stops
 **How to adapt:** nothing is required. A service that replies to Pulse over AMQP or SQS needs Pulse to have started
 consuming its reply channel first; until then the reply fails with the exception above, goes through the service's instant retries and error handling like any failure of a handler, and the request is processed again once Pulse's queue exists.
 
+### A Distributed Bus send can carry an idempotency key the target deduplicates on (Enterprise)
+
+**Before:** the target service deduplicated a distributed message by its message id, and every call to `DistributedBus`
+created a new one. An asynchronous handler that sent over the Distributed Bus and then failed was retried, sent again, and
+the target handled the same business request twice. The only defence was making the target's handler idempotent by payload.
+
+**Now:** `sendCommand()`, `convertAndSendCommand()`, `publishEvent()`, `convertAndPublishEvent()` and `sendMessage()`
+take an optional `idempotencyKey`, carried in the `ecotone_distributed_idempotency_key` header
+(`DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY`). The target's deduplication (`ecotone/dbal`, on by default for
+asynchronous endpoints, in memory or on the database) keys on it in place of the message id, so the same key is handled
+once per consuming endpoint and different keys are each handled. A `#[Deduplicated]` handler that names its own header or
+expression keeps using that; a plain `#[Deduplicated]` uses the key too. The key is a framework header, so it is not
+copied onto the messages the target sends onwards, and the reply of a `sendMessage()` does not carry it. A send skipped
+as a duplicate produces no second reply. A blank key is refused with `InvalidArgumentException`, because it would make
+every send that carries it one request. A send without a key behaves as before.
+
+```php
+#[Asynchronous('outbox')]
+#[CommandHandler('order.confirm', endpointId: 'order.confirm.endpoint')]
+public function confirm(string $orderId, DistributedBus $distributedBus): void
+{
+    $distributedBus->sendMessage('ticketing', 'tickets.confirm', $orderId, idempotencyKey: 'tickets.confirm.' . $orderId);
+}
+```
+
+**How to adapt:** nothing is required. A sender whose send can be repeated by a retry passes a key that names the business
+request; the target needs `ecotone/dbal` with deduplication enabled, which is the default. An application that implements
+`DistributedBus` itself (a test double) adds the parameter to each method.
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them

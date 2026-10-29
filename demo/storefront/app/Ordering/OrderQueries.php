@@ -6,6 +6,7 @@ namespace App\Ordering;
 
 use DomainException;
 use Ecotone\Api\Attribute\QueryHandler;
+use Illuminate\Support\Carbon;
 
 final class OrderQueries
 {
@@ -39,7 +40,7 @@ final class OrderQueries
             ->where('status', '<>', OrderStatus::FAILED)
             ->when($query['excludingOrderId'] !== null, fn ($orders) => $orders->where('id', '<>', $query['excludingOrderId']))
             ->get()
-            ->flatMap(fn (Order $order) => $order->claimedSeatIds())
+            ->flatMap(fn (Order $order) => $order->claimedSeatIdsAt(Carbon::now()->toDateTimeImmutable()))
             ->unique()
             ->values()
             ->all();

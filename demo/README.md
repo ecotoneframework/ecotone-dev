@@ -279,15 +279,17 @@ and your orders on `/account`.
 
 ### Seat availability
 
-Ticketing announces every change of a seat to the storefront: `tickets.seat_held` {concertId, seatId, orderId, holdId}
-from `SeatHeld`, `tickets.seat_released` {concertId, seatId, orderId, holdId} from `HoldReleased` (a release, or a
+Ticketing announces every change of a seat to the storefront: `tickets.seat_held` {concertId, seatId, orderId, holdId,
+expiresAt} from `SeatHeld`, `tickets.seat_released` {concertId, seatId, orderId, holdId} from `HoldReleased` (a release, or a
 cancellation releasing the concert's holds) and from `HoldExpired`, and `tickets.seat_sold` {concertId, seatId, orderId}
 from `SeatSold`, for the storefront's confirms and the seed's alike. `SeatStateAnnouncements` publishes them from
 `ticketing_async`, queued in the transaction of the decision, like the concert announcements. Two ticketing workers
 publish them, so they can arrive in any order; the storefront's `SeatStateProjector` decides by hold id and by state
 precedence rather than by arrival: a hold id names one hold, a release ends it whether it arrives before or after the
 hold, so a late `tickets.seat_held` never revives a released hold, and a sold seat stays sold whatever arrives after
-it. `concert.seat_states` answers the held and sold seats of a concert, leaving out the asking order's own holds and
+it. A hold also ends at its `expiresAt`, by the storefront's clock, without waiting for a release: ticketing hands a
+seat whose hold has expired to the next order before its delayed `ExpireHold` runs, and that expiry then finds the seat
+held by someone else and announces nothing, so the release of the first hold never comes. `concert.seat_states` answers the held and sold seats of a concert, leaving out the asking order's own holds and
 adding the seats other storefront orders asked for before ticketing announced them; the seat picker, the rush and the
 contention read it, so neither the crowd nor a contention asks ticketing for a seat the storefront knows is taken.
 

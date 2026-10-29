@@ -14,6 +14,7 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -35,6 +36,13 @@ final class RushPagesTest extends TestCase
         DB::table('customers')->delete();
         DB::table('concerts')->delete();
         DB::table('jobs')->delete();
+        Carbon::setTestNow('2026-10-25 12:00:00');
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     public function test_a_concert_on_sale_offers_to_simulate_a_rush_of_buyers(): void

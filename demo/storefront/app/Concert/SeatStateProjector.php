@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Gateway\QueryBus;
+use Illuminate\Support\Carbon;
 
 final class SeatStateProjector
 {
@@ -16,7 +17,7 @@ final class SeatStateProjector
     #[EventHandler('tickets.seat_held')]
     public function whenSeatHeld(array $event, #[Reference] SeatStates $seatStates): void
     {
-        $seatStates->hold(concertId: $event['concertId'], seatId: $event['seatId'], holdId: $event['holdId'], orderId: $event['orderId']);
+        $seatStates->hold(concertId: $event['concertId'], seatId: $event['seatId'], holdId: $event['holdId'], orderId: $event['orderId'], expiresAt: $event['expiresAt']);
     }
 
     #[Distributed]
@@ -40,7 +41,7 @@ final class SeatStateProjector
 
         return [
             'heldSeatIds' => self::sorted(array_diff(
-                [...$seatStates->liveHoldsOf(concertId: $query['concertId'], excludingOrderId: $query['excludingOrderId'] ?? ''), ...$queryBus->sendWithRouting('concert.seats_claimed_by_orders', $query)],
+                [...$seatStates->liveHoldsAt(concertId: $query['concertId'], now: Carbon::now()->toAtomString(), excludingOrderId: $query['excludingOrderId'] ?? ''), ...$queryBus->sendWithRouting('concert.seats_claimed_by_orders', $query)],
                 $soldSeatIds,
             )),
             'soldSeatIds' => $soldSeatIds,

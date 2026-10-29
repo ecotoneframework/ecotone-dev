@@ -15,6 +15,7 @@ return new class () extends Migration {
             $table->string('hold_id');
             $table->string('order_id');
             $table->boolean('ended');
+            $table->timestampTz('expires_at')->nullable();
             $table->primary(['concert_id', 'seat_id', 'hold_id']);
         });
 

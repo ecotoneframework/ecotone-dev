@@ -16,6 +16,7 @@ use App\Ordering\StartOrder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -39,6 +40,13 @@ final class CheckoutPagesTest extends TestCase
         DB::table('payment_attempts')->delete();
         DB::table('seat_holds')->delete();
         DB::table('sold_seats')->delete();
+        Carbon::setTestNow('2026-10-25 12:00:00');
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     public function test_the_seat_picker_greys_out_the_seats_ticketing_holds_or_sold_with_their_state_and_counts_them(): void
@@ -46,7 +54,7 @@ final class CheckoutPagesTest extends TestCase
         $this->scheduleOnSale();
         $customerId = $this->register('Ada Lovelace', 'ada@example.com');
         $this->ticketingAnnounces('tickets.seat_sold', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-1', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000b']);
-        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-2', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000c', 'holdId' => 'hold-1']);
+        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-2', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000c', 'holdId' => 'hold-1', 'expiresAt' => '2026-10-25T12:10:00+00:00']);
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/concerts/' . self::CONCERT_ID);
 
@@ -62,7 +70,7 @@ final class CheckoutPagesTest extends TestCase
         [$customerId, $orderId] = $this->startedOrder();
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1'));
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
-        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-1', 'orderId' => $orderId, 'holdId' => 'hold-1']);
+        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-1', 'orderId' => $orderId, 'holdId' => 'hold-1', 'expiresAt' => '2026-10-25T12:10:00+00:00']);
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/concerts/' . self::CONCERT_ID);
 
@@ -75,7 +83,7 @@ final class CheckoutPagesTest extends TestCase
     {
         [$customerId, $orderId] = $this->startedOrder();
         $this->ticketingAnnounces('tickets.seat_sold', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-1', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000b']);
-        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-2', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000c', 'holdId' => 'hold-1']);
+        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-2', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000c', 'holdId' => 'hold-1', 'expiresAt' => '2026-10-25T12:10:00+00:00']);
 
         $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json');
 

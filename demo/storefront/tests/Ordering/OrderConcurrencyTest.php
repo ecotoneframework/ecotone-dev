@@ -43,13 +43,6 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
         DB::table('rush_buyers')->delete();
         DB::table('rushes')->delete();
         DB::table('payment_attempts')->delete();
-        Carbon::setTestNow('2026-10-25 12:00:00');
-    }
-
-    protected function tearDown(): void
-    {
-        Carbon::setTestNow();
-        parent::tearDown();
     }
 
     protected function storefrontServices(): array

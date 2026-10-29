@@ -292,9 +292,14 @@ final class Order extends Model
     /**
      * @return list<string>
      */
-    public function claimedSeatIds(): array
+    public function claimedSeatIdsAt(DateTimeImmutable $now): array
     {
-        return array_column(array_filter($this->held_seats, fn (array $heldSeat) => ! ($heldSeat['expired'] ?? false)), 'seatId');
+        return array_column(array_filter($this->held_seats, fn (array $heldSeat) => ! ($heldSeat['expired'] ?? false) && ($this->isSold() || new DateTimeImmutable($heldSeat['expiresAt']) > $now)), 'seatId');
+    }
+
+    private function isSold(): bool
+    {
+        return in_array($this->status, [OrderStatus::PAID, OrderStatus::TICKETS_ISSUED], true);
     }
 
     private static function sameTickets(array $tickets, array $otherTickets): bool

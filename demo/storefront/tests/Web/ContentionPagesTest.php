@@ -8,6 +8,7 @@ use App\Ordering\MarkSeatHeld;
 use App\Ordering\RecordSeatRefusal;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -31,13 +32,20 @@ final class ContentionPagesTest extends TestCase
         DB::table('jobs')->delete();
         DB::table('seat_holds')->delete();
         DB::table('sold_seats')->delete();
+        Carbon::setTestNow('2026-10-25 12:00:00');
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     public function test_the_contention_panel_lists_seats_ticketing_sold_or_holds_as_taken_and_unselectable(): void
     {
         $this->scheduleOnSale();
         $this->ticketingAnnounces('tickets.seat_sold', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-1', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000b']);
-        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-1', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000c', 'holdId' => 'hold-1']);
+        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-1', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000c', 'holdId' => 'hold-1', 'expiresAt' => '2026-10-25T12:10:00+00:00']);
 
         $response = $this->get('/concerts/' . self::CONCERT_ID);
 

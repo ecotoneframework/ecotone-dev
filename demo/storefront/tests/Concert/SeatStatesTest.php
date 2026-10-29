@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Tests\Concert;
 
 use App\Customer\RegisterCustomer;
+use App\Ordering\BeginPayment;
+use App\Ordering\MarkPaid;
 use App\Ordering\MarkSeatHeld;
 use App\Ordering\RequestSeat;
 use App\Ordering\StartOrder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -31,6 +34,13 @@ final class SeatStatesTest extends TestCase
         DB::table('customers')->delete();
         DB::table('seat_holds')->delete();
         DB::table('sold_seats')->delete();
+        Carbon::setTestNow('2026-10-25 12:00:00');
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     public function test_a_seat_ticketing_holds_for_another_order_is_held(): void
@@ -114,7 +124,7 @@ final class SeatStatesTest extends TestCase
 
     public function test_the_seats_of_another_concert_are_left_out(): void
     {
-        $this->publish('tickets.seat_held', ['concertId' => self::OTHER_CONCERT_ID, 'seatId' => self::OTHER_CONCERT_ID . '/A-1', 'orderId' => self::OTHER_ORDER_ID, 'holdId' => 'hold-1']);
+        $this->publish('tickets.seat_held', ['concertId' => self::OTHER_CONCERT_ID, 'seatId' => self::OTHER_CONCERT_ID . '/A-1', 'orderId' => self::OTHER_ORDER_ID, 'holdId' => 'hold-1', 'expiresAt' => '2026-10-25T12:10:00+00:00']);
         $this->publish('tickets.seat_sold', ['concertId' => self::OTHER_CONCERT_ID, 'seatId' => self::OTHER_CONCERT_ID . '/B-1', 'orderId' => self::OTHER_ORDER_ID]);
 
         self::assertSame(['heldSeatIds' => [], 'soldSeatIds' => []], $this->seatStates());
@@ -131,9 +141,63 @@ final class SeatStatesTest extends TestCase
         self::assertSame([$this->seat('B-2'), $this->seat('C-1')], $this->app->make(QueryBus::class)->sendWithRouting('concert.taken_seats', ['concertId' => self::CONCERT_ID, 'excludingOrderId' => null]));
     }
 
-    private function held(string $seatCode, string $orderId, string $holdId): void
+    public function test_a_hold_frees_its_seat_once_its_expiry_passes(): void
     {
-        $this->publish('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => $this->seat($seatCode), 'orderId' => $orderId, 'holdId' => $holdId]);
+        $this->held('A-1', self::OTHER_ORDER_ID, 'hold-1', expiresAt: '2026-10-25T12:02:00+00:00');
+        Carbon::setTestNow('2026-10-25 12:01:59');
+
+        self::assertSame(['heldSeatIds' => [$this->seat('A-1')], 'soldSeatIds' => []], $this->seatStates());
+
+        Carbon::setTestNow('2026-10-25 12:02:00');
+
+        self::assertSame(['heldSeatIds' => [], 'soldSeatIds' => []], $this->seatStates());
+    }
+
+    public function test_a_hold_past_its_expiry_no_longer_holds_the_seat_although_ticketing_never_announced_its_release(): void
+    {
+        $this->held('A-1', self::OTHER_ORDER_ID, 'hold-1', expiresAt: '2026-10-25T12:02:00+00:00');
+        Carbon::setTestNow('2026-10-25 12:03:00');
+        $this->held('A-1', self::ORDER_ID, 'hold-2', expiresAt: '2026-10-25T12:13:00+00:00');
+        $this->released('A-1', self::ORDER_ID, 'hold-2');
+
+        self::assertSame(['heldSeatIds' => [], 'soldSeatIds' => []], $this->seatStates());
+    }
+
+    public function test_a_release_of_an_expired_hold_arriving_after_another_order_took_the_seat_over_keeps_it_held(): void
+    {
+        $this->held('A-1', self::OTHER_ORDER_ID, 'hold-1', expiresAt: '2026-10-25T12:02:00+00:00');
+        Carbon::setTestNow('2026-10-25 12:03:00');
+        $this->held('A-1', self::ORDER_ID, 'hold-2', expiresAt: '2026-10-25T12:13:00+00:00');
+        $this->released('A-1', self::OTHER_ORDER_ID, 'hold-1');
+
+        self::assertSame(['heldSeatIds' => [$this->seat('A-1')], 'soldSeatIds' => []], $this->seatStates());
+    }
+
+    public function test_a_seat_another_storefront_order_holds_frees_once_its_expiry_passes_although_ticketing_never_announced_the_expiry(): void
+    {
+        $orderId = $this->commandBus()->send(new StartOrder(customerId: $this->commandBus()->send(new RegisterCustomer(name: 'Grace Hopper', email: 'grace@example.com')), concertId: self::CONCERT_ID));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: $this->seat('B-2'), holdId: 'hold-3'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: $this->seat('B-2'), holdId: 'hold-3', expiresAt: '2026-10-25T12:02:00+00:00'));
+        Carbon::setTestNow('2026-10-25 12:02:00');
+
+        self::assertSame(['heldSeatIds' => [], 'soldSeatIds' => []], $this->seatStates());
+    }
+
+    public function test_a_seat_of_a_paid_storefront_order_stays_held_past_its_expiry_until_ticketing_announces_the_sale(): void
+    {
+        $orderId = $this->commandBus()->send(new StartOrder(customerId: $this->commandBus()->send(new RegisterCustomer(name: 'Grace Hopper', email: 'grace@example.com')), concertId: self::CONCERT_ID));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: $this->seat('B-2'), holdId: 'hold-3'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: $this->seat('B-2'), holdId: 'hold-3', expiresAt: '2026-10-25T12:02:00+00:00'));
+        $this->commandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
+        $this->commandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay_123'));
+        Carbon::setTestNow('2026-10-25 12:02:00');
+
+        self::assertSame(['heldSeatIds' => [$this->seat('B-2')], 'soldSeatIds' => []], $this->seatStates());
+    }
+
+    private function held(string $seatCode, string $orderId, string $holdId, string $expiresAt = '2026-10-25T12:10:00+00:00'): void
+    {
+        $this->publish('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => $this->seat($seatCode), 'orderId' => $orderId, 'holdId' => $holdId, 'expiresAt' => $expiresAt]);
     }
 
     private function released(string $seatCode, string $orderId, string $holdId): void

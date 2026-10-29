@@ -35,6 +35,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\StateStoredRepository;
 use Ecotone\Test\LicenceTesting;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -70,6 +71,13 @@ abstract class StorefrontFlowTestCase extends TestCase
         $this->storefront = $this->storefront();
         $this->storefront->getGateway(DeadLetterGateway::class)->deleteAll();
         $this->ticketing = $this->ticketing();
+        Carbon::setTestNow('2026-10-25 12:00:00');
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     protected function storefrontServices(): array

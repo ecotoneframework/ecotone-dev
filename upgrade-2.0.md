@@ -2867,17 +2867,19 @@ repository of a flow test, is now checked against the version it was loaded at:
   until now; or stop making the class a Tempest model and store it through the DBAL document-store repository
   (`DbalConfiguration::withDocumentStore(enableDocumentStoreStateStoredRepository: true)`), where `#[Version]` is
   checked; or make it an `#[EventSourcingAggregate]`. A Tempest model without `#[Version]` is unchanged.
-- **Eloquent aggregates are not version-checked**, with or without `#[Version]`. On an Eloquent model,
-  `#[Version]` is not persisted: Ecotone writes it to the declared PHP property, which Eloquent never saves, and reads
-  it back as `0` on every load. Concurrent saves still overwrite each other.
-  `#[Version]` on an Eloquent model is accepted and has no effect. If the model needs the check, either keep it out of
-  Eloquent — a plain class saved through the document-store repository, where `#[Version]` is checked — or keep the
-  table and register a repository of your own for the model: a `#[Repository]` class implementing
-  `Ecotone\Api\Modelling\StateStoredRepository` is chosen ahead of Ecotone's Eloquent repository. Its `findBy()` sets the
-  `#[Version]` property from your version column, since Eloquent never hydrates a declared property; Ecotone then hands
-  `save()` that version as `$versionBeforeHandling`, with the property already moved to the next one. `save()` runs
-  `UPDATE … WHERE id = ? AND version = ?` and, when it matched no row, throws
-  `Ecotone\Api\Messaging\ConcurrencyException::forStaleAggregate()`, as every other backend does.
+- **An Eloquent aggregate with `#[Version]` is version-checked.** **Before:** `#[Version]` on an Eloquent model was
+  accepted and had no effect: Ecotone wrote the declared PHP property, which Eloquent never saves, read it back as `0`
+  on every load, and concurrent saves overwrote each other — so applications registered a `#[Repository]` of their own
+  running `UPDATE … WHERE id = ? AND version = ?`. **Now:** Ecotone's Eloquent repository keeps the `#[Version]`
+  property in a column of the same name: `findBy()` sets the property from the column, the first save inserts the row
+  at version 1, and every later save moves the column from the version it loaded to the next one with
+  `UPDATE … WHERE <key> = ? AND <version column> = ?` before Eloquent's own `save()` writes the changed attributes. A
+  save whose loaded version is no longer stored, and a create under
+  an id that is already stored, throw `Ecotone\Api\Messaging\ConcurrencyException::forStaleAggregate()`, as every
+  other backend does. **How to adapt:** give the table a non-null integer column named after the `#[Version]`
+  property (`$table->integer('version')`); a repository of your own written only to get the check can be removed.
+  An Eloquent model without `#[Version]` is unchanged: last write wins, and a duplicate id raises Laravel's own
+  `UniqueConstraintViolationException`.
 
 A conflict is a technical failure, not a business answer. Retry it by reloading: the command bus and asynchronous
 endpoints retry by default when `DbalConfiguration` runs them in a database transaction ([§9](#9-changed-defaults));

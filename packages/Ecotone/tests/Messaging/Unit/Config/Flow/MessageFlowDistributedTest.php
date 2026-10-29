@@ -356,6 +356,27 @@ final class MessageFlowDistributedTest extends TestCase
         }
     }
 
+    public function test_helper_bus_bound_to_an_unresolved_argument_is_not_credited_to_a_handler_parameter_of_the_same_name(): void
+    {
+        $service = new class () {
+            private ?AuditDistributedBus $auditBus = null;
+
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event, DistributedBus $distributedBus): void
+            {
+                $this->audit($this->auditBus);
+            }
+
+            private function audit(DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('audit', 'audit.seat', '{}');
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::holdRequestedSeat'));
+    }
+
     public function test_helpers_calling_each_other_resolve_the_key_once_and_stop(): void
     {
         $service = new class () {
@@ -388,6 +409,10 @@ final class MessageFlowDistributedTest extends TestCase
 }
 
 final class LocalEventForDistribution
+{
+}
+
+interface AuditDistributedBus extends DistributedBus
 {
 }
 

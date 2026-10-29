@@ -169,9 +169,11 @@ final class HandlerSourceScanner
      */
     private function boundReceiver(?string $receiver, array $bindings): ?string
     {
-        $bound = $receiver === null ? null : ($bindings[$receiver] ?? null);
+        if ($receiver === null || ! array_key_exists($receiver, $bindings)) {
+            return $receiver;
+        }
 
-        return $bound !== null && $bound['kind'] === 'variable' ? $bound['value'] : $receiver;
+        return ($bindings[$receiver]['kind'] ?? null) === 'variable' ? $bindings[$receiver]['value'] : null;
     }
 
     /**

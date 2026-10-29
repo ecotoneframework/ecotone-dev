@@ -68,6 +68,9 @@ jobs:
           extensions: amqp, pdo_pgsql, sockets, intl, zip, pcntl
           coverage: none
 
+      - name: Reach the service database by the name the test configuration pins
+        run: echo "127.0.0.1 postgres" | sudo tee -a /etc/hosts
+
       - name: Run on Ecotone's testing licence
         run: echo "ECOTONE_LICENCE_KEY=$(php -r 'require "packages/Ecotone/src/Test/LicenceTesting.php"; echo Ecotone\Test\LicenceTesting::VALID_LICENCE;')" >> "$GITHUB_ENV"
 

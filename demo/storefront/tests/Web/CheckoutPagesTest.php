@@ -204,6 +204,21 @@ final class CheckoutPagesTest extends TestCase
         $response->assertJson(['requested' => self::CONCERT_ID . '/A-1']);
     }
 
+    public function test_a_seat_picked_twice_at_once_is_asked_of_ticketing_once_and_ends_held_without_an_error(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->theOtherClickCommitsFirst(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-of-the-other-click'));
+
+        $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->postJson('/orders/' . $orderId . '/seats', ['seatId' => self::CONCERT_ID . '/A-1']);
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-of-the-other-click', expiresAt: self::EXPIRES_AT));
+
+        $response->assertAccepted();
+        $response->assertJson(['requested' => self::CONCERT_ID . '/A-1']);
+        $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json')
+            ->assertJsonPath('status', 'seats_held')
+            ->assertJsonPath('heldSeats', [['seatId' => self::CONCERT_ID . '/A-1', 'seatCode' => 'A-1', 'expiresAt' => self::EXPIRES_AT]]);
+    }
+
     public function test_picking_a_seat_the_order_holds_is_a_conflict_naming_the_refusal(): void
     {
         [$customerId, $orderId] = $this->startedOrder();
@@ -480,6 +495,26 @@ final class CheckoutPagesTest extends TestCase
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/account');
 
         $response->assertSee('<a href="http://localhost/orders/' . $orderId . '"><code>' . $orderId . '</code></a>', escape: false);
+    }
+
+    private function theOtherClickCommitsFirst(RequestSeat $otherClick): void
+    {
+        config(['database.connections.other_click' => config('database.connections.pgsql')]);
+        $pending = $otherClick;
+        DB::connection()->beforeExecuting(function (string $query) use (&$pending) {
+            if ($pending === null || ! str_starts_with($query, 'update "orders"')) {
+                return;
+            }
+            $otherClick = $pending;
+            $pending = null;
+            $connection = DB::getDefaultConnection();
+            DB::setDefaultConnection('other_click');
+            try {
+                $this->commandBus()->send($otherClick);
+            } finally {
+                DB::setDefaultConnection($connection);
+            }
+        });
     }
 
     private function ticketingAnnounces(string $routingKey, array $event): void

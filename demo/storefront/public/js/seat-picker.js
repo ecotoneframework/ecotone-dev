@@ -12,6 +12,7 @@
     const pendingSeatIds = new Set();
     let orderId = picker.dataset.orderId || null;
     let state = null;
+    let startingOrder = null;
     let message = null;
 
     function price(cents) {
@@ -33,7 +34,8 @@
 
     async function openOrder() {
         if (orderId === null) {
-            orderId = (await post(picker.dataset.startOrderUrl)).orderId;
+            startingOrder = startingOrder || post(picker.dataset.startOrderUrl).finally(function () { startingOrder = null; });
+            orderId = (await startingOrder).orderId;
             picker.dataset.orderId = orderId;
         }
         return orderId;

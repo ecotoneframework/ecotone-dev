@@ -37,7 +37,8 @@ final class EcotoneConfiguration
     public function instantRetriesForTransientDatabaseErrorsAndVersionConflicts(): InstantRetryConfiguration
     {
         return InstantRetryConfiguration::createWithDefaults()
-            ->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: 3, retryExceptions: [RetryableException::class, ConcurrencyException::class]);
+            ->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: 3, retryExceptions: [RetryableException::class, ConcurrencyException::class])
+            ->withCommandBusRetry(isEnabled: true, retryTimes: 3, retryExceptions: [ConcurrencyException::class]);
     }
 
     #[ServiceContext]

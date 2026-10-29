@@ -109,6 +109,9 @@ final class Order extends Model
         if (in_array($command->seatId, $this->heldSeatIds(), true)) {
             throw new DomainException(sprintf('Order %s already holds seat %s, so RequestSeat does not ask ticketing for it again. Pick another seat, or release this one with ReleaseSeat.', $this->id, $command->seatId));
         }
+        if (isset($this->requested_holds[$command->seatId])) {
+            return;
+        }
         $this->requested_holds = [...$this->requested_holds, $command->seatId => $command->holdId];
         $this->recordThat(new SeatRequested(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId, holdId: $command->holdId));
     }

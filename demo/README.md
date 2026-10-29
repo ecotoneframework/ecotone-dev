@@ -112,7 +112,9 @@ The status line under the panel counts the buyers as they hold, pay, get their t
   Distributed Bus.
 - **Pulse → Services → ticketing → Projections** shows the seat map and the sales ledger with their positions, and
   **Rebuild** and **Backfill** for each.
-- **Pulse → Flow** draws the graph of the messages each service handles and sends.
+- **Pulse → Flow** draws the graph of the messages each service handles and sends. The storefront sends its
+  `tickets.*` commands through one helper with the routing key in a variable, which static inference cannot see, so
+  the graph draws no storefront → ticketing command arrows.
 - **Jaeger**: a trace follows a flow across both services, because the Distributed Bus carries its context. In a
   hold, `process SeatSalesOverDistributedBus::hold` decides in `Decision Models: App\Sales\SeatSales::hold` and appends
   in `Conditional Append: ecotone_event_stream`: that is the Dynamic Consistency Boundary. A conflict shows as that
@@ -121,7 +123,7 @@ The status line under the panel counts the buyers as they hold, pay, get their t
   Models` span per attempt. A payment's trace (`process Checkout::pay` in `storefront`) runs on into ticketing's
   confirm and the issuance orchestrator: `TicketIssuance::allocateNumbers` and `grantVipLoungePasses`, then a
   `receive ticketing_async` hop into `renderTickets` and `registerEntryCodes`, another into `announceIssuedTickets`, and back to the
-  storefront's `MarkTicketsIssued`. A whole rush is one trace, from `RushSimulator::start` through every tick.
+  storefront's `TicketingReplies::whenTicketsIssued` and `Order::markTicketsIssued`. A whole rush is one trace, from `RushSimulator::start` through every tick.
 
 ## Contend for one seat
 
@@ -136,7 +138,8 @@ contention page (`/contentions/{contentionId}`) polls their state every second. 
 (held) and every other one turns red (refused), and each refusal says which of the two it was above the reason
 ticketing replied with: a request refused by the boundary is told the seat changed each time ticketing tried to hold
 it, one that read the seat already held is told who holds it and until when. The headline says how the contention
-ended: which buyer holds the seat, or, on a seat already held or sold, that no buyer got it, with ticketing's reason.
+ended: which buyer holds the seat, or, when the seat changed hands before the requests arrived, that no buyer got it,
+with ticketing's reason. A seat the storefront already knows as held or sold is not offered for a contention at all.
 
 The winner's order is a normal held order: **Continue as** that buyer to pay for it, or let the hold expire. Every
 refused buyer's order fails with ticketing's reason. In Jaeger, the contention is one trace across both services, with
@@ -234,7 +237,9 @@ hold of a seat whose hold just expired, appended while the confirm decides, make
 seat is sold once: the storefront's `tickets.confirm` is refused at once with "someone was faster", and the storefront
 fails the order and refunds it (a command-bus send would retry and refuse naming the order that holds the seat). A
 confirm repeated for an order already sold with the same payment reference replies `sold` again and sells nothing
-twice, also when the two copies are handled at once by two consumers. The storefront drives it
+twice, also when the two copies are handled at once by two consumers, with one window left: a copy that commits
+between the other copy's fresh read of the seat and its append is still refused over the Distributed Bus, because a
+send nested in the consumer's transaction is not retried, and the storefront then fails and refunds that order. The storefront drives it
 with `tickets.hold`, `tickets.release` and `tickets.confirm` over the Distributed Bus, and gets `tickets.hold.result`
 and `tickets.confirm.result` replies; a held reply for a hold id the order no longer awaits releases that hold, and a
 `tickets.hold_expired` drops a seat only when it names the order's current hold. Each concert has a seat map at

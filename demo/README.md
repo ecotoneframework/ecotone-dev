@@ -71,6 +71,11 @@ Replay and Delete.
 
 ![Pulse's dead letters after a rush](docs/screenshots/pulse-dead-letters.png)
 
+Pulse's flow graph following `tickets.hold`: the Distributed Bus hands it to ticketing, the hold emits `SeatHeld`, and
+its handlers run over `async: ticketing_async`, with the steps listed under the graph.
+
+![Pulse's flow graph following tickets.hold](docs/screenshots/pulse-flow-graph.png)
+
 The rest are in [`docs/screenshots`](docs/screenshots).
 
 ## Open it

@@ -426,6 +426,41 @@ final class SeatSalesTest extends KernelTestCase
         );
     }
 
+    public function test_confirming_a_seat_another_order_of_the_customer_bought_is_refused_naming_that_order(): void
+    {
+        $ticketing = $this->ticketing();
+        $concertId = $this->concertOnSale($ticketing);
+        $customerId = Uuid::v7()->toRfc4122();
+        $buyingOrder = Uuid::v7()->toRfc4122();
+        $orderId = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $buyingOrder, $concertId, $concertId . '/A-1', $customerId);
+        $this->confirm($ticketing, $buyingOrder, $concertId, $customerId, [$concertId . '/A-1']);
+
+        try {
+            $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+            self::fail('Confirming a seat another order bought was expected to be refused.');
+        } catch (SeatRefusal $refusal) {
+            self::assertSame("Order {$orderId} cannot buy seat {$concertId}/A-1, because it is already sold to order {$buyingOrder}. Confirm only seats that are held; nothing of the order was sold.", $refusal->getMessage());
+        }
+    }
+
+    public function test_confirming_a_seat_another_order_of_the_customer_holds_is_refused_naming_that_order(): void
+    {
+        $ticketing = $this->ticketing();
+        $concertId = $this->concertOnSale($ticketing);
+        $customerId = Uuid::v7()->toRfc4122();
+        $holdingOrder = Uuid::v7()->toRfc4122();
+        $orderId = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, $holdingOrder, $concertId, $concertId . '/A-1', $customerId);
+
+        try {
+            $this->confirm($ticketing, $orderId, $concertId, $customerId, [$concertId . '/A-1']);
+            self::fail('Confirming a seat another order holds was expected to be refused.');
+        } catch (SeatRefusal $refusal) {
+            self::assertSame("Order {$orderId} cannot buy seat {$concertId}/A-1, because order {$holdingOrder} holds it, not order {$orderId}. Confirm each order with its own seats; nothing of the order was sold.", $refusal->getMessage());
+        }
+    }
+
     public function test_confirming_a_seat_the_order_does_not_hold_is_refused_naming_the_seat(): void
     {
         $ticketing = $this->ticketing();

@@ -15,7 +15,9 @@ use Ecotone\JMSConverter\JMSConverterBuilder;
 use Ecotone\JMSConverter\JMSHandlerAdapterBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
+use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -95,8 +97,13 @@ final class JMSConverterConfigurationModule extends NoExternalConfigurationModul
                 $jmsConverterConfiguration = $extensionObject;
             }
         }
+        $bootstrapConfiguration = ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults());
 
-        $messagingConfiguration->registerConverter(new JMSConverterBuilder($this->jmsHandlerAdapters, $jmsConverterConfiguration));
+        $messagingConfiguration->registerConverter(new JMSConverterBuilder(
+            $this->jmsHandlerAdapters,
+            $jmsConverterConfiguration,
+            checkMetadataCacheFreshness: $jmsConverterConfiguration->getMetadataCacheFreshnessCheck() ?? ! $bootstrapConfiguration->isProductionConfiguration(),
+        ));
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

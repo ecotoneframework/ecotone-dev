@@ -14,6 +14,7 @@ final class JMSConverterConfiguration
         private readonly string $namingStrategy = self::IDENTICAL_PROPERTY_NAMING_STRATEGY,
         private readonly bool $defaultNullSerialization = true,
         private readonly bool $enableEnumSupport = true,
+        private readonly ?bool $metadataCacheFreshnessCheck = null,
     ) {
     }
 
@@ -37,6 +38,11 @@ final class JMSConverterConfiguration
         return new self(...[...get_object_vars($this), 'enableEnumSupport' => $enabled]);
     }
 
+    public function withMetadataCacheFreshnessCheck(bool $enabled): self
+    {
+        return new self(...[...get_object_vars($this), 'metadataCacheFreshnessCheck' => $enabled]);
+    }
+
     public function getNamingStrategy(): string
     {
         return $this->namingStrategy;
@@ -50,5 +56,10 @@ final class JMSConverterConfiguration
     public function isEnumSupportEnabled(): bool
     {
         return $this->enableEnumSupport;
+    }
+
+    public function getMetadataCacheFreshnessCheck(): ?bool
+    {
+        return $this->metadataCacheFreshnessCheck;
     }
 }

@@ -3123,6 +3123,21 @@ class is `final`. A statement-form call still runs, but its value never reaches 
 `#[ServiceContext]` method as a chained expression is unaffected. A subclass becomes a `#[ServiceContext]` method
 returning the chained configuration.
 
+### JMS re-reads a changed class outside production
+
+**Before:** the JMS metadata cache under Ecotone's cache directory (`.../ecotone/jms/metadata`) was written once and
+never checked against the class it describes. When a class gained a property, deserialization kept the old shape —
+the new property stayed uninitialized, and reading it failed with "Typed property ... must not be accessed before
+initialization" — until the directory was deleted by hand.
+
+**Now:** outside production the cache compares each entry with its class file and re-reads a class that changed.
+Production — the `prod` or `production` environment (Symfony's `kernel.environment`, Laravel's `APP_ENV`,
+`EcotoneLite`'s `environment:`) — keeps trusting the cache as before, so a deployment still clears Ecotone's cache.
+
+**How to adapt:** nothing. To decide it yourself, return
+`JMSConverterConfiguration::createWithDefaults()->withMetadataCacheFreshnessCheck(true)` (or `false`) from a
+`#[ServiceContext]` method.
+
 ### `AmqpQueue` and `AmqpExchange` name their mutators `set*()`
 
 **Before:** both classes named nine mutators `with*()` — `withArgument()`, `withDurability()`,

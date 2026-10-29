@@ -30,24 +30,27 @@ class EloquentRepositoryTest extends TestCase
 {
     protected function defineEnvironment($app): void
     {
+        $dsn = (string) getenv('DATABASE_DSN');
         $app['config']->set('database.default', 'eloquent_repository');
-        $app['config']->set('database.connections.eloquent_repository', [
-            'driver' => 'sqlite',
-            'database' => ':memory:',
-            'prefix' => '',
-        ]);
+        $app['config']->set('database.connections.eloquent_repository', match (true) {
+            str_starts_with($dsn, 'pgsql') => ['driver' => 'pgsql', 'url' => $dsn, 'prefix' => '', 'search_path' => 'public'],
+            str_starts_with($dsn, 'mysql') => ['driver' => 'mysql', 'url' => $dsn, 'prefix' => ''],
+            default => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
+        });
     }
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        Schema::create('tickets', function (Blueprint $table) {
+        Schema::dropIfExists('eloquent_repository_tickets');
+        Schema::create('eloquent_repository_tickets', function (Blueprint $table) {
             $table->string('ticket_id')->primary();
             $table->string('title');
             $table->integer('version');
         });
-        Schema::create('notes', function (Blueprint $table) {
+        Schema::dropIfExists('eloquent_repository_notes');
+        Schema::create('eloquent_repository_notes', function (Blueprint $table) {
             $table->string('note_id')->primary();
             $table->string('text');
         });
@@ -118,7 +121,7 @@ class EloquentRepositoryTest extends TestCase
         $ticket = new #[Aggregate] class () extends Model {
             use WithAggregateVersioning;
 
-            protected $table = 'tickets';
+            protected $table = 'eloquent_repository_tickets';
             protected $primaryKey = 'ticket_id';
             protected $keyType = 'string';
             public $incrementing = false;
@@ -177,7 +180,7 @@ class EloquentRepositoryTest extends TestCase
         $ticket = new #[Aggregate] class () extends Model {
             public static array $events = [];
 
-            protected $table = 'tickets';
+            protected $table = 'eloquent_repository_tickets';
             protected $primaryKey = 'ticket_id';
             protected $keyType = 'string';
             public $incrementing = false;
@@ -226,7 +229,7 @@ class EloquentRepositoryTest extends TestCase
     public function test_an_eloquent_aggregate_without_a_version_saves_the_last_write_as_before(): void
     {
         $note = new #[Aggregate] class () extends Model {
-            protected $table = 'notes';
+            protected $table = 'eloquent_repository_notes';
             protected $primaryKey = 'note_id';
             protected $keyType = 'string';
             public $incrementing = false;
@@ -338,7 +341,7 @@ class EloquentRepositoryTest extends TestCase
     private function versionedTicket(): Model
     {
         return new #[Aggregate] class () extends Model {
-            protected $table = 'tickets';
+            protected $table = 'eloquent_repository_tickets';
             protected $primaryKey = 'ticket_id';
             protected $keyType = 'string';
             public $incrementing = false;

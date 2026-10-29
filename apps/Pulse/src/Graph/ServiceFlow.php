@@ -117,22 +117,32 @@ final readonly class ServiceFlow
     }
 
     /**
-     * @return list<array{command: FlowNode, handler: FlowNode, routingKey: string, replies: bool}>
+     * @return list<array{target: FlowNode, handler: FlowNode, routingKey: string, replies: bool}>
      */
-    public function distributedCommandHandlers(): array
+    public function distributedMessageReceivers(): array
     {
-        $handlers = [];
+        $receivers = [];
+        foreach ($this->graph->edgesOfKind(FlowEdgeKind::DISTRIBUTES) as $distributes) {
+            $channel = $this->graph->node($distributes->to);
+            if ($channel->kind !== FlowNodeKind::CHANNEL) {
+                continue;
+            }
+            foreach ($this->graph->edgesOfKind(FlowEdgeKind::INPUT, from: $channel->id) as $input) {
+                $handler = $this->graph->node($input->to);
+                $receivers[] = ['target' => $handler, 'handler' => $handler, 'routingKey' => $channel->label, 'replies' => $this->replies($handler)];
+            }
+        }
         foreach ($this->distributedReceivers() as $received) {
             if ($received['node']->kind !== FlowNodeKind::COMMAND) {
                 continue;
             }
             foreach ($this->graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, from: $received['node']->id) as $routed) {
                 $handler = $this->graph->node($routed->to);
-                $handlers[] = ['command' => $received['node'], 'handler' => $handler, 'routingKey' => $received['routingKey'], 'replies' => $this->replies($handler)];
+                $receivers[] = ['target' => $received['node'], 'handler' => $handler, 'routingKey' => $received['routingKey'], 'replies' => $this->replies($handler)];
             }
         }
 
-        return $handlers;
+        return $receivers;
     }
 
     public function replyTargetOf(FlowNode $sendingHandler, ?string $replyChannel): string
@@ -149,26 +159,6 @@ final readonly class ServiceFlow
         }
 
         return false;
-    }
-
-    /**
-     * @return list<array{handler: FlowNode, channel: string, replies: bool}>
-     */
-    public function distributedChannelHandlers(): array
-    {
-        $handlers = [];
-        foreach ($this->graph->edgesOfKind(FlowEdgeKind::DISTRIBUTES) as $distributes) {
-            $channel = $this->graph->node($distributes->to);
-            if ($channel->kind !== FlowNodeKind::CHANNEL) {
-                continue;
-            }
-            foreach ($this->graph->edgesOfKind(FlowEdgeKind::INPUT, from: $channel->id) as $input) {
-                $handler = $this->graph->node($input->to);
-                $handlers[] = ['handler' => $handler, 'channel' => $channel->label, 'replies' => $this->replies($handler)];
-            }
-        }
-
-        return $handlers;
     }
 
     /**

@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
@@ -23,6 +24,7 @@ final class DeduplicationExpressionFailureTest extends DbalMessagingTestCase
             classesToResolve: [BrokenDeduplicationExpressionHandler::class],
             containerOrAvailableServices: [new BrokenDeduplicationExpressionHandler(), DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $this->expectException(ExpressionEvaluationException::class);

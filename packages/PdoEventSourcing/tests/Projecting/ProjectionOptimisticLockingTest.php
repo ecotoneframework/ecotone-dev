@@ -51,8 +51,8 @@ final class ProjectionOptimisticLockingTest extends ProjectingTestCase
 
     public function test_a_synchronous_projection_run_that_another_run_overtook_fails_with_a_concurrency_exception_and_projects_nothing(): void
     {
-        [$anna, $annaProjection] = $this->bootstrap(self::getConnectionFactory(), asynchronous: false);
-        [$ben] = $this->bootstrap($this->secondConnectionFactory(), asynchronous: false);
+        [$anna, $annaProjection] = $this->bootstrap(self::getConnectionFactory(), asynchronous: false, defaultInstantRetries: false);
+        [$ben] = $this->bootstrap($this->secondConnectionFactory(), asynchronous: false, defaultInstantRetries: false);
         $anna->deleteProjection(self::NAME)->initializeProjection(self::NAME);
         $annaProjection->arm(fn () => $ben->sendCommand(new RegisterTicket('ticket-ben', 'Ben', 'alert')));
 
@@ -72,8 +72,8 @@ final class ProjectionOptimisticLockingTest extends ProjectingTestCase
 
     public function test_a_synchronous_projection_run_that_another_run_overtook_is_retried_by_default_and_projects_every_event_once(): void
     {
-        [$anna, $annaProjection] = $this->bootstrap(self::getConnectionFactory(), asynchronous: false, defaultInstantRetries: true);
-        [$ben] = $this->bootstrap($this->secondConnectionFactory(), asynchronous: false, defaultInstantRetries: true);
+        [$anna, $annaProjection] = $this->bootstrap(self::getConnectionFactory(), asynchronous: false);
+        [$ben] = $this->bootstrap($this->secondConnectionFactory(), asynchronous: false);
         $anna->deleteProjection(self::NAME)->initializeProjection(self::NAME);
         $annaProjection->arm(fn () => $ben->sendCommand(new RegisterTicket('ticket-ben', 'Ben', 'alert')));
 
@@ -84,8 +84,8 @@ final class ProjectionOptimisticLockingTest extends ProjectingTestCase
 
     public function test_an_asynchronous_projection_run_that_another_run_overtook_fails_with_a_concurrency_exception_and_projects_nothing(): void
     {
-        [$anna, $annaProjection] = $this->bootstrap(self::getConnectionFactory(), asynchronous: true);
-        [$ben] = $this->bootstrap($this->secondConnectionFactory(), asynchronous: true);
+        [$anna, $annaProjection] = $this->bootstrap(self::getConnectionFactory(), asynchronous: true, defaultInstantRetries: false);
+        [$ben] = $this->bootstrap($this->secondConnectionFactory(), asynchronous: true, defaultInstantRetries: false);
         $anna->deleteProjection(self::NAME)->initializeProjection(self::NAME);
         $anna->sendCommand(new RegisterTicket('ticket-anna', 'Anna', 'alert'));
         $annaProjection->arm(function () use ($ben) {
@@ -105,8 +105,8 @@ final class ProjectionOptimisticLockingTest extends ProjectingTestCase
 
     public function test_an_asynchronous_projection_run_that_another_run_overtook_is_retried_by_default_and_projects_every_event_once(): void
     {
-        [$anna, $annaProjection] = $this->bootstrap(self::getConnectionFactory(), asynchronous: true, defaultInstantRetries: true);
-        [$ben] = $this->bootstrap($this->secondConnectionFactory(), asynchronous: true, defaultInstantRetries: true);
+        [$anna, $annaProjection] = $this->bootstrap(self::getConnectionFactory(), asynchronous: true);
+        [$ben] = $this->bootstrap($this->secondConnectionFactory(), asynchronous: true);
         $anna->deleteProjection(self::NAME)->initializeProjection(self::NAME);
         $anna->sendCommand(new RegisterTicket('ticket-anna', 'Anna', 'alert'));
         $annaProjection->arm(function () use ($ben) {
@@ -122,7 +122,7 @@ final class ProjectionOptimisticLockingTest extends ProjectingTestCase
     /**
      * @return array{0: FlowTestSupport, 1: object}
      */
-    private function bootstrap(DbalConnectionFactory $connectionFactory, bool $asynchronous, bool $defaultInstantRetries = false): array
+    private function bootstrap(DbalConnectionFactory $connectionFactory, bool $asynchronous, bool $defaultInstantRetries = true): array
     {
         $connection = $connectionFactory->createContext()->getDbalConnection();
         $projection = $asynchronous

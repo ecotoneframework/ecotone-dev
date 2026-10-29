@@ -30,6 +30,7 @@ use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ConcurrencyException;
@@ -722,6 +723,7 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
                 containerOrAvailableServices: [$converter],
                 extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
                 licenceKey: LicenceTesting::VALID_LICENCE,
+                testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
             )->getGateway(EventStore::class);
         }
 
@@ -736,6 +738,7 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         )->setupDatabaseTables()->getGateway(EventStore::class);
     }
 
@@ -890,6 +893,7 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
                 extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
                 enabledModules: [],
                 licenceKey: LicenceTesting::VALID_LICENCE,
+                testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
             );
         }
 
@@ -904,6 +908,7 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         )->setupDatabaseTables();
     }
 

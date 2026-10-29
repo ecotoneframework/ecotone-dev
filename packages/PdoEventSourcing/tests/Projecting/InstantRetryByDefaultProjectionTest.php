@@ -12,7 +12,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Projection;
@@ -105,7 +104,6 @@ final class InstantRetryByDefaultProjectionTest extends ProjectingTestCase
                 DbalBackedMessageChannelBuilder::create($projection::CHANNEL),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
-            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(true),
             licenceKey: $licenceKey,
         );
     }

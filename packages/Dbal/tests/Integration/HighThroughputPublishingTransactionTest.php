@@ -8,6 +8,7 @@ use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Modelling\AggregateNotFoundException;
@@ -88,6 +89,7 @@ final class HighThroughputPublishingTransactionTest extends DbalMessagingTestCas
             extensionObjects: array_merge($extensionObjects, $channelBuilders, [DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true)->withTransactionOnAsynchronousEndpoints(true)->withDoctrineORMRepositories(true), ]),
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             addInMemoryStateStoredRepository: false,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
     }
 }

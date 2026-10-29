@@ -112,7 +112,7 @@ final class EventStreamMigrationMultiConnectionTest extends EventSourcingMessagi
             extensionObjects: [DbalConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
-            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)->withDefaultInstantRetries(false),
             environment: 'prod',
         );
     }

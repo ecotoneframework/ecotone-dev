@@ -129,14 +129,14 @@ final class InstantRetryByDefaultTest extends DbalMessagingTestCase
         self::assertSame(1, $ecotone->sendQueryWithRouting('flaky.attempts'));
     }
 
-    public function test_a_flow_test_does_not_retry_by_default_unless_its_test_configuration_asks_for_the_default(): void
+    public function test_a_flow_test_whose_test_configuration_switches_the_default_off_does_not_retry(): void
     {
         $ecotone = $this->bootstrap(DbalConfiguration::createWithDefaults(), defaultInstantRetries: false);
 
         $this->assertFailsAfterOneAttempt($ecotone, fn () => $ecotone->sendCommandWithRouting('flaky'));
     }
 
-    public function test_a_flow_test_applies_an_explicit_instant_retry_configuration_without_asking_for_the_default(): void
+    public function test_a_flow_test_whose_test_configuration_switches_the_default_off_still_applies_an_explicit_instant_retry_configuration(): void
     {
         $ecotone = $this->bootstrap(
             DbalConfiguration::createWithDefaults(),

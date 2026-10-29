@@ -29,7 +29,7 @@ final class TestConfiguration
 
     public static function createWithDefaults(): self
     {
-        return new self(true, null, '', [], true, true, null, false);
+        return new self(true, null, '', [], true, true, null, true);
     }
 
     public function withTimeAt(DateTimeImmutable $time): self

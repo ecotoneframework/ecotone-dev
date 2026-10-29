@@ -15,6 +15,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\AggregateNotFoundException;
@@ -156,6 +157,7 @@ final class ORMTest extends DbalMessagingTestCase
             addInMemoryStateStoredRepository: false,
             licenceKey: LicenceTesting::VALID_LICENCE,
             namespaces: array_merge($namespaces, ['Test\Ecotone\Dbal\Fixture\ORM\SynchronousEventHandler', 'Test\Ecotone\Dbal\Fixture\ORM\PersonQueryHandler', ]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         /** For Tenant A */
@@ -223,6 +225,7 @@ final class ORMTest extends DbalMessagingTestCase
             addInMemoryStateStoredRepository: false,
             licenceKey: LicenceTesting::VALID_LICENCE,
             namespaces: array_merge($namespaces, ['Test\Ecotone\Dbal\Fixture\ORM\SynchronousEventHandler', 'Test\Ecotone\Dbal\Fixture\ORM\PersonQueryHandler', ]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $ecotone->sendCommand(new RegisterPerson(100, 'Johnny'));
@@ -258,6 +261,7 @@ final class ORMTest extends DbalMessagingTestCase
             addInMemoryStateStoredRepository: false,
             licenceKey: LicenceTesting::VALID_LICENCE,
             namespaces: $namespaces,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $ecotone->sendCommand(new RegisterPerson(100, 'Johnny'));
@@ -284,6 +288,7 @@ final class ORMTest extends DbalMessagingTestCase
             addInMemoryStateStoredRepository: false,
             licenceKey: LicenceTesting::VALID_LICENCE,
             namespaces: $namespaces,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $entityManager->close();
@@ -321,6 +326,7 @@ final class ORMTest extends DbalMessagingTestCase
             addInMemoryStateStoredRepository: false,
             licenceKey: LicenceTesting::VALID_LICENCE,
             namespaces: ['Test\Ecotone\Dbal\Fixture\ORM\Person'],
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $entityManager->close();
@@ -342,6 +348,7 @@ final class ORMTest extends DbalMessagingTestCase
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             addInMemoryStateStoredRepository: false,
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $this->expectException(InvalidArgumentException::class);
@@ -363,6 +370,7 @@ final class ORMTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
             namespaces: $namespaces,
             environment: 'prod',
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
     }
 

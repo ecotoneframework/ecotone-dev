@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit\Config\InstantRetry;
 
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ConfigurationException;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -281,7 +283,6 @@ final class InstantRetryModuleTest extends TestCase
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
             ],
             enabledModules: [],
-            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(true),
         );
 
         try {
@@ -295,5 +296,51 @@ final class InstantRetryModuleTest extends TestCase
             ->sendCommandWithRouting('retried.asynchronous', 3)
             ->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertEquals(2, $ecotoneLite->sendQueryWithRouting('retried.getCallCount'));
+    }
+
+    public function test_a_configuration_exception_is_never_retried_on_the_command_bus_nor_on_an_asynchronous_endpoint()
+    {
+        $handler = new class () {
+            public int $attempts = 0;
+
+            #[CommandHandler('misconfigured')]
+            public function misconfigured(): void
+            {
+                $this->attempts++;
+                throw ConfigurationException::create('misconfigured');
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('misconfigured.async', endpointId: 'misconfigured.async.endpoint')]
+            public function misconfiguredAsynchronous(): void
+            {
+                $this->attempts++;
+                throw ConfigurationException::create('misconfigured');
+            }
+        };
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+                InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3)->withAsynchronousEndpointsRetry(true, 3),
+            ],
+            enabledModules: [],
+        );
+
+        try {
+            $ecotoneLite->sendCommandWithRouting('misconfigured');
+            $this->fail('ConfigurationException was not thrown');
+        } catch (ConfigurationException) {
+        }
+        $this->assertSame(1, $handler->attempts);
+
+        $ecotoneLite->sendCommandWithRouting('misconfigured.async');
+        try {
+            $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+            $this->fail('ConfigurationException was not thrown');
+        } catch (ConfigurationException) {
+        }
+        $this->assertSame(2, $handler->attempts);
     }
 }

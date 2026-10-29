@@ -240,7 +240,7 @@ final class DefaultEventStreamTableNameTest extends EventSourcingMessagingTestCa
             classesToResolve: array_map(static fn (object $class) => $class::class, $classes),
             containerOrAvailableServices: [...$classes, DbalConnectionFactory::class => self::getConnectionFactory()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
-            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap($setUpTablesOnBootstrap),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap($setUpTablesOnBootstrap)->withDefaultInstantRetries(false),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

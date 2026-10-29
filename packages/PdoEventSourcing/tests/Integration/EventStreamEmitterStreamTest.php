@@ -12,6 +12,7 @@ use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\EventStreamEmitter;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\FromStream;
@@ -243,6 +244,7 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
             environment: 'prod',
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
@@ -275,6 +277,7 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: $licenceKey,
             environment: 'prod',
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
     }
 }

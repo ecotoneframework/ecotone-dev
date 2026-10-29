@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ConcurrencyException;
@@ -67,11 +68,13 @@ final class ProjectionStateConformanceTest extends EventSourcingMessagingTestCas
                 classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
                 containerOrAvailableServices: [$projection, new TicketEventConverter()],
                 enabledModules: [],
+                testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
             )
             : $this->bootstrapFlowTesting(
                 classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
                 containerOrAvailableServices: [$projection, new TicketEventConverter(), DbalConnectionFactory::class => self::getConnectionFactory()],
                 enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
+                testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
             );
     }
 }

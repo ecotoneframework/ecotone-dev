@@ -210,7 +210,8 @@ The storefront talks to no real payment provider or mail server. The checkout as
 Ticketing owns the catalogue: venues and concerts are Doctrine ORM aggregates, managed at `/admin` on the ticketing
 URL. Every start of the web container runs `bin/console demo:seed`, which creates Riverside Hall (rows A to F of 12
 seats, rows A and B VIP) and three concerts once. Scheduling a concert, opening its sales and cancelling it is
-announced to the storefront as `concert.scheduled`, `concert.sales_opened` and `concert.cancelled`: an event handler on
+announced to the storefront as `concert.scheduled`, `concert.sales_opened`, `concert.prices_changed`, `concert.sold_out` and
+`concert.cancelled`: an event handler on
 `ticketing_async` publishes each over the Distributed Bus after the command's transaction commits.
 
 ### Seat sales
@@ -278,7 +279,7 @@ seat fail, see [Force a render failure and replay it](#force-a-render-failure-an
 ### Customers and orders
 
 The storefront keeps customers and their orders as Eloquent aggregates, and a concert list fed by ticketing's
-`concert.scheduled`, `concert.sales_opened` and `concert.cancelled` events. There is no login: the storefront registers the demo
+`concert.scheduled`, `concert.sales_opened`, `concert.prices_changed`, `concert.sold_out` and `concert.cancelled` events. There is no login: the storefront registers the demo
 customers when it starts (`php artisan demo:seed`, safe to repeat), you pick one on `/whoami`, and browse `/concerts`
 and your orders on `/account`.
 

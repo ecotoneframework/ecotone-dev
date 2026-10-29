@@ -42,6 +42,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Symfony\SymfonyConnectionReference;
 use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
@@ -71,7 +72,27 @@ final class SeatStateAnnouncementTest extends KernelTestCase
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(
-            [['routingKey' => 'tickets.seat_held', 'concertIdHeader' => $concertId, 'event' => ['concertId' => $concertId, 'seatId' => $concertId . '/A-1', 'orderId' => $orderId, 'holdId' => 'hold-1']]],
+            [['routingKey' => 'tickets.seat_held', 'concertIdHeader' => $concertId, 'event' => ['concertId' => $concertId, 'seatId' => $concertId . '/A-1', 'orderId' => $orderId, 'holdId' => 'hold-1', 'expiresAt' => '2026-10-25T12:10:00+00:00']]],
+            $this->receivedByStorefront($storefront),
+        );
+    }
+
+    public function test_a_hold_another_order_takes_over_after_its_expiry_but_before_the_expiry_runs_is_never_announced_as_released(): void
+    {
+        $storefront = $this->storefrontListening();
+        $ticketing = $this->ticketing();
+        $concertId = $this->concertOnSale($ticketing, $storefront);
+        $otherOrderId = Uuid::v7()->toRfc4122();
+        $this->hold($ticketing, Uuid::v7()->toRfc4122(), $concertId, 'A-1', Uuid::v7()->toRfc4122(), 'hold-1');
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->receivedByStorefront($storefront);
+
+        $ticketing->advanceTimeBy(Duration::seconds(601));
+        $this->hold($ticketing, $otherOrderId, $concertId, 'A-1', Uuid::v7()->toRfc4122(), 'hold-2');
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(
+            [['routingKey' => 'tickets.seat_held', 'concertIdHeader' => $concertId, 'event' => ['concertId' => $concertId, 'seatId' => $concertId . '/A-1', 'orderId' => $otherOrderId, 'holdId' => 'hold-2', 'expiresAt' => '2026-10-25T12:20:01+00:00']]],
             $this->receivedByStorefront($storefront),
         );
     }

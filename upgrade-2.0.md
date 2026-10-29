@@ -2702,6 +2702,22 @@ Ecotone's own missing-table messages print the bare form.
 
 **How to adapt:** nothing. Deployment scripts that already pass `--initialize=true` behave as before.
 
+### Finish-when-no-messages keeps the run's other limits
+
+**Before:** `PollingMetadata::withFinishWhenNoMessages()` set the handled-message, execution-amount and
+execution-time limits to zero, so `ecotone:run orders --finishWhenNoMessages --executionTimeLimit=2000` ignored the
+time limit, `--handledMessageLimit` was ignored the same way, and a run of a queue that kept receiving messages never
+stopped.
+
+**Now:** every limit stays as configured and the run stops at whichever comes first: no message left, the handled
+messages, the executions, or the execution time. `ExecutionPollingMetadata::createWithFinishWhenNoMessages()` still
+clears the handled-message and execution-time limits on purpose, so a test drains the channel whatever the endpoint's
+own polling metadata says.
+
+**How to adapt:** drop a limit you passed together with `--finishWhenNoMessages` (or `withFinishWhenNoMessages(true)`)
+only if you relied on it being ignored. An endpoint whose `PollingMetadata` sets a limit and calls
+`withFinishWhenNoMessages(true)` now honours that limit; remove the limit to drain the channel in one run.
+
 ### Symfony and Laravel `defaultConnectionExceptionRetry` is applied as configured
 
 **Before:** both integrations passed `maxAttempts` as the back-off multiplier and `multiplier` as a maximum delay in

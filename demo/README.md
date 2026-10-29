@@ -163,7 +163,10 @@ contention page (`/contentions/{contentionId}`) polls their state every second. 
 ticketing replied with: a request refused by the boundary is told the seat changed each time ticketing tried to hold
 it, one that read the seat already held is told who holds it and until when. The headline says how the contention
 ended: which buyer holds the seat, or, when the seat changed hands before the requests arrived, that no buyer got it,
-with ticketing's reason. A seat the storefront already knows as held or sold is not offered for a contention at all.
+with ticketing's reason. A seat the storefront already knows as held or sold is not offered for a contention at all. The
+buyers contend because each is a different order: one order asks ticketing for its seats one at a time, sending the
+next `tickets.hold` once the previous one is answered, so two seats you click in the same instant never contend with
+each other on the limit of 4 seats per customer and concert.
 
 The winner's order is a normal held order: **Continue as** that buyer to pay for it, or let the hold expire. Every
 refused buyer's order fails with ticketing's reason. In Jaeger, the contention is one trace across both services, with

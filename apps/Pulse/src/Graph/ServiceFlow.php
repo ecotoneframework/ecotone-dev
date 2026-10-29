@@ -34,7 +34,7 @@ final readonly class ServiceFlow
         }
 
         try {
-            $graph = MessageFlowGraph::fromArray(self::withKnownEdgeKinds($snapshot->snapshot['flowGraph']));
+            $graph = MessageFlowGraph::fromArray(self::withKnownKinds($snapshot->snapshot['flowGraph']));
         } catch (Throwable) {
             return null;
         }
@@ -48,10 +48,23 @@ final readonly class ServiceFlow
      * @param array<string, mixed> $flowGraph
      * @return array<string, mixed>
      */
-    private static function withKnownEdgeKinds(array $flowGraph): array
+    private static function withKnownKinds(array $flowGraph): array
     {
+        $unknownNodes = [];
+        if (is_array($flowGraph['nodes'] ?? null)) {
+            foreach ($flowGraph['nodes'] as $node) {
+                if (is_array($node) && is_string($node['kind'] ?? null) && FlowNodeKind::tryFrom($node['kind']) === null) {
+                    $unknownNodes[(string) ($node['id'] ?? '')] = true;
+                }
+            }
+            $flowGraph['nodes'] = array_values(array_filter($flowGraph['nodes'], fn (mixed $node) => ! is_array($node) || ! isset($unknownNodes[(string) ($node['id'] ?? '')])));
+        }
         if (is_array($flowGraph['edges'] ?? null)) {
-            $flowGraph['edges'] = array_values(array_filter($flowGraph['edges'], fn (mixed $edge) => ! is_array($edge) || ! is_string($edge['kind'] ?? null) || FlowEdgeKind::tryFrom($edge['kind']) !== null));
+            $flowGraph['edges'] = array_values(array_filter($flowGraph['edges'], fn (mixed $edge) => ! is_array($edge) || (
+                (! is_string($edge['kind'] ?? null) || FlowEdgeKind::tryFrom($edge['kind']) !== null)
+                && ! isset($unknownNodes[(string) ($edge['from'] ?? '')])
+                && ! isset($unknownNodes[(string) ($edge['to'] ?? '')])
+            )));
         }
 
         return $flowGraph;

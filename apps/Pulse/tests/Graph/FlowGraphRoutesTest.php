@@ -113,6 +113,22 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         self::assertStringNotContainsString('teleportsTo', $diagram->source);
     }
 
+    public function test_a_report_carrying_a_node_kind_this_pulse_does_not_know_keeps_the_rest_of_that_service_graph(): void
+    {
+        $this->configurePulseWithServices('storefront', 'ticketing');
+        $client = $this->pulseWebClient();
+        $graph = $this->storefrontSendingThroughAHelper()->getMessageFlowGraph()->toArray();
+        $graph['nodes'][] = ['id' => 'wormhole:seats', 'kind' => 'wormhole', 'label' => 'Seat Wormhole', 'attributes' => []];
+        $graph['edges'][] = ['from' => 'wormhole:seats', 'to' => $graph['nodes'][0]['id'], 'kind' => 'sendsTo', 'attributes' => []];
+        $graph['edges'][] = ['from' => $graph['nodes'][0]['id'], 'to' => 'wormhole:seats', 'kind' => 'output', 'attributes' => []];
+        $this->pulseHavingHeardFrom($client, ['storefront' => $this->serviceAnsweringWith('storefront', $this->snapshotOf('storefront', $graph)), 'ticketing' => $this->ticketingAnsweringHolds()]);
+
+        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow'));
+
+        self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', 'tickets.hold', '==>'));
+        self::assertStringNotContainsString('Seat Wormhole', $diagram->source);
+    }
+
     public function test_following_an_event_reaches_the_projection_that_reads_it(): void
     {
         $this->configurePulseWithServices('ticketing');

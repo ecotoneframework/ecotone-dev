@@ -207,7 +207,7 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
     {
         $this->configurePulseWithServices('orders', 'billing');
         $client = $this->pulseWebClient();
-        $broken = json_encode(['schemaVersion' => 1, 'serviceName' => 'orders', 'overview' => [], 'flowGraph' => ['nodes' => [['id' => 'a', 'kind' => 'not-a-kind', 'label' => 'a', 'attributes' => []]], 'edges' => []], 'topology' => ['serviceMaps' => []]], JSON_THROW_ON_ERROR);
+        $broken = json_encode(['schemaVersion' => 1, 'serviceName' => 'orders', 'overview' => [], 'flowGraph' => ['nodes' => [['id' => 'a', 'kind' => 'channel', 'label' => 'a', 'attributes' => []]], 'edges' => [['from' => 'a', 'to' => 'missing', 'kind' => 'input', 'attributes' => []]]], 'topology' => ['serviceMaps' => []]], JSON_THROW_ON_ERROR);
         $this->pulseHavingHeardFrom($client, ['orders' => $this->serviceAnsweringWith('orders', $broken), 'billing' => $this->serviceHandlingCommandX('billing')]);
 
         $crawler = $client->request('GET', '/flow');

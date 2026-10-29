@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
+use Ecotone\AnnotationFinder\ConfigurationException as AnnotationConfigurationException;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\SendsDistributedMessage;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
@@ -160,6 +161,31 @@ final class MessageFlowDeclaredSendTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(sprintf(
             '#[SendsDistributedMessage] on %s::send() declares what a message handler sends, but send() is not a message handler: it has none of #[CommandHandler], #[EventHandler], #[QueryHandler], #[InternalHandler] or #[Scheduled]. Move the attribute to the handler that calls send(), or make send() a handler.',
+            $service::class,
+        ));
+
+        EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: []);
+    }
+
+    public function test_declaration_on_a_private_helper_is_refused_whatever_the_licence(): void
+    {
+        $service = new class () {
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event, DistributedBus $distributedBus): void
+            {
+                $this->send($distributedBus, $event['route']);
+            }
+
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold')]
+            private function send(DistributedBus $distributedBus, string $routingKey): void
+            {
+                $distributedBus->sendMessage('ticketing', $routingKey, '{}');
+            }
+        };
+
+        $this->expectException(AnnotationConfigurationException::class);
+        $this->expectExceptionMessage(sprintf(
+            '#[SendsDistributedMessage] on %s::send() is on a method that is not public, but the attribute is read only from public message handler methods, so the route it declares would never be recorded. Put the attribute on the public handler method that calls send().',
             $service::class,
         ));
 

@@ -16,6 +16,7 @@ use Ecotone\Api\Attribute\Environment;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\IsAbstract;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\SendsDistributedMessage;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Config\BootstrapConfiguration;
@@ -344,6 +345,10 @@ class FileSystemAnnotationFinder implements AnnotationFinder
                             default => 'Handler',
                         };
                         throw ConfigurationException::create(sprintf('%s attribute on %s::%s should be placed on public method, to be available for execution.', $handlerType, $className, $method));
+                    }
+
+                    if ($methodAnnotation instanceof SendsDistributedMessage && ! $isPublic) {
+                        throw ConfigurationException::create(sprintf('#[SendsDistributedMessage] on %s::%s() is on a method that is not public, but the attribute is read only from public message handler methods, so the route it declares would never be recorded. Put the attribute on the public handler method that calls %s().', $className, $method, $method));
                     }
 
                     if (! $isPublic) {

@@ -6,7 +6,9 @@ use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationResolver;
+use Ecotone\AnnotationFinder\ConfigurationException;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
+use Ecotone\Api\Attribute\SendsDistributedMessage;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\AnnotationFinder\Fixture\Usage\Attribute\Annotation\MessageEndpoint;
 use Test\Ecotone\AnnotationFinder\Fixture\Usage\Attribute\Annotation\SomeGatewayExample;
@@ -46,6 +48,24 @@ class InMemoryAttributeAnnotationFinderTest extends TestCase
             $this->createAnnotationRegistrationService([GatewayWithReplyChannelExample::class])
                 ->findCombined(MessageEndpoint::class, SomeGatewayExample::class)
         );
+    }
+
+    public function test_sends_distributed_message_on_a_method_that_is_not_public_is_refused()
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold')]
+            protected function send(): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf(
+            '#[SendsDistributedMessage] on %s::send() is on a method that is not public, but the attribute is read only from public message handler methods, so the route it declares would never be recorded. Put the attribute on the public handler method that calls send().',
+            $service::class,
+        ));
+
+        InMemoryAnnotationFinder::createFrom([$service::class])->findAnnotatedMethods(SendsDistributedMessage::class);
     }
 
     public function test_retrieving_method_annotations()

@@ -386,8 +386,45 @@ final class HandlerSourceScanner
                 $assigned[$token->text] = true;
             }
         }
+        foreach ($this->destructuringRangesOf($tokens) as [$open, $close]) {
+            for ($index = $open; $index <= $close; $index++) {
+                if ($tokens[$index]->is(T_VARIABLE)) {
+                    $assigned[$tokens[$index]->text] = true;
+                }
+            }
+        }
 
         return $assigned;
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @return list<array{int, int}>
+     */
+    private function destructuringRangesOf(array $tokens): array
+    {
+        $ranges = [];
+        $openers = [];
+        foreach ($tokens as $index => $token) {
+            if ($token->text === '[' || $token->text === '(') {
+                $openers[] = $index;
+            } elseif (($token->text === ']' || $token->text === ')') && $openers !== []) {
+                $open = array_pop($openers);
+                $before = $tokens[$open - 1] ?? null;
+                $destructuring = $token->text === ']'
+                    ? $before === null || ! ($before->is(T_VARIABLE) || $this->isName($before) || in_array($before->text, [']', ')', '}'], true))
+                    : $before?->is(T_LIST) === true;
+                $leadingIndex = $token->text === ')' ? $open - 2 : $open - 1;
+                $foreachValue = ($tokens[$leadingIndex] ?? null)?->is(T_AS) === true
+                    || ($tokens[$leadingIndex] ?? null)?->is(T_DOUBLE_ARROW) === true && ($tokens[$leadingIndex - 2] ?? null)?->is(T_AS) === true;
+                $assignedTo = ($tokens[$index + 1] ?? null)?->text === '=' || $foreachValue;
+                if ($destructuring && $assignedTo) {
+                    $ranges[] = [$open, $index];
+                }
+            }
+        }
+
+        return $ranges;
     }
 
     /**

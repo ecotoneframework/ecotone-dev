@@ -78,8 +78,8 @@ final class TicketIssuance
             }
         }
         $concert = $queryBus->sendWithRouting('concert.detail', metadata: ['aggregate.id' => $issuedTickets->concertId]);
-        if (! is_dir($ticketFilesDirectory)) {
-            mkdir($ticketFilesDirectory, 0o775, true);
+        if (! is_dir($ticketFilesDirectory) && ! @mkdir($ticketFilesDirectory, 0o775, true) && ! is_dir($ticketFilesDirectory)) {
+            throw TicketRenderFailure::directoryCannotBeCreated(directory: $ticketFilesDirectory, messageId: $messageId);
         }
         foreach ($issuedTickets->tickets as $ticket) {
             file_put_contents($ticketFilesDirectory . '/' . $ticket->ticketNumber . '.txt', implode(PHP_EOL, [

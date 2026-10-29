@@ -17,4 +17,13 @@ final class TicketRenderFailure extends RuntimeException
             $messageId,
         ));
     }
+
+    public static function directoryCannotBeCreated(string $directory, string $messageId): self
+    {
+        return new self(sprintf(
+            'Tickets cannot be rendered, because the ticket directory %s cannot be created. Make it writable for the worker, or point ticketFilesDirectory in config/services.yaml at a writable directory, then replay this message from the dead letters in Ecotone Pulse or with bin/console ecotone:deadletter:replay %s.',
+            $directory,
+            $messageId,
+        ));
+    }
 }

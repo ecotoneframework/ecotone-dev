@@ -3138,6 +3138,16 @@ Production — the `prod` or `production` environment (Symfony's `kernel.environ
 `JMSConverterConfiguration::createWithDefaults()->withMetadataCacheFreshnessCheck(true)` (or `false`) from a
 `#[ServiceContext]` method.
 
+### A second `JMSConverterConfiguration` is refused at bootstrap
+
+**Before:** when two `JMSConverterConfiguration` objects were registered — two `#[ServiceContext]` methods, or two
+entries in `EcotoneLite`'s `extensionObjects` — the last one found silently replaced the other.
+
+**Now:** bootstrap fails with a `ConfigurationException` that describes both configurations.
+
+**How to adapt:** keep one `#[ServiceContext]` method returning `JMSConverterConfiguration::createWithDefaults()` and
+move every `with*()` call onto it.
+
 ### `AmqpQueue` and `AmqpExchange` name their mutators `set*()`
 
 **Before:** both classes named nine mutators `with*()` — `withArgument()`, `withDurability()`,

@@ -48,7 +48,7 @@
             name.className = 'contention__name';
             name.textContent = buyer.name;
             const state = document.createElement('span');
-            state.className = 'contention__state';
+            state.className = 'contention__state badge badge--' + buyer.state;
             state.textContent = buyer.state;
             item.append(name, ' ', state);
             if (buyer.refusal !== null) {

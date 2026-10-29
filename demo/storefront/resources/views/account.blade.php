@@ -1,28 +1,30 @@
 @extends('layouts.app')
 
-@section('title', 'Your orders')
+@section('title', 'My tickets')
 
 @section('body')
-    <main>
-        <h1>Your orders</h1>
-        @if ($orders === [])
+    <header class="page-title">
+        <p class="eyebrow"><x-icon name="logo"/>Account</p>
+        <h1>My tickets</h1>
+    </header>
+    @if ($orders === [])
+        <div class="empty-state">
             <p>No orders yet. Pick a concert from <a href="{{ url('/concerts') }}">the list</a>.</p>
-        @else
-            <table class="orders">
-                <thead>
-                    <tr><th>Order</th><th>Concert</th><th>Seats</th><th>Status</th></tr>
-                </thead>
-                <tbody>
-                    @foreach ($orders as $order)
-                        <tr>
-                            <td><a href="{{ url('/orders/' . $order['orderId']) }}"><code>{{ $order['orderId'] }}</code></a></td>
-                            <td>{{ $order['artist'] }}</td>
-                            <td>{{ implode(', ', array_map(\App\Concert\SeatCode::ofSeatId(...), $order['seatIds'])) }}</td>
-                            <td class="status">{{ $order['status'] }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        @endif
-    </main>
+        </div>
+    @else
+        <ul class="order-cards orders">
+            @foreach ($orders as $order)
+                <li class="card">
+                    <div class="order-card">
+                        <div class="order-card__head">
+                            <strong>{{ $order['artist'] }}</strong>
+                            <span class="badge badge--{{ $order['status'] }}"><span class="status">{{ \App\Web\Labels::orderStatus($order['status']) }}</span></span>
+                        </div>
+                        <span class="meta"><span class="meta-item"><x-icon name="seats"/>{{ $order['seatIds'] === [] ? 'No seats' : implode(', ', array_map(\App\Concert\SeatCode::ofSeatId(...), $order['seatIds'])) }}</span></span>
+                        <a href="{{ url('/orders/' . $order['orderId']) }}"><code>{{ $order['orderId'] }}</code></a>
+                    </div>
+                </li>
+            @endforeach
+        </ul>
+    @endif
 @endsection

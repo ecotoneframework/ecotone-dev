@@ -155,7 +155,7 @@ final class RushPagesTest extends TestCase
         $response = $this->getJson('/concerts/' . self::CONCERT_ID . '/taken-seats.json');
 
         $response->assertOk();
-        $response->assertExactJson(['takenSeatIds' => [self::CONCERT_ID . '/B-1']]);
+        $response->assertExactJson(['takenSeatIds' => [self::CONCERT_ID . '/B-1'], 'soldSeatIds' => []]);
         $adaId = $this->app->make(CommandBus::class)->send(new RegisterCustomer(name: 'Ada Lovelace', email: 'ada@example.com'));
         $this->withCookie(self::CUSTOMER_COOKIE, $adaId)->get('/concerts/' . self::CONCERT_ID)->assertSee('data-taken-seats-url="http://localhost/concerts/' . self::CONCERT_ID . '/taken-seats.json"', escape: false);
     }

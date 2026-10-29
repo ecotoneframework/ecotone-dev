@@ -27,6 +27,41 @@ final class StorefrontPagesTest extends TestCase
         DB::table('orders')->delete();
         DB::table('customers')->delete();
         DB::table('concerts')->delete();
+        DB::table('seat_holds')->delete();
+        DB::table('sold_seats')->delete();
+    }
+
+    public function test_the_landing_page_shows_a_card_per_concert_with_its_date_venue_from_price_and_sale_state(): void
+    {
+        $this->schedule();
+        $this->openSales();
+
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertSeeInOrder([
+            '<a class="concert-card concert-card--on_sale" href="http://localhost/concerts/' . self::CONCERT_ID . '">',
+            '<span class="date-badge__day">1</span><span class="date-badge__month">Dec</span>',
+            '<span class="badge badge--on_sale">On sale</span>',
+            '<span class="concert-card__artist">The Night Owls</span>',
+            'Ecotone Hall',
+            '1 Dec 2026, 20:00',
+            'from <strong>EUR 45.00</strong>',
+        ], escape: false);
+    }
+
+    public function test_the_seat_map_without_a_chosen_customer_greys_out_the_seats_ticketing_holds_or_sold(): void
+    {
+        $this->schedule();
+        $this->openSales();
+        $this->ticketingAnnounces('tickets.seat_sold', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-1', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000b']);
+        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-2', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000c', 'holdId' => 'hold-1']);
+
+        $response = $this->get('/concerts/' . self::CONCERT_ID);
+
+        $response->assertSee('<span class="seat seat--vip seat--sold" role="img" aria-label="A-1, VIP, sold" title="A-1, VIP, sold">1</span>', escape: false);
+        $response->assertSee('<span class="seat seat--standard seat--held" role="img" aria-label="B-2, Standard, held by someone" title="B-2, Standard, held by someone">2</span>', escape: false);
+        $response->assertSeeInOrder(['<strong data-seat-count="free">1</strong> free', '<strong data-seat-count="held">1</strong> held by someone', '<strong data-seat-count="sold">1</strong> sold'], escape: false);
     }
 
     public function test_whoami_lists_the_customers_to_pick_from(): void
@@ -69,7 +104,7 @@ final class StorefrontPagesTest extends TestCase
     {
         $response = $this->get('/concerts');
 
-        $response->assertSee('<a href="http://localhost/whoami">Pick who you are</a>', escape: false);
+        $response->assertSeeInOrder(['<a href="http://localhost/whoami">', 'Pick who you are</a>'], escape: false);
     }
 
     public function test_the_concert_list_shows_a_scheduled_concert(): void
@@ -79,8 +114,8 @@ final class StorefrontPagesTest extends TestCase
         $response = $this->get('/concerts');
 
         $response->assertOk();
-        $response->assertSee('<a href="http://localhost/concerts/' . self::CONCERT_ID . '">The Night Owls</a>', escape: false);
-        $response->assertSeeInOrder(['Ecotone Hall', '1 Dec 2026, 20:00', 'from EUR 45.00', 'scheduled']);
+        $response->assertSee('<a class="concert-card concert-card--scheduled" href="http://localhost/concerts/' . self::CONCERT_ID . '">', escape: false);
+        $response->assertSeeInOrder(['<span class="badge badge--scheduled">Coming soon</span>', '<span class="concert-card__artist">The Night Owls</span>', 'Ecotone Hall', '1 Dec 2026, 20:00', 'from <strong>EUR 45.00</strong>'], escape: false);
     }
 
     public function test_the_concert_detail_shows_the_seat_grid_with_vip_seats_marked(): void
@@ -91,8 +126,9 @@ final class StorefrontPagesTest extends TestCase
 
         $response->assertOk();
         $response->assertSeeInOrder(['The Night Owls', 'VIP', 'EUR 120.00', 'Row A', 'A-1', 'Standard', 'EUR 45.00', 'Row B', 'B-1', 'B-2'], escape: false);
-        $response->assertSee('<span class="seat seat--vip" title="' . self::CONCERT_ID . '/A-1">A-1</span>', escape: false);
-        $response->assertSee('<span class="seat seat--standard" title="' . self::CONCERT_ID . '/B-1">B-1</span>', escape: false);
+        $response->assertSee('<span class="seat seat--vip" role="img" aria-label="A-1, VIP, free" title="A-1, VIP, free">1</span>', escape: false);
+        $response->assertSee('<span class="seat seat--standard" role="img" aria-label="B-1, Standard, free" title="B-1, Standard, free">1</span>', escape: false);
+        $response->assertSeeInOrder(['<div class="stage" aria-hidden="true">Stage</div>', 'seat-block seat-block--vip', 'seat-block seat-block--standard', 'Back of the hall'], escape: false);
     }
 
     public function test_a_concert_whose_sales_opened_before_its_schedule_arrived_shows_on_sale_with_its_name_and_seats(): void
@@ -103,7 +139,7 @@ final class StorefrontPagesTest extends TestCase
         $response = $this->get('/concerts/' . self::CONCERT_ID);
 
         $response->assertOk();
-        $response->assertSeeInOrder(['The Night Owls', '<span class="status">on_sale</span>', 'Row A', 'A-1', 'Row B', 'B-1', 'B-2'], escape: false);
+        $response->assertSeeInOrder(['The Night Owls', '<span class="status">On sale</span>', 'Row A', 'A-1', 'Row B', 'B-1', 'B-2'], escape: false);
     }
 
     public function test_a_concert_whose_sales_opened_after_its_schedule_shows_on_sale_with_its_name_and_seats(): void
@@ -114,7 +150,7 @@ final class StorefrontPagesTest extends TestCase
         $response = $this->get('/concerts/' . self::CONCERT_ID);
 
         $response->assertOk();
-        $response->assertSeeInOrder(['The Night Owls', '<span class="status">on_sale</span>', 'Row A', 'A-1', 'Row B', 'B-1', 'B-2'], escape: false);
+        $response->assertSeeInOrder(['The Night Owls', '<span class="status">On sale</span>', 'Row A', 'A-1', 'Row B', 'B-1', 'B-2'], escape: false);
     }
 
     public function test_an_unknown_concert_is_not_found(): void
@@ -135,7 +171,7 @@ final class StorefrontPagesTest extends TestCase
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/account');
 
         $response->assertOk();
-        $response->assertSeeInOrder([$heldOrderId, 'The Night Owls', 'A-1', 'seats_held']);
+        $response->assertSeeInOrder(['The Night Owls', 'Seats held', 'A-1', $heldOrderId]);
         $response->assertDontSee($otherOrderId);
     }
 
@@ -157,7 +193,7 @@ final class StorefrontPagesTest extends TestCase
         $response = $this->withCookie(self::CUSTOMER_COOKIE, '0199f3a8-6f2a-7c1e-9a51-000000000000')->get('/concerts');
 
         $response->assertOk();
-        $response->assertSee('<a href="http://localhost/whoami">Pick who you are</a>', escape: false);
+        $response->assertSeeInOrder(['<a href="http://localhost/whoami">', 'Pick who you are</a>'], escape: false);
     }
 
     public function test_the_layout_asks_who_you_are_when_the_customer_cookie_is_not_a_customer_id(): void
@@ -165,7 +201,12 @@ final class StorefrontPagesTest extends TestCase
         $response = $this->withCookie(self::CUSTOMER_COOKIE, 'not-a-customer-id')->get('/concerts');
 
         $response->assertOk();
-        $response->assertSee('<a href="http://localhost/whoami">Pick who you are</a>', escape: false);
+        $response->assertSeeInOrder(['<a href="http://localhost/whoami">', 'Pick who you are</a>'], escape: false);
+    }
+
+    private function ticketingAnnounces(string $routingKey, array $event): void
+    {
+        $this->app->make(EventBus::class)->publishWithRouting($routingKey, $event, metadata: ['concertId' => $event['concertId']]);
     }
 
     private function register(string $name, string $email): string

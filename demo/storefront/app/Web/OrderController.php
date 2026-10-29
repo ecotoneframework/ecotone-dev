@@ -92,6 +92,7 @@ final class OrderController
             'earliestExpiresAt' => $heldSeats === [] ? null : min(array_column($heldSeats, 'expiresAt')),
             'lastRefusal' => $order['lastRefusal'],
             'takenSeatIds' => $this->queryBus->sendWithRouting('concert.taken_seats', ['concertId' => $order['concertId'], 'excludingOrderId' => $order['orderId']]),
+            'soldSeatIds' => $this->queryBus->sendWithRouting('concert.seat_states', ['concertId' => $order['concertId'], 'excludingOrderId' => $order['orderId']])['soldSeatIds'],
             'failureReason' => $order['failureReason'],
             'tickets' => $order['tickets'],
         ]);
@@ -103,6 +104,7 @@ final class OrderController
 
         return view('orders.show', [
             'order' => $order,
+            'customer' => $this->currentCustomer->of($request),
             'concert' => $this->queryBus->sendWithRouting('concert.detail', $order['concertId']),
             'paymentStatus' => $order['paymentReference'] === null ? null : $this->queryBus->sendWithRouting('payment.status', $order['paymentReference']),
         ]);
@@ -129,6 +131,7 @@ final class OrderController
 
         return view('orders.checkout', [
             'order' => $order,
+            'customer' => $this->currentCustomer->of($request),
             'concert' => $concert,
             'lines' => $lines,
             'totalCents' => array_sum(array_column($lines, 'priceCents')),

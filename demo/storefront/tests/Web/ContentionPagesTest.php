@@ -29,6 +29,37 @@ final class ContentionPagesTest extends TestCase
         DB::table('customers')->delete();
         DB::table('concerts')->delete();
         DB::table('jobs')->delete();
+        DB::table('seat_holds')->delete();
+        DB::table('sold_seats')->delete();
+    }
+
+    public function test_the_contention_panel_lists_seats_ticketing_sold_or_holds_as_taken_and_unselectable(): void
+    {
+        $this->scheduleOnSale();
+        $this->ticketingAnnounces('tickets.seat_sold', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-1', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000b']);
+        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-1', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000c', 'holdId' => 'hold-1']);
+
+        $response = $this->get('/concerts/' . self::CONCERT_ID);
+
+        $response->assertSeeInOrder([
+            '<select name="seatId">',
+            '<option value="' . self::CONCERT_ID . '/A-1" disabled>A-1 · sold</option>',
+            '<option value="' . self::CONCERT_ID . '/B-1" disabled>B-1 · held by someone</option>',
+            '<option value="' . self::CONCERT_ID . '/B-2">B-2</option>',
+            '</select>',
+        ], escape: false);
+    }
+
+    public function test_starting_a_contention_on_a_seat_ticketing_sold_is_refused_before_any_buyer_asks(): void
+    {
+        $this->scheduleOnSale();
+        $this->ticketingAnnounces('tickets.seat_sold', ['concertId' => self::CONCERT_ID, 'seatId' => self::SEAT_ID, 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000b']);
+
+        $response = $this->postJson('/concerts/' . self::CONCERT_ID . '/contentions', ['seatId' => self::SEAT_ID, 'buyers' => 3]);
+
+        $response->assertStatus(409);
+        $response->assertJson(['error' => sprintf('Seat B-1 of concert %s is already sold, so a contention for it would only show every buyer refused. Pick a free seat on the concert page; the contention panel lists only free seats.', self::CONCERT_ID)]);
+        self::assertSame(0, DB::table('contentions')->count());
     }
 
     public function test_a_concert_on_sale_offers_to_contend_for_one_of_its_seats_with_5_buyers_by_default(): void
@@ -210,6 +241,11 @@ final class ContentionPagesTest extends TestCase
         $this->getJson('/contentions/0199f3a8-6f2a-7c1e-9a51-000000000000/state.json')->assertNotFound();
         $this->getJson('/contentions/not-a-contention/state.json')->assertNotFound();
         $this->postJson('/concerts/0199f3a8-6f2a-7c1e-9a51-000000000000/contentions', ['seatId' => self::SEAT_ID])->assertNotFound();
+    }
+
+    private function ticketingAnnounces(string $routingKey, array $event): void
+    {
+        $this->app->make(EventBus::class)->publishWithRouting($routingKey, $event, metadata: ['concertId' => $event['concertId']]);
     }
 
     private function scheduleOnSale(): void

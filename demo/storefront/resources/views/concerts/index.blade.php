@@ -3,21 +3,19 @@
 @section('title', 'Concerts')
 
 @section('body')
-    <main>
+    <header class="page-title">
+        <p class="eyebrow"><x-icon name="music"/>Live in Riverside Hall</p>
         <h1>Concerts</h1>
-        @if ($concerts === [])
+    </header>
+    @if ($concerts === [])
+        <div class="empty-state">
             <p>No concerts yet. They appear here as soon as ticketing schedules one.</p>
-        @endif
-        <ul class="concert-list">
+        </div>
+    @else
+        <ul class="concert-grid">
             @foreach ($concerts as $concert)
-                <li class="concert concert--{{ $concert['status'] }}">
-                    <a href="{{ url('/concerts/' . $concert['concertId']) }}">{{ $concert['artist'] }}</a>
-                    <span>{{ $concert['venueName'] }}</span>
-                    <span>{{ \Carbon\CarbonImmutable::parse($concert['startsAt'])->format('j M Y, H:i') }}</span>
-                    <span>from {{ $concert['currency'] }} {{ number_format(min($concert['standardPriceCents'], $concert['vipPriceCents']) / 100, 2) }}</span>
-                    <span class="status">{{ $concert['status'] }}</span>
-                </li>
+                @include('concerts.card', ['concert' => $concert])
             @endforeach
         </ul>
-    </main>
+    @endif
 @endsection

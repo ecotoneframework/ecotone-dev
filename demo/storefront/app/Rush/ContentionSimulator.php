@@ -152,7 +152,7 @@ final class ContentionSimulator
     {
         $lastRefusal = $buyer['last_refusal'] === null ? null : json_decode($buyer['last_refusal'], true, flags: JSON_THROW_ON_ERROR);
         if (($lastRefusal['seatId'] ?? null) === $seatId) {
-            $refusal = ContentionRefusal::ofReason($lastRefusal['reason']);
+            $refusal = ContentionRefusal::ofReasonCode($lastRefusal['reasonCode']);
 
             return ['state' => 'refused', 'reason' => $lastRefusal['reason'], 'refusal' => $refusal->value, 'refusalExplanation' => $refusal->explanation()];
         }

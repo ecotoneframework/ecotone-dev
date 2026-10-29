@@ -18,7 +18,7 @@ final class TicketingReplies
     {
         $commandBus->send(match ($result['outcome']) {
             'held' => new MarkSeatHeld(orderId: $result['orderId'], seatId: $result['seatId'], holdId: $result['holdId'], expiresAt: (string) $result['expiresAt']),
-            'refused' => new RecordSeatRefusal(orderId: $result['orderId'], seatId: $result['seatId'], holdId: $result['holdId'], reason: (string) $result['reason']),
+            'refused' => new RecordSeatRefusal(orderId: $result['orderId'], seatId: $result['seatId'], holdId: $result['holdId'], reason: (string) $result['reason'], reasonCode: self::reasonCodeOf($result)),
             default => throw new DomainException(sprintf(
                 'tickets.hold.result for seat %s of order %s has outcome "%s", but the contract has only "held" and "refused", so the storefront cannot tell whether the seat is the customer\'s. Correct the reply in ticketing and replay this message from the dead letters in Ecotone Pulse or with php artisan ecotone:deadletter:replay <messageId>.',
                 $result['seatId'],
@@ -54,5 +54,18 @@ final class TicketingReplies
     public function whenTicketsIssued(array $event, #[Reference] CommandBus $commandBus): void
     {
         $commandBus->send(new MarkTicketsIssued(orderId: $event['orderId'], tickets: $event['tickets']));
+    }
+
+    private static function reasonCodeOf(array $result): string
+    {
+        if (! is_string($result['reasonCode'] ?? null) || $result['reasonCode'] === '') {
+            throw new DomainException(sprintf(
+                'tickets.hold.result for seat %s of order %s is refused without a reasonCode, so the storefront cannot tell why ticketing refused the seat. Send the reasonCode of the refusal next to its reason, one of the codes the service contract in demo/README.md lists, and replay this message from the dead letters in Ecotone Pulse or with php artisan ecotone:deadletter:replay <messageId>.',
+                $result['seatId'],
+                $result['orderId'],
+            ));
+        }
+
+        return $result['reasonCode'];
     }
 }

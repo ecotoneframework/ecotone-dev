@@ -282,6 +282,13 @@ marks it sold out (`concert.sold_out`); `demo:seed --catalogueOnly` seeds the ve
 The seed confirms its orders with `ConfirmSeedOrder`, which records their `SeatSold` events without `SeatsSoldToOrder`:
 those orders exist only in ticketing, so they get no tickets and the storefront is never told about them.
 
+Both replies carry an `outcome` (`held` or `refused` for `tickets.hold.result`, `sold` or `refused` for
+`tickets.confirm.result`), a `reason`, the text the storefront shows, and a `reasonCode`, which names the refusal so
+that nothing has to parse that text: `unknown_concert`, `unknown_seat`, `concert_not_on_sale`, `concert_changed`,
+`lost_the_race`, `seat_held`, `seat_sold`, `seat_not_held`, `hold_expired`, `seat_limit_reached`, `no_seats` or
+`sold_with_another_payment` (`ReasonCode` in ticketing). Both are `null` when nothing was refused. The storefront tells
+a contention's refusals apart by `reasonCode`, and refuses a refused `tickets.hold.result` that comes without one.
+
 ### Partitioned seat map and sales ledger
 
 `ConcertSeatMap` and `ConcertSalesLedger` are partitioned per concert with `#[FromTaggedStream('concert')]` and

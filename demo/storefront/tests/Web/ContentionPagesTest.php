@@ -127,7 +127,7 @@ final class ContentionPagesTest extends TestCase
         $contentionId = $this->postJson('/concerts/' . self::CONCERT_ID . '/contentions', ['seatId' => self::SEAT_ID, 'buyers' => 5])->json('contentionId');
         $buyers = $this->getJson('/contentions/' . $contentionId . '/state.json')->json('buyers');
         foreach (array_slice($buyers, 0, 4) as $buyer) {
-            $this->app->make(CommandBus::class)->send(new RecordSeatRefusal(orderId: $buyer['orderId'], seatId: self::SEAT_ID, holdId: $buyer['holdId'], reason: self::REFUSAL));
+            $this->app->make(CommandBus::class)->send(new RecordSeatRefusal(orderId: $buyer['orderId'], seatId: self::SEAT_ID, holdId: $buyer['holdId'], reason: self::REFUSAL, reasonCode: 'seat_held'));
         }
         $this->app->make(CommandBus::class)->send(new MarkSeatHeld(orderId: $buyers[4]['orderId'], seatId: self::SEAT_ID, holdId: $buyers[4]['holdId'], expiresAt: '2026-10-25T12:02:00+00:00'));
 
@@ -158,8 +158,8 @@ final class ContentionPagesTest extends TestCase
         $buyers = $this->getJson('/contentions/' . $contentionId . '/state.json')->json('buyers');
         $commandBus = $this->app->make(CommandBus::class);
         $commandBus->send(new MarkSeatHeld(orderId: $buyers[0]['orderId'], seatId: self::SEAT_ID, holdId: $buyers[0]['holdId'], expiresAt: '2026-10-25T12:02:00+00:00'));
-        $commandBus->send(new RecordSeatRefusal(orderId: $buyers[1]['orderId'], seatId: self::SEAT_ID, holdId: $buyers[1]['holdId'], reason: 'Seat ' . self::SEAT_ID . ' cannot be held for order ' . $buyers[1]['orderId'] . ', because someone was faster: the seat changed each time ticketing tried to hold it. Pick the seat again, or choose another one.'));
-        $commandBus->send(new RecordSeatRefusal(orderId: $buyers[2]['orderId'], seatId: self::SEAT_ID, holdId: $buyers[2]['holdId'], reason: 'Seat B-1 of The Night Owls cannot be held for order ' . $buyers[2]['orderId'] . ', because someone was faster: order ' . $buyers[0]['orderId'] . ' holds it until 2026-10-25T12:02:00+00:00. Pick another seat, or try this one again after that hold expires.'));
+        $commandBus->send(new RecordSeatRefusal(orderId: $buyers[1]['orderId'], seatId: self::SEAT_ID, holdId: $buyers[1]['holdId'], reason: 'Seat ' . self::SEAT_ID . ' cannot be held for order ' . $buyers[1]['orderId'] . ', because someone was faster: the seat changed each time ticketing tried to hold it. Pick the seat again, or choose another one.', reasonCode: 'lost_the_race'));
+        $commandBus->send(new RecordSeatRefusal(orderId: $buyers[2]['orderId'], seatId: self::SEAT_ID, holdId: $buyers[2]['holdId'], reason: 'Seat B-1 of The Night Owls cannot be held for order ' . $buyers[2]['orderId'] . ', because someone was faster: order ' . $buyers[0]['orderId'] . ' holds it until 2026-10-25T12:02:00+00:00. Pick another seat, or try this one again after that hold expires.', reasonCode: 'seat_held'));
 
         $response = $this->get('/contentions/' . $contentionId);
 
@@ -187,7 +187,7 @@ final class ContentionPagesTest extends TestCase
         $contentionId = $this->postJson('/concerts/' . self::CONCERT_ID . '/contentions', ['seatId' => self::SEAT_ID, 'buyers' => 3])->json('contentionId');
         $reason = 'Seat B-1 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because someone was faster: it is sold to order 0199f3a8-6f2a-7c1e-9a51-00000000000b. Pick another seat.';
         foreach ($this->getJson('/contentions/' . $contentionId . '/state.json')->json('buyers') as $buyer) {
-            $this->app->make(CommandBus::class)->send(new RecordSeatRefusal(orderId: $buyer['orderId'], seatId: self::SEAT_ID, holdId: $buyer['holdId'], reason: $reason));
+            $this->app->make(CommandBus::class)->send(new RecordSeatRefusal(orderId: $buyer['orderId'], seatId: self::SEAT_ID, holdId: $buyer['holdId'], reason: $reason, reasonCode: 'seat_sold'));
         }
 
         $response = $this->get('/contentions/' . $contentionId);

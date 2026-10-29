@@ -11,12 +11,12 @@ enum ContentionRefusal: string
     case SeatAlreadySold = 'seat_already_sold';
     case Other = 'other';
 
-    public static function ofReason(string $reason): self
+    public static function ofReasonCode(string $reasonCode): self
     {
-        return match (true) {
-            str_contains($reason, 'the seat changed each time ticketing tried to hold it') => self::LostTheRace,
-            str_contains($reason, 'holds it until') => self::SeatAlreadyHeld,
-            str_contains($reason, 'it is sold to order') => self::SeatAlreadySold,
+        return match ($reasonCode) {
+            'lost_the_race' => self::LostTheRace,
+            'seat_held' => self::SeatAlreadyHeld,
+            'seat_sold' => self::SeatAlreadySold,
             default => self::Other,
         };
     }

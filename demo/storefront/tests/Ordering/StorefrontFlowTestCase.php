@@ -191,6 +191,8 @@ abstract class StorefrontFlowTestCase extends TestCase
 
             public ?string $refusalReason = null;
 
+            public string $refusalReasonCode = 'seat_held';
+
             #[Distributed]
             #[CommandHandler('tickets.hold')]
             public function hold(array $command, #[Header('concertId')] string $concertId, #[Header('orderId')] string $orderId): array
@@ -199,10 +201,10 @@ abstract class StorefrontFlowTestCase extends TestCase
                 if ($this->holdsToRefuse > 0) {
                     $this->holdsToRefuse--;
 
-                    return [...$command, 'outcome' => 'refused', 'reason' => $this->refusalReason ?? 'someone was faster: seat ' . substr($command['seatId'], strrpos($command['seatId'], '/') + 1), 'expiresAt' => null];
+                    return [...$command, 'outcome' => 'refused', 'reason' => $this->refusalReason ?? 'someone was faster: seat ' . substr($command['seatId'], strrpos($command['seatId'], '/') + 1), 'reasonCode' => $this->refusalReasonCode, 'expiresAt' => null];
                 }
 
-                return array_shift($this->holdReplies) ?? [...$command, 'outcome' => 'held', 'reason' => null, 'expiresAt' => '2026-10-25T12:02:00+00:00'];
+                return array_shift($this->holdReplies) ?? [...$command, 'outcome' => 'held', 'reason' => null, 'reasonCode' => null, 'expiresAt' => '2026-10-25T12:02:00+00:00'];
             }
 
             #[Distributed]
@@ -218,7 +220,7 @@ abstract class StorefrontFlowTestCase extends TestCase
             {
                 $this->received[] = ['tickets.confirm', $command, $concertId, $orderId];
 
-                return array_shift($this->confirmReplies) ?? [...$command, 'outcome' => 'sold', 'reason' => null];
+                return array_shift($this->confirmReplies) ?? [...$command, 'outcome' => 'sold', 'reason' => null, 'reasonCode' => null];
             }
         };
 

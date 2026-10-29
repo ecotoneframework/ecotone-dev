@@ -1622,6 +1622,19 @@ button.seat--yours {
 
     .seat-block {
         padding: var(--space-2) var(--space-1) var(--space-3);
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+    }
+
+    .seat-block__label {
+        justify-content: flex-start;
+        padding-inline: var(--space-2);
+    }
+
+    .seat-row {
+        width: max-content;
+        min-width: 100%;
+        gap: 0.25rem;
     }
 
     .row-label {
@@ -1630,6 +1643,8 @@ button.seat--yours {
     }
 
     .seat {
+        flex: 0 0 2rem;
+        font-size: var(--font-size-xs);
         border-width: 1.5px;
         border-radius: 0.3rem 0.3rem 0.2rem 0.2rem;
     }

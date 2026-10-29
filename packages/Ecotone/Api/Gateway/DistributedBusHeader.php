@@ -17,4 +17,5 @@ interface DistributedBusHeader
     public const DISTRIBUTED_PAYLOAD_TYPE = 'ecotone.distributed.payloadType';
     public const DISTRIBUTED_ROUTING_SLIP_VALUE = 'ecotone.distributed.invoke';
     public const DISTRIBUTED_REPLY_ROUTING_KEY = 'ecotone_distributed_reply_routing_key';
+    public const DISTRIBUTED_IDEMPOTENCY_KEY = 'ecotone_distributed_idempotency_key';
 }

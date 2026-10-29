@@ -5,6 +5,7 @@ namespace Ecotone\Dbal\Deduplication;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
+use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
@@ -88,7 +89,7 @@ final class DeduplicationInterceptor
     private function extractDeduplicationId(Message $message, ?AttributeExpressionExecutor $deduplicated): string
     {
         if ($deduplicated === null) {
-            return $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
+            return $this->idempotencyKeyOrMessageId($message);
         }
 
         /** @var Deduplicated $deduplicatedAttribute */
@@ -101,7 +102,14 @@ final class DeduplicationInterceptor
             return $message->getHeaders()->get($deduplicatedAttribute->deduplicationHeaderName);
         }
 
-        return $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
+        return $this->idempotencyKeyOrMessageId($message);
+    }
+
+    private function idempotencyKeyOrMessageId(Message $message): string
+    {
+        return $message->getHeaders()->containsKey(DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY)
+            ? $message->getHeaders()->get(DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY)
+            : $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
     }
 
     private function determineConsumerEndpointId(?AttributeExpressionExecutor $deduplicated, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint): string

@@ -137,7 +137,7 @@ final class DbalTaggedEventReader
                     continue;
                 }
 
-                if (! $this->flagCarriesAllTags($flag, $branch) || ! $branch->matchesEventType($event->eventName)) {
+                if (! $this->flagCarriesAllTags($flag, $branch) || ! $this->tagResolver->matchesEventTypeOf($branch, $event)) {
                     continue;
                 }
 

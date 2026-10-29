@@ -12,10 +12,14 @@ use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
@@ -66,6 +70,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         yield 'in-memory' => ['in-memory'];
         yield 'in-memory-without-event-sourcing-module' => ['in-memory-without-event-sourcing-module'];
         yield 'dbal' => ['dbal'];
+        yield 'dbal-manager-registry' => ['dbal-manager-registry'];
     }
 
     #[DataProvider('implementations')]
@@ -176,9 +181,120 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         self::assertSame(['concert-1' => ['A1', 'pass-1'], 'concert-2' => ['pass-1']], $ecotone->sendQueryWithRouting('concert.reservedSeats'));
         self::assertSame([], $ecotone->sendQueryWithRouting('concert.sales'));
 
-        $ecotone->run('concert_projections', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('concert_projections', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['concert-1' => 2, 'concert-2' => 1], $ecotone->sendQueryWithRouting('concert.sales'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_named_event_and_a_plain_class_event_of_one_tag_value_are_both_projected_live_and_on_rebuild(string $implementation): void
+    {
+        $projection = new #[Projection('concert_upgrades'), FromTaggedStream('concert'), Partitioned] class () {
+            public array $seats = [];
+
+            #[EventHandler]
+            public function whenReserved(SeatReservedForTaggedProjection $event): void
+            {
+                $this->seats[$event->concertId][] = 'reserved ' . $event->seatId;
+            }
+
+            #[EventHandler]
+            public function whenUpgraded(SeatUpgradedForTaggedProjection $event): void
+            {
+                $this->seats[$event->concertId][] = 'upgraded ' . $event->seatId;
+            }
+
+            #[QueryHandler('concert.upgrades')]
+            public function upgrades(): array
+            {
+                ksort($this->seats);
+
+                return $this->seats;
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionTagValue] string $concertId): void
+            {
+                unset($this->seats[$concertId]);
+            }
+        };
+        $ecotone = $this->bootstrap($implementation, [$projection]);
+
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
+        $ecotone->sendCommand(new UpgradeSeatForTaggedProjection('concert-1', 'A1'));
+        $ecotone->sendCommand(new UpgradeSeatForTaggedProjection('concert-2', 'B1'));
+
+        self::assertSame(['concert-1' => ['reserved A1', 'upgraded A1'], 'concert-2' => ['upgraded B1']], $ecotone->sendQueryWithRouting('concert.upgrades'));
+
+        $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'concert_upgrades']);
+
+        self::assertSame(['concert-1' => ['reserved A1', 'upgraded A1'], 'concert-2' => ['upgraded B1']], $ecotone->sendQueryWithRouting('concert.upgrades'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_loading_a_tag_value_narrowed_to_the_class_of_a_named_event_returns_that_event(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation, []);
+        $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
+        $ecotone->sendCommand(new UpgradeSeatForTaggedProjection('concert-1', 'A1'));
+
+        $events = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('concert', 'concert-1')->ofTypes(SeatUpgradedForTaggedProjection::class))->events;
+
+        self::assertEquals([new SeatUpgradedForTaggedProjection('concert-1', 'A1')], array_map(static fn (Event $event): object => $event->getPayload(), $events));
+    }
+
+    public static function implementationsWhoseEventsOutliveTheApplication(): iterable
+    {
+        yield 'dbal' => ['dbal'];
+        yield 'dbal-manager-registry' => ['dbal-manager-registry'];
+    }
+
+    #[DataProvider('implementationsWhoseEventsOutliveTheApplication')]
+    public function test_a_handler_routed_by_an_event_name_no_class_of_the_application_declares_projects_the_stored_events_of_that_name_when_triggered_and_on_rebuild(string $implementation): void
+    {
+        $writer = $this->bootstrap($implementation, []);
+        $writer->sendCommand(new UpgradeSeatForTaggedProjection('concert-1', 'A1'));
+        $writer->sendCommand(new UpgradeSeatForTaggedProjection('concert-2', 'B1'));
+        $writer->sendCommand(new UpgradeSeatForTaggedProjection('concert-1', 'A2'));
+
+        $projection = new #[Projection('concert_upgrades_by_name'), FromTaggedStream('concert'), Partitioned] class () {
+            public array $seats = [];
+
+            #[EventHandler('tagged_projection.seat_upgraded')]
+            public function whenUpgraded(array $event): void
+            {
+                $this->seats[$event['concertId']][] = $event['seatId'];
+            }
+
+            #[QueryHandler('concert.upgradesByName')]
+            public function upgrades(): array
+            {
+                ksort($this->seats);
+
+                return $this->seats;
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionTagValue] string $concertId): void
+            {
+                unset($this->seats[$concertId]);
+            }
+        };
+        $reader = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$projection::class, SeatReservedForTaggedProjection::class],
+            containerOrAvailableServices: [$projection, DbalConnectionFactory::class => self::getConnectionFactory(isRegistry: $implementation === 'dbal-manager-registry')],
+            extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults(), EventSourcingConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $reader->initializeProjection('concert_upgrades_by_name')->triggerProjection('concert_upgrades_by_name');
+
+        self::assertSame(['concert-1' => ['A1', 'A2'], 'concert-2' => ['B1']], $reader->sendQueryWithRouting('concert.upgradesByName'));
+
+        $reader->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'concert_upgrades_by_name']);
+
+        self::assertSame(['concert-1' => ['A1', 'A2'], 'concert-2' => ['B1']], $reader->sendQueryWithRouting('concert.upgradesByName'));
     }
 
     public static function implementationsWithEventSourcingModule(): iterable
@@ -211,7 +327,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         $ecotone = $this->bootstrap($implementation, [$seats, $sales], [SimpleMessageChannelBuilder::createQueueChannel('concert_projections')]);
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
         $ecotone->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
-        $ecotone->run('concert_projections', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('concert_projections', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         $ecotone->resetProjection('concert_sales');
 
@@ -257,8 +373,8 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         );
         $askPulse = function (string $routingKey, string $payload) use ($pulse, $pulseService, $concertService): array {
             $pulseService->getDistributedBus()->sendMessage('concert_service', $routingKey, $payload, MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
-            $concertService->run('concert_service_channel', ExecutionPollingMetadata::createWithTestingSetup());
-            $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+            $concertService->run('concert_service_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+            $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
             return json_decode(array_pop($pulse->snapshots), true, flags: JSON_THROW_ON_ERROR);
         };
@@ -266,7 +382,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
         $concertService->sendCommand(new ReserveSeatForTaggedProjection('concert-1', 'A1'));
         $concertService->sendCommand(new ReserveSeatForTaggedProjection('concert-2', 'B1'));
         $behind = $askPulse('ecotone.pulse.snapshot', '{}')['projections'][0];
-        $concertService->run('concert_projections', ExecutionPollingMetadata::createWithTestingSetup());
+        $concertService->run('concert_projections', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
         $caughtUp = $askPulse('ecotone.pulse.snapshot', '{}')['projections'][0];
 
         self::assertSame(['concert_sales', true], [$behind['name'], $behind['partitioned']]);
@@ -414,6 +530,12 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             }
 
             #[CommandHandler]
+            public function upgrade(UpgradeSeatForTaggedProjection $command, ConcertSeatingForTaggedProjection $concert): array
+            {
+                return [new SeatUpgradedForTaggedProjection($command->concertId, $command->seatId)];
+            }
+
+            #[CommandHandler]
             public function release(ReleaseSeatForTaggedProjection $command, ConcertSeatingForTaggedProjection $concert): array
             {
                 return $concert->isTaken($command->seatId) ? [new SeatReleasedForTaggedProjection($command->concertId, $command->seatId)] : [];
@@ -445,6 +567,18 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             }
 
             #[Converter]
+            public function fromUpgraded(SeatUpgradedForTaggedProjection $event): array
+            {
+                return ['concertId' => $event->concertId, 'seatId' => $event->seatId];
+            }
+
+            #[Converter]
+            public function toUpgraded(array $event): SeatUpgradedForTaggedProjection
+            {
+                return new SeatUpgradedForTaggedProjection($event['concertId'], $event['seatId']);
+            }
+
+            #[Converter]
             public function fromReleased(SeatReleasedForTaggedProjection $event): array
             {
                 return ['concertId' => $event->concertId, 'seatId' => $event->seatId];
@@ -464,6 +598,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             ConcertSeatingForTaggedProjection::class,
             SeatReservedForTaggedProjection::class,
             SeatReleasedForTaggedProjection::class,
+            SeatUpgradedForTaggedProjection::class,
             FestivalPassSoldForTaggedProjection::class,
             ...$classesToResolve,
         ];
@@ -480,7 +615,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
 
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
-            containerOrAvailableServices: [...$services, DbalConnectionFactory::class => self::getConnectionFactory()],
+            containerOrAvailableServices: [...$services, DbalConnectionFactory::class => self::getConnectionFactory(isRegistry: $implementation === 'dbal-manager-registry')],
             extensionObjects: [
                 DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                 ...$extensionObjects,
@@ -542,6 +677,25 @@ final readonly class FestivalPassSoldForTaggedProjection
 }
 
 final readonly class SeatReservedForTaggedProjection
+{
+    public function __construct(
+        #[EventTag('concert')] public string $concertId,
+        public string $seatId,
+    ) {
+    }
+}
+
+final readonly class UpgradeSeatForTaggedProjection
+{
+    public function __construct(
+        public string $concertId,
+        public string $seatId,
+    ) {
+    }
+}
+
+#[NamedEvent('tagged_projection.seat_upgraded')]
+final readonly class SeatUpgradedForTaggedProjection
 {
     public function __construct(
         #[EventTag('concert')] public string $concertId,

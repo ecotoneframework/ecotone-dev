@@ -39,16 +39,16 @@
         <server name="DB_CONNECTION" value="pgsql" force="true"/>
         <env name="DB_URL" value="" force="true"/>
         <server name="DB_URL" value="" force="true"/>
-        <env name="DB_HOST" value="postgres" force="true"/>
-        <server name="DB_HOST" value="postgres" force="true"/>
-        <env name="DB_PORT" value="5432" force="true"/>
-        <server name="DB_PORT" value="5432" force="true"/>
+        <env name="DB_HOST" value="postgres"/>
+        <server name="DB_HOST" value="postgres"/>
+        <env name="DB_PORT" value="5432"/>
+        <server name="DB_PORT" value="5432"/>
         <env name="DB_DATABASE" value="storefront_test" force="true"/>
         <server name="DB_DATABASE" value="storefront_test" force="true"/>
-        <env name="DB_USERNAME" value="ecotone" force="true"/>
-        <server name="DB_USERNAME" value="ecotone" force="true"/>
-        <env name="DB_PASSWORD" value="secret" force="true"/>
-        <server name="DB_PASSWORD" value="secret" force="true"/>
+        <env name="DB_USERNAME" value="ecotone"/>
+        <server name="DB_USERNAME" value="ecotone"/>
+        <env name="DB_PASSWORD" value="secret"/>
+        <server name="DB_PASSWORD" value="secret"/>
         <env name="DATABASE_DSN" value="pgsql://ecotone:secret@postgres:5432/storefront_test" force="true"/>
         <server name="DATABASE_DSN" value="pgsql://ecotone:secret@postgres:5432/storefront_test" force="true"/>
         <env name="CACHE_STORE" value="array" force="true"/>

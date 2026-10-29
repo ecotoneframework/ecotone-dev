@@ -163,7 +163,26 @@ final class MessageFlowDeclaredSendTest extends TestCase
         $this->graphOf($service);
     }
 
-    public function test_declaration_with_an_empty_routing_key_or_reply_key_is_refused(): void
+    public function test_declaration_with_an_empty_routing_key_is_refused(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: '')]
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf(
+            '#[SendsDistributedMessage] on %s::holdRequestedSeat() has an empty routingKey, but a distributed message is routed by that key, so an empty one names no handler. Pass the routing key the target service handles.',
+            $service::class,
+        ));
+
+        $this->graphOf($service);
+    }
+
+    public function test_declaration_with_an_empty_reply_key_is_refused(): void
     {
         $service = new class () {
             #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold', replyRoutingKey: '')]
@@ -175,7 +194,7 @@ final class MessageFlowDeclaredSendTest extends TestCase
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(sprintf(
-            '#[SendsDistributedMessage] on %s::holdRequestedSeat() has an empty routingKey or replyRoutingKey, but a distributed message is routed and replied to by that key, so an empty one names no handler. Pass the routing key the target service handles, and leave replyRoutingKey out when the target does not reply.',
+            '#[SendsDistributedMessage] on %s::holdRequestedSeat() has an empty replyRoutingKey, but the reply is routed by that key, so an empty one names no handler. Pass the routing key the reply is handled on, or leave replyRoutingKey out when the target does not reply.',
             $service::class,
         ));
 

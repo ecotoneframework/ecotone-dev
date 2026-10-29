@@ -77,8 +77,11 @@ final class SendsDistributedMessageGuard
      */
     private static function checkDeclaration(SendsDistributedMessage $declaration, string $method, array $mappedServices): void
     {
-        if ($declaration->routingKey === '' || $declaration->replyRoutingKey === '') {
-            throw ConfigurationException::create("#[SendsDistributedMessage] on {$method}() has an empty routingKey or replyRoutingKey, but a distributed message is routed and replied to by that key, so an empty one names no handler. Pass the routing key the target service handles, and leave replyRoutingKey out when the target does not reply.");
+        if ($declaration->routingKey === '') {
+            throw ConfigurationException::create("#[SendsDistributedMessage] on {$method}() has an empty routingKey, but a distributed message is routed by that key, so an empty one names no handler. Pass the routing key the target service handles.");
+        }
+        if ($declaration->replyRoutingKey === '') {
+            throw ConfigurationException::create("#[SendsDistributedMessage] on {$method}() has an empty replyRoutingKey, but the reply is routed by that key, so an empty one names no handler. Pass the routing key the reply is handled on, or leave replyRoutingKey out when the target does not reply.");
         }
         if (! isset($mappedServices[$declaration->targetServiceName])) {
             $known = $mappedServices === [] ? 'none' : implode(', ', array_keys($mappedServices));

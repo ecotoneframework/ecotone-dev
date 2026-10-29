@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal;
 
+use Doctrine\DBAL\Exception\ConnectionException;
 use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Connection\DbalDestination;
 use Ecotone\Dbal\Connection\DbalProducer;
 use Ecotone\Dbal\Database\EnqueueTableManager;
@@ -16,6 +18,7 @@ use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\Config\DatabaseTransaction\DatabaseTransactionLost;
 use Interop\Queue\Context;
 use Throwable;
 
@@ -48,11 +51,34 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
     public function handle(Message $message): void
     {
+        $sentInsideTransaction = $this->isInsideTransaction();
         try {
             parent::handle($message);
         } catch (Throwable $failure) {
+            if ($sentInsideTransaction && self::isCausedByLostConnection($failure)) {
+                throw DatabaseTransactionLost::whileSendingTo($this->queueName, $failure);
+            }
+
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
+    }
+
+    private function isInsideTransaction(): bool
+    {
+        $context = $this->connectionFactory->createContext();
+
+        return $context instanceof DbalContext && $context->getDbalConnection()->isTransactionActive();
+    }
+
+    private static function isCausedByLostConnection(Throwable $failure): bool
+    {
+        for ($cause = $failure; $cause !== null; $cause = $cause->getPrevious()) {
+            if ($cause instanceof ConnectionException) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function initialize(): void

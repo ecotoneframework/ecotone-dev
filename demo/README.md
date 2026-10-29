@@ -33,7 +33,9 @@ with `docker compose -f demo/docker-compose.yml down`, and add `-v` to drop the 
 After pulling a change to the messages the two services exchange or store, or to how ticketing indexes them, start
 from empty volumes and a fresh ticketing cache, because the stored events and the queued messages still have the old
 shape. Events stored while `concert` was a filter-only tag carry no position in it, so the seat map and sales ledger,
-partitioned per concert, cannot resume past them:
+partitioned per concert, cannot resume past them. Seats held or sold before ticketing announced `tickets.seat_held`,
+`tickets.seat_released` and `tickets.seat_sold` were never announced, so on an older stack the storefront's seat picker
+shows them free until the volumes are dropped and the seed sells its seats again:
 
 ```bash
 docker compose -f demo/docker-compose.yml down -v
@@ -61,11 +63,14 @@ volumes are dropped.
 
 1. On the storefront, open **Who am I** (`/whoami`) and pick a customer. There is no login; the demo customers are
    registered when the storefront starts.
-2. Open **Concerts** and a concert on sale, The Midnight Owls for example, and click a free seat. The seat turns
+2. Open **Concerts** and a concert on sale, The Midnight Owls for example. The hall shows every seat ticketing holds
+   for someone else or has sold greyed out and disabled, striped for held and dark for sold, with the counts in the
+   legend; Neon Harbour shows the seed's sales that way before anyone clicks. Click a free seat. The seat turns
    "asking ticketing" while the storefront sends `tickets.hold` over the Distributed Bus, then yours, with a countdown
    to the hold's expiry: ticketing holds a seat for 120 seconds in the demo (`TICKETING_HOLD_SECONDS`). Click it again
-   to let it go. **Go to checkout** appears once every seat you asked for is held.
-3. At checkout, choose how the payment stub answers: **the payment succeeds** (the default), **the card is declined**
+   to let it go. The order panel beside the hall lists your seats with their prices, the countdown and the total, and
+   **Continue to checkout** appears once every seat you asked for is held.
+3. At checkout, the **Demo controls** box, set apart from the payment form, chooses how the payment stub answers: **the payment succeeds** (the default), **the card is declined**
    (the order fails and its seats are released) or **the payment provider is down** (the charge lands in the dead
    letters until you replay it from Pulse, below), and whether **the confirmation email bounces** (unticked by default).
    With the payment succeeding, the charge runs on `storefront_async`, the
@@ -95,8 +100,9 @@ docker compose -f demo/docker-compose.yml exec storefront php artisan demo:rush 
 
 The status line under the panel counts the buyers as they hold, pay, get their tickets, fail or give up. Then watch:
 
-- **The seat map** on the storefront's concert page greys out the seats the crowd holds, so your own clicks start to
-  meet "someone was faster"; ticketing's seat map stripes them amber as held and darkens them once sold.
+- **The seat map** on the storefront's concert page greys out the seats the crowd holds and buys as ticketing announces
+  them, so the free seats left shrink under your cursor; ticketing's seat map stripes them amber as held and darkens
+  them once sold.
 - **Pulse → Dead letters** groups the failed messages by exception: `PaymentProviderUnavailable` for the outage share
   and `EmailBounced` for the bounce share once their tickets are issued. Each one can be replayed or deleted, one at a
   time or the whole group. A replayed `EmailBounced` bounces again, since the bounce was chosen for the order: the
@@ -120,7 +126,8 @@ The status line under the panel counts the buyers as they hold, pay, get their t
 ## Contend for one seat
 
 The **Contend for one seat** panel on a concert's page shows the Dynamic Consistency Boundary on a single seat. Pick a
-seat that ticketing has not sold and a number of buyers (2 to 10, 5 by default), then press **Contend for this seat with
+free seat (the list marks the seats ticketing holds or sold and does not offer them; a contention for one is refused
+before any buyer asks, naming the seat) and a number of buyers (2 to 10, 5 by default), then press **Contend for this seat with
 5 buyers**. The storefront creates that many synthetic buyers. Each starts an order and asks ticketing for the same
 seat, each with its own hold id, within the same moment. Ticketing decides them in whatever order they arrive, and the
 Dynamic Consistency Boundary on the seat lets exactly one hold stand: a request that reaches the seat while another is
@@ -269,6 +276,20 @@ The storefront keeps customers and their orders as Eloquent aggregates, and a co
 `concert.scheduled`, `concert.sales_opened` and `concert.cancelled` events. There is no login: the storefront registers the demo
 customers when it starts (`php artisan demo:seed`, safe to repeat), you pick one on `/whoami`, and browse `/concerts`
 and your orders on `/account`.
+
+### Seat availability
+
+Ticketing announces every change of a seat to the storefront: `tickets.seat_held` {concertId, seatId, orderId, holdId}
+from `SeatHeld`, `tickets.seat_released` {concertId, seatId, orderId, holdId} from `HoldReleased` (a release, or a
+cancellation releasing the concert's holds) and from `HoldExpired`, and `tickets.seat_sold` {concertId, seatId, orderId}
+from `SeatSold`, for the storefront's confirms and the seed's alike. `SeatStateAnnouncements` publishes them from
+`ticketing_async`, queued in the transaction of the decision, like the concert announcements. Two ticketing workers
+publish them, so they can arrive in any order; the storefront's `SeatStateProjector` decides by hold id and by state
+precedence rather than by arrival: a hold id names one hold, a release ends it whether it arrives before or after the
+hold, so a late `tickets.seat_held` never revives a released hold, and a sold seat stays sold whatever arrives after
+it. `concert.seat_states` answers the held and sold seats of a concert, leaving out the asking order's own holds and
+adding the seats other storefront orders asked for before ticketing announced them; the seat picker, the rush and the
+contention read it, so neither the crowd nor a contention asks ticketing for a seat the storefront knows is taken.
 
 ### Checkout
 

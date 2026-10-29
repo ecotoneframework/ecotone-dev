@@ -9,8 +9,11 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\SerializerGateway;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
+use FilesystemIterator;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 /**
  * licence Apache-2.0
@@ -24,6 +27,15 @@ final class MetadataCacheFreshnessTest extends TestCase
     {
         $this->directory = sys_get_temp_dir() . '/ecotone_jms_metadata_freshness_' . bin2hex(random_bytes(6));
         mkdir($this->directory, recursive: true);
+    }
+
+    protected function tearDown(): void
+    {
+        $entries = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->directory, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($entries as $entry) {
+            $entry->isDir() ? rmdir($entry->getPathname()) : unlink($entry->getPathname());
+        }
+        rmdir($this->directory);
     }
 
     #[TestWith(['dev'])]

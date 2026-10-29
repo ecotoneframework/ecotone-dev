@@ -8,6 +8,7 @@ use App\Customer\RegisterCustomer;
 use App\Ordering\BeginPayment;
 use App\Ordering\MarkPaid;
 use App\Ordering\MarkSeatHeld;
+use App\Ordering\MarkTicketsIssued;
 use App\Ordering\RequestSeat;
 use App\Ordering\StartOrder;
 use Ecotone\Api\Gateway\CommandBus;
@@ -193,6 +194,27 @@ final class SeatStatesTest extends TestCase
         Carbon::setTestNow('2026-10-25 12:02:00');
 
         self::assertSame(['heldSeatIds' => [$this->seat('B-2')], 'soldSeatIds' => []], $this->seatStates());
+    }
+
+    public function test_an_order_whose_tickets_are_issued_no_longer_claims_its_seats_while_a_paid_one_still_does(): void
+    {
+        $issuedOrder = $this->paidOrderOf('Grace Hopper', 'grace@example.com', 'B-2');
+        $this->commandBus()->send(new MarkTicketsIssued(orderId: $issuedOrder, tickets: [['ticketNumber' => 'T-0001', 'seatId' => $this->seat('B-2'), 'tier' => 'standard', 'entryCode' => 'ENTRY-7F3A']]));
+        $this->paidOrderOf('Ada Lovelace', 'ada@example.com', 'B-3');
+        Carbon::setTestNow('2026-10-25 12:02:00');
+
+        self::assertSame([$this->seat('B-3')], $this->app->make(QueryBus::class)->sendWithRouting('concert.seats_claimed_by_orders', ['concertId' => self::CONCERT_ID, 'excludingOrderId' => null]));
+    }
+
+    private function paidOrderOf(string $name, string $email, string $seatCode): string
+    {
+        $orderId = $this->commandBus()->send(new StartOrder(customerId: $this->commandBus()->send(new RegisterCustomer(name: $name, email: $email)), concertId: self::CONCERT_ID));
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: $this->seat($seatCode), holdId: 'hold-' . $seatCode));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: $this->seat($seatCode), holdId: 'hold-' . $seatCode, expiresAt: '2026-10-25T12:02:00+00:00'));
+        $this->commandBus()->send(new BeginPayment(orderId: $orderId, confirmationEmailBounces: false));
+        $this->commandBus()->send(new MarkPaid(orderId: $orderId, paymentReference: 'pay-' . $seatCode));
+
+        return $orderId;
     }
 
     private function held(string $seatCode, string $orderId, string $holdId, string $expiresAt = '2026-10-25T12:10:00+00:00'): void

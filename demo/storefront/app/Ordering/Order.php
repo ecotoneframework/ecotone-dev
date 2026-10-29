@@ -40,6 +40,7 @@ final class Order extends Model
     use WithEvents;
 
     public const OPEN_STATUSES = [OrderStatus::STARTED, OrderStatus::SEATS_HELD];
+    public const SEAT_CLAIMING_STATUSES = [OrderStatus::STARTED, OrderStatus::SEATS_HELD, OrderStatus::PAYING, OrderStatus::PAID];
 
     public $incrementing = false;
     protected $keyType = 'string';

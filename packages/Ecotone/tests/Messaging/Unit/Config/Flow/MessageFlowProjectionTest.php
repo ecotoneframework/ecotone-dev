@@ -8,14 +8,18 @@ use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\FromTaggedStream;
+use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionBackfill;
 use Ecotone\Api\Projecting\ProjectionRebuild;
@@ -106,6 +110,56 @@ final class MessageFlowProjectionTest extends TestCase
         self::assertSame('projection:aggregate.view', $graph->node('handler:' . $projection::class . '::created')->attributes['owner']);
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:' . ProjectionEventForFlow::class, 'handler:' . $projection::class . '::created'));
     }
+
+    public function test_a_followed_event_reaches_the_projection_that_reads_it(): void
+    {
+        $projection = new #[Projection('seat.map'), FromStream('seats'), FromStream('concerts')] class () {
+            #[EventHandler]
+            public function seatHeld(ProjectionEventForFlow $event): void
+            {
+            }
+
+            #[EventHandler('seat.released')]
+            public function seatReleased(array $event): void
+            {
+            }
+
+            #[QueryHandler('seat.map')]
+            public function seatMap(): array
+            {
+                return [];
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$projection::class], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        $handler = fn (string $method) => 'handler:' . $projection::class . '::' . $method;
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:' . ProjectionEventForFlow::class, $handler('seatHeld')));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::PROJECTS_INTO, $handler('seatHeld'), 'projection:seat.map'));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::PROJECTS_INTO, $handler('seatReleased'), 'projection:seat.map'));
+        self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::PROJECTS_INTO, $handler('seatMap')));
+        self::assertSame(['seats', 'concerts'], $graph->node('projection:seat.map')->attributes['fromStreams']);
+    }
+
+    public function test_projection_names_the_tag_and_the_aggregate_it_projects_from(): void
+    {
+        $tagged = new #[Projection('tagged.view'), FromTaggedStream('concert'), Partitioned] class () {
+            #[EventHandler]
+            public function seatHeld(TaggedSeatHeldForFlow $event): void
+            {
+            }
+        };
+        $aggregate = new #[Projection('aggregate.source.view'), FromAggregateStream(ProjectionAggregateForFlow::class)] class () {
+            #[EventHandler]
+            public function created(ProjectionEventForFlow $event): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$tagged::class, $aggregate::class, ProjectionAggregateForFlow::class, TaggedSeatHeldForFlow::class], [$tagged, $aggregate], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        self::assertSame(['concert'], $graph->node('projection:tagged.view')->attributes['fromTags']);
+        self::assertSame([ProjectionAggregateForFlow::class], $graph->node('projection:aggregate.source.view')->attributes['fromAggregateStreams']);
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::PROJECTS_INTO, 'handler:' . $tagged::class . '::seatHeld', 'projection:tagged.view'));
+    }
 }
 
 #[EventSourcingAggregate]
@@ -131,4 +185,11 @@ final class ProjectionAggregateForFlow
 
 final class ProjectionEventForFlow
 {
+}
+
+final class TaggedSeatHeldForFlow
+{
+    public function __construct(#[EventTag('concert')] public string $concertId)
+    {
+    }
 }

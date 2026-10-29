@@ -185,6 +185,9 @@ final class MessageFlowGraph implements DefinedObject
         }
         $edgeLines = [];
         foreach ($this->edges as $edge) {
+            if ($edge->kind === FlowEdgeKind::PROJECTS_INTO) {
+                continue;
+            }
             $asynchronousChannels = $edge->kind === FlowEdgeKind::ROUTED_TO ? $this->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS, to: $edge->to) : [];
             if ($asynchronousChannels === []) {
                 $edgeLines[] = sprintf('    %s %s %s', $mermaidIds[$edge->from], $this->mermaidArrow($edge), $mermaidIds[$edge->to]);

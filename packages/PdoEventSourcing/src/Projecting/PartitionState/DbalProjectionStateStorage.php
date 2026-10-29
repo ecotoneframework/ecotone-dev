@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Projecting\PartitionState;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Exception\InvalidFieldNameException;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
@@ -27,6 +28,7 @@ use Ecotone\Projecting\Transaction;
 use function in_array;
 use function json_decode;
 use function json_encode;
+use function str_contains;
 
 use Throwable;
 
@@ -167,11 +169,23 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
     {
         try {
             return $statement();
-        } catch (InvalidFieldNameException) {
-            throw ConfigurationException::create($this->tableManager->getMissingVersionColumnInstructions());
         } catch (Throwable $failure) {
+            if (self::isAboutTheVersionColumnMissing($failure)) {
+                throw ConfigurationException::create($this->tableManager->getMissingVersionColumnInstructions());
+            }
+
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
+    }
+
+    private static function isAboutTheVersionColumnMissing(Throwable $failure): bool
+    {
+        if ($failure instanceof InvalidFieldNameException) {
+            return true;
+        }
+
+        return $failure instanceof DriverException
+            && str_contains($failure->getMessage(), 'no such column: version');
     }
 
     public function beginTransaction(): Transaction

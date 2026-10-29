@@ -97,7 +97,16 @@ trace whether or not the service tracks its own flows.
 * `GET /readyz` answers `200 {"status":"ready"}` or `503 {"status":"not_ready", "checks":[...]}` with one line per failing check and what to do about it: the internal SQLite database is writable, every reply consumer reported within the last `max(3 x PULSE_REFRESH_INTERVAL, 15)` seconds, and the refresh reported within `3 x PULSE_REFRESH_INTERVAL`. `pulse:refresh` records its own heartbeat at every tick and, in the same tick, one for each reply consumer the supervisor started that is still running and not stopped (it reads the process ids the supervisor wrote), both in the internal database; no extra process is started for it. Neither probe depends on the services being Connected. Use `/healthz` for liveness and `/readyz` for readiness (Kubernetes: `livenessProbe` and `readinessProbe`; `Deployment` with `replicas: 1`, `strategy: Recreate`, no volume).
 
 Every service has a page, `/services/{name}`, with breadcrumbs: its health and last seen time, versions, dead letters, flow types
-(linked to their traces) and a link to its slice of the flow graph. A snapshot carries `deadLetter.enabled` (`true` or `false`, from the
+(linked to their traces) and a link to its slice of the flow graph.
+
+Its **Packages and setup** section lists every Ecotone package the service has installed, from the snapshot's `packages`, also one
+that needs no table. Under each package are the tables it owns, set up or missing with the command that creates them, and the
+features it reports: database transactions, instant retries, deduplication, dead letter, the error channel and its delayed
+retries, flow tracking, publishers and the rest. Each feature says whether it is on, its settings (for instant retries the number
+of extra attempts and the exceptions retried), the handlers that use its attribute (`#[Deduplicated]`,
+`#[WithoutDatabaseTransaction]`, `#[DelayedRetry]`, `#[Distributed]`), and a hint box that explains what it does with those values
+and names the call that changes it. The text comes from the module that owns the feature, so it describes the version of Ecotone
+the service runs. A service older than this list shows its tables without packages. A snapshot carries `deadLetter.enabled` (`true` or `false`, from the
 service's `DbalConfiguration`), so Pulse says "dead letter storage is enabled, none stored" for an empty store and "not configured" for a
 service that does not store dead letters; a service older than this field is told apart by whether its snapshot has the `deadLetters` section.
 

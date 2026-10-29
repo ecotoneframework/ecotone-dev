@@ -15,8 +15,9 @@ final readonly class SetupStatus
     /**
      * @param list<SetupItem> $items
      * @param array<string, string> $sectionErrors
+     * @param list<PackageSetup> $packages
      */
-    private function __construct(public array $items, public array $sectionErrors)
+    private function __construct(public array $items, public array $sectionErrors, public array $packages)
     {
     }
 
@@ -27,20 +28,53 @@ final readonly class SetupStatus
         foreach (['tables', 'tenantTables'] as $list) {
             foreach (is_array($service->snapshot['setup'][$list] ?? null) ? $service->snapshot['setup'][$list] : [] as $table) {
                 if (is_array($table) && is_string($table['feature'] ?? null) && is_string($table['connection'] ?? null)) {
-                    $items[] = new SetupItem('table', $table['feature'], $table['connection'], is_bool($table['initialized'] ?? null) ? $table['initialized'] : null, is_string($table['error'] ?? null) ? $table['error'] : null, self::tableFix($framework, $table['feature'], $table['connection']));
+                    $items[] = new SetupItem('table', $table['feature'], $table['connection'], is_bool($table['initialized'] ?? null) ? $table['initialized'] : null, is_string($table['error'] ?? null) ? $table['error'] : null, self::tableFix($framework, $table['feature'], $table['connection']), is_string($table['package'] ?? null) ? $table['package'] : null);
                 }
             }
         }
         foreach (is_array($service->snapshot['channels'] ?? null) ? $service->snapshot['channels'] : [] as $channel) {
             if (is_array($channel) && is_string($channel['name'] ?? null) && ! is_bool($channel['setUp'] ?? null) && is_string($channel['probeError'] ?? null)) {
-                $items[] = new SetupItem('channel', $channel['name'], null, null, $channel['probeError'], null);
+                $items[] = new SetupItem('channel', $channel['name'], null, null, $channel['probeError'], null, null);
             } elseif (is_array($channel) && is_string($channel['name'] ?? null) && is_bool($channel['setUp'] ?? null)) {
-                $items[] = new SetupItem('channel', $channel['name'], null, $channel['setUp'], null, $channel['setUp'] ? null : self::command($framework, self::CHANNEL_SETUP, ['initialize' => true, 'channel' => [$channel['name']]]));
+                $items[] = new SetupItem('channel', $channel['name'], null, $channel['setUp'], null, $channel['setUp'] ? null : self::command($framework, self::CHANNEL_SETUP, ['initialize' => true, 'channel' => [$channel['name']]]), null);
             }
         }
         $errors = is_array($service->snapshot['sectionErrors'] ?? null) ? array_filter($service->snapshot['sectionErrors'], is_string(...)) : [];
 
-        return new self($items, $errors);
+        return new self($items, $errors, self::packagesOf($service, $items));
+    }
+
+    /**
+     * @param list<SetupItem> $items
+     * @return list<PackageSetup>
+     */
+    private static function packagesOf(ServiceSnapshot $service, array $items): array
+    {
+        $packages = [];
+        foreach (is_array($service->snapshot['packages'] ?? null) ? $service->snapshot['packages'] : [] as $package) {
+            if (! is_array($package) || ! is_string($package['name'] ?? null) || ! is_string($package['composerPackage'] ?? null)) {
+                continue;
+            }
+            $packages[] = new PackageSetup(
+                $package['name'],
+                $package['composerPackage'],
+                is_string($package['version'] ?? null) ? $package['version'] : null,
+                array_values(array_filter($items, static fn (SetupItem $item): bool => $item->kind === 'table' && $item->package === $package['name'])),
+                array_values(array_filter(array_map(static fn (mixed $feature): ?Feature => is_array($feature) ? Feature::fromSnapshot($feature) : null, is_array($package['features'] ?? null) ? $package['features'] : []))),
+            );
+        }
+
+        return $packages;
+    }
+
+    /**
+     * @return list<SetupItem>
+     */
+    public function itemsOutsidePackages(): array
+    {
+        $packageNames = array_map(static fn (PackageSetup $package): string => $package->name, $this->packages);
+
+        return array_values(array_filter($this->items, static fn (SetupItem $item): bool => $item->kind !== 'table' || ! in_array($item->package, $packageNames, true)));
     }
 
     /**

@@ -13,6 +13,7 @@ final readonly class SetupItem
         public ?bool $initialized,
         public ?string $error,
         public ?string $fix,
+        public ?string $package,
     ) {
     }
 

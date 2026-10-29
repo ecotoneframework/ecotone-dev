@@ -31,6 +31,15 @@
     </div>
 {% endmacro %}
 
+{% macro setupItem(item) %}
+    <li data-setup-item="{{ item.id }}"{% if item.missing %} data-setup-missing{% endif %}>
+        <span class="pill {{ item.missing ? 'bad sq' : (item.initialized ? 'ok' : 'off') }}" data-setup-status>{{ item.initialized is null ? 'Unknown' : (item.initialized ? 'Set up' : 'Missing') }}</span>
+        {{ item.kind == 'table' ? 'Table for ' ~ item.key ~ ' on ' ~ item.connection : 'Channel ' ~ item.key }}
+        {% if item.error %}<br><span class="drift" data-setup-error>{{ item.error }}</span>{% endif %}
+        {% if item.fix and not item.initialized %}<br><code data-fix>{{ item.fix }}</code>{% endif %}
+    </li>
+{% endmacro %}
+
 {% block body %}
     {% include '_breadcrumbs.html.twig' with {crumbs: tenant ? [{label: 'Home', href: path('home')}, {label: service.service, href: path('service_hub', {service: service.service})}, {label: tenant}] : [{label: 'Home', href: path('home')}, {label: service.service}]} %}
     <h1>{{ service.service }}{% if tenant %} <span class="muted">› {{ tenant }}</span>{% endif %}</h1>
@@ -134,27 +143,53 @@
 
         {% if focusSetup is not null %}
         <section class="card" id="setup" data-hub-setup>
-            <h2>Setup</h2>
-            {% if focusSetup.items is empty and focusSetup.sectionErrors is empty %}
+            <h2>Packages and setup</h2>
+            {% if focusSetup.allClear and focusSetup.items is not empty %}<p data-setup-ok><span class="pill ok">All set up</span> Every table and channel {{ service.service }} uses exists.</p>{% endif %}
+            {% if focusSetup.packages is empty and focusSetup.items is empty and focusSetup.sectionErrors is empty %}
                 <p class="muted">{{ service.service }} reports no database table or broker channel to check.</p>
-            {% else %}
-                {% if focusSetup.allClear %}<p data-setup-ok><span class="pill ok">All set up</span> Every table and channel {{ service.service }} uses exists.</p>{% endif %}
-                {% if focusSetup.items %}
-                <ul data-setup-items>
-                    {% for item in focusSetup.items %}
-                        <li data-setup-item="{{ item.id }}"{% if item.missing %} data-setup-missing{% endif %}>
-                            <span class="pill {{ item.missing ? 'bad sq' : (item.initialized ? 'ok' : 'off') }}" data-setup-status>{{ item.initialized is null ? 'Unknown' : (item.initialized ? 'Set up' : 'Missing') }}</span>
-                            {{ item.kind == 'table' ? 'Table for ' ~ item.key ~ ' on ' ~ item.connection : 'Channel ' ~ item.key }}
-                            {% if item.error %}<br><span class="drift" data-setup-error>{{ item.error }}</span>{% endif %}
-                            {% if item.fix and not item.initialized %}<br><code data-fix>{{ item.fix }}</code>{% endif %}
-                        </li>
-                    {% endfor %}
-                </ul>
-                {% endif %}
-                {% for section, reason in focusSetup.sectionErrors %}
-                    <p data-section-error="{{ section }}"><span class="pill wait">Unavailable</span> {{ section }} could not be read: <span class="drift">{{ reason }}</span></p>
-                {% endfor %}
             {% endif %}
+            {% for package in focusSetup.packages %}
+                <article class="package" data-package="{{ package.name }}">
+                    <h3><span data-package-name>{{ package.composerPackage }}</span>{% if package.version %} <span class="muted" data-package-version>{{ package.version }}</span>{% endif %}</h3>
+                    {% if package.tables %}
+                        <ul data-setup-items>{% for item in package.tables %}{{ _self.setupItem(item) }}{% endfor %}</ul>
+                    {% else %}
+                        <p class="muted" data-no-tables>Needs no database table.</p>
+                    {% endif %}
+                    {% if package.features %}
+                        <ul class="features" data-features>
+                            {% for feature in package.features %}
+                                <li class="feature" data-feature="{{ feature.name }}" data-feature-enabled="{{ feature.enabled ? 'true' : 'false' }}">
+                                    <p class="feature-title"><span class="pill {{ feature.enabled ? 'ok' : 'off' }}" data-feature-status>{{ feature.enabled ? 'On' : 'Off' }}</span> <b>{{ feature.name }}</b></p>
+                                    {% if feature.settings %}
+                                        <dl class="feature-settings">{% for label, value in feature.settings %}<dt>{{ label }}</dt><dd data-feature-setting="{{ label }}">{{ value }}</dd>{% endfor %}</dl>
+                                    {% endif %}
+                                    {% if feature.handlers %}
+                                        <ul class="feature-handlers" data-feature-handlers>{% for handler in feature.handlers %}<li><code>{{ handler }}</code></li>{% endfor %}</ul>
+                                    {% endif %}
+                                    <aside class="hint" role="note" data-hint="feature">
+                                        <details>
+                                            <summary>What {{ feature.name|lower }} does</summary>
+                                            <div class="hint-body">
+                                                <p>{{ feature.hint }}</p>
+                                                {% if feature.configuration %}<p class="muted">Change it in a <code>#[ServiceContext]</code> of {{ service.service }}:</p><pre class="mono" data-feature-configuration>{{ feature.configuration }}</pre>{% endif %}
+                                            </div>
+                                        </details>
+                                    </aside>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </article>
+            {% endfor %}
+            {% set outside = focusSetup.itemsOutsidePackages %}
+            {% if outside %}
+                {% if focusSetup.packages %}<h3>Channels</h3>{% endif %}
+                <ul data-setup-items>{% for item in outside %}{{ _self.setupItem(item) }}{% endfor %}</ul>
+            {% endif %}
+            {% for section, reason in focusSetup.sectionErrors %}
+                <p data-section-error="{{ section }}"><span class="pill wait">Unavailable</span> {{ section }} could not be read: <span class="drift">{{ reason }}</span></p>
+            {% endfor %}
         </section>
         {% endif %}
 

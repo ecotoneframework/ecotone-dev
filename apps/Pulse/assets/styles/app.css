@@ -208,3 +208,7 @@ td details form{margin-top:.5rem}
 .tenant-switcher{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}.tenant-switcher a[aria-current=page]{font-weight:700;text-decoration:underline}
 .scope-filter{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem}.greyed,.greyed h2,.greyed th{color:var(--muted)}
 section[data-group],.card.flush{overflow-x:auto}
+.package{border-top:1px solid var(--line);padding:.75rem 0 .25rem}.package:first-of-type{border-top:0}.package h3{margin:.2rem 0 .5rem;font-size:1rem}
+.features{list-style:none;padding:0;margin:.5rem 0 0;display:grid;gap:.6rem}.feature{border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;background:var(--surface)}
+.feature-title{margin:0 0 .35rem}.feature-settings{display:grid;grid-template-columns:max-content 1fr;gap:.15rem .9rem;margin:.25rem 0 .4rem;font-size:.9rem}.feature-settings dt{color:var(--muted)}.feature-settings dd{margin:0;overflow-wrap:anywhere}
+.feature-handlers{margin:.25rem 0 .5rem;padding-left:1.2rem;font-size:.9rem}.feature .hint{margin:.4rem 0 0}.feature .hint pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:.3rem 0 0}

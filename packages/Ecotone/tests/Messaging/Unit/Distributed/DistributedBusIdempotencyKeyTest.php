@@ -61,7 +61,7 @@ final class DistributedBusIdempotencyKeyTest extends TestCase
         );
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The Distributed Bus was given a blank idempotencyKey. The target deduplicates on this key in place of the message id, so a blank one would make every send that carries it one request, handled once. Pass a key that names this business request, such as the order or reservation id, or omit idempotencyKey to have each send handled on its own.');
+        $this->expectExceptionMessage('The Distributed Bus was given a blank idempotencyKey. The target deduplicates on this key in place of the message id, per routing key and consuming endpoint, so a blank one would make every send to that routing key one request, handled once. Pass a key that names this business request, such as the order id, or omit idempotencyKey to have each send handled on its own.');
 
         $send($ecotone);
     }

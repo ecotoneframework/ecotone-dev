@@ -143,6 +143,19 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('deduplicationStores')]
+    public function test_the_same_idempotency_key_on_different_routing_keys_is_handled_for_each(bool $inMemory): void
+    {
+        [$userService, $ticketService, $tickets] = $this->services($inMemory);
+
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'order-1');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.cancel', 'seat-7', idempotencyKey: 'order-1');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.cancel', 'seat-7', idempotencyKey: 'order-1');
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['message: seat-7', 'cancelled: seat-7'], $tickets->handled);
+    }
+
+    #[DataProvider('deduplicationStores')]
     public function test_a_send_repeated_by_a_retried_asynchronous_handler_is_handled_once_by_the_target(bool $inMemory): void
     {
         [$userService, $ticketService, $tickets] = $this->services($inMemory);
@@ -226,6 +239,13 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
             public function confirm(string $seat): void
             {
                 $this->handled[] = 'message: ' . $seat;
+            }
+
+            #[Distributed]
+            #[InternalHandler('ticket.cancel')]
+            public function cancel(string $seat): void
+            {
+                $this->handled[] = 'cancelled: ' . $seat;
             }
 
             #[Deduplicated]

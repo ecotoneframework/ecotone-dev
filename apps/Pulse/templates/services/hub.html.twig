@@ -169,7 +169,7 @@
                                     {% endif %}
                                     <aside class="hint" role="note" data-hint="feature">
                                         <details>
-                                            <summary>What {{ feature.name|lower }} does</summary>
+                                            <summary>What it does and how to change it</summary>
                                             <div class="hint-body">
                                                 <p>{{ feature.hint }}</p>
                                                 {% if feature.configuration %}<p class="muted">Change it in a <code>#[ServiceContext]</code> of {{ service.service }}:</p><pre class="mono" data-feature-configuration>{{ feature.configuration }}</pre>{% endif %}

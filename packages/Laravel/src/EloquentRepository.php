@@ -59,7 +59,11 @@ class EloquentRepository implements StateStoredRepository
             $aggregate->getConnection()->transaction(
                 fn () => $this->claimVersionAndSave($identifiers, $aggregate, $versionColumn, (int) $versionBeforeHandling, $versionAfterHandling)
             );
-        } catch (UniqueConstraintViolationException) {
+        } catch (UniqueConstraintViolationException $uniqueConstraintViolation) {
+            if (! $aggregate->newQueryWithoutScopes()->whereKey($aggregate->getKey())->exists()) {
+                throw $uniqueConstraintViolation;
+            }
+
             throw $this->staleAggregate($identifiers, $aggregate, $versionColumn, (int) $versionBeforeHandling);
         }
     }

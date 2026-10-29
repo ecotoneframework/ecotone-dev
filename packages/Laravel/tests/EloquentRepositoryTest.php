@@ -20,6 +20,8 @@ use Ecotone\Laravel\EloquentRepositoryBuilder;
 use Ecotone\Laravel\EloquentSaveCancelled;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Orchestra\Testbench\TestCase;
 use RuntimeException;
@@ -49,6 +51,7 @@ class EloquentRepositoryTest extends TestCase
         Schema::create('eloquent_repository_tickets', function (Blueprint $table) {
             $table->string('ticket_id')->primary();
             $table->string('title');
+            $table->string('slug')->nullable()->unique();
             $table->integer('version');
         });
         Schema::dropIfExists('eloquent_repository_notes');
@@ -161,6 +164,31 @@ class EloquentRepositoryTest extends TestCase
 
         $this->assertSame('Untitled', $ecotone->sendQueryWithRouting('ticket.title', metadata: ['aggregate.id' => 't-1']));
         $this->assertSame(1, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-1']));
+    }
+
+    public function test_creating_a_versioned_eloquent_aggregate_under_a_stored_id_inside_an_application_transaction_is_refused(): void
+    {
+        $ecotone = $this->bootstrapWith(EloquentRepositoryTicket::class);
+        $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
+
+        try {
+            DB::transaction(fn () => $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']));
+            $this->fail('Expected the stored ticket to be kept');
+        } catch (ConcurrencyException $exception) {
+            $this->assertStringContainsString('Aggregate ' . EloquentRepositoryTicket::class . ' t-1 was loaded at version 0, but it is at version 1 now', $exception->getMessage());
+        }
+
+        $this->assertSame(1, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-1']));
+    }
+
+    public function test_creating_a_versioned_eloquent_aggregate_that_collides_on_another_unique_column_raises_the_database_error(): void
+    {
+        $ecotone = $this->bootstrapWith(EloquentRepositoryTicket::class);
+        $ecotone->sendCommandWithRouting('ticket.openWithSlug', metadata: ['ticketId' => 't-1', 'slug' => 'same']);
+
+        $this->expectException(UniqueConstraintViolationException::class);
+
+        $ecotone->sendCommandWithRouting('ticket.openWithSlug', metadata: ['ticketId' => 't-9', 'slug' => 'same']);
     }
 
     public function test_an_eloquent_aggregate_versioned_through_the_trait_loaded_twice_refuses_the_second_save(): void
@@ -498,6 +526,15 @@ class EloquentRepositoryTicket extends Model
         $ticket = new self();
         $ticket->ticket_id = $ticketId;
         $ticket->title = 'Untitled';
+
+        return $ticket;
+    }
+
+    #[CommandHandler('ticket.openWithSlug')]
+    public static function openWithSlug(#[Header('ticketId')] string $ticketId, #[Header('slug')] string $slug): self
+    {
+        $ticket = self::open($ticketId);
+        $ticket->slug = $slug;
 
         return $ticket;
     }

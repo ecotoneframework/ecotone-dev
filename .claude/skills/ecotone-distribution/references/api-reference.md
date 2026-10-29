@@ -66,11 +66,11 @@ interface DistributedBus
 
 Every method takes an optional `idempotencyKey`. The target's deduplication (`ecotone/dbal`, on by default for
 asynchronous endpoints) keys on it in place of the message id, so a send repeated by a retried handler is handled once.
-Name the business request (`'tickets.confirm.' . $orderId`); a blank key is refused. The key is not copied onto the
-messages the target sends onwards.
+The key is scoped by the routing key and the consuming endpoint, so the order id can key both `tickets.confirm` and
+`tickets.cancel`; a blank key is refused. The key is not copied onto the messages the target sends onwards.
 
 ```php
-$distributedBus->sendMessage('ticketing', 'tickets.confirm', $orderId, idempotencyKey: 'tickets.confirm.' . $orderId);
+$distributedBus->sendMessage('ticketing', 'tickets.confirm', $orderId, idempotencyKey: $orderId);
 ```
 
 ## MessagePublisher Interface
@@ -89,8 +89,7 @@ interface MessagePublisher
     public function sendWithMetadata(
         string $data,
         string $sourceMediaType = MediaType::TEXT_PLAIN,
-        array $metadata = [],
-        ?string $idempotencyKey = null
+        array $metadata = []
     ): void;
 
     public function convertAndSend(object|array $data): void;

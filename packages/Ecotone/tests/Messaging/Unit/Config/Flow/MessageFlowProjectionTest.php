@@ -124,8 +124,8 @@ final class MessageFlowProjectionTest extends TestCase
             {
             }
 
-            #[EventHandler('seat.*')]
-            public function seatChanged(array $event): void
+            #[EventHandler]
+            public function seatChanged(SeatSwappedForFlow|TaggedSeatHeldForFlow $event): void
             {
             }
 
@@ -141,6 +141,8 @@ final class MessageFlowProjectionTest extends TestCase
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:' . ProjectionEventForFlow::class, $handler('seatHeld')));
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::PROJECTS_INTO, $handler('seatHeld'), 'projection:seat.map'));
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::PROJECTS_INTO, $handler('seatReleased'), 'projection:seat.map'));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:' . SeatSwappedForFlow::class, $handler('seatChanged')));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:' . TaggedSeatHeldForFlow::class, $handler('seatChanged')));
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::PROJECTS_INTO, $handler('seatChanged'), 'projection:seat.map'));
         self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::PROJECTS_INTO, $handler('seatMap')));
         self::assertSame(['seats', 'concerts'], $graph->node('projection:seat.map')->attributes['fromStreams']);
@@ -190,6 +192,10 @@ final class ProjectionAggregateForFlow
 }
 
 final class ProjectionEventForFlow
+{
+}
+
+final class SeatSwappedForFlow
 {
 }
 

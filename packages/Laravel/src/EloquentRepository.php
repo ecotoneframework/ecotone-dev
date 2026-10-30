@@ -66,7 +66,7 @@ class EloquentRepository implements StateStoredRepository
                 fn () => $this->claimVersionAndSave($identifiers, $aggregate, $versionColumn, (int) $versionBeforeHandling, $versionAfterHandling)
             );
         } catch (UniqueConstraintViolationException $uniqueConstraintViolation) {
-            if ($aggregate->exists || ! $aggregate->newQueryWithoutScopes()->whereKey($aggregate->getKey())->exists()) {
+            if ($aggregate->exists || ! $aggregate->newQueryWithoutScopes()->whereKey($this->storedKeyOf($aggregate))->exists()) {
                 throw $uniqueConstraintViolation;
             }
 
@@ -106,7 +106,7 @@ class EloquentRepository implements StateStoredRepository
     private function claimVersion(array $identifiers, Model $aggregate, string $versionColumn, int $versionBeforeHandling, int $versionAfterHandling): void
     {
         $claimed = $aggregate->newQueryWithoutScopes()
-            ->whereKey($aggregate->getKey())
+            ->whereKey($this->storedKeyOf($aggregate))
             ->where($versionColumn, $versionBeforeHandling)
             ->update([$versionColumn => $versionAfterHandling]);
 
@@ -121,8 +121,13 @@ class EloquentRepository implements StateStoredRepository
             $aggregate::class,
             AggregateIdString::from($identifiers),
             $versionBeforeHandling,
-            (int) $aggregate->newQueryWithoutScopes()->whereKey($aggregate->getKey())->value($versionColumn),
+            (int) $aggregate->newQueryWithoutScopes()->whereKey($this->storedKeyOf($aggregate))->value($versionColumn),
         );
+    }
+
+    private function storedKeyOf(Model $aggregate): mixed
+    {
+        return $aggregate->getOriginal($aggregate->getKeyName()) ?? $aggregate->getKey();
     }
 
     private function writeVersionProperty(Model $aggregate, string $versionProperty, int $version): void

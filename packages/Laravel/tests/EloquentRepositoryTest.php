@@ -236,6 +236,16 @@ class EloquentRepositoryTest extends TestCase
         $this->assertSame(1, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-2']));
     }
 
+    public function test_a_versioned_eloquent_aggregate_whose_handler_changes_its_key_is_saved_under_the_new_key(): void
+    {
+        $ecotone = $this->bootstrapWith(EloquentRepositoryTicket::class);
+        $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
+
+        $ecotone->sendCommandWithRouting('ticket.changeId', metadata: ['aggregate.id' => 't-1', 'newTicketId' => 't-2']);
+
+        $this->assertSame(2, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-2']));
+    }
+
     public function test_an_eloquent_aggregate_versioned_through_the_trait_loaded_twice_refuses_the_second_save(): void
     {
         $ticket = new #[Aggregate] class () extends Model {
@@ -596,6 +606,12 @@ class EloquentRepositoryTicket extends Model
         $ticket->slug = $slug;
 
         return $ticket;
+    }
+
+    #[CommandHandler('ticket.changeId')]
+    public function changeId(#[Header('newTicketId')] string $newTicketId): void
+    {
+        $this->ticket_id = $newTicketId;
     }
 
     #[CommandHandler('ticket.changeSlug')]

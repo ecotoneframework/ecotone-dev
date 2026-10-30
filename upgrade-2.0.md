@@ -2710,9 +2710,10 @@ time limit, `--handledMessageLimit` was ignored the same way, and a run of a que
 stopped.
 
 **Now:** every limit stays as configured and the run stops at whichever comes first: no message left, the handled
-messages, the executions, or the execution time. `ExecutionPollingMetadata::createWithFinishWhenNoMessages()` still
-clears the handled-message and execution-time limits on purpose, so a test drains the channel whatever the endpoint's
-own polling metadata says.
+messages, the executions, or the execution time. `ExecutionPollingMetadata::createWithFinishWhenNoMessages()` clears
+the handled-message, execution-amount and execution-time limits on purpose, so a test drains the channel whatever the
+endpoint's own polling metadata says. Before, it left the execution-amount limit as configured, so an endpoint whose
+`PollingMetadata` set `withExecutionAmountLimit()` capped a test run at that many executions.
 
 **How to adapt:** drop a limit you passed together with `--finishWhenNoMessages` (or `withFinishWhenNoMessages(true)`)
 only if you relied on it being ignored. An endpoint whose `PollingMetadata` sets a limit and calls

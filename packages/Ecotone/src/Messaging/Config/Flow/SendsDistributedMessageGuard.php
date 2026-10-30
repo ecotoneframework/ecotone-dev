@@ -24,6 +24,7 @@ use Ecotone\Api\Attribute\SendsDistributedMessage;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\ConfigurationException;
 
@@ -93,8 +94,9 @@ final class SendsDistributedMessageGuard
         }
         if (! isset($mappedServices[$declaration->targetServiceName])) {
             $known = $mappedServices === [] ? 'none' : implode(', ', array_keys($mappedServices));
+            $initialize = $declaration->distributionReference === DistributedBus::class ? 'initialize()' : "initialize('{$declaration->distributionReference}')";
 
-            throw ConfigurationException::create("#[SendsDistributedMessage] on {$method}() sends to service '{$declaration->targetServiceName}', but no DistributedServiceMap for {$declaration->distributionReference} maps that service, so DistributedBus::sendMessage() to it would fail at runtime. Mapped services: {$known}. Correct targetServiceName, or map the service in a #[ServiceContext] with DistributedServiceMap::initialize()->withCommandMapping('{$declaration->targetServiceName}', '<channel name>').");
+            throw ConfigurationException::create("#[SendsDistributedMessage] on {$method}() sends to service '{$declaration->targetServiceName}', but no DistributedServiceMap for {$declaration->distributionReference} maps that service, so DistributedBus::sendMessage() to it would fail at runtime. Mapped services: {$known}. Correct targetServiceName or distributionReference, or map the service in a #[ServiceContext] with DistributedServiceMap::{$initialize}->withCommandMapping('{$declaration->targetServiceName}', '<channel name>').");
         }
     }
 }

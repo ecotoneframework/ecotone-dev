@@ -186,9 +186,28 @@ final class MessageFlowDeclaredSendTest extends TestCase
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(sprintf(
-            "#[SendsDistributedMessage] on %s::holdRequestedSeat() sends to service 'ticketting', but no DistributedServiceMap for %s maps that service, so DistributedBus::sendMessage() to it would fail at runtime. Mapped services: ticketing. Correct targetServiceName, or map the service in a #[ServiceContext] with DistributedServiceMap::initialize()->withCommandMapping('ticketting', '<channel name>').",
+            "#[SendsDistributedMessage] on %s::holdRequestedSeat() sends to service 'ticketting', but no DistributedServiceMap for %s maps that service, so DistributedBus::sendMessage() to it would fail at runtime. Mapped services: ticketing. Correct targetServiceName or distributionReference, or map the service in a #[ServiceContext] with DistributedServiceMap::initialize()->withCommandMapping('ticketting', '<channel name>').",
             $service::class,
             DistributedBus::class,
+        ));
+
+        $this->graphOf($service);
+    }
+
+    public function test_declaration_on_an_unmapped_distribution_reference_names_the_map_for_that_reference(): void
+    {
+        $service = new class () {
+            #[SendsDistributedMessage(targetServiceName: 'ticketing', routingKey: 'tickets.hold', distributionReference: 'billing_bus')]
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf(
+            "#[SendsDistributedMessage] on %s::holdRequestedSeat() sends to service 'ticketing', but no DistributedServiceMap for billing_bus maps that service, so DistributedBus::sendMessage() to it would fail at runtime. Mapped services: none. Correct targetServiceName or distributionReference, or map the service in a #[ServiceContext] with DistributedServiceMap::initialize('billing_bus')->withCommandMapping('ticketing', '<channel name>').",
+            $service::class,
         ));
 
         $this->graphOf($service);

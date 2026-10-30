@@ -2727,10 +2727,16 @@ timeout, so a test run of an idle AMQP queue took about ten seconds.
 
 **Now:** the run stops on the first receive that returns no message, so an idle queue ends a run after one receive
 timeout. A receive that failed — a lost connection retried through the connection retry template — is not an empty
-one: the run keeps going and handles the messages waiting behind it, where before that failed poll ended the run.
+one: the run keeps going and handles the messages waiting behind it, where before that failed poll ended the run. A
+channel that stays unreachable is retried through the whole connection retry template, and then the run throws the
+connection failure, where before it ended quietly: `ecotone:run orders --finishWhenNoMessages` against a database or
+broker that is down now exits with an error after the back-off — about two minutes with the default
+`exponentialBackOff(1000, 3)->maxRetries(5)`.
 
 **How to adapt:** nothing, unless a test relied on a message becoming available a few milliseconds after the channel
-went empty within the same run: call `run()` again after it arrives.
+went empty within the same run: call `run()` again after it arrives. A cron job or CI step that runs
+`--finishWhenNoMessages` and must give up sooner on an unreachable channel bounds the run with `--executionTimeLimit`,
+or shortens the back-off with `ServiceConfiguration::withConnectionRetryTemplate()`.
 
 ### Symfony and Laravel `defaultConnectionExceptionRetry` is applied as configured
 

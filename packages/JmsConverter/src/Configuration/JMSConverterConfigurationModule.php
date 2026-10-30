@@ -112,8 +112,8 @@ final class JMSConverterConfigurationModule extends NoExternalConfigurationModul
 
             if (count(array_unique($descriptions)) === 1) {
                 throw ConfigurationException::create(
-                    sprintf('Ecotone was given %s identical JMSConverterConfigurations, each with %s. ', count($configurations) === 2 ? 'two' : count($configurations), $descriptions[0])
-                    . 'Ecotone reads exactly one, so the second registration is a mistake. '
+                    sprintf('Ecotone was given %d identical JMSConverterConfigurations, each with %s. ', count($configurations), $descriptions[0])
+                    . 'Ecotone reads exactly one, so every registration after the first is a mistake. '
                     . $wayOut
                 );
             }

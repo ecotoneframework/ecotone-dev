@@ -71,10 +71,21 @@ final class JMSConverterConfigurationTest extends TestCase
     public function test_two_identical_configurations_are_refused_at_bootstrap(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Ecotone was given two identical JMSConverterConfigurations, each with naming strategy identicalPropertyNamingStrategy, null serialization on, enum support on and the metadata cache freshness check following the environment. Ecotone reads exactly one, so the second registration is a mistake. Keep one #[ServiceContext] method returning JMSConverterConfiguration::createWithDefaults() and move every with*() call onto it, or pass a single JMSConverterConfiguration in extensionObjects.');
+        $this->expectExceptionMessage('Ecotone was given 2 identical JMSConverterConfigurations, each with naming strategy identicalPropertyNamingStrategy, null serialization on, enum support on and the metadata cache freshness check following the environment. Ecotone reads exactly one, so every registration after the first is a mistake. Keep one #[ServiceContext] method returning JMSConverterConfiguration::createWithDefaults() and move every with*() call onto it, or pass a single JMSConverterConfiguration in extensionObjects.');
 
         EcotoneLite::bootstrapFlowTesting(
             extensionObjects: [JMSConverterConfiguration::createWithDefaults(), JMSConverterConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::JMS_CONVERTER_PACKAGE],
+        );
+    }
+
+    public function test_three_identical_configurations_are_refused_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Ecotone was given 3 identical JMSConverterConfigurations, each with naming strategy identicalPropertyNamingStrategy, null serialization on, enum support on and the metadata cache freshness check following the environment. Ecotone reads exactly one, so every registration after the first is a mistake. Keep one #[ServiceContext] method returning JMSConverterConfiguration::createWithDefaults() and move every with*() call onto it, or pass a single JMSConverterConfiguration in extensionObjects.');
+
+        EcotoneLite::bootstrapFlowTesting(
+            extensionObjects: [JMSConverterConfiguration::createWithDefaults(), JMSConverterConfiguration::createWithDefaults(), JMSConverterConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::JMS_CONVERTER_PACKAGE],
         );
     }

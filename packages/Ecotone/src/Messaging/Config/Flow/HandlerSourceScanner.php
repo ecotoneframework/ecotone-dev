@@ -31,6 +31,8 @@ final class HandlerSourceScanner
 {
     private const IGNORED_NAMES = ['parent', 'class'];
     private const IGNORED_TOKENS = [T_WHITESPACE => true, T_COMMENT => true, T_DOC_COMMENT => true, T_OPEN_TAG => true, T_INLINE_HTML => true];
+    private const UNRESOLVED = ['kind' => 'unresolved', 'value' => ''];
+    private const EVERY_VARIABLE = '*';
     private const NAME_TOKENS = [T_STRING => true, T_NAME_QUALIFIED => true, T_NAME_FULLY_QUALIFIED => true, T_NAME_RELATIVE => true, T_STATIC => true];
 
     /**
@@ -41,8 +43,9 @@ final class HandlerSourceScanner
     {
         $files = [];
         $methodFacts = [];
+        $reflections = [];
 
-        return $this->scanMethods($targets, [], $files, $methodFacts);
+        return $this->scanMethods($targets, [], $files, $methodFacts, $reflections);
     }
 
     /**
@@ -50,9 +53,10 @@ final class HandlerSourceScanner
      * @param array<string, bool> $visited
      * @param array<string, array{list<PhpToken>, array<int, int>, int, array<int, array{string, array<string, string>}>}> $files
      * @param array<string, MethodSourceFacts> $methodFacts
+     * @param array<string, ReflectionMethod> $reflections
      * @return array<string, MethodSourceFacts>
      */
-    private function scanMethods(array $targets, array $visited, array &$files, array &$methodFacts): array
+    private function scanMethods(array $targets, array $visited, array &$files, array &$methodFacts, array &$reflections): array
     {
         $facts = [];
         $methodsByFile = [];
@@ -62,7 +66,7 @@ final class HandlerSourceScanner
                 $facts[$key] = $methodFacts[$methodKey];
                 continue;
             }
-            $method = new ReflectionMethod($className, $methodName);
+            $method = $reflections[$methodKey] ??= new ReflectionMethod($className, $methodName);
             $fileName = $method->getFileName();
             if ($fileName === false || ! is_file($fileName) || ! is_readable($fileName) || $method->getStartLine() === false || $method->getEndLine() === false) {
                 $facts[$key] = $methodFacts[$methodKey] = MethodSourceFacts::none();
@@ -106,21 +110,88 @@ final class HandlerSourceScanner
                 if (! in_array($call['receiver'], ['this', 'self', 'static'], true) || isset($path[$helperKey]) || ! method_exists($className, $call['method'])) {
                     continue;
                 }
-                $helper = $this->scanMethods([$helperKey => [$className, $call['method']]], $path, $files, $methodFacts)[$helperKey];
+                $helper = $this->scanMethods([$helperKey => [$className, $call['method']]], $path, $files, $methodFacts, $reflections)[$helperKey];
+                $bindings = $this->bindingsOf($reflections[$helperKey] ??= new ReflectionMethod($className, $call['method']), $call);
                 foreach ($helper->instantiations as $instantiation) {
                     if ($instantiation['enclosingCall'] === null) {
                         $instantiation['enclosingCall'] = $call['enclosingCall'];
                         $instantiation['receiver'] = $call['receiver'];
+                    } else {
+                        $instantiation['receiver'] = $this->boundReceiver($instantiation['receiver'], $bindings);
                     }
                     $instantiations[] = $instantiation;
                 }
-                $calls = [...$calls, ...$helper->calls];
+                foreach ($helper->calls as $helperCall) {
+                    $calls[] = $this->boundCall($helperCall, $bindings);
+                }
                 $literals = [...$literals, ...$helper->stringLiterals];
             }
             $facts[$key] = new MethodSourceFacts($instantiations, $calls, array_values(array_unique($literals)));
         }
 
         return $facts;
+    }
+
+    /**
+     * @param array{arguments: array<int|string, array{kind: string, value: string}>, unresolvedFrom: int|null} $call
+     * @return array<string, array{kind: string, value: string}|null>
+     */
+    private function bindingsOf(ReflectionMethod $helper, array $call): array
+    {
+        $bindings = [];
+        foreach ($helper->getParameters() as $parameter) {
+            $argument = $call['arguments'][$parameter->getName()] ?? $call['arguments'][$parameter->getPosition()] ?? null;
+            if ($argument === null && $call['unresolvedFrom'] !== null && $parameter->getPosition() >= $call['unresolvedFrom']) {
+                $argument = self::UNRESOLVED;
+            }
+            if ($argument === null && $parameter->isDefaultValueAvailable() && is_string($parameter->getDefaultValue())) {
+                $argument = ['kind' => 'literal', 'value' => $parameter->getDefaultValue()];
+            }
+            $bindings[$parameter->getName()] = $argument;
+        }
+
+        return $bindings;
+    }
+
+    /**
+     * @param array{receiver: string|null, method: string, enclosingCall: string|null, arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null, unresolvedFrom: int|null} $call
+     * @param array<string, array{kind: string, value: string}|null> $bindings
+     * @return array{receiver: string|null, method: string, enclosingCall: string|null, arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null, unresolvedFrom: int|null}
+     */
+    private function boundCall(array $call, array $bindings): array
+    {
+        $arguments = [];
+        foreach ($call['arguments'] as $key => $argument) {
+            $arguments[$key] = $argument['kind'] === 'variable' ? ($bindings[$argument['value']] ?? self::UNRESOLVED) : $argument;
+        }
+
+        return ['receiver' => $this->boundReceiver($call['receiver'], $bindings), 'arguments' => $arguments, 'literalArguments' => $this->leadingLiteralsOf($arguments)] + $call;
+    }
+
+    /**
+     * @param array<string, array{kind: string, value: string}|null> $bindings
+     */
+    private function boundReceiver(?string $receiver, array $bindings): ?string
+    {
+        if ($receiver === null || ! array_key_exists($receiver, $bindings)) {
+            return $receiver;
+        }
+
+        return ($bindings[$receiver]['kind'] ?? null) === 'variable' ? $bindings[$receiver]['value'] : null;
+    }
+
+    /**
+     * @param array<int|string, array{kind: string, value: string}> $arguments
+     * @return list<string>
+     */
+    private function leadingLiteralsOf(array $arguments): array
+    {
+        $literals = [];
+        for ($position = 0; ($arguments[$position]['kind'] ?? null) === 'literal'; $position++) {
+            $literals[] = $arguments[$position]['value'];
+        }
+
+        return $literals;
     }
 
     /**
@@ -228,6 +299,7 @@ final class HandlerSourceScanner
         $literals = [];
         $enclosingCalls = [];
         $variables = [];
+        $unresolvable = $this->unresolvableVariablesOf($tokens, $className);
         $returning = false;
         foreach ($tokens as $index => $token) {
             $id = $token->id;
@@ -259,7 +331,7 @@ final class HandlerSourceScanner
                     if ($argument?->is(T_VARIABLE) && isset($variables[$argument->text]) && in_array($call['method'], ['publish', 'recordThat', 'send'], true)) {
                         array_unshift($instantiations, ['class' => $variables[$argument->text], 'returned' => false, 'enclosingCall' => $call['method'], 'receiver' => $call['receiver']]);
                     }
-                    $calls[] = $call + ['enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null] + $this->argumentsAt($tokens, $index + 1, $className, $namespace, $imports);
+                    $calls[] = $call + ['enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null] + $this->argumentsAt($tokens, $index + 1, $unresolvable, $className, $namespace, $imports);
                 }
                 $enclosingCalls[] = $call;
             } elseif ($id === 41) {
@@ -303,29 +375,332 @@ final class HandlerSourceScanner
 
     /**
      * @param list<PhpToken> $tokens
-     * @param array<string, string> $imports
-     * @return array{literalArguments: list<string>, firstArgumentClass: string|null}
+     * @return array{reassignedFrom: array<string, int>, shadows: list<array{string, int, int}>}
      */
-    private function argumentsAt(array $tokens, int $index, string $className, string $namespace, array $imports): array
+    private function unresolvableVariablesOf(array $tokens, string $className): array
+    {
+        $reassignedFrom = array_map(fn () => 0, $this->assignedVariablesOf($tokens));
+        foreach ($this->variablesPassedToUnfollowedCallsOf($tokens, $className) as $variable => $index) {
+            $reassignedFrom[$variable] = min($reassignedFrom[$variable] ?? $index, $index);
+        }
+
+        return ['reassignedFrom' => $reassignedFrom, 'shadows' => $this->closureParametersOf($tokens)];
+    }
+
+    /**
+     * @param array{reassignedFrom: array<string, int>, shadows: list<array{string, int, int}>} $unresolvable
+     */
+    private function isUnresolvableAt(array $unresolvable, string $variable, int $index): bool
+    {
+        foreach ($unresolvable['shadows'] as [$parameter, $start, $end]) {
+            if ($parameter === $variable && $index >= $start && $index <= $end) {
+                return true;
+            }
+        }
+
+        return $index >= min($unresolvable['reassignedFrom'][$variable] ?? PHP_INT_MAX, $unresolvable['reassignedFrom'][self::EVERY_VARIABLE] ?? PHP_INT_MAX);
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @return array<string, int>
+     */
+    private function variablesPassedToUnfollowedCallsOf(array $tokens, string $className): array
+    {
+        $passed = [];
+        $body = false;
+        foreach ($tokens as $index => $token) {
+            $body = $body || $token->text === '{';
+            if (! $body || $token->text !== '(') {
+                continue;
+            }
+            $call = $this->callBefore($tokens, $index);
+            $function = $call === null ? $this->functionCalledAt($tokens, $index) : null;
+            if ($call === null && $function === null) {
+                continue;
+            }
+            $byReference = null;
+            if ($call !== null && in_array($call['receiver'], ['this', 'self', 'static'], true) && method_exists($className, $call['method'])) {
+                $byReference = $this->byReferenceParametersOf(new ReflectionMethod($className, $call['method']));
+                if ($byReference === []) {
+                    continue;
+                }
+            }
+            if ($function === 'extract') {
+                $passed[self::EVERY_VARIABLE] ??= $index;
+            }
+            for ($argument = $index + 1, $position = 0; isset($tokens[$argument]) && $tokens[$argument]->text !== ')'; $position++) {
+                $parameter = $position;
+                if ($tokens[$argument]->is(T_STRING) && ($tokens[$argument + 1] ?? null)?->text === ':') {
+                    $parameter = $tokens[$argument]->text;
+                    $argument += 2;
+                }
+                $end = $this->argumentEndAt($tokens, $argument);
+                if ($tokens[$argument]->is(T_VARIABLE) && ($byReference === null || isset($byReference[$parameter]))) {
+                    $passed[$tokens[$argument]->text] ??= ($end ?? $argument) + 1;
+                }
+                if ($end === null) {
+                    break;
+                }
+                $argument = $tokens[$end]->text === ',' ? $end + 1 : $end;
+            }
+        }
+
+        return $passed;
+    }
+
+    /**
+     * @return array<int|string, true>
+     */
+    private function byReferenceParametersOf(ReflectionMethod $method): array
+    {
+        $byReference = [];
+        foreach ($method->getParameters() as $parameter) {
+            if ($parameter->isPassedByReference()) {
+                $byReference[$parameter->getPosition()] = true;
+                $byReference[$parameter->getName()] = true;
+            }
+        }
+
+        return $byReference;
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     */
+    private function functionCalledAt(array $tokens, int $parenthesisIndex): ?string
+    {
+        $name = $tokens[$parenthesisIndex - 1] ?? null;
+        $before = $tokens[$parenthesisIndex - 2] ?? null;
+        if ($name === null || ! ($name->is(T_STRING) || $name->is(T_NAME_FULLY_QUALIFIED) || $name->is(T_NAME_QUALIFIED))) {
+            return null;
+        }
+        if ($before !== null && ($before->is(T_OBJECT_OPERATOR) || $before->is(T_NULLSAFE_OBJECT_OPERATOR) || $before->is(T_DOUBLE_COLON) || $before->is(T_FUNCTION) || $before->is(T_NEW))) {
+            return null;
+        }
+
+        return strtolower(ltrim($name->text, '\\'));
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @return list<array{string, int, int}>
+     */
+    private function closureParametersOf(array $tokens): array
+    {
+        $shadows = [];
+        $body = false;
+        foreach ($tokens as $index => $token) {
+            $isClosure = $body && ($token->is(T_FUNCTION) || $token->is(T_FN));
+            $body = $body || $token->text === '{';
+            if (! $isClosure) {
+                continue;
+            }
+            $open = ($tokens[$index + 1] ?? null)?->text === '&' ? $index + 2 : $index + 1;
+            $close = $this->matchingCloseAt($tokens, $open);
+            if (($tokens[$open] ?? null)?->text !== '(' || $close === null) {
+                continue;
+            }
+            $end = $token->is(T_FN) ? $this->arrowFunctionEndAt($tokens, $close) : $this->closureBodyEndAt($tokens, $close);
+            for ($parameter = $open + 1; $parameter < $close; $parameter++) {
+                if ($tokens[$parameter]->is(T_VARIABLE)) {
+                    $shadows[] = [$tokens[$parameter]->text, $open, $end];
+                }
+            }
+        }
+
+        return $shadows;
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     */
+    private function matchingCloseAt(array $tokens, int $open): ?int
+    {
+        $depth = 0;
+        for ($current = $open; isset($tokens[$current]); $current++) {
+            $text = $tokens[$current]->text;
+            if (in_array($text, ['(', '[', '{'], true) || $tokens[$current]->is(T_CURLY_OPEN) || $tokens[$current]->is(T_DOLLAR_OPEN_CURLY_BRACES)) {
+                $depth++;
+            } elseif (in_array($text, [')', ']', '}'], true) && --$depth === 0) {
+                return $current;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     */
+    private function closureBodyEndAt(array $tokens, int $parametersClose): int
+    {
+        for ($current = $parametersClose + 1; isset($tokens[$current]); $current++) {
+            if ($tokens[$current]->text === '{') {
+                return $this->matchingCloseAt($tokens, $current) ?? count($tokens) - 1;
+            }
+        }
+
+        return count($tokens) - 1;
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     */
+    private function arrowFunctionEndAt(array $tokens, int $parametersClose): int
+    {
+        $depth = 0;
+        for ($current = $parametersClose + 1; isset($tokens[$current]); $current++) {
+            $text = $tokens[$current]->text;
+            if (in_array($text, ['(', '[', '{'], true) || $tokens[$current]->is(T_CURLY_OPEN) || $tokens[$current]->is(T_DOLLAR_OPEN_CURLY_BRACES)) {
+                $depth++;
+            } elseif ($depth === 0 && in_array($text, [',', ')', ']', '}', ';'], true)) {
+                return $current - 1;
+            } elseif (in_array($text, [')', ']', '}'], true)) {
+                $depth--;
+            }
+        }
+
+        return count($tokens) - 1;
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @return array<string, bool>
+     */
+    private function assignedVariablesOf(array $tokens): array
+    {
+        $assigned = [];
+        $body = false;
+        foreach ($tokens as $index => $token) {
+            $body = $body || $token->text === '{';
+            if (! $body || ! $token->is(T_VARIABLE)) {
+                continue;
+            }
+            $next = $tokens[$index + 1] ?? null;
+            $previous = $tokens[$index - 1] ?? null;
+            $assignedByOperator = $next !== null && ($next->text === '=' || str_ends_with($next->text, '=') && ! in_array($next->text, ['==', '===', '!=', '!==', '<=', '>=', '<=>'], true));
+            $assignedByForeach = $previous !== null && ($previous->is(T_AS) || $previous->is(T_DOUBLE_ARROW) && ($tokens[$index - 3] ?? null)?->is(T_AS));
+            if ($assignedByOperator || $assignedByForeach || $previous?->text === '&') {
+                $assigned[$token->text] = true;
+            }
+        }
+        foreach ($this->destructuringRangesOf($tokens) as [$open, $close]) {
+            for ($index = $open; $index <= $close; $index++) {
+                if ($tokens[$index]->is(T_VARIABLE)) {
+                    $assigned[$tokens[$index]->text] = true;
+                }
+            }
+        }
+
+        return $assigned;
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @return list<array{int, int}>
+     */
+    private function destructuringRangesOf(array $tokens): array
+    {
+        $ranges = [];
+        $openers = [];
+        foreach ($tokens as $index => $token) {
+            if ($token->text === '[' || $token->text === '(') {
+                $openers[] = $index;
+            } elseif (($token->text === ']' || $token->text === ')') && $openers !== []) {
+                $open = array_pop($openers);
+                $before = $tokens[$open - 1] ?? null;
+                $destructuring = $token->text === ']'
+                    ? $before === null || ! ($before->is(T_VARIABLE) || $this->isName($before) || in_array($before->text, [']', ')', '}'], true))
+                    : $before?->is(T_LIST) === true;
+                $leadingIndex = $token->text === ')' ? $open - 2 : $open - 1;
+                $foreachValue = ($tokens[$leadingIndex] ?? null)?->is(T_AS) === true
+                    || ($tokens[$leadingIndex] ?? null)?->is(T_DOUBLE_ARROW) === true && ($tokens[$leadingIndex - 2] ?? null)?->is(T_AS) === true;
+                $assignedTo = ($tokens[$index + 1] ?? null)?->text === '=' || $foreachValue;
+                if ($destructuring && $assignedTo) {
+                    $ranges[] = [$open, $index];
+                }
+            }
+        }
+
+        return $ranges;
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @param array{reassignedFrom: array<string, int>, shadows: list<array{string, int, int}>} $unresolvable
+     * @param array<string, string> $imports
+     * @return array{arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null, unresolvedFrom: int|null}
+     */
+    private function argumentsAt(array $tokens, int $index, array $unresolvable, string $className, string $namespace, array $imports): array
     {
         $first = $tokens[$index] ?? null;
         if ($first?->is(T_NEW) && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
-            return ['literalArguments' => [], 'firstArgumentClass' => $this->resolve($tokens[$index + 1], $className, $namespace, $imports)];
+            return ['arguments' => [], 'literalArguments' => [], 'firstArgumentClass' => $this->resolve($tokens[$index + 1], $className, $namespace, $imports), 'unresolvedFrom' => 0];
         }
-        $literals = [];
-        while (isset($tokens[$index])) {
-            [$literal, $end] = $this->literalArgumentAt($tokens, $index, $className, $namespace, $imports);
-            if ($literal === null || ! in_array(($tokens[$end + 1] ?? null)?->text, [',', ')'], true)) {
+        $arguments = [];
+        $position = 0;
+        $unresolvedFrom = null;
+        while (isset($tokens[$index]) && $tokens[$index]->text !== ')') {
+            if ($tokens[$index]->is(T_ELLIPSIS)) {
+                $unresolvedFrom = $position;
                 break;
             }
-            $literals[] = $literal;
-            if ($tokens[$end + 1]->text !== ',') {
+            $name = null;
+            if ($tokens[$index]->is(T_STRING) && ($tokens[$index + 1] ?? null)?->text === ':') {
+                $name = $tokens[$index]->text;
+                $index += 2;
+            }
+            $end = $this->argumentEndAt($tokens, $index);
+            if ($end === null) {
+                $unresolvedFrom = $position;
                 break;
             }
-            $index = $end + 2;
+            $arguments[$name ?? $position] = $this->argumentValueAt($tokens, $index, $end, $unresolvable, $className, $namespace, $imports);
+            if ($name === null) {
+                $position++;
+            }
+            $index = $tokens[$end]->text === ',' ? $end + 1 : $end;
         }
 
-        return ['literalArguments' => $literals, 'firstArgumentClass' => null];
+        return ['arguments' => $arguments, 'literalArguments' => $this->leadingLiteralsOf($arguments), 'firstArgumentClass' => null, 'unresolvedFrom' => $unresolvedFrom];
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     */
+    private function argumentEndAt(array $tokens, int $index): ?int
+    {
+        $depth = 0;
+        for ($current = $index; isset($tokens[$current]); $current++) {
+            $token = $tokens[$current];
+            if (in_array($token->text, ['(', '[', '{'], true) || $token->is(T_CURLY_OPEN) || $token->is(T_DOLLAR_OPEN_CURLY_BRACES) || $token->is(T_ATTRIBUTE)) {
+                $depth++;
+            } elseif ($depth === 0 && in_array($token->text, [',', ')'], true)) {
+                return $current;
+            } elseif (in_array($token->text, [')', ']', '}'], true)) {
+                $depth--;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @param array{reassignedFrom: array<string, int>, shadows: list<array{string, int, int}>} $unresolvable
+     * @param array<string, string> $imports
+     * @return array{kind: string, value: string}
+     */
+    private function argumentValueAt(array $tokens, int $index, int $end, array $unresolvable, string $className, string $namespace, array $imports): array
+    {
+        $token = $tokens[$index];
+        if ($end === $index + 1 && $token->is(T_VARIABLE)) {
+            return $token->text === '$this' || $this->isUnresolvableAt($unresolvable, $token->text, $index) ? self::UNRESOLVED : ['kind' => 'variable', 'value' => ltrim($token->text, '$')];
+        }
+        [$literal, $literalEnd] = $this->literalArgumentAt($tokens, $index, $className, $namespace, $imports);
+
+        return $literal !== null && $literalEnd === $end - 1 ? ['kind' => 'literal', 'value' => $literal] : self::UNRESOLVED;
     }
 
     private function literalArgumentAt(array $tokens, int $index, string $className, string $namespace, array $imports): array

@@ -13,6 +13,7 @@ use Ecotone\AnnotationFinder\TypeResolver;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\SendsDistributedMessage;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use ReflectionClass;
@@ -237,6 +238,10 @@ class InMemoryAnnotationFinder implements AnnotationFinder
                                 };
                                 throw ConfigurationException::create(sprintf('%s attribute on %s::%s should be placed on public method, to be available for execution.', $handlerType, $class, $methodName));
                             }
+                        }
+
+                        if ($methodAnnotation instanceof SendsDistributedMessage && ! (new ReflectionClass($class))->getMethod($methodName)->isPublic()) {
+                            throw ConfigurationException::create(sprintf('#[SendsDistributedMessage] on %s::%s() is on a method that is not public, but the attribute is read only from public message handler methods, so the route it declares would never be recorded. Put the attribute on the public handler method that calls %s().', $class, $methodName, $methodName));
                         }
 
                         $registrations[] = AnnotatedMethod::create(

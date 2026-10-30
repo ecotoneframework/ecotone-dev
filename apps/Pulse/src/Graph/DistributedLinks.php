@@ -13,6 +13,10 @@ final class DistributedLinks
     public static function between(array $flows): array
     {
         $links = [];
+        $messageReceivers = [];
+        foreach ($flows as $flow) {
+            $messageReceivers[spl_object_id($flow)] = $flow->distributedMessageReceivers();
+        }
         foreach ($flows as $sender) {
             foreach ($sender->sentCommands() as $sent) {
                 foreach ($flows as $receiver) {
@@ -25,13 +29,21 @@ final class DistributedLinks
             }
             foreach ($sender->sentMessages() as $sent) {
                 foreach ($flows as $receiver) {
-                    foreach ($receiver->distributedChannelHandlers() as $received) {
-                        if ($receiver->name !== $sent['targetService'] || $received['channel'] !== $sent['targetChannel']) {
+                    if ($receiver->name !== $sent['targetService']) {
+                        continue;
+                    }
+                    $replyTarget = $sender->replyTargetOf($sent['handler'], $sent['replyChannel']);
+                    $linkedTargets = [];
+                    foreach ($messageReceivers[spl_object_id($receiver)] as $received) {
+                        if ($received['routingKey'] !== $sent['targetChannel']) {
                             continue;
                         }
-                        $links[] = new DistributedLink($sender->name, $sent['handler']->id, $receiver->name, $received['handler']->id, 'message', $sent['targetChannel']);
-                        if ($received['replies']) {
-                            $links[] = new DistributedLink($receiver->name, $received['handler']->id, $sender->name, $sent['handler']->id, 'reply', $sent['targetChannel']);
+                        if (! isset($linkedTargets[$received['target']->id])) {
+                            $links[] = new DistributedLink($sender->name, $sent['handler']->id, $receiver->name, $received['target']->id, 'message', $sent['targetChannel']);
+                            $linkedTargets[$received['target']->id] = true;
+                        }
+                        if ($received['replies'] && ! $sent['withoutReply']) {
+                            $links[] = new DistributedLink($receiver->name, $received['handler']->id, $sender->name, $replyTarget, 'reply', $sent['targetChannel']);
                         }
                     }
                 }

@@ -21,7 +21,12 @@ use Ramsey\Uuid\Uuid;
 require __DIR__ . '/vendor/autoload.php';
 
 $app = require __DIR__ . '/bootstrap/app.php';
-$app->make(Kernel::class)->bootstrap();
+try {
+    $app->make(Kernel::class)->bootstrap();
+} finally {
+    /** Laravel's exception handler renders an error and lets the script exit 0; PHP's own handler exits non-zero */
+    restore_exception_handler();
+}
 
 /** @var ConfiguredMessagingSystem $messagingSystem */
 $messagingSystem = $app->get(ConfiguredMessagingSystem::class);

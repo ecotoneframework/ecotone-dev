@@ -2723,14 +2723,18 @@ to its error channel), even when the failure was the database connection of the 
 autocommit, outside the transaction it belonged to. The transaction then failed to commit, the command or consumed
 message ran again, and the outbox message was sent twice.
 
-**Now:** such a send fails with `DatabaseTransactionLost`, which the send retries and the channel's error channel
+**Now:** such a send fails with `Ecotone\Api\Messaging\DatabaseTransactionLost`, which the send retries and the channel's error channel
 leave alone: the transaction rolls back and the whole command or consumed message is retried — by the instant retries
 a transactional command bus and asynchronous endpoint have by default (§9), or by the consumer's redelivery. Every
 other send failure is retried and dead-lettered as before, inside a transaction or outside one, on DBAL and on brokers.
 
 **How to adapt:** nothing for most applications. With a transactional command bus whose instant retries are turned
-off (`InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false)`), such a command now fails; turn
-the command bus retry back on, or retry the command in the caller.
+off (`InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false)`), or that lists its retry
+exceptions without `DatabaseTransactionLost::class`, such a command now fails with `DatabaseTransactionLost`: turn the
+command bus retry back on, add `DatabaseTransactionLost::class` to the listed exceptions, or catch it and send the
+command again in the caller. To keep the message being stored and retried in place instead, run its handler without a
+database transaction (`DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)` or
+`->withTransactionOnAsynchronousEndpoints(false)`).
 
 ### A Laravel connection recovers after the database restarts
 

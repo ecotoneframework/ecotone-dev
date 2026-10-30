@@ -243,6 +243,85 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
         self::assertSame(['johny'], $billing->handled);
     }
 
+    #[DataProvider('deduplicationStores')]
+    public function test_a_distributed_event_with_an_idempotency_key_is_handled_once_by_each_asynchronous_handler_of_the_target(bool $inMemory): void
+    {
+        $channels = [SimpleMessageChannelBuilder::createQueueChannel('ticket_channel'), SimpleMessageChannelBuilder::createQueueChannel('ticket_work')];
+        $tickets = new class () {
+            public array $handled = [];
+
+            #[Distributed]
+            #[Asynchronous('ticket_work')]
+            #[EventHandler('user.registered', endpointId: 'ticket.welcome')]
+            public function welcome(string $name): void
+            {
+                $this->handled[] = 'welcomed: ' . $name;
+            }
+
+            #[Distributed]
+            #[Asynchronous('ticket_work')]
+            #[EventHandler('user.registered', endpointId: 'ticket.discount')]
+            public function discount(string $name): void
+            {
+                $this->handled[] = 'discounted: ' . $name;
+            }
+
+            #[Distributed]
+            #[Asynchronous('ticket_channel')]
+            #[EventHandler('user.registered', endpointId: 'ticket.account')]
+            public function account(string $name): void
+            {
+                $this->handled[] = 'account: ' . $name;
+            }
+        };
+        $userService = $this->sender($channels, DistributedServiceMap::initialize()->withEventMapping(channelName: 'ticket_channel', subscriptionKeys: ['user.*']));
+        $ticketService = $this->target('ticket_service', $tickets, $channels, $inMemory);
+
+        $userService->getDistributedBus()->publishEvent('user.registered', 'johny', idempotencyKey: 'registration-1');
+        $userService->getDistributedBus()->publishEvent('user.registered', 'johny', idempotencyKey: 'registration-1');
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $ticketService->run('ticket_work', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+
+        self::assertEqualsCanonicalizing(['welcomed: johny', 'discounted: johny', 'account: johny'], $tickets->handled);
+    }
+
+    #[DataProvider('deduplicationStores')]
+    public function test_the_same_idempotency_key_sent_to_two_services_through_an_asynchronous_distributed_bus_reaches_both(bool $inMemory): void
+    {
+        $channels = [
+            SimpleMessageChannelBuilder::createQueueChannel('user_outbox'),
+            SimpleMessageChannelBuilder::createQueueChannel('ticket_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('billing_channel'),
+        ];
+        $tickets = $this->recordingHandlers();
+        $billing = $this->recordingHandlers();
+        $userService = $this->bootstrapFlowTesting(
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
+            extensionObjects: [
+                ...$channels,
+                DistributedServiceMap::initialize()
+                    ->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel')
+                    ->withCommandMapping(targetServiceName: 'billing_service', channelName: 'billing_channel')
+                    ->withAsynchronousChannel('user_outbox'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('user_service'),
+                DbalConfiguration::createWithDefaults()->withDeduplication(inMemory: $inMemory),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $ticketService = $this->target('ticket_service', $tickets, $channels, $inMemory);
+        $billingService = $this->target('billing_service', $billing, $channels, $inMemory);
+
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'order-1');
+        $userService->getDistributedBus()->sendMessage('billing_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'order-1');
+        $userService->run('user_outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $billingService->run('billing_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+
+        self::assertSame(['seat-7'], $tickets->handled);
+        self::assertSame(['seat-7'], $billing->handled);
+    }
+
     private function recordingHandlers(): object
     {
         return new class () {

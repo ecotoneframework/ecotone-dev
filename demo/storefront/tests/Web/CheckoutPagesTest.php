@@ -79,6 +79,20 @@ final class CheckoutPagesTest extends TestCase
         $response->assertSee('<strong data-seat-count="held">0</strong> held by someone', escape: false);
     }
 
+    public function test_the_seat_picker_shows_a_seat_whose_hold_of_the_customer_expired_as_held_by_the_order_ticketing_gave_it_to(): void
+    {
+        [$customerId, $orderId] = $this->startedOrder();
+        $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1'));
+        $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
+        Carbon::setTestNow('2026-10-25 12:03:00');
+        $this->ticketingAnnounces('tickets.seat_held', ['concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/B-1', 'orderId' => '0199f3a8-6f2a-7c1e-9a51-00000000000c', 'holdId' => 'hold-2', 'expiresAt' => '2026-10-25T12:10:00+00:00']);
+
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/concerts/' . self::CONCERT_ID);
+
+        $response->assertSee('<button type="button" class="seat seat--standard seat--held" data-seat-id="' . self::CONCERT_ID . '/B-1" data-seat-code="B-1" data-tier="standard" aria-label="B-1, Standard, held by someone" title="B-1, Standard, held by someone" disabled>1</button>', escape: false);
+        $response->assertSee('<strong data-seat-count="yours">0</strong> yours', escape: false);
+    }
+
     public function test_the_order_state_lists_the_seats_ticketing_sold_apart_from_the_held_ones(): void
     {
         [$customerId, $orderId] = $this->startedOrder();

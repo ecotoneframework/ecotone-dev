@@ -10,6 +10,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cookie;
 
 final class StorefrontController
@@ -54,7 +55,7 @@ final class StorefrontController
         $customer = $this->currentCustomer->of($request);
         $openOrderId = $customer === null ? null : $this->queryBus->sendWithRouting('customer.open_order', ['customerId' => $customer['customerId'], 'concertId' => $concertId]);
         $seatStates = $this->queryBus->sendWithRouting('concert.seat_states', ['concertId' => $concertId, 'excludingOrderId' => $openOrderId]);
-        $yourSeatIds = $openOrderId === null ? [] : array_column($this->queryBus->sendWithRouting('order.detail', $openOrderId)['heldSeats'], 'seatId');
+        $yourSeatIds = $openOrderId === null ? [] : array_column(array_filter($this->queryBus->sendWithRouting('order.detail', $openOrderId)['heldSeats'], fn (array $heldSeat) => Carbon::parse($heldSeat['expiresAt'])->isAfter(Carbon::now())), 'seatId');
         $seatStateOf = [];
         foreach ($concert['sections'] as $section) {
             foreach ($section['rows'] as $row) {

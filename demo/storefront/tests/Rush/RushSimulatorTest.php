@@ -252,6 +252,20 @@ final class RushSimulatorTest extends StorefrontFlowTestCase
         self::assertNotNull($state['finishedAt']);
     }
 
+    public function test_a_buyer_whose_hold_expired_before_it_paid_gives_up_without_a_charge_naming_the_refusal(): void
+    {
+        $this->concertOnSale(seats: 12);
+        $this->startRush(buyers: 1, seatsPerBuyer: 1);
+
+        $this->rushRuns(rounds: 4, secondsBetweenRounds: 60);
+
+        $order = $this->order($this->buyers()[0]['orderId']);
+        self::assertSame('failed', $order['status']);
+        self::assertSame(sprintf('Rush buyer 1 gave up: the hold of seat %s of order %s expired, so BeginPayment does not charge the card: ticketing refuses to confirm a seat whose hold expired, and the payment would only be refunded. Request the seat again with RequestSeat, or release it with ReleaseSeat, then pay.', substr($order['heldSeats'][0]['seatId'], strlen(self::CONCERT_ID) + 1), $order['orderId']), $order['failureReason']);
+        self::assertNull($order['paymentReference']);
+        self::assertSame(0, $this->storefront->getGateway(DeadLetterGateway::class)->count());
+    }
+
     public function test_a_buyer_holding_some_seats_gives_up_releasing_them_in_ticketing(): void
     {
         $this->concertOnSale(seats: 12);

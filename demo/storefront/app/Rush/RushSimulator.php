@@ -204,7 +204,11 @@ final class RushSimulator
         }
         if ($pendingSeatId === null && count($heldSeatIds) >= (int) $rush['seats_per_buyer']) {
             $role = RushBuyerRole::from($buyer['role']);
-            $commandBus->send(new Pay(orderId: $buyer['order_id'], outcome: $role->paymentOutcome(), confirmationEmailBounces: $role->confirmationEmailBounces()));
+            try {
+                $commandBus->send(new Pay(orderId: $buyer['order_id'], outcome: $role->paymentOutcome(), confirmationEmailBounces: $role->confirmationEmailBounces()));
+            } catch (DomainException $refusal) {
+                return $this->step(stage: $this->giveUp(commandBus: $commandBus, orderId: $buyer['order_id'], reason: sprintf('Rush buyer %d gave up: %s', $buyerNumber, lcfirst($refusal->getMessage()))), pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
+            }
 
             return $this->step(stage: self::PAYING, pendingSeatId: $pendingSeatId, refusedSeatIds: $refusedSeatIds, acted: true);
         }

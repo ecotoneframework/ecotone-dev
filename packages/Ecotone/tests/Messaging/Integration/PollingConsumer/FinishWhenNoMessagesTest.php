@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Messaging\Unit\Endpoint\PollingConsumer;
+namespace Test\Ecotone\Messaging\Integration\PollingConsumer;
 
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;

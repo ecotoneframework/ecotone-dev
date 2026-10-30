@@ -3546,10 +3546,12 @@ take an optional `idempotencyKey`, carried in the `ecotone_distributed_idempoten
 asynchronous endpoints, in memory or on the database) keys on it in place of the message id, scoped by the routing key
 and the consuming endpoint: the same key on one routing key is handled once by each endpoint that consumes it, and the
 same key on two routing keys (`tickets.confirm` and `tickets.cancel` both keyed by the order id) is handled for each. A `#[Deduplicated]` handler that names its own header or
-expression keeps using that; a plain `#[Deduplicated]` uses the key too. The key is a framework header, so it is not
-copied onto the messages the target sends onwards, and the reply of a `sendMessage()` does not carry it. A send skipped
-as a duplicate produces no second reply. A blank key is refused with `InvalidArgumentException`, because it would make
-every send that carries it one request. A send without a key behaves as before.
+expression keeps using that; a plain `#[Deduplicated]` uses the key too. The key is honoured where the target receives
+the distributed message: the asynchronous handlers it fans the message out to, the messages it sends onwards, and the
+sender's own asynchronous Distributed Bus channel are deduplicated by their message id as before, and the reply of a
+`sendMessage()` does not carry the key. A send skipped as a duplicate produces no second reply. A blank key, and a key
+longer than the 255 characters the deduplication table holds, are refused when `DistributedBus` is called, also when it
+sends through an asynchronous channel. A send without a key behaves as before.
 
 ```php
 #[Asynchronous('outbox')]

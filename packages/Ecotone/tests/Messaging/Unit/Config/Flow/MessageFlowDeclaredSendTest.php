@@ -44,7 +44,7 @@ final class MessageFlowDeclaredSendTest extends TestCase
         self::assertSame(
             [
                 ['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result'],
-                ['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.release'],
+                ['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.release', 'withoutReply' => true],
                 ['inferred' => true, 'via' => 'sendMessage'],
             ],
             array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::holdRequestedSeat', 'distributed:' . DistributedBus::class), 'attributes'),
@@ -64,7 +64,7 @@ final class MessageFlowDeclaredSendTest extends TestCase
         $graph = $this->graphOf($service);
 
         self::assertSame(
-            [['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold']],
+            [['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'withoutReply' => true]],
             array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::holdRequestedSeat', 'distributed:' . DistributedBus::class), 'attributes'),
         );
     }
@@ -151,7 +151,7 @@ final class MessageFlowDeclaredSendTest extends TestCase
 
         foreach (['handler:' . $service::class . '::enrich' => 'tickets.hold', 'interceptor:' . $service::class . '::audit' => 'tickets.audit'] as $sender => $routingKey) {
             self::assertSame(
-                [['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => $routingKey]],
+                [['declared' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => $routingKey, 'withoutReply' => true]],
                 array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $sender, 'distributed:' . DistributedBus::class), 'attributes'),
             );
         }

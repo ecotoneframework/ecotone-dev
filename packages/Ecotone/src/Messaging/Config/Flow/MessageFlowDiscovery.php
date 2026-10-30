@@ -489,7 +489,7 @@ final class MessageFlowDiscovery
                         'via' => 'sendMessage',
                         'targetService' => $declaration->targetServiceName,
                         'targetChannel' => $declaration->routingKey,
-                    ] + ($declaration->replyRoutingKey === null ? [] : ['replyChannel' => $declaration->replyRoutingKey]));
+                    ] + ($declaration->replyRoutingKey === null ? ['withoutReply' => true] : ['replyChannel' => $declaration->replyRoutingKey]));
                 }
             }
         }

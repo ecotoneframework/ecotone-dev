@@ -219,10 +219,15 @@ final class MessageFlowGraphBuilder
                 $this->addDistributedMessage($flow, $handler->id, $busId, $routingKey, FlowNodeKind::EVENT, $call['method'], []);
             } elseif ($call['method'] === 'sendMessage' && $targetService !== null && $routingKey !== null) {
                 $replyChannel = $this->distributedArgument($call, 'replyRoutingKey');
-                if ($replyChannel !== null || $this->distributedArgumentOf($call, 'replyRoutingKey') === null) {
+                $sentWithoutReply = $this->distributedArgumentOf($call, 'replyRoutingKey') === null;
+                if ($replyChannel !== null || $sentWithoutReply) {
                     $this->refuseContradictingDeclaredReply($handler, $busId, $targetService, $routingKey, $replyChannel);
                 }
-                $flow->addEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => 'sendMessage', 'targetService' => $targetService, 'targetChannel' => $routingKey] + ($replyChannel === null ? [] : ['replyChannel' => $replyChannel])));
+                $flow->addEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => 'sendMessage', 'targetService' => $targetService, 'targetChannel' => $routingKey] + match (true) {
+                    $replyChannel !== null => ['replyChannel' => $replyChannel],
+                    $sentWithoutReply => ['withoutReply' => true],
+                    default => [],
+                }));
             } elseif (in_array($call['method'], [...self::DISTRIBUTED_COMMAND_CALLS, ...self::DISTRIBUTED_EVENT_CALLS, 'sendMessage'], true)) {
                 $flow->addEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => $call['method']]));
             }

@@ -42,7 +42,7 @@ final class DistributedLinks
                             $links[] = new DistributedLink($sender->name, $sent['handler']->id, $receiver->name, $received['target']->id, 'message', $sent['targetChannel']);
                             $linkedTargets[$received['target']->id] = true;
                         }
-                        if ($received['replies']) {
+                        if ($received['replies'] && ! $sent['withoutReply']) {
                             $links[] = new DistributedLink($receiver->name, $received['handler']->id, $sender->name, $replyTarget, 'reply', $sent['targetChannel']);
                         }
                     }

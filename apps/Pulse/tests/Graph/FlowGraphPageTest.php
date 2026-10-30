@@ -7,7 +7,9 @@ namespace App\Tests\Graph;
 use App\Tests\Support\DistributedServicesTrait;
 use App\Tests\Support\MermaidDiagram;
 use App\Tests\Support\ReleasingWebTestCase;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\Gateway\DistributedBus;
 
 /**
  * @internal
@@ -116,6 +118,29 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
         $diagram = MermaidDiagram::fromPage($crawler);
         self::assertTrue($diagram->hasEdge('orders', '::place', 'distributed message', 'billing', '::ping', '==>'));
         self::assertTrue($diagram->hasEdge('billing', '::ping', 'reply', 'orders', '::place', '-.->'));
+    }
+
+    public function test_flow_graph_draws_no_reply_for_a_message_sent_without_a_reply_routing_key(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing');
+        $client = $this->pulseWebClient();
+        $orders = new class () {
+            public function __construct(private ?DistributedBus $distributedBus = null)
+            {
+            }
+
+            #[CommandHandler('order.ping', endpointId: 'order.ping.handler')]
+            public function place(array $payload): void
+            {
+                $this->distributedBus->sendMessage('billing', 'billing.ping', '{}');
+            }
+        };
+        $this->pulseHavingHeardFrom($client, ['orders' => $this->distributedService('orders', $orders, DistributedServiceMap::initialize()->withCommandMapping('billing', $this->serviceChannels['billing'])), 'billing' => $this->billingAnsweringPing()]);
+
+        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow'));
+
+        self::assertTrue($diagram->hasEdge('orders', '::place', 'distributed message', 'billing', '::ping', '==>'));
+        self::assertFalse($diagram->hasEdge('billing', '::ping', 'reply', 'orders', ''));
     }
 
     public function test_event_subscription_with_a_wildcard_links_the_published_event(): void

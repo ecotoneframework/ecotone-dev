@@ -99,7 +99,7 @@ final readonly class ServiceFlow
     }
 
     /**
-     * @return list<array{handler: FlowNode, targetService: string, targetChannel: string, replyChannel: string|null}>
+     * @return list<array{handler: FlowNode, targetService: string, targetChannel: string, replyChannel: string|null, withoutReply: bool}>
      */
     public function sentMessages(): array
     {
@@ -109,7 +109,7 @@ final readonly class ServiceFlow
             $channel = $edge->attributes['targetChannel'] ?? null;
             $replyChannel = $edge->attributes['replyChannel'] ?? null;
             if (($edge->attributes['via'] ?? null) === 'sendMessage' && is_string($service) && is_string($channel) && $this->graph->node($edge->to)->kind === FlowNodeKind::DISTRIBUTED_BUS) {
-                $sent[] = ['handler' => $this->graph->node($edge->from), 'targetService' => $service, 'targetChannel' => $channel, 'replyChannel' => is_string($replyChannel) ? $replyChannel : null];
+                $sent[] = ['handler' => $this->graph->node($edge->from), 'targetService' => $service, 'targetChannel' => $channel, 'replyChannel' => is_string($replyChannel) ? $replyChannel : null, 'withoutReply' => ($edge->attributes['withoutReply'] ?? false) === true];
             }
         }
 

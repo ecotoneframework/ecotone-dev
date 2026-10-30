@@ -147,7 +147,18 @@ final readonly class ServiceFlow
 
     public function replyTargetOf(FlowNode $sendingHandler, ?string $replyChannel): string
     {
-        return $replyChannel !== null && $this->graph->hasNode('channel:' . $replyChannel) ? 'channel:' . $replyChannel : $sendingHandler->id;
+        if ($replyChannel === null) {
+            return $sendingHandler->id;
+        }
+        if ($this->graph->hasNode('channel:' . $replyChannel)) {
+            return 'channel:' . $replyChannel;
+        }
+        $command = 'message:' . $replyChannel;
+        if ($this->graph->hasNode($command) && $this->graph->node($command)->kind === FlowNodeKind::COMMAND && $this->graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, from: $command) !== []) {
+            return $command;
+        }
+
+        return $sendingHandler->id;
     }
 
     private function replies(FlowNode $handler): bool

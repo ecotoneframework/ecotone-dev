@@ -64,6 +64,30 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         self::assertFalse($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', '::holdRequestedSeat'));
     }
 
+    public function test_a_reply_key_naming_a_command_handler_of_the_sender_draws_the_reply_to_that_command(): void
+    {
+        $this->configurePulseWithServices('storefront', 'ticketing');
+        $client = $this->pulseWebClient();
+        $storefront = new class () {
+            #[EventHandler('seat.requested', endpointId: 'hold_requested_seat')]
+            public function holdRequestedSeat(array $event, #[Reference] DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', 'tickets.hold', '{}', replyRoutingKey: 'tickets.hold.result');
+            }
+
+            #[CommandHandler('tickets.hold.result', endpointId: 'tickets.hold.result.handler')]
+            public function whenHoldAnswered(array $result): void
+            {
+            }
+        };
+        $this->pulseHavingHeardFrom($client, ['storefront' => $this->distributedService('storefront', $storefront, DistributedServiceMap::initialize()->withCommandMapping('ticketing', $this->serviceChannels['ticketing'])), 'ticketing' => $this->ticketingAnsweringHolds()]);
+
+        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow'));
+
+        self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', 'tickets.hold.result', '-.->'));
+        self::assertFalse($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', '::holdRequestedSeat'));
+    }
+
     public function test_following_a_distributed_command_starts_at_the_sender_and_comes_back_through_the_reply_handler(): void
     {
         $this->configurePulseWithServices('storefront', 'ticketing');

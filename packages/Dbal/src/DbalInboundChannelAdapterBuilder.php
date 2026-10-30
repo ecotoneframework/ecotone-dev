@@ -3,9 +3,8 @@
 namespace Ecotone\Dbal;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Database\EnqueueTableManager;
-use Ecotone\Enqueue\CachedConnectionFactories;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\InboundMessageConverter;
@@ -29,13 +28,7 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $connectionFactory = CachedConnectionFactories::definitionFor(
-            new Definition(DbalReconnectableConnectionFactory::class, [
-                new Reference($this->connectionReferenceName),
-                new Reference(EcotoneClockInterface::class),
-            ]),
-            $builder,
-        );
+        $connectionFactory = CachedConnectionFactory::compileIn($builder, $this->connectionReferenceName, DbalReconnectableConnectionFactory::definitionFor($this->connectionReferenceName));
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
             $this->endpointId,
             $this->acknowledgeMode,

@@ -10,7 +10,6 @@ use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DistributedBusHeader;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
@@ -20,7 +19,7 @@ use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetterActions;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetters;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLettersNotConfigured;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetterStatus;
-use Ecotone\Enqueue\CachedConnectionFactories;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -217,13 +216,7 @@ final class DbalDeadLetterModule implements AnnotationModule
                     Reference::to(MessageBuilder::class),
                 ])
                 : new Definition(DbalDeadLetterStore::class, [
-                    CachedConnectionFactories::definitionFor(
-                        new Definition(DbalReconnectableConnectionFactory::class, [
-                            new Reference($connectionFactoryReference),
-                            new Reference(EcotoneClockInterface::class),
-                        ]),
-                        $configuration,
-                    ),
+                    CachedConnectionFactory::registerIn($configuration, $connectionFactoryReference, DbalReconnectableConnectionFactory::definitionFor($connectionFactoryReference)),
                     DefaultHeaderMapper::createAllHeadersMapping(),
                     Reference::to(ConversionService::REFERENCE_NAME),
                     Reference::to(RetryRunner::class),

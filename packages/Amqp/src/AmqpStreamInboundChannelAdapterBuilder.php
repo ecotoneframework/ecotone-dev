@@ -6,7 +6,7 @@ namespace Ecotone\Amqp;
 
 use Ecotone\Api\Amqp\AmqpConnectionReference;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
-use Ecotone\Enqueue\CachedConnectionFactories;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\InboundMessageConverter;
@@ -74,22 +74,20 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $connectionFactory = CachedConnectionFactories::definitionFor(
+        $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(AmqpReconnectableConnectionFactory::class, [
                 new Reference($this->connectionReferenceName),
                 Uuid::v7()->toRfc4122(),
             ]),
-            $builder,
-        );
+        ]);
 
-        $publisherConnectionFactory = CachedConnectionFactories::definitionFor(
+        $publisherConnectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(AmqpReconnectableConnectionFactory::class, [
                 new Reference($this->connectionReferenceName),
                 Uuid::v7()->toRfc4122(),
                 true,
             ]),
-            $builder,
-        );
+        ]);
 
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
             $this->endpointId,

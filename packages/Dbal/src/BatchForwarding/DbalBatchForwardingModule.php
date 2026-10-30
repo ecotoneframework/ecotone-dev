@@ -14,7 +14,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Tracing\FlowTrackingScope;
-use Ecotone\Enqueue\CachedConnectionFactories;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -122,13 +122,7 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
         $inboundChannelAdapter = $channelBuilder->getInboundChannelAdapter();
 
         return new Definition(DbalOutboxPublisher::class, [
-            CachedConnectionFactories::definitionFor(
-                new Definition(DbalReconnectableConnectionFactory::class, [
-                    new Reference($inboundChannelAdapter->getConnectionReferenceName()),
-                    new Reference(EcotoneClockInterface::class),
-                ]),
-                $messagingConfiguration,
-            ),
+            CachedConnectionFactory::registerIn($messagingConfiguration, $inboundChannelAdapter->getConnectionReferenceName(), DbalReconnectableConnectionFactory::definitionFor($inboundChannelAdapter->getConnectionReferenceName())),
             $channelBuilder->getMessageChannelName(),
             new Reference(ChannelResolver::class),
             new Reference(LoggingGateway::class),

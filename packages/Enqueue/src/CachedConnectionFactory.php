@@ -3,6 +3,10 @@
 namespace Ecotone\Enqueue;
 
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
@@ -20,6 +24,22 @@ class CachedConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
     public function __construct(ReconnectableConnectionFactory $reconnectableConnectionFactory)
     {
         $this->connectionFactory = $reconnectableConnectionFactory;
+    }
+
+    public static function registerIn(Configuration $configuration, string $connectionKey, Definition $reconnectableConnectionFactory): Reference
+    {
+        $configuration->registerServiceDefinition(self::serviceId($connectionKey), new Definition(self::class, [$reconnectableConnectionFactory]));
+
+        return Reference::to(self::serviceId($connectionKey));
+    }
+
+    public static function compileIn(MessagingContainerBuilder $builder, string $connectionKey, Definition $reconnectableConnectionFactory): Reference
+    {
+        if (! $builder->has(self::serviceId($connectionKey))) {
+            $builder->register(self::serviceId($connectionKey), new Definition(self::class, [$reconnectableConnectionFactory]));
+        }
+
+        return Reference::to(self::serviceId($connectionKey));
     }
 
     public function createContext(): Context
@@ -55,9 +75,19 @@ class CachedConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
         return $this->connectionFactory;
     }
 
+    public function getWrappedConnectionFactory(): ConnectionFactory
+    {
+        return $this->connectionFactory->getWrappedConnectionFactory();
+    }
+
+    private static function serviceId(string $connectionKey): string
+    {
+        return self::class . '.' . $connectionKey;
+    }
+
     private function getCurrentActiveConnection(): string
     {
-        $connectionFactory = $this->connectionFactory->getWrappedConnectionFactory();
+        $connectionFactory = $this->getWrappedConnectionFactory();
         if (interface_exists(MultiTenantConnectionFactory::class) && $connectionFactory instanceof MultiTenantConnectionFactory) {
             return $connectionFactory->currentActiveTenant();
         }

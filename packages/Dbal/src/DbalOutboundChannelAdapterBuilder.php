@@ -3,9 +3,8 @@
 namespace Ecotone\Dbal;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Database\EnqueueTableManager;
-use Ecotone\Enqueue\CachedConnectionFactories;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -61,13 +60,7 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
-        $connectionFactory = CachedConnectionFactories::definitionFor(
-            new Definition(DbalReconnectableConnectionFactory::class, [
-                new Reference($this->connectionFactoryReferenceName),
-                new Reference(EcotoneClockInterface::class),
-            ]),
-            $builder,
-        );
+        $connectionFactory = CachedConnectionFactory::compileIn($builder, $this->connectionFactoryReferenceName, DbalReconnectableConnectionFactory::definitionFor($this->connectionFactoryReferenceName));
 
         $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
             $this->headerMapper,

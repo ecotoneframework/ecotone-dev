@@ -9,7 +9,6 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Types\Types;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Tracing\Span;
@@ -20,9 +19,7 @@ use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\MissingColumnFailure;
 use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Dbal\Database\SpansTableManager;
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Ecotone\Enqueue\CachedConnectionFactories;
-use Interop\Queue\ConnectionFactory;
+use Ecotone\Enqueue\CachedConnectionFactory;
 
 use function json_decode;
 use function json_encode;
@@ -50,10 +47,8 @@ use Throwable;
 final class DbalTraceStore implements TraceStore
 {
     public function __construct(
-        private ConnectionFactory $connectionFactory,
+        private CachedConnectionFactory $connectionFactory,
         private SpansTableManager $spansTableManager,
-        private EcotoneClockInterface $clock,
-        private CachedConnectionFactories $cachedConnectionFactories,
     ) {
     }
 
@@ -338,7 +333,7 @@ final class DbalTraceStore implements TraceStore
     private function connection(): Connection
     {
         /** @var DbalContext $context */
-        $context = $this->cachedConnectionFactories->cachedFor(new DbalReconnectableConnectionFactory($this->connectionFactory, $this->clock))->createContext();
+        $context = $this->connectionFactory->createContext();
 
         return $context->getDbalConnection();
     }

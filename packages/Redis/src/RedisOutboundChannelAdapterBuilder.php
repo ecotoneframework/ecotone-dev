@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Redis;
 
 use Ecotone\Api\Redis\RedisConnectionReference;
-use Ecotone\Enqueue\CachedConnectionFactories;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
@@ -54,12 +54,7 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
             throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
-        $connectionFactory = CachedConnectionFactories::definitionFor(
-            new Definition(HttpReconnectableConnectionFactory::class, [
-                new Reference($this->connectionFactoryReferenceName),
-            ]),
-            $builder,
-        );
+        $connectionFactory = CachedConnectionFactory::compileIn($builder, $this->connectionFactoryReferenceName, new Definition(HttpReconnectableConnectionFactory::class, [new Reference($this->connectionFactoryReferenceName)]));
 
         $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
             $this->headerMapper,

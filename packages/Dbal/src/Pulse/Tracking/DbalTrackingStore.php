@@ -8,15 +8,12 @@ use Closure;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Dbal\Database\PulseTrackingTableManager;
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\Enqueue\CachedConnectionFactories;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Interop\Queue\ConnectionFactory;
 use Throwable;
 
 /**
@@ -42,10 +39,8 @@ use Throwable;
 final class DbalTrackingStore implements TrackingStore
 {
     public function __construct(
-        private ConnectionFactory $connectionFactory,
+        private CachedConnectionFactory $connectionFactory,
         private PulseTrackingTableManager $tableManager,
-        private EcotoneClockInterface $clock,
-        private CachedConnectionFactories $cachedConnectionFactories,
     ) {
     }
 
@@ -100,13 +95,15 @@ final class DbalTrackingStore implements TrackingStore
 
     public function activeTenant(): ?string
     {
-        return $this->connectionFactory instanceof MultiTenantConnectionFactory && $this->connectionFactory->hasActiveTenant() ? $this->connectionFactory->currentActiveTenant() : null;
+        $connectionFactory = $this->connectionFactory->getWrappedConnectionFactory();
+
+        return $connectionFactory instanceof MultiTenantConnectionFactory && $connectionFactory->hasActiveTenant() ? $connectionFactory->currentActiveTenant() : null;
     }
 
     private function connection(): Connection
     {
         /** @var DbalContext $context */
-        $context = $this->cachedConnectionFactories->cachedFor(new DbalReconnectableConnectionFactory($this->connectionFactory, $this->clock))->createContext();
+        $context = $this->connectionFactory->createContext();
 
         return $context->getDbalConnection();
     }

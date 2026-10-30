@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Sqs;
 
 use Ecotone\Api\Sqs\SqsConnectionReference;
-use Ecotone\Enqueue\CachedConnectionFactories;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
@@ -30,12 +30,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $connectionFactory = CachedConnectionFactories::definitionFor(
-            new Definition(HttpReconnectableConnectionFactory::class, [
-                new Reference($this->connectionReferenceName),
-            ]),
-            $builder,
-        );
+        $connectionFactory = CachedConnectionFactory::compileIn($builder, $this->connectionReferenceName, new Definition(HttpReconnectableConnectionFactory::class, [new Reference($this->connectionReferenceName)]));
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
             $this->endpointId,
             $this->acknowledgeMode,

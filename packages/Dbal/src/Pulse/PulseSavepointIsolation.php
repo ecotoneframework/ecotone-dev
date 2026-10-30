@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Pulse;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Connection\DbalContext;
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\Enqueue\CachedConnectionFactories;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSectionIsolation;
-use Interop\Queue\ConnectionFactory;
 
 /**
  * licence Enterprise
@@ -38,9 +35,9 @@ final class PulseSavepointIsolation implements PulseSectionIsolation
     private const SAVEPOINT = 'ecotone_pulse_section';
 
     /**
-     * @param ConnectionFactory[] $connectionFactories
+     * @param CachedConnectionFactory[] $connectionFactories
      */
-    public function __construct(private array $connectionFactories, private EcotoneClockInterface $clock, private CachedConnectionFactories $cachedConnectionFactories)
+    public function __construct(private array $connectionFactories)
     {
     }
 
@@ -68,12 +65,13 @@ final class PulseSavepointIsolation implements PulseSectionIsolation
     {
         $connections = [];
         foreach ($this->connectionFactories as $connectionFactory) {
-            if ($connectionFactory instanceof MultiTenantConnectionFactory && ! $connectionFactory->hasActiveTenant()) {
+            $wrappedConnectionFactory = $connectionFactory->getWrappedConnectionFactory();
+            if ($wrappedConnectionFactory instanceof MultiTenantConnectionFactory && ! $wrappedConnectionFactory->hasActiveTenant()) {
                 continue;
             }
 
             /** @var DbalContext $context */
-            $context = $this->cachedConnectionFactories->cachedFor(new DbalReconnectableConnectionFactory($connectionFactory, $this->clock))->createContext();
+            $context = $connectionFactory->createContext();
             $connection = $context->getDbalConnection();
             if ($connection->isTransactionActive() && ! in_array($connection, $connections, true)) {
                 $connections[] = $connection;

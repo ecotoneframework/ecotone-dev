@@ -2,10 +2,9 @@
 
 namespace Ecotone\Dbal\DocumentStore;
 
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Ecotone\Enqueue\CachedConnectionFactories;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -42,13 +41,7 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
             $documentStore = $this->inMemoryEventStore
                 ? new Definition(InMemoryDocumentStore::class, [], 'createEmpty')
                 : new Definition(DbalDocumentStore::class, [
-                    CachedConnectionFactories::definitionFor(
-                        new Definition(DbalReconnectableConnectionFactory::class, [
-                            new Reference($this->connectionReferenceName),
-                            new Reference(EcotoneClockInterface::class),
-                        ]),
-                        $builder,
-                    ),
+                    CachedConnectionFactory::compileIn($builder, $this->connectionReferenceName, DbalReconnectableConnectionFactory::definitionFor($this->connectionReferenceName)),
                     new Reference(ConversionService::REFERENCE_NAME),
                     Reference::to(DocumentStoreTableManager::class),
                 ]);

@@ -22,6 +22,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\DB;
+use PDOException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Test\Ecotone\Laravel\RestoresLaravelHandlers;
@@ -54,6 +55,27 @@ final class ConnectionTerminatedByServerTest extends TestCase
         $handler = $this->orderHandler(static function (): void {
         });
         $ecotone = $this->bootstrap($handler);
+
+        $ecotone->sendCommandWithRouting('order.place', 'milk');
+        $this->terminateServerSideOfLaravelConnection();
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+        $ecotone->run('shipping', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
+    }
+
+    public function test_a_consumer_on_a_laravel_connection_keeps_running_while_the_database_is_still_starting_after_a_restart(): void
+    {
+        $handler = $this->orderHandler(static function (): void {
+        });
+        $ecotone = $this->bootstrap($handler);
+        $refusals = 2;
+        DB::connection('pgsql')->setReconnector(static function () use (&$refusals): void {
+            if ($refusals-- > 0) {
+                throw new PDOException('SQLSTATE[08006] [7] connection to server at "database", port 5432 failed: Connection refused');
+            }
+            app('db')->reconnect('pgsql');
+        });
 
         $ecotone->sendCommandWithRouting('order.place', 'milk');
         $this->terminateServerSideOfLaravelConnection();

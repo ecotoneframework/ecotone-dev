@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Laravel;
+namespace Ecotone\Api\Laravel;
 
 use Ecotone\Messaging\MessagingException;
 

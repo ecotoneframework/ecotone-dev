@@ -3,6 +3,7 @@
 namespace Ecotone\Laravel;
 
 use Closure;
+use Ecotone\Api\Laravel\EloquentSaveCancelled;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Modelling\StateStoredRepository;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;

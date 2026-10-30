@@ -102,6 +102,36 @@ final class ConnectionTerminatedByServerTest extends DbalMessagingTestCase
         self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
     }
 
+    public function test_a_consumed_message_whose_send_lost_the_transaction_connection_is_handled_again_and_ships_once(): void
+    {
+        $connectionFactory = $this->ownConnection();
+        $handler = $this->orderHandler(fn () => $this->terminateServerSideOf($connectionFactory));
+        $ecotone = $this->bootstrap($handler, $connectionFactory, [
+            DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true),
+        ]);
+
+        $ecotone->sendCommandWithRouting('order.pack', 'milk');
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+        $ecotone->run('shipping', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
+    }
+
+    public function test_a_consumed_message_whose_send_lost_the_connection_outside_a_transaction_is_sent_on_a_fresh_connection_and_ships_once(): void
+    {
+        $connectionFactory = $this->ownConnection();
+        $handler = $this->orderHandler(fn () => $this->terminateServerSideOf($connectionFactory));
+        $ecotone = $this->bootstrap($handler, $connectionFactory, [
+            DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(false),
+        ]);
+
+        $ecotone->sendCommandWithRouting('order.pack', 'milk');
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+        $ecotone->run('shipping', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
+    }
+
     private static function untilOneMessageIsHandled(): ExecutionPollingMetadata
     {
         return ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000, stopOnError: false);
@@ -133,6 +163,17 @@ final class ConnectionTerminatedByServerTest extends DbalMessagingTestCase
 
             #[CommandHandler('order.dispatch')]
             public function dispatch(string $order, CommandBus $commandBus): void
+            {
+                $this->attempts++;
+                if ($this->attempts === 1) {
+                    ($this->onFirstAttempt)();
+                }
+                $commandBus->sendWithRouting('order.ship', $order);
+            }
+
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.pack', endpointId: 'packOrder')]
+            public function pack(string $order, CommandBus $commandBus): void
             {
                 $this->attempts++;
                 if ($this->attempts === 1) {

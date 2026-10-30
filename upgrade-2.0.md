@@ -2745,7 +2745,9 @@ transaction`, until the worker was restarted.
 
 **Now:** Ecotone connects through the Laravel connection each time it connects. A failure Laravel recognises as a lost
 connection drops Laravel's PDO and is raised as Doctrine's `ConnectionLost`, so the consumer reconnects, the failed
-message is redelivered, and the worker keeps handling messages.
+message is redelivered, and the worker keeps handling messages. A connect the database refuses while it is still
+starting is raised as Doctrine's `ConnectionException`, so the consumer backs off with its connection retry template
+(`ServiceConfiguration::withConnectionRetryTemplate()`) instead of exiting.
 
 **How to adapt:** nothing.
 
@@ -2759,7 +2761,10 @@ message with `no connection to the server` until the worker was restarted.
 **Now:** Ecotone connects through the Tempest connection each time it connects. A failure that reports a lost
 connection closes the Tempest connection and is raised as Doctrine's `ConnectionLost`, so the next connect opens a new
 one for Ecotone and for the Tempest ORM alike, the failed message is redelivered, and the worker keeps handling
-messages.
+messages. That includes a transaction refused with `There is already an active transaction`, which is how
+`pdo_pgsql` reports a connection the server has terminated. A connect the database refuses while it is still starting
+is raised as Doctrine's `ConnectionException`, so the consumer backs off with its connection retry template
+(`ServiceConfiguration::withConnectionRetryTemplate()`) instead of exiting.
 
 **How to adapt:** nothing.
 

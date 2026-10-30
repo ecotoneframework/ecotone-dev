@@ -103,6 +103,7 @@ final class MetadataCacheFreshnessTest extends TestCase
                     useCachedVersion: true,
                     environment: %s,
                     cacheDirectoryPath: %s,
+                    pathToRootCatalog: %s,
                 )->getGatewayByName(\Ecotone\Api\Gateway\SerializerGateway::class)->convertToPHP('{"seat":"A1"}', 'application/json', %s);
                 PHP,
             var_export($this->composerAutoloader(), true),
@@ -112,6 +113,7 @@ final class MetadataCacheFreshnessTest extends TestCase
             var_export(serialize($extensionObjects), true),
             var_export($environment, true),
             var_export($cacheDirectory, true),
+            var_export($this->rootCatalog(), true),
             var_export($className, true),
         ));
         exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($previousDeployment) . ' 2>&1', $output, $exitCode);
@@ -129,9 +131,15 @@ final class MetadataCacheFreshnessTest extends TestCase
             useCachedVersion: true,
             environment: $environment,
             cacheDirectoryPath: $cacheDirectory,
+            pathToRootCatalog: $this->rootCatalog(),
         )->getGatewayByName(SerializerGateway::class)->convertToPHP('{"seat":"A1","row":7}', MediaType::APPLICATION_JSON, $className);
 
         return get_object_vars($seatHeld);
+    }
+
+    private function rootCatalog(): string
+    {
+        return dirname($this->composerAutoloader(), 2);
     }
 
     private function composerAutoloader(): string

@@ -14,6 +14,8 @@ use Exception;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+use function str_repeat;
+
 /**
  * licence Enterprise
  *
@@ -38,31 +40,66 @@ final class DistributedBusIdempotencyKeyTest extends TestCase
 {
     public static function sends(): iterable
     {
-        yield 'sendCommand' => [fn (FlowTestSupport $ecotone) => $ecotone->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'Printer is broken', idempotencyKey: ' ')];
-        yield 'convertAndSendCommand' => [fn (FlowTestSupport $ecotone) => $ecotone->getDistributedBus()->convertAndSendCommand('ticket_service', 'ticket.create', ['description' => 'Printer is broken'], idempotencyKey: '')];
-        yield 'publishEvent' => [fn (FlowTestSupport $ecotone) => $ecotone->getDistributedBus()->publishEvent('user.registered', 'johny', idempotencyKey: '')];
-        yield 'convertAndPublishEvent' => [fn (FlowTestSupport $ecotone) => $ecotone->getDistributedBus()->convertAndPublishEvent('user.registered', ['name' => 'johny'], idempotencyKey: '')];
-        yield 'sendMessage' => [fn (FlowTestSupport $ecotone) => $ecotone->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: '')];
+        foreach (self::sendsWith(' ') as $name => $send) {
+            yield $name => [$send, false];
+            yield $name . ' through an asynchronous Distributed Bus' => [$send, true];
+        }
+    }
+
+    public static function sendsWithAKeyLongerThan255Characters(): iterable
+    {
+        foreach (self::sendsWith(str_repeat('k', 256)) as $name => $send) {
+            yield $name => [$send, false];
+            yield $name . ' through an asynchronous Distributed Bus' => [$send, true];
+        }
     }
 
     #[DataProvider('sends')]
-    public function test_a_blank_idempotency_key_is_refused_because_it_would_make_every_send_one_request(callable $send): void
+    public function test_a_blank_idempotency_key_is_refused_because_it_would_make_every_send_one_request(callable $send, bool $asynchronous): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            extensionObjects: [
-                SimpleMessageChannelBuilder::createQueueChannel('ticket_channel'),
-                DistributedServiceMap::initialize()
-                    ->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel')
-                    ->withEventMapping(channelName: 'ticket_channel', subscriptionKeys: ['user.*']),
-                ServiceConfiguration::createWithDefaults()->withServiceName('user_service'),
-            ],
-            enabledModules: [],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+        $ecotone = $this->userService($asynchronous);
 
         $this->expectException(Exception::class);
         $this->expectExceptionMessage('The Distributed Bus was given a blank idempotencyKey. The target deduplicates on this key in place of the message id, per routing key and consuming endpoint, so a blank one would make every send to that routing key one request, handled once. Pass a key that names this business request, such as the order id, or omit idempotencyKey to have each send handled on its own.');
 
         $send($ecotone);
+    }
+
+    #[DataProvider('sendsWithAKeyLongerThan255Characters')]
+    public function test_an_idempotency_key_longer_than_255_characters_is_refused_because_the_target_cannot_store_it(callable $send, bool $asynchronous): void
+    {
+        $ecotone = $this->userService($asynchronous);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('The Distributed Bus was given an idempotencyKey of 256 characters. The target stores the key in its deduplication table, which holds at most 255, so a longer one would fail every delivery of the message. Pass a key of at most 255 characters that names this business request, such as the order id, or a hash of a longer one.');
+
+        $send($ecotone);
+    }
+
+    private static function sendsWith(string $idempotencyKey): iterable
+    {
+        yield 'sendCommand' => fn (FlowTestSupport $ecotone) => $ecotone->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'Printer is broken', idempotencyKey: $idempotencyKey);
+        yield 'convertAndSendCommand' => fn (FlowTestSupport $ecotone) => $ecotone->getDistributedBus()->convertAndSendCommand('ticket_service', 'ticket.create', ['description' => 'Printer is broken'], idempotencyKey: $idempotencyKey);
+        yield 'publishEvent' => fn (FlowTestSupport $ecotone) => $ecotone->getDistributedBus()->publishEvent('user.registered', 'johny', idempotencyKey: $idempotencyKey);
+        yield 'convertAndPublishEvent' => fn (FlowTestSupport $ecotone) => $ecotone->getDistributedBus()->convertAndPublishEvent('user.registered', ['name' => 'johny'], idempotencyKey: $idempotencyKey);
+        yield 'sendMessage' => fn (FlowTestSupport $ecotone) => $ecotone->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: $idempotencyKey);
+    }
+
+    private function userService(bool $asynchronous): FlowTestSupport
+    {
+        $serviceMap = DistributedServiceMap::initialize()
+            ->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel')
+            ->withEventMapping(channelName: 'ticket_channel', subscriptionKeys: ['user.*']);
+
+        return EcotoneLite::bootstrapFlowTesting(
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('ticket_channel'),
+                SimpleMessageChannelBuilder::createQueueChannel('user_outbox'),
+                $asynchronous ? $serviceMap->withAsynchronousChannel('user_outbox') : $serviceMap,
+                ServiceConfiguration::createWithDefaults()->withServiceName('user_service'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 }

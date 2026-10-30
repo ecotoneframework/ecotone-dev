@@ -19,6 +19,7 @@ use Closure;
 use DomainException;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -38,6 +39,13 @@ final class OrderLifecycleTest extends TestCase
         parent::setUp();
         DB::table('orders')->delete();
         DB::table('customers')->delete();
+        Carbon::setTestNow('2026-10-25 12:00:00');
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     public function test_a_registered_customer_is_listed_with_name_and_email(): void

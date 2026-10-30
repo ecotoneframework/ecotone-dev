@@ -233,6 +233,16 @@ final class Order extends Model
     public function beginPayment(BeginPayment $command): void
     {
         $this->assertAccepts('BeginPayment', OrderStatus::SEATS_HELD);
+        $expiredSeatIds = array_values(array_diff($this->heldSeatIds(), $this->claimedSeatIdsAt(Carbon::now()->toDateTimeImmutable())));
+        if ($expiredSeatIds !== []) {
+            throw new DomainException(sprintf(
+                count($expiredSeatIds) === 1
+                    ? 'The hold of seat %s of order %s expired, so BeginPayment does not charge the card: ticketing refuses to confirm a seat whose hold expired, and the payment would only be refunded. Request the seat again with RequestSeat, or release it with ReleaseSeat, then pay.'
+                    : 'The holds of seats %s of order %s expired, so BeginPayment does not charge the card: ticketing refuses to confirm a seat whose hold expired, and the payment would only be refunded. Request the seats again with RequestSeat, or release them with ReleaseSeat, then pay.',
+                implode(', ', array_map(SeatCode::ofSeatId(...), $expiredSeatIds)),
+                $this->id,
+            ));
+        }
         $this->confirmation_email_bounces = $command->confirmationEmailBounces;
         $this->status = OrderStatus::PAYING;
     }

@@ -13,6 +13,7 @@ use App\Payment\PaymentAttempts;
 use App\Payment\PaymentOutcome;
 use App\Payment\PaymentProvider;
 use Doctrine\DBAL\Driver\AbstractException;
+use DomainException;
 use Doctrine\DBAL\Exception\DeadlockException;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Headers;
@@ -21,6 +22,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Interceptor\Precedence;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Tests\Ordering\StorefrontFlowTestCase;
@@ -77,6 +79,24 @@ final class PaymentTest extends StorefrontFlowTestCase
         $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS, confirmationEmailBounces: false));
 
         self::assertSame('paying', $this->order($orderId)['status']);
+    }
+
+    public function test_paying_for_an_order_whose_seat_hold_expired_is_refused_before_the_card_is_charged(): void
+    {
+        $orderId = $this->orderWithHeldSeat();
+        Carbon::setTestNow('2026-10-25 12:02:00');
+
+        try {
+            $this->storefront->getCommandBus()->send(new Pay(orderId: $orderId, outcome: PaymentOutcome::SUCCEEDS, confirmationEmailBounces: false));
+            self::fail('Pay was not refused');
+        } catch (DomainException $refusal) {
+            self::assertSame(sprintf('The hold of seat A-12 of order %s expired, so BeginPayment does not charge the card: ticketing refuses to confirm a seat whose hold expired, and the payment would only be refunded. Request the seat again with RequestSeat, or release it with ReleaseSeat, then pay.', $orderId), $refusal->getMessage());
+        }
+        $this->charge();
+
+        $order = $this->order($orderId);
+        self::assertSame('seats_held', $order['status']);
+        self::assertNull($order['paymentReference']);
     }
 
     public function test_a_charged_card_marks_the_order_paid_and_asks_ticketing_to_confirm_its_seats(): void

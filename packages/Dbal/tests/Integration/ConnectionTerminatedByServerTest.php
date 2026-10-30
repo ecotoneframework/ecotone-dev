@@ -21,6 +21,7 @@ use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\DatabaseTransactionLost;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
@@ -86,6 +87,21 @@ final class ConnectionTerminatedByServerTest extends DbalMessagingTestCase
         $ecotone->run('shipping', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
+    }
+
+    public function test_a_send_that_lost_the_connection_of_a_transactional_command_bus_without_retries_fails_naming_the_way_out(): void
+    {
+        $connectionFactory = $this->ownConnection();
+        $handler = $this->orderHandler(fn () => $this->terminateServerSideOf($connectionFactory));
+        $ecotone = $this->bootstrap($handler, $connectionFactory, [
+            DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+            InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false),
+        ]);
+
+        $this->expectException(DatabaseTransactionLost::class);
+        $this->expectExceptionMessage('The database connection was lost while a message was being sent to `shipping` inside a database transaction, so the message was not stored. It is not retried in place: the transaction it belonged to is gone, and a retry would store the message on a new connection, outside that transaction. The transaction rolls back and the command or consumed message is retried as a whole: the consumer redelivers an asynchronous endpoint\'s message, and the command bus instant retries, on by default when DbalConfiguration runs the command bus in a transaction, retry a command. If they were turned off, turn them back on with InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true), and if they list their retry exceptions, include DatabaseTransactionLost::class. To store the message outside the transaction and retry it in place instead, run its handler without a database transaction: DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false) or ->withTransactionOnAsynchronousEndpoints(false).');
+
+        $ecotone->sendCommandWithRouting('order.dispatch', 'milk');
     }
 
     public function test_a_send_that_lost_the_connection_outside_a_transaction_is_retried_on_a_fresh_connection(): void

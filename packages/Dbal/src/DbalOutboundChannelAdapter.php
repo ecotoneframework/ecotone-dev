@@ -6,6 +6,7 @@ namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Exception\ConnectionException;
 use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\DatabaseTransactionLost;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalContext;
@@ -18,7 +19,6 @@ use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Config\DatabaseTransaction\DatabaseTransactionLost;
 use Interop\Queue\Context;
 use Throwable;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Modelling\Config\DatabaseTransaction;
+namespace Ecotone\Api\Messaging;
 
 use RuntimeException;
 use Throwable;

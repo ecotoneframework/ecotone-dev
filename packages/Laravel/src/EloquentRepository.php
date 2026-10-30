@@ -2,20 +2,25 @@
 
 namespace Ecotone\Laravel;
 
+use Closure;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Modelling\StateStoredRepository;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateIdString;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Throwable;
 
 /**
  * licence Apache-2.0
  */
 class EloquentRepository implements StateStoredRepository
 {
+    private const SAVEPOINT = 'ecotone_eloquent_save';
+
     public function __construct(
         private AggregateDefinitionRegistry $aggregateDefinitionRegistry,
         private PropertyReaderAccessor $propertyReaderAccessor,
@@ -56,7 +61,8 @@ class EloquentRepository implements StateStoredRepository
         $aggregate->setAttribute($versionColumn, $versionAfterHandling);
 
         try {
-            $aggregate->getConnection()->transaction(
+            $this->asOneUnit(
+                $aggregate->getConnection(),
                 fn () => $this->claimVersionAndSave($identifiers, $aggregate, $versionColumn, (int) $versionBeforeHandling, $versionAfterHandling)
             );
         } catch (UniqueConstraintViolationException $uniqueConstraintViolation) {
@@ -65,6 +71,24 @@ class EloquentRepository implements StateStoredRepository
             }
 
             throw $this->staleAggregate($identifiers, $aggregate, $versionColumn, (int) $versionBeforeHandling);
+        }
+    }
+
+    private function asOneUnit(Connection $connection, Closure $work): void
+    {
+        if ($connection->transactionLevel() > 0 || ! $connection->getPdo()->inTransaction()) {
+            $connection->transaction($work);
+
+            return;
+        }
+
+        $connection->getPdo()->exec($connection->getQueryGrammar()->compileSavepoint(self::SAVEPOINT));
+        try {
+            $work();
+        } catch (Throwable $exception) {
+            $connection->getPdo()->exec($connection->getQueryGrammar()->compileSavepointRollBack(self::SAVEPOINT));
+
+            throw $exception;
         }
     }
 

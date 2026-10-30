@@ -10,7 +10,10 @@ use Ecotone\Api\Attribute\IdentifierMethod;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Repository;
 use Ecotone\Api\Attribute\Version;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Laravel\LaravelConnectionReference;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ConcurrencyException;
@@ -91,6 +94,33 @@ class EloquentRepositoryTest extends TestCase
         $ecotone->sendCommandWithRouting('ticket.rename', metadata: ['aggregate.id' => 't-1', 'title' => 'Second']);
         $this->assertSame(3, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-1']));
         $this->assertSame('Second', $ecotone->sendQueryWithRouting('ticket.title', metadata: ['aggregate.id' => 't-1']));
+    }
+
+    public function test_a_versioned_eloquent_aggregate_saves_inside_the_command_bus_transaction_on_the_laravel_connection(): void
+    {
+        $ecotone = $this->bootstrapWithCommandBusTransactionOnTheLaravelConnection(EloquentRepositoryTicket::class);
+
+        $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
+        $ecotone->sendCommandWithRouting('ticket.rename', metadata: ['aggregate.id' => 't-1', 'title' => 'Renamed']);
+
+        $this->assertSame('Renamed', $ecotone->sendQueryWithRouting('ticket.title', metadata: ['aggregate.id' => 't-1']));
+        $this->assertSame(2, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-1']));
+    }
+
+    public function test_creating_a_versioned_eloquent_aggregate_under_a_stored_id_inside_the_command_bus_transaction_is_refused(): void
+    {
+        $ecotone = $this->bootstrapWithCommandBusTransactionOnTheLaravelConnection(EloquentRepositoryTicket::class);
+        $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
+        $ecotone->sendCommandWithRouting('ticket.rename', metadata: ['aggregate.id' => 't-1', 'title' => 'Kept']);
+
+        try {
+            $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
+            $this->fail('Expected the stored ticket to be kept');
+        } catch (ConcurrencyException $exception) {
+            $this->assertStringContainsString('Aggregate ' . EloquentRepositoryTicket::class . ' t-1 was loaded at version 0, but it is at version 2 now', $exception->getMessage());
+        }
+
+        $this->assertSame('Kept', $ecotone->sendQueryWithRouting('ticket.title', metadata: ['aggregate.id' => 't-1']));
     }
 
     public function test_a_handler_chained_after_creating_a_versioned_eloquent_aggregate_saves_it_again(): void
@@ -495,6 +525,20 @@ class EloquentRepositoryTest extends TestCase
                 return $this->getKey();
             }
         };
+    }
+
+    private function bootstrapWithCommandBusTransactionOnTheLaravelConnection(string ...$classes): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            $classes,
+            extensionObjects: [
+                new EloquentRepositoryBuilder(),
+                LaravelConnectionReference::defaultConnection('eloquent_repository'),
+                DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::LARAVEL_PACKAGE],
+            addInMemoryStateStoredRepository: false,
+        );
     }
 
     private function bootstrapWith(string ...$classes): FlowTestSupport

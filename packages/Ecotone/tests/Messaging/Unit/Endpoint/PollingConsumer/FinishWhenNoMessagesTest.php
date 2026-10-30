@@ -89,6 +89,24 @@ final class FinishWhenNoMessagesTest extends TestCase
         $this->assertSame(['first', 'second', 'stopped at 00:00:00.001'], $ecotone->sendQueryWithRouting('consumer.log'));
     }
 
+    public function test_polling_metadata_of_the_endpoint_keeps_its_execution_amount_limit_with_finish_when_no_messages(): void
+    {
+        $ecotone = $this->bootstrapWithThreeMessages(PollingMetadata::create('async')->withExecutionAmountLimit(3)->withFinishWhenNoMessages(true));
+
+        $ecotone->run('async');
+
+        $this->assertSame(['first', 'second', 'stopped at 00:00:00.001'], $ecotone->sendQueryWithRouting('consumer.log'));
+    }
+
+    public function test_polling_metadata_of_the_endpoint_keeps_its_execution_time_limit_with_finish_when_no_messages(): void
+    {
+        $ecotone = $this->bootstrapWithThreeMessages(PollingMetadata::create('async')->withExecutionTimeLimitInMilliseconds(1)->withFinishWhenNoMessages(true));
+
+        $ecotone->run('async');
+
+        $this->assertSame(['first', 'second', 'stopped at 00:00:00.002'], $ecotone->sendQueryWithRouting('consumer.log'));
+    }
+
     public function test_finish_when_no_messages_for_tests_drains_a_channel_whose_endpoint_has_an_execution_amount_limit(): void
     {
         $ecotone = $this->bootstrapWithThreeMessages(PollingMetadata::create('async')->withExecutionAmountLimit(2));

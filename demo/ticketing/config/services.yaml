@@ -1,0 +1,27 @@
+parameters:
+    env(TICKETING_HOLD_SECONDS): '600'
+    ticketingHoldSeconds: '%env(int:TICKETING_HOLD_SECONDS)%'
+    env(TICKETING_RENDER_FAILS_FOR_SEAT): ''
+    ticketingRenderFailsForSeat: '%env(TICKETING_RENDER_FAILS_FOR_SEAT)%'
+    ticketFilesDirectory: '%kernel.project_dir%/var/tickets'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+
+    Ecotone\Api\Amqp\AmqpExtConnectionFactory:
+        arguments: ['%env(AMQP_DSN)%']
+
+    OpenTelemetry\API\Trace\TracerProviderInterface:
+        factory: ['App\Infrastructure\OtlpTracerProviderFactory', 'create']
+        arguments: ['%env(OTEL_EXPORTER_OTLP_ENDPOINT)%', 'ticketing']
+
+when@test:
+    parameters:
+        ticketFilesDirectory: '%kernel.cache_dir%/tickets'

@@ -7,12 +7,14 @@ namespace App\Snapshot;
 use App\Settings\PulseSettings;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\Scheduling\Duration;
+use Psr\Clock\ClockInterface;
 
 final readonly class ReplyAwaiter
 {
     public function __construct(
         private TracingGateway $tracingGateway,
         private PulseSettings $settings,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -30,13 +32,18 @@ final readonly class ReplyAwaiter
             return;
         }
 
-        $deadline = hrtime(true) + $this->settings->awaitTimeoutSeconds * 1_000_000_000;
+        $deadline = $this->millisecondsNow() + $this->settings->awaitTimeoutSeconds * 1000;
         foreach ($results as $result) {
             if (! $result->sent) {
                 continue;
             }
-            $remainingMilliseconds = max(0, intdiv($deadline - hrtime(true), 1_000_000));
+            $remainingMilliseconds = max(0, $deadline - $this->millisecondsNow());
             $this->tracingGateway->isCompletedWithin($result->tracingId, Duration::milliseconds($remainingMilliseconds), $result->destination);
         }
+    }
+
+    private function millisecondsNow(): int
+    {
+        return (int) $this->clock->now()->format('Uv');
     }
 }

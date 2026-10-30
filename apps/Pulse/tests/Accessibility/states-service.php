@@ -67,8 +67,4 @@ $application = EcotoneLite::bootstrapFlowTesting(
     licenceKey: getenv('ECOTONE_LICENCE_KEY'),
 );
 
-$deadline = time() + (int) (getenv('SMOKE_SECONDS') ?: 1500);
-while (time() < $deadline) {
-    $application->run('states', ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 1000));
-    usleep(200_000);
-}
+$application->run('states', ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds((int) (getenv('SMOKE_SECONDS') ?: 1500) * 1000));

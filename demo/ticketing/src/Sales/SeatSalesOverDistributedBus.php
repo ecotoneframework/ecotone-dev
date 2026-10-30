@@ -1,0 +1,128 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Sales;
+
+use DateTimeInterface;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
+use InvalidArgumentException;
+
+final class SeatSalesOverDistributedBus
+{
+    private const SEAT_FIELDS = ['orderId', 'concertId', 'seatId', 'customerId', 'holdId'];
+
+    private const CONCERT_COUNTER_TAG = 'aggregate_concert';
+
+    /**
+     * @return array{orderId: string, concertId: string, seatId: string, customerId: string, holdId: string, outcome: string, reason: ?string, reasonCode: ?string, expiresAt: ?string}
+     */
+    #[Distributed]
+    #[CommandHandler('tickets.hold')]
+    public function hold(array $payload, CommandBus $commandBus, QueryBus $queryBus): array
+    {
+        $seat = self::seatFields('tickets.hold', $payload);
+        $reply = [...$seat, 'outcome' => 'refused', 'reason' => null, 'reasonCode' => null, 'expiresAt' => null];
+        try {
+            $commandBus->send(new HoldSeat(...$seat), metadata: ['concertId' => $seat['concertId']]);
+        } catch (SeatRefusal $refusal) {
+            return [...$reply, 'reason' => $refusal->getMessage(), 'reasonCode' => $refusal->reasonCode->value];
+        } catch (DecisionModelConcurrencyException $conflict) {
+            return self::isOnTheConcert($conflict)
+                ? [...$reply, 'reason' => sprintf('Seat %s cannot be held for order %s, because the concert changed while ticketing held the seat: its prices or status were saved after ticketing read them, so the hold could not be kept as decided. Pick the seat again to hold it at the concert\'s current prices, while the concert is on sale.', $seat['seatId'], $seat['orderId']), 'reasonCode' => ReasonCode::CONCERT_CHANGED->value]
+                : [...$reply, 'reason' => sprintf('Seat %s cannot be held for order %s, because someone was faster: the seat changed each time ticketing tried to hold it. Pick the seat again, or choose another one.', $seat['seatId'], $seat['orderId']), 'reasonCode' => ReasonCode::LOST_THE_RACE->value];
+        }
+        $hold = $queryBus->send(new FindSeatHold($seat['seatId']));
+
+        return [...$reply, 'outcome' => 'held', 'expiresAt' => $hold['expiresAt']->format(DateTimeInterface::ATOM)];
+    }
+
+    #[Distributed]
+    #[CommandHandler('tickets.release')]
+    public function release(array $payload, CommandBus $commandBus): void
+    {
+        $seat = self::seatFields('tickets.release', $payload);
+        try {
+            $commandBus->send(new ReleaseSeat(...$seat), metadata: ['concertId' => $seat['concertId']]);
+        } catch (SeatRefusal) {
+        }
+    }
+
+    /**
+     * @return array{orderId: string, concertId: string, customerId: string, outcome: string, reason: ?string, reasonCode: ?string, seatIds: list<string>}
+     */
+    #[Distributed]
+    #[CommandHandler('tickets.confirm')]
+    public function confirm(array $payload, CommandBus $commandBus): array
+    {
+        $order = self::orderFields($payload);
+        $reply = [
+            'orderId' => $order['orderId'],
+            'concertId' => $order['concertId'],
+            'customerId' => $order['customerId'],
+            'outcome' => 'sold',
+            'reason' => null,
+            'reasonCode' => null,
+            'seatIds' => $order['seatIds'],
+        ];
+        try {
+            $commandBus->send(new ConfirmSeats(...$order), metadata: ['concertId' => $order['concertId']]);
+        } catch (SeatRefusal $refusal) {
+            return [...$reply, 'outcome' => 'refused', 'reason' => $refusal->getMessage(), 'reasonCode' => $refusal->reasonCode->value];
+        } catch (DecisionModelConcurrencyException $conflict) {
+            return self::isOnTheConcert($conflict)
+                ? [...$reply, 'outcome' => 'refused', 'reason' => sprintf('Order %s cannot be confirmed, because the concert changed while ticketing sold its seats: its prices or status were saved after ticketing read them; nothing of the order was sold. Refund payment %s; the buyer holds seats again in a new order.', $order['orderId'], $order['paymentReference']), 'reasonCode' => ReasonCode::CONCERT_CHANGED->value]
+                : [...$reply, 'outcome' => 'refused', 'reason' => sprintf('Order %s cannot be confirmed, because someone was faster: its seats changed while ticketing sold them; nothing of the order was sold. Refund payment %s; the buyer holds seats again in a new order.', $order['orderId'], $order['paymentReference']), 'reasonCode' => ReasonCode::LOST_THE_RACE->value];
+        }
+
+        return $reply;
+    }
+
+    private static function isOnTheConcert(DecisionModelConcurrencyException $conflict): bool
+    {
+        return $conflict->conflictingTagName() === self::CONCERT_COUNTER_TAG;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{orderId: string, concertId: string, seatId: string, customerId: string, holdId: string}
+     */
+    private static function seatFields(string $routingKey, array $payload): array
+    {
+        self::assertStringFields(routingKey: $routingKey, payload: $payload, fields: self::SEAT_FIELDS, contract: sprintf('Send %s as a JSON object of %s, each a non-empty string.', $routingKey, implode(', ', self::SEAT_FIELDS)));
+
+        return ['orderId' => $payload['orderId'], 'concertId' => $payload['concertId'], 'seatId' => $payload['seatId'], 'customerId' => $payload['customerId'], 'holdId' => $payload['holdId']];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{orderId: string, concertId: string, customerId: string, seatIds: list<string>, paymentReference: string}
+     */
+    private static function orderFields(array $payload): array
+    {
+        $contract = 'Send tickets.confirm as a JSON object of orderId, concertId, customerId and paymentReference, each a non-empty string, and seatIds, a list of seat id strings.';
+        self::assertStringFields(routingKey: 'tickets.confirm', payload: $payload, fields: ['orderId', 'concertId', 'customerId', 'paymentReference'], contract: $contract);
+        $seatIds = $payload['seatIds'] ?? null;
+        if (! is_array($seatIds) || ! array_is_list($seatIds) || array_filter($seatIds, static fn (mixed $seatId): bool => ! is_string($seatId) || $seatId === '') !== []) {
+            throw new InvalidArgumentException(sprintf('ticketing received tickets.confirm for order %s whose seatIds is %s, not a list of seat id strings. %s', $payload['orderId'], json_encode($seatIds), $contract));
+        }
+
+        return ['orderId' => $payload['orderId'], 'concertId' => $payload['concertId'], 'customerId' => $payload['customerId'], 'seatIds' => $seatIds, 'paymentReference' => $payload['paymentReference']];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param list<string> $fields
+     */
+    private static function assertStringFields(string $routingKey, array $payload, array $fields, string $contract): void
+    {
+        $missing = array_values(array_filter($fields, static fn (string $field): bool => ! is_string($payload[$field] ?? null) || $payload[$field] === ''));
+        if ($missing !== []) {
+            throw new InvalidArgumentException(sprintf('ticketing received %s without %s: the payload carries %s. %s', $routingKey, implode(', ', $missing), implode(', ', array_keys($payload)) ?: 'nothing', $contract));
+        }
+    }
+}

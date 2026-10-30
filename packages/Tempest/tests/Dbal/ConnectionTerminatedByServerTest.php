@@ -25,9 +25,13 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Tempest\Container\GenericContainer;
 use Tempest\Database\Config\DatabaseConfig;
+use Tempest\Database\Config\DatabaseDialect;
 use Tempest\Database\Connection\Connection;
 use Tempest\Database\Connection\PDOConnection;
+use Tempest\Database\Migrations\MigrationNamingStrategy;
+use Tempest\Database\Tables\NamingStrategy;
 use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
+use UnitEnum;
 
 /**
  * licence Apache-2.0
@@ -77,6 +81,23 @@ final class ConnectionTerminatedByServerTest extends TestCase
     }
 
     #[DataProvider('connectionReferences')]
+    public function test_a_consumer_on_a_tempest_connection_keeps_running_while_the_database_is_still_starting_after_a_restart(Closure $connectionReference, ?string $tag): void
+    {
+        $databaseConfig = $this->registerTempestConnection($tag);
+        $handler = $this->orderHandler(static function (): void {
+        });
+        $ecotone = $this->bootstrap($handler, $connectionReference());
+
+        $ecotone->sendCommandWithRouting('order.place', 'milk');
+        $this->terminateServerSideOfTempestConnection();
+        $databaseConfig->refusals = 2;
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+        $ecotone->run('shipping', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
+    }
+
+    #[DataProvider('connectionReferences')]
     public function test_a_message_whose_transaction_lost_the_tempest_connection_is_handled_again_and_its_outbox_message_sent_once(Closure $connectionReference, ?string $tag): void
     {
         $this->registerTempestConnection($tag);
@@ -113,17 +134,69 @@ final class ConnectionTerminatedByServerTest extends TestCase
         return ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000, stopOnError: false);
     }
 
-    private function registerTempestConnection(?string $tag): void
+    private function registerTempestConnection(?string $tag): DatabaseConfig
     {
         $container = new GenericContainer();
         GenericContainer::setInstance($container);
 
-        $databaseConfig = TempestDatabaseConfigFactory::primary($tag);
+        $databaseConfig = new class (TempestDatabaseConfigFactory::primary($tag)) implements DatabaseConfig {
+            public int $refusals = 0;
+
+            public string $dsn {
+                get {
+                    if ($this->refusals > 0) {
+                        $this->refusals--;
+
+                        return 'pgsql:host=' . parse_url((string) getenv('DATABASE_DSN'), PHP_URL_HOST) . ';port=1;dbname=ecotone';
+                    }
+
+                    return $this->databaseConfig->dsn;
+                }
+            }
+
+            public NamingStrategy $namingStrategy {
+                get => $this->databaseConfig->namingStrategy;
+            }
+
+            public MigrationNamingStrategy $migrationNamingStrategy {
+                get => $this->databaseConfig->migrationNamingStrategy;
+            }
+
+            public DatabaseDialect $dialect {
+                get => $this->databaseConfig->dialect;
+            }
+
+            public ?string $username {
+                get => $this->databaseConfig->username;
+            }
+
+            public ?string $password {
+                get => $this->databaseConfig->password;
+            }
+
+            public bool $usePersistentConnection {
+                get => $this->databaseConfig->usePersistentConnection;
+            }
+
+            public array $options {
+                get => $this->databaseConfig->options;
+            }
+
+            public string|UnitEnum|null $tag {
+                get => $this->databaseConfig->tag;
+            }
+
+            public function __construct(private DatabaseConfig $databaseConfig)
+            {
+            }
+        };
         $this->tempestConnection = new PDOConnection($databaseConfig);
         $this->tempestConnection->connect();
 
         $container->singleton(DatabaseConfig::class, $databaseConfig, tag: $tag);
         $container->singleton(Connection::class, $this->tempestConnection, tag: $tag);
+
+        return $databaseConfig;
     }
 
     private function orderHandler(Closure $onFirstAttempt, bool $failing = false): object

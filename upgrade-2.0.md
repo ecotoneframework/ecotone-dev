@@ -2880,7 +2880,10 @@ repository of a flow test, is now checked against the version it was loaded at:
   `Ecotone\Api\Messaging\ConcurrencyException::forStaleAggregate()`, as every other backend does; a create that
   collides on another unique column raises Laravel's `UniqueConstraintViolationException` unchanged. A save that a
   `saving`, `creating` or `updating` listener cancels by returning `false` is refused with
-  `Ecotone\Api\Laravel\EloquentSaveCancelled` instead of being reported as handled. **How to adapt:** add an integer
+  `Ecotone\Api\Laravel\EloquentSaveCancelled` instead of being reported as handled. With
+  `#[Version(autoIncrease: false)]` the application moves the version itself: the guarded update compares the version
+  the model was loaded with and stores the one the handler set, and a save that does not increase it is refused with
+  `Ecotone\Api\Laravel\EloquentVersionNotIncreased`. **How to adapt:** add an integer
   column named after the `#[Version]` property — `$table->integer('version')` on a new table,
   `$table->integer('version')->default(0)` on a table that already has rows, which then start at version 0. Keep it
   non-null: a `NULL` version matches no guarded update, so that row would refuse every save. A repository of your own

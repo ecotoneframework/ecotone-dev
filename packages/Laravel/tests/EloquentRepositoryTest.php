@@ -14,6 +14,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Laravel\EloquentSaveCancelled;
+use Ecotone\Api\Laravel\EloquentVersionNotIncreased;
 use Ecotone\Api\Laravel\LaravelConnectionReference;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -356,6 +357,54 @@ class EloquentRepositoryTest extends TestCase
         $this->assertSame(['creating Untitled', 'saved Untitled', 'updating Renamed', 'saved Renamed'], $ticket::$events);
     }
 
+    public function test_an_eloquent_aggregate_whose_version_the_application_increases_is_saved_at_that_version(): void
+    {
+        $ticket = $this->ticketVersionedByTheApplication();
+        $ecotone = $this->bootstrapWith($ticket::class);
+        $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
+
+        $ecotone->sendCommandWithRouting('ticket.rename', metadata: ['aggregate.id' => 't-1', 'title' => 'First']);
+        $ecotone->sendCommandWithRouting('ticket.rename', metadata: ['aggregate.id' => 't-1', 'title' => 'Second']);
+
+        $this->assertSame('Second', $ecotone->sendQueryWithRouting('ticket.title', metadata: ['aggregate.id' => 't-1']));
+        $this->assertSame(3, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-1']));
+    }
+
+    public function test_an_eloquent_aggregate_whose_version_the_application_leaves_unchanged_is_refused_naming_the_way_out(): void
+    {
+        $ticket = $this->ticketVersionedByTheApplication();
+        $ecotone = $this->bootstrapWith($ticket::class);
+        $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
+
+        try {
+            $ecotone->sendCommandWithRouting('ticket.renameKeepingTheVersion', metadata: ['aggregate.id' => 't-1', 'title' => 'Unversioned']);
+            $this->fail('Expected the save that keeps the version to be refused');
+        } catch (EloquentVersionNotIncreased $exception) {
+            $this->assertStringContainsString('Eloquent model ' . $ticket::class . ' t-1 was saved at version 1, but it was loaded at version 1', $exception->getMessage());
+            $this->assertStringContainsString('increase the #[Version] property in the command handler, or remove autoIncrease: false', $exception->getMessage());
+        }
+
+        $this->assertSame('Untitled', $ecotone->sendQueryWithRouting('ticket.title', metadata: ['aggregate.id' => 't-1']));
+        $this->assertSame(1, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-1']));
+    }
+
+    public function test_an_eloquent_aggregate_whose_version_the_application_increases_loaded_twice_refuses_the_second_save(): void
+    {
+        $ticket = $this->ticketVersionedByTheApplication();
+        $ecotone = $this->bootstrapWith($ticket::class);
+        $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-1']);
+
+        try {
+            $ecotone->sendCommandWithRouting('ticket.renameWhileAnotherRenameLands', metadata: ['aggregate.id' => 't-1', 'title' => 'Overwritten']);
+            $this->fail('Expected the second save of the ticket to be refused');
+        } catch (ConcurrencyException $exception) {
+            $this->assertStringContainsString('Aggregate ' . $ticket::class . ' t-1 was loaded at version 1, but it is at version 2 now', $exception->getMessage());
+        }
+
+        $this->assertSame('Landed first', $ecotone->sendQueryWithRouting('ticket.title', metadata: ['aggregate.id' => 't-1']));
+        $this->assertSame(2, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-1']));
+    }
+
     public function test_a_save_cancelled_by_a_model_listener_is_refused_and_leaves_the_version_where_it_was(): void
     {
         $ticket = $this->ticketWithAnUpdatingListener();
@@ -491,6 +540,70 @@ class EloquentRepositoryTest extends TestCase
         )->sendCommandWithRouting('ticket.close', metadata: ['aggregate.id' => 'ticket-1']);
 
         $this->assertSame([['versionBeforeHandling' => 7, 'version' => 8]], $repository->saved);
+    }
+
+    private function ticketVersionedByTheApplication(): Model
+    {
+        return new #[Aggregate] class () extends Model {
+            protected $table = 'eloquent_repository_tickets';
+            protected $primaryKey = 'ticket_id';
+            protected $keyType = 'string';
+            public $incrementing = false;
+            public $timestamps = false;
+
+            #[Version(autoIncrease: false)]
+            private int $version = 0;
+
+            #[CommandHandler('ticket.open')]
+            public static function open(#[Header('ticketId')] string $ticketId): self
+            {
+                $ticket = new self();
+                $ticket->ticket_id = $ticketId;
+                $ticket->title = 'Untitled';
+                $ticket->version = 1;
+
+                return $ticket;
+            }
+
+            #[CommandHandler('ticket.rename')]
+            public function rename(#[Header('title')] string $title): void
+            {
+                $this->title = $title;
+                $this->version++;
+            }
+
+            #[CommandHandler('ticket.renameKeepingTheVersion')]
+            public function renameKeepingTheVersion(#[Header('title')] string $title): void
+            {
+                $this->title = $title;
+            }
+
+            #[CommandHandler('ticket.renameWhileAnotherRenameLands')]
+            public function renameWhileAnotherRenameLands(#[Header('title')] string $title, CommandBus $commandBus): void
+            {
+                $commandBus->sendWithRouting('ticket.rename', metadata: ['aggregate.id' => $this->ticket_id, 'title' => 'Landed first']);
+                $this->title = $title;
+                $this->version++;
+            }
+
+            #[QueryHandler('ticket.title')]
+            public function title(): string
+            {
+                return $this->title;
+            }
+
+            #[QueryHandler('ticket.version')]
+            public function version(): int
+            {
+                return $this->version;
+            }
+
+            #[IdentifierMethod('ticketId')]
+            public function ticketId(): string
+            {
+                return $this->getKey();
+            }
+        };
     }
 
     private function ticketWithAnUpdatingListener(): Model

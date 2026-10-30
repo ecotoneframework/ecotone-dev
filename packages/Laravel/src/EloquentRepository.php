@@ -4,6 +4,7 @@ namespace Ecotone\Laravel;
 
 use Closure;
 use Ecotone\Api\Laravel\EloquentSaveCancelled;
+use Ecotone\Api\Laravel\EloquentVersionNotIncreased;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Modelling\StateStoredRepository;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
@@ -47,18 +48,25 @@ class EloquentRepository implements StateStoredRepository
 
     public function save(array $identifiers, object $aggregate, array $metadata, ?int $versionBeforeHandling): void
     {
-        $versionColumn = $this->versionColumnOf($aggregate::class);
+        $aggregateDefinition = $this->aggregateDefinitionRegistry->getFor($aggregate::class);
+        $versionColumn = $aggregateDefinition->getAggregateVersionProperty();
         if ($versionColumn === null) {
             $aggregate->save();
 
             return;
         }
 
-        if ($aggregate->exists && $versionBeforeHandling === null) {
+        $versionIncreasedByEcotone = $aggregateDefinition->isAggregateVersionAutomaticallyIncreased();
+        if ($aggregate->exists && ($versionBeforeHandling === null || ! $versionIncreasedByEcotone)) {
             $versionBeforeHandling = (int) $aggregate->getOriginal($versionColumn);
-            $this->writeVersionProperty($aggregate, $versionColumn, $versionBeforeHandling + 1);
+            if ($versionIncreasedByEcotone) {
+                $this->writeVersionProperty($aggregate, $versionColumn, $versionBeforeHandling + 1);
+            }
         }
         $versionAfterHandling = $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($versionColumn), $aggregate);
+        if (! $versionIncreasedByEcotone && $versionAfterHandling <= (int) $versionBeforeHandling) {
+            throw EloquentVersionNotIncreased::for($aggregate::class, AggregateIdString::from($identifiers), (int) $versionBeforeHandling, $versionAfterHandling);
+        }
         $aggregate->setAttribute($versionColumn, $versionAfterHandling);
 
         try {

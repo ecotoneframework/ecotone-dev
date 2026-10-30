@@ -276,6 +276,50 @@ final class MessageFlowDistributedTest extends TestCase
         }
     }
 
+    public function test_routing_key_handed_by_reference_to_a_followed_helper_is_unresolved_from_there_on(): void
+    {
+        $service = new class () {
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event, DistributedBus $distributedBus): void
+            {
+                $this->send($distributedBus, 'tickets.hold');
+            }
+
+            #[EventHandler('seat.released')]
+            public function releaseSeat(array $event, DistributedBus $distributedBus): void
+            {
+                $this->sendDescribed($distributedBus, 'tickets.release');
+            }
+
+            private function send(DistributedBus $distributedBus, string $routingKey): void
+            {
+                $this->normalize($routingKey);
+                $distributedBus->sendMessage('ticketing', $routingKey, '{}');
+            }
+
+            private function sendDescribed(DistributedBus $distributedBus, string $routingKey): void
+            {
+                $this->describe($routingKey);
+                $distributedBus->sendMessage('ticketing', $routingKey, '{}');
+            }
+
+            private function normalize(string &$routingKey): void
+            {
+                $routingKey = 'tickets.v2.' . $routingKey;
+            }
+
+            private function describe(string $routingKey): string
+            {
+                return 'route ' . $routingKey;
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes');
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage']], $sendsOf('holdRequestedSeat'));
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.release', 'withoutReply' => true]], $sendsOf('releaseSeat'));
+    }
+
     public function test_helper_default_routing_key_applies_only_when_the_call_site_omits_the_argument(): void
     {
         $service = new class () {

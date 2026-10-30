@@ -419,18 +419,24 @@ final class HandlerSourceScanner
             if ($call === null && $function === null) {
                 continue;
             }
+            $byReference = null;
             if ($call !== null && in_array($call['receiver'], ['this', 'self', 'static'], true) && method_exists($className, $call['method'])) {
-                continue;
+                $byReference = $this->byReferenceParametersOf(new ReflectionMethod($className, $call['method']));
+                if ($byReference === []) {
+                    continue;
+                }
             }
             if ($function === 'extract') {
                 $passed[self::EVERY_VARIABLE] ??= $index;
             }
-            for ($argument = $index + 1; isset($tokens[$argument]) && $tokens[$argument]->text !== ')';) {
+            for ($argument = $index + 1, $position = 0; isset($tokens[$argument]) && $tokens[$argument]->text !== ')'; $position++) {
+                $parameter = $position;
                 if ($tokens[$argument]->is(T_STRING) && ($tokens[$argument + 1] ?? null)?->text === ':') {
+                    $parameter = $tokens[$argument]->text;
                     $argument += 2;
                 }
                 $end = $this->argumentEndAt($tokens, $argument);
-                if ($tokens[$argument]->is(T_VARIABLE)) {
+                if ($tokens[$argument]->is(T_VARIABLE) && ($byReference === null || isset($byReference[$parameter]))) {
                     $passed[$tokens[$argument]->text] ??= ($end ?? $argument) + 1;
                 }
                 if ($end === null) {
@@ -441,6 +447,22 @@ final class HandlerSourceScanner
         }
 
         return $passed;
+    }
+
+    /**
+     * @return array<int|string, true>
+     */
+    private function byReferenceParametersOf(ReflectionMethod $method): array
+    {
+        $byReference = [];
+        foreach ($method->getParameters() as $parameter) {
+            if ($parameter->isPassedByReference()) {
+                $byReference[$parameter->getPosition()] = true;
+                $byReference[$parameter->getName()] = true;
+            }
+        }
+
+        return $byReference;
     }
 
     /**

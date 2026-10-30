@@ -6,10 +6,12 @@ namespace Tests\Ordering;
 
 use App\Concert\ConcertCatalogue;
 use App\Concert\ConcertProjector;
+use App\Customer\RegisterCustomer;
 use App\Ordering\FailOrder;
 use App\Ordering\MarkSeatHeld;
 use App\Ordering\Order;
 use App\Ordering\RequestSeat;
+use App\Ordering\StartOrder;
 use App\Ordering\TicketingReplies;
 use App\Payment\Checkout;
 use App\Payment\PaymentAttempts;
@@ -17,6 +19,7 @@ use App\Payment\PaymentProvider;
 use App\Rush\Rushes;
 use App\Rush\RushSimulator;
 use App\Rush\StartRush;
+use DomainException;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
@@ -52,6 +55,8 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
 
             public ?object $commitsWhileOrderFails = null;
 
+            public ?object $commitsWhileOrderStarts = null;
+
             #[Around(pointcut: Order::class . '::markSeatHeld')]
             public function commitWhileSeatIsMarkedHeld(MethodInvocation $invocation, #[Reference] CommandBus $commandBus): mixed
             {
@@ -70,19 +75,36 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
                 return $this->commitFirst(command: $command, invocation: $invocation, commandBus: $commandBus);
             }
 
+            #[Around(pointcut: Order::class . '::start')]
+            public function commitWhileOrderStarts(MethodInvocation $invocation, #[Reference] CommandBus $commandBus): mixed
+            {
+                $startedOrder = $invocation->proceed();
+                $command = $this->commitsWhileOrderStarts;
+                $this->commitsWhileOrderStarts = null;
+                $this->commitOnAnotherConnection(command: $command, commandBus: $commandBus);
+
+                return $startedOrder;
+            }
+
             private function commitFirst(?object $command, MethodInvocation $invocation, CommandBus $commandBus): mixed
             {
-                if ($command !== null) {
-                    $connection = DB::getDefaultConnection();
-                    DB::setDefaultConnection('another_consumer');
-                    try {
-                        $commandBus->send($command);
-                    } finally {
-                        DB::setDefaultConnection($connection);
-                    }
-                }
+                $this->commitOnAnotherConnection(command: $command, commandBus: $commandBus);
 
                 return $invocation->proceed();
+            }
+
+            private function commitOnAnotherConnection(?object $command, CommandBus $commandBus): void
+            {
+                if ($command === null) {
+                    return;
+                }
+                $connection = DB::getDefaultConnection();
+                DB::setDefaultConnection('another_consumer');
+                try {
+                    $commandBus->send($command);
+                } finally {
+                    DB::setDefaultConnection($connection);
+                }
             }
         };
         $this->anotherConsumer = $anotherConsumer::class;
@@ -149,6 +171,21 @@ final class OrderConcurrencyTest extends StorefrontFlowTestCase
         $order = $this->order($orderId);
         self::assertSame('failed', $order['status']);
         self::assertCount(2, $order['heldSeats']);
+    }
+
+    public function test_an_order_started_while_another_consumer_starts_an_open_order_for_the_same_customer_and_concert_is_refused_and_leaves_one_open_order(): void
+    {
+        $customerId = $this->storefront->getCommandBus()->send(new RegisterCustomer(name: 'Ada Lovelace', email: 'ada@example.com'));
+        $this->app->make($this->anotherConsumer)->commitsWhileOrderStarts = new StartOrder(customerId: $customerId, concertId: self::CONCERT_ID);
+
+        try {
+            $this->storefront->getCommandBus()->send(new StartOrder(customerId: $customerId, concertId: self::CONCERT_ID));
+            self::fail('StartOrder was not refused');
+        } catch (DomainException $refusal) {
+            self::assertSame(sprintf('Customer %s already has an open order for concert %s, started by another request while this StartOrder ran, so StartOrder cannot start another: a customer has one open order per concert. Find that order with the customer.open_order query and hold more seats on it, or pay for it or release its seats before starting a new one.', $customerId, self::CONCERT_ID), $refusal->getMessage());
+        }
+
+        self::assertCount(1, $this->storefront->sendQueryWithRouting('customer.orders', $customerId));
     }
 
     private function rushRuns(int $rounds): void

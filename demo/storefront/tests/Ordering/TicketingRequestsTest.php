@@ -16,6 +16,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Interceptor\Precedence;
+use Illuminate\Support\Carbon;
 use RuntimeException;
 
 /**
@@ -180,6 +181,21 @@ final class TicketingRequestsTest extends StorefrontFlowTestCase
         $this->expectExceptionMessage(sprintf('Order %s already holds seat %s/A-12, so RequestSeat does not ask ticketing for it again. Pick another seat, or release this one with ReleaseSeat.', $orderId, self::CONCERT_ID));
 
         $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-1'));
+    }
+
+    public function test_requesting_a_seat_whose_hold_expired_before_its_expiry_reached_the_order_asks_ticketing_to_hold_it_again(): void
+    {
+        $orderId = $this->startOrderOf('Ada Lovelace', 'ada@example.com');
+        $customerId = $this->order($orderId)['customerId'];
+        $this->seatIsHeld($orderId, self::CONCERT_ID . '/A-12');
+        Carbon::setTestNow('2026-10-25 12:03:00');
+        $this->ticketingService->holdReplies[] = ['orderId' => $orderId, 'concertId' => self::CONCERT_ID, 'seatId' => self::CONCERT_ID . '/A-12', 'customerId' => $customerId, 'holdId' => 'hold-2', 'outcome' => 'held', 'reason' => null, 'reasonCode' => null, 'expiresAt' => '2026-10-25T12:05:00+00:00'];
+
+        $this->storefront->getCommandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-12', holdId: 'hold-2'));
+
+        self::assertSame([['tickets.hold', self::CONCERT_ID . '/A-12', 'hold-2']], array_map(fn (array $request) => [$request[0], $request[1]['seatId'], $request[1]['holdId']], $this->ticketingReceives()));
+        $this->storefrontConsumes();
+        self::assertSame([['seatId' => self::CONCERT_ID . '/A-12', 'expiresAt' => '2026-10-25T12:05:00+00:00']], $this->order($orderId)['heldSeats']);
     }
 
     public function test_requesting_a_seat_once_payment_began_is_refused_and_sends_nothing(): void

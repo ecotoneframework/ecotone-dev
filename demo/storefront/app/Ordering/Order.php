@@ -16,6 +16,7 @@ use Ecotone\Api\Attribute\Version;
 use Ecotone\Api\Modelling\WithEvents;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -109,8 +110,11 @@ final class Order extends Model
     {
         $this->assertAccepts('RequestSeat', ...self::OPEN_STATUSES);
         $this->assertSeatOfThisConcert($command->seatId, 'RequestSeat');
-        if (in_array($command->seatId, $this->heldSeatIds(), true)) {
+        if (in_array($command->seatId, $this->claimedSeatIdsAt(Carbon::now()->toDateTimeImmutable()), true)) {
             throw new DomainException(sprintf('Order %s already holds seat %s, so RequestSeat does not ask ticketing for it again. Pick another seat, or release this one with ReleaseSeat.', $this->id, $command->seatId));
+        }
+        if (in_array($command->seatId, $this->heldSeatIds(), true)) {
+            $this->dropHeldSeat($command->seatId);
         }
         if (isset($this->requested_holds[$command->seatId])) {
             return;

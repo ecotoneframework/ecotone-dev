@@ -2738,6 +2738,9 @@ went empty within the same run: call `run()` again after it arrives. A cron job 
 `--finishWhenNoMessages` and must give up sooner on an unreachable channel bounds the run with `--executionTimeLimit`,
 or shortens the back-off with `ServiceConfiguration::withConnectionRetryTemplate()`.
 
+A consumer with an initial delay or a cron trigger now waits for it, receives once, and then stops. Before, its first
+wait already passed the 10 ms window, so the run stopped without receiving.
+
 ### Symfony and Laravel `defaultConnectionExceptionRetry` is applied as configured
 
 **Before:** both integrations passed `maxAttempts` as the back-off multiplier and `multiplier` as a maximum delay in

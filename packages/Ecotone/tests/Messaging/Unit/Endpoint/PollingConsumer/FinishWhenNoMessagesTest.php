@@ -116,6 +116,16 @@ final class FinishWhenNoMessagesTest extends TestCase
         $this->assertSame(['first', 'second', 'third', 'stopped at 00:00:00.003'], $ecotone->sendQueryWithRouting('consumer.log'));
     }
 
+    public function test_a_run_with_an_initial_delay_receives_once_before_it_stops(): void
+    {
+        $ecotone = $this->bootstrap(PollingMetadata::create('async')->withInitialDelayInMilliseconds(100));
+
+        $ecotone->sendCommandWithRouting('register', 'first');
+        $ecotone->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $this->assertSame(['first', 'stopped at 00:00:00.101'], $ecotone->sendQueryWithRouting('consumer.log'));
+    }
+
     public function test_console_run_with_finish_when_no_messages_keeps_the_handled_message_limit(): void
     {
         $ecotone = $this->bootstrapWithThreeMessages();

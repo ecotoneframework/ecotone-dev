@@ -92,7 +92,12 @@ final class ConcurrentWritersTest extends ReleasingWebTestCase
 
     private function isRunning(int $process): bool
     {
-        return pcntl_waitpid($process, $status, WNOHANG) === 0;
+        if (pcntl_waitpid($process, $status, WNOHANG) === 0) {
+            return true;
+        }
+        $this->processes = array_values(array_diff($this->processes, [$process]));
+
+        return false;
     }
 
     private function bothServicesConnected(KernelBrowser $client): bool

@@ -221,6 +221,21 @@ class EloquentRepositoryTest extends TestCase
         $ecotone->sendCommandWithRouting('ticket.openWithSlug', metadata: ['ticketId' => 't-9', 'slug' => 'same']);
     }
 
+    public function test_updating_a_versioned_eloquent_aggregate_that_collides_on_another_unique_column_raises_the_database_error(): void
+    {
+        $ecotone = $this->bootstrapWith(EloquentRepositoryTicket::class);
+        $ecotone->sendCommandWithRouting('ticket.openWithSlug', metadata: ['ticketId' => 't-1', 'slug' => 'taken']);
+        $ecotone->sendCommandWithRouting('ticket.open', metadata: ['ticketId' => 't-2']);
+
+        try {
+            $ecotone->sendCommandWithRouting('ticket.changeSlug', metadata: ['aggregate.id' => 't-2', 'slug' => 'taken']);
+            $this->fail('Expected the taken slug to be refused by the database');
+        } catch (UniqueConstraintViolationException) {
+        }
+
+        $this->assertSame(1, $ecotone->sendQueryWithRouting('ticket.version', metadata: ['aggregate.id' => 't-2']));
+    }
+
     public function test_an_eloquent_aggregate_versioned_through_the_trait_loaded_twice_refuses_the_second_save(): void
     {
         $ticket = new #[Aggregate] class () extends Model {
@@ -581,6 +596,12 @@ class EloquentRepositoryTicket extends Model
         $ticket->slug = $slug;
 
         return $ticket;
+    }
+
+    #[CommandHandler('ticket.changeSlug')]
+    public function changeSlug(#[Header('slug')] string $slug): void
+    {
+        $this->slug = $slug;
     }
 
     #[CommandHandler(routingKey: 'ticket.openTitled', outputChannelName: 'ticket.retitle', identifierMetadataMapping: ['ticketId' => 'ticketId'])]

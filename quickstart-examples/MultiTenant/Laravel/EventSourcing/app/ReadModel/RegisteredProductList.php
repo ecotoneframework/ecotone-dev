@@ -39,11 +39,7 @@ final readonly class RegisteredProductList
     #[ProjectionDelete]
     public function remove(): void
     {
-        if (Schema::hasTable(self::TABLE_NAME)) {
-            return;
-        }
-
-        Schema::drop(self::TABLE_NAME);
+        Schema::dropIfExists(self::TABLE_NAME);
     }
 
     /**

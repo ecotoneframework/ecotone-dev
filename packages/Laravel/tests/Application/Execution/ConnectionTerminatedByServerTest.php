@@ -104,6 +104,7 @@ final class ConnectionTerminatedByServerTest extends TestCase
             PollingMetadata::create('orders')->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL),
             InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
         ]);
+        $ecotone->getGateway(DeadLetterGateway::class)->deleteAll();
 
         $ecotone->sendCommandWithRouting('order.place', 'milk');
         $ecotone->run('orders', self::untilOneMessageIsHandled());

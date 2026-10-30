@@ -3134,12 +3134,15 @@ never checked against the class it describes. When a class gained a property, de
 the new property stayed uninitialized, and reading it failed with "Typed property ... must not be accessed before
 initialization" — until the directory was deleted by hand.
 
-**Now:** outside production the cache compares each entry with its class file and re-reads a class that changed.
-Production — the `prod` or `production` environment (Symfony's `kernel.environment`, Laravel's `APP_ENV`,
-`EcotoneLite`'s `environment:`) — keeps trusting the cache as before, so a deployment still clears Ecotone's cache.
-Any other environment name checks freshness, `staging` included. `EcotoneLite`'s `environment:` defaults to `dev`, so a
-Lite deployment that never passed it now checks freshness in production too: one `filemtime` per cached class per
-process, never a wrong result.
+**Now:** outside production the cache compares each entry with the files of its class and of every trait the class
+uses, and re-reads a class whose file changed after the entry was written. The comparison is by modification time, so
+a deployment that keeps the files' older timestamps (`rsync -a`, a Docker `COPY`, an archive) still needs Ecotone's
+cache cleared. Production — the `prod` or `production` environment (Symfony's `kernel.environment`, Laravel's
+`APP_ENV`, `EcotoneLite`'s `environment:`) — keeps trusting the cache as before, so a deployment still clears Ecotone's
+cache. Any other environment name checks freshness, `staging` included. `EcotoneLite`'s `environment:` defaults to
+`dev`, so a Lite deployment that never passed it now checks freshness in production too: a `filemtime` per class and
+trait file each process reads metadata for, repeated by `doctrine/annotations`' cached reader when that package is
+installed.
 
 **How to adapt:** nothing. To keep the old behaviour in such a deployment, pass `environment: 'prod'` to `EcotoneLite`.
 To decide it yourself in any environment, return

@@ -82,12 +82,11 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
             $builder,
         );
 
-        // Create a separate connection factory for sending resent messages with publisher confirms enabled
         $publisherConnectionFactory = CachedConnectionFactories::definitionFor(
             new Definition(AmqpReconnectableConnectionFactory::class, [
                 new Reference($this->connectionReferenceName),
                 Uuid::v7()->toRfc4122(),
-                true, // Enable publisher confirms
+                true,
             ]),
             $builder,
         );

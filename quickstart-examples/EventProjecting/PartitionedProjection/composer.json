@@ -22,11 +22,11 @@
         }
     },
     "require": {
-        "ecotone/dbal": "~1.328.2",
-        "ecotone/jms-converter": "~1.328.2",
-        "ecotone/lite-application": "~1.328.2",
+        "ecotone/dbal": "~1.328.3",
+        "ecotone/jms-converter": "~1.328.3",
+        "ecotone/lite-application": "~1.328.3",
         "ecotone/lite-event-sourcing-starter": "^1.0",
-        "ecotone/pdo-event-sourcing": "~1.328.2",
+        "ecotone/pdo-event-sourcing": "~1.328.3",
         "ramsey/uuid": "^4.0"
     },
     "require-dev": {

@@ -3,6 +3,19 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.328.3] - 2026-10-29
+
+## What's Changed
+* fix: release each tag from its own major-version branch by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/708
+* fix: keep releases green when announcements fail by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/709
+* fix: Tempest applications on 1.x resolve their services again with tempest/framework 3.20 by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/744
+* fix: resolve connection factories by reference name for #[DbalTransaction] by @pkusmierczyk in https://github.com/ecotoneframework/ecotone-dev/pull/738
+
+## New Contributors
+* @pkusmierczyk made their first contribution in https://github.com/ecotoneframework/ecotone-dev/pull/738
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.328.2...1.328.3
+
 ## [1.328.2] - 2026-10-10
 
 **Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.328.1...1.328.2

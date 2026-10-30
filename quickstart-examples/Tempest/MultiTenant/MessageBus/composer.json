@@ -22,9 +22,9 @@
         }
     },
     "require": {
-        "ecotone/tempest": "~1.328.2",
-        "ecotone/dbal": "~1.328.2",
-        "ecotone/jms-converter": "~1.328.2",
+        "ecotone/tempest": "~1.328.3",
+        "ecotone/dbal": "~1.328.3",
+        "ecotone/jms-converter": "~1.328.3",
         "tempest/framework": "^3.11",
         "ramsey/uuid": "^4.0",
         "symfony/expression-language": "^6.4|^7.0|^8.0"

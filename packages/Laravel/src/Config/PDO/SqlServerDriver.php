@@ -5,7 +5,9 @@ namespace Ecotone\Laravel\Config\PDO;
 use Doctrine\DBAL\Driver\AbstractSQLServerDriver;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
 use Doctrine\DBAL\Driver\Connection as DriverConnection;
+use Doctrine\DBAL\Driver\PDO\Exception;
 use Illuminate\Database\Connection as LaravelConnection;
+use PDOException;
 
 /**
  * licence MIT
@@ -26,11 +28,15 @@ class SqlServerDriver extends AbstractSQLServerDriver
      */
     public function connect(array $params, $username = null, $password = null, array $driverOptions = []): DriverConnection
     {
-        $this->laravelConnection->reconnectIfMissingConnection();
+        try {
+            $this->laravelConnection->reconnectIfMissingConnection();
 
-        return new SqlServerConnection(
-            new Connection($this->laravelConnection->getPdo())
-        );
+            return new SqlServerConnection(
+                new Connection($this->laravelConnection->getPdo())
+            );
+        } catch (PDOException $exception) {
+            throw Exception::new($exception);
+        }
     }
 
     public function getExceptionConverter(): ExceptionConverter

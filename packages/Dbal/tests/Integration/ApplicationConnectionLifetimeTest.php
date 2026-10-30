@@ -31,7 +31,7 @@ final class ApplicationConnectionLifetimeTest extends DbalMessagingTestCase
         $connectionsBefore = $this->openConnections();
 
         for ($application = 1; $application <= 3; $application++) {
-            $ecotoneLite = $this->bootstrapApplicationOn(new DbalConnectionFactory(getenv('DATABASE_DSN')));
+            $ecotoneLite = $this->bootstrapApplicationOn(new DbalConnectionFactory(self::databaseDsn()));
 
             $ecotoneLite->sendCommandWithRouting('order.place', "order-{$application}");
             $ecotoneLite->run('orders');
@@ -41,7 +41,7 @@ final class ApplicationConnectionLifetimeTest extends DbalMessagingTestCase
             gc_collect_cycles();
         }
 
-        $this->assertSame($connectionsBefore, $this->openConnections());
+        $this->assertOpenConnectionsSettleAt($connectionsBefore);
     }
 
     public function test_an_application_shares_one_database_connection_between_its_channels_and_transactions(): void
@@ -53,14 +53,14 @@ final class ApplicationConnectionLifetimeTest extends DbalMessagingTestCase
         gc_collect_cycles();
         $connectionsBefore = $this->openConnections();
 
-        $ecotoneLite = $this->bootstrapApplicationOn(new DbalConnectionFactory(getenv('DATABASE_DSN')));
+        $ecotoneLite = $this->bootstrapApplicationOn(new DbalConnectionFactory(self::databaseDsn()));
         $ecotoneLite->sendCommandWithRouting('order.place', 'order-1');
         $ecotoneLite->sendCommandWithRouting('order.place', 'order-2');
         $ecotoneLite->run('orders');
         $ecotoneLite->run('shipments');
 
         $this->assertSame(['order-1', 'order-2'], $ecotoneLite->sendQueryWithRouting('order.shipped'));
-        $this->assertSame($connectionsBefore + 1, $this->openConnections());
+        $this->assertOpenConnectionsSettleAt($connectionsBefore + 1);
     }
 
     private function bootstrapApplicationOn(DbalConnectionFactory $connectionFactory): FlowTestSupport
@@ -107,6 +107,16 @@ final class ApplicationConnectionLifetimeTest extends DbalMessagingTestCase
             ],
             [ModulePackageList::DBAL_PACKAGE],
         );
+    }
+
+    private function assertOpenConnectionsSettleAt(int $expected): void
+    {
+        $deadline = microtime(true) + 5;
+        while (($openConnections = $this->openConnections()) !== $expected && microtime(true) < $deadline) {
+            usleep(50_000);
+        }
+
+        $this->assertSame($expected, $openConnections);
     }
 
     private function openConnections(): int

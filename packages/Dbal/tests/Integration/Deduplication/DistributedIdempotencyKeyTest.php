@@ -66,7 +66,7 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
 
         $userService->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'Printer is broken', idempotencyKey: 'request-1');
         $userService->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'Printer is broken', idempotencyKey: 'request-1');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['command: Printer is broken'], $tickets->handled);
     }
@@ -78,7 +78,7 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
 
         $userService->getDistributedBus()->convertAndSendCommand('ticket_service', 'ticket.create', ['description' => 'Printer is broken'], idempotencyKey: 'request-1');
         $userService->getDistributedBus()->convertAndSendCommand('ticket_service', 'ticket.create', ['description' => 'Printer is broken'], idempotencyKey: 'request-1');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertCount(1, $tickets->handled);
     }
@@ -90,7 +90,7 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
 
         $userService->getDistributedBus()->publishEvent('user.registered', 'johny', idempotencyKey: 'registration-1');
         $userService->getDistributedBus()->publishEvent('user.registered', 'johny', idempotencyKey: 'registration-1');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['event: johny'], $tickets->handled);
     }
@@ -102,7 +102,7 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
 
         $userService->getDistributedBus()->convertAndPublishEvent('user.registered', ['name' => 'johny'], idempotencyKey: 'registration-1');
         $userService->getDistributedBus()->convertAndPublishEvent('user.registered', ['name' => 'johny'], idempotencyKey: 'registration-1');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertCount(1, $tickets->handled);
     }
@@ -114,7 +114,7 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
 
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'confirm-1');
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'confirm-1');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['message: seat-7'], $tickets->handled);
     }
@@ -126,7 +126,7 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
 
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'confirm-1');
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'confirm-2');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['message: seat-7', 'message: seat-7'], $tickets->handled);
     }
@@ -138,7 +138,7 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
 
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7');
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['message: seat-7', 'message: seat-7'], $tickets->handled);
     }
@@ -151,7 +151,7 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'order-1');
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.cancel', 'seat-7', idempotencyKey: 'order-1');
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.cancel', 'seat-7', idempotencyKey: 'order-1');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['message: seat-7', 'cancelled: seat-7'], $tickets->handled);
     }
@@ -162,8 +162,8 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
         [$userService, $ticketService, $tickets] = $this->services($inMemory);
 
         $userService->sendCommandWithRouting('order.confirm', 'seat-7');
-        $userService->run('user_outbox', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $userService->run('user_outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withExecutionTimeLimitInMilliseconds(10000));
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(2, $userService->sendQueryWithRouting('order.confirmationAttempts'));
         self::assertSame(['message: seat-7'], $tickets->handled);
@@ -175,8 +175,8 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
         [$userService, $ticketService, $tickets] = $this->services($inMemory);
 
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.issue', 'seat-7', idempotencyKey: 'issue-1');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $ticketService->run('ticket_work', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $ticketService->run('ticket_work', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['printed: seat-7 front', 'printed: seat-7 back'], $tickets->handled);
     }
@@ -189,7 +189,7 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.reserve', 'seat-7', idempotencyKey: 'reserve-1');
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.reserve', 'seat-7', idempotencyKey: 'reserve-1');
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.reserve', 'seat-8', idempotencyKey: 'reserve-2');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['reserved: seat-7', 'reserved: seat-8'], $tickets->handled);
     }
@@ -201,8 +201,8 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
 
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.reserve', 'seat-7', replyRoutingKey: 'ticket.reserved', idempotencyKey: 'reserve-1');
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.reserve', 'seat-7', replyRoutingKey: 'ticket.reserved', idempotencyKey: 'reserve-1');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $userService->run('user_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['reservation of seat-7'], $userService->sendQueryWithRouting('order.reservations'));
     }
@@ -217,7 +217,7 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
 
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'order-1');
         $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'order-1');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['seat-7'], $tickets->handled);
     }
@@ -236,8 +236,8 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
 
         $userService->getDistributedBus()->publishEvent('user.registered', 'johny', idempotencyKey: 'registration-1');
         $userService->getDistributedBus()->publishEvent('user.registered', 'johny', idempotencyKey: 'registration-1');
-        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $billingService->run('billing_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $billingService->run('billing_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['johny'], $tickets->handled);
         self::assertSame(['johny'], $billing->handled);

@@ -71,6 +71,9 @@ final class SendRetryChannelInterceptor extends AbstractChannelInterceptor imple
 
                     return SendRecovery::Delivered;
                 } catch (Exception $exception) {
+                    if ($exception instanceof DatabaseTransactionLost) {
+                        return $this->recover($message, $messageChannel, $exception);
+                    }
                     $messageToRedeliver = $this->messageContainingOnlyFailedDeliveries($messageToRedeliver, $exception);
                     $attempt++;
                 }

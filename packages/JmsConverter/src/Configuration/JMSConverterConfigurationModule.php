@@ -97,8 +97,7 @@ final class JMSConverterConfigurationModule extends NoExternalConfigurationModul
 
         $messagingConfiguration->registerConverter(new JMSConverterBuilder(
             $this->jmsHandlerAdapters,
-            $jmsConverterConfiguration,
-            checkMetadataCacheFreshness: $jmsConverterConfiguration->metadataCacheFreshnessCheck ?? ! $bootstrapConfiguration->isProductionConfiguration(),
+            $jmsConverterConfiguration->withMetadataCacheFreshnessCheck($jmsConverterConfiguration->metadataCacheFreshnessCheck ?? ! $bootstrapConfiguration->isProductionConfiguration()),
         ));
     }
 

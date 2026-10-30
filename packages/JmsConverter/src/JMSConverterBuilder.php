@@ -27,14 +27,14 @@ class JMSConverterBuilder implements CompilableBuilder
     /**
      * @param JMSHandlerAdapterBuilder[] $converterHandlerBuilders
      */
-    public function __construct(private array $converterHandlerBuilders, private JMSConverterConfiguration $jmsConverterConfiguration, private bool $checkMetadataCacheFreshness)
+    public function __construct(private array $converterHandlerBuilders, private JMSConverterConfiguration $jmsConverterConfiguration)
     {
     }
 
     /**
      * @param JMSHandlerAdapter[] $convertersHandlers
      */
-    public static function buildJMSConverter(JMSConverterConfiguration $jmsConverterConfiguration, ServiceCacheConfiguration $serviceCacheConfiguration, array $convertersHandlers, bool $checkMetadataCacheFreshness): Converter
+    public static function buildJMSConverter(JMSConverterConfiguration $jmsConverterConfiguration, ServiceCacheConfiguration $serviceCacheConfiguration, array $convertersHandlers): Converter
     {
         $driverFactory = new DefaultDriverFactory(
             $jmsConverterConfiguration->namingStrategy === JMSConverterConfiguration::IDENTICAL_PROPERTY_NAMING_STRATEGY
@@ -69,7 +69,7 @@ class JMSConverterBuilder implements CompilableBuilder
         if ($serviceCacheConfiguration->shouldUseCache()) {
             $builder
                 ->setCacheDir($serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'jms')
-                ->setDebug($checkMetadataCacheFreshness);
+                ->setDebug($jmsConverterConfiguration->metadataCacheFreshnessCheck === true);
         }
 
         return new JMSConverter($builder->build(), $jmsConverterConfiguration);
@@ -91,7 +91,6 @@ class JMSConverterBuilder implements CompilableBuilder
             $configuration,
             Reference::to(ServiceCacheConfiguration::class),
             $converterHandlers,
-            $this->checkMetadataCacheFreshness,
         ], [self::class, 'buildJMSConverter']);
     }
 }

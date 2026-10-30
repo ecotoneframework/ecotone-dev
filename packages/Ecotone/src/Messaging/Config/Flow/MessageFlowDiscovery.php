@@ -309,7 +309,11 @@ final class MessageFlowDiscovery
 
     private function replies(AnnotatedFinding $registration): bool
     {
-        $returnType = $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->getReturnType();
+        $handler = $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
+        if ($registration->hasClassAnnotation(Aggregate::class) && $handler->isFactoryMethod()) {
+            return true;
+        }
+        $returnType = $handler->getReturnType();
 
         return $returnType !== null && ! $returnType->isVoid() && ! $returnType->isAnything() && ! $returnType->equals(Type::object($registration->getClassName()));
     }

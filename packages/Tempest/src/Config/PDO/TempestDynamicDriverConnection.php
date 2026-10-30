@@ -82,7 +82,7 @@ final class TempestDynamicDriverConnection implements DriverConnection
     {
         try {
             $pdo = $this->pdo();
-            $pdo->beginTransaction();
+            TempestConnectionPdo::beginTransaction($pdo);
         } catch (PDOException $e) {
             throw Exception::new($e);
         }

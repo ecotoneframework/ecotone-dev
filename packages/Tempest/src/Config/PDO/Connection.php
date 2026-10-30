@@ -71,7 +71,7 @@ final class Connection implements DriverConnection, ServerVersionProvider
     public function beginTransaction(): void
     {
         try {
-            $this->pdo->beginTransaction();
+            TempestConnectionPdo::beginTransaction($this->pdo);
         } catch (PDOException $e) {
             throw Exception::new($e);
         }

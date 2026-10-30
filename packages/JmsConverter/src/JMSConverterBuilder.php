@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\Converter;
+use JMS\Serializer\Builder\DefaultDriverFactory;
 use JMS\Serializer\Handler\DateHandler;
 use JMS\Serializer\Handler\HandlerRegistry;
 use JMS\Serializer\Naming\CamelCaseNamingStrategy;
@@ -35,12 +36,15 @@ class JMSConverterBuilder implements CompilableBuilder
      */
     public static function buildJMSConverter(JMSConverterConfiguration $jmsConverterConfiguration, ServiceCacheConfiguration $serviceCacheConfiguration, array $convertersHandlers, bool $checkMetadataCacheFreshness): Converter
     {
+        $driverFactory = new DefaultDriverFactory(
+            $jmsConverterConfiguration->namingStrategy === JMSConverterConfiguration::IDENTICAL_PROPERTY_NAMING_STRATEGY
+                ? new IdenticalPropertyNamingStrategy()
+                : new CamelCaseNamingStrategy()
+        );
+        $driverFactory->enableEnumSupport($jmsConverterConfiguration->enableEnumSupport);
+
         $builder = SerializerBuilder::create()
-            ->setPropertyNamingStrategy(
-                $jmsConverterConfiguration->namingStrategy === JMSConverterConfiguration::IDENTICAL_PROPERTY_NAMING_STRATEGY
-                    ? new IdenticalPropertyNamingStrategy()
-                    : new CamelCaseNamingStrategy()
-            )
+            ->setMetadataDriverFactory(new TraitFilesTrackingDriverFactory($driverFactory))
             ->setDocBlockTypeResolver(true)
             ->enableEnumSupport($jmsConverterConfiguration->enableEnumSupport)
             ->addDefaultHandlers()

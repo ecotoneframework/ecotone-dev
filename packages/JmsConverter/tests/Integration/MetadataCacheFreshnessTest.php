@@ -58,6 +58,14 @@ final class MetadataCacheFreshnessTest extends TestCase
         );
     }
 
+    public function test_a_class_whose_trait_gained_a_property_deserializes_with_it_outside_production(): void
+    {
+        $this->assertSame(
+            ['seat' => 'A1', 'row' => 7],
+            $this->deserializeAfterTheClassGainedARow('dev', [], throughATrait: true),
+        );
+    }
+
     public function test_the_metadata_cache_freshness_check_can_be_enabled_in_production(): void
     {
         $this->assertSame(
@@ -78,17 +86,23 @@ final class MetadataCacheFreshnessTest extends TestCase
      * @param object[] $extensionObjects
      * @return array<string, mixed>
      */
-    private function deserializeAfterTheClassGainedARow(string $environment, array $extensionObjects): array
+    private function deserializeAfterTheClassGainedARow(string $environment, array $extensionObjects, bool $throughATrait = false): array
     {
         $namespace = 'Test\\Ecotone\\JMSConverter\\Generated\\Run' . bin2hex(random_bytes(6));
         $className = $namespace . '\\SeatHeld';
         $classFile = $this->directory . '/SeatHeld.php';
+        $traitFile = $this->directory . '/SeatPosition.php';
         $registeredClassName = $namespace . '\\SeatMap';
         $registeredClassFile = $this->directory . '/SeatMap.php';
         $cacheDirectory = $this->directory . '/cache';
 
         file_put_contents($registeredClassFile, "<?php\nnamespace {$namespace};\nfinal class SeatMap\n{\n}\n");
-        file_put_contents($classFile, "<?php\nnamespace {$namespace};\nfinal class SeatHeld\n{\n    public string \$seat;\n}\n");
+        if ($throughATrait) {
+            file_put_contents($traitFile, "<?php\nnamespace {$namespace};\ntrait SeatPosition\n{\n    public string \$seat;\n}\n");
+            file_put_contents($classFile, "<?php\nnamespace {$namespace};\nrequire_once __DIR__ . '/SeatPosition.php';\nfinal class SeatHeld\n{\n    use SeatPosition;\n}\n");
+        } else {
+            file_put_contents($classFile, "<?php\nnamespace {$namespace};\nfinal class SeatHeld\n{\n    public string \$seat;\n}\n");
+        }
         $previousDeployment = $this->directory . '/previous_deployment.php';
         file_put_contents($previousDeployment, sprintf(
             <<<'PHP'
@@ -119,8 +133,13 @@ final class MetadataCacheFreshnessTest extends TestCase
         exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($previousDeployment) . ' 2>&1', $output, $exitCode);
         $this->assertSame([0, []], [$exitCode, $output]);
 
-        file_put_contents($classFile, "<?php\nnamespace {$namespace};\nfinal class SeatHeld\n{\n    public string \$seat;\n    public int \$row;\n}\n");
-        touch($classFile, time() + 10);
+        if ($throughATrait) {
+            file_put_contents($traitFile, "<?php\nnamespace {$namespace};\ntrait SeatPosition\n{\n    public string \$seat;\n    public int \$row;\n}\n");
+            touch($traitFile, time() + 10);
+        } else {
+            file_put_contents($classFile, "<?php\nnamespace {$namespace};\nfinal class SeatHeld\n{\n    public string \$seat;\n    public int \$row;\n}\n");
+            touch($classFile, time() + 10);
+        }
         require $registeredClassFile;
         require $classFile;
 

@@ -282,7 +282,7 @@ final class CheckoutPagesTest extends TestCase
         self::assertSame([self::CONCERT_ID . '/A-1', self::CONCERT_ID . '/B-1'], $askingSeatIds());
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
         self::assertSame([self::CONCERT_ID . '/B-1'], $askingSeatIds());
-        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-2', reason: 'someone was faster: seat B-1'));
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/B-1', holdId: 'hold-2', reason: 'someone was faster: seat B-1', reasonCode: 'seat_held'));
         self::assertSame([], $askingSeatIds());
     }
 
@@ -290,11 +290,11 @@ final class CheckoutPagesTest extends TestCase
     {
         [$customerId, $orderId] = $this->startedOrder();
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused'));
-        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused', reason: 'someone was faster: seat A-1'));
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused', reason: 'someone was faster: seat A-1', reasonCode: 'seat_held'));
 
         $response = $this->withCredentials()->withCookie(self::CUSTOMER_COOKIE, $customerId)->getJson('/orders/' . $orderId . '/state.json');
 
-        $response->assertJsonPath('lastRefusal', ['seatId' => self::CONCERT_ID . '/A-1', 'reason' => 'someone was faster: seat A-1']);
+        $response->assertJsonPath('lastRefusal', ['seatId' => self::CONCERT_ID . '/A-1', 'reason' => 'someone was faster: seat A-1', 'reasonCode' => 'seat_held']);
     }
 
     public function test_the_order_state_marks_seats_of_other_live_orders_of_the_concert_as_taken(): void
@@ -496,7 +496,7 @@ final class CheckoutPagesTest extends TestCase
     {
         [$customerId, $orderId] = $this->startedOrder();
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused'));
-        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused', reason: 'someone was faster: seat A-1'));
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused', reason: 'someone was faster: seat A-1', reasonCode: 'seat_held'));
 
         $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId);
 

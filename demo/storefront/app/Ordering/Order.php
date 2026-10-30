@@ -26,7 +26,7 @@ use Symfony\Component\Uid\Uuid;
  * @property list<array{seatId: string, holdId: string, expiresAt: string, expired?: bool}> $held_seats
  * @property array<string, string> $requested_holds
  * @property array{seatId: string, holdId: string}|null $asked_hold
- * @property array{seatId: string, reason: string}|null $last_refusal
+ * @property array{seatId: string, reason: string, reasonCode: string}|null $last_refusal
  * @property list<array{ticketNumber: string, seatId: string, tier: string, entryCode: string}> $tickets
  * @property string|null $payment_reference
  * @property string|null $failure_reason
@@ -40,6 +40,7 @@ final class Order extends Model
     use WithEvents;
 
     public const OPEN_STATUSES = [OrderStatus::STARTED, OrderStatus::SEATS_HELD];
+    public const SEAT_CLAIMING_STATUSES = [OrderStatus::STARTED, OrderStatus::SEATS_HELD, OrderStatus::PAYING, OrderStatus::PAID];
 
     public $incrementing = false;
     protected $keyType = 'string';
@@ -182,7 +183,7 @@ final class Order extends Model
         if (! in_array($this->status, self::OPEN_STATUSES, true)) {
             return;
         }
-        $this->last_refusal = ['seatId' => $command->seatId, 'reason' => $command->reason];
+        $this->last_refusal = ['seatId' => $command->seatId, 'reason' => $command->reason, 'reasonCode' => $command->reasonCode];
         $this->recordThat(new SeatRefused(orderId: $this->id, concertId: $this->concert_id, customerId: $this->customer_id, seatId: $command->seatId, holdId: $command->holdId, reason: $command->reason));
     }
 
@@ -253,7 +254,7 @@ final class Order extends Model
     #[CommandHandler]
     public function recordConfirmationRefusal(RecordConfirmationRefusal $command): void
     {
-        if ($this->seats_sold || $this->status === OrderStatus::TICKETS_ISSUED) {
+        if ($this->seats_sold || in_array($this->status, [OrderStatus::TICKETS_ISSUED, OrderStatus::FAILED], true)) {
             return;
         }
         $this->fail(new FailOrder(orderId: $this->id, reason: $command->reason));

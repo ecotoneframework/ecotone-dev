@@ -26,14 +26,14 @@ final class SeatStateAnnouncements
     #[EventHandler(endpointId: 'announce_seat_released')]
     public function holdReleased(HoldReleased $event, DistributedBus $distributedBus): void
     {
-        $this->announceRelease($event->concertId, $event->seatId, $event->orderId, $event->holdId, $distributedBus);
+        $this->announceRelease(concertId: $event->concertId, seatId: $event->seatId, orderId: $event->orderId, holdId: $event->holdId, distributedBus: $distributedBus);
     }
 
     #[Asynchronous('ticketing_async')]
     #[EventHandler(endpointId: 'announce_seat_released_on_expiry')]
     public function holdExpired(HoldExpired $event, DistributedBus $distributedBus): void
     {
-        $this->announceRelease($event->concertId, $event->seatId, $event->orderId, $event->holdId, $distributedBus);
+        $this->announceRelease(concertId: $event->concertId, seatId: $event->seatId, orderId: $event->orderId, holdId: $event->holdId, distributedBus: $distributedBus);
     }
 
     #[Asynchronous('ticketing_async')]

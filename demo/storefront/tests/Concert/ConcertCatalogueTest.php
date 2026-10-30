@@ -50,7 +50,7 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame(
@@ -73,7 +73,7 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $concert = $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT);
@@ -112,9 +112,9 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::MORNING_CONCERT, artist: 'Early Birds', startsAt: '2026-11-01T09:00:00+00:00'));
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::MORNING_CONCERT, artist: 'Early Birds', startsAt: '2026-11-01T09:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame(
@@ -128,9 +128,9 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.cancelled', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.cancelled', payload: ['concertId' => self::NIGHT_CONCERT]);
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame('cancelled', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
@@ -141,8 +141,8 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertCount(1, $storefront->sendQueryWithRouting('concerts.list'));
@@ -155,8 +155,8 @@ final class ConcertCatalogueTest extends TestCase
         $deadLetter = $storefront->getGateway(DeadLetterGateway::class);
         $deadLetter->deleteAll();
 
-        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         $concert = $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT);
@@ -169,7 +169,7 @@ final class ConcertCatalogueTest extends TestCase
     {
         $storefront = $this->storefront();
 
-        $this->publish($this->ticketing(), 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $this->ticketing(), routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame([], $storefront->sendQueryWithRouting('concerts.list'));
@@ -181,9 +181,9 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.cancelled', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.cancelled', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame('cancelled', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
@@ -194,9 +194,9 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.sold_out', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sold_out', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame('sold_out', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
@@ -207,8 +207,8 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'version' => 2, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.prices_changed', payload: ['concertId' => self::NIGHT_CONCERT, 'version' => 2, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $concert = $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT);
@@ -220,9 +220,9 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'version' => 2, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.prices_changed', payload: ['concertId' => self::NIGHT_CONCERT, 'version' => 2, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $concert = $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT);
@@ -234,10 +234,10 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.cancelled', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.cancelled', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame('cancelled', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
@@ -248,9 +248,9 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame('on_sale', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
@@ -261,9 +261,9 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame('on_sale', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
@@ -274,9 +274,9 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.cancelled', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.cancelled', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame('cancelled', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
@@ -287,8 +287,8 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Late Owls', startsAt: '2026-12-02T21:30:00+00:00', tiers: ['standard' => 5000, 'vip' => 15000]));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Late Owls', startsAt: '2026-12-02T21:30:00+00:00', tiers: ['standard' => 5000, 'vip' => 15000]));
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame(
@@ -311,8 +311,8 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'version' => 2, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.prices_changed', payload: ['concertId' => self::NIGHT_CONCERT, 'version' => 2, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $concert = $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT);
@@ -324,9 +324,9 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'version' => 3, 'tiers' => ['standard' => 5000, 'vip' => 15000]]);
-        $this->publish($ticketing, 'concert.prices_changed', ['concertId' => self::NIGHT_CONCERT, 'version' => 2, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.prices_changed', payload: ['concertId' => self::NIGHT_CONCERT, 'version' => 3, 'tiers' => ['standard' => 5000, 'vip' => 15000]]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.prices_changed', payload: ['concertId' => self::NIGHT_CONCERT, 'version' => 2, 'tiers' => ['standard' => 5500, 'vip' => 14000]]);
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $concert = $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT);
@@ -338,9 +338,9 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.sold_out', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sold_out', payload: ['concertId' => self::NIGHT_CONCERT]);
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame('sold_out', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
@@ -351,11 +351,11 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.sold_out', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.sold_out', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.sales_opened', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sold_out', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sold_out', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sales_opened', payload: ['concertId' => self::NIGHT_CONCERT]);
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame('sold_out', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
@@ -366,9 +366,9 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $ticketing = $this->ticketing();
 
-        $this->publish($ticketing, 'concert.scheduled', $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
-        $this->publish($ticketing, 'concert.cancelled', ['concertId' => self::NIGHT_CONCERT]);
-        $this->publish($ticketing, 'concert.sold_out', ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.scheduled', payload: $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00'));
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.cancelled', payload: ['concertId' => self::NIGHT_CONCERT]);
+        $this->publish(ticketing: $ticketing, routingKey: 'concert.sold_out', payload: ['concertId' => self::NIGHT_CONCERT]);
         $storefront->run('storefront', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame('cancelled', $storefront->sendQueryWithRouting('concert.detail', self::NIGHT_CONCERT)['status']);
@@ -380,7 +380,7 @@ final class ConcertCatalogueTest extends TestCase
         $storefront = $this->storefront();
         $scheduled = $this->scheduled(self::NIGHT_CONCERT, artist: 'The Night Owls', startsAt: '2026-12-01T20:00:00+00:00');
         $scheduled['seats'][] = ['seatId' => self::NIGHT_CONCERT . '/' . $seatCode, 'seatCode' => $seatCode, 'tier' => 'vip'];
-        $this->publish($this->ticketing(), 'concert.scheduled', $scheduled);
+        $this->publish(ticketing: $this->ticketing(), routingKey: 'concert.scheduled', payload: $scheduled);
 
         $this->expectExceptionMessage(sprintf('concert.scheduled for concert %s names seat code "%s", which is not ROW-NUMBER like "A-1", so the storefront cannot place the seat in its row.', self::NIGHT_CONCERT, $seatCode));
 

@@ -36,8 +36,9 @@ final class OrderQueries
     public function seatsTakenByOtherOrders(array $query): array
     {
         return Order::query()
+            ->select(['status', 'held_seats'])
             ->where('concert_id', $query['concertId'])
-            ->where('status', '<>', OrderStatus::FAILED)
+            ->whereIn('status', Order::SEAT_CLAIMING_STATUSES)
             ->when($query['excludingOrderId'] !== null, fn ($orders) => $orders->where('id', '<>', $query['excludingOrderId']))
             ->get()
             ->flatMap(fn (Order $order) => $order->claimedSeatIdsAt(Carbon::now()->toDateTimeImmutable()))

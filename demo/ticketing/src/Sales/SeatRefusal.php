@@ -8,8 +8,13 @@ use DomainException;
 
 final class SeatRefusal extends DomainException
 {
-    public static function because(string $reason): self
+    private function __construct(public readonly ReasonCode $reasonCode, string $reason)
     {
-        return new self($reason);
+        parent::__construct($reason);
+    }
+
+    public static function because(ReasonCode $reasonCode, string $reason): self
+    {
+        return new self($reasonCode, $reason);
     }
 }

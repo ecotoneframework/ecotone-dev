@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Ecotone\Test\LicenceTesting;
 use Illuminate\Foundation\Bootstrap\LoadConfiguration;
 use Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables;
-use Illuminate\Support\ConfigurationUrlParser;
+use Tests\TestDatabaseGuard;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
@@ -20,20 +20,9 @@ putenv('DB_APPLICATION_NAME=' . $testProcessApplicationName);
 
 $storefront = require dirname(__DIR__) . '/bootstrap/app.php';
 $storefront->bootstrapWith([LoadEnvironmentVariables::class, LoadConfiguration::class]);
-$testDatabase = 'storefront_test';
-$storefrontConfig = $storefront->make('config');
-$resolvedDatabase = (new ConfigurationUrlParser())->parseConfiguration($storefrontConfig->get('database.connections.' . $storefrontConfig->get('database.default')))['database'] ?? null;
-$dsnDatabase = ltrim((string) parse_url((string) getenv('DATABASE_DSN'), PHP_URL_PATH), '/');
-if ($resolvedDatabase !== $testDatabase || $dsnDatabase !== $testDatabase) {
-    $pinTheVariable = ' redirects it: unset it in the environment, or pin it with force="true" as both <env> and <server> in phpunit.dist.xml, as every database variable there is, then run the tests again.';
-    $wayOut = match (true) {
-        $dsnDatabase !== $testDatabase => 'DATABASE_DSN' . $pinTheVariable,
-        $storefront->configurationIsCached() => sprintf('The cached configuration %s holds it: delete that file, or run APP_CONFIG_CACHE=bootstrap/cache/config.testing.php php artisan config:clear, then run the tests again.', $storefront->getCachedConfigPath()),
-        (string) env('DB_URL') !== '' => 'DB_URL' . $pinTheVariable,
-        env('DB_DATABASE') !== $testDatabase => 'DB_DATABASE' . $pinTheVariable,
-        default => 'DB_CONNECTION' . $pinTheVariable,
-    };
-    fwrite(STDERR, sprintf('The storefront tests refuse to run: they wipe and migrate the database they are pointed at, and it is %s, not %s. %s' . PHP_EOL, $dsnDatabase !== $testDatabase ? $dsnDatabase : $resolvedDatabase, $testDatabase, $wayOut));
+$refusal = TestDatabaseGuard::refusalOf(storefront: $storefront, databaseDsn: (string) getenv('DATABASE_DSN'));
+if ($refusal !== null) {
+    fwrite(STDERR, $refusal . PHP_EOL);
     exit(1);
 }
 $storefront->flush();

@@ -135,7 +135,7 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
 
         $order = $this->order($adaOrderId);
         self::assertSame('started', $order['status']);
-        self::assertSame(['seatId' => self::SEAT_ID, 'reason' => 'someone was faster: seat A-3'], $order['lastRefusal']);
+        self::assertSame(['seatId' => self::SEAT_ID, 'reason' => 'someone was faster: seat A-3', 'reasonCode' => 'seat_held'], $order['lastRefusal']);
     }
 
     public function test_a_contention_one_buyer_won_is_headlined_by_the_buyer_holding_the_seat(): void
@@ -173,7 +173,7 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
         $this->ticketingReplies();
         $refused = $this->contentionState()['buyers'][0];
 
-        $this->storefront->getCommandBus()->send(new RecordSeatRefusal(orderId: $refused['orderId'], seatId: self::SEAT_ID, holdId: $refused['holdId'], reason: 'Seat A-3 is held by yet another order'));
+        $this->storefront->getCommandBus()->send(new RecordSeatRefusal(orderId: $refused['orderId'], seatId: self::SEAT_ID, holdId: $refused['holdId'], reason: 'Seat A-3 is held by yet another order', reasonCode: 'seat_held'));
         $this->storefrontAsyncRuns();
 
         $order = $this->order($refused['orderId']);
@@ -185,11 +185,12 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
     }
 
     #[DataProvider('seatsAlreadyTaken')]
-    public function test_a_contention_every_buyer_was_refused_is_headlined_by_no_buyer_getting_the_seat_and_why(string $reason, string $headline): void
+    public function test_a_contention_every_buyer_was_refused_is_headlined_by_no_buyer_getting_the_seat_and_why(string $reason, string $reasonCode, string $headline): void
     {
         $this->concertOnSale();
         $this->ticketingService->holdsToRefuse = 3;
         $this->ticketingService->refusalReason = $reason;
+        $this->ticketingService->refusalReasonCode = $reasonCode;
 
         $this->contend(buyers: 3);
         $this->ticketingReplies();
@@ -202,24 +203,28 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
     {
         yield 'held by another order' => [
             'Seat A-3 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because someone was faster: order 0199f3a8-6f2a-7c1e-9a51-00000000000b holds it until 2026-10-25T12:02:00+00:00. Pick another seat, or try this one again after that hold expires.',
+            'seat_held',
             'No buyer got seat A-3: ticketing refused every request, because the seat was already held',
         ];
         yield 'sold to another order' => [
             'Seat A-3 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because someone was faster: it is sold to order 0199f3a8-6f2a-7c1e-9a51-00000000000b. Pick another seat.',
+            'seat_sold',
             'No buyer got seat A-3: ticketing refused every request, because the seat was already sold',
         ];
         yield 'any other refusal' => [
             'Seat A-3 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because the concert is cancelled, not on sale. Seats are held only while a concert is on sale.',
+            'concert_not_on_sale',
             'No buyer got seat A-3: ticketing refused every request',
         ];
     }
 
     #[DataProvider('refusalsOfTicketing')]
-    public function test_each_refusal_says_whether_the_boundary_refused_it_during_another_append_or_the_seat_was_already_taken(string $reason, string $refusal, string $refusalExplanation): void
+    public function test_each_refusal_says_by_its_reason_code_whether_the_boundary_refused_it_during_another_append_or_the_seat_was_already_taken(string $reason, string $reasonCode, string $refusal, string $refusalExplanation): void
     {
         $this->concertOnSale();
         $this->ticketingService->holdsToRefuse = 1;
         $this->ticketingService->refusalReason = $reason;
+        $this->ticketingService->refusalReasonCode = $reasonCode;
 
         $this->contend(buyers: 2);
         $this->ticketingReplies();
@@ -236,20 +241,30 @@ final class ContentionSimulatorTest extends StorefrontFlowTestCase
         yield 'lost the race to the append' => [
             sprintf('Seat %s cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because someone was faster: the seat changed each time ticketing tried to hold it. Pick the seat again, or choose another one.', self::SEAT_ID),
             'lost_the_race',
+            'lost_the_race',
             'Refused by the consistency boundary: another hold of the seat was being appended at the same time.',
         ];
         yield 'seat already held' => [
             'Seat A-3 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because someone was faster: order 0199f3a8-6f2a-7c1e-9a51-00000000000b holds it until 2026-10-25T12:02:00+00:00. Pick another seat, or try this one again after that hold expires.',
+            'seat_held',
             'seat_already_held',
             'Refused because the seat was already held.',
         ];
         yield 'seat already sold' => [
             'Seat A-3 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because someone was faster: it is sold to order 0199f3a8-6f2a-7c1e-9a51-00000000000b. Pick another seat.',
+            'seat_sold',
             'seat_already_sold',
             'Refused because the seat was already sold.',
         ];
+        yield 'a reworded reason of a seat already held' => [
+            'Seat A-3 went to a quicker buyer a moment ago.',
+            'seat_held',
+            'seat_already_held',
+            'Refused because the seat was already held.',
+        ];
         yield 'any other refusal' => [
             'Seat A-3 of The Night Owls cannot be held for order 0199f3a8-6f2a-7c1e-9a51-00000000000a, because the concert is cancelled, not on sale. Seats are held only while a concert is on sale.',
+            'concert_not_on_sale',
             'other',
             'Refused by ticketing.',
         ];

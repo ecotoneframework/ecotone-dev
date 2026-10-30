@@ -16,7 +16,7 @@ final class TicketingRequests
     #[EventHandler(endpointId: 'hold_requested_seat')]
     public function holdRequestedSeat(SeatRequested $event, #[Reference] DistributedBus $distributedBus): void
     {
-        $this->send($distributedBus, 'tickets.hold', $event->orderId, $event->concertId, [
+        $this->send(distributedBus: $distributedBus, routingKey: 'tickets.hold', orderId: $event->orderId, concertId: $event->concertId, payload: [
             'orderId' => $event->orderId,
             'concertId' => $event->concertId,
             'seatId' => $event->seatId,
@@ -29,7 +29,7 @@ final class TicketingRequests
     #[EventHandler(endpointId: 'release_seat')]
     public function releaseSeat(SeatReleased $event, #[Reference] DistributedBus $distributedBus): void
     {
-        $this->sendRelease($distributedBus, $event->orderId, $event->concertId, $event->customerId, $event->seatId, $event->holdId);
+        $this->sendRelease(distributedBus: $distributedBus, orderId: $event->orderId, concertId: $event->concertId, customerId: $event->customerId, seatId: $event->seatId, holdId: $event->holdId);
     }
 
     #[Asynchronous('storefront_async')]
@@ -37,7 +37,7 @@ final class TicketingRequests
     public function releaseSeatsOfFailedOrder(OrderFailed $event, #[Reference] DistributedBus $distributedBus): void
     {
         foreach ($event->holdIdsOfHeldSeats as $seatId => $holdId) {
-            $this->sendRelease($distributedBus, $event->orderId, $event->concertId, $event->customerId, $seatId, $holdId);
+            $this->sendRelease(distributedBus: $distributedBus, orderId: $event->orderId, concertId: $event->concertId, customerId: $event->customerId, seatId: $seatId, holdId: $holdId);
         }
     }
 
@@ -45,7 +45,7 @@ final class TicketingRequests
     #[EventHandler(endpointId: 'confirm_paid_seats')]
     public function confirmPaidSeats(OrderPaid $event, #[Reference] DistributedBus $distributedBus): void
     {
-        $this->send($distributedBus, 'tickets.confirm', $event->orderId, $event->concertId, [
+        $this->send(distributedBus: $distributedBus, routingKey: 'tickets.confirm', orderId: $event->orderId, concertId: $event->concertId, payload: [
             'orderId' => $event->orderId,
             'concertId' => $event->concertId,
             'customerId' => $event->customerId,
@@ -56,7 +56,7 @@ final class TicketingRequests
 
     private function sendRelease(DistributedBus $distributedBus, string $orderId, string $concertId, string $customerId, string $seatId, string $holdId): void
     {
-        $this->send($distributedBus, 'tickets.release', $orderId, $concertId, [
+        $this->send(distributedBus: $distributedBus, routingKey: 'tickets.release', orderId: $orderId, concertId: $concertId, payload: [
             'orderId' => $orderId,
             'concertId' => $concertId,
             'seatId' => $seatId,

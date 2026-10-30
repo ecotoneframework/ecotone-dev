@@ -38,29 +38,29 @@ final class SeatSales
         $now = DateTimeImmutable::createFromInterface($clock->now());
         $concert = ConcertForSale::of($fetchedConcert);
         if ($concert === null) {
-            throw SeatRefusal::because(sprintf('Seat %s cannot be held for order %s, because ticketing has no concert %s. Pick a concert from concert.scheduled announcements, or ask ticketing to publish concert.scheduled again.', $command->seatId, $command->orderId, $command->concertId));
+            throw SeatRefusal::because(ReasonCode::UNKNOWN_CONCERT, sprintf('Seat %s cannot be held for order %s, because ticketing has no concert %s. Pick a concert from concert.scheduled announcements, or ask ticketing to publish concert.scheduled again.', $command->seatId, $command->orderId, $command->concertId));
         }
         $concertSeat = $concert->seat($command->seatId);
         if ($concertSeat === null) {
-            throw SeatRefusal::because(sprintf('Seat %s cannot be held for order %s, because %s has no such seat: its seats are %s. Pick a seat id of the form %s/<seatCode> from the concert\'s seats.', $command->seatId, $command->orderId, $concert->title(), $concert->seatRange(), $command->concertId));
+            throw SeatRefusal::because(ReasonCode::UNKNOWN_SEAT, sprintf('Seat %s cannot be held for order %s, because %s has no such seat: its seats are %s. Pick a seat id of the form %s/<seatCode> from the concert\'s seats.', $command->seatId, $command->orderId, $concert->title(), $concert->seatRange(), $command->concertId));
         }
         $refusedSeat = sprintf('Seat %s of %s cannot be held for order %s', $concertSeat->seatCode, $concert->title(), $command->orderId);
         if (! $concert->isOnSale()) {
-            throw SeatRefusal::because(sprintf('%s, because the concert is %s, not on sale. Seats are held only while a concert is on sale.', $refusedSeat, $concert->statusInWords()));
+            throw SeatRefusal::because(ReasonCode::CONCERT_NOT_ON_SALE, sprintf('%s, because the concert is %s, not on sale. Seats are held only while a concert is on sale.', $refusedSeat, $concert->statusInWords()));
         }
         if ($seat->soldToOrderId() !== null) {
-            throw SeatRefusal::because(sprintf('%s, because someone was faster: it is sold to order %s. Pick another seat.', $refusedSeat, $seat->soldToOrderId()));
+            throw SeatRefusal::because(ReasonCode::SEAT_SOLD, sprintf('%s, because someone was faster: it is sold to order %s. Pick another seat.', $refusedSeat, $seat->soldToOrderId()));
         }
         $holdingOrderId = $seat->liveHoldingOrderIdAt($now);
         if ($holdingOrderId === $command->orderId && $seat->holdingHoldId() === $command->holdId) {
             return [];
         }
         if ($holdingOrderId !== null && $holdingOrderId !== $command->orderId) {
-            throw SeatRefusal::because(sprintf('%s, because someone was faster: order %s holds it until %s. Pick another seat, or try this one again after that hold expires.', $refusedSeat, $holdingOrderId, $seat->heldUntil()->format(DateTimeInterface::ATOM)));
+            throw SeatRefusal::because(ReasonCode::SEAT_HELD, sprintf('%s, because someone was faster: order %s holds it until %s. Pick another seat, or try this one again after that hold expires.', $refusedSeat, $holdingOrderId, $seat->heldUntil()->format(DateTimeInterface::ATOM)));
         }
         $takenSeatIds = $customerSeats->seatIdsTakenAt($now);
         if ($holdingOrderId === null && count($takenSeatIds) >= CustomerConcertSeats::MAXIMUM_SEATS) {
-            throw SeatRefusal::because(sprintf(
+            throw SeatRefusal::because(ReasonCode::SEAT_LIMIT_REACHED, sprintf(
                 '%s, because customer %s already holds or owns %d seats of this concert (%s), and a customer gets at most %d. Release one of those holds first, or buy with another customer.',
                 $refusedSeat,
                 $command->customerId,
@@ -89,7 +89,7 @@ final class SeatSales
     {
         $holdingOrderId = $seat->holdingOrderId();
         if ($holdingOrderId === null) {
-            throw SeatRefusal::because(sprintf(
+            throw SeatRefusal::because(ReasonCode::SEAT_NOT_HELD, sprintf(
                 'Seat %s cannot be released for order %s, because %s. Only the order holding a seat releases it.',
                 $command->seatId,
                 $command->orderId,
@@ -97,7 +97,7 @@ final class SeatSales
             ));
         }
         if ($holdingOrderId !== $command->orderId || $seat->holdingCustomerId() !== $command->customerId || $seat->holdingConcertId() !== $command->concertId || $seat->holdingHoldId() !== $command->holdId) {
-            throw SeatRefusal::because(sprintf(
+            throw SeatRefusal::because(ReasonCode::SEAT_HELD, sprintf(
                 'Seat %s cannot be released for hold %s of order %s of customer %s at concert %s, because hold %s of order %s of customer %s holds it at concert %s. Release a seat with the hold id, order, customer and concert of its hold; only the holder releases it, and a release of an earlier hold leaves a later one in place.',
                 $command->seatId,
                 $command->holdId,
@@ -228,7 +228,7 @@ final class SeatSales
     {
         $seatIds = array_values(array_unique($order->seatIds));
         if ($seatIds === []) {
-            throw SeatRefusal::because(sprintf('Order %s names no seats to buy. Confirm the order with the ids of the seats it holds.', $order->orderId));
+            throw SeatRefusal::because(ReasonCode::NO_SEATS, sprintf('Order %s names no seats to buy. Confirm the order with the ids of the seats it holds.', $order->orderId));
         }
         $owners = array_combine($seatIds, array_map(static fn (string $seatId): array => $queryBus->send(new FindSeatOwner($seatId)), $seatIds));
         if (self::soldEveryOneWithThePaymentOf($order, $owners)) {
@@ -237,10 +237,10 @@ final class SeatSales
 
         $concert = ConcertForSale::of($fetchedConcert);
         if ($concert === null) {
-            throw SeatRefusal::because(sprintf('Order %s cannot buy seats of concert %s, because ticketing has no such concert. Pick a concert from concert.scheduled announcements, or ask ticketing to publish concert.scheduled again.', $order->orderId, $order->concertId));
+            throw SeatRefusal::because(ReasonCode::UNKNOWN_CONCERT, sprintf('Order %s cannot buy seats of concert %s, because ticketing has no such concert. Pick a concert from concert.scheduled announcements, or ask ticketing to publish concert.scheduled again.', $order->orderId, $order->concertId));
         }
         if (! $concert->isOnSale()) {
-            throw SeatRefusal::because(sprintf('Order %s cannot buy seats of %s, because the concert is %s, not on sale; nothing of the order was sold. Release the order\'s holds and refund the payment %s.', $order->orderId, $concert->title(), $concert->statusInWords(), $order->paymentReference));
+            throw SeatRefusal::because(ReasonCode::CONCERT_NOT_ON_SALE, sprintf('Order %s cannot buy seats of %s, because the concert is %s, not on sale; nothing of the order was sold. Release the order\'s holds and refund the payment %s.', $order->orderId, $concert->title(), $concert->statusInWords(), $order->paymentReference));
         }
 
         $sold = [];
@@ -278,24 +278,22 @@ final class SeatSales
 
     private function assertLiveHoldOfTheOrder(ConfirmSeats|ConfirmSeedOrder $order, CustomerConcertSeats $customerSeats, string $seatId, DateTimeInterface $now): void
     {
-        $orderId = $order->orderId;
-        $refusedSeat = sprintf('Order %s cannot buy seat %s', $orderId, $seatId);
         $sale = $customerSeats->saleOf($seatId);
-        if ($sale !== null && $sale['orderId'] === $orderId && $sale['paymentReference'] !== $order->paymentReference) {
-            throw SeatRefusal::because(sprintf('%s with payment %s, because it is already sold to this order with payment %s. Refund payment %s; the seat stays sold with payment %s.', $refusedSeat, $order->paymentReference, $sale['paymentReference'], $order->paymentReference, $sale['paymentReference']));
+        if ($sale !== null && $sale['orderId'] === $order->orderId && $sale['paymentReference'] !== $order->paymentReference) {
+            throw self::soldToTheOrderWithAnotherPayment(order: $order, seatId: $seatId, soldWithPaymentReference: $sale['paymentReference']);
         }
         if ($sale !== null) {
-            throw SeatRefusal::because(sprintf('%s, because it is already sold to order %s. Confirm only seats that are held; nothing of the order was sold.', $refusedSeat, $sale['orderId']));
+            throw self::soldToAnotherOrder(order: $order, seatId: $seatId, soldToOrderId: $sale['orderId']);
         }
         $hold = $customerSeats->holdOf($seatId);
         if ($hold === null) {
-            throw SeatRefusal::because(sprintf('%s, because it does not hold it. Hold the seat first, then confirm the order again; nothing of the order was sold.', $refusedSeat));
+            throw self::notHeldByTheOrder(order: $order, seatId: $seatId);
         }
-        if ($hold['orderId'] !== $orderId) {
-            throw SeatRefusal::because(sprintf('%s, because order %s holds it, not order %s. Confirm each order with its own seats; nothing of the order was sold.', $refusedSeat, $hold['orderId'], $orderId));
+        if ($hold['orderId'] !== $order->orderId) {
+            throw self::heldByAnotherOrder(order: $order, seatId: $seatId, holdingOrderId: $hold['orderId']);
         }
         if ($hold['heldUntil'] <= $now) {
-            throw SeatRefusal::because(sprintf('%s, because its hold expired at %s. Hold the seat again, then confirm the order again; nothing of the order was sold.', $refusedSeat, $hold['heldUntil']->format(DateTimeInterface::ATOM)));
+            throw SeatRefusal::because(ReasonCode::HOLD_EXPIRED, sprintf('%s, because its hold expired at %s. Hold the seat again, then confirm the order again; nothing of the order was sold.', self::refusedSeatOf($order, $seatId), $hold['heldUntil']->format(DateTimeInterface::ATOM)));
         }
     }
 
@@ -304,18 +302,42 @@ final class SeatSales
      */
     private function assertNoOtherOrderTookTheSeat(ConfirmSeats|ConfirmSeedOrder $order, array $owner, string $seatId): void
     {
-        $refusedSeat = sprintf('Order %s cannot buy seat %s', $order->orderId, $seatId);
         if ($owner['soldToOrderId'] === $order->orderId && $owner['soldWithPaymentReference'] !== $order->paymentReference) {
-            throw SeatRefusal::because(sprintf('%s with payment %s, because it is already sold to this order with payment %s. Refund payment %s; the seat stays sold with payment %s.', $refusedSeat, $order->paymentReference, $owner['soldWithPaymentReference'], $order->paymentReference, $owner['soldWithPaymentReference']));
+            throw self::soldToTheOrderWithAnotherPayment(order: $order, seatId: $seatId, soldWithPaymentReference: $owner['soldWithPaymentReference']);
         }
         if ($owner['soldToOrderId'] !== null) {
-            throw SeatRefusal::because(sprintf('%s, because it is already sold to order %s. Confirm only seats that are held; nothing of the order was sold.', $refusedSeat, $owner['soldToOrderId']));
+            throw self::soldToAnotherOrder(order: $order, seatId: $seatId, soldToOrderId: $owner['soldToOrderId']);
         }
         if ($owner['holdingOrderId'] === null) {
-            throw SeatRefusal::because(sprintf('%s, because it does not hold it. Hold the seat first, then confirm the order again; nothing of the order was sold.', $refusedSeat));
+            throw self::notHeldByTheOrder(order: $order, seatId: $seatId);
         }
         if ($owner['holdingOrderId'] !== $order->orderId) {
-            throw SeatRefusal::because(sprintf('%s, because order %s holds it, not order %s. Confirm each order with its own seats; nothing of the order was sold.', $refusedSeat, $owner['holdingOrderId'], $order->orderId));
+            throw self::heldByAnotherOrder(order: $order, seatId: $seatId, holdingOrderId: $owner['holdingOrderId']);
         }
+    }
+
+    private static function soldToTheOrderWithAnotherPayment(ConfirmSeats|ConfirmSeedOrder $order, string $seatId, string $soldWithPaymentReference): SeatRefusal
+    {
+        return SeatRefusal::because(ReasonCode::SOLD_WITH_ANOTHER_PAYMENT, sprintf('%s with payment %s, because it is already sold to this order with payment %s. Refund payment %s; the seat stays sold with payment %s.', self::refusedSeatOf($order, $seatId), $order->paymentReference, $soldWithPaymentReference, $order->paymentReference, $soldWithPaymentReference));
+    }
+
+    private static function soldToAnotherOrder(ConfirmSeats|ConfirmSeedOrder $order, string $seatId, string $soldToOrderId): SeatRefusal
+    {
+        return SeatRefusal::because(ReasonCode::SEAT_SOLD, sprintf('%s, because it is already sold to order %s. Confirm only seats that are held; nothing of the order was sold.', self::refusedSeatOf($order, $seatId), $soldToOrderId));
+    }
+
+    private static function notHeldByTheOrder(ConfirmSeats|ConfirmSeedOrder $order, string $seatId): SeatRefusal
+    {
+        return SeatRefusal::because(ReasonCode::SEAT_NOT_HELD, sprintf('%s, because it does not hold it. Hold the seat first, then confirm the order again; nothing of the order was sold.', self::refusedSeatOf($order, $seatId)));
+    }
+
+    private static function heldByAnotherOrder(ConfirmSeats|ConfirmSeedOrder $order, string $seatId, string $holdingOrderId): SeatRefusal
+    {
+        return SeatRefusal::because(ReasonCode::SEAT_HELD, sprintf('%s, because order %s holds it, not order %s. Confirm each order with its own seats; nothing of the order was sold.', self::refusedSeatOf($order, $seatId), $holdingOrderId, $order->orderId));
+    }
+
+    private static function refusedSeatOf(ConfirmSeats|ConfirmSeedOrder $order, string $seatId): string
+    {
+        return sprintf('Order %s cannot buy seat %s', $order->orderId, $seatId);
     }
 }

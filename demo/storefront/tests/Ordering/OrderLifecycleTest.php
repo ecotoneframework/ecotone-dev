@@ -218,7 +218,7 @@ final class OrderLifecycleTest extends TestCase
     {
         $orderId = $this->startOrder();
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused'));
-        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused', reason: 'someone was faster: seat A-1'));
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused', reason: 'someone was faster: seat A-1', reasonCode: 'seat_held'));
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1'));
 
         $this->commandBus()->send(new MarkSeatHeld(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-1', expiresAt: self::EXPIRES_AT));
@@ -231,10 +231,10 @@ final class OrderLifecycleTest extends TestCase
         $orderId = $this->orderWithHeldSeats();
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', holdId: 'hold-refused'));
 
-        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', holdId: 'hold-refused', reason: 'someone was faster: seat A-2'));
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-2', holdId: 'hold-refused', reason: 'someone was faster: seat A-2', reasonCode: 'seat_held'));
 
         $order = $this->orderDetail($orderId);
-        self::assertSame(['seatId' => self::CONCERT_ID . '/A-2', 'reason' => 'someone was faster: seat A-2'], $order['lastRefusal']);
+        self::assertSame(['seatId' => self::CONCERT_ID . '/A-2', 'reason' => 'someone was faster: seat A-2', 'reasonCode' => 'seat_held'], $order['lastRefusal']);
         self::assertSame('seats_held', $order['status']);
     }
 
@@ -242,12 +242,12 @@ final class OrderLifecycleTest extends TestCase
     {
         $orderId = $this->startOrder();
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused'));
-        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused', reason: 'someone was faster: seat A-1'));
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-1', holdId: 'hold-refused', reason: 'someone was faster: seat A-1', reasonCode: 'seat_held'));
         $this->commandBus()->send(new RequestSeat(orderId: $orderId, seatId: self::CONCERT_ID . '/A-3', holdId: 'hold-refused'));
 
-        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-3', holdId: 'hold-refused', reason: 'a customer holds or owns at most 4 seats per concert'));
+        $this->commandBus()->send(new RecordSeatRefusal(orderId: $orderId, seatId: self::CONCERT_ID . '/A-3', holdId: 'hold-refused', reason: 'a customer holds or owns at most 4 seats per concert', reasonCode: 'seat_limit_reached'));
 
-        self::assertSame(['seatId' => self::CONCERT_ID . '/A-3', 'reason' => 'a customer holds or owns at most 4 seats per concert'], $this->orderDetail($orderId)['lastRefusal']);
+        self::assertSame(['seatId' => self::CONCERT_ID . '/A-3', 'reason' => 'a customer holds or owns at most 4 seats per concert', 'reasonCode' => 'seat_limit_reached'], $this->orderDetail($orderId)['lastRefusal']);
     }
 
     public function test_releasing_a_held_seat_removes_it_from_the_order(): void

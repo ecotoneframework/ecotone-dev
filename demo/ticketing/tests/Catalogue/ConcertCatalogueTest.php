@@ -201,6 +201,20 @@ final class ConcertCatalogueTest extends KernelTestCase
         self::assertSame('sold_out', $this->statusOf($ticketing, $concertId));
     }
 
+    public function test_marking_a_sold_out_concert_sold_out_again_changes_nothing(): void
+    {
+        $ticketing = $this->ticketing();
+        $concertId = $this->scheduleConcert($ticketing, $this->createRiversideHall($ticketing));
+        $ticketing->sendCommand(new OpenSales($concertId));
+        $ticketing->sendCommand(new MarkConcertSoldOut($concertId));
+        $ticketing->discardRecordedMessages();
+
+        $ticketing->sendCommand(new MarkConcertSoldOut($concertId));
+
+        self::assertSame('sold_out', $this->statusOf($ticketing, $concertId));
+        self::assertSame([], $ticketing->popRecordedEvents());
+    }
+
     public function test_cancelling_a_sold_out_concert_is_refused(): void
     {
         $ticketing = $this->ticketing();

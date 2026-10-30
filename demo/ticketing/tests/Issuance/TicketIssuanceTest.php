@@ -50,6 +50,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Symfony\SymfonyConnectionReference;
 use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
+use ErrorException;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Transport\TransportInterface;
@@ -73,11 +74,17 @@ final class TicketIssuanceTest extends KernelTestCase
 
     protected function tearDown(): void
     {
+        if (in_array('racing-worker', stream_get_wrappers(), true)) {
+            stream_wrapper_unregister('racing-worker');
+        }
         foreach (glob($this->ticketFilesDirectory . '/*') ?: [] as $file) {
             unlink($file);
         }
         if (is_dir($this->ticketFilesDirectory)) {
             rmdir($this->ticketFilesDirectory);
+        }
+        if (is_file($this->ticketFilesDirectory)) {
+            unlink($this->ticketFilesDirectory);
         }
         parent::tearDown();
     }
@@ -90,7 +97,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
 
-        $this->buy($ticketing, $orderId, $concertId, $customerId, ['C-1', 'C-2']);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatCodes: ['C-1', 'C-2']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         $received = $this->receivedByStorefront($storefront);
@@ -119,7 +126,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing = $this->ticketing($recorder);
         $concertId = $this->concertOnSale($ticketing);
 
-        $this->buy($ticketing, Uuid::v7()->toRfc4122(), $concertId, Uuid::v7()->toRfc4122(), ['C-1']);
+        $this->buy(ticketing: $ticketing, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['C-1']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(['slipFor', 'allocateNumbers', 'renderTickets', 'registerEntryCodes', 'announceIssuedTickets'], array_column($recorder->steps, 'step'));
@@ -133,7 +140,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing = $this->ticketing($recorder);
         $concertId = $this->concertOnSale($ticketing);
 
-        $this->buy($ticketing, Uuid::v7()->toRfc4122(), $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
+        $this->buy(ticketing: $ticketing, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1', 'C-1']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(['slipFor', 'allocateNumbers', 'grantVipLoungePasses', 'renderTickets', 'registerEntryCodes', 'announceIssuedTickets'], array_column($recorder->steps, 'step'));
@@ -145,7 +152,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing = $this->ticketing();
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
-        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1', 'C-1']);
 
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
 
@@ -174,7 +181,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
         $customerId = Uuid::v7()->toRfc4122();
-        $this->buy($ticketing, $orderId, $concertId, $customerId, ['A-1', 'C-1']);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatCodes: ['A-1', 'C-1']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $firstAnnouncement = $this->receivedByStorefront($storefront)[0]['event'];
 
@@ -200,7 +207,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing->getGateway(DeadLetterGateway::class)->deleteAll();
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
-        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1', 'C-1']);
 
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
@@ -217,7 +224,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing->getGateway(DeadLetterGateway::class)->deleteAll();
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
-        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1', 'C-1']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
         $failingRegistration->connectionRestored = true;
 
@@ -237,7 +244,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $ticketing = $this->ticketing();
         $concertId = $this->concertOnSale($ticketing);
         $orderId = Uuid::v7()->toRfc4122();
-        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1']);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1']);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
         $ticket = $this->receivedByStorefront($storefront)[0]['event']['tickets'][0];
 
@@ -258,6 +265,100 @@ final class TicketIssuanceTest extends KernelTestCase
         self::assertNull($ticketing->sendQueryWithRouting('ticket.detail', Uuid::v7()->toRfc4122()));
     }
 
+    public function test_tickets_are_rendered_when_the_other_worker_creates_the_ticket_directory_between_the_check_and_the_creation(): void
+    {
+        $storefront = $this->storefrontListening();
+        $otherWorker = new class () {
+            public static bool $createdTheDirectory = false;
+
+            public mixed $context;
+
+            private mixed $file;
+
+            public function url_stat(string $path, int $flags): array|false
+            {
+                return self::$createdTheDirectory ? stat(self::realPathOf($path)) : false;
+            }
+
+            public function mkdir(string $path, int $mode, int $options): bool
+            {
+                mkdir(self::realPathOf($path), $mode, true);
+                self::$createdTheDirectory = true;
+                if ((error_reporting() & ~(E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR | E_RECOVERABLE_ERROR)) !== 0) {
+                    throw new ErrorException(message: 'Warning: mkdir(): File exists', code: 0, severity: E_WARNING);
+                }
+
+                return false;
+            }
+
+            public function stream_open(string $path, string $mode, int $options, ?string &$openedPath): bool
+            {
+                $this->file = fopen(self::realPathOf($path), $mode);
+
+                return $this->file !== false;
+            }
+
+            public function stream_write(string $data): int
+            {
+                return fwrite($this->file, $data);
+            }
+
+            public function stream_close(): void
+            {
+                fclose($this->file);
+            }
+
+            private static function realPathOf(string $path): string
+            {
+                return substr($path, strlen('racing-worker://'));
+            }
+        };
+        $renders = new class () {
+            public int $attempts = 0;
+
+            #[Around(pointcut: TicketIssuance::class . '::renderTickets')]
+            public function countTheAttempt(MethodInvocation $invocation): mixed
+            {
+                ++$this->attempts;
+
+                return $invocation->proceed();
+            }
+        };
+        stream_wrapper_register('racing-worker', $otherWorker::class);
+        $ticketing = $this->ticketing(recorder: $renders, ticketFilesDirectory: 'racing-worker://' . $this->ticketFilesDirectory);
+        $ticketing->getGateway(DeadLetterGateway::class)->deleteAll();
+        $concertId = $this->concertOnSale($ticketing);
+        $orderId = Uuid::v7()->toRfc4122();
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1', 'C-1']);
+
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $tickets = $this->receivedByStorefront($storefront)[0]['event']['tickets'];
+        self::assertSame([true, true], array_map(fn (array $ticket): bool => is_file($this->ticketFilesDirectory . '/' . $ticket['ticketNumber'] . '.txt'), $tickets));
+        self::assertSame(1, $renders->attempts);
+        self::assertSame(0, $ticketing->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    public function test_a_ticket_directory_that_cannot_be_created_dead_letters_the_render_naming_the_directory_and_the_way_out(): void
+    {
+        $storefront = $this->storefrontListening();
+        touch($this->ticketFilesDirectory);
+        $ticketing = $this->ticketing(ticketFilesDirectory: $this->ticketFilesDirectory . '/tickets');
+        $ticketing->getGateway(DeadLetterGateway::class)->deleteAll();
+        $concertId = $this->concertOnSale($ticketing);
+        $this->buy(ticketing: $ticketing, orderId: Uuid::v7()->toRfc4122(), concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1']);
+
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        self::assertSame([], $this->receivedByStorefront($storefront));
+        $deadLetters = $ticketing->getGateway(DeadLetterGateway::class)->list(10, 0);
+        self::assertCount(1, $deadLetters);
+        self::assertStringContainsString(
+            sprintf('Tickets cannot be rendered, because the ticket directory %s/tickets cannot be created. Make it writable for the worker, or point ticketFilesDirectory in config/services.yaml at a writable directory, then replay this message from the dead letters in Ecotone Pulse or with bin/console ecotone:deadletter:replay %s.', $this->ticketFilesDirectory, $deadLetters[0]->getMessageId()),
+            $deadLetters[0]->getMessage(),
+        );
+    }
+
     public function test_a_render_failing_for_a_seat_dead_letters_the_slip_and_a_replay_after_unsetting_the_variable_finishes_it_exactly_once(): void
     {
         $storefront = $this->storefrontListening();
@@ -265,7 +366,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $failingTicketing->getGateway(DeadLetterGateway::class)->deleteAll();
         $concertId = $this->concertOnSale($failingTicketing);
         $orderId = Uuid::v7()->toRfc4122();
-        $this->buy($failingTicketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), ['A-1', 'C-1']);
+        $this->buy(ticketing: $failingTicketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: ['A-1', 'C-1']);
 
         $failingTicketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
@@ -304,17 +405,17 @@ final class TicketIssuanceTest extends KernelTestCase
 
         $orderId = Uuid::v7()->toRfc4122();
         $lastSeatCode = substr(strrchr(array_column($ticketing->sendQueryWithRouting('concert.detail', metadata: ['aggregate.id' => $concertId])['seats'], 'seatId')[71], '/'), 1);
-        $this->buy($ticketing, $orderId, $concertId, Uuid::v7()->toRfc4122(), [$lastSeatCode]);
+        $this->buy(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: Uuid::v7()->toRfc4122(), seatCodes: [$lastSeatCode]);
         $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame([$orderId], array_column(array_column($this->receivedByStorefront($storefront), 'event'), 'orderId'));
     }
 
-    private function ticketing(?object $recorder = null, string $renderFailsForSeat = ''): FlowTestSupport
+    private function ticketing(?object $recorder = null, string $renderFailsForSeat = '', ?string $ticketFilesDirectory = null): FlowTestSupport
     {
         $this->bootKernelOnEmptyTables();
 
-        return $this->bootstrapTicketing($renderFailsForSeat, $recorder === null ? [] : [$recorder]);
+        return $this->bootstrapTicketing(renderFailsForSeat: $renderFailsForSeat, applicationHandlers: $recorder === null ? [] : [$recorder], ticketFilesDirectory: $ticketFilesDirectory ?? $this->ticketFilesDirectory);
     }
 
     private function ticketingWithTheDemoSeed(): FlowTestSupport
@@ -334,7 +435,7 @@ final class TicketIssuanceTest extends KernelTestCase
         $doctrine->getConnection()->executeStatement('TRUNCATE concerts, venues, messenger_messages, issued_tickets, concert_sales_ledger');
     }
 
-    private function bootstrapTicketing(string $renderFailsForSeat, array $applicationHandlers = []): FlowTestSupport
+    private function bootstrapTicketing(string $renderFailsForSeat, array $applicationHandlers = [], ?string $ticketFilesDirectory = null): FlowTestSupport
     {
         /** @var ManagerRegistry $doctrine */
         $doctrine = self::getContainer()->get('doctrine');
@@ -372,7 +473,7 @@ final class TicketIssuanceTest extends KernelTestCase
             ],
             configurationVariables: [
                 'ticketingHoldSeconds' => 600,
-                'ticketFilesDirectory' => $this->ticketFilesDirectory,
+                'ticketFilesDirectory' => $ticketFilesDirectory ?? $this->ticketFilesDirectory,
                 'ticketingRenderFailsForSeat' => $renderFailsForSeat,
             ],
             extensionObjects: [

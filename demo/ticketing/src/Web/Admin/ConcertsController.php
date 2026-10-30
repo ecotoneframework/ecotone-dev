@@ -77,7 +77,7 @@ final class ConcertsController extends AbstractController
     #[Route('/admin/concerts/{concertId}/open-sales', name: 'admin_concert_open_sales', requirements: ['concertId' => Requirement::UUID], methods: ['POST'])]
     public function openSales(string $concertId): Response
     {
-        return $this->onKnownConcert($concertId, fn (): Response => $this->sendToConcert($concertId, new OpenSales($concertId), 'Sales are open.'));
+        return $this->onKnownConcert($concertId, fn (): Response => $this->sendToConcert(concertId: $concertId, command: new OpenSales($concertId), notice: 'Sales are open.'));
     }
 
     #[Route('/admin/concerts/{concertId}/price', name: 'admin_concert_price', requirements: ['concertId' => Requirement::UUID], methods: ['POST'])]
@@ -91,9 +91,9 @@ final class ConcertsController extends AbstractController
             $priceCents = $request->request->getInt('priceCents');
 
             return $this->sendToConcert(
-                $concertId,
-                new ChangeTierPrice(concertId: $concertId, tier: $tier, priceCents: $priceCents),
-                sprintf('The %s price is now %s %s.', $tier->value, number_format($priceCents / 100, 2, '.', ''), $this->concert($concertId)['currency']),
+                concertId: $concertId,
+                command: new ChangeTierPrice(concertId: $concertId, tier: $tier, priceCents: $priceCents),
+                notice: sprintf('The %s price is now %s %s.', $tier->value, number_format($priceCents / 100, 2, '.', ''), $this->concert($concertId)['currency']),
             );
         });
     }
@@ -101,7 +101,7 @@ final class ConcertsController extends AbstractController
     #[Route('/admin/concerts/{concertId}/cancel', name: 'admin_concert_cancel', requirements: ['concertId' => Requirement::UUID], methods: ['POST'])]
     public function cancel(string $concertId): Response
     {
-        return $this->onKnownConcert($concertId, fn (): Response => $this->sendToConcert($concertId, new CancelConcert($concertId), 'The concert is cancelled.'));
+        return $this->onKnownConcert($concertId, fn (): Response => $this->sendToConcert(concertId: $concertId, command: new CancelConcert($concertId), notice: 'The concert is cancelled.'));
     }
 
     #[Route('/concerts/{concertId}/seats', name: 'concert_seats', requirements: ['concertId' => Requirement::UUID], methods: ['GET'])]

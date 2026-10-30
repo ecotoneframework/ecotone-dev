@@ -11,6 +11,7 @@ final class RecordSeatRefusal
         public readonly string $seatId,
         public readonly string $holdId,
         public readonly string $reason,
+        public readonly string $reasonCode,
     ) {
     }
 }

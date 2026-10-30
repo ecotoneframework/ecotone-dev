@@ -27,7 +27,7 @@ final class ContentionController
         $concert = $this->queryBus->sendWithRouting('concert.detail', $concertId);
         abort_if($concert === null, 404, 'There is no such concert. Pick one from /concerts.');
         $seatId = (string) $request->input('seatId');
-        $refusal = ContentionSimulator::refusalOf($concert, $concertId, $seatId, $this->queryBus->sendWithRouting('concert.seat_states', ['concertId' => $concertId, 'excludingOrderId' => null]));
+        $refusal = ContentionSimulator::refusalOf(concert: $concert, concertId: $concertId, seatId: $seatId, seatStates: $this->queryBus->sendWithRouting('concert.seat_states', ['concertId' => $concertId, 'excludingOrderId' => null]));
         if ($refusal !== null) {
             return response()->json(['error' => $refusal->getMessage()], 409);
         }

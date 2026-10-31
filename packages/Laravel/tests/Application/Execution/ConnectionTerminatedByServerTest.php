@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Test\Ecotone\Laravel\RestoresLaravelHandlers;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -37,8 +38,8 @@ final class ConnectionTerminatedByServerTest extends TestCase
 
     protected function setUp(): void
     {
-        if (! str_starts_with((string) getenv('DATABASE_DSN'), 'pgsql')) {
-            $this->markTestSkipped('Terminating a Laravel connection from the server side is proved on PostgreSQL');
+        if (! preg_match('/^(pgsql|mysql)/', (string) getenv('DATABASE_DSN'))) {
+            $this->markTestSkipped('Terminating a Laravel connection from the server side needs a database server');
         }
 
         $app = require __DIR__ . '/../bootstrap/app.php';
@@ -47,7 +48,7 @@ final class ConnectionTerminatedByServerTest extends TestCase
 
     protected function tearDown(): void
     {
-        DB::connection('pgsql')->disconnect();
+        DB::connection()->disconnect();
     }
 
     public function test_a_consumer_on_a_laravel_connection_handles_the_waiting_message_after_the_server_terminated_its_connection(): void
@@ -72,11 +73,34 @@ final class ConnectionTerminatedByServerTest extends TestCase
 
         $ecotone->sendCommandWithRouting('order.place', 'milk');
         $this->terminateServerSideOfLaravelConnection();
-        DB::purge('pgsql');
+        DB::purge(self::connectionName());
         $ecotone->run('orders', self::untilOneMessageIsHandled());
         $ecotone->run('shipping', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
+    }
+
+    public function test_a_laravel_transaction_that_reconnected_is_rolled_back_whole_when_a_command_sent_inside_it_finds_the_old_connection_lost(): void
+    {
+        DB::statement('DROP TABLE IF EXISTS laravel_written_orders');
+        DB::statement('CREATE TABLE laravel_written_orders (id VARCHAR(255))');
+        $ecotone = $this->bootstrap($this->orderHandler(static function (): void {
+        }));
+        $ecotone->sendCommandWithRouting('order.place', 'tea');
+        $this->terminateServerSideOfLaravelConnection();
+
+        try {
+            DB::transaction(static function () use ($ecotone): void {
+                DB::table('laravel_written_orders')->insert(['id' => 'milk']);
+                $ecotone->sendCommandWithRouting('order.place', 'milk');
+            });
+        } catch (Throwable) {
+        }
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $ecotone->run('shipping', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertSame([], DB::table('laravel_written_orders')->pluck('id')->all());
+        self::assertSame(['tea'], $ecotone->sendQueryWithRouting('order.shipped'));
     }
 
     public function test_a_consumer_on_a_laravel_connection_keeps_running_while_the_database_is_still_starting_after_a_restart(): void
@@ -85,15 +109,16 @@ final class ConnectionTerminatedByServerTest extends TestCase
         });
         $ecotone = $this->bootstrap($handler);
         $refusals = 2;
-        DB::connection('pgsql')->setReconnector(static function () use (&$refusals): void {
-            $port = config('database.connections.pgsql.port');
+        $connectionName = self::connectionName();
+        DB::connection()->setReconnector(static function () use (&$refusals, $connectionName): void {
+            $port = config("database.connections.{$connectionName}.port");
             if ($refusals-- > 0) {
-                config(['database.connections.pgsql.port' => 1]);
+                config(["database.connections.{$connectionName}.port" => 1]);
             }
             try {
-                app('db')->reconnect('pgsql');
+                app('db')->reconnect($connectionName);
             } finally {
-                config(['database.connections.pgsql.port' => $port]);
+                config(["database.connections.{$connectionName}.port" => $port]);
             }
         });
 
@@ -222,7 +247,7 @@ final class ConnectionTerminatedByServerTest extends TestCase
             [$handler::class],
             [$handler],
             [
-                LaravelConnectionReference::defaultConnection('pgsql'),
+                LaravelConnectionReference::defaultConnection(self::connectionName()),
                 DbalBackedMessageChannelBuilder::create('orders'),
                 DbalBackedMessageChannelBuilder::create('shipping'),
                 ...$extensionObjects,
@@ -234,11 +259,19 @@ final class ConnectionTerminatedByServerTest extends TestCase
 
     private function terminateServerSideOfLaravelConnection(): void
     {
-        $backendId = DB::connection('pgsql')->selectOne('SELECT pg_backend_pid() AS pid')->pid;
+        $administrator = (new DbalConnectionFactory((string) getenv('DATABASE_DSN')))->createContext()->getDbalConnection();
 
-        (new DbalConnectionFactory((string) getenv('DATABASE_DSN')))
-            ->createContext()
-            ->getDbalConnection()
-            ->executeStatement('SELECT pg_terminate_backend(' . (int) $backendId . ')');
+        if (self::connectionName() === 'pgsql') {
+            $administrator->executeStatement('SELECT pg_terminate_backend(' . (int) DB::connection()->selectOne('SELECT pg_backend_pid() AS id')->id . ')');
+
+            return;
+        }
+
+        $administrator->executeStatement('KILL ' . (int) DB::connection()->selectOne('SELECT CONNECTION_ID() AS id')->id);
+    }
+
+    private static function connectionName(): string
+    {
+        return DB::getDefaultConnection();
     }
 }

@@ -29,7 +29,10 @@ final class LostLaravelConnectionExceptionConverter implements ExceptionConverte
             return $this->exceptionConverter->convert($exception, $query);
         }
 
-        DB::connection($this->laravelConnectionName)->disconnect();
+        $laravelConnection = DB::connection($this->laravelConnectionName);
+        if ($laravelConnection->transactionLevel() === 0) {
+            $laravelConnection->disconnect();
+        }
 
         return new ConnectionLost($exception, $query);
     }

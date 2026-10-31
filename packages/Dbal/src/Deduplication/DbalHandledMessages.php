@@ -9,14 +9,11 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
 
 /**
@@ -27,10 +24,9 @@ final class DbalHandledMessages implements HandledMessages
     public const DEFAULT_DEDUPLICATION_TABLE = 'ecotone_deduplication';
 
     public function __construct(
-        private ConnectionFactory $connectionFactory,
+        private CachedConnectionFactory $connectionFactory,
         private int $removalBatchSize,
         private DeduplicationTableManager $tableManager,
-        private EcotoneClockInterface $clock,
     ) {
     }
 
@@ -125,7 +121,7 @@ final class DbalHandledMessages implements HandledMessages
     private function connection(): Connection
     {
         /** @var DbalContext $context */
-        $context = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->connectionFactory, $this->clock))->createContext();
+        $context = $this->connectionFactory->createContext();
 
         return $context->getDbalConnection();
     }

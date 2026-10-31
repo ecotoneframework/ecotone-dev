@@ -30,11 +30,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $connectionFactory = new Definition(CachedConnectionFactory::class, [
-            new Definition(HttpReconnectableConnectionFactory::class, [
-                new Reference($this->connectionReferenceName),
-            ]),
-        ], 'createFor');
+        $connectionFactory = CachedConnectionFactory::compileIn($builder, $this->connectionReferenceName, new Definition(HttpReconnectableConnectionFactory::class, [new Reference($this->connectionReferenceName)]));
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
             $this->endpointId,
             $this->acknowledgeMode,

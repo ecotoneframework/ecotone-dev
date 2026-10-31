@@ -7,6 +7,8 @@ use AMQPConnection;
 use Ecotone\Api\Amqp\AmqpExtConnectionFactory;
 use Ecotone\Api\Amqp\AmqpLibConnectionFactory;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Enqueue\AmqpExt\AmqpConsumer;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
@@ -31,6 +33,16 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     private AmqpConnectionFactory $connectionFactory;
     private ?SubscriptionConsumer $subscriptionConsumer = null;
     private ?AmqpPublisherConfirmations $publisherConfirmations = null;
+
+    public static function definitionFor(string $connectionReferenceName, bool $publisherConfirms): Definition
+    {
+        return new Definition(self::class, [new Reference($connectionReferenceName), null, $publisherConfirms]);
+    }
+
+    public static function connectionKeyFor(string $connectionReferenceName, bool $publisherConfirms): string
+    {
+        return $connectionReferenceName . ($publisherConfirms ? '.confirms' : '');
+    }
 
     public function __construct(AmqpExtConnectionFactory|AmqpLibConnectionFactory $connectionFactory, ?string $connectionInstanceId = null, private bool $publisherConfirms = false)
     {

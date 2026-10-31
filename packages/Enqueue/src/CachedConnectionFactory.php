@@ -3,6 +3,10 @@
 namespace Ecotone\Enqueue;
 
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
@@ -14,23 +18,28 @@ use Interop\Queue\Producer;
  */
 class CachedConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 {
-    private static $instances = [];
-
     private ReconnectableConnectionFactory $connectionFactory;
     private array $cachedContext = [];
 
-    private function __construct(ReconnectableConnectionFactory $reconnectableConnectionFactory)
+    public function __construct(ReconnectableConnectionFactory $reconnectableConnectionFactory)
     {
         $this->connectionFactory = $reconnectableConnectionFactory;
     }
 
-    public static function createFor(ReconnectableConnectionFactory $reconnectableConnectionFactory): self
+    public static function registerIn(Configuration $configuration, string $connectionKey, Definition $reconnectableConnectionFactory): Reference
     {
-        if (! isset(self::$instances[$reconnectableConnectionFactory->getConnectionInstanceId()])) {
-            self::$instances[$reconnectableConnectionFactory->getConnectionInstanceId()] = new self($reconnectableConnectionFactory);
+        $configuration->registerServiceDefinition(self::serviceId($connectionKey), new Definition(self::class, [$reconnectableConnectionFactory]));
+
+        return Reference::to(self::serviceId($connectionKey));
+    }
+
+    public static function compileIn(MessagingContainerBuilder $builder, string $connectionKey, Definition $reconnectableConnectionFactory): Reference
+    {
+        if (! $builder->has(self::serviceId($connectionKey))) {
+            $builder->register(self::serviceId($connectionKey), new Definition(self::class, [$reconnectableConnectionFactory]));
         }
 
-        return self::$instances[$reconnectableConnectionFactory->getConnectionInstanceId()];
+        return Reference::to(self::serviceId($connectionKey));
     }
 
     public function createContext(): Context
@@ -51,16 +60,6 @@ class CachedConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
         $this->cachedContext = [];
     }
 
-    /**
-     * Clear all cached connection factory instances.
-     * This is useful in tests to ensure clean state between test runs,
-     * especially when switching between different channel modes (confirm vs tx).
-     */
-    public static function clearInstances(): void
-    {
-        self::$instances = [];
-    }
-
     public function getConsumer(Destination $destination): Consumer
     {
         return $this->createContext()->createConsumer($destination);
@@ -76,9 +75,19 @@ class CachedConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
         return $this->connectionFactory;
     }
 
+    public function getWrappedConnectionFactory(): ConnectionFactory
+    {
+        return $this->connectionFactory->getWrappedConnectionFactory();
+    }
+
+    private static function serviceId(string $connectionKey): string
+    {
+        return self::class . '.' . $connectionKey;
+    }
+
     private function getCurrentActiveConnection(): string
     {
-        $connectionFactory = $this->connectionFactory->getWrappedConnectionFactory();
+        $connectionFactory = $this->getWrappedConnectionFactory();
         if (interface_exists(MultiTenantConnectionFactory::class) && $connectionFactory instanceof MultiTenantConnectionFactory) {
             return $connectionFactory->currentActiveTenant();
         }

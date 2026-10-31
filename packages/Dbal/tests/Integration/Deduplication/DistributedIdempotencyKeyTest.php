@@ -244,6 +244,24 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('deduplicationStores')]
+    public function test_the_same_idempotency_key_on_one_routing_key_from_two_sending_services_is_handled_for_each(bool $inMemory): void
+    {
+        $channels = [SimpleMessageChannelBuilder::createQueueChannel('ticket_channel')];
+        $tickets = $this->recordingHandlers();
+        $serviceMap = DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel');
+        $userService = $this->sender($channels, $serviceMap);
+        $orderService = $this->sender($channels, $serviceMap, 'order_service');
+        $ticketService = $this->target('ticket_service', $tickets, $channels, $inMemory);
+
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'request-1');
+        $orderService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-8', idempotencyKey: 'request-1');
+        $orderService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-8', idempotencyKey: 'request-1');
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+
+        self::assertSame(['seat-7', 'seat-8'], $tickets->handled);
+    }
+
+    #[DataProvider('deduplicationStores')]
     public function test_a_distributed_message_sent_twice_with_an_idempotency_key_of_255_characters_is_handled_once(bool $inMemory): void
     {
         $channels = [SimpleMessageChannelBuilder::createQueueChannel('ticket_channel')];
@@ -358,11 +376,11 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
         };
     }
 
-    private function sender(array $channels, DistributedServiceMap $serviceMap): FlowTestSupport
+    private function sender(array $channels, DistributedServiceMap $serviceMap, string $serviceName = 'user_service'): FlowTestSupport
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            extensionObjects: [...$channels, $serviceMap, ServiceConfiguration::createWithDefaults()->withServiceName('user_service')],
+            extensionObjects: [...$channels, $serviceMap, ServiceConfiguration::createWithDefaults()->withServiceName($serviceName)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

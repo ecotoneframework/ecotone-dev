@@ -64,6 +64,21 @@ final class ConnectionTerminatedByServerTest extends TestCase
         self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
     }
 
+    public function test_a_consumer_on_a_laravel_connection_reconnects_through_the_connection_laravel_holds_after_the_application_purged_it(): void
+    {
+        $handler = $this->orderHandler(static function (): void {
+        });
+        $ecotone = $this->bootstrap($handler);
+
+        $ecotone->sendCommandWithRouting('order.place', 'milk');
+        $this->terminateServerSideOfLaravelConnection();
+        DB::purge('pgsql');
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+        $ecotone->run('shipping', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
+    }
+
     public function test_a_consumer_on_a_laravel_connection_keeps_running_while_the_database_is_still_starting_after_a_restart(): void
     {
         $handler = $this->orderHandler(static function (): void {

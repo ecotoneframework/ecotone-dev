@@ -150,7 +150,7 @@
         "php": "^8.2",
         "ext-amqp": "*",
         "ext-openssl": "*",
-        "doctrine/dbal": "^4.0",
+        "doctrine/dbal": "^4.2.3",
         "doctrine/persistence": "^3.4|^4.0",
         "defuse/php-encryption": "^2.4",
         "enqueue/amqp-lib": "^0.10.25",

@@ -2770,6 +2770,18 @@ is raised as Doctrine's `ConnectionException`, so the consumer backs off with it
 
 **How to adapt:** nothing.
 
+### `ecotone/dbal`, `ecotone/laravel` and `ecotone/tempest` require `doctrine/dbal` 4.2.3 or later
+
+**Before:** they accepted any `doctrine/dbal` 4.x. Before 4.2.3, Doctrine raised a PostgreSQL connection the server
+terminated (`terminating connection due to administrator command`, a database restart) as a plain `DriverException`
+instead of `ConnectionLost`, so a consumer never reconnected and a send that lost its transaction's connection was
+not recognised as such.
+
+**Now:** `doctrine/dbal` `^4.2.3` is required, and the recovery after a database restart works on every version
+Composer installs.
+
+**How to adapt:** run `composer update doctrine/dbal` if your lock file holds a version below 4.2.3.
+
 ### `#[Partitioned]` with `#[ProjectionDeployment(manualKickOff: true)]` is refused at bootstrap
 
 **Before:** a partitioned projection ignored `manualKickOff: true` without a word — each partition initialized and

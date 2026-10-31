@@ -21,6 +21,7 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tempest\TempestConnectionReference;
+use PDOException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -160,6 +161,23 @@ final class ConnectionTerminatedByServerTest extends TestCase
         $ecotone->run('shipping', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
+    }
+
+    #[DataProvider('connectionReferences')]
+    public function test_a_transactional_command_bus_refused_by_an_aborted_tempest_transaction_names_the_open_transaction(Closure $connectionReference, ?string $tag): void
+    {
+        $this->registerTempestConnection($tag);
+        $ecotone = $this->bootstrap($this->orderHandler(static function (): void {
+        }), $connectionReference());
+        $this->tempestConnection->beginTransaction();
+        try {
+            $this->tempestConnection->prepare('SELECT 1 / 0')->execute();
+        } catch (PDOException) {
+        }
+
+        $this->expectExceptionMessage('There is already an active transaction');
+
+        $ecotone->sendCommandWithRouting('order.place', 'milk');
     }
 
     private static function untilOneMessageIsHandled(): ExecutionPollingMetadata

@@ -2732,9 +2732,11 @@ other send failure is retried and dead-lettered as before, inside a transaction 
 off (`InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false)`), or that lists its retry
 exceptions without `DatabaseTransactionLost::class`, such a command now fails with `DatabaseTransactionLost`: turn the
 command bus retry back on, add `DatabaseTransactionLost::class` to the listed exceptions, or catch it and send the
-command again in the caller. To keep the message being stored and retried in place instead, run its handler without a
-database transaction (`DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)` or
-`->withTransactionOnAsynchronousEndpoints(false)`).
+command again in the caller. A console command run in a transaction and a transaction the application opened itself are
+not retried by Ecotone: run the command again, or retry the work that opened the transaction. To keep the message being
+stored and retried in place instead, run its handler without a database transaction: `#[WithoutDatabaseTransaction]`
+on the handler, or `DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)`,
+`->withTransactionOnAsynchronousEndpoints(false)` or `->withTransactionOnConsoleCommands(false)`.
 
 ### A Laravel connection recovers after the database restarts
 

@@ -3543,9 +3543,11 @@ the target handled the same business request twice. The only defence was making 
 **Now:** `sendCommand()`, `convertAndSendCommand()`, `publishEvent()`, `convertAndPublishEvent()` and `sendMessage()`
 take an optional `idempotencyKey`, carried in the `ecotone_distributed_idempotency_key` header
 (`DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY`). The target's deduplication (`ecotone/dbal`, on by default for
-asynchronous endpoints, in memory or on the database) keys on it in place of the message id, scoped by the routing key
-and the consuming endpoint: the same key on one routing key is handled once by each endpoint that consumes it, and the
-same key on two routing keys (`tickets.confirm` and `tickets.cancel` both keyed by the order id) is handled for each. A `#[Deduplicated]` handler that names its own header or
+asynchronous endpoints, in memory or on the database) keys on it in place of the message id, scoped by the sending
+service, the routing key and the consuming endpoint, because the key means this sender's retry of its own request: the
+same key from one service on one routing key is handled once by each endpoint that consumes it, the same key on two
+routing keys (`tickets.confirm` and `tickets.cancel` both keyed by the order id) is handled for each, and two services
+that reuse one business id on one routing key are two requests, each handled. A `#[Deduplicated]` handler that names its own header or
 expression keeps using that; a plain `#[Deduplicated]` uses the key too. The key is honoured where the target receives
 the distributed message: the asynchronous handlers it fans the message out to, the messages it sends onwards, and the
 sender's own asynchronous Distributed Bus channel are deduplicated by their message id as before, and the reply of a

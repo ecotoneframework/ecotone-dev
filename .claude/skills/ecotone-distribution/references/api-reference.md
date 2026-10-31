@@ -66,8 +66,9 @@ interface DistributedBus
 
 Every method takes an optional `idempotencyKey`. The target's deduplication (`ecotone/dbal`, on by default for
 asynchronous endpoints) keys on it in place of the message id, so a send repeated by a retried handler is handled once.
-The key is scoped by the routing key and the consuming endpoint, so the order id can key both `tickets.confirm` and
-`tickets.cancel`. It is honoured where the target receives the distributed message; the asynchronous handlers the target
+The key is scoped by the sending service, the routing key and the consuming endpoint: it means this sender's retry of
+its own request, so the order id can key both `tickets.confirm` and `tickets.cancel`, and two services reusing one
+business id on one routing key are two requests, each handled. It is honoured where the target receives the distributed message; the asynchronous handlers the target
 fans it out to and the messages it sends onwards are deduplicated by their own message id. A blank key, or one longer than
 255 characters, is refused when `DistributedBus` is called.
 

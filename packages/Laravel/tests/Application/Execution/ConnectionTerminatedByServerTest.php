@@ -23,7 +23,6 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\DB;
-use PDOException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Test\Ecotone\Laravel\RestoresLaravelHandlers;
@@ -72,10 +71,15 @@ final class ConnectionTerminatedByServerTest extends TestCase
         $ecotone = $this->bootstrap($handler);
         $refusals = 2;
         DB::connection('pgsql')->setReconnector(static function () use (&$refusals): void {
+            $port = config('database.connections.pgsql.port');
             if ($refusals-- > 0) {
-                throw new PDOException('SQLSTATE[08006] [7] connection to server at "database", port 5432 failed: Connection refused');
+                config(['database.connections.pgsql.port' => 1]);
             }
-            app('db')->reconnect('pgsql');
+            try {
+                app('db')->reconnect('pgsql');
+            } finally {
+                config(['database.connections.pgsql.port' => $port]);
+            }
         });
 
         $ecotone->sendCommandWithRouting('order.place', 'milk');

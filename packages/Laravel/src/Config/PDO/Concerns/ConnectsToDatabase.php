@@ -7,7 +7,7 @@ use Doctrine\DBAL\Driver\Connection as DriverConnection;
 use Doctrine\DBAL\Driver\PDO\Exception;
 use Ecotone\Laravel\Config\PDO\Connection;
 use Ecotone\Laravel\Config\PDO\LostLaravelConnectionExceptionConverter;
-use Illuminate\Database\Connection as LaravelConnection;
+use Illuminate\Support\Facades\DB;
 use PDOException;
 
 /**
@@ -26,16 +26,17 @@ use PDOException;
  */
 trait ConnectsToDatabase
 {
-    public function __construct(private LaravelConnection $laravelConnection)
+    public function __construct(private string $laravelConnectionName)
     {
     }
 
     public function connect(array $params): DriverConnection
     {
         try {
-            $this->laravelConnection->reconnectIfMissingConnection();
+            $laravelConnection = DB::connection($this->laravelConnectionName);
+            $laravelConnection->reconnectIfMissingConnection();
 
-            return new Connection($this->laravelConnection->getPdo());
+            return new Connection($laravelConnection->getPdo());
         } catch (PDOException $exception) {
             throw Exception::new($exception);
         }
@@ -43,6 +44,6 @@ trait ConnectsToDatabase
 
     public function getExceptionConverter(): ExceptionConverter
     {
-        return new LostLaravelConnectionExceptionConverter(parent::getExceptionConverter(), $this->laravelConnection);
+        return new LostLaravelConnectionExceptionConverter(parent::getExceptionConverter(), $this->laravelConnectionName);
     }
 }

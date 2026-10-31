@@ -6,7 +6,7 @@ use Doctrine\DBAL\Driver\AbstractSQLServerDriver;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
 use Doctrine\DBAL\Driver\Connection as DriverConnection;
 use Doctrine\DBAL\Driver\PDO\Exception;
-use Illuminate\Database\Connection as LaravelConnection;
+use Illuminate\Support\Facades\DB;
 use PDOException;
 
 /**
@@ -14,7 +14,7 @@ use PDOException;
  */
 class SqlServerDriver extends AbstractSQLServerDriver
 {
-    public function __construct(private LaravelConnection $laravelConnection)
+    public function __construct(private string $laravelConnectionName)
     {
     }
 
@@ -29,10 +29,11 @@ class SqlServerDriver extends AbstractSQLServerDriver
     public function connect(array $params, $username = null, $password = null, array $driverOptions = []): DriverConnection
     {
         try {
-            $this->laravelConnection->reconnectIfMissingConnection();
+            $laravelConnection = DB::connection($this->laravelConnectionName);
+            $laravelConnection->reconnectIfMissingConnection();
 
             return new SqlServerConnection(
-                new Connection($this->laravelConnection->getPdo())
+                new Connection($laravelConnection->getPdo())
             );
         } catch (PDOException $exception) {
             throw Exception::new($exception);
@@ -41,7 +42,7 @@ class SqlServerDriver extends AbstractSQLServerDriver
 
     public function getExceptionConverter(): ExceptionConverter
     {
-        return new LostLaravelConnectionExceptionConverter(parent::getExceptionConverter(), $this->laravelConnection);
+        return new LostLaravelConnectionExceptionConverter(parent::getExceptionConverter(), $this->laravelConnectionName);
     }
 
     /**

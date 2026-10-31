@@ -45,6 +45,6 @@ final class LaravelConnectionResolver
         };
         $className = '\Ecotone\Laravel\Config\PDO\\' . $className;
 
-        return new $className($connection);
+        return new $className($connection->getName());
     }
 }

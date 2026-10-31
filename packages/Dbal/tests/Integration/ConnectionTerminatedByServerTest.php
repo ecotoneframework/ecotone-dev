@@ -5,7 +5,14 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration;
 
 use Closure;
+use Doctrine\DBAL\Driver;
+use Doctrine\DBAL\Driver\API\ExceptionConverter;
+use Doctrine\DBAL\Driver\Connection as DriverConnection;
+use Doctrine\DBAL\Driver\PDO\MySQL\Driver as MySQLDriver;
+use Doctrine\DBAL\Driver\PDO\PgSQL\Driver as PgSQLDriver;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Doctrine\DBAL\ServerVersionProvider;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
@@ -40,6 +47,23 @@ final class ConnectionTerminatedByServerTest extends DbalMessagingTestCase
 
         $ecotone->sendCommandWithRouting('order.place', 'milk');
         $this->terminateServerSideOf($connectionFactory);
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+        $ecotone->run('shipping', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
+    }
+
+    public function test_a_consumer_keeps_running_while_the_database_is_still_starting_after_a_restart(): void
+    {
+        $restartingDatabase = $this->restartingDatabase();
+        $connectionFactory = new DbalConnectionFactory(['dsn' => self::dsn(), 'connection' => ['driverClass' => $restartingDatabase::class]]);
+        $handler = $this->orderHandler(static function (): void {
+        });
+        $ecotone = $this->bootstrap($handler, $connectionFactory);
+
+        $ecotone->sendCommandWithRouting('order.place', 'milk');
+        $this->terminateServerSideOf($connectionFactory);
+        $restartingDatabase::$refusedConnects = 2;
         $ecotone->run('orders', self::untilOneMessageIsHandled());
         $ecotone->run('shipping', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
@@ -230,7 +254,49 @@ final class ConnectionTerminatedByServerTest extends DbalMessagingTestCase
             $this->markTestSkipped('SQLite has no server to terminate a connection');
         }
 
-        return new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone');
+        return new DbalConnectionFactory(self::dsn());
+    }
+
+    private function restartingDatabase(): Driver
+    {
+        if ($this->isUsingSqlite()) {
+            $this->markTestSkipped('SQLite has no server to restart');
+        }
+
+        return new class () implements Driver {
+            public static int $refusedConnects = 0;
+            private Driver $driver;
+
+            public function __construct()
+            {
+                $this->driver = str_starts_with(ConnectionTerminatedByServerTest::dsn(), 'pgsql') ? new PgSQLDriver() : new MySQLDriver();
+            }
+
+            public function connect(array $params): DriverConnection
+            {
+                if (self::$refusedConnects > 0) {
+                    self::$refusedConnects--;
+                    $params['port'] = 1;
+                }
+
+                return $this->driver->connect($params);
+            }
+
+            public function getDatabasePlatform(ServerVersionProvider $versionProvider): AbstractPlatform
+            {
+                return $this->driver->getDatabasePlatform($versionProvider);
+            }
+
+            public function getExceptionConverter(): ExceptionConverter
+            {
+                return $this->driver->getExceptionConverter();
+            }
+        };
+    }
+
+    public static function dsn(): string
+    {
+        return getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone';
     }
 
     private function terminateServerSideOf(DbalConnectionFactory $connectionFactory): void

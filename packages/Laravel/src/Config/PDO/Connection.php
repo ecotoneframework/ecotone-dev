@@ -140,7 +140,11 @@ class Connection implements DriverConnection, ServerVersionProvider
      */
     public function beginTransaction(): void
     {
-        $this->connection->beginTransaction();
+        try {
+            $this->connection->beginTransaction();
+        } catch (PDOException $exception) {
+            throw Exception::new($exception);
+        }
     }
 
     /**
@@ -148,7 +152,11 @@ class Connection implements DriverConnection, ServerVersionProvider
      */
     public function commit(): void
     {
-        $this->connection->commit();
+        try {
+            $this->connection->commit();
+        } catch (PDOException $exception) {
+            throw Exception::new($exception);
+        }
     }
 
     /**
@@ -156,7 +164,11 @@ class Connection implements DriverConnection, ServerVersionProvider
      */
     public function rollBack(): void
     {
-        $this->connection->rollBack();
+        try {
+            $this->connection->rollBack();
+        } catch (PDOException $exception) {
+            throw Exception::new($exception);
+        }
     }
 
     /**

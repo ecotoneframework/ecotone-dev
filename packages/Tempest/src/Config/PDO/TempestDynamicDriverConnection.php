@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace Ecotone\Tempest\Config\PDO;
 
 use Doctrine\DBAL\Driver\Connection as DriverConnection;
+use Doctrine\DBAL\Driver\PDO\Exception;
 use Doctrine\DBAL\Driver\PDO\Result;
 use Doctrine\DBAL\Driver\PDO\Statement;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use PDO;
-use ReflectionProperty;
-use Tempest\Container\GenericContainer;
-use Tempest\Database\Connection\Connection;
+use PDOException;
 
 /**
  * A Doctrine DriverConnection that re-resolves Tempest's default Connection singleton
@@ -33,19 +32,25 @@ final class TempestDynamicDriverConnection implements DriverConnection
             return $this->transactionPdo;
         }
 
-        $connection = GenericContainer::instance()->get(Connection::class);
-        $property = new ReflectionProperty($connection, 'pdo');
-        return $property->getValue($connection);
+        return TempestConnectionPdo::connect(null);
     }
 
     public function prepare(string $sql): StatementInterface
     {
-        return new Statement($this->pdo()->prepare($sql));
+        try {
+            return new Statement($this->pdo()->prepare($sql));
+        } catch (PDOException $e) {
+            throw Exception::new($e);
+        }
     }
 
     public function query(string $sql): ResultInterface
     {
-        return new Result($this->pdo()->query($sql));
+        try {
+            return new Result($this->pdo()->query($sql));
+        } catch (PDOException $e) {
+            throw Exception::new($e);
+        }
     }
 
     public function quote(string $value): string
@@ -55,19 +60,32 @@ final class TempestDynamicDriverConnection implements DriverConnection
 
     public function exec(string $sql): int|string
     {
-        $result = $this->pdo()->exec($sql);
+        try {
+            $result = $this->pdo()->exec($sql);
+        } catch (PDOException $e) {
+            throw Exception::new($e);
+        }
+
         return $result === false ? 0 : $result;
     }
 
     public function lastInsertId(): int|string
     {
-        return $this->pdo()->lastInsertId();
+        try {
+            return $this->pdo()->lastInsertId();
+        } catch (PDOException $e) {
+            throw Exception::new($e);
+        }
     }
 
     public function beginTransaction(): void
     {
-        $pdo = $this->pdo();
-        $pdo->beginTransaction();
+        try {
+            $pdo = $this->pdo();
+            TempestConnectionPdo::beginTransaction($pdo);
+        } catch (PDOException $e) {
+            throw Exception::new($e);
+        }
         $this->transactionPdo = $pdo;
     }
 
@@ -75,6 +93,8 @@ final class TempestDynamicDriverConnection implements DriverConnection
     {
         try {
             $this->pdo()->commit();
+        } catch (PDOException $e) {
+            throw Exception::new($e);
         } finally {
             $this->transactionPdo = null;
         }
@@ -84,6 +104,8 @@ final class TempestDynamicDriverConnection implements DriverConnection
     {
         try {
             $this->pdo()->rollBack();
+        } catch (PDOException $e) {
+            throw Exception::new($e);
         } finally {
             $this->transactionPdo = null;
         }

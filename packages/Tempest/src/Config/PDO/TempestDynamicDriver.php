@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Tempest\Config\PDO;
 
 use Doctrine\DBAL\Driver\AbstractPostgreSQLDriver;
+use Doctrine\DBAL\Driver\API\ExceptionConverter;
 use Doctrine\DBAL\Driver\Connection as DriverConnection;
 
 /**
@@ -20,5 +21,10 @@ final class TempestDynamicDriver extends AbstractPostgreSQLDriver
     public function connect(array $params): DriverConnection
     {
         return new TempestDynamicDriverConnection();
+    }
+
+    public function getExceptionConverter(): ExceptionConverter
+    {
+        return new LostTempestConnectionExceptionConverter(parent::getExceptionConverter(), null);
     }
 }

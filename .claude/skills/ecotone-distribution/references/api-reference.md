@@ -13,35 +13,41 @@ interface DistributedBus
         string $routingKey,
         string $command,
         string $sourceMediaType = MediaType::TEXT_PLAIN,
-        array $metadata = []
+        array $metadata = [],
+        ?string $idempotencyKey = null
     ): void;
 
     public function convertAndSendCommand(
         string $targetServiceName,
         string $routingKey,
         object|array $command,
-        array $metadata = []
+        array $metadata = [],
+        ?string $idempotencyKey = null
     ): void;
 
     public function publishEvent(
         string $routingKey,
         string $event,
         string $sourceMediaType = MediaType::TEXT_PLAIN,
-        array $metadata = []
+        array $metadata = [],
+        ?string $idempotencyKey = null
     ): void;
 
     public function convertAndPublishEvent(
         string $routingKey,
         object|array $event,
-        array $metadata = []
+        array $metadata = [],
+        ?string $idempotencyKey = null
     ): void;
 
     public function sendMessage(
         string $targetServiceName,
-        string $targetChannelName,
+        string $routingKey,
         string $payload,
         string $sourceMediaType = MediaType::TEXT_PLAIN,
-        array $metadata = []
+        array $metadata = [],
+        ?string $replyRoutingKey = null,
+        ?string $idempotencyKey = null
     ): void;
 }
 ```
@@ -54,7 +60,21 @@ interface DistributedBus
 | `convertAndSendCommand` | Specific service | Object/array (auto-converted) |
 | `publishEvent` | All subscribers | Raw string |
 | `convertAndPublishEvent` | All subscribers | Object/array (auto-converted) |
-| `sendMessage` | Specific service + channel | Raw string |
+| `sendMessage` | Specific service + routing key | Raw string |
+
+### Idempotency key
+
+Every method takes an optional `idempotencyKey`. The target's deduplication (`ecotone/dbal`, on by default for
+asynchronous endpoints) keys on it in place of the message id, so a send repeated by a retried handler is handled once.
+The key is scoped by the sending service, the routing key and the consuming endpoint: it means this sender's retry of
+its own request, so the order id can key both `tickets.confirm` and `tickets.cancel`, and two services reusing one
+business id on one routing key are two requests, each handled. It is honoured where the target receives the distributed message; the asynchronous handlers the target
+fans it out to and the messages it sends onwards are deduplicated by their own message id. A blank key, or one longer than
+255 characters, is refused when `DistributedBus` is called.
+
+```php
+$distributedBus->sendMessage('ticketing', 'tickets.confirm', $orderId, idempotencyKey: $orderId);
+```
 
 ## MessagePublisher Interface
 

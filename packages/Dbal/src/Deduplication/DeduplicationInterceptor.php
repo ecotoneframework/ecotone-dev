@@ -5,6 +5,7 @@ namespace Ecotone\Dbal\Deduplication;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
+use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
@@ -45,9 +46,7 @@ final class DeduplicationInterceptor
         $key = new DeduplicationKey(
             $this->extractDeduplicationId($message, $deduplicated),
             $this->determineConsumerEndpointId($deduplicated, $asynchronousRunningEndpoint),
-            $deduplicated === null && $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)
-                ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP)
-                : ($identifiedAnnotation === null ? '' : $identifiedAnnotation->getEndpointId()),
+            $this->determineRoutingSlip($message, $deduplicated, $identifiedAnnotation),
         );
 
         if ($this->handledMessages->wasHandled($key)) {
@@ -88,7 +87,9 @@ final class DeduplicationInterceptor
     private function extractDeduplicationId(Message $message, ?AttributeExpressionExecutor $deduplicated): string
     {
         if ($deduplicated === null) {
-            return $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
+            return $this->isDistributedInboundWithIdempotencyKey($message)
+                ? $message->getHeaders()->get(DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY)
+                : $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
         }
 
         /** @var Deduplicated $deduplicatedAttribute */
@@ -101,7 +102,37 @@ final class DeduplicationInterceptor
             return $message->getHeaders()->get($deduplicatedAttribute->deduplicationHeaderName);
         }
 
-        return $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
+        return $this->idempotencyKeyOrMessageId($message);
+    }
+
+    private function determineRoutingSlip(Message $message, ?AttributeExpressionExecutor $deduplicated, ?IdentifiedAnnotation $identifiedAnnotation): string
+    {
+        if ($deduplicated !== null || ! $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)) {
+            return $identifiedAnnotation === null ? '' : $identifiedAnnotation->getEndpointId();
+        }
+
+        if ($this->isDistributedInboundWithIdempotencyKey($message)) {
+            return $message->getHeaders()->get(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME)
+                . ':' . $message->getHeaders()->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY);
+        }
+
+        return $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP);
+    }
+
+    private function isDistributedInboundWithIdempotencyKey(Message $message): bool
+    {
+        return $message->getHeaders()->containsKey(DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY)
+            && $message->getHeaders()->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY)
+            && $message->getHeaders()->containsKey(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME)
+            && $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)
+            && $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP) === DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE;
+    }
+
+    private function idempotencyKeyOrMessageId(Message $message): string
+    {
+        return $message->getHeaders()->containsKey(DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY)
+            ? $message->getHeaders()->get(DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY)
+            : $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
     }
 
     private function determineConsumerEndpointId(?AttributeExpressionExecutor $deduplicated, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint): string

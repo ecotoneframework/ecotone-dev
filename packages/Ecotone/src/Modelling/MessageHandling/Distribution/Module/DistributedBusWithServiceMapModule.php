@@ -12,6 +12,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\DistributedBusHeader;
+use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -27,9 +28,11 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderV
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\MessageHandling\Distribution\DistributedIdempotencyKeyGuard;
 use Ecotone\Modelling\MessageHandling\Distribution\DistributedMessageHandler;
 use Ecotone\Modelling\MessageHandling\Distribution\DistributedOutboundRouter;
 use Ecotone\Modelling\MessageHandling\Distribution\DistributedReplyRouter;
@@ -68,6 +71,16 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
         $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
         $this->registerReplyRouter($applicationConfiguration, $messagingConfiguration, $distributedServiceMaps, $interfaceToCallRegistry);
+        if ($distributedServiceMaps !== []) {
+            $messagingConfiguration->registerBeforeMethodInterceptor(
+                MethodInterceptorBuilder::create(
+                    new Definition(DistributedIdempotencyKeyGuard::class),
+                    $interfaceToCallRegistry->getFor(DistributedIdempotencyKeyGuard::class, 'refuseInvalidIdempotencyKey'),
+                    Precedence::SYSTEM_PRECEDENCE_BEFORE,
+                    DistributedBus::class,
+                )
+            );
+        }
 
         foreach ($distributedServiceMaps as $distributedServiceMap) {
             if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
@@ -137,6 +150,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                             GatewayHeaderBuilder::create('sourceMediaType', MessageHeaders::CONTENT_TYPE),
                             GatewayHeaderBuilder::create('routingKey', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
                             GatewayHeaderBuilder::create('targetServiceName', DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME),
+                            GatewayHeaderBuilder::create('idempotencyKey', DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY),
                             GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME, $applicationConfiguration->serviceName),
                             GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE, 'command'),
                             GatewayHeaderValueBuilder::create(MessageHeaders::ROUTING_SLIP, DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE),
@@ -152,6 +166,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                             GatewayHeadersBuilder::create('metadata'),
                             GatewayHeaderBuilder::create('routingKey', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
                             GatewayHeaderBuilder::create('targetServiceName', DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME),
+                            GatewayHeaderBuilder::create('idempotencyKey', DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY),
                             GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME, $applicationConfiguration->serviceName),
                             GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE, 'command'),
                             GatewayHeaderValueBuilder::create(MessageHeaders::ROUTING_SLIP, DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE),
@@ -167,6 +182,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                             GatewayHeadersBuilder::create('metadata'),
                             GatewayHeaderBuilder::create('sourceMediaType', MessageHeaders::CONTENT_TYPE),
                             GatewayHeaderBuilder::create('routingKey', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
+                            GatewayHeaderBuilder::create('idempotencyKey', DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY),
                             GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME, $applicationConfiguration->serviceName),
                             GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE, 'event'),
                             GatewayHeaderValueBuilder::create(MessageHeaders::ROUTING_SLIP, DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE),
@@ -181,6 +197,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                             GatewayPayloadBuilder::create('event'),
                             GatewayHeadersBuilder::create('metadata'),
                             GatewayHeaderBuilder::create('routingKey', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
+                            GatewayHeaderBuilder::create('idempotencyKey', DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY),
                             GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME, $applicationConfiguration->serviceName),
                             GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE, 'event'),
                             GatewayHeaderValueBuilder::create(MessageHeaders::ROUTING_SLIP, DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE),
@@ -198,6 +215,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                             GatewayHeaderBuilder::create('routingKey', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
                             GatewayHeaderBuilder::create('targetServiceName', DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME),
                             GatewayHeaderBuilder::create('replyRoutingKey', DistributedBusHeader::DISTRIBUTED_REPLY_ROUTING_KEY),
+                            GatewayHeaderBuilder::create('idempotencyKey', DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY),
                             GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME, $applicationConfiguration->serviceName),
                             GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE, 'message'),
                             GatewayHeaderValueBuilder::create(MessageHeaders::ROUTING_SLIP, DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE),

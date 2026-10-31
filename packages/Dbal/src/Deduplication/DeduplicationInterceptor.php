@@ -112,7 +112,8 @@ final class DeduplicationInterceptor
         }
 
         if ($this->isDistributedInboundWithIdempotencyKey($message)) {
-            return $message->getHeaders()->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY);
+            return $message->getHeaders()->get(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME)
+                . ':' . $message->getHeaders()->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY);
         }
 
         return $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP);
@@ -122,6 +123,7 @@ final class DeduplicationInterceptor
     {
         return $message->getHeaders()->containsKey(DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY)
             && $message->getHeaders()->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY)
+            && $message->getHeaders()->containsKey(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME)
             && $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)
             && $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP) === DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE;
     }

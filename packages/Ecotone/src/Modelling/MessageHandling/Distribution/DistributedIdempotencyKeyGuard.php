@@ -43,7 +43,7 @@ final class DistributedIdempotencyKeyGuard
         }
 
         if (trim($idempotencyKey) === '') {
-            throw InvalidArgumentException::create('The Distributed Bus was given a blank idempotencyKey. The target deduplicates on this key in place of the message id, per routing key and consuming endpoint, so a blank one would make every send to that routing key one request, handled once. Pass a key that names this business request, such as the order id, or omit idempotencyKey to have each send handled on its own.');
+            throw InvalidArgumentException::create('The Distributed Bus was given a blank idempotencyKey. The target deduplicates on this key in place of the message id, per sending service, routing key and consuming endpoint, so a blank one would make every send from this service to that routing key one request, handled once. Pass a key that names this business request, such as the order id, or omit idempotencyKey to have each send handled on its own.');
         }
 
         if (strlen($idempotencyKey) > self::MAXIMUM_LENGTH) {

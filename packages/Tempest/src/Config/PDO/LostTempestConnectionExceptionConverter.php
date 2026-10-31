@@ -9,6 +9,7 @@ use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Exception\ConnectionLost;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Query;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -43,7 +44,7 @@ final class LostTempestConnectionExceptionConverter implements ExceptionConverte
         return new ConnectionLost($exception, $query);
     }
 
-    private static function isCausedByLostConnection(Exception $exception): bool
+    public static function isCausedByLostConnection(Throwable $exception): bool
     {
         foreach (self::LOST_CONNECTION_MESSAGES as $message) {
             if (str_contains($exception->getMessage(), $message)) {

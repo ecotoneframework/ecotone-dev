@@ -41,8 +41,8 @@ final class TempestConnectionPdo
     {
         try {
             $pdo->query('SELECT 1');
-        } catch (PDOException $lost) {
-            return $lost;
+        } catch (PDOException $probeFailure) {
+            return LostTempestConnectionExceptionConverter::isCausedByLostConnection($probeFailure) ? $probeFailure : $refused;
         }
 
         return $refused;

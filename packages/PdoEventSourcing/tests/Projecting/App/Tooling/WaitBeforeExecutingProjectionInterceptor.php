@@ -34,6 +34,7 @@ class WaitBeforeExecutingProjectionInterceptor
     public function interceptor(): void
     {
         $this->waitForUserInput();
+        $this->disable();
     }
 
     public static function getMessage(): string

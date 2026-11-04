@@ -34,6 +34,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
+use Ecotone\Projecting\ProjectionOperations;
 
 #[ModuleAnnotation]
 /**
@@ -87,13 +88,21 @@ final class DatabaseSetupModule implements AnnotationModule
             new Reference(self::setupManagerReferenceName($defaultConnectionReference))
         );
 
+        $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
         $connectionFactories = [];
         foreach (array_keys($tableManagerRefsByConnection) as $connectionReferenceName) {
             $connectionFactories[$connectionReferenceName] = new Reference($connectionReferenceName, ContainerImplementation::NULL_ON_INVALID_REFERENCE);
         }
         $messagingConfiguration->registerServiceDefinition(
             DbalDatabaseTablesSetUp::class,
-            new Definition(DbalDatabaseTablesSetUp::class, [$connectionFactories, $tableManagerRefsByConnection, new Reference(EcotoneClockInterface::class)])
+            new Definition(DbalDatabaseTablesSetUp::class, [
+                $connectionFactories,
+                $tableManagerRefsByConnection,
+                new Reference(EcotoneClockInterface::class),
+                new Reference(ProjectionOperations::class),
+                self::tenantsByHeader($multiTenantConfigurations),
+                $multiTenantConfigurations === [] || array_filter($multiTenantConfigurations, static fn (MultiTenantConfiguration $configuration): bool => $configuration->defaultConnectionName !== null) !== [],
+            ])
         );
 
         $messagingConfiguration->registerServiceDefinition(
@@ -199,5 +208,22 @@ final class DatabaseSetupModule implements AnnotationModule
         $configuration
             ->registerMessageHandler($messageHandlerBuilder)
             ->registerConsoleCommand($oneTimeCommandConfiguration);
+    }
+
+    /**
+     * @param MultiTenantConfiguration[] $multiTenantConfigurations
+     * @return array<string, string[]>
+     */
+    private static function tenantsByHeader(array $multiTenantConfigurations): array
+    {
+        $tenantsByHeader = [];
+        foreach ($multiTenantConfigurations as $configuration) {
+            $tenantsByHeader[$configuration->tenantHeaderName] = array_values(array_unique([
+                ...($tenantsByHeader[$configuration->tenantHeaderName] ?? []),
+                ...array_map('strval', array_keys($configuration->tenantToConnectionMapping)),
+            ]));
+        }
+
+        return $tenantsByHeader;
     }
 }

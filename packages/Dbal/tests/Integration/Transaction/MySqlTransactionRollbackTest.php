@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Exception;
@@ -98,6 +99,7 @@ final class MySqlTransactionRollbackTest extends TestCase
             containerOrAvailableServices: [$orderService, DbalConnectionFactory::class => $this->createConnectionFactory()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             environment: 'prod',
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
     }
 

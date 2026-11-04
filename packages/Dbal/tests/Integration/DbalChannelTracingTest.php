@@ -15,6 +15,7 @@ use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
@@ -145,6 +146,7 @@ final class DbalChannelTracingTest extends DbalMessagingTestCase
             extensionObjects: [TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         )->setupDatabaseTables();
     }
 
@@ -158,6 +160,7 @@ final class DbalChannelTracingTest extends DbalMessagingTestCase
             containerOrAvailableServices: [...$services, DbalConnectionFactory::class => self::connectionThatCanGoDown()],
             extensionObjects: [DbalBackedMessageChannelBuilder::create('orders')],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         )->setupDatabaseTables();
     }
 

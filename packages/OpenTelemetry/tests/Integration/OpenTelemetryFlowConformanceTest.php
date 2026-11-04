@@ -31,6 +31,7 @@ final class OpenTelemetryFlowConformanceTest extends TracingTestCase
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $exporter->getStorage()->exchangeArray([]);
 
         $scopeNotices = [];
         set_error_handler(static function (int $errorNumber, string $errorMessage) use (&$scopeNotices): bool {

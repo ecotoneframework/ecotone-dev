@@ -22,6 +22,7 @@ use Ecotone\Api\Attribute\Version;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Modelling\WithEvents;
@@ -253,7 +254,7 @@ final class StateStoredRepositoryConformanceTest extends DbalMessagingTestCase
         $classesToResolve = [TicketForRepositoryConformance::class, OpenTicketForRepositoryConformance::class, RenameTicketForRepositoryConformance::class, NoteForRepositoryConformance::class, JournalForRepositoryConformance::class, JourneyForRepositoryConformance::class];
 
         if ($implementation === 'in-memory') {
-            return $this->bootstrapFlowTesting(classesToResolve: $classesToResolve, enabledModules: []);
+            return $this->bootstrapFlowTesting(classesToResolve: $classesToResolve, enabledModules: [], testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false));
         }
 
         return $this->bootstrapFlowTesting(
@@ -262,6 +263,7 @@ final class StateStoredRepositoryConformanceTest extends DbalMessagingTestCase
             extensionObjects: [DbalConfiguration::createWithDefaults()->withDocumentStore(inMemoryDocumentStore:$implementation === 'document-store-in-memory', enableDocumentStoreStateStoredRepository:true, )],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
             addInMemoryStateStoredRepository: false,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
     }
 }

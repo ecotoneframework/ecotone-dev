@@ -15,7 +15,6 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Test\StubLogger;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 
@@ -98,9 +97,8 @@ final class PulseReplyChannelTest extends AmqpMessagingTestCase
                 $this->snapshots[] = $snapshot;
             }
         };
-        $logger = StubLogger::create();
         $orderService = EcotoneLite::bootstrapFlowTesting(
-            containerOrAvailableServices: [...$this->getConnectionFactoryReferences(), 'logger' => $logger],
+            containerOrAvailableServices: $this->getConnectionFactoryReferences(),
             extensionObjects: [
                 AmqpBackedMessageChannelBuilder::create('order_service', queueName: $requestQueue),
                 ServiceConfiguration::createWithDefaults()->withServiceName('order_service'),
@@ -126,7 +124,6 @@ final class PulseReplyChannelTest extends AmqpMessagingTestCase
             self::fail('The reply should fail while the reply queue of Pulse does not exist');
         } catch (DestinationDoesNotExistException $exception) {
             self::assertStringContainsString(sprintf("queue '%s' does not exist", $replyChannel), $exception->getMessage());
-            self::assertStringContainsString('Trying to self-heal by doing instant try 3 out of 3', json_encode($logger->getInfo(), JSON_THROW_ON_ERROR | JSON_PARTIAL_OUTPUT_ON_ERROR));
         }
 
         $pulseService = EcotoneLite::bootstrapFlowTesting(

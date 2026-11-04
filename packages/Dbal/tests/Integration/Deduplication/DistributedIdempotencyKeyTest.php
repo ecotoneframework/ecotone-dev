@@ -27,9 +27,9 @@ use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Test\LicenceTesting;
+use Exception;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
-use Exception;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**

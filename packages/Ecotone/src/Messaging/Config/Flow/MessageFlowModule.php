@@ -35,14 +35,12 @@ final class MessageFlowModule implements AnnotationModule
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        SendsDistributedMessageGuard::check($this->annotationFinder, $extensionObjects);
         if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             return;
         }
 
         $declared = MessageFlowDiscovery::discover($this->annotationFinder, $interfaceToCallRegistry, $extensionObjects);
         $distributedBusParameters = self::distributedBusParameters($interfaceToCallRegistry);
-        (new MessageFlowGraphBuilder($declared->graph, $declared->collaborators, $declared->namedEvents, $distributedBusParameters, new HandlerSourceScanner()))->checkDeclaredSends();
         $messagingConfiguration->registerServiceDefinition(MessageFlowGraphBuilder::class, new Definition(MessageFlowGraphBuilder::class, [
             $declared->graph->getDefinition(),
             $declared->collaborators,

@@ -29,7 +29,6 @@ use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Messaging\Flow\FlowNode;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 
 final class MessageFlowGraphBuilder
@@ -73,21 +72,6 @@ final class MessageFlowGraphBuilder
         $this->connectEventRoutes($inferred);
 
         return $inferred->graph();
-    }
-
-    public function checkDeclaredSends(): void
-    {
-        $senders = [];
-        foreach ($this->declared->edgesOfKind(FlowEdgeKind::SENDS_TO) as $edge) {
-            if (($edge->attributes['declared'] ?? false) === true) {
-                $senders[$edge->from] = $this->declared->node($edge->from);
-            }
-        }
-        $facts = $this->factsOf(array_values($senders));
-        $inferred = new InferredFlow($this->declared);
-        foreach ($senders as $sender) {
-            $this->inferDistribution($inferred, $sender, $facts[$sender->id]);
-        }
     }
 
     /**
@@ -220,9 +204,6 @@ final class MessageFlowGraphBuilder
             } elseif ($call['method'] === 'sendMessage' && $targetService !== null && $routingKey !== null) {
                 $replyChannel = $this->distributedArgument($call, 'replyRoutingKey');
                 $sentWithoutReply = $this->distributedArgumentOf($call, 'replyRoutingKey') === null;
-                if ($replyChannel !== null || $sentWithoutReply) {
-                    $this->refuseContradictingDeclaredReply($handler, $busId, $targetService, $routingKey, $replyChannel);
-                }
                 $flow->addEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => 'sendMessage', 'targetService' => $targetService, 'targetChannel' => $routingKey] + match (true) {
                     $replyChannel !== null => ['replyChannel' => $replyChannel],
                     $sentWithoutReply => ['withoutReply' => true],
@@ -257,24 +238,6 @@ final class MessageFlowGraphBuilder
         }
 
         return $argument;
-    }
-
-    private function refuseContradictingDeclaredReply(FlowNode $handler, string $busId, string $targetService, string $routingKey, ?string $replyChannel): void
-    {
-        foreach ($this->declared->edgesOfKind(FlowEdgeKind::SENDS_TO, $handler->id, $busId) as $declared) {
-            if (($declared->attributes['declared'] ?? false) !== true || $declared->attributes['targetService'] !== $targetService || $declared->attributes['targetChannel'] !== $routingKey) {
-                continue;
-            }
-            $declaredReply = $declared->attributes['replyChannel'] ?? null;
-            if ($declaredReply === $replyChannel) {
-                continue;
-            }
-            $method = $handler->attributes['method'];
-            $declaredPart = $declaredReply === null ? 'with no reply' : "answered on '{$declaredReply}'";
-            $sourcePart = $replyChannel === null ? 'with no reply' : "with replyRoutingKey '{$replyChannel}'";
-
-            throw ConfigurationException::create("#[SendsDistributedMessage] on {$handler->attributes['class']}::{$method}() declares the route to '{$targetService}' with routing key '{$routingKey}' {$declaredPart}, but the source of {$method}() sends it {$sourcePart}. One sent message is answered on one key, so only one of them can be right. Correct the replyRoutingKey of the attribute or of the sendMessage() call, so both name the key the target service answers on.");
-        }
     }
 
     /**

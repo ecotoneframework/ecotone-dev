@@ -7,11 +7,14 @@ namespace Test\Ecotone\Messaging\Integration\PollingConsumer;
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\OnConsumerStop;
+use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -19,6 +22,9 @@ use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -194,6 +200,45 @@ final class FinishWhenNoMessagesTest extends TestCase
         $ecotone->run('ticker', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $this->assertSame(['tick', 'stopped at 00:00:00.000'], $ecotone->sendQueryWithRouting('ticker.log'));
+    }
+
+    public function test_a_polling_projection_projects_every_event_and_stops(): void
+    {
+        $projection = new #[Projection('tickets'), Polling('tickets_runner'), FromStream('ticket_stream')] class {
+            private array $log = [];
+
+            #[EventHandler('ticket.registered')]
+            public function when(array $event): void
+            {
+                $this->log[] = $event['ticketId'];
+            }
+
+            #[OnConsumerStop]
+            public function stopped(string $endpointId, #[Reference] EcotoneClockInterface $clock): void
+            {
+                $this->log[] = 'stopped at ' . $clock->now()->format('H:i:s.v');
+            }
+
+            #[QueryHandler('tickets.log')]
+            public function log(): array
+            {
+                return $this->log;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$projection::class],
+            [$projection],
+            enabledModules: [],
+            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 00:00:00')),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->withEventStream('ticket_stream', [
+            Event::createWithType('ticket.registered', ['ticketId' => '1']),
+            Event::createWithType('ticket.registered', ['ticketId' => '2']),
+        ]);
+
+        $ecotone->run('tickets_runner', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $this->assertSame(['1', '2', 'stopped at 00:00:00.000'], $ecotone->sendQueryWithRouting('tickets.log'));
     }
 
     private function bootstrapWithThreeMessages(?PollingMetadata $pollingMetadata = null): FlowTestSupport

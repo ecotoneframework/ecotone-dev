@@ -41,7 +41,7 @@ trait ConsumerInterceptorTrait
     {
     }
 
-    public function postReceive(bool $messageReceived): void
+    public function postReceive(bool $messageLeftWaiting): void
     {
     }
 

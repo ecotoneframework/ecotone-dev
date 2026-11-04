@@ -46,7 +46,7 @@ interface ConsumerInterceptor
      */
     public function postRun(?Throwable $unhandledFailure): void;
 
-    public function postReceive(bool $messageReceived): void;
+    public function postReceive(bool $messageLeftWaiting): void;
 
     /**
      * Called after each sending message to request channel

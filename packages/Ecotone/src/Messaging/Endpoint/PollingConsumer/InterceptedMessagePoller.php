@@ -17,7 +17,7 @@ final class InterceptedMessagePoller implements MessagePoller
     /**
      * @param ConsumerInterceptor[] $interceptors
      */
-    public function __construct(private MessagePoller $messagePoller, private array $interceptors)
+    public function __construct(private MessagePoller $messagePoller, private array $interceptors, private bool $drainsAQueue)
     {
     }
 
@@ -25,7 +25,7 @@ final class InterceptedMessagePoller implements MessagePoller
     {
         $message = $this->messagePoller->receiveWithTimeout($pollingMetadata);
         foreach ($this->interceptors as $consumerInterceptor) {
-            $consumerInterceptor->postReceive($message !== null);
+            $consumerInterceptor->postReceive($this->drainsAQueue && $message !== null);
         }
 
         return $message;

@@ -7,9 +7,11 @@ namespace Test\Ecotone\Messaging\Integration\PollingConsumer;
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\OnConsumerStop;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -151,6 +153,47 @@ final class FinishWhenNoMessagesTest extends TestCase
         $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => 'async', 'finishWhenNoMessages' => true, 'executionTimeLimit' => 2000]);
 
         $this->assertSame(['stopped at 00:00:00.000'], $ecotone->sendQueryWithRouting('consumer.log'));
+    }
+
+    public function test_a_scheduled_method_that_returns_a_value_runs_once_and_stops(): void
+    {
+        $scheduler = new class () {
+            private array $log = [];
+
+            #[Scheduled('ticks', endpointId: 'ticker')]
+            public function tick(): string
+            {
+                return 'tick';
+            }
+
+            #[InternalHandler('ticks')]
+            public function handle(string $tick): void
+            {
+                $this->log[] = $tick;
+            }
+
+            #[OnConsumerStop]
+            public function stopped(string $endpointId, #[Reference] EcotoneClockInterface $clock): void
+            {
+                $this->log[] = 'stopped at ' . $clock->now()->format('H:i:s.v');
+            }
+
+            #[QueryHandler('ticker.log')]
+            public function log(): array
+            {
+                return $this->log;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$scheduler::class],
+            [$scheduler],
+            enabledModules: [],
+            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 00:00:00')),
+        );
+
+        $ecotone->run('ticker', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $this->assertSame(['tick', 'stopped at 00:00:00.000'], $ecotone->sendQueryWithRouting('ticker.log'));
     }
 
     private function bootstrapWithThreeMessages(?PollingMetadata $pollingMetadata = null): FlowTestSupport

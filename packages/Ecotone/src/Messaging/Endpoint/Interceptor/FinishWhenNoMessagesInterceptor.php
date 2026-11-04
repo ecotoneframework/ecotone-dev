@@ -25,8 +25,8 @@ class FinishWhenNoMessagesInterceptor implements ConsumerInterceptor
         return $this->shouldBeStopped;
     }
 
-    public function postReceive(bool $messageReceived): void
+    public function postReceive(bool $messageLeftWaiting): void
     {
-        $this->shouldBeStopped = ! $messageReceived;
+        $this->shouldBeStopped = ! $messageLeftWaiting;
     }
 }

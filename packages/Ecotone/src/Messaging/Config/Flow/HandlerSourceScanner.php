@@ -164,12 +164,12 @@ final class HandlerSourceScanner
     }
 
     /**
-     * @param array{arguments: array<int|string, array{kind: string, value: string}>} $call
+     * @param array{receiver: string|null, method: string, enclosingCall: string|null, arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null, unresolvedFrom: int|null} $call
      * @param array<string, bool> $visited
      * @param array<string, array{list<PhpToken>, array<int, int>, int, array<int, array{string, array<string, string>}>}> $files
      * @param array<string, MethodSourceFacts> $methodFacts
      * @param array<string, ReflectionMethod> $reflections
-     * @return array{arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>}
+     * @return array{receiver: string|null, method: string, enclosingCall: string|null, arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null, unresolvedFrom: int|null}
      */
     private function withReturnedLiterals(array $call, array $visited, array &$files, array &$methodFacts, array &$reflections): array
     {

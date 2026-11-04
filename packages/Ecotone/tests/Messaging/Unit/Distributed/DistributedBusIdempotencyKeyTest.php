@@ -15,6 +15,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 use function str_repeat;
+use function strlen;
 
 /**
  * licence Enterprise
@@ -54,6 +55,27 @@ final class DistributedBusIdempotencyKeyTest extends TestCase
         }
     }
 
+    public static function sendsFromAServiceWhoseNameAndRoutingKeyDoNotFitTheDeduplicationTable(): iterable
+    {
+        $routingKeys = ['sendCommand' => 'ticket.create', 'convertAndSendCommand' => 'ticket.create', 'publishEvent' => 'user.registered', 'convertAndPublishEvent' => 'user.registered', 'sendMessage' => 'ticket.confirm'];
+        foreach (self::sendsWith('request-1') as $name => $send) {
+            $serviceName = str_repeat('s', 255 - strlen($routingKeys[$name]));
+            yield $name => [$send, false, $serviceName, $routingKeys[$name]];
+            yield $name . ' through an asynchronous Distributed Bus' => [$send, true, $serviceName, $routingKeys[$name]];
+        }
+    }
+
+    #[DataProvider('sendsFromAServiceWhoseNameAndRoutingKeyDoNotFitTheDeduplicationTable')]
+    public function test_an_idempotency_key_is_refused_when_the_service_name_and_routing_key_together_exceed_254_characters(callable $send, bool $asynchronous, string $serviceName, string $routingKey): void
+    {
+        $ecotone = $this->userService($asynchronous, $serviceName);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage("The Distributed Bus was given an idempotencyKey for routing key '{$routingKey}' from service '{$serviceName}'. The target records the key against '{$serviceName}:{$routingKey}', 256 characters, in its deduplication table, which holds at most 255, so every delivery of the message would fail. Shorten the routing key, or the service name set with ServiceConfiguration::withServiceName(), so the two take at most 254 characters together, or omit idempotencyKey to have each send handled on its own.");
+
+        $send($ecotone);
+    }
+
     #[DataProvider('sends')]
     public function test_a_blank_idempotency_key_is_refused_because_it_would_make_every_send_one_request(callable $send, bool $asynchronous): void
     {
@@ -85,7 +107,7 @@ final class DistributedBusIdempotencyKeyTest extends TestCase
         yield 'sendMessage' => fn (FlowTestSupport $ecotone) => $ecotone->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: $idempotencyKey);
     }
 
-    private function userService(bool $asynchronous): FlowTestSupport
+    private function userService(bool $asynchronous, string $serviceName = 'user_service'): FlowTestSupport
     {
         $serviceMap = DistributedServiceMap::initialize()
             ->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel')
@@ -96,7 +118,7 @@ final class DistributedBusIdempotencyKeyTest extends TestCase
                 SimpleMessageChannelBuilder::createQueueChannel('ticket_channel'),
                 SimpleMessageChannelBuilder::createQueueChannel('user_outbox'),
                 $asynchronous ? $serviceMap->withAsynchronousChannel('user_outbox') : $serviceMap,
-                ServiceConfiguration::createWithDefaults()->withServiceName('user_service'),
+                ServiceConfiguration::createWithDefaults()->withServiceName($serviceName),
             ],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,

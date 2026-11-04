@@ -29,6 +29,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
+use Exception;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
@@ -274,6 +275,42 @@ final class DistributedIdempotencyKeyTest extends DbalMessagingTestCase
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame(['seat-7'], $tickets->handled);
+    }
+
+    #[DataProvider('deduplicationStores')]
+    public function test_a_distributed_message_sent_twice_from_a_service_whose_name_and_routing_key_take_254_characters_is_handled_once(bool $inMemory): void
+    {
+        $channels = [SimpleMessageChannelBuilder::createQueueChannel('ticket_channel')];
+        $tickets = $this->recordingHandlers();
+        $userService = $this->sender($channels, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel'), str_repeat('s', 240));
+        $ticketService = $this->target('ticket_service', $tickets, $channels, $inMemory);
+
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'confirm-1');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'confirm-1');
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+
+        self::assertSame(['seat-7'], $tickets->handled);
+    }
+
+    #[DataProvider('deduplicationStores')]
+    public function test_a_distributed_message_with_an_idempotency_key_from_a_service_whose_name_and_routing_key_exceed_254_characters_is_refused_before_it_reaches_the_target(bool $inMemory): void
+    {
+        $channels = [SimpleMessageChannelBuilder::createQueueChannel('ticket_channel')];
+        $tickets = $this->recordingHandlers();
+        $serviceName = str_repeat('s', 241);
+        $userService = $this->sender($channels, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel'), $serviceName);
+        $ticketService = $this->target('ticket_service', $tickets, $channels, $inMemory);
+
+        try {
+            $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-7', idempotencyKey: 'confirm-1');
+            self::fail('The Distributed Bus accepted an idempotency key the target cannot record');
+        } catch (Exception $exception) {
+            self::assertSame("The Distributed Bus was given an idempotencyKey for routing key 'ticket.confirm' from service '{$serviceName}'. The target records the key against '{$serviceName}:ticket.confirm', 256 characters, in its deduplication table, which holds at most 255, so every delivery of the message would fail. Shorten the routing key, or the service name set with ServiceConfiguration::withServiceName(), so the two take at most 254 characters together, or omit idempotencyKey to have each send handled on its own.", $exception->getMessage());
+        }
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.confirm', 'seat-8');
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+
+        self::assertSame(['seat-8'], $tickets->handled);
     }
 
     #[DataProvider('deduplicationStores')]

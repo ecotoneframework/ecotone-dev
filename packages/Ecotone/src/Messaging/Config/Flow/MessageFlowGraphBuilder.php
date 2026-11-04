@@ -203,7 +203,7 @@ final class MessageFlowGraphBuilder
                 $this->addDistributedMessage($flow, $handler->id, $busId, $routingKey, FlowNodeKind::EVENT, $call['method'], []);
             } elseif ($call['method'] === 'sendMessage' && $targetService !== null && $routingKey !== null) {
                 $replyChannel = $this->distributedArgument($call, 'replyRoutingKey');
-                $sentWithoutReply = $this->distributedArgumentOf($call, 'replyRoutingKey') === null;
+                $sentWithoutReply = ($this->distributedArgumentOf($call, 'replyRoutingKey')['kind'] ?? 'null') === 'null';
                 $flow->addEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => 'sendMessage', 'targetService' => $targetService, 'targetChannel' => $routingKey] + match (true) {
                     $replyChannel !== null => ['replyChannel' => $replyChannel],
                     $sentWithoutReply => ['withoutReply' => true],

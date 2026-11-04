@@ -36,6 +36,7 @@ final class HandlerSourceScanner
     private const IGNORED_TOKENS = [T_WHITESPACE => true, T_COMMENT => true, T_DOC_COMMENT => true, T_OPEN_TAG => true, T_INLINE_HTML => true];
     private const UNRESOLVED = ['kind' => 'unresolved', 'value' => ''];
     private const RETURN_OF = 'returnOf';
+    private const NULL = ['kind' => 'null', 'value' => ''];
     private const MEMBER_ACCESS_TOKENS = [T_OBJECT_OPERATOR => true, T_NULLSAFE_OBJECT_OPERATOR => true, T_DOUBLE_COLON => true];
     private const EVERY_VARIABLE = '*';
     private const NAME_TOKENS = [T_STRING => true, T_NAME_QUALIFIED => true, T_NAME_FULLY_QUALIFIED => true, T_NAME_RELATIVE => true, T_STATIC => true];
@@ -214,8 +215,13 @@ final class HandlerSourceScanner
             if ($argument === null && $call['unresolvedFrom'] !== null && $parameter->getPosition() >= $call['unresolvedFrom']) {
                 $argument = self::UNRESOLVED;
             }
-            if ($argument === null && $parameter->isDefaultValueAvailable() && is_string($parameter->getDefaultValue())) {
-                $argument = ['kind' => 'literal', 'value' => $parameter->getDefaultValue()];
+            if ($argument === null && $parameter->isDefaultValueAvailable()) {
+                $default = $parameter->getDefaultValue();
+                $argument = match (true) {
+                    is_string($default) => ['kind' => 'literal', 'value' => $default],
+                    $default === null => self::NULL,
+                    default => null,
+                };
             }
             $bindings[$parameter->getName()] = $argument;
         }
@@ -789,6 +795,9 @@ final class HandlerSourceScanner
         $token = $tokens[$index];
         if ($end === $index + 1 && $token->is(T_VARIABLE)) {
             return $token->text === '$this' || $this->isUnresolvableAt($unresolvable, $token->text, $index) ? self::UNRESOLVED : ['kind' => 'variable', 'value' => ltrim($token->text, '$')];
+        }
+        if ($end === $index + 1 && $token->is(T_STRING) && strtolower($token->text) === 'null') {
+            return self::NULL;
         }
         [$receiverClass, $memberIndex] = $this->typedReceiverAt($tokens, $index, $unresolvable, $typedReceivers);
         if ($receiverClass !== null && $tokens[$memberIndex - 1]->is(T_OBJECT_OPERATOR) && $end === $memberIndex + 3 && $tokens[$memberIndex + 1]->text === '(' && $tokens[$memberIndex + 2]->text === ')') {

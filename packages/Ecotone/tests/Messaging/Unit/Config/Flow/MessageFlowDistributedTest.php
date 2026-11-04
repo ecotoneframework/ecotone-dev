@@ -9,6 +9,8 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -239,16 +241,99 @@ final class MessageFlowDistributedTest extends TestCase
             array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $handler('holdRequestedSeat'), $bus), 'attributes'),
         );
         self::assertSame(
-            [['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.release']],
+            [['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.release', 'withoutReply' => true]],
             array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $handler('releaseSeat'), $bus), 'attributes'),
         );
         self::assertSame(
             [
                 ['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.confirm', 'replyChannel' => 'tickets.confirm.result'],
-                ['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.audit'],
+                ['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.audit', 'withoutReply' => true],
             ],
             array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $handler('confirmPaidSeats'), $bus), 'attributes'),
         );
+    }
+
+    public function test_every_route_the_storefront_sends_to_ticketing_through_its_helpers_is_inferred(): void
+    {
+        $service = new class () {
+            #[EventHandler('seat.requested', endpointId: 'hold_requested_seat')]
+            public function holdRequestedSeat(array $event, #[Reference] DistributedBus $distributedBus): void
+            {
+                $this->send(distributedBus: $distributedBus, routingKey: 'tickets.hold', orderId: $event['orderId'], concertId: $event['concertId'], payload: [
+                    'orderId' => $event['orderId'],
+                    'seatId' => $event['seatId'],
+                ], replyRoutingKey: 'tickets.hold.result');
+            }
+
+            #[EventHandler('seat.released', endpointId: 'release_seat')]
+            public function releaseSeat(array $event, #[Reference] DistributedBus $distributedBus): void
+            {
+                $this->sendRelease(distributedBus: $distributedBus, orderId: $event['orderId'], concertId: $event['concertId'], seatId: $event['seatId']);
+            }
+
+            #[EventHandler('order.failed', endpointId: 'release_seats_of_failed_order')]
+            public function releaseSeatsOfFailedOrder(array $event, #[Reference] DistributedBus $distributedBus): void
+            {
+                foreach ($event['holdIdsOfHeldSeats'] as $seatId => $holdId) {
+                    $this->sendRelease(distributedBus: $distributedBus, orderId: $event['orderId'], concertId: $event['concertId'], seatId: $seatId);
+                }
+            }
+
+            #[EventHandler('order.paid', endpointId: 'confirm_paid_seats')]
+            public function confirmPaidSeats(array $event, #[Reference] DistributedBus $distributedBus): void
+            {
+                $this->send(distributedBus: $distributedBus, routingKey: 'tickets.confirm', orderId: $event['orderId'], concertId: $event['concertId'], payload: [
+                    'orderId' => $event['orderId'],
+                    'seatIds' => $event['seatIds'],
+                ], replyRoutingKey: 'tickets.confirm.result');
+            }
+
+            #[EventHandler('demo.ping.requested', endpointId: 'demo_ping')]
+            public function ping(array $event, #[Reference] DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', 'demo.ping', 'storefront', metadata: ['pingId' => $event['pingId']], replyRoutingKey: 'demo.pong');
+            }
+
+            #[EventHandler('seat.audited', endpointId: 'audit_seat')]
+            public function auditSeat(array $event, #[Reference] DistributedBus $distributedBus): void
+            {
+                $this->sendWithDefaultReply($distributedBus, 'tickets.audit');
+            }
+
+            private function sendRelease(DistributedBus $distributedBus, string $orderId, string $concertId, string $seatId): void
+            {
+                $this->send(distributedBus: $distributedBus, routingKey: 'tickets.release', orderId: $orderId, concertId: $concertId, payload: [
+                    'orderId' => $orderId,
+                    'seatId' => $seatId,
+                ], replyRoutingKey: null);
+            }
+
+            private function send(DistributedBus $distributedBus, string $routingKey, string $orderId, string $concertId, array $payload, ?string $replyRoutingKey): void
+            {
+                $distributedBus->sendMessage(
+                    targetServiceName: 'ticketing',
+                    routingKey: $routingKey,
+                    payload: json_encode($payload, JSON_THROW_ON_ERROR),
+                    sourceMediaType: MediaType::APPLICATION_JSON,
+                    metadata: ['concertId' => $concertId, 'orderId' => $orderId],
+                    replyRoutingKey: $replyRoutingKey,
+                );
+            }
+
+            private function sendWithDefaultReply(DistributedBus $distributedBus, string $routingKey, ?string $replyRoutingKey = null): void
+            {
+                $distributedBus->sendMessage('ticketing', $routingKey, '{}', replyRoutingKey: $replyRoutingKey);
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes');
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result']], $sendsOf('holdRequestedSeat'));
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.release', 'withoutReply' => true]], $sendsOf('releaseSeat'));
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.release', 'withoutReply' => true]], $sendsOf('releaseSeatsOfFailedOrder'));
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.confirm', 'replyChannel' => 'tickets.confirm.result']], $sendsOf('confirmPaidSeats'));
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'demo.ping', 'replyChannel' => 'demo.pong']], $sendsOf('ping'));
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.audit', 'withoutReply' => true]], $sendsOf('auditSeat'));
     }
 
     public function test_routing_key_computed_at_runtime_stays_unresolved_instead_of_guessed(): void

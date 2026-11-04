@@ -37,6 +37,10 @@ final class DistributedIdempotencyKeyGuard
     public function refuseInvalidIdempotencyKey(
         #[Header(DistributedBusHeader::DISTRIBUTED_IDEMPOTENCY_KEY)]
         ?string $idempotencyKey,
+        #[Header(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME)]
+        string $sourceServiceName,
+        #[Header(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY)]
+        string $routingKey,
     ): void {
         if ($idempotencyKey === null) {
             return;
@@ -48,6 +52,11 @@ final class DistributedIdempotencyKeyGuard
 
         if (strlen($idempotencyKey) > self::MAXIMUM_LENGTH) {
             throw InvalidArgumentException::create(sprintf('The Distributed Bus was given an idempotencyKey of %d characters. The target stores the key in its deduplication table, which holds at most %d, so a longer one would fail every delivery of the message. Pass a key of at most %d characters that names this business request, such as the order id, or a hash of a longer one.', strlen($idempotencyKey), self::MAXIMUM_LENGTH, self::MAXIMUM_LENGTH));
+        }
+
+        $deduplicationScope = $sourceServiceName . ':' . $routingKey;
+        if (strlen($deduplicationScope) > self::MAXIMUM_LENGTH) {
+            throw InvalidArgumentException::create(sprintf("The Distributed Bus was given an idempotencyKey for routing key '%s' from service '%s'. The target records the key against '%s', %d characters, in its deduplication table, which holds at most %d, so every delivery of the message would fail. Shorten the routing key, or the service name set with ServiceConfiguration::withServiceName(), so the two take at most %d characters together, or omit idempotencyKey to have each send handled on its own.", $routingKey, $sourceServiceName, $deduplicationScope, strlen($deduplicationScope), self::MAXIMUM_LENGTH, self::MAXIMUM_LENGTH - 1));
         }
     }
 }

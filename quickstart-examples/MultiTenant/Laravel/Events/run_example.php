@@ -10,7 +10,12 @@ use PHPUnit\Framework\Assert;
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . "/../boostrap.php";
 $app = require __DIR__.'/bootstrap/app.php';
-$app->make(Kernel::class)->bootstrap();
+try {
+    $app->make(Kernel::class)->bootstrap();
+} finally {
+    /** Laravel's exception handler renders an error and lets the script exit 0; PHP's own handler exits non-zero */
+    restore_exception_handler();
+}
 runMigrationForTenants(DB::connection('tenant_a_connection'), DB::connection('tenant_b_connection'));
 
 /** @var CommandBus $commandBus */

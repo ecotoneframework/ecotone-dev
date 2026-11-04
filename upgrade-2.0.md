@@ -3553,7 +3553,9 @@ the distributed message: the asynchronous handlers it fans the message out to, t
 sender's own asynchronous Distributed Bus channel are deduplicated by their message id as before, and the reply of a
 `sendMessage()` does not carry the key. A send skipped as a duplicate produces no second reply. A blank key, and a key
 longer than the 255 characters the deduplication table holds, are refused when `DistributedBus` is called, also when it
-sends through an asynchronous channel. A send without a key behaves as before.
+sends through an asynchronous channel. So is a key sent from a service whose name and routing key together take more
+than 254 characters, because the target records the key against `<service name>:<routing key>` in a column of 255. A
+send without a key behaves as before.
 
 ```php
 #[Asynchronous('outbox')]

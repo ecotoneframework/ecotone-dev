@@ -25,13 +25,18 @@ namespace Ecotone\Messaging\Config\Flow;
 use BackedEnum;
 use Error;
 use PhpToken;
+use ReflectionClass;
+use ReflectionClassConstant;
 use ReflectionMethod;
+use ReflectionNamedType;
 
 final class HandlerSourceScanner
 {
     private const IGNORED_NAMES = ['parent', 'class'];
     private const IGNORED_TOKENS = [T_WHITESPACE => true, T_COMMENT => true, T_DOC_COMMENT => true, T_OPEN_TAG => true, T_INLINE_HTML => true];
     private const UNRESOLVED = ['kind' => 'unresolved', 'value' => ''];
+    private const RETURN_OF = 'returnOf';
+    private const MEMBER_ACCESS_TOKENS = [T_OBJECT_OPERATOR => true, T_NULLSAFE_OBJECT_OPERATOR => true, T_DOUBLE_COLON => true];
     private const EVERY_VARIABLE = '*';
     private const NAME_TOKENS = [T_STRING => true, T_NAME_QUALIFIED => true, T_NAME_FULLY_QUALIFIED => true, T_NAME_RELATIVE => true, T_STATIC => true];
 
@@ -72,7 +77,7 @@ final class HandlerSourceScanner
                 $facts[$key] = $methodFacts[$methodKey] = MethodSourceFacts::none();
                 continue;
             }
-            $methodsByFile[$fileName][] = [$key, $className, $method->getStartLine(), $method->getEndLine(), $method->getDeclaringClass()->getName()];
+            $methodsByFile[$fileName][] = [$key, $className, $method->getStartLine(), $method->getEndLine(), $method->getDeclaringClass()->getName(), $this->typedReceiversOf($method, $className)];
         }
 
         foreach ($methodsByFile as $fileName => $methods) {
@@ -91,21 +96,24 @@ final class HandlerSourceScanner
                 $files[$fileName] = [$tokens, $firstIndexByLine, $lastLine, $contexts];
             }
             [$tokens, $firstIndexByLine, $lastLine, $contexts] = $files[$fileName];
-            foreach ($methods as [$key, $className, $startLine, $endLine, $declaringClass]) {
+            foreach ($methods as [$key, $className, $startLine, $endLine, $declaringClass, $typedReceivers]) {
                 $start = $this->firstIndexAtOrAfter($firstIndexByLine, $startLine, $lastLine, count($tokens));
                 $end = $this->firstIndexAtOrAfter($firstIndexByLine, $endLine + 1, $lastLine, count($tokens));
                 [$namespace, $imports] = $this->contextAt($contexts, $start);
                 $imports['self'] = $declaringClass;
-                $facts[$key] = $methodFacts[$className . '::' . $targets[$key][1]] = $this->factsOf(array_slice($tokens, $start, $end - $start), $className, $namespace, $imports);
+                $facts[$key] = $methodFacts[$className . '::' . $targets[$key][1]] = $this->factsOf(array_slice($tokens, $start, $end - $start), $className, $namespace, $imports, $typedReceivers);
             }
         }
 
         foreach ($targets as $key => [$className, $methodName]) {
             $path = $visited + [$className . '::' . $methodName => true];
             $instantiations = $facts[$key]->instantiations;
-            $calls = $facts[$key]->calls;
-            $literals = $facts[$key]->stringLiterals;
+            $calls = [];
             foreach ($facts[$key]->calls as $call) {
+                $calls[] = $this->withReturnedLiterals($call, $path, $files, $methodFacts, $reflections);
+            }
+            $literals = $facts[$key]->stringLiterals;
+            foreach ($calls as $call) {
                 $helperKey = $className . '::' . $call['method'];
                 if (! in_array($call['receiver'], ['this', 'self', 'static'], true) || isset($path[$helperKey]) || ! method_exists($className, $call['method'])) {
                     continue;
@@ -126,10 +134,72 @@ final class HandlerSourceScanner
                 }
                 $literals = [...$literals, ...$helper->stringLiterals];
             }
-            $facts[$key] = new MethodSourceFacts($instantiations, $calls, array_values(array_unique($literals)));
+            $facts[$key] = new MethodSourceFacts($instantiations, $calls, array_values(array_unique($literals)), $facts[$key]->returnedLiteral);
         }
 
         return $facts;
+    }
+
+    /**
+     * @return array<string, string> variable or this.property => class
+     */
+    private function typedReceiversOf(ReflectionMethod $method, string $className): array
+    {
+        $receivers = [];
+        foreach ((new ReflectionClass($className))->getProperties() as $property) {
+            $type = $property->getType();
+            if ($type instanceof ReflectionNamedType && ! $type->isBuiltin()) {
+                $receivers['this.' . $property->getName()] = $type->getName();
+            }
+        }
+        foreach ($method->getParameters() as $parameter) {
+            $type = $parameter->getType();
+            if ($type instanceof ReflectionNamedType && ! $type->isBuiltin()) {
+                $receivers['$' . $parameter->getName()] = $type->getName();
+            }
+        }
+
+        return $receivers;
+    }
+
+    /**
+     * @param array{arguments: array<int|string, array{kind: string, value: string}>} $call
+     * @param array<string, bool> $visited
+     * @param array<string, array{list<PhpToken>, array<int, int>, int, array<int, array{string, array<string, string>}>}> $files
+     * @param array<string, MethodSourceFacts> $methodFacts
+     * @param array<string, ReflectionMethod> $reflections
+     * @return array{arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>}
+     */
+    private function withReturnedLiterals(array $call, array $visited, array &$files, array &$methodFacts, array &$reflections): array
+    {
+        $arguments = [];
+        foreach ($call['arguments'] as $position => $argument) {
+            $arguments[$position] = $argument['kind'] === self::RETURN_OF ? $this->returnedLiteralOf($argument['value'], $visited, $files, $methodFacts, $reflections) : $argument;
+        }
+
+        return ['arguments' => $arguments, 'literalArguments' => $this->leadingLiteralsOf($arguments)] + $call;
+    }
+
+    /**
+     * @param array<string, bool> $visited
+     * @param array<string, array{list<PhpToken>, array<int, int>, int, array<int, array{string, array<string, string>}>}> $files
+     * @param array<string, MethodSourceFacts> $methodFacts
+     * @param array<string, ReflectionMethod> $reflections
+     * @return array{kind: string, value: string}
+     */
+    private function returnedLiteralOf(string $method, array $visited, array &$files, array &$methodFacts, array &$reflections): array
+    {
+        [$class, $methodName] = explode('::', $method, 2);
+        if (isset($visited[$method]) || ! method_exists($class, $methodName)) {
+            return self::UNRESOLVED;
+        }
+        $reflection = $reflections[$method] ??= new ReflectionMethod($class, $methodName);
+        if (! $reflection->isPublic() || $reflection->isAbstract() || ! ($reflection->isFinal() || $reflection->getDeclaringClass()->isFinal())) {
+            return self::UNRESOLVED;
+        }
+        $returned = $this->scanMethods([$method => [$class, $methodName]], $visited, $files, $methodFacts, $reflections)[$method]->returnedLiteral;
+
+        return $returned === null ? self::UNRESOLVED : ['kind' => 'literal', 'value' => $returned];
     }
 
     /**
@@ -292,7 +362,10 @@ final class HandlerSourceScanner
      * @param list<PhpToken> $tokens
      * @param array<string, string> $imports
      */
-    private function factsOf(array $tokens, string $className, string $namespace, array $imports): MethodSourceFacts
+    /**
+     * @param array<string, string> $typedReceivers
+     */
+    private function factsOf(array $tokens, string $className, string $namespace, array $imports, array $typedReceivers): MethodSourceFacts
     {
         $instantiations = [];
         $calls = [];
@@ -331,7 +404,7 @@ final class HandlerSourceScanner
                     if ($argument?->is(T_VARIABLE) && isset($variables[$argument->text]) && in_array($call['method'], ['publish', 'recordThat', 'send'], true)) {
                         array_unshift($instantiations, ['class' => $variables[$argument->text], 'returned' => false, 'enclosingCall' => $call['method'], 'receiver' => $call['receiver']]);
                     }
-                    $calls[] = $call + ['enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null] + $this->argumentsAt($tokens, $index + 1, $unresolvable, $className, $namespace, $imports);
+                    $calls[] = $call + ['enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null] + $this->argumentsAt($tokens, $index + 1, $unresolvable, $className, $namespace, $imports, $typedReceivers);
                 }
                 $enclosingCalls[] = $call;
             } elseif ($id === 41) {
@@ -341,7 +414,23 @@ final class HandlerSourceScanner
             }
         }
 
-        return new MethodSourceFacts($instantiations, $calls, array_values(array_unique($literals)));
+        return new MethodSourceFacts($instantiations, $calls, array_values(array_unique($literals)), $this->returnedLiteralIn($tokens, $className, $namespace, $imports));
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @param array<string, string> $imports
+     */
+    private function returnedLiteralIn(array $tokens, string $className, string $namespace, array $imports): ?string
+    {
+        $last = count($tokens) - 1;
+        $returns = array_keys(array_filter($tokens, fn (PhpToken $token) => $token->is(T_RETURN)));
+        if (count($returns) !== 1 || ($tokens[$last] ?? null)?->text !== '}' || ($tokens[$last - 1] ?? null)?->text !== ';' || ($tokens[$returns[0] - 1] ?? null)?->text !== '{') {
+            return null;
+        }
+        [$literal, $literalEnd] = $this->literalArgumentAt($tokens, $returns[0] + 1, $className, $namespace, $imports);
+
+        return $literalEnd === $last - 2 ? $literal : null;
     }
 
     /**
@@ -436,7 +525,8 @@ final class HandlerSourceScanner
                     $argument += 2;
                 }
                 $end = $this->argumentEndAt($tokens, $argument);
-                if ($tokens[$argument]->is(T_VARIABLE) && ($byReference === null || isset($byReference[$parameter]))) {
+                $handsTheVariable = $tokens[$argument]->is(T_VARIABLE) && ! isset(self::MEMBER_ACCESS_TOKENS[($tokens[$argument + 1] ?? null)?->id]);
+                if ($handsTheVariable && ($byReference === null || isset($byReference[$parameter]))) {
                     $passed[$tokens[$argument]->text] ??= ($end ?? $argument) + 1;
                 }
                 if ($end === null) {
@@ -630,9 +720,10 @@ final class HandlerSourceScanner
      * @param list<PhpToken> $tokens
      * @param array{reassignedFrom: array<string, int>, shadows: list<array{string, int, int}>} $unresolvable
      * @param array<string, string> $imports
+     * @param array<string, string> $typedReceivers
      * @return array{arguments: array<int|string, array{kind: string, value: string}>, literalArguments: list<string>, firstArgumentClass: string|null, unresolvedFrom: int|null}
      */
-    private function argumentsAt(array $tokens, int $index, array $unresolvable, string $className, string $namespace, array $imports): array
+    private function argumentsAt(array $tokens, int $index, array $unresolvable, string $className, string $namespace, array $imports, array $typedReceivers): array
     {
         $first = $tokens[$index] ?? null;
         if ($first?->is(T_NEW) && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
@@ -656,7 +747,7 @@ final class HandlerSourceScanner
                 $unresolvedFrom = $position;
                 break;
             }
-            $arguments[$name ?? $position] = $this->argumentValueAt($tokens, $index, $end, $unresolvable, $className, $namespace, $imports);
+            $arguments[$name ?? $position] = $this->argumentValueAt($tokens, $index, $end, $unresolvable, $className, $namespace, $imports, $typedReceivers);
             if ($name === null) {
                 $position++;
             }
@@ -690,19 +781,77 @@ final class HandlerSourceScanner
      * @param list<PhpToken> $tokens
      * @param array{reassignedFrom: array<string, int>, shadows: list<array{string, int, int}>} $unresolvable
      * @param array<string, string> $imports
+     * @param array<string, string> $typedReceivers
      * @return array{kind: string, value: string}
      */
-    private function argumentValueAt(array $tokens, int $index, int $end, array $unresolvable, string $className, string $namespace, array $imports): array
+    private function argumentValueAt(array $tokens, int $index, int $end, array $unresolvable, string $className, string $namespace, array $imports, array $typedReceivers): array
     {
         $token = $tokens[$index];
         if ($end === $index + 1 && $token->is(T_VARIABLE)) {
             return $token->text === '$this' || $this->isUnresolvableAt($unresolvable, $token->text, $index) ? self::UNRESOLVED : ['kind' => 'variable', 'value' => ltrim($token->text, '$')];
         }
-        [$literal, $literalEnd] = $this->literalArgumentAt($tokens, $index, $className, $namespace, $imports);
+        [$receiverClass, $memberIndex] = $this->typedReceiverAt($tokens, $index, $unresolvable, $typedReceivers);
+        if ($receiverClass !== null && $tokens[$memberIndex - 1]->is(T_OBJECT_OPERATOR) && $end === $memberIndex + 3 && $tokens[$memberIndex + 1]->text === '(' && $tokens[$memberIndex + 2]->text === ')') {
+            return ['kind' => self::RETURN_OF, 'value' => $receiverClass . '::' . $tokens[$memberIndex]->text];
+        }
+        [$literal, $literalEnd] = $receiverClass !== null && $tokens[$memberIndex - 1]->is(T_DOUBLE_COLON)
+            ? $this->overridableConstantAt($tokens, $receiverClass, $memberIndex)
+            : $this->literalArgumentAt($tokens, $index, $className, $namespace, $imports);
 
         return $literal !== null && $literalEnd === $end - 1 ? ['kind' => 'literal', 'value' => $literal] : self::UNRESOLVED;
     }
 
+    /**
+     * @param list<PhpToken> $tokens
+     * @param array{reassignedFrom: array<string, int>, shadows: list<array{string, int, int}>} $unresolvable
+     * @param array<string, string> $typedReceivers
+     * @return array{string|null, int}
+     */
+    private function typedReceiverAt(array $tokens, int $index, array $unresolvable, array $typedReceivers): array
+    {
+        $token = $tokens[$index];
+        if (! $token->is(T_VARIABLE)) {
+            return [null, $index];
+        }
+        $receiver = $token->text;
+        $memberIndex = $index + 2;
+        if ($receiver === '$this' && ($tokens[$index + 1] ?? null)?->is(T_OBJECT_OPERATOR) && ($tokens[$index + 2] ?? null)?->is(T_STRING)) {
+            $receiver = 'this.' . $tokens[$index + 2]->text;
+            $memberIndex = $index + 4;
+        } elseif ($this->isUnresolvableAt($unresolvable, $receiver, $index)) {
+            return [null, $index];
+        }
+        $operator = $tokens[$memberIndex - 1] ?? null;
+        if (! isset($typedReceivers[$receiver]) || ! ($operator?->is(T_OBJECT_OPERATOR) || $operator?->is(T_DOUBLE_COLON)) || ! ($tokens[$memberIndex] ?? null)?->is(T_STRING)) {
+            return [null, $index];
+        }
+
+        return [$typedReceivers[$receiver], $memberIndex];
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @return array{string|null, int}
+     */
+    private function overridableConstantAt(array $tokens, string $class, int $nameIndex): array
+    {
+        $name = $tokens[$nameIndex]->text;
+        if (! (class_exists($class) || interface_exists($class)) || ! defined($class . '::' . $name)) {
+            return [null, $nameIndex];
+        }
+        $constant = new ReflectionClassConstant($class, $name);
+        if (! $constant->isPublic() || ! ($constant->isFinal() || $constant->getDeclaringClass()->isFinal() || $constant->getDeclaringClass()->isEnum())) {
+            return [null, $nameIndex];
+        }
+
+        return $this->constantValueAt($tokens, $class, $nameIndex);
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @param array<string, string> $imports
+     * @return array{string|null, int}
+     */
     private function literalArgumentAt(array $tokens, int $index, string $className, string $namespace, array $imports): array
     {
         $token = $tokens[$index];
@@ -713,16 +862,26 @@ final class HandlerSourceScanner
             return [null, $index];
         }
         $class = $this->resolve($token, $className, $namespace, $imports);
-        $constant = $class . '::' . $tokens[$index + 2]->text;
-        if ($class === null || ! defined($constant)) {
-            return [null, $index];
+
+        return $class === null ? [null, $index] : $this->constantValueAt($tokens, $class, $index + 2);
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @return array{string|null, int}
+     */
+    private function constantValueAt(array $tokens, string $class, int $nameIndex): array
+    {
+        $constant = $class . '::' . $tokens[$nameIndex]->text;
+        if (! defined($constant)) {
+            return [null, $nameIndex];
         }
         try {
             $value = constant($constant);
         } catch (Error) {
-            return [null, $index];
+            return [null, $nameIndex];
         }
-        $end = $index + 2;
+        $end = $nameIndex;
         if ($value instanceof BackedEnum && ($tokens[$end + 1] ?? null)?->is(T_OBJECT_OPERATOR) && ($tokens[$end + 2] ?? null)?->text === 'value') {
             $value = $value->value;
             $end += 2;

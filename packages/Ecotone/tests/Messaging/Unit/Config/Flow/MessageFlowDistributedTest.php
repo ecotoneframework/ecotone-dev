@@ -605,6 +605,213 @@ final class MessageFlowDistributedTest extends TestCase
             array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::holdRequestedSeat', 'distributed:' . DistributedBus::class), 'attributes'),
         );
     }
+
+    public function test_routing_key_and_reply_key_read_from_a_method_of_a_typed_parameter_returning_a_literal_a_constant_or_an_enum_value_are_resolved(): void
+    {
+        $service = new class () {
+            #[EventHandler]
+            public function holdRequestedSeat(SeatHoldRequested $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', $event->routingKey(), '{}', replyRoutingKey: $event->replyRoutingKey());
+            }
+
+            #[EventHandler]
+            public function confirmPaidSeats(SeatsPaid $event, DistributedBus $distributedBus): void
+            {
+                $this->send(distributedBus: $distributedBus, routingKey: $event->routingKey(), replyRoutingKey: $event->replyRoutingKey());
+            }
+
+            private function send(DistributedBus $distributedBus, string $routingKey, ?string $replyRoutingKey): void
+            {
+                $distributedBus->sendMessage(targetServiceName: 'ticketing', routingKey: $routingKey, payload: '{}', replyRoutingKey: $replyRoutingKey);
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes');
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result']], $sendsOf('holdRequestedSeat'));
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.confirm', 'replyChannel' => 'tickets.confirm.result']], $sendsOf('confirmPaidSeats'));
+    }
+
+    public function test_routing_key_read_as_a_constant_of_a_typed_parameter_class_is_resolved(): void
+    {
+        $service = new class () {
+            #[EventHandler]
+            public function holdRequestedSeat(SeatHoldRequested $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', $event::ROUTING_KEY, '{}', replyRoutingKey: $event::REPLY_ROUTING_KEY);
+            }
+
+            #[EventHandler]
+            public function confirmPaidSeats(SeatsPaid $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', $event::ROUTE->value, '{}');
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes');
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result']], $sendsOf('holdRequestedSeat'));
+        self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.confirm', 'withoutReply' => true]], $sendsOf('confirmPaidSeats'));
+    }
+
+    public function test_routing_key_read_from_a_method_of_a_typed_property_is_resolved(): void
+    {
+        $service = new class (new TicketingRoutes()) {
+            public function __construct(private TicketingRoutes $routes)
+            {
+            }
+
+            #[EventHandler('seat.requested')]
+            public function holdRequestedSeat(array $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', $this->routes->hold(), '{}');
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        self::assertSame(
+            [['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'withoutReply' => true]],
+            array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::holdRequestedSeat', 'distributed:' . DistributedBus::class), 'attributes'),
+        );
+    }
+
+    public function test_routing_key_read_from_a_method_returning_anything_but_a_literal_or_from_an_overridable_member_stays_unresolved(): void
+    {
+        $service = new class () {
+            #[EventHandler]
+            public function fromAProperty(SeatsPaid $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', $event->storedRoutingKey(), '{}');
+            }
+
+            #[EventHandler]
+            public function fromAMatch(SeatsPaid $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', $event->matchedRoutingKey(), '{}');
+            }
+
+            #[EventHandler]
+            public function fromAConcatenation(SeatsPaid $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', $event->prefixedRoutingKey(), '{}');
+            }
+
+            #[EventHandler]
+            public function fromAnOverridableMethod(SeatReleaseRequested $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', $event->routingKey(), '{}');
+            }
+
+            #[EventHandler]
+            public function fromAnOverridableConstant(SeatReleaseRequested $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', $event::ROUTING_KEY, '{}');
+            }
+
+            #[EventHandler]
+            public function fromAnInterfaceMethod(RoutedTicketRequest $event, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', $event->routingKey(), '{}');
+            }
+
+            #[EventHandler]
+            public function fromAReassignedParameter(SeatHoldRequested $event, DistributedBus $distributedBus): void
+            {
+                $event = $event->retried();
+                $distributedBus->sendMessage('ticketing', $event->routingKey(), '{}');
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        foreach (['fromAProperty', 'fromAMatch', 'fromAConcatenation', 'fromAnOverridableMethod', 'fromAnOverridableConstant', 'fromAnInterfaceMethod', 'fromAReassignedParameter'] as $method) {
+            self::assertSame(
+                [['inferred' => true, 'via' => 'sendMessage']],
+                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes'),
+            );
+        }
+    }
+}
+
+interface RoutedTicketRequest
+{
+    public function routingKey(): string;
+}
+
+final class SeatHoldRequested implements RoutedTicketRequest
+{
+    public const ROUTING_KEY = 'tickets.hold';
+    public const REPLY_ROUTING_KEY = 'tickets.hold.result';
+
+    public function routingKey(): string
+    {
+        return 'tickets.hold';
+    }
+
+    public function replyRoutingKey(): string
+    {
+        return self::REPLY_ROUTING_KEY;
+    }
+
+    public function retried(): self
+    {
+        return $this;
+    }
+}
+
+final class SeatsPaid
+{
+    public const ROUTE = TicketRoute::CONFIRM;
+
+    public function __construct(private string $routingKey = 'tickets.confirm', private string $action = 'confirm')
+    {
+    }
+
+    public function routingKey(): string
+    {
+        return TicketRoute::CONFIRM->value;
+    }
+
+    public function replyRoutingKey(): string
+    {
+        return 'tickets.confirm.result';
+    }
+
+    public function storedRoutingKey(): string
+    {
+        return $this->routingKey;
+    }
+
+    public function matchedRoutingKey(): string
+    {
+        return match ($this->action) {
+            'confirm' => 'tickets.confirm',
+            default => 'tickets.release',
+        };
+    }
+
+    public function prefixedRoutingKey(): string
+    {
+        return 'tickets.' . 'confirm';
+    }
+}
+
+class SeatReleaseRequested
+{
+    public const ROUTING_KEY = 'tickets.release';
+
+    public function routingKey(): string
+    {
+        return 'tickets.release';
+    }
+}
+
+final class TicketingRoutes
+{
+    public function hold(): string
+    {
+        return 'tickets.hold';
+    }
 }
 
 final class LocalEventForDistribution

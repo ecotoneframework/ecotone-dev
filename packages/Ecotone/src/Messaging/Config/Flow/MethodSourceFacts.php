@@ -33,11 +33,12 @@ final class MethodSourceFacts
         public readonly array $instantiations,
         public readonly array $calls,
         public readonly array $stringLiterals,
+        public readonly ?string $returnedLiteral,
     ) {
     }
 
     public static function none(): self
     {
-        return new self([], [], []);
+        return new self([], [], [], null);
     }
 }

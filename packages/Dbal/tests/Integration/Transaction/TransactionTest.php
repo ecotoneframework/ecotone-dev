@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Enqueue\ConnectionFactory;
@@ -87,6 +88,7 @@ final class TransactionTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
             namespaces: ['Test\Ecotone\Dbal\Fixture\Transaction', ],
             environment: 'prod',
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         try {
@@ -177,6 +179,7 @@ final class TransactionTest extends DbalMessagingTestCase
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
             environment: 'prod',
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
         $ecotone->sendCommandWithRouting('command.prepare');
         $this->assertSame(true, $consoleCommands->prepared, 'Preparation command should be executed');
@@ -265,6 +268,7 @@ final class TransactionTest extends DbalMessagingTestCase
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
             environment: 'prod',
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $ecotone->sendCommand(new PrepareOrdersByClassCommandForTransaction());
@@ -289,6 +293,7 @@ final class TransactionTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
             namespaces: ['Test\Ecotone\Dbal\Fixture\Transaction', ],
             environment: 'prod',
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
     }
 
@@ -306,6 +311,7 @@ final class TransactionTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
             namespaces: ['Test\Ecotone\Dbal\Fixture\Transaction', ],
             environment: 'prod',
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
     }
 }

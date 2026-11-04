@@ -22,6 +22,7 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\EventSourcing\Database\TagTableManager;
@@ -197,6 +198,7 @@ final class AggregateBackedDecisionModelSnapshotDbalTest extends EventSourcingMe
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
             cacheDirectoryPath: sys_get_temp_dir().'/ecotone-test-'.uniqid(),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
         $ecotone->setupDatabaseTables();
 

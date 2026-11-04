@@ -26,6 +26,7 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromTaggedStream;
@@ -370,6 +371,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             ],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
         $askPulse = function (string $routingKey, string $payload) use ($pulse, $pulseService, $concertService): array {
             $pulseService->getDistributedBus()->sendMessage('concert_service', $routingKey, $payload, MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
@@ -610,6 +612,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
                 containerOrAvailableServices: $services,
                 extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults(), ...$extensionObjects],
                 licenceKey: LicenceTesting::VALID_LICENCE,
+                testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
             );
         }
 
@@ -623,6 +626,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
     }
 }

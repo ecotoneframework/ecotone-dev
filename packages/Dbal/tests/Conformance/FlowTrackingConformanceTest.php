@@ -237,6 +237,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
             extensionObjects: [self::flowTracking($implementation, Duration::minutes(10))->withRemovalBatchSize(2)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         )->setupDatabaseTables();
         $expired = [];
         for ($flow = 1; $flow <= 5; $flow++) {
@@ -337,6 +338,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
             containerOrAvailableServices: [$this->asynchronousNotifier(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             extensionObjects: [DbalBackedMessageChannelBuilder::create('async_channel')],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         )->setupDatabaseTables();
         $consumer = $this->bootstrap('dbal', [$this->asynchronousNotifier()], [DbalBackedMessageChannelBuilder::create('async_channel')]);
         $trace = SpanContext::newTrace();
@@ -720,7 +722,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
                 return $methodInvocation->proceed();
             }
         };
-        $ecotone = $this->bootstrapOnAConnectionThatCanGoDown([$this->users(), $notifier, $recovery], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $ecotone = $this->bootstrapOnAConnectionThatCanGoDown([$this->users(), $notifier, $recovery], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true)]);
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
@@ -753,6 +755,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
             extensionObjects: [self::flowTracking($implementation, $retention), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         )->setupDatabaseTables();
     }
 
@@ -793,7 +796,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
                 SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
-            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)->withDefaultInstantRetries(false),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->runConsoleCommand('ecotone:migration:database:delete', ['force' => true]);
@@ -837,6 +840,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
             extensionObjects: [FlowTrackingConfiguration::createWithDefaults(), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         )->setupDatabaseTables();
     }
 

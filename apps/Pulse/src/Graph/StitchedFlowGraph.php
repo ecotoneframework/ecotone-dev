@@ -291,7 +291,7 @@ final class StitchedFlowGraph
             FlowEdgeKind::EMITS => 'emits',
             FlowEdgeKind::ASYNCHRONOUS => 'async',
             FlowEdgeKind::SENDS_TO => match (true) {
-                $edge->isInferred() => 'sends',
+                $edge->isInferred() => isset($edge->attributes['targetService']) ? 'sends to ' . $edge->attributes['targetService'] : 'sends',
                 ($edge->attributes['via'] ?? null) === 'replyRoutingKey' => 'replies',
                 default => 'to ' . ($edge->attributes['targetService'] ?? ''),
             },

@@ -88,6 +88,29 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         self::assertFalse($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', '::holdRequestedSeat'));
     }
 
+    public function test_a_send_whose_routing_key_is_computed_at_runtime_is_drawn_to_its_target_service_without_a_message_there(): void
+    {
+        $this->configurePulseWithServices('storefront', 'ticketing');
+        $client = $this->pulseWebClient();
+        $storefront = new class () {
+            #[EventHandler('seat.requested', endpointId: 'hold_requested_seat')]
+            public function holdRequestedSeat(array $event, #[Reference] DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendMessage('ticketing', $event['route'], '{}', replyRoutingKey: 'tickets.hold.result');
+            }
+        };
+        $this->pulseHavingHeardFrom($client, ['storefront' => $this->distributedService('storefront', $storefront, DistributedServiceMap::initialize()->withCommandMapping('ticketing', $this->serviceChannels['ticketing'])), 'ticketing' => $this->ticketingAnsweringHolds()]);
+
+        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow?view=detail'));
+        $focused = $this->labelsByService(MermaidDiagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('storefront:handler:' . $storefront::class . '::holdRequestedSeat'))));
+
+        self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'sends to ticketing', 'storefront', 'Distributed Bus', '-.->'));
+        self::assertFalse($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', ''));
+        self::assertFalse($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', ''));
+        self::assertSame(['Distributed Bus', 'EventHandler<br/>class@anonymous::holdRequestedSeat', 'seat.requested'], $focused['storefront']);
+        self::assertArrayNotHasKey('ticketing', $focused);
+    }
+
     public function test_following_a_distributed_command_starts_at_the_sender_and_comes_back_through_the_reply_handler(): void
     {
         $this->configurePulseWithServices('storefront', 'ticketing');

@@ -210,7 +210,7 @@ final class MessageFlowGraphBuilder
                     default => [],
                 }));
             } elseif (in_array($call['method'], [...self::DISTRIBUTED_COMMAND_CALLS, ...self::DISTRIBUTED_EVENT_CALLS, 'sendMessage'], true)) {
-                $flow->addEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => $call['method']]));
+                $flow->addEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => $call['method']] + ($targetService === null || in_array($call['method'], self::DISTRIBUTED_EVENT_CALLS, true) ? [] : ['targetService' => $targetService, 'targetChannel' => null])));
             }
         }
     }

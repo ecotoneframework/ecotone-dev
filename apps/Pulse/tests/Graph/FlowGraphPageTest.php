@@ -50,7 +50,7 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow');
 
-        self::assertTrue((MermaidDiagram::fromPage($crawler))->hasEdge('orders', 'invoice.create', 'sends', 'orders', 'Distributed Bus', '-.->'));
+        self::assertTrue((MermaidDiagram::fromPage($crawler))->hasEdge('orders', 'invoice.create', 'sends to billing', 'orders', 'Distributed Bus', '-.->'));
     }
 
     public function test_flow_graph_hides_services_that_are_toggled_off(): void

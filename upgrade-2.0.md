@@ -2741,6 +2741,13 @@ or shortens the back-off with `ServiceConfiguration::withConnectionRetryTemplate
 A consumer with an initial delay now waits for it, receives once, and then stops. Before, the delay already passed the
 10 ms window, so the run stopped without receiving.
 
+A polled-method consumer has no queue to drain, so it stops after its first execution: a `#[Polling]` projection and a
+`#[Scheduled]` method. The value a `#[Scheduled]` method
+returns is still sent to its channel and handled, and a method returning `null` stops the run as before. A `#[Polling]`
+projection's one execution projects every event in its stream, so `$ecotone->run('tickets_runner',
+ExecutionPollingMetadata::createWithFinishWhenNoMessages())` leaves it caught up. Before, these runs stopped only once
+10 ms of the clock had passed, which on a pinned test clock depended on how long the execution took.
+
 ### Symfony and Laravel `defaultConnectionExceptionRetry` is applied as configured
 
 **Before:** both integrations passed `maxAttempts` as the back-off multiplier and `multiplier` as a maximum delay in

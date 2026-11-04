@@ -8,9 +8,7 @@ use Illuminate\Support\Facades\Schema;
 function runMigrationForTenants(LaravelConnection $tenantAConnection, LaravelConnection $tenantBConnection): void
 {
     foreach (['tenant_a_connection', 'tenant_b_connection'] as $connectionName) {
-        foreach (Schema::connection($connectionName)->getTableListing() as $tableName) {
-            Schema::connection($connectionName)->drop($tableName);
-        }
+        Schema::connection($connectionName)->dropAllTables();
 
         Schema::connection($connectionName)->create('jobs', function (Blueprint $table) {
             $table->bigIncrements('id');

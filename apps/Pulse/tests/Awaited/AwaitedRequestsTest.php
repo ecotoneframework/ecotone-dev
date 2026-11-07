@@ -34,7 +34,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/services');
 
-        self::assertSame('connected', $this->statusOf($crawler, 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($crawler, 'orders'));
         self::assertCount(0, $crawler->filter('meta[http-equiv="refresh"]'));
     }
 
@@ -48,7 +48,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/services');
 
         self::assertEquals(new DateTimeImmutable('2026-10-20 12:00:02'), $clock->now());
-        self::assertSame('waiting', $this->statusOf($crawler, 'orders'));
+        self::assertSame('waiting', $this->serviceStatusOf($crawler, 'orders'));
         self::assertCount(1, $crawler->filter('meta[http-equiv="refresh"]'));
     }
 
@@ -74,7 +74,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $client->request('POST', '/refresh');
         $crawler = $client->followRedirect();
 
-        self::assertSame('connected', $this->statusOf($crawler, 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($crawler, 'orders'));
         self::assertCount(0, $crawler->filter('[data-service="orders"] [data-status="waiting"]'));
     }
 
@@ -145,8 +145,8 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/services');
 
         self::assertSame('2026-10-20 12:00:06', $clock->now()->format('Y-m-d H:i:s'));
-        self::assertSame('connected', $this->statusOf($crawler, 'orders'));
-        self::assertSame('connected', $this->statusOf($crawler, 'billing'));
+        self::assertSame('connected', $this->serviceStatusOf($crawler, 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($crawler, 'billing'));
     }
 
     public function test_a_fan_out_renders_the_fast_service_fresh_and_the_slow_one_as_waiting_when_the_budget_ends(): void
@@ -159,8 +159,8 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/services');
 
         self::assertEquals(new DateTimeImmutable('2026-10-20 12:00:04'), $clock->now());
-        self::assertSame('connected', $this->statusOf($crawler, 'orders'));
-        self::assertSame('waiting', $this->statusOf($crawler, 'billing'));
+        self::assertSame('connected', $this->serviceStatusOf($crawler, 'orders'));
+        self::assertSame('waiting', $this->serviceStatusOf($crawler, 'billing'));
     }
 
     public function test_a_trace_search_renders_each_service_only_once_its_own_reply_was_processed(): void

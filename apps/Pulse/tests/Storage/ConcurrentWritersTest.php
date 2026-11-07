@@ -104,7 +104,7 @@ final class ConcurrentWritersTest extends ReleasingWebTestCase
     {
         $services = $client->request('GET', '/services');
 
-        return $this->statusOf($services, 'orders') === 'connected' && $this->statusOf($services, 'billing') === 'connected';
+        return $this->serviceStatusOf($services, 'orders') === 'connected' && $this->serviceStatusOf($services, 'billing') === 'connected';
     }
 
     private function bootedKernel(): Kernel

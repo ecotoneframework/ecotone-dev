@@ -51,7 +51,7 @@ trait PulseServicesTrait
         ]);
     }
 
-    private function statusOf(Crawler $crawler, string $service): string
+    private function serviceStatusOf(Crawler $crawler, string $service): string
     {
         return $crawler->filter(sprintf('[data-service="%s"] [data-status]', $service))->attr('data-status');
     }

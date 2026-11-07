@@ -27,7 +27,7 @@ final class AwaitedRefreshTest extends ReleasingWebTestCase
         $client->request('POST', '/refresh');
         $crawler = $client->followRedirect();
 
-        self::assertSame('connected', $this->statusOf($crawler, 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($crawler, 'orders'));
         self::assertCount(0, $crawler->filter('meta[http-equiv="refresh"]'));
     }
 

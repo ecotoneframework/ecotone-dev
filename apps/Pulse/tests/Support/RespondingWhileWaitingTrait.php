@@ -46,6 +46,6 @@ trait RespondingWhileWaitingTrait
 
     private function processReplies(KernelInterface $kernel, int $replies): void
     {
-        (new CommandTester((new Application($kernel))->find('ecotone:run')))->execute(['consumerName' => $this->pulseChannel, '--handledMessageLimit' => (string) $replies]);
+        (new CommandTester((new Application($kernel))->find('ecotone:run')))->execute(['consumerName' => $this->pulseChannel, '--handledMessageLimit' => (string) $replies, '--finishWhenNoMessages' => true]);
     }
 }

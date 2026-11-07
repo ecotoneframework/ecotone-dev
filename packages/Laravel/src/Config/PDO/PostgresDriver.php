@@ -3,6 +3,7 @@
 namespace Ecotone\Laravel\Config\PDO;
 
 use Doctrine\DBAL\Driver\AbstractPostgreSQLDriver;
+use Ecotone\Dbal\DbalTransaction\TransactionBoundaryAwareDriver;
 use Ecotone\Laravel\Config\PDO\Concerns\ConnectsToDatabase;
 
 /**
@@ -19,7 +20,7 @@ use Ecotone\Laravel\Config\PDO\Concerns\ConnectsToDatabase;
 /**
  * licence Apache-2.0
  */
-class PostgresDriver extends AbstractPostgreSQLDriver
+class PostgresDriver extends AbstractPostgreSQLDriver implements TransactionBoundaryAwareDriver
 {
     use ConnectsToDatabase;
 

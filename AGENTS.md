@@ -192,7 +192,8 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
   timing assumption, an order dependency or a shared resource in it, and a rerun hides it until it fires on someone
   else's PR. Reproduce it instead: force the timing (a 1 ms execution limit, `--order-by=reverse`, the job's engine
   and PHP version, the per-package install Split Testing does), find the cause, fix it, push the fix. The same holds
-  for an install or infrastructure failure in CI: the workflow is code in this repository, and it gets the fix
+  for an install or infrastructure failure in CI: the workflow is code in this repository, and it gets the fix.
+  [docs/dev-workflow.md § When a check is red](./docs/dev-workflow.md#when-a-check-is-red) has the commands
 
 Conventions [rule 11](./docs/coding-conventions.md#11-test-shape) has a full worked example.
 [docs/dev-workflow.md](./docs/dev-workflow.md) has every command, the database DSNs, and what each package's

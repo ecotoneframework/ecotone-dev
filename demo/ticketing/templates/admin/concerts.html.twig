@@ -1,0 +1,102 @@
+{% extends 'admin/layout.html.twig' %}
+{% import 'admin/layout.html.twig' as format %}
+{% import '_icons.html.twig' as icons %}
+
+{% block title %}Concerts{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">Back office</p>
+            <h1>Concerts</h1>
+            <p class="page-meta">Every concert with its sale state and how many of its seats are sold, held and still free.</p>
+        </div>
+        {% if venues is not empty %}
+            <div class="toolbar">
+                <a class="button button-primary" href="#schedule">{{ icons.icon('plus') }} Schedule a concert</a>
+            </div>
+        {% endif %}
+    </header>
+
+    {% if concerts is empty %}
+        <div class="card empty-state">
+            <p>No concerts yet.</p>
+        </div>
+    {% else %}
+        <div class="table-wrap">
+            <table class="concerts table-stack">
+                <thead>
+                    <tr>
+                        <th scope="col">Concert</th>
+                        <th scope="col">Date</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Seats</th>
+                        <th scope="col" class="numeric">Standard</th>
+                        <th scope="col" class="numeric">VIP</th>
+                        <th scope="col"><span class="visually-hidden">Seat map</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for concert in concerts %}
+                        {% set counts = seatCounts[concert.concertId] %}
+                        <tr id="{{ concert.concertId }}">
+                            <td data-label="Concert">
+                                <div class="cell-title">
+                                    <a href="{{ path('admin_concert', {concertId: concert.concertId}) }}">{{ concert.artist }}</a>
+                                    <small>{{ concert.venueName }}</small>
+                                </div>
+                            </td>
+                            <td class="nowrap" data-label="Date"><span>{{ concert.startsAt|date('D, j M Y') }}<br><small class="muted">{{ concert.startsAt|date('H:i') }} UTC</small></span></td>
+                            <td data-label="Status"><span class="badge status status-{{ concert.status }} badge-{{ concert.status }}">{{ concert.status|replace({'_': ' '}) }}</span></td>
+                            <td data-label="Seats">{{ _self.seatCounts(counts) }}</td>
+                            <td class="numeric" data-label="Standard">{{ format.money(concert.standardPriceCents, concert.currency) }}</td>
+                            <td class="numeric" data-label="VIP">{{ format.money(concert.vipPriceCents, concert.currency) }}</td>
+                            <td class="row-action"><a class="button" href="{{ path('concert_seats', {concertId: concert.concertId}) }}">{{ icons.icon('seats') }} Seat map</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    <section class="card" id="schedule">
+        <h2>Schedule a concert</h2>
+        {% if venues is empty %}
+            <p>Create a <a href="{{ path('admin_venues') }}">venue</a> first.</p>
+        {% else %}
+            <form method="post" action="{{ path('admin_concerts_schedule') }}" class="admin-form">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
+                <label>Venue
+                    <select name="venueId">
+                        {% for venue in venues %}
+                            <option value="{{ venue.venueId }}">{{ venue.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Artist <input name="artist" required></label>
+                <label>Starts at (UTC) <input name="startsAt" type="datetime-local" required></label>
+                <label>Standard price, in cents <input name="standardPriceCents" type="number" min="1" value="4500" required></label>
+                <label>VIP price, in cents <input name="vipPriceCents" type="number" min="1" value="9500" required></label>
+                <label>Currency <input name="currency" value="EUR" maxlength="3" required></label>
+                <div class="form-actions">
+                    <button type="submit" class="button-primary">Schedule concert</button>
+                </div>
+            </form>
+        {% endif %}
+    </section>
+{% endblock %}
+
+{% macro seatCounts(counts) %}
+    {% set total = max(counts.total, 1) %}
+    <div class="seat-counts">
+        <div class="meter" aria-hidden="true">
+            <span class="meter-sold" style="width: {{ (counts.sold / total * 100)|round(1) }}%"></span>
+            <span class="meter-held" style="width: {{ (counts.held / total * 100)|round(1) }}%"></span>
+        </div>
+        <p class="meter-legend">
+            <span><i class="dot dot-sold"></i>{{ counts.sold }} sold</span>
+            <span><i class="dot dot-held"></i>{{ counts.held }} held</span>
+            <span><i class="dot dot-free"></i>{{ counts.free }} free</span>
+        </p>
+    </div>
+{% endmacro %}

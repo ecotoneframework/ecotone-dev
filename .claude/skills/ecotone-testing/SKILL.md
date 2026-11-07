@@ -208,6 +208,22 @@ public function test_with_service_dependency(): void
 | Database errors | Missing DSN env vars | Run inside Docker container with env vars set |
 | Lowest dependency failures | API differences between versions | Test both `--prefer-lowest` and latest |
 
+## Dogfooding: Messages Run Through the Testing Support
+
+Tests prove Ecotone's own testing support is enough to test an Ecotone application
+([conventions rule 10b](../../../docs/coding-conventions.md#10b-tests-run-messages-through-ecotones-own-testing-support)).
+
+- **Allowed**: `EcotoneLite::bootstrapFlowTesting()` (or the framework kernel), `run('channel', ExecutionPollingMetadata::...)`,
+  `ecotone:run` through the framework console, `FlowTestSupport` (`sendCommand`, `publishEvent`, `sendQueryWithRouting`,
+  `getRecordedEvents`, gateways), `withTimeAt()` / `advanceTimeBy()`, in-memory and `#[Environment]`-scoped channels,
+  `whenWaiting()` (runs a step at each wait on the pinned clock; a kernel-booted app calls it on the container's
+  `Ecotone\Test\StaticPsrClock`), and for a
+  cross-service flow several `EcotoneLite` applications in the one test process, each driven with `run()`
+- **Refused**: `pcntl_fork`, `proc_open`/`Process` running a consumer, sockets or pipes as a readiness or reply channel,
+  a `microtime()`/`usleep()` polling loop, a direct broker client, any consumer that is not `run()`
+- **Missing support** is added to `Ecotone\Test`, `FlowTestSupport` or `TestConfiguration` in its own commit, with its
+  own test. Real concurrency (processes racing a database constraint) is the one exception, named in the test
+
 ## Key Rules
 
 - Use `EcotoneLite::bootstrapFlowTesting()` as the starting point

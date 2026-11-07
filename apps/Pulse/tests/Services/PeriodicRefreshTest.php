@@ -9,7 +9,6 @@ use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\Console\Tester\CommandTester;
-use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
@@ -191,11 +190,6 @@ final class PeriodicRefreshTest extends ReleasingWebTestCase
         $this->setUpPulseDatabase($client->getKernel());
 
         return $client;
-    }
-
-    private function statusOf(Crawler $crawler, string $service): string
-    {
-        return $crawler->filter(sprintf('[data-service="%s"] [data-status]', $service))->attr('data-status');
     }
 
     private function snapshotJson(string $service): string

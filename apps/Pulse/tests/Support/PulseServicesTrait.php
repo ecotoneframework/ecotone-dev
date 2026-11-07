@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Support;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
@@ -12,12 +13,16 @@ use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticPsrClock;
+use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpKernel\KernelInterface;
 
 trait PulseServicesTrait
@@ -46,14 +51,32 @@ trait PulseServicesTrait
         ]);
     }
 
+    private function statusOf(Crawler $crawler, string $service): string
+    {
+        return $crawler->filter(sprintf('[data-service="%s"] [data-status]', $service))->attr('data-status');
+    }
+
     private function advanceTimeBy(int $seconds): void
     {
         self::getContainer()->get('pulse.clock')->sleep($seconds);
     }
 
+    private function pinnedWaitClock(): StaticPsrClock
+    {
+        $clock = self::getContainer()->get(ClockInterface::class);
+        $clock->setCurrentTime(new DateTimeImmutable('2026-10-20 12:00:00'));
+
+        return $clock;
+    }
+
     private function realService(string $service): FlowTestSupport
     {
         return $this->serviceApplication($service, [], []);
+    }
+
+    private function realServiceOnExistingTables(string $service): FlowTestSupport
+    {
+        return $this->serviceApplication($service, [], [], databaseTablesSetUpOnBootstrap: false);
     }
 
     private function serviceAnsweringWith(string $service, string $snapshotJson): FlowTestSupport
@@ -130,7 +153,7 @@ trait PulseServicesTrait
      * @param array<class-string> $classes
      * @param array<object> $handlers
      */
-    private function serviceApplication(string $service, array $classes, array $handlers, bool $withPulseResponder = true): FlowTestSupport
+    private function serviceApplication(string $service, array $classes, array $handlers, bool $withPulseResponder = true, bool $databaseTablesSetUpOnBootstrap = true): FlowTestSupport
     {
         $dsn = $_SERVER['PULSE_TRANSPORT_DSN'];
 
@@ -146,6 +169,7 @@ trait PulseServicesTrait
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel($this->pulseChannel)->withDatabaseTablesSetUpOnBootstrap($databaseTablesSetUpOnBootstrap),
         );
     }
 }

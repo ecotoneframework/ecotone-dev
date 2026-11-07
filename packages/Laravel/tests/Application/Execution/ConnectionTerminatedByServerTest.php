@@ -38,12 +38,11 @@ final class ConnectionTerminatedByServerTest extends TestCase
 
     protected function setUp(): void
     {
+        $app = require __DIR__ . '/../bootstrap/app.php';
+        $app->make(Kernel::class)->bootstrap();
         if (! preg_match('/^(pgsql|mysql)/', (string) getenv('DATABASE_DSN'))) {
             $this->markTestSkipped('Terminating a Laravel connection from the server side needs a database server');
         }
-
-        $app = require __DIR__ . '/../bootstrap/app.php';
-        $app->make(Kernel::class)->bootstrap();
     }
 
     protected function tearDown(): void

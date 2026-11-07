@@ -33,12 +33,12 @@ final class AfterCommitCallbackTest extends TestCase
 
     protected function setUp(): void
     {
+        $app = require __DIR__ . '/../bootstrap/app.php';
+        $app->make(Kernel::class)->bootstrap();
         if (! preg_match('/^(pgsql|mysql)/', (string) getenv('DATABASE_DSN'))) {
             $this->markTestSkipped('Reading what another connection sees needs a database server');
         }
 
-        $app = require __DIR__ . '/../bootstrap/app.php';
-        $app->make(Kernel::class)->bootstrap();
         DB::statement('DROP TABLE IF EXISTS laravel_committed_orders');
         DB::statement('CREATE TABLE laravel_committed_orders (id VARCHAR(255))');
     }

@@ -2543,6 +2543,18 @@ own. One that registers it under the literal pre-release string has to use the c
   time, before raising the setup instructions. **Now:** the `ConfigurationException` naming the
   `ecotone:migration:database:setup` command is raised on the first attempt; a lost connection is still retried, as
   before. Nothing to adapt.
+- **A discarded application releases its broker and database connections.** **Before:** every DBAL, AMQP, SQS and
+  Redis connection Ecotone opened was cached for the life of the PHP process, so a test suite booting an application
+  per test kept one connection open per bootstrap until the database ran out of `max_connections`, and
+  `CachedConnectionFactory::clearInstances()` was the way to reset it. **Now:** the connections belong to the booted
+  application: its channels, transactions and stores still share one connection, and Ecotone no longer keeps it
+  open. Once the application is discarded and PHP's cycle collector has run (`gc_collect_cycles()`, or PHP's
+  automatic collection), the connection is closed unless something else still holds its connection factory, such as a
+  `DbalConnectionFactory` kept in a test property or a framework's database manager. **How to adapt:** remove calls to
+  `CachedConnectionFactory::clearInstances()`, and any workaround that terminated leftover backends between tests.
+  Replace `CachedConnectionFactory::createFor()` with the connection factory you registered:
+  `$connectionFactory->createContext()->getDbalConnection()` returns the Doctrine connection Ecotone runs its
+  transaction on.
 - **An unknown case name for a pure enum is reported as a `ValueError`.** Converting a scalar to a non-backed enum
   (a header `'PENDING'` into a `#[Header] Status $status` parameter, say) failed with a `MethodInvocationException`
   whose cause was a `ReflectionException` ("Case … does not exist"); the cause is now a `ValueError` reading

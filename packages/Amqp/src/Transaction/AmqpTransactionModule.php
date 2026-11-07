@@ -4,6 +4,7 @@ namespace Ecotone\Amqp\Transaction;
 
 use function array_map;
 
+use Ecotone\Amqp\AmqpReconnectableConnectionFactory;
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Amqp\AmqpConnectionReference;
@@ -14,6 +15,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
@@ -66,7 +68,14 @@ final class AmqpTransactionModule implements AnnotationModule
         }
 
         $messagingConfiguration->registerServiceDefinition(AmqpTransactionInterceptor::class, [
-            array_map(fn (string $connectionFactory) => Reference::to($connectionFactory), $connectionFactories),
+            array_map(
+                fn (string $connectionFactory) => CachedConnectionFactory::registerIn(
+                    $messagingConfiguration,
+                    AmqpReconnectableConnectionFactory::connectionKeyFor($connectionFactory, false),
+                    AmqpReconnectableConnectionFactory::definitionFor($connectionFactory, false),
+                ),
+                $connectionFactories,
+            ),
             Reference::to(LoggingGateway::class),
             Reference::to(RetryRunner::class),
         ]);

@@ -11,10 +11,11 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Pulse\PulseSavepointIsolation;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
@@ -71,18 +72,21 @@ final class DbalTransactionModule implements AnnotationModule
         }
         $connectionFactories = $dbalConfiguration->defaultConnectionReferenceNames ?: [DbalConnectionReference::DEFAULT];
 
+        $cachedConnectionFactories = array_map(
+            fn (string $id) => CachedConnectionFactory::registerIn($messagingConfiguration, $id, DbalReconnectableConnectionFactory::definitionFor($id)),
+            $connectionFactories,
+        );
+
         $messagingConfiguration->registerServiceDefinition(PulseSavepointIsolation::class, [
-            array_map(fn (string $id) => new Reference($id), $connectionFactories),
-            new Reference(EcotoneClockInterface::class),
+            $cachedConnectionFactories,
         ]);
 
         $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [
-            array_map(fn (string $id) => new Reference($id), $connectionFactories),
+            $cachedConnectionFactories,
             $dbalConfiguration->disableTransactionsOnAsynchronousEndpointNames,
             new Reference(RetryRunner::class),
             new Reference(LoggingGateway::class),
             new Reference(TransactionStatusTracker::class),
-            new Reference(EcotoneClockInterface::class),
             new Reference(CommandsWithoutDatabaseTransaction::class),
         ]);
 

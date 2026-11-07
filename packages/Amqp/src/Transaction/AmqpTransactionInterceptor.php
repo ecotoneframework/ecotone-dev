@@ -4,7 +4,6 @@ namespace Ecotone\Amqp\Transaction;
 
 use AMQPChannel;
 use AMQPConnectionException;
-use Ecotone\Amqp\AmqpReconnectableConnectionFactory;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
@@ -13,7 +12,6 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
-use Interop\Amqp\AmqpConnectionFactory;
 use PhpAmqpLib\Channel\AMQPChannel as LibAmqpChannel;
 use Throwable;
 
@@ -30,7 +28,7 @@ class AmqpTransactionInterceptor
     private bool $isRunningTransaction = false;
 
     /**
-     * @param array<string, AmqpConnectionFactory> $connectionFactories
+     * @param array<string, CachedConnectionFactory> $connectionFactories
      */
     public function __construct(private array $connectionFactories, private LoggingGateway $logger, private RetryRunner $retryRunner)
     {
@@ -42,14 +40,10 @@ class AmqpTransactionInterceptor
         ?AmqpTransaction $amqpTransaction,
     ) {
         if ($amqpTransaction) {
-            $possibleFactories = array_map(fn (string $connectionReferenceName) => $this->connectionFactories[$connectionReferenceName], $amqpTransaction->connectionReferenceNames);
+            $connectionFactories = array_map(fn (string $connectionReferenceName) => $this->connectionFactories[$connectionReferenceName], $amqpTransaction->connectionReferenceNames);
         } else {
-            $possibleFactories = $this->connectionFactories;
+            $connectionFactories = $this->connectionFactories;
         }
-        /** @var CachedConnectionFactory[] $connectionFactories */
-        $connectionFactories = array_map(function (AmqpConnectionFactory $connectionFactory) {
-            return CachedConnectionFactory::createFor(new AmqpReconnectableConnectionFactory($connectionFactory));
-        }, $possibleFactories);
 
         if ($this->isRunningTransaction) {
             return $methodInvocation->proceed();

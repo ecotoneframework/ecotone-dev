@@ -2543,6 +2543,18 @@ own. One that registers it under the literal pre-release string has to use the c
   time, before raising the setup instructions. **Now:** the `ConfigurationException` naming the
   `ecotone:migration:database:setup` command is raised on the first attempt; a lost connection is still retried, as
   before. Nothing to adapt.
+- **A discarded application releases its broker and database connections.** **Before:** every DBAL, AMQP, SQS and
+  Redis connection Ecotone opened was cached for the life of the PHP process, so a test suite booting an application
+  per test kept one connection open per bootstrap until the database ran out of `max_connections`, and
+  `CachedConnectionFactory::clearInstances()` was the way to reset it. **Now:** the connections belong to the booted
+  application: its channels, transactions and stores still share one connection, and Ecotone no longer keeps it
+  open. Once the application is discarded and PHP's cycle collector has run (`gc_collect_cycles()`, or PHP's
+  automatic collection), the connection is closed unless something else still holds its connection factory, such as a
+  `DbalConnectionFactory` kept in a test property or a framework's database manager. **How to adapt:** remove calls to
+  `CachedConnectionFactory::clearInstances()`, and any workaround that terminated leftover backends between tests.
+  Replace `CachedConnectionFactory::createFor()` with the connection factory you registered:
+  `$connectionFactory->createContext()->getDbalConnection()` returns the Doctrine connection Ecotone runs its
+  transaction on.
 - **An unknown case name for a pure enum is reported as a `ValueError`.** Converting a scalar to a non-backed enum
   (a header `'PENDING'` into a `#[Header] Status $status` parameter, say) failed with a `MethodInvocationException`
   whose cause was a `ReflectionException` ("Case … does not exist"); the cause is now a `ValueError` reading
@@ -2761,6 +2773,73 @@ attempts before the consumer gives up.
 **How to adapt:** check that the configured values describe the reconnection behaviour you want — they now take effect.
 The key itself has since moved to `ServiceConfiguration::withConnectionRetryTemplate()` in a `#[ServiceContext]` method (§12).
 
+### A DBAL channel send that lost its transaction's connection is not retried in place
+
+**Before:** a message that failed to reach a DBAL channel was retried in place by the channel's send retries (or sent
+to its error channel), even when the failure was the database connection of the transaction it was sent in being lost
+(a database restart). Doctrine reset that connection, and the retry wrote the message on a fresh connection in
+autocommit, outside the transaction it belonged to. The transaction then failed to commit, the command or consumed
+message ran again, and the outbox message was sent twice.
+
+**Now:** such a send fails with `Ecotone\Api\Messaging\DatabaseTransactionLost`, which the send retries and the channel's error channel
+leave alone: the transaction rolls back and the whole command or consumed message is retried — by the instant retries
+a transactional command bus and asynchronous endpoint have by default (§9), or by the consumer's redelivery. Every
+other send failure is retried and dead-lettered as before, inside a transaction or outside one, on DBAL and on brokers.
+
+**How to adapt:** nothing for most applications. With a transactional command bus whose instant retries are turned
+off (`InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false)`), or that lists its retry
+exceptions without `DatabaseTransactionLost::class`, such a command now fails with `DatabaseTransactionLost`: turn the
+command bus retry back on, add `DatabaseTransactionLost::class` to the listed exceptions, or catch it and send the
+command again in the caller. A console command run in a transaction and a transaction the application opened itself are
+not retried by Ecotone: run the command again, or retry the work that opened the transaction. To keep the message being
+stored and retried in place instead, run its handler without a database transaction: `#[WithoutDatabaseTransaction]`
+on the handler, or `DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)`,
+`->withTransactionOnAsynchronousEndpoints(false)` or `->withTransactionOnConsoleCommands(false)`.
+
+### A Laravel connection recovers after the database restarts
+
+**Before:** Ecotone wrapped the PDO object the Laravel connection held when Ecotone first used it. After a database
+restart a consumer on a DBAL channel, the dead letter or the outbox over a `LaravelConnectionReference` reconnected to
+that same dead PDO: every message failed with `no connection to the server`, then `There is already an active
+transaction`, until the worker was restarted.
+
+**Now:** Ecotone connects through the Laravel connection each time it connects. A failure Laravel recognises as a lost
+connection drops Laravel's PDO and is raised as Doctrine's `ConnectionLost`, so the consumer reconnects, the failed
+message is redelivered, and the worker keeps handling messages. A connect the database refuses while it is still
+starting is raised as Doctrine's `ConnectionException`, so the consumer backs off with its connection retry template
+(`ServiceConfiguration::withConnectionRetryTemplate()`) instead of exiting.
+
+**How to adapt:** nothing.
+
+### A Tempest connection recovers after the database restarts
+
+**Before:** a `TempestConnectionReference::create($configTag)` handed Ecotone the PDO object the Tempest connection held
+when Ecotone first used it, and `TempestConnectionReference::defaultConnection()` kept using the Tempest connection's
+PDO after it was lost. After a database restart a consumer on a DBAL channel, the dead letter or the outbox failed every
+message with `no connection to the server` until the worker was restarted.
+
+**Now:** Ecotone connects through the Tempest connection each time it connects. A failure that reports a lost
+connection closes the Tempest connection and is raised as Doctrine's `ConnectionLost`, so the next connect opens a new
+one for Ecotone and for the Tempest ORM alike, the failed message is redelivered, and the worker keeps handling
+messages. That includes a transaction refused with `There is already an active transaction`, which is how
+`pdo_pgsql` reports a connection the server has terminated. A connect the database refuses while it is still starting
+is raised as Doctrine's `ConnectionException`, so the consumer backs off with its connection retry template
+(`ServiceConfiguration::withConnectionRetryTemplate()`) instead of exiting.
+
+**How to adapt:** nothing.
+
+### `ecotone/dbal`, `ecotone/laravel` and `ecotone/tempest` require `doctrine/dbal` 4.2.3 or later
+
+**Before:** they accepted any `doctrine/dbal` 4.x. Before 4.2.3, Doctrine raised a PostgreSQL connection the server
+terminated (`terminating connection due to administrator command`, a database restart) as a plain `DriverException`
+instead of `ConnectionLost`, so a consumer never reconnected and a send that lost its transaction's connection was
+not recognised as such.
+
+**Now:** `doctrine/dbal` `^4.2.3` is required, and the recovery after a database restart works on every version
+Composer installs.
+
+**How to adapt:** run `composer update doctrine/dbal` if your lock file holds a version below 4.2.3.
+
 ### `#[Partitioned]` with `#[ProjectionDeployment(manualKickOff: true)]` is refused at bootstrap
 
 **Before:** a partitioned projection ignored `manualKickOff: true` without a word — each partition initialized and
@@ -2913,17 +2992,28 @@ repository of a flow test, is now checked against the version it was loaded at:
   until now; or stop making the class a Tempest model and store it through the DBAL document-store repository
   (`DbalConfiguration::withDocumentStore(enableDocumentStoreStateStoredRepository: true)`), where `#[Version]` is
   checked; or make it an `#[EventSourcingAggregate]`. A Tempest model without `#[Version]` is unchanged.
-- **Eloquent aggregates are not version-checked**, with or without `#[Version]`. On an Eloquent model,
-  `#[Version]` is not persisted: Ecotone writes it to the declared PHP property, which Eloquent never saves, and reads
-  it back as `0` on every load. Concurrent saves still overwrite each other.
-  `#[Version]` on an Eloquent model is accepted and has no effect. If the model needs the check, either keep it out of
-  Eloquent — a plain class saved through the document-store repository, where `#[Version]` is checked — or keep the
-  table and register a repository of your own for the model: a `#[Repository]` class implementing
-  `Ecotone\Api\Modelling\StateStoredRepository` is chosen ahead of Ecotone's Eloquent repository. Its `findBy()` sets the
-  `#[Version]` property from your version column, since Eloquent never hydrates a declared property; Ecotone then hands
-  `save()` that version as `$versionBeforeHandling`, with the property already moved to the next one. `save()` runs
-  `UPDATE … WHERE id = ? AND version = ?` and, when it matched no row, throws
-  `Ecotone\Api\Messaging\ConcurrencyException::forStaleAggregate()`, as every other backend does.
+- **An Eloquent aggregate with `#[Version]` is version-checked.** **Before:** `#[Version]` on an Eloquent model was
+  accepted and had no effect: Ecotone wrote the declared PHP property, which Eloquent never saves, read it back as `0`
+  on every load, and concurrent saves overwrote each other — so applications registered a `#[Repository]` of their own
+  running `UPDATE … WHERE id = ? AND version = ?`. **Now:** Ecotone's Eloquent repository keeps the `#[Version]`
+  property in a column of the same name: `findBy()` sets the property from the column, the first save inserts the row
+  at version 1, and every later save — through the command bus or through a `#[Repository]` interface — moves the
+  column from the version it loaded to the next one with `UPDATE … WHERE <key> = ? AND <version column> = ?`, then
+  lets Eloquent's own `save()` write the changed attributes. Both run in one transaction on the model's connection (a
+  savepoint inside yours), so a failed save leaves the version where it was. A save whose loaded version is no longer
+  stored, and a create under an id that is already stored, throw
+  `Ecotone\Api\Messaging\ConcurrencyException::forStaleAggregate()`, as every other backend does; a create that
+  collides on another unique column raises Laravel's `UniqueConstraintViolationException` unchanged. A save that a
+  `saving`, `creating` or `updating` listener cancels by returning `false` is refused with
+  `Ecotone\Api\Laravel\EloquentSaveCancelled` instead of being reported as handled. With
+  `#[Version(autoIncrease: false)]` the application moves the version itself: the guarded update compares the version
+  the model was loaded with and stores the one the handler set, and a save that does not increase it is refused with
+  `Ecotone\Api\Laravel\EloquentVersionNotIncreased`. **How to adapt:** add an integer
+  column named after the `#[Version]` property — `$table->integer('version')` on a new table,
+  `$table->integer('version')->default(0)` on a table that already has rows, which then start at version 0. Keep it
+  non-null: a `NULL` version matches no guarded update, so that row would refuse every save. A repository of your own
+  written only to get the check can be removed. An Eloquent model without `#[Version]` is unchanged: last write wins,
+  and a duplicate id raises Laravel's own `UniqueConstraintViolationException`.
 
 A conflict is a technical failure, not a business answer. Retry it by reloading: the command bus and asynchronous
 endpoints retry by default when `DbalConfiguration` runs them in a database transaction ([§9](#9-changed-defaults));
@@ -3154,6 +3244,56 @@ the class itself.
 **How to adapt:** nothing, unless you extended one. A subclass that only added configuration calls becomes a
 `#[ServiceContext]` method returning the chained configuration. A subclass that added state of its own becomes a
 separate extension object, registered beside the configuration rather than inside it.
+
+### `JMSConverterConfiguration` returns a copy from every `with*()` and is `final`
+
+**Before:** `withNamingStrategy()`, `withDefaultNullSerialization()` and `withDefaultEnumSupport()` changed the
+instance they were called on and returned it, so `$configuration->withDefaultNullSerialization(false);` written as a
+statement kept its change. The class was open to extension, and its settings were read through `getNamingStrategy()`,
+`getDefaultNullSerialization()` and `isEnumSupportEnabled()`.
+
+**Now:** each `with*()` returns a changed copy and leaves the instance alone — its properties are `readonly` — and the
+class is `final`. A statement-form call still runs, but its value never reaches the configuration Ecotone uses. The
+three getters are gone: the settings are `public readonly` properties under their own names, `namingStrategy`,
+`defaultNullSerialization`, `enableEnumSupport` and `metadataCacheFreshnessCheck`.
+
+**How to adapt:** assign the result or chain the calls,
+`$configuration = $configuration->withDefaultNullSerialization(false);`. Configuration returned from a
+`#[ServiceContext]` method as a chained expression is unaffected. A subclass becomes a `#[ServiceContext]` method
+returning the chained configuration. Replace `getNamingStrategy()` with `->namingStrategy`,
+`getDefaultNullSerialization()` with `->defaultNullSerialization` and `isEnumSupportEnabled()` with `->enableEnumSupport`.
+
+### JMS re-reads a changed class outside production
+
+**Before:** the JMS metadata cache under Ecotone's cache directory (`.../ecotone/jms/metadata`) was written once and
+never checked against the class it describes. When a class gained a property, deserialization kept the old shape —
+the new property stayed uninitialized, and reading it failed with "Typed property ... must not be accessed before
+initialization" — until the directory was deleted by hand.
+
+**Now:** outside production the cache compares each entry with the files of its class and of every trait the class
+uses, and re-reads a class whose file changed after the entry was written. The comparison is by modification time, so
+a deployment that keeps the files' older timestamps (`rsync -a`, a Docker `COPY`, an archive) still needs Ecotone's
+cache cleared. Production — the `prod` or `production` environment (Symfony's `kernel.environment`, Laravel's
+`APP_ENV`, `EcotoneLite`'s `environment:`) — keeps trusting the cache as before, so a deployment still clears Ecotone's
+cache. Any other environment name checks freshness, `staging` included. `EcotoneLite`'s `environment:` defaults to
+`dev`, so a Lite deployment that never passed it now checks freshness in production too: a `filemtime` per class and
+trait file each process reads metadata for, repeated by `doctrine/annotations`' cached reader when that package is
+installed.
+
+**How to adapt:** nothing. To keep the old behaviour in such a deployment, pass `environment: 'prod'` to `EcotoneLite`.
+To decide it yourself in any environment, return
+`JMSConverterConfiguration::createWithDefaults()->withMetadataCacheFreshnessCheck(true)` (or `false`) from a
+`#[ServiceContext]` method.
+
+### A second `JMSConverterConfiguration` is refused at bootstrap
+
+**Before:** when two `JMSConverterConfiguration` objects were registered — two `#[ServiceContext]` methods, or two
+entries in `EcotoneLite`'s `extensionObjects` — the last one found silently replaced the other.
+
+**Now:** bootstrap fails with a `ConfigurationException` that describes both configurations.
+
+**How to adapt:** keep one `#[ServiceContext]` method returning `JMSConverterConfiguration::createWithDefaults()` and
+move every `with*()` call onto it.
 
 ### `AmqpQueue` and `AmqpExchange` name their mutators `set*()`
 

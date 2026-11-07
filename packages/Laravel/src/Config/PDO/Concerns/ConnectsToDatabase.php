@@ -2,9 +2,13 @@
 
 namespace Ecotone\Laravel\Config\PDO\Concerns;
 
+use Doctrine\DBAL\Driver\API\ExceptionConverter;
+use Doctrine\DBAL\Driver\Connection as DriverConnection;
+use Doctrine\DBAL\Driver\PDO\Exception;
 use Ecotone\Laravel\Config\PDO\Connection;
-use InvalidArgumentException;
-use PDO;
+use Ecotone\Laravel\Config\PDO\LostLaravelConnectionExceptionConverter;
+use Illuminate\Support\Facades\DB;
+use PDOException;
 
 /**
  * This file is a modified version of a class from the Laravel framework.
@@ -22,20 +26,24 @@ use PDO;
  */
 trait ConnectsToDatabase
 {
-    /**
-     * Create a new database connection.
-     *
-     * @param mixed[] $params
-     * @return Connection
-     *
-     * @throws InvalidArgumentException
-     */
-    public function connect(array $params): \Doctrine\DBAL\Driver\Connection
+    public function __construct(private string $laravelConnectionName)
     {
-        if (! isset($params['pdo']) || ! $params['pdo'] instanceof PDO) {
-            throw new InvalidArgumentException('Laravel requires the "pdo" property to be set and be a PDO instance.');
-        }
+    }
 
-        return new Connection($params['pdo']);
+    public function connect(array $params): DriverConnection
+    {
+        try {
+            $laravelConnection = DB::connection($this->laravelConnectionName);
+            $laravelConnection->reconnectIfMissingConnection();
+
+            return new Connection($laravelConnection->getPdo());
+        } catch (PDOException $exception) {
+            throw Exception::new($exception);
+        }
+    }
+
+    public function getExceptionConverter(): ExceptionConverter
+    {
+        return new LostLaravelConnectionExceptionConverter(parent::getExceptionConverter(), $this->laravelConnectionName);
     }
 }

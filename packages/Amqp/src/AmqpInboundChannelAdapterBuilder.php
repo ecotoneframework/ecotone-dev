@@ -40,7 +40,7 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
                 new Reference($this->connectionReferenceName),
                 Uuid::v7()->toRfc4122(),
             ]),
-        ], 'createFor');
+        ]);
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
             $this->endpointId,
             $this->acknowledgeMode,

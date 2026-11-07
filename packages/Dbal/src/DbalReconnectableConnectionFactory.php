@@ -7,6 +7,8 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Exception;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
@@ -26,6 +28,11 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
     {
         $this->connectionFactory = $dbalConnectionFactory;
         $this->clock = $clock;
+    }
+
+    public static function definitionFor(string $connectionReferenceName): Definition
+    {
+        return new Definition(self::class, [new Reference($connectionReferenceName), new Reference(EcotoneClockInterface::class)]);
     }
 
     public function createContext(): Context

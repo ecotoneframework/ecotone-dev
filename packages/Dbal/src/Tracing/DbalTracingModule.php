@@ -39,6 +39,7 @@ use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\PulseTrackingTableManager;
 use Ecotone\Dbal\Database\SpansTableManager;
+use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Pulse\Tracking\DbalTrackingStore;
 use Ecotone\Dbal\Pulse\Tracking\InMemoryTrackingStore;
 use Ecotone\Dbal\Pulse\Tracking\PulseProjectionActions;
@@ -49,6 +50,7 @@ use Ecotone\Dbal\Tracing\Pulse\PulseTraceQueries;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracesNotConfigured;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracing;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracingStorage;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -169,7 +171,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         $messagingConfiguration->registerServiceDefinition(
             TraceStore::class,
             $storesOnDatabase
-                ? new Definition(DbalTraceStore::class, [new Reference($connectionReference), new Reference(SpansTableManager::class), new Reference(EcotoneClockInterface::class)])
+                ? new Definition(DbalTraceStore::class, [CachedConnectionFactory::registerIn($messagingConfiguration, $connectionReference, DbalReconnectableConnectionFactory::definitionFor($connectionReference)), new Reference(SpansTableManager::class)])
                 : new Definition(InMemoryTraceStore::class)
         );
         $messagingConfiguration->registerServiceDefinition(
@@ -252,7 +254,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         $messagingConfiguration->registerServiceDefinition(
             TrackingStore::class,
             $storesOnDatabase
-                ? new Definition(DbalTrackingStore::class, [new Reference($connectionReference), new Reference(PulseTrackingTableManager::class), new Reference(EcotoneClockInterface::class)])
+                ? new Definition(DbalTrackingStore::class, [CachedConnectionFactory::registerIn($messagingConfiguration, $connectionReference, DbalReconnectableConnectionFactory::definitionFor($connectionReference)), new Reference(PulseTrackingTableManager::class)])
                 : new Definition(InMemoryTrackingStore::class, [new Reference($connectionReference)])
         );
         $untracedSpans = PulseTrackings::class . '.untraced_spans';

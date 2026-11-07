@@ -10,7 +10,6 @@ use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DistributedBusHeader;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
@@ -217,12 +216,7 @@ final class DbalDeadLetterModule implements AnnotationModule
                     Reference::to(MessageBuilder::class),
                 ])
                 : new Definition(DbalDeadLetterStore::class, [
-                    new Definition(CachedConnectionFactory::class, [
-                        new Definition(DbalReconnectableConnectionFactory::class, [
-                            new Reference($connectionFactoryReference),
-                            new Reference(EcotoneClockInterface::class),
-                        ]),
-                    ], 'createFor'),
+                    CachedConnectionFactory::registerIn($configuration, $connectionFactoryReference, DbalReconnectableConnectionFactory::definitionFor($connectionFactoryReference)),
                     DefaultHeaderMapper::createAllHeadersMapping(),
                     Reference::to(ConversionService::REFERENCE_NAME),
                     Reference::to(RetryRunner::class),

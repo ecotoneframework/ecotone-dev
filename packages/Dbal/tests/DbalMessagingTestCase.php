@@ -45,11 +45,15 @@ abstract class DbalMessagingTestCase extends TestCase
             return self::$defaultConnection;
         }
 
-        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
-        $dbalConnection = new DbalConnectionFactory($dsn);
+        $dbalConnection = new DbalConnectionFactory(self::databaseDsn());
         self::$defaultConnection = $dbalConnection;
 
         return $dbalConnection;
+    }
+
+    protected static function databaseDsn(): string
+    {
+        return getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
     }
 
 

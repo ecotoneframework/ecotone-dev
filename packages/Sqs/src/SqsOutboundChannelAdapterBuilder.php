@@ -67,11 +67,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
             throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
-        $connectionFactory = new Definition(CachedConnectionFactory::class, [
-            new Definition(HttpReconnectableConnectionFactory::class, [
-                new Reference($this->connectionFactoryReferenceName),
-            ]),
-        ], 'createFor');
+        $connectionFactory = CachedConnectionFactory::compileIn($builder, $this->connectionFactoryReferenceName, new Definition(HttpReconnectableConnectionFactory::class, [new Reference($this->connectionFactoryReferenceName)]));
 
         $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
             $this->headerMapper,

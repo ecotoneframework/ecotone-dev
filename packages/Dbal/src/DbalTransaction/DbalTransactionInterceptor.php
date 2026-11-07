@@ -6,15 +6,11 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\ConnectionException;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\Attribute\DbalTransaction;
-use Ecotone\Api\Dbal\DbalConnectionFactory;
-use Ecotone\Api\Dbal\ManagerRegistryConnectionFactory;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalContext;
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\Pulse\PulseSnapshotRequest;
 use Ecotone\Enqueue\CachedConnectionFactory;
@@ -23,7 +19,6 @@ use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Modelling\Config\DatabaseTransaction\CommandsWithoutDatabaseTransaction;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
 use Exception;
-use Interop\Queue\ConnectionFactory;
 use Throwable;
 
 /**
@@ -37,10 +32,10 @@ use Throwable;
 class DbalTransactionInterceptor
 {
     /**
-     * @param array<string, DbalConnectionFactory|ManagerRegistryConnectionFactory> $connectionFactories
+     * @param array<string, CachedConnectionFactory> $connectionFactories
      * @param string[] $disableTransactionOnAsynchronousEndpoints
      */
-    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private EcotoneClockInterface $clock, private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction)
+    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction)
     {
     }
 
@@ -61,13 +56,11 @@ class DbalTransactionInterceptor
             }
 
             if (PulseSnapshotRequest::isIn($message)) {
-                $possibleFactories = array_filter($possibleFactories, static fn (ConnectionFactory $connectionFactory): bool => ! $connectionFactory instanceof MultiTenantConnectionFactory || $connectionFactory->hasActiveTenant());
+                $possibleFactories = array_filter($possibleFactories, static fn (CachedConnectionFactory $connectionFactory): bool => ! $connectionFactory->getWrappedConnectionFactory() instanceof MultiTenantConnectionFactory || $connectionFactory->getWrappedConnectionFactory()->hasActiveTenant());
             }
 
             /** @var Connection[] $connections */
-            $possibleConnections = array_map(function (ConnectionFactory $connectionFactory) {
-                $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connectionFactory, $this->clock));
-
+            $possibleConnections = array_map(function (CachedConnectionFactory $connectionFactory) {
                 /** @var DbalContext $context */
                 $context = $connectionFactory->createContext();
 

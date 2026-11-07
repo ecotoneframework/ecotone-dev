@@ -2,7 +2,8 @@
 
 ## Transaction Interceptor (Around)
 
-Source pattern: `Ecotone\Dbal\DbalTransaction\DbalTransactionInterceptor`
+For a database connection Ecotone already manages, `DbalConfiguration::withTransactionOnCommandBus(true)` or
+`#[DbalTransaction]` gives you this without writing an interceptor. Write your own for any other resource:
 
 ```php
 use Ecotone\Api\Attribute\Around;
@@ -209,7 +210,7 @@ Targets all handlers within a specific class or implementing an interface:
 #[Around(pointcut: CommandBus::class)]
 #[Around(pointcut: QueryBus::class)]
 #[Around(pointcut: EventBus::class)]
-#[Around(pointcut: Gateway::class)]
+#[Around(pointcut: OrderGateway::class)]
 ```
 
 ### Namespace Pointcut
@@ -237,7 +238,7 @@ Excludes specific targets:
 
 ```php
 #[Around(pointcut: CommandHandler::class . '&&not(' . WithoutDatabaseTransaction::class . ')')]
-#[Around(pointcut: CommandHandler::class . '&&not(' . ProjectingConsoleCommands::class . '::backfillProjection)')]
+#[Around(pointcut: CommandHandler::class . '&&not(' . OrderImport::class . '::importAll)')]
 #[Before(pointcut: 'not(App\Internal\*)')]
 ```
 
@@ -254,21 +255,19 @@ Excludes specific targets:
 #[Around(pointcut: '(' . CommandHandler::class . '||' . CommandBus::class . ')&&not(' . WithoutDatabaseTransaction::class . ')')]
 ```
 
-### Real-World Example: Dynamic Transaction Pointcut
+### Composed Example: One Interceptor Across Several Entry Points
 
 ```php
-$pointcut = '(' . DbalTransaction::class . ')';
-if ($config->isTransactionOnAsynchronousEndpoints()) {
-    $pointcut .= '||(' . AsynchronousRunningEndpoint::class . ')';
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
+use Ecotone\Api\Gateway\CommandBus;
+
+#[Around(pointcut: '(' . AsynchronousRunningEndpoint::class . '||' . CommandBus::class . '||' . ConsoleCommand::class . ')&&not(' . WithoutDatabaseTransaction::class . ')')]
+public function withinUnitOfWork(MethodInvocation $invocation): mixed
+{
+    return $invocation->proceed();
 }
-if ($config->isTransactionOnCommandBus()) {
-    $pointcut .= '||(' . CommandBus::class . ')';
-}
-if ($config->isTransactionOnConsoleCommands()) {
-    $pointcut .= '||(' . ConsoleCommand::class . ')';
-}
-// Exclude opt-outs
-$pointcut = '(' . $pointcut . ')&&not(' . WithoutDatabaseTransaction::class . ')';
 ```
 
 ### Auto-Inference from Parameter Types
@@ -331,5 +330,5 @@ class AuthInterceptor
 | All message handlers | `CommandHandler::class . '\|\|' . EventHandler::class . '\|\|' . QueryHandler::class` |
 | Specific aggregate | `Order::class` |
 | Async handlers only | `Asynchronous::class` |
-| All bus calls | `Gateway::class` |
+| All bus calls | `CommandBus::class . '\|\|' . QueryBus::class . '\|\|' . EventBus::class` |
 | Exclude opt-outs | `CommandHandler::class . '&&not(' . WithoutDatabaseTransaction::class . ')'` |

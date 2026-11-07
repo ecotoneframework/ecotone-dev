@@ -85,8 +85,9 @@ public function test_interceptor_execution_order(): void
 }
 ```
 
-`CallStack` is a small named fixture class (`public array $calls = [];`) referenced by `#[Reference]` -- an
-anonymous class here since it is only a type declaration, not the fixture under test.
+`CallStack` is a small named class (`public array $calls = [];`) declared below the test case: the interceptors
+type-hint it to receive it through `#[Reference]`, and a type declaration needs a class name, which an anonymous
+class does not have.
 
 ## Testing Header Modification
 

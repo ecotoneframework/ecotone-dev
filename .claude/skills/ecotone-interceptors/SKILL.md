@@ -27,9 +27,8 @@ Interceptors are cross-cutting middleware that hook into handler execution. Use 
 Execution order: Presend -> Before -> Around -> handler -> Around end -> After
 
 **`#[After]` only runs when the intercepted handler actually returns a value.** A `void` handler produces no
-reply for `#[After]` to post-process, so it is skipped entirely -- verified against `EcotoneLite`: identical
-`#[Before]`/`#[After]` interceptors on the same pointcut fire `before` either way, but `after` only when the
-handler's return type is non-`void`. Target `#[QueryHandler]`s, or handlers with a return type, when using
+reply for `#[After]` to post-process, so it is skipped entirely: identical `#[Before]`/`#[After]` interceptors on
+the same pointcut fire `before` either way, but `after` only when the handler's return type is non-`void`. Target `#[QueryHandler]`s, or handlers with a return type, when using
 `#[After]`.
 
 ## Before Interceptor

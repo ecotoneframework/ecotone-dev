@@ -44,8 +44,10 @@ if [ -z "${ECOTONE_LICENCE_KEY:-}" ]; then
     esac
     if [ -n "$local_env" ]; then
         touch "$local_env"
-        sed -i '/^ECOTONE_LICENCE_KEY=/d' "$local_env"
-        echo "ECOTONE_LICENCE_KEY=$ECOTONE_LICENCE_KEY" >> "$local_env"
+        next_env="$(mktemp "$local_env.XXXXXX")"
+        grep -v '^ECOTONE_LICENCE_KEY=' "$local_env" > "$next_env" || true
+        echo "ECOTONE_LICENCE_KEY=$ECOTONE_LICENCE_KEY" >> "$next_env"
+        mv "$next_env" "$local_env"
     fi
 fi
 

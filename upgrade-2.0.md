@@ -3109,6 +3109,56 @@ the class itself.
 `#[ServiceContext]` method returning the chained configuration. A subclass that added state of its own becomes a
 separate extension object, registered beside the configuration rather than inside it.
 
+### `JMSConverterConfiguration` returns a copy from every `with*()` and is `final`
+
+**Before:** `withNamingStrategy()`, `withDefaultNullSerialization()` and `withDefaultEnumSupport()` changed the
+instance they were called on and returned it, so `$configuration->withDefaultNullSerialization(false);` written as a
+statement kept its change. The class was open to extension, and its settings were read through `getNamingStrategy()`,
+`getDefaultNullSerialization()` and `isEnumSupportEnabled()`.
+
+**Now:** each `with*()` returns a changed copy and leaves the instance alone — its properties are `readonly` — and the
+class is `final`. A statement-form call still runs, but its value never reaches the configuration Ecotone uses. The
+three getters are gone: the settings are `public readonly` properties under their own names, `namingStrategy`,
+`defaultNullSerialization`, `enableEnumSupport` and `metadataCacheFreshnessCheck`.
+
+**How to adapt:** assign the result or chain the calls,
+`$configuration = $configuration->withDefaultNullSerialization(false);`. Configuration returned from a
+`#[ServiceContext]` method as a chained expression is unaffected. A subclass becomes a `#[ServiceContext]` method
+returning the chained configuration. Replace `getNamingStrategy()` with `->namingStrategy`,
+`getDefaultNullSerialization()` with `->defaultNullSerialization` and `isEnumSupportEnabled()` with `->enableEnumSupport`.
+
+### JMS re-reads a changed class outside production
+
+**Before:** the JMS metadata cache under Ecotone's cache directory (`.../ecotone/jms/metadata`) was written once and
+never checked against the class it describes. When a class gained a property, deserialization kept the old shape —
+the new property stayed uninitialized, and reading it failed with "Typed property ... must not be accessed before
+initialization" — until the directory was deleted by hand.
+
+**Now:** outside production the cache compares each entry with the files of its class and of every trait the class
+uses, and re-reads a class whose file changed after the entry was written. The comparison is by modification time, so
+a deployment that keeps the files' older timestamps (`rsync -a`, a Docker `COPY`, an archive) still needs Ecotone's
+cache cleared. Production — the `prod` or `production` environment (Symfony's `kernel.environment`, Laravel's
+`APP_ENV`, `EcotoneLite`'s `environment:`) — keeps trusting the cache as before, so a deployment still clears Ecotone's
+cache. Any other environment name checks freshness, `staging` included. `EcotoneLite`'s `environment:` defaults to
+`dev`, so a Lite deployment that never passed it now checks freshness in production too: a `filemtime` per class and
+trait file each process reads metadata for, repeated by `doctrine/annotations`' cached reader when that package is
+installed.
+
+**How to adapt:** nothing. To keep the old behaviour in such a deployment, pass `environment: 'prod'` to `EcotoneLite`.
+To decide it yourself in any environment, return
+`JMSConverterConfiguration::createWithDefaults()->withMetadataCacheFreshnessCheck(true)` (or `false`) from a
+`#[ServiceContext]` method.
+
+### A second `JMSConverterConfiguration` is refused at bootstrap
+
+**Before:** when two `JMSConverterConfiguration` objects were registered — two `#[ServiceContext]` methods, or two
+entries in `EcotoneLite`'s `extensionObjects` — the last one found silently replaced the other.
+
+**Now:** bootstrap fails with a `ConfigurationException` that describes both configurations.
+
+**How to adapt:** keep one `#[ServiceContext]` method returning `JMSConverterConfiguration::createWithDefaults()` and
+move every `with*()` call onto it.
+
 ### `AmqpQueue` and `AmqpExchange` name their mutators `set*()`
 
 **Before:** both classes named nine mutators `with*()` — `withArgument()`, `withDurability()`,

@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\Converter;
+use JMS\Serializer\Builder\DefaultDriverFactory;
 use JMS\Serializer\Handler\DateHandler;
 use JMS\Serializer\Handler\HandlerRegistry;
 use JMS\Serializer\Naming\CamelCaseNamingStrategy;
@@ -35,14 +36,17 @@ class JMSConverterBuilder implements CompilableBuilder
      */
     public static function buildJMSConverter(JMSConverterConfiguration $jmsConverterConfiguration, ServiceCacheConfiguration $serviceCacheConfiguration, array $convertersHandlers): Converter
     {
+        $driverFactory = new DefaultDriverFactory(
+            $jmsConverterConfiguration->namingStrategy === JMSConverterConfiguration::IDENTICAL_PROPERTY_NAMING_STRATEGY
+                ? new IdenticalPropertyNamingStrategy()
+                : new CamelCaseNamingStrategy()
+        );
+        $driverFactory->enableEnumSupport($jmsConverterConfiguration->enableEnumSupport);
+
         $builder = SerializerBuilder::create()
-            ->setPropertyNamingStrategy(
-                $jmsConverterConfiguration->getNamingStrategy() === JMSConverterConfiguration::IDENTICAL_PROPERTY_NAMING_STRATEGY
-                    ? new IdenticalPropertyNamingStrategy()
-                    : new CamelCaseNamingStrategy()
-            )
+            ->setMetadataDriverFactory(new TraitFilesTrackingDriverFactory($driverFactory))
             ->setDocBlockTypeResolver(true)
-            ->enableEnumSupport($jmsConverterConfiguration->isEnumSupportEnabled())
+            ->enableEnumSupport($jmsConverterConfiguration->enableEnumSupport)
             ->addDefaultHandlers()
             ->configureHandlers(function (HandlerRegistry $registry) use ($convertersHandlers) {
                 $registry->registerSubscribingHandler(new DateHandler(self::DATE_TIME_FORMAT_WITH_MICROSECONDS, 'UTC', true, [self::DATE_TIME_FORMAT_WITH_MICROSECONDS, DateTimeInterface::ATOM]));
@@ -63,9 +67,10 @@ class JMSConverterBuilder implements CompilableBuilder
             });
 
         if ($serviceCacheConfiguration->shouldUseCache()) {
-            $builder->setCacheDir($serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'jms');
+            $builder
+                ->setCacheDir($serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'jms')
+                ->setDebug($jmsConverterConfiguration->metadataCacheFreshnessCheck === true);
         }
-
 
         return new JMSConverter($builder->build(), $jmsConverterConfiguration);
     }
@@ -73,9 +78,10 @@ class JMSConverterBuilder implements CompilableBuilder
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         $configuration = new Definition(JMSConverterConfiguration::class, [
-            $this->jmsConverterConfiguration->getNamingStrategy(),
-            $this->jmsConverterConfiguration->getDefaultNullSerialization(),
-            $this->jmsConverterConfiguration->isEnumSupportEnabled(),
+            'namingStrategy' => $this->jmsConverterConfiguration->namingStrategy,
+            'defaultNullSerialization' => $this->jmsConverterConfiguration->defaultNullSerialization,
+            'enableEnumSupport' => $this->jmsConverterConfiguration->enableEnumSupport,
+            'metadataCacheFreshnessCheck' => $this->jmsConverterConfiguration->metadataCacheFreshnessCheck,
         ]);
         $converterHandlers = [];
         foreach ($this->converterHandlerBuilders as $converterHandlerBuilder) {

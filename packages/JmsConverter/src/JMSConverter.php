@@ -31,7 +31,7 @@ class JMSConverter implements Converter
 
     public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
     {
-        $serializeNulls = $targetMediaType->hasParameter(self::SERIALIZE_NULL_PARAMETER) ? $targetMediaType->getParameter(self::SERIALIZE_NULL_PARAMETER) === 'true' : $this->jmsConverterConfiguration->getDefaultNullSerialization();
+        $serializeNulls = $targetMediaType->hasParameter(self::SERIALIZE_NULL_PARAMETER) ? $targetMediaType->getParameter(self::SERIALIZE_NULL_PARAMETER) === 'true' : $this->jmsConverterConfiguration->defaultNullSerialization;
 
         $context = new SerializationContext();
         if ($serializeNulls) {

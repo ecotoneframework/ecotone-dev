@@ -9,7 +9,7 @@ shift || true
 case "${DEMO_APP:-}" in
     ticketing | storefront)
         cd "/repo/demo/$DEMO_APP"
-        php /repo/demo/docker/pin-path-package-versions.php
+        php /repo/apps/Pulse/docker/pin-path-package-versions.php "$PWD"
         ;;
     pulse)
         cd /repo/apps/Pulse

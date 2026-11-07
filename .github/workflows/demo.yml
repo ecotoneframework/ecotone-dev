@@ -76,7 +76,7 @@ jobs:
 
       - name: Pin the path packages the way the demo containers do
         working-directory: demo/${{ matrix.app }}
-        run: php ../docker/pin-path-package-versions.php
+        run: php ../../apps/Pulse/docker/pin-path-package-versions.php "$PWD"
 
       - name: Install ${{ matrix.app }} with fresh path packages
         working-directory: demo/${{ matrix.app }}

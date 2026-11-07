@@ -29,13 +29,13 @@ final class DatabaseTransactionLost extends RuntimeException
     public static function whileReconnectingInsideTransaction(): self
     {
         return new self(
-            'The database connection was lost while a message was being handled inside a database transaction, and reconnecting is refused until that message ends. '
-            . 'A new connection would run every following statement outside the transaction: it would be stored even though the transaction rolls back, and stored again when the message is retried. '
-            . "The transaction rolls back and the command or consumed message is retried as a whole: the consumer redelivers an asynchronous endpoint's message, and the command bus instant retries, on by default when DbalConfiguration runs the command bus in a transaction, retry a command. "
+            'The database connection was lost while a message was being handled inside a database transaction, so Ecotone refuses to reconnect until the message ends. '
+            . 'A new connection would be outside your transaction: part of the message\'s data could be stored while the rest is rolled back, and stored again when the message is retried. '
+            . 'The message is rolled back and retried as a whole: the consumer redelivers an asynchronous endpoint\'s message, and the command bus instant retries, on by default when DbalConfiguration runs the command bus in a transaction, retry a command. '
             . 'If they were turned off, turn them back on with InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true), and if they list their retry exceptions, include DatabaseTransactionLost::class. '
-            . 'Do not catch the lost-connection failure inside the handler and carry on: let it reach Ecotone, so the whole message is retried. '
+            . 'If the connection failure was first caught and ignored — for example by a middleware in your codebase, or a library that retries automatically — let it reach Ecotone instead. '
             . 'A console command run in a transaction (DbalConfiguration::withTransactionOnConsoleCommands) is not retried by Ecotone: run the command again. '
-            . 'To let the handler reconnect and continue instead, run it without a database transaction: mark the handler with #[WithoutDatabaseTransaction] (Ecotone\\Api\\Attribute\\WithoutDatabaseTransaction), or turn the transaction off with DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false), ->withTransactionOnAsynchronousEndpoints(false) or ->withTransactionOnConsoleCommands(false).',
+            . 'To allow the reconnect instead, turn the protection off with DbalConfiguration::createWithDefaults()->withTransactionReconnectProtection(TransactionReconnectProtection::IGNORE) (Ecotone\\Api\\Dbal\\ExtensionObject\\TransactionReconnectProtection), or run the handler without a database transaction: #[WithoutDatabaseTransaction] (Ecotone\\Api\\Attribute\\WithoutDatabaseTransaction), or ->withTransactionOnCommandBus(false), ->withTransactionOnAsynchronousEndpoints(false) or ->withTransactionOnConsoleCommands(false).',
         );
     }
 }

@@ -88,12 +88,6 @@ class EcotoneProvider extends ServiceProvider
             }
         );
         $this->app->singleton(
-            EloquentRepository::class,
-            function () {
-                return new EloquentRepository();
-            }
-        );
-        $this->app->singleton(
             ServiceCacheConfiguration::REFERENCE_NAME,
             fn () => $serviceCacheConfiguration
         );

@@ -209,6 +209,36 @@ final class ConnectionTerminatedByServerTest extends TestCase
         self::assertSame(['milk'], DB::table('laravel_written_orders')->pluck('id')->all());
     }
 
+    public function test_a_transactional_command_after_the_server_terminated_the_idle_laravel_connection_reconnects_at_its_begin_and_is_stored_once(): void
+    {
+        DB::statement('DROP TABLE IF EXISTS laravel_written_orders');
+        DB::statement('CREATE TABLE laravel_written_orders (id VARCHAR(255))');
+        $ecotone = $this->bootstrap($this->writingOrderHandler(static function (): void {
+        }), [
+            DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+        ]);
+
+        $ecotone->sendCommandWithRouting('order.record', 'tea');
+        $this->terminateServerSideOfLaravelConnection();
+        $ecotone->sendCommandWithRouting('order.record', 'milk');
+
+        self::assertSame(['tea', 'milk'], DB::table('laravel_written_orders')->pluck('id')->all());
+    }
+
+    public function test_a_consumed_message_after_the_server_terminated_the_idle_laravel_connection_reconnects_at_its_begin_and_is_stored_once(): void
+    {
+        DB::statement('DROP TABLE IF EXISTS laravel_written_orders');
+        DB::statement('CREATE TABLE laravel_written_orders (id VARCHAR(255))');
+        $ecotone = $this->bootstrap($this->writingOrderHandler(static function (): void {
+        }));
+
+        $ecotone->sendCommandWithRouting('order.write', 'milk');
+        $this->terminateServerSideOfLaravelConnection();
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+
+        self::assertSame(['milk'], DB::table('laravel_written_orders')->pluck('id')->all());
+    }
+
     private static function untilOneMessageIsHandled(): ExecutionPollingMetadata
     {
         return ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000, stopOnError: false);
@@ -276,6 +306,12 @@ final class ConnectionTerminatedByServerTest extends TestCase
             #[Asynchronous('orders')]
             #[CommandHandler('order.write', endpointId: 'writeOrder')]
             public function write(string $order): void
+            {
+                $this->record($order);
+            }
+
+            #[CommandHandler('order.record')]
+            public function record(string $order): void
             {
                 $this->attempts++;
                 if ($this->attempts === 1) {

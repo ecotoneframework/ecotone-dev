@@ -120,7 +120,7 @@ $ecotone->deleteProjection('name');      // Cleanup
 
 ### Rebuild vs Backfill
 
-`triggerProjection()` calls `executeAll()` -- it reads directly from the stream source and processes pending events synchronously, immediately, in the same call. `resetProjection()` calls `executeAllWithReset()` (delete + init + `executeAll()`), so it replays full history, not just what's pending.
+`triggerProjection()` reads directly from the stream source and processes pending events synchronously, immediately, in the same call. `resetProjection()` deletes, initializes and then triggers the projection, so it replays full history, not just what's pending.
 
 To test rebuild behavior (emissions suppressed), run the `ecotone:projection:rebuild` console command:
 

@@ -83,7 +83,7 @@ Parameters:
 
 ## InternalHandler Attribute
 
-Source: `Ecotone\Api\Attribute\InternalHandler`. Low-level handler for framework-internal message routing that is
+Source: `Ecotone\Api\Attribute\InternalHandler`. Low-level handler for routing between your own named channels,
 not exposed via a bus (`#[ServiceActivator]` was removed in 2.0 -- this is the only such attribute now).
 
 ```php

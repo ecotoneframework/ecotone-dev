@@ -258,15 +258,20 @@ Excludes specific targets:
 ### Composed Example: One Interceptor Across Several Entry Points
 
 ```php
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Interceptor\MethodInvocation;
 
-#[Around(pointcut: '(' . AsynchronousRunningEndpoint::class . '||' . CommandBus::class . '||' . ConsoleCommand::class . ')&&not(' . WithoutDatabaseTransaction::class . ')')]
-public function withinUnitOfWork(MethodInvocation $invocation): mixed
+final class UnitOfWorkInterceptor
 {
-    return $invocation->proceed();
+    #[Around(pointcut: '(' . AsynchronousRunningEndpoint::class . '||' . CommandBus::class . '||' . ConsoleCommand::class . ')&&not(' . WithoutDatabaseTransaction::class . ')')]
+    public function withinUnitOfWork(MethodInvocation $invocation): mixed
+    {
+        return $invocation->proceed();
+    }
 }
 ```
 

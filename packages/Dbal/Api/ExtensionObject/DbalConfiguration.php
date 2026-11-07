@@ -47,6 +47,7 @@ final class DbalConfiguration
         public readonly bool $enableDocumentStoreStateStoredRepository = false,
         public readonly int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS,
         public readonly int $deduplicationRemovalBatchSize = 1000,
+        public readonly TransactionReconnectProtection $transactionReconnectProtection = TransactionReconnectProtection::REQUIRED,
     ) {
     }
 
@@ -151,6 +152,11 @@ final class DbalConfiguration
     public function withDeduplication(bool $isDeduplicatedEnabled = true, string $connectionReference = DbalConnectionReference::DEFAULT, int $expirationTime = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS, int $removalBatchSize = 1000, bool $inMemory = false): self
     {
         return new self(...[...get_object_vars($this), 'deduplicatedEnabled' => $isDeduplicatedEnabled, 'deduplicationInMemory' => $inMemory, 'deduplicationConnectionReference' => $connectionReference, 'minimumTimeToRemoveMessageInMilliseconds' => $expirationTime, 'deduplicationRemovalBatchSize' => $removalBatchSize]);
+    }
+
+    public function withTransactionReconnectProtection(TransactionReconnectProtection $transactionReconnectProtection): self
+    {
+        return new self(...[...get_object_vars($this), 'transactionReconnectProtection' => $transactionReconnectProtection]);
     }
 
     public function withDeadLetter(bool $isDeadLetterEnabled, string $connectionReference = DbalConnectionReference::DEFAULT, bool $inMemory = false): self

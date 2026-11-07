@@ -6,6 +6,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\ConnectionException;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\Attribute\DbalTransaction;
+use Ecotone\Api\Dbal\ExtensionObject\TransactionReconnectProtection;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\Interceptor\MethodInvocation;
@@ -14,6 +15,7 @@ use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\Pulse\PulseSnapshotRequest;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Modelling\Config\DatabaseTransaction\CommandsWithoutDatabaseTransaction;
@@ -35,7 +37,7 @@ class DbalTransactionInterceptor
      * @param array<string, CachedConnectionFactory> $connectionFactories
      * @param string[] $disableTransactionOnAsynchronousEndpoints
      */
-    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction)
+    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction, private TransactionReconnectProtection $transactionReconnectProtection)
     {
     }
 
@@ -50,7 +52,7 @@ class DbalTransactionInterceptor
         $connections = [];
         if (! in_array($endpointId, $this->disableTransactionOnAsynchronousEndpoints)) {
             if ($DbalTransaction) {
-                $possibleFactories = array_map(fn (string $connectionReferenceName) => $this->connectionFactories[$connectionReferenceName], $DbalTransaction->connectionReferenceNames);
+                $possibleFactories = array_combine($DbalTransaction->connectionReferenceNames, array_map(fn (string $connectionReferenceName) => $this->connectionFactories[$connectionReferenceName], $DbalTransaction->connectionReferenceNames));
             } else {
                 $possibleFactories = $this->connectionFactories;
             }
@@ -67,13 +69,17 @@ class DbalTransactionInterceptor
                 return $context->getDbalConnection();
             }, $possibleFactories);
 
-            foreach ($possibleConnections as $connection) {
+            foreach ($possibleConnections as $connectionReferenceName => $connection) {
                 if ($connection->isTransactionActive()) {
                     continue;
                 }
 
-                $connections[] = $connection;
+                $connections[$connectionReferenceName] = $connection;
             }
+        }
+
+        foreach ($connections as $connectionReferenceName => $connection) {
+            $this->refuseConnectionWithoutTransactionBoundary($connectionReferenceName, $connection);
         }
 
         foreach ($connections as $connection) {
@@ -92,7 +98,7 @@ class DbalTransactionInterceptor
             $this->logger->info('Database Transaction started', $message);
         }
         foreach ($connections as $connection) {
-            self::enterTransactionBoundary($connection);
+            $this->enterTransactionBoundary($connection);
         }
 
         $transactionStarted = $connections !== [];
@@ -136,10 +142,28 @@ class DbalTransactionInterceptor
         return $result;
     }
 
-    private static function enterTransactionBoundary(Connection $connection): void
+    private function refuseConnectionWithoutTransactionBoundary(string $connectionReferenceName, Connection $connection): void
+    {
+        if ($this->transactionReconnectProtection !== TransactionReconnectProtection::REQUIRED || $connection->getDriver() instanceof TransactionBoundaryDriver) {
+            return;
+        }
+
+        throw ConfigurationException::create(
+            'When the database connection is lost while a message is being handled, the next SQL statement usually fails, and Ecotone rolls the message back and retries it as a whole. '
+            . 'In some flows, though — for example a middleware in your codebase, or a library that retries automatically and ignores the connection failure — Doctrine DBAL may reconnect and run the following SQL statements on a new connection, as if nothing had happened. '
+            . "That new connection is outside your transaction, so part of the message's data may be stored while the rest is rolled back, and stored again when the message is retried. "
+            . 'Ecotone puts stability first, so it prevents this by default: once the connection is lost inside a transaction, it refuses to reconnect until the message ends, and the message is rolled back and retried as a whole. '
+            . "The database connection `{$connectionReferenceName}` was built without Ecotone's TransactionBoundaryMiddleware, so Ecotone cannot provide that protection for it. "
+            . 'In your setup, add the middleware where the connection is built, as its last middleware: (new Doctrine\\DBAL\\Configuration())->setMiddlewares([..., new Ecotone\\Api\\Dbal\\TransactionBoundaryMiddleware()]). '
+            . 'To allow the reconnect instead, turn the protection off for connections built without the middleware with DbalConfiguration::createWithDefaults()->withTransactionReconnectProtection(TransactionReconnectProtection::WHEN_AVAILABLE) (Ecotone\\Api\\Dbal\\ExtensionObject\\TransactionReconnectProtection), or everywhere with ->withTransactionReconnectProtection(TransactionReconnectProtection::IGNORE). '
+            . 'Or run the handler without a database transaction: #[WithoutDatabaseTransaction] (Ecotone\\Api\\Attribute\\WithoutDatabaseTransaction), or ->withTransactionOnCommandBus(false), ->withTransactionOnAsynchronousEndpoints(false) or ->withTransactionOnConsoleCommands(false).',
+        );
+    }
+
+    private function enterTransactionBoundary(Connection $connection): void
     {
         $driver = $connection->getDriver();
-        if ($driver instanceof TransactionBoundaryDriver) {
+        if ($this->transactionReconnectProtection !== TransactionReconnectProtection::IGNORE && $driver instanceof TransactionBoundaryDriver) {
             $driver->enterTransactionBoundary();
         }
     }

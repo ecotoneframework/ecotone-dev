@@ -384,7 +384,7 @@ In this repository:
 - [docs/creating-a-module.md](./docs/creating-a-module.md) and [docs/module-anatomy.md](./docs/module-anatomy.md) -
   scaffolding a new module or package, and the module interfaces in full
 - `.claude/skills/ecotone-*` - per-area guides for Ecotone users on the user-facing API, `ecotone-testing` for the
-  test patterns an application writes; shared outside this repository, see the rule below
+  test patterns an application writes; shared outside this repository, see the rule above
 
 Published:
 

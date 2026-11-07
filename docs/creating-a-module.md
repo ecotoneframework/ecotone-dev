@@ -121,16 +121,32 @@ Steps:
 
 ## 5. Testing Modules
 
+A module is never named in its test ([conventions rule 10](coding-conventions.md#10-tests-validate-at-the-userland-level-only)):
+it loads because its class is in its package's `ModuleClassList` constant and the package is installed. The test
+registers an application class carrying the attribute the module reads, and asserts on what the application sees:
+
 ```php
-public function test_module_registers_handlers(): void
+public function test_a_handler_marked_with_the_attribute_is_reachable_through_the_bus(): void
 {
+    $handler = new class () {
+        public array $received = [];
+
+        #[MyAttribute]
+        #[CommandHandler('my.command')]
+        public function handle(string $payload): void
+        {
+            $this->received[] = $payload;
+        }
+    };
+
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [MyModule::class, TestHandler::class],
-        containerOrAvailableServices: [new TestHandler()],
+        classesToResolve: [$handler::class],
+        containerOrAvailableServices: [$handler],
     );
 
-    $ecotone->sendCommand(new TestCommand());
-    // Assert expected behavior
+    $ecotone->sendCommandWithRouting('my.command', 'payload');
+
+    $this->assertSame(['payload'], $handler->received);
 }
 ```
 

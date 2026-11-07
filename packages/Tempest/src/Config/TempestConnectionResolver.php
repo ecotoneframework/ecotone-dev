@@ -13,7 +13,6 @@ use Ecotone\Tempest\Config\PDO\PostgresDriver;
 use Ecotone\Tempest\Config\PDO\SQLiteDriver;
 use Ecotone\Tempest\Config\PDO\TempestDynamicDriver;
 use Interop\Queue\ConnectionFactory;
-use ReflectionProperty;
 use Tempest\Container\GenericContainer;
 use Tempest\Database\Config\DatabaseConfig;
 use Tempest\Database\Config\DatabaseDialect;
@@ -47,18 +46,14 @@ final class TempestConnectionResolver
             $container->singleton(TempestConnection::class, $connection, tag: $configTag);
         }
 
-        return self::doctrineConnectionFromTempestConnection(
-            $container->get(TempestConnection::class, tag: $configTag),
-            $container->get(DatabaseConfig::class, tag: $configTag),
-        );
+        $databaseConfig = $container->get(DatabaseConfig::class, tag: $configTag);
+        $doctrineConnection = new Connection([], self::driverForDialect($databaseConfig->dialect, $configTag));
+
+        return DbalConnection::create($doctrineConnection);
     }
 
     private static function resolveFromTempestConnection(): ConnectionFactory
     {
-        $container = GenericContainer::instance();
-        $databaseConfig = $container->get(DatabaseConfig::class);
-        $driver = self::driverForDialect($databaseConfig->dialect);
-
         // TempestDynamicDriver returns a TempestDynamicDriverConnection that re-resolves
         // Tempest's default Connection singleton on each DBAL call. Combined with
         // TempestTenantDatabaseSwitcher closing the Doctrine connection on switch,
@@ -68,26 +63,12 @@ final class TempestConnectionResolver
         return DbalConnection::create($doctrineConnection);
     }
 
-    private static function doctrineConnectionFromTempestConnection(
-        TempestConnection $tempestConnection,
-        DatabaseConfig $databaseConfig,
-    ): ConnectionFactory {
-        $pdoProperty = new ReflectionProperty($tempestConnection, 'pdo');
-        $sharedPdo = $pdoProperty->getValue($tempestConnection);
-
-        $driver = self::driverForDialect($databaseConfig->dialect);
-
-        $doctrineConnection = new Connection(['pdo' => $sharedPdo], $driver);
-
-        return DbalConnection::create($doctrineConnection);
-    }
-
-    private static function driverForDialect(DatabaseDialect $dialect): Driver
+    private static function driverForDialect(DatabaseDialect $dialect, string $configTag): Driver
     {
         return match ($dialect) {
-            DatabaseDialect::POSTGRESQL => new PostgresDriver(),
-            DatabaseDialect::MYSQL => new MySqlDriver(),
-            DatabaseDialect::SQLITE => new SQLiteDriver(),
+            DatabaseDialect::POSTGRESQL => new PostgresDriver($configTag),
+            DatabaseDialect::MYSQL => new MySqlDriver($configTag),
+            DatabaseDialect::SQLITE => new SQLiteDriver($configTag),
         };
     }
 }

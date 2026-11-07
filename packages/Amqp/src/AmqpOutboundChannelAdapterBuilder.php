@@ -166,13 +166,11 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             Assert::isTrue($this->publisherConfirms, 'Non blocking confirmation requires publisher confirms to be enabled.');
         }
 
-        $connectionFactory = new Definition(CachedConnectionFactory::class, [
-            new Definition(AmqpReconnectableConnectionFactory::class, [
-                new Reference($this->amqpConnectionFactoryReferenceName),
-                null,
-                $this->publisherConfirms,
-            ]),
-        ], 'createFor');
+        $connectionFactory = CachedConnectionFactory::compileIn(
+            $builder,
+            AmqpReconnectableConnectionFactory::connectionKeyFor($this->amqpConnectionFactoryReferenceName, $this->publisherConfirms),
+            AmqpReconnectableConnectionFactory::definitionFor($this->amqpConnectionFactoryReferenceName, $this->publisherConfirms),
+        );
 
         $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
             $this->headerMapper,

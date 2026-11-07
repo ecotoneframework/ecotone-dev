@@ -63,7 +63,7 @@
         "phpstan/phpstan": "^2.1",
         "symfony/expression-language": "^6.4|^7.0|^8.0",
         "ecotone/dbal": "~2.0.0-beta.7",
-        "doctrine/dbal": "^4.0"
+        "doctrine/dbal": "^4.2.3"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

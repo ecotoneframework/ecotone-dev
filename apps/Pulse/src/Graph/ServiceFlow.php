@@ -34,7 +34,7 @@ final readonly class ServiceFlow
         }
 
         try {
-            $graph = MessageFlowGraph::fromArray($snapshot->snapshot['flowGraph']);
+            $graph = MessageFlowGraph::fromArray(self::withKnownKinds($snapshot->snapshot['flowGraph']));
         } catch (Throwable) {
             return null;
         }
@@ -42,6 +42,32 @@ final readonly class ServiceFlow
         $serviceMaps = $snapshot->snapshot['topology']['serviceMaps'] ?? [];
 
         return new self($snapshot->service, $snapshot->channel, $graph, is_array($serviceMaps) ? array_values($serviceMaps) : [], $snapshot->status, $snapshot->ageSeconds);
+    }
+
+    /**
+     * @param array<string, mixed> $flowGraph
+     * @return array<string, mixed>
+     */
+    private static function withKnownKinds(array $flowGraph): array
+    {
+        $unknownNodes = [];
+        if (is_array($flowGraph['nodes'] ?? null)) {
+            foreach ($flowGraph['nodes'] as $node) {
+                if (is_array($node) && is_string($node['kind'] ?? null) && FlowNodeKind::tryFrom($node['kind']) === null) {
+                    $unknownNodes[(string) ($node['id'] ?? '')] = true;
+                }
+            }
+            $flowGraph['nodes'] = array_values(array_filter($flowGraph['nodes'], fn (mixed $node) => ! is_array($node) || ! isset($unknownNodes[(string) ($node['id'] ?? '')])));
+        }
+        if (is_array($flowGraph['edges'] ?? null)) {
+            $flowGraph['edges'] = array_values(array_filter($flowGraph['edges'], fn (mixed $edge) => ! is_array($edge) || (
+                (! is_string($edge['kind'] ?? null) || FlowEdgeKind::tryFrom($edge['kind']) !== null)
+                && ! isset($unknownNodes[(string) ($edge['from'] ?? '')])
+                && ! isset($unknownNodes[(string) ($edge['to'] ?? '')])
+            )));
+        }
+
+        return $flowGraph;
     }
 
     public function isStale(): bool
@@ -73,7 +99,7 @@ final readonly class ServiceFlow
     }
 
     /**
-     * @return list<array{handler: FlowNode, targetService: string, targetChannel: string}>
+     * @return list<array{handler: FlowNode, targetService: string, targetChannel: string, replyChannel: string|null, withoutReply: bool}>
      */
     public function sentMessages(): array
     {
@@ -81,8 +107,9 @@ final readonly class ServiceFlow
         foreach ($this->graph->edgesOfKind(FlowEdgeKind::SENDS_TO) as $edge) {
             $service = $edge->attributes['targetService'] ?? null;
             $channel = $edge->attributes['targetChannel'] ?? null;
+            $replyChannel = $edge->attributes['replyChannel'] ?? null;
             if (($edge->attributes['via'] ?? null) === 'sendMessage' && is_string($service) && is_string($channel) && $this->graph->node($edge->to)->kind === FlowNodeKind::DISTRIBUTED_BUS) {
-                $sent[] = ['handler' => $this->graph->node($edge->from), 'targetService' => $service, 'targetChannel' => $channel];
+                $sent[] = ['handler' => $this->graph->node($edge->from), 'targetService' => $service, 'targetChannel' => $channel, 'replyChannel' => is_string($replyChannel) ? $replyChannel : null, 'withoutReply' => ($edge->attributes['withoutReply'] ?? false) === true];
             }
         }
 
@@ -90,11 +117,11 @@ final readonly class ServiceFlow
     }
 
     /**
-     * @return list<array{handler: FlowNode, channel: string, replies: bool}>
+     * @return list<array{target: FlowNode, handler: FlowNode, routingKey: string, replies: bool}>
      */
-    public function distributedChannelHandlers(): array
+    public function distributedMessageReceivers(): array
     {
-        $handlers = [];
+        $receivers = [];
         foreach ($this->graph->edgesOfKind(FlowEdgeKind::DISTRIBUTES) as $distributes) {
             $channel = $this->graph->node($distributes->to);
             if ($channel->kind !== FlowNodeKind::CHANNEL) {
@@ -102,15 +129,47 @@ final readonly class ServiceFlow
             }
             foreach ($this->graph->edgesOfKind(FlowEdgeKind::INPUT, from: $channel->id) as $input) {
                 $handler = $this->graph->node($input->to);
-                $replies = array_filter(
-                    $this->graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: $handler->id),
-                    fn ($edge) => ($edge->attributes['via'] ?? null) === 'replyRoutingKey'
-                );
-                $handlers[] = ['handler' => $handler, 'channel' => $channel->label, 'replies' => $replies !== []];
+                $receivers[] = ['target' => $handler, 'handler' => $handler, 'routingKey' => $channel->label, 'replies' => $this->replies($handler)];
+            }
+        }
+        foreach ($this->distributedReceivers() as $received) {
+            if ($received['node']->kind !== FlowNodeKind::COMMAND) {
+                continue;
+            }
+            foreach ($this->graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, from: $received['node']->id) as $routed) {
+                $handler = $this->graph->node($routed->to);
+                $receivers[] = ['target' => $received['node'], 'handler' => $handler, 'routingKey' => $received['routingKey'], 'replies' => $this->replies($handler)];
             }
         }
 
-        return $handlers;
+        return $receivers;
+    }
+
+    public function replyTargetOf(FlowNode $sendingHandler, ?string $replyChannel): string
+    {
+        if ($replyChannel === null) {
+            return $sendingHandler->id;
+        }
+        if ($this->graph->hasNode('channel:' . $replyChannel)) {
+            return 'channel:' . $replyChannel;
+        }
+        $command = 'message:' . $replyChannel;
+        if ($this->graph->hasNode($command) && $this->graph->node($command)->kind === FlowNodeKind::COMMAND && $this->graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, from: $command) !== []) {
+            return $command;
+        }
+
+        return $sendingHandler->id;
+    }
+
+    private function replies(FlowNode $handler): bool
+    {
+        foreach ($this->graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: $handler->id) as $edge) {
+            if (($edge->attributes['via'] ?? null) === 'replyRoutingKey') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

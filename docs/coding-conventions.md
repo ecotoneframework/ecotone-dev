@@ -1036,7 +1036,7 @@ naming its class, constructor arguments and optional factory. `LicenceDecider::p
 (`packageNames()`, and the `forPackage()` match arm). `ModulePackageList` is `Ecotone\Api\ExtensionObject\ModulePackageList`,
 because an application names its constants in `EcotoneLite::bootstrap(..., enabledModules: [...])` and the framework's `enabledModulePackageNames` key; the lookups only the
 framework calls stay in the internal `ModuleClassList` (rule 12a). Modules implement `AnnotationModule`, carry `#[ModuleAnnotation]`, and
-are `final`. The `ecotone-module-creator` skill has the full scaffold — including the `NoExternalConfigurationModule`
+are `final`. [docs/creating-a-module.md](./creating-a-module.md) has the full scaffold — including the `NoExternalConfigurationModule`
 base class and the `AnnotationFinder` API — and is the place to look rather than this file.
 
 ### 13a. Class metadata comes from the registry, not from fresh reflection
@@ -1369,7 +1369,7 @@ two copies of a rule drift apart.
 | [AGENTS.md](../AGENTS.md) | what the project is, the monorepo layout, the test-first loop, committing, opening a PR |
 | [docs/dev-workflow.md](./dev-workflow.md) | containers, per-package test commands, database DSNs, licence and style tooling, what CI runs |
 | `ecotone-testing` | `EcotoneLite` patterns, async-tested-synchronously, projection tests, diagnosing failures |
-| `ecotone-module-creator` | `AnnotationModule` scaffold, `AnnotationFinder`, `ExtensionObjectResolver`, new packages |
+| [docs/creating-a-module.md](./creating-a-module.md) | `AnnotationModule` scaffold, `AnnotationFinder`, `ExtensionObjectResolver`, new packages |
 | `ecotone-enterprise` | which features are Enterprise and why |
 | `ecotone-handler`, `ecotone-aggregate`, `ecotone-event-sourcing`, `ecotone-workflow`, `ecotone-interceptors`, `ecotone-asynchronous`, `ecotone-resiliency`, `ecotone-metadata`, `ecotone-identifier-mapping`, `ecotone-business-interface`, `ecotone-distribution` | the user-facing API of each area |
 

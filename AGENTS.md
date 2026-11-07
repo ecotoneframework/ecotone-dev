@@ -349,6 +349,21 @@ publish a description they have not seen.
 
 `CONTRIBUTING.md` covers the fork-and-clone side for outside contributors.
 
+## Skills are for Ecotone users
+
+`.claude/skills/ecotone-*` are shared with Ecotone users: each one teaches an application developer how to use one
+area of the user-facing API, in their own project. Nothing about how *this repository* is developed belongs there.
+
+- **A skill describes user-land usage only** - attributes, gateways, configuration objects, console commands, the
+  testing support an application uses. Every sample is one an Ecotone user could paste into their application.
+- **Internal conventions go to this file and `docs/`** - how tests are shaped here, that the suite runs on
+  Ecotone's own testing support and never around it, how a module or a package is scaffolded
+  ([docs/creating-a-module.md](./docs/creating-a-module.md)), naming and docblock rules, the review and brief
+  process. None of it is a skill, and a skill never links into `docs/coding-conventions.md`, `docs/dev-workflow.md`
+  or any other repository-internal document.
+- **The test for a sentence:** would it read as instructions to someone who has never cloned ecotone-dev? If not, it
+  is a convention, not a skill.
+
 ## Documentation Resources
 
 In this repository:
@@ -359,8 +374,10 @@ In this repository:
 - `upgrade/namespace-map-2.0.csv` - the full old → new FQCN mapping for the 2.0 `Api` move
 - `docs/superpowers/specs/` - design decisions, the alternatives considered, and why. Untracked here:
   `docs/superpowers/` is in `.gitignore`, and the records live on branch `dgafka/dcb-docs`
-- `.claude/skills/ecotone-*` - per-area guides for the user-facing API: `ecotone-testing` for test patterns,
-  `ecotone-module-creator` for new modules and packages, and one per feature area
+- [docs/creating-a-module.md](./docs/creating-a-module.md) and [docs/module-anatomy.md](./docs/module-anatomy.md) -
+  scaffolding a new module or package, and the module interfaces in full
+- `.claude/skills/ecotone-*` - per-area guides for Ecotone users on the user-facing API, `ecotone-testing` for the
+  test patterns an application writes; shared outside this repository, see the rule below
 
 Published:
 

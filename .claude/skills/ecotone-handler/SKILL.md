@@ -155,8 +155,7 @@ public function placeOrder(PlaceOrder $command): void { }
 - First parameter is the message object (type-hinted)
 - `#[CommandHandler]` on aggregates: static = factory (creation), instance = action (modification)
 - Use `#[Header]` for metadata access, not message wrapping
-- Names carry the meaning; no comments or descriptive docblocks (see
-  [coding-conventions.md rule 6](../../../docs/coding-conventions.md#6-names-carry-the-meaning-no-comments-no-descriptive-docblocks))
+- Names carry the meaning; no comments or descriptive docblocks
 
 ## Enterprise Upgrade Paths
 

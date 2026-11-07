@@ -1,18 +1,8 @@
----
-name: ecotone-module-creator
-description: >-
-  Scaffolds new Ecotone packages and modules: AnnotationModule pattern,
-  module registration, Configuration building, and package template
-  usage. Use when creating new framework modules, extending the module
-  system, or scaffolding new packages.
-argument-hint: "[module-name]"
----
-
-# Ecotone Module Creator
+# Creating a module or a package
 
 ## Overview
 
-This skill covers creating new Ecotone modules and packages. Use it when scaffolding a new package, implementing a module class with the `AnnotationModule` pattern, registering handlers/channels/converters in the messaging system, or accepting external configuration via `#[ServiceContext]`.
+This guide covers creating new Ecotone modules and packages. Read it when scaffolding a new package, implementing a module class with the `AnnotationModule` pattern, registering handlers/channels/converters in the messaging system, or accepting external configuration via `#[ServiceContext]`.
 
 ## 1. Module Class Structure
 
@@ -151,4 +141,4 @@ public function test_module_registers_handlers(): void
 
 ## Additional resources
 
-- [Module anatomy reference](references/module-anatomy.md) -- Complete interface definitions and implementation examples: `AnnotationModule` interface, `NoExternalConfigurationModule` base class, `Configuration` interface methods (`registerMessageHandler`, `registerMessageChannel`, `registerConverter`, etc.), `AnnotationFinder` interface methods, `ModulePackageList` constants and registration steps, package directory structure with `composer.json` template, and a full module with external configuration class. Load when you need exact interface signatures, the package template module code, `composer.json` boilerplate, or a complete module with external configuration.
+- [Module anatomy reference](module-anatomy.md) -- Complete interface definitions and implementation examples: `AnnotationModule` interface, `NoExternalConfigurationModule` base class, `Configuration` interface methods (`registerMessageHandler`, `registerMessageChannel`, `registerConverter`, etc.), `AnnotationFinder` interface methods, `ModulePackageList` constants and registration steps, package directory structure with `composer.json` template, and a full module with external configuration class. Load when you need exact interface signatures, the package template module code, `composer.json` boilerplate, or a complete module with external configuration.

@@ -138,13 +138,11 @@ There is no framework-invoked "upcaster" -- test that the `#[Apply]` reads the i
 one, bootstrap accepts the class but `sendCommand()` throws `Ecotone\Messaging\Support\InvalidArgumentException`.
 
 ```php
-use Ecotone\Test\LicenceTesting;
-
 public function test_apply_method_receives_revision_header(): void
 {
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         [Person::class],
-        licenceKey: LicenceTesting::VALID_LICENCE,
+        licenceKey: $_ENV['ECOTONE_LICENCE_KEY'],
     );
 
     $ecotone->sendCommand(new RegisterPerson('person-1', 'premium'));

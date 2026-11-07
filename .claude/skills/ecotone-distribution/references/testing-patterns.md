@@ -1,9 +1,9 @@
 # Distribution Testing Patterns
 
 The tests below exercise `#[Distributed]` handlers through ordinary routing, without a `DistributedServiceMap` --
-that is enough to prove the handler itself, and needs no licence key (`#[Distributed]` is `licence Apache-2.0`).
-A test that registers `DistributedServiceMap` to prove actual cross-service routing needs
-`EcotoneLite::bootstrapFlowTesting(..., licenceKey: LicenceTesting::VALID_LICENCE)` -- see
+that is enough to prove the handler itself, and needs no licence key (`#[Distributed]` is free and open source).
+A test that registers `DistributedServiceMap` to prove actual cross-service routing needs your Enterprise licence
+key, `EcotoneLite::bootstrapFlowTesting(..., licenceKey: $_ENV['ECOTONE_LICENCE_KEY'])` -- see
 [Enterprise Configuration Guide](../../ecotone-enterprise/references/configuration-guide.md).
 
 ## Testing Distributed Command Handling

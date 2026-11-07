@@ -202,7 +202,7 @@ $ecotone->sendCommand(new StartWorkflow('data'));
 
 ## Testing Orchestrator (Enterprise)
 
-Orchestrator tests require Enterprise licence configuration.
+Orchestrator tests require an Enterprise licence key, passed to the bootstrap from the test environment.
 
 ### Basic Orchestrator Test
 
@@ -210,7 +210,6 @@ Orchestrator tests require Enterprise licence configuration.
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Test\LicenceTesting;
 
 public function test_orchestrator_executes_steps_in_order(): void
 {
@@ -218,7 +217,7 @@ public function test_orchestrator_executes_steps_in_order(): void
         [AuthorizationOrchestrator::class],
         [$orchestrator = new AuthorizationOrchestrator()],
         enabledModules: [ModulePackageList::CORE_PACKAGE],
-        licenceKey: LicenceTesting::VALID_LICENCE,
+        licenceKey: $_ENV['ECOTONE_LICENCE_KEY'],
     );
 
     $result = $ecotone->sendDirectToChannel('start.authorization', 'test-data');
@@ -236,7 +235,7 @@ public function test_orchestrator_via_business_interface(): void
         [AuthorizationOrchestrator::class, AuthorizationProcess::class],
         [new AuthorizationOrchestrator()],
         enabledModules: [ModulePackageList::CORE_PACKAGE],
-        licenceKey: LicenceTesting::VALID_LICENCE,
+        licenceKey: $_ENV['ECOTONE_LICENCE_KEY'],
     );
 
     /** @var AuthorizationProcess $gateway */
@@ -259,7 +258,7 @@ public function test_async_orchestrator(): void
         [$service = new AsyncWorkflow()],
         extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
         enabledModules: [ModulePackageList::CORE_PACKAGE],
-        licenceKey: LicenceTesting::VALID_LICENCE,
+        licenceKey: $_ENV['ECOTONE_LICENCE_KEY'],
     );
 
     $ecotone->sendDirectToChannel('async.workflow', []);

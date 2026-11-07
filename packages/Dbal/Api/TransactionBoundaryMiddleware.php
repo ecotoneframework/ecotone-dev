@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Dbal\DbalTransaction;
+namespace Ecotone\Api\Dbal;
 
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\Middleware;
+use Ecotone\Dbal\DbalTransaction\TransactionBoundaryDriver;
 
 /**
  * licence Apache-2.0

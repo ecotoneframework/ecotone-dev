@@ -8,7 +8,6 @@ use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Ecotone\Dbal\Connection\DbalContext;
-use Ecotone\Dbal\DbalTransaction\TransactionBoundaryMiddleware;
 use Exception;
 use Interop\Queue\Context;
 use LogicException;

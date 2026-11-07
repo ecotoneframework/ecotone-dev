@@ -2482,6 +2482,7 @@ extends `EnqueueMessageChannelBuilder`, as `AmqpBackedMessageChannelBuilder` alr
 | `Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration` | `Ecotone\Api\DataProtection\ChannelProtectionConfiguration` | returned from a `#[ServiceContext]` method, it protects one channel (Enterprise) |
 | `Ecotone\DataProtection\Encryption\Key` | `Ecotone\Api\DataProtection\Key` | an application creates or loads a key (`Key::createNewRandomKey()`, `Key::loadFromAsciiSafeString()`) to pass to `DataProtectionConfiguration` |
 | `Ecotone\EventSourcing\EventStreamEmitter` | `Ecotone\Api\EventSourcing\EventStreamEmitter` | a projection handler takes it as a parameter to `emit()` or `linkTo()` events (§3) |
+| `Ecotone\Dbal\DbalTransaction\DbalTransaction` | `Ecotone\Api\Dbal\Attribute\DbalTransaction` | written on a handler or its class, it runs that handler in a transaction on the connections it names — `#[DbalTransaction(connectionReferenceNames: [...])]`, the default connection when it names none; the list was a writable property, and is now a constructor argument |
 
 **How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Clear Ecotone's cache on
 deploy, since the compiled container records class names. **One container id changes:** `EventStreamEmitter` is a
@@ -2713,6 +2714,52 @@ Ecotone's own missing-table messages print the bare form.
 **Now:** a bare boolean option is `true`; `--initialize=false` and leaving the option out keep their meaning.
 
 **How to adapt:** nothing. Deployment scripts that already pass `--initialize=true` behave as before.
+
+### Finish-when-no-messages keeps the run's other limits
+
+**Before:** `PollingMetadata::withFinishWhenNoMessages()` set the handled-message, execution-amount and
+execution-time limits to zero, so `ecotone:run orders --finishWhenNoMessages --executionTimeLimit=2000` ignored the
+time limit, `--handledMessageLimit` was ignored the same way, and a run of a queue that kept receiving messages never
+stopped.
+
+**Now:** every limit stays as configured and the run stops at whichever comes first: no message left, the handled
+messages, the executions, or the execution time. `ExecutionPollingMetadata::createWithFinishWhenNoMessages()` clears
+the handled-message, execution-amount and execution-time limits on purpose, so a test drains the channel whatever the
+endpoint's own polling metadata says. Before, it left the execution-amount limit as configured, so an endpoint whose
+`PollingMetadata` set `withExecutionAmountLimit()` capped a test run at that many executions.
+
+**How to adapt:** drop a limit you passed together with `--finishWhenNoMessages` (or `withFinishWhenNoMessages(true)`)
+only if you relied on it being ignored. An endpoint whose `PollingMetadata` sets a limit and calls
+`withFinishWhenNoMessages(true)` now honours that limit; remove the limit to drain the channel in one run.
+
+### Finish-when-no-messages stops on the first empty receive
+
+**Before:** a run with finish-when-no-messages stopped only once 10 ms of the clock had passed without a message.
+On a pinned test clock that took about ten polls, and against a broker each empty poll waits for the broker's receive
+timeout, so a test run of an idle AMQP queue took about ten seconds.
+
+**Now:** the run stops on the first receive that returns no message, so an idle queue ends a run after one receive
+timeout. A receive that failed — a lost connection retried through the connection retry template — is not an empty
+one: the run keeps going and handles the messages waiting behind it, where before that failed poll ended the run. A
+channel that stays unreachable is retried through the whole connection retry template, and then the run throws the
+connection failure, where before it ended quietly: `ecotone:run orders --finishWhenNoMessages` against a database or
+broker that is down now exits with an error after the back-off — about two minutes with the default
+`exponentialBackOff(1000, 3)->maxRetries(5)`.
+
+**How to adapt:** nothing, unless a test relied on a message becoming available a few milliseconds after the channel
+went empty within the same run: call `run()` again after it arrives. A cron job or CI step that runs
+`--finishWhenNoMessages` and must give up sooner on an unreachable channel bounds the run with `--executionTimeLimit`,
+or shortens the back-off with `ServiceConfiguration::withConnectionRetryTemplate()`.
+
+A consumer with an initial delay now waits for it, receives once, and then stops. Before, the delay already passed the
+10 ms window, so the run stopped without receiving.
+
+A polled-method consumer has no queue to drain, so it stops after its first execution: a `#[Polling]` projection and a
+`#[Scheduled]` method. The value a `#[Scheduled]` method
+returns is still sent to its channel and handled, and a method returning `null` stops the run as before. A `#[Polling]`
+projection's one execution projects every event in its stream, so `$ecotone->run('tickets_runner',
+ExecutionPollingMetadata::createWithFinishWhenNoMessages())` leaves it caught up. Before, these runs stopped only once
+10 ms of the clock had passed, which on a pinned test clock depended on how long the execution took.
 
 ### Symfony and Laravel `defaultConnectionExceptionRetry` is applied as configured
 

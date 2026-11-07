@@ -279,12 +279,7 @@ final class ImmutableConfigurationCopyTest extends TestCase
         self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->withTriggerReferenceName('other_trigger'), ['triggerReferenceName' => 'other_trigger'], $observe);
         self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->withTaskExecutorName('other_executor'), ['taskExecutorName' => 'other_executor'], $observe);
         self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->withStopOnError(true), ['stopOnError' => true, 'errorChannelName' => ''], $observe);
-        self::assertCopyChangesOnly(
-            $original,
-            fn (PollingMetadata $metadata) => $metadata->withFinishWhenNoMessages(true),
-            ['finishWhenNoMessages' => true, 'handledMessageLimit' => 0, 'executionAmountLimit' => 0, 'executionTimeLimitInMilliseconds' => 0],
-            $observe,
-        );
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->withFinishWhenNoMessages(true), ['finishWhenNoMessages' => true], $observe);
         self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->withFixedRateExpression('2000'), ['fixedRateExpression' => '2000'], $observe);
         self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->withCronExpression(null), ['cronExpression' => null], $observe);
         self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->withPolledChannelName('payments_channel'), ['polledChannelName' => 'payments_channel'], $observe);

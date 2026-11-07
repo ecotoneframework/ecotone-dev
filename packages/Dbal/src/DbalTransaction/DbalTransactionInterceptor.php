@@ -5,6 +5,7 @@ namespace Ecotone\Dbal\DbalTransaction;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\ConnectionException;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
+use Ecotone\Api\Dbal\Attribute\DbalTransaction;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\Interceptor\MethodInvocation;

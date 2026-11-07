@@ -1374,8 +1374,8 @@ two copies of a rule drift apart.
 | [docs/creating-a-module.md](./creating-a-module.md) | `AnnotationModule` scaffold, `AnnotationFinder`, `ExtensionObjectResolver`, new packages |
 
 The `.claude/skills/ecotone-*` skills teach Ecotone users the user-facing API of each area, in their own
-applications. They are not a source for any rule here: a convention for this repository lives in this file,
-`AGENTS.md` or `docs/dev-workflow.md`, and a skill never states or links to one.
+applications. They are not a source for any rule here: a convention for this repository lives in `AGENTS.md` or
+under `docs/` (this file, `dev-workflow.md`, `creating-a-module.md`), and a skill never states or links to one.
 
 - [Full documentation](https://docs.ecotone.tech)
 - `upgrade-2.0.md` — every 1.x → 2.0 behaviour change

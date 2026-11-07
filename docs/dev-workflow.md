@@ -255,7 +255,7 @@ Reproduce with the job's shape, not the default container's:
 | The job ran | Reproduce with |
 |---|---|
 | PHP 8.2, or PHP 8.2 `--prefer-lowest` | `docker compose exec app8_2 bash -lc "cd packages/<Package> && composer update [--prefer-lowest] && composer tests:ci"` — and mind that `app8_2` makes MySQL the primary database |
-| Split Testing's MySQL or SQLite pass | the same package run with `DATABASE_DSN="$DATABASE_MYSQL"`, or `DATABASE_DSN='sqlite:////tmp/ecotone_test.db'` and `SECONDARY_DATABASE_DSN='sqlite:////tmp/ecotone_test_b.db'` (`split-testing.yml` `_run_pass`) |
+| Split Testing's MySQL or SQLite pass | the same package run with both connections swapped as the job swaps them: `DATABASE_DSN="$DATABASE_MYSQL" SECONDARY_DATABASE_DSN="$DATABASE_DSN"` (MySQL primary, PostgreSQL secondary), or `DATABASE_DSN='sqlite:////tmp/ecotone_test.db' SECONDARY_DATABASE_DSN='sqlite:////tmp/ecotone_test_b.db'` (`split-testing.yml` `_run_pass`). Changing only `DATABASE_DSN` in `app` leaves both connections on MySQL |
 | Split Testing's isolated install | the package's own `composer update`, with no root `vendor/` beside it: the job checks out the tree and installs only the package, so a dependency the root install supplies is missing there |
 | a timing-sensitive test | the deadline forced down — `ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 1)` in the test — and the suite in reverse, `vendor/bin/phpunit --no-coverage --order-by=reverse` |
 

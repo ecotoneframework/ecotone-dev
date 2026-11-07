@@ -91,6 +91,9 @@ class DbalTransactionInterceptor
             }, $retryStrategy, $message, ConnectionException::class, 'Starting Database transaction has failed due to network work, retrying in order to self heal.');
             $this->logger->info('Database Transaction started', $message);
         }
+        foreach ($connections as $connection) {
+            self::enterTransactionBoundary($connection);
+        }
 
         $transactionStarted = $connections !== [];
         if ($transactionStarted) {
@@ -122,11 +125,30 @@ class DbalTransactionInterceptor
 
             throw $exception;
         } finally {
+            foreach ($connections as $connection) {
+                self::leaveTransactionBoundary($connection);
+            }
             if ($transactionStarted) {
                 $this->transactionStatusTracker->markAsOutsideTransaction();
             }
         }
 
         return $result;
+    }
+
+    private static function enterTransactionBoundary(Connection $connection): void
+    {
+        $driver = $connection->getDriver();
+        if ($driver instanceof TransactionBoundaryDriver) {
+            $driver->enterTransactionBoundary();
+        }
+    }
+
+    private static function leaveTransactionBoundary(Connection $connection): void
+    {
+        $driver = $connection->getDriver();
+        if ($driver instanceof TransactionBoundaryDriver) {
+            $driver->leaveTransactionBoundary();
+        }
     }
 }

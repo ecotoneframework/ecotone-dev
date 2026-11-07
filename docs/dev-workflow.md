@@ -250,13 +250,14 @@ gh pr checks <pr>                     # which job failed
 gh run view <run-id> --log-failed     # its output; Split Testing prints the failing pass under "::error::KO"
 ```
 
-Reproduce with the job's shape, not the default container's:
+Reproduce with the job's shape, not the default container's. The install recipes rewrite lock resolution, so like
+[§ Dependency ranges](#dependency-ranges) they were not executed while writing this file:
 
 | The job ran | Reproduce with |
 |---|---|
-| PHP 8.2, or PHP 8.2 `--prefer-lowest` | `docker compose exec app8_2 bash -lc "cd packages/<Package> && composer update [--prefer-lowest] && composer tests:ci"` — and mind that `app8_2` makes MySQL the primary database |
+| PHP 8.2, or PHP 8.2 `--prefer-lowest` | the isolated install below, run in `app8_2` with `composer update [--prefer-lowest]` — and mind that `app8_2` makes MySQL the primary database. Updating only the package's `vendor/` is not enough: the root `vendor/`, resolved for PHP 8.5, is still the one the annotation finder loads |
 | Split Testing's MySQL or SQLite pass | the same package run with both connections swapped as the job swaps them: `DATABASE_DSN="$DATABASE_MYSQL" SECONDARY_DATABASE_DSN="$DATABASE_DSN"` (MySQL primary, PostgreSQL secondary), or `DATABASE_DSN='sqlite:////tmp/ecotone_test.db' SECONDARY_DATABASE_DSN='sqlite:////tmp/ecotone_test_b.db'` (`split-testing.yml` `_run_pass`). Changing only `DATABASE_DSN` in `app` leaves both connections on MySQL |
-| Split Testing's isolated install | the package's own `composer update`, with no root `vendor/` beside it: the job checks out the tree and installs only the package, so a dependency the root install supplies is missing there |
+| Split Testing's isolated install | the job has no root `vendor/`, so the annotation finder walks up from the symlinked `packages/Ecotone` to the first `vendor/autoload.php` it finds, `packages/Ecotone/vendor`. Locally: move the root `vendor/` aside, `composer update` in `packages/Ecotone` and in the package, run its `composer tests:ci`, then delete both package `vendor/`s and move the root one back. For the package's own `vendor/` alone, set its path repositories to `"symlink": false` instead, reinstall, and `git checkout` its `composer.json` afterwards |
 | a timing-sensitive test | the deadline forced down — `ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 1)` in the test — and the suite in reverse, `vendor/bin/phpunit --no-coverage --order-by=reverse` |
 
 An install or infrastructure failure — a dependency download, a service that was not ready, a step that raced

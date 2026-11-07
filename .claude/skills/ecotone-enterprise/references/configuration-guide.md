@@ -53,7 +53,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 
 $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
     [OrderFulfillmentOrchestrator::class],
-    licenceKey: $_ENV['ECOTONE_LICENCE_KEY'],
+    licenceKey: getenv('ECOTONE_LICENCE_KEY') ?: null,
 );
 ```
 

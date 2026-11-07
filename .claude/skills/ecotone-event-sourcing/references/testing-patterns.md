@@ -142,7 +142,7 @@ public function test_apply_method_receives_revision_header(): void
 {
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         [Person::class],
-        licenceKey: $_ENV['ECOTONE_LICENCE_KEY'],
+        licenceKey: getenv('ECOTONE_LICENCE_KEY') ?: null,
     );
 
     $ecotone->sendCommand(new RegisterPerson('person-1', 'premium'));

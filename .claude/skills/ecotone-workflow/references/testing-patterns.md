@@ -217,7 +217,7 @@ public function test_orchestrator_executes_steps_in_order(): void
         [AuthorizationOrchestrator::class],
         [$orchestrator = new AuthorizationOrchestrator()],
         enabledModules: [ModulePackageList::CORE_PACKAGE],
-        licenceKey: $_ENV['ECOTONE_LICENCE_KEY'],
+        licenceKey: getenv('ECOTONE_LICENCE_KEY') ?: null,
     );
 
     $result = $ecotone->sendDirectToChannel('start.authorization', 'test-data');
@@ -235,7 +235,7 @@ public function test_orchestrator_via_business_interface(): void
         [AuthorizationOrchestrator::class, AuthorizationProcess::class],
         [new AuthorizationOrchestrator()],
         enabledModules: [ModulePackageList::CORE_PACKAGE],
-        licenceKey: $_ENV['ECOTONE_LICENCE_KEY'],
+        licenceKey: getenv('ECOTONE_LICENCE_KEY') ?: null,
     );
 
     /** @var AuthorizationProcess $gateway */
@@ -258,7 +258,7 @@ public function test_async_orchestrator(): void
         [$service = new AsyncWorkflow()],
         extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
         enabledModules: [ModulePackageList::CORE_PACKAGE],
-        licenceKey: $_ENV['ECOTONE_LICENCE_KEY'],
+        licenceKey: getenv('ECOTONE_LICENCE_KEY') ?: null,
     );
 
     $ecotone->sendDirectToChannel('async.workflow', []);

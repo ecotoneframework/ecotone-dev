@@ -19,8 +19,8 @@ use Ecotone\Dbal\MultiTenant\Pulse\PulseSnapshotRequest;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
+use Ecotone\Modelling\Config\DatabaseTransaction\CommandsWithoutDatabaseTransaction;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
-use Ecotone\Modelling\Config\MessageBusChannel;
 use Exception;
 use Interop\Queue\ConnectionFactory;
 use Throwable;
@@ -38,16 +38,14 @@ class DbalTransactionInterceptor
     /**
      * @param array<string, DbalConnectionFactory|ManagerRegistryConnectionFactory> $connectionFactories
      * @param string[] $disableTransactionOnAsynchronousEndpoints
-     * @param string[] $commandRoutingKeysWithoutTransaction
-     * @param string[] $commandClassesWithoutTransaction
      */
-    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private EcotoneClockInterface $clock, private array $commandRoutingKeysWithoutTransaction = [], private array $commandClassesWithoutTransaction = [])
+    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private EcotoneClockInterface $clock, private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction)
     {
     }
 
     public function transactional(MethodInvocation $methodInvocation, Message $message, ?DbalTransaction $DbalTransaction, ?PollingMetadata $pollingMetadata, ?WithoutDatabaseTransaction $withoutDatabaseTransaction = null)
     {
-        if ($withoutDatabaseTransaction !== null || $this->isRoutedToHandlerWithoutTransaction($message)) {
+        if ($withoutDatabaseTransaction !== null || $this->commandsWithoutDatabaseTransaction->isRoutedToHandlerWithoutTransaction($message)) {
             return $methodInvocation->proceed();
         }
 
@@ -136,33 +134,5 @@ class DbalTransactionInterceptor
         }
 
         return $result;
-    }
-
-    private function isRoutedToHandlerWithoutTransaction(Message $message): bool
-    {
-        if ($message->getHeaders()->containsKey(MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME)) {
-            if ($this->commandRoutingKeysWithoutTransaction === []) {
-                return false;
-            }
-
-            return in_array($message->getHeaders()->get(MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME), $this->commandRoutingKeysWithoutTransaction, true);
-        }
-
-        if ($this->commandClassesWithoutTransaction === []) {
-            return false;
-        }
-
-        $payload = $message->getPayload();
-        if (! is_object($payload)) {
-            return false;
-        }
-
-        foreach ($this->commandClassesWithoutTransaction as $commandClass) {
-            if (is_a($payload, $commandClass)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

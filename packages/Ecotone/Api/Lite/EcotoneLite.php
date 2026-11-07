@@ -135,6 +135,7 @@ final class EcotoneLite
         foreach ($bootstrapConfiguration->extensionObjects as $extensionObject) {
             if ($extensionObject instanceof TestConfiguration && $extensionObject->databaseTablesSetUpOnBootstrap) {
                 $messagingSystem->getServiceFromContainer(DatabaseTablesSetUp::class)->setUpTablesOfProvidedConnections();
+                $messagingSystem->getServiceFromContainer(DatabaseTablesSetUp::class)->initializeProjections();
             }
         }
 

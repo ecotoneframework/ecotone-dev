@@ -10,6 +10,7 @@ use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\AggregateNotFoundException;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
@@ -151,6 +152,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
             extensionObjects: array_merge($extensionObjects, $channelBuilders, [DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true)->withTransactionOnAsynchronousEndpoints(true)->withDoctrineORMRepositories(true), ]),
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             addInMemoryStateStoredRepository: false,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
     }
 }

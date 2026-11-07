@@ -533,9 +533,12 @@ final class FlowTestSupport
         return $this->configuredMessagingSystem->getServiceFromContainer($serviceName);
     }
 
-    public function setupDatabaseTables(): self
+    public function setupDatabaseTables(bool $initializeProjections = true): self
     {
         $this->getServiceFromContainer(DatabaseTablesSetUp::class)->setUpEveryTable();
+        if ($initializeProjections) {
+            $this->getServiceFromContainer(DatabaseTablesSetUp::class)->initializeProjections();
+        }
 
         return $this;
     }

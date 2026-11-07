@@ -179,7 +179,7 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             extensionObjects: [DbalConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
-            testConfiguration: $testConfiguration,
+            testConfiguration: $testConfiguration->withDefaultInstantRetries(false),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

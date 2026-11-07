@@ -6,6 +6,7 @@ namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\DbalConnection;
 use Exception;
@@ -121,6 +122,7 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
             pathToRootCatalog: __DIR__ . '/../../',
             namespaces: ['Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor'],
             environment: 'prod',
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
 
         $ecotone->sendCommandWithRouting('order.register', 'milk');
@@ -141,6 +143,7 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
             pathToRootCatalog: __DIR__ . '/../../',
             namespaces: $namespaces,
             environment: 'prod',
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
     }
 }

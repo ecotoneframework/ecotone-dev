@@ -215,6 +215,32 @@ final class ConnectionTerminatedByServerTest extends DbalMessagingTestCase
         self::assertSame([], $this->writtenOrders());
     }
 
+    public function test_a_transactional_command_after_the_server_terminated_the_idle_connection_reconnects_at_its_begin_and_is_stored_once(): void
+    {
+        $connectionFactory = $this->ownConnection();
+        $ecotone = $this->bootstrap($this->writingOrderHandler($connectionFactory, terminatingOnFirstAttempt: false), $connectionFactory, [
+            DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+        ]);
+
+        $ecotone->sendCommandWithRouting('order.record', 'tea');
+        $this->terminateServerSideOf($connectionFactory);
+        $ecotone->sendCommandWithRouting('order.record', 'milk');
+
+        self::assertSame(['tea', 'milk'], $this->writtenOrders());
+    }
+
+    public function test_a_consumed_message_after_the_server_terminated_the_idle_connection_reconnects_at_its_begin_and_is_stored_once(): void
+    {
+        $connectionFactory = $this->ownConnection();
+        $ecotone = $this->bootstrap($this->writingOrderHandler($connectionFactory, terminatingOnFirstAttempt: false), $connectionFactory);
+
+        $ecotone->sendCommandWithRouting('order.write', 'milk');
+        $this->terminateServerSideOf($connectionFactory);
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+
+        self::assertSame(['milk'], $this->writtenOrders());
+    }
+
     public function test_a_write_after_a_caught_lost_connection_without_a_transaction_reconnects_and_is_stored(): void
     {
         $connectionFactory = $this->ownConnection();
@@ -292,15 +318,17 @@ final class ConnectionTerminatedByServerTest extends DbalMessagingTestCase
         };
     }
 
-    private function writingOrderHandler(DbalConnectionFactory $connectionFactory): object
+    private function writingOrderHandler(DbalConnectionFactory $connectionFactory, bool $terminatingOnFirstAttempt = true): object
     {
         $this->getConnection()->executeStatement('DROP TABLE IF EXISTS written_orders');
         $this->getConnection()->executeStatement('CREATE TABLE written_orders (id VARCHAR(255))');
 
-        return new class ($connectionFactory->createContext()->getDbalConnection(), fn () => $this->terminateServerSideOf($connectionFactory)) {
+        $terminate = $terminatingOnFirstAttempt ? fn () => $this->terminateServerSideOf($connectionFactory) : null;
+
+        return new class ($connectionFactory->createContext()->getDbalConnection(), $terminate) {
             private int $attempts = 0;
 
-            public function __construct(private Connection $connection, private Closure $terminate)
+            public function __construct(private Connection $connection, private ?Closure $terminate)
             {
             }
 
@@ -315,7 +343,7 @@ final class ConnectionTerminatedByServerTest extends DbalMessagingTestCase
             public function record(string $order): void
             {
                 $this->attempts++;
-                if ($this->attempts === 1) {
+                if ($this->attempts === 1 && $this->terminate !== null) {
                     ($this->terminate)();
                     try {
                         $this->connection->insert('written_orders', ['id' => $order]);

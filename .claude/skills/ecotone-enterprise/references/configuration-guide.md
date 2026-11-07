@@ -57,8 +57,8 @@ $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
 );
 ```
 
-Set `ECOTONE_LICENCE_KEY` in `phpunit.xml` (`<env name="ECOTONE_LICENCE_KEY" value="..."/>`) or in the CI job's
-secrets.
+Export `ECOTONE_LICENCE_KEY` from your CI job's secrets, and locally from your shell or an untracked `.env`. Keep it
+out of a committed `phpunit.xml.dist`; an `<env>` entry belongs only in a local `phpunit.xml` that is git-ignored.
 
 ## Obtaining a Licence Key
 

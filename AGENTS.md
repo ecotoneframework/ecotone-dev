@@ -188,6 +188,11 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
   proves equal to the DBAL one makes every flow test using it suspect (conventions rule 9)
 - Run the suite of the package you modified, **one package at a time, never in parallel** — the packages share the
   compose services and a parallel run produces false failures
+- **A flaky test is a defect, and a failed check is never rerun.** A test that passes on a second run has a
+  timing assumption, an order dependency or a shared resource in it, and a rerun hides it until it fires on someone
+  else's PR. Reproduce it instead: force the timing (a 1 ms execution limit, `--order-by=reverse`, the job's engine
+  and PHP version, the per-package install Split Testing does), find the cause, fix it, push the fix. The same holds
+  for an install or infrastructure failure in CI: the workflow is code in this repository, and it gets the fix
 
 Conventions [rule 11](./docs/coding-conventions.md#11-test-shape) has a full worked example.
 [docs/dev-workflow.md](./docs/dev-workflow.md) has every command, the database DSNs, and what each package's
@@ -313,7 +318,8 @@ For a contribution targeting `main`. Work on 2.0 is merged through its own branc
 
 Run the checks in
 [docs/dev-workflow.md § Before opening a pull request](./docs/dev-workflow.md#before-opening-a-pull-request)
-first — CI is `fail-fast`, so the first failure hides everything after it.
+first — CI is `fail-fast`, so the first failure hides everything after it. A red check is reproduced and fixed, never rerun
+(Testing Guidelines above); a flaky test or a flaky install step is a defect to push a fix for.
 
 **Title and branch** use a conventional prefix, matching the commit subjects above: `feat:`, `fix:`, `refactor:`,
 `docs:`, `test:`.

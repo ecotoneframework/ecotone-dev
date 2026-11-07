@@ -97,7 +97,7 @@ class DbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
     public function establishConnection(): Connection
     {
         if (false == $this->connection) {
-            $this->connection = DriverManager::getConnection($this->config['connection'], (new Configuration())->setMiddlewares([new TransactionBoundaryMiddleware()]));
+            $this->connection = DriverManager::getConnection($this->config['connection'], (new Configuration())->setMiddlewares([new TransactionReconnectProtectionMiddleware()]));
 
             try {
                 $this->connection->getNativeConnection();

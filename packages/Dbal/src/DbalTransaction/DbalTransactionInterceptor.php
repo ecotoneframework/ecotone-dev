@@ -79,7 +79,7 @@ class DbalTransactionInterceptor
         }
 
         foreach ($connections as $connectionReferenceName => $connection) {
-            $this->refuseConnectionWithoutTransactionBoundary($connectionReferenceName, $connection);
+            $this->refuseConnectionWithoutReconnectProtection($connectionReferenceName, $connection);
         }
 
         foreach ($connections as $connection) {
@@ -142,9 +142,9 @@ class DbalTransactionInterceptor
         return $result;
     }
 
-    private function refuseConnectionWithoutTransactionBoundary(string $connectionReferenceName, Connection $connection): void
+    private function refuseConnectionWithoutReconnectProtection(string $connectionReferenceName, Connection $connection): void
     {
-        if ($this->transactionReconnectProtection !== TransactionReconnectProtection::REQUIRED || $connection->getDriver() instanceof TransactionBoundaryDriver) {
+        if ($this->transactionReconnectProtection !== TransactionReconnectProtection::REQUIRED || $connection->getDriver() instanceof TransactionReconnectProtectionDriver) {
             return;
         }
 
@@ -153,8 +153,8 @@ class DbalTransactionInterceptor
             . 'In some flows, though — for example a middleware in your codebase, or a library that retries automatically and ignores the connection failure — Doctrine DBAL may reconnect and run the following SQL statements on a new connection, as if nothing had happened. '
             . "That new connection is outside your transaction, so part of the message's data may be stored while the rest is rolled back, and stored again when the message is retried. "
             . 'Ecotone puts stability first, so it prevents this by default: once the connection is lost inside a transaction, it refuses to reconnect until the message ends, and the message is rolled back and retried as a whole. '
-            . "The database connection `{$connectionReferenceName}` was built without Ecotone's TransactionBoundaryMiddleware, so Ecotone cannot provide that protection for it. "
-            . 'In your setup, add the middleware where the connection is built, as its last middleware: (new Doctrine\\DBAL\\Configuration())->setMiddlewares([..., new Ecotone\\Api\\Dbal\\TransactionBoundaryMiddleware()]). '
+            . "The database connection `{$connectionReferenceName}` was built without Ecotone's TransactionReconnectProtectionMiddleware, so Ecotone cannot provide that protection for it. "
+            . 'In your setup, add the middleware where the connection is built, as its last middleware: (new Doctrine\\DBAL\\Configuration())->setMiddlewares([..., new Ecotone\\Api\\Dbal\\TransactionReconnectProtectionMiddleware()]). '
             . 'To allow the reconnect instead, turn the protection off for connections built without the middleware with DbalConfiguration::createWithDefaults()->withTransactionReconnectProtection(TransactionReconnectProtection::WHEN_AVAILABLE) (Ecotone\\Api\\Dbal\\ExtensionObject\\TransactionReconnectProtection), or everywhere with ->withTransactionReconnectProtection(TransactionReconnectProtection::IGNORE). '
             . 'Or run the handler without a database transaction: #[WithoutDatabaseTransaction] (Ecotone\\Api\\Attribute\\WithoutDatabaseTransaction), or ->withTransactionOnCommandBus(false), ->withTransactionOnAsynchronousEndpoints(false) or ->withTransactionOnConsoleCommands(false).',
         );
@@ -163,7 +163,7 @@ class DbalTransactionInterceptor
     private function enterTransactionBoundary(Connection $connection): void
     {
         $driver = $connection->getDriver();
-        if ($this->transactionReconnectProtection !== TransactionReconnectProtection::IGNORE && $driver instanceof TransactionBoundaryDriver) {
+        if ($this->transactionReconnectProtection !== TransactionReconnectProtection::IGNORE && $driver instanceof TransactionReconnectProtectionDriver) {
             $driver->enterTransactionBoundary();
         }
     }
@@ -171,7 +171,7 @@ class DbalTransactionInterceptor
     private static function leaveTransactionBoundary(Connection $connection): void
     {
         $driver = $connection->getDriver();
-        if ($driver instanceof TransactionBoundaryDriver) {
+        if ($driver instanceof TransactionReconnectProtectionDriver) {
             $driver->leaveTransactionBoundary();
         }
     }

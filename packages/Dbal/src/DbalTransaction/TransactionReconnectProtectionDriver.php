@@ -12,7 +12,7 @@ use Ecotone\Api\Messaging\DatabaseTransactionLost;
 /**
  * licence Apache-2.0
  */
-final class TransactionBoundaryDriver extends AbstractDriverMiddleware
+final class TransactionReconnectProtectionDriver extends AbstractDriverMiddleware
 {
     private bool $insideTransactionBoundary = false;
 
@@ -38,7 +38,7 @@ final class TransactionBoundaryDriver extends AbstractDriverMiddleware
     public function leaveTransactionBoundary(): void
     {
         $this->insideTransactionBoundary = false;
-        if ($this->driver instanceof TransactionBoundaryAwareDriver) {
+        if ($this->driver instanceof TransactionReconnectProtectionAwareDriver) {
             $this->driver->leaveTransactionBoundary();
         }
     }

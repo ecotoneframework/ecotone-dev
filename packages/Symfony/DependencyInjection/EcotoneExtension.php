@@ -3,7 +3,7 @@
 namespace Ecotone\SymfonyBundle\DependencyInjection;
 
 use Ecotone\Api\Console\ConsoleWriter;
-use Ecotone\Api\Dbal\TransactionBoundaryMiddleware;
+use Ecotone\Api\Dbal\TransactionReconnectProtectionMiddleware;
 use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
@@ -73,8 +73,8 @@ class EcotoneExtension extends Extension
                 true,
             ]);
 
-        if (class_exists(TransactionBoundaryMiddleware::class)) {
-            $container->register(TransactionBoundaryMiddleware::class, TransactionBoundaryMiddleware::class)
+        if (class_exists(TransactionReconnectProtectionMiddleware::class)) {
+            $container->register(TransactionReconnectProtectionMiddleware::class, TransactionReconnectProtectionMiddleware::class)
                 ->addTag('doctrine.middleware', ['priority' => PHP_INT_MIN]);
         }
 

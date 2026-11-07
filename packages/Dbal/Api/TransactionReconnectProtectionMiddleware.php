@@ -6,15 +6,15 @@ namespace Ecotone\Api\Dbal;
 
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\Middleware;
-use Ecotone\Dbal\DbalTransaction\TransactionBoundaryDriver;
+use Ecotone\Dbal\DbalTransaction\TransactionReconnectProtectionDriver;
 
 /**
  * licence Apache-2.0
  */
-final class TransactionBoundaryMiddleware implements Middleware
+final class TransactionReconnectProtectionMiddleware implements Middleware
 {
     public function wrap(Driver $driver): Driver
     {
-        return new TransactionBoundaryDriver($driver);
+        return new TransactionReconnectProtectionDriver($driver);
     }
 }

@@ -2844,7 +2844,7 @@ transaction, it refuses to reconnect until the message ends: the next statement 
 retries a transactional command bus and asynchronous endpoint have by default, or by the consumer's redelivery. A
 connection that died while idle, before the message, is still reconnected when Ecotone begins its transaction.
 
-The protection needs `Ecotone\Api\Dbal\TransactionBoundaryMiddleware` on the Doctrine connection. Ecotone adds it to
+The protection needs `Ecotone\Api\Dbal\TransactionReconnectProtectionMiddleware` on the Doctrine connection. Ecotone adds it to
 every connection it builds — a `DbalConnectionFactory` from a DSN or connection parameters, a
 `LaravelConnectionReference`, a `TempestConnectionReference` — and the Symfony bundle registers it on every DoctrineBundle
 connection. A connection the application builds itself and hands to Ecotone (`DbalConnection::create($connection)`, a
@@ -2866,9 +2866,9 @@ For a Doctrine connection you build yourself, add the middleware where you build
 ```php
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\DriverManager;
-use Ecotone\Api\Dbal\TransactionBoundaryMiddleware;
+use Ecotone\Api\Dbal\TransactionReconnectProtectionMiddleware;
 
-$connection = DriverManager::getConnection($params, (new Configuration())->setMiddlewares([new TransactionBoundaryMiddleware()]));
+$connection = DriverManager::getConnection($params, (new Configuration())->setMiddlewares([new TransactionReconnectProtectionMiddleware()]));
 ```
 
 To keep Doctrine DBAL's reconnect instead, choose

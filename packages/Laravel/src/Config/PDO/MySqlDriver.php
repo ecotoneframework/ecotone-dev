@@ -3,7 +3,7 @@
 namespace Ecotone\Laravel\Config\PDO;
 
 use Doctrine\DBAL\Driver\AbstractMySQLDriver;
-use Ecotone\Dbal\DbalTransaction\TransactionBoundaryAwareDriver;
+use Ecotone\Dbal\DbalTransaction\TransactionReconnectProtectionAwareDriver;
 use Ecotone\Laravel\Config\PDO\Concerns\ConnectsToDatabase;
 
 /**
@@ -20,7 +20,7 @@ use Ecotone\Laravel\Config\PDO\Concerns\ConnectsToDatabase;
 /**
  * licence Apache-2.0
  */
-class MySqlDriver extends AbstractMySQLDriver implements TransactionBoundaryAwareDriver
+class MySqlDriver extends AbstractMySQLDriver implements TransactionReconnectProtectionAwareDriver
 {
     use ConnectsToDatabase;
 

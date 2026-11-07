@@ -7,7 +7,7 @@ namespace Ecotone\Dbal\DbalTransaction;
 /**
  * licence Apache-2.0
  */
-interface TransactionBoundaryAwareDriver
+interface TransactionReconnectProtectionAwareDriver
 {
     public function leaveTransactionBoundary(): void;
 }

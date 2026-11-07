@@ -6,14 +6,14 @@ use Doctrine\DBAL\Driver\AbstractSQLServerDriver;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
 use Doctrine\DBAL\Driver\Connection as DriverConnection;
 use Doctrine\DBAL\Driver\PDO\Exception;
-use Ecotone\Dbal\DbalTransaction\TransactionBoundaryAwareDriver;
+use Ecotone\Dbal\DbalTransaction\TransactionReconnectProtectionAwareDriver;
 use Illuminate\Support\Facades\DB;
 use PDOException;
 
 /**
  * licence MIT
  */
-class SqlServerDriver extends AbstractSQLServerDriver implements TransactionBoundaryAwareDriver
+class SqlServerDriver extends AbstractSQLServerDriver implements TransactionReconnectProtectionAwareDriver
 {
     private ?Connection $connection = null;
 

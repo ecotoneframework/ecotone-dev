@@ -8,7 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
 use Ecotone\Api\Tempest\TempestConnectionReference;
 use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\DbalTransaction\TransactionBoundaryDriver;
+use Ecotone\Dbal\DbalTransaction\TransactionReconnectProtectionDriver;
 use Ecotone\Tempest\Config\PDO\MySqlDriver;
 use Ecotone\Tempest\Config\PDO\PostgresDriver;
 use Ecotone\Tempest\Config\PDO\SQLiteDriver;
@@ -48,7 +48,7 @@ final class TempestConnectionResolver
         }
 
         $databaseConfig = $container->get(DatabaseConfig::class, tag: $configTag);
-        $doctrineConnection = new Connection([], new TransactionBoundaryDriver(self::driverForDialect($databaseConfig->dialect, $configTag)));
+        $doctrineConnection = new Connection([], new TransactionReconnectProtectionDriver(self::driverForDialect($databaseConfig->dialect, $configTag)));
 
         return DbalConnection::create($doctrineConnection);
     }
@@ -59,7 +59,7 @@ final class TempestConnectionResolver
         // Tempest's default Connection singleton on each DBAL call. Combined with
         // TempestTenantDatabaseSwitcher closing the Doctrine connection on switch,
         // the DbalTransactionInterceptor transparently follows tenant connection promotions.
-        $doctrineConnection = new Connection([], new TransactionBoundaryDriver(new TempestDynamicDriver()));
+        $doctrineConnection = new Connection([], new TransactionReconnectProtectionDriver(new TempestDynamicDriver()));
 
         return DbalConnection::create($doctrineConnection);
     }

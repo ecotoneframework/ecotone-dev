@@ -8,7 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
 use Ecotone\Api\Laravel\LaravelConnectionReference;
 use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\DbalTransaction\TransactionBoundaryDriver;
+use Ecotone\Dbal\DbalTransaction\TransactionReconnectProtectionDriver;
 use Illuminate\Database\Connection as LaravelConnection;
 use Illuminate\Support\Facades\DB;
 use Interop\Queue\ConnectionFactory;
@@ -27,7 +27,7 @@ final class LaravelConnectionResolver
             'dbname' => $connection->getDatabaseName(),
             'driver' => $driver->getName(),
             'serverVersion' => $connection->getConfig('server_version'),
-        ]), new TransactionBoundaryDriver($driver));
+        ]), new TransactionReconnectProtectionDriver($driver));
 
         return DbalConnection::create($doctrineConnection);
     }

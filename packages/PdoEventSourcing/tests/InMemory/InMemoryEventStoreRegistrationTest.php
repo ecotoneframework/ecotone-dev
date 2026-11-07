@@ -52,7 +52,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
         ]);
 
         // When running the polling projection (it reads from the stream source)
-        $ecotone->run('test_projection_poller', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('test_projection_poller', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         // Then the projection should have consumed events from InMemoryEventStore
         $this->assertEquals(2, $projection->callCount, 'Event handler should have been called 2 times');

@@ -92,7 +92,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone->resetProjection($projection::NAME)
             ->triggerProjection($projection::NAME);
 
-        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertEquals([
             ['ticket_id' => '123', 'ticket_type' => 'alert'],
@@ -119,10 +119,10 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new RegisterTicket('6', 'Maik', 'info'));
         $ecotone->sendCommand(new RegisterTicket('7', 'Jack', 'warning'));
 
-        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 7));
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
         $ecotone->resetProjection($projection::NAME)
             ->triggerProjection($projection::NAME);
-        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 7));
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertEquals([
             ['ticket_id' => '1', 'ticket_type' => 'alert'],
@@ -198,7 +198,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new RegisterTicket('1', 'Marcus', 'alert'));
         $ecotone->sendCommand(new RegisterTicket('2', 'Andrew', 'alert'));
 
-        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
         $ecotone->deleteProjection($projection::NAME);
 
         self::assertFalse(
@@ -215,7 +215,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         );
 
         $ecotone->triggerProjection($projection::NAME);
-        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertEquals(
             [

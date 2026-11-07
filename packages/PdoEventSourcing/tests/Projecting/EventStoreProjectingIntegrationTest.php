@@ -119,7 +119,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         self::assertSame(0, $ticketsCount);
 
-        $ticketsCount = $ecotone->run($projection::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup())
+        $ticketsCount = $ecotone->run($projection::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000))
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(1, $ticketsCount);

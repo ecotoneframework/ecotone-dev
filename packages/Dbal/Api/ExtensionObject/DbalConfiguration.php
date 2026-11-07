@@ -66,7 +66,8 @@ final class DbalConfiguration
             ->withDeadLetter(false)
             ->withClearAndFlushObjectManagerOnAsynchronousEndpoints(false)
             ->withClearAndFlushObjectManagerOnCommandBus(false)
-            ->withClearAndFlushObjectManagerOnProjectionBatch(false);
+            ->withClearAndFlushObjectManagerOnProjectionBatch(false)
+            ->withTransactionReconnectProtection(TransactionReconnectProtection::WHEN_AVAILABLE);
     }
 
     public function getDeduplicationConnectionReference(): string

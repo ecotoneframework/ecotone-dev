@@ -2857,6 +2857,9 @@ manager registry outside Symfony) is refused before its first transaction, with 
 | `WHEN_AVAILABLE` | protected | may reconnect inside the transaction, as before |
 | `IGNORE` | may reconnect inside the transaction, as before | may reconnect inside the transaction, as before |
 
+`DbalConfiguration::createForTesting()` uses `WHEN_AVAILABLE`, so a test can hand Ecotone a connection it built without
+the middleware.
+
 **How to adapt:** nothing on Laravel, Tempest, Symfony with DoctrineBundle, or a `DbalConnectionFactory` built from a DSN.
 For a Doctrine connection you build yourself, add the middleware where you build it, as its last middleware:
 

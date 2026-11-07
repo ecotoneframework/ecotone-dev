@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration;
 
 use Closure;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
 use Doctrine\DBAL\Driver\Connection as DriverConnection;
 use Doctrine\DBAL\Driver\PDO\MySQL\Driver as MySQLDriver;
 use Doctrine\DBAL\Driver\PDO\PgSQL\Driver as PgSQLDriver;
+use Doctrine\DBAL\Exception\ConnectionLost;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\ServerVersionProvider;
@@ -172,6 +174,59 @@ final class ConnectionTerminatedByServerTest extends DbalMessagingTestCase
         self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
     }
 
+    public function test_a_write_after_a_caught_lost_connection_in_a_consumed_message_is_not_stored_outside_its_transaction(): void
+    {
+        $connectionFactory = $this->ownConnection();
+        $ecotone = $this->bootstrap($this->writingOrderHandler($connectionFactory), $connectionFactory);
+
+        $ecotone->sendCommandWithRouting('order.write', 'milk');
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+
+        self::assertSame(['milk'], $this->writtenOrders());
+    }
+
+    public function test_a_write_after_a_caught_lost_connection_in_a_transactional_command_is_not_stored_outside_its_transaction(): void
+    {
+        $connectionFactory = $this->ownConnection();
+        $ecotone = $this->bootstrap($this->writingOrderHandler($connectionFactory), $connectionFactory, [
+            DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+        ]);
+
+        $ecotone->sendCommandWithRouting('order.record', 'milk');
+
+        self::assertSame(['milk'], $this->writtenOrders());
+    }
+
+    public function test_a_reconnect_inside_a_transactional_command_without_retries_fails_naming_the_way_out(): void
+    {
+        $connectionFactory = $this->ownConnection();
+        $ecotone = $this->bootstrap($this->writingOrderHandler($connectionFactory), $connectionFactory, [
+            DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+            InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false),
+        ]);
+
+        try {
+            $ecotone->sendCommandWithRouting('order.record', 'milk');
+            self::fail('The reconnect inside the transaction was not refused');
+        } catch (DatabaseTransactionLost $exception) {
+            self::assertSame('The database connection was lost while a message was being handled inside a database transaction, and reconnecting is refused until that message ends. A new connection would run every following statement outside the transaction: it would be stored even though the transaction rolls back, and stored again when the message is retried. The transaction rolls back and the command or consumed message is retried as a whole: the consumer redelivers an asynchronous endpoint\'s message, and the command bus instant retries, on by default when DbalConfiguration runs the command bus in a transaction, retry a command. If they were turned off, turn them back on with InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true), and if they list their retry exceptions, include DatabaseTransactionLost::class. Do not catch the lost-connection failure inside the handler and carry on: let it reach Ecotone, so the whole message is retried. A console command run in a transaction (DbalConfiguration::withTransactionOnConsoleCommands) is not retried by Ecotone: run the command again. To let the handler reconnect and continue instead, run it without a database transaction: mark the handler with #[WithoutDatabaseTransaction] (Ecotone\\Api\\Attribute\\WithoutDatabaseTransaction), or turn the transaction off with DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false), ->withTransactionOnAsynchronousEndpoints(false) or ->withTransactionOnConsoleCommands(false).', $exception->getMessage());
+        }
+
+        self::assertSame([], $this->writtenOrders());
+    }
+
+    public function test_a_write_after_a_caught_lost_connection_without_a_transaction_reconnects_and_is_stored(): void
+    {
+        $connectionFactory = $this->ownConnection();
+        $ecotone = $this->bootstrap($this->writingOrderHandler($connectionFactory), $connectionFactory, [
+            DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false),
+        ]);
+
+        $ecotone->sendCommandWithRouting('order.record', 'milk');
+
+        self::assertSame(['milk'], $this->writtenOrders());
+    }
+
     private static function untilOneMessageIsHandled(): ExecutionPollingMetadata
     {
         return ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000, stopOnError: false);
@@ -235,6 +290,46 @@ final class ConnectionTerminatedByServerTest extends DbalMessagingTestCase
                 return $this->shipped;
             }
         };
+    }
+
+    private function writingOrderHandler(DbalConnectionFactory $connectionFactory): object
+    {
+        $this->getConnection()->executeStatement('DROP TABLE IF EXISTS written_orders');
+        $this->getConnection()->executeStatement('CREATE TABLE written_orders (id VARCHAR(255))');
+
+        return new class ($connectionFactory->createContext()->getDbalConnection(), fn () => $this->terminateServerSideOf($connectionFactory)) {
+            private int $attempts = 0;
+
+            public function __construct(private Connection $connection, private Closure $terminate)
+            {
+            }
+
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.write', endpointId: 'writeOrder')]
+            public function write(string $order): void
+            {
+                $this->record($order);
+            }
+
+            #[CommandHandler('order.record')]
+            public function record(string $order): void
+            {
+                $this->attempts++;
+                if ($this->attempts === 1) {
+                    ($this->terminate)();
+                    try {
+                        $this->connection->insert('written_orders', ['id' => $order]);
+                    } catch (ConnectionLost) {
+                    }
+                }
+                $this->connection->insert('written_orders', ['id' => $order]);
+            }
+        };
+    }
+
+    private function writtenOrders(): array
+    {
+        return $this->getConnection()->fetchFirstColumn('SELECT id FROM written_orders');
     }
 
     private function bootstrap(object $handler, DbalConnectionFactory $connectionFactory, array $extensionObjects = []): FlowTestSupport

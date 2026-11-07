@@ -291,6 +291,18 @@ final class ConnectionTerminatedByServerTest extends DbalMessagingTestCase
         self::assertSame(['milk'], $this->writtenOrders());
     }
 
+    public function test_a_testing_configuration_runs_the_transaction_on_a_connection_built_without_the_transaction_boundary_middleware(): void
+    {
+        $connectionFactory = $this->connectionBuiltByTheApplication([]);
+        $ecotone = $this->bootstrap($this->writingOrderHandler($connectionFactory, terminatingOnFirstAttempt: false), $connectionFactory, [
+            DbalConfiguration::createForTesting()->withTransactionOnCommandBus(true),
+        ]);
+
+        $ecotone->sendCommandWithRouting('order.record', 'milk');
+
+        self::assertSame(['milk'], $this->writtenOrders());
+    }
+
     public function test_an_ignored_transaction_reconnect_protection_lets_a_write_after_a_caught_lost_connection_reconnect_outside_the_transaction(): void
     {
         $connectionFactory = $this->ownConnection();

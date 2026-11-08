@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Pulse;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\DecisionBoundary;
+use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Orchestrator;
 use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -243,6 +249,42 @@ final class PulseFeaturesTest extends TestCase
         self::assertFalse($features['Orchestrators']['enabled']);
     }
 
+    public function test_without_its_configuration_the_dynamic_consistency_boundary_is_reported_off_with_the_call_that_enables_it(): void
+    {
+        $boundary = $this->coreFeatures($this->orders())['Dynamic consistency boundary'];
+
+        self::assertFalse($boundary['enabled']);
+        self::assertSame([], $boundary['settings']);
+        self::assertStringContainsString('#[EventTag] is ignored', $boundary['hint']);
+        self::assertSame('DynamicConsistencyBoundaryConfiguration::createWithDefaults()', $boundary['configuration']);
+    }
+
+    public function test_an_enabled_dynamic_consistency_boundary_reports_its_tags_snapshots_and_the_decisions_taken_in_it(): void
+    {
+        $handlers = new class () {
+            #[DecisionBoundary]
+            public static function boundary(PulseEnrollStudent $command): EventCriteria
+            {
+                return EventCriteria::tag('course', $command->courseId);
+            }
+
+            #[CommandHandler]
+            public function enroll(PulseEnrollStudent $command, PulseCourseSeats $seats): array
+            {
+                return [new PulseStudentEnrolled($command->courseId)];
+            }
+        };
+
+        $boundary = $this->coreFeatures($handlers, [
+            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant'])->withSnapshotsFor(PulseCourseSeats::class, thresholdTrigger: 50),
+        ], [PulseCourseSeats::class, PulseStudentEnrolled::class])['Dynamic consistency boundary'];
+
+        self::assertTrue($boundary['enabled']);
+        self::assertSame(['Filter-only tags' => 'tenant', 'Snapshotted decision models' => 'PulseCourseSeats every 50 events', 'Aggregates without a counter tag' => 'none'], $boundary['settings']);
+        self::assertSame(['decision model PulseCourseSeats', 'decision boundary class@anonymous::boundary'], $boundary['handlers']);
+        self::assertStringContainsString('appended with the tags of their #[EventTag] properties', $boundary['hint']);
+    }
+
     /**
      * @param object[] $extensionObjects
      * @param string[] $classesToResolve
@@ -323,4 +365,27 @@ interface PulseInstantRetryCommandBus extends CommandBus
 #[DelayedRetry(initialDelayInMilliseconds: 100, maxRetries: 1, deadLetterChannel: 'order_dead_letters')]
 interface PulseDelayedRetryCommandBus extends CommandBus
 {
+}
+
+final readonly class PulseEnrollStudent
+{
+    public function __construct(public string $courseId, public string $tenantId = 'acme')
+    {
+    }
+}
+
+final readonly class PulseStudentEnrolled
+{
+    public function __construct(#[EventTag('course')] public string $courseId, #[EventTag('tenant')] public string $tenantId = 'acme')
+    {
+    }
+}
+
+#[DecisionModel]
+final class PulseCourseSeats
+{
+    #[Apply]
+    public function enrolled(PulseStudentEnrolled $event): void
+    {
+    }
 }

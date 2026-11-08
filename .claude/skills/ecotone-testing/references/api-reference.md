@@ -35,12 +35,16 @@ messaging system rather than `FlowTestSupport`.
 public static function bootstrap(
     array                    $classesToResolve = [],
     ContainerInterface|array $containerOrAvailableServices = [],
-    ?ServiceConfiguration    $configuration = null,
+    array                    $extensionObjects = [],
+    ?array                   $enabledModules = null,
     array                    $configurationVariables = [],
     bool                     $useCachedVersion = false,
     ?string                  $pathToRootCatalog = null,
     bool                     $allowGatewaysToBeRegisteredInContainer = false,
     ?string                  $licenceKey = null,
+    array                    $namespaces = [],
+    string                   $environment = 'dev',
+    ?string                  $cacheDirectoryPath = null,
 ): ConfiguredMessagingSystem
 ```
 
@@ -132,7 +136,7 @@ bootstrap.
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `getGateway(string $gatewayClass)` | `object` | Get gateway instance |
-| `getServiceFromContainer(string $serviceId)` | `object` | Get service from container. Not for reaching Ecotone's own internals in a test -- use `getGateway()`; see `docs/coding-conventions.md` rule 10 |
+| `getServiceFromContainer(string $serviceId)` | `object` | Get one of your own services from the container. Ecotone's buses, gateways and business interfaces are reached with `getGateway()` |
 | `getCommandBus()` / `getEventBus()` / `getQueryBus()` | `CommandBus` / `EventBus` / `QueryBus` | Get the bus gateway directly |
 | `runConsoleCommand(string $name, array $parameters = [])` | `mixed` | Run a registered console command |
-| `setupDatabaseTables()` | `self` | Create every table the test uses, on every connection that holds one -- the flow-test bootstrap already calls it unless `TestConfiguration::withDatabaseTablesSetUpOnBootstrap(false)`; nothing creates a table while a message is handled (see `docs/coding-conventions.md` rule 16) |
+| `setupDatabaseTables()` | `self` | Create every table the test uses, on every connection that holds one -- the flow-test bootstrap already calls it unless `TestConfiguration::withDatabaseTablesSetUpOnBootstrap(false)`; nothing creates a table while a message is handled, so a test that turns the bootstrap setup off calls it before sending |

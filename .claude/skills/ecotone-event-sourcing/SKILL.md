@@ -267,8 +267,8 @@ final class OrderService {
 - **All of DCB is Enterprise**: `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`, `EventStore::loadByCriteria()`,
   `EventCriteria`, `AppendCondition`. An `#[EventTag]`/`#[DecisionModel]` without an Enterprise licence is a
   bootstrap `LicensingException`. Test with `EcotoneLite::bootstrapFlowTesting(..., licenceKey:
-  \Ecotone\Test\LicenceTesting::VALID_LICENCE)` -- `InMemoryEventStore` implements the full conditional-append
-  contract, no database needed.
+  getenv('ECOTONE_LICENCE_KEY') ?: null)` -- the in-memory event store a flow test uses when it is given no connection
+  implements the full conditional-append contract, no database needed.
 - **On PostgreSQL/MySQL/MariaDB/SQLite** (`PdoEventSourcing`), two tables carry this: `ecotone_tagged_events` (the
   tag index) and `ecotone_tag_versions` (one counter per tag value -- the guarded `UPDATE ... WHERE version =
   :captured` is the entire locking mechanism, no advisory locks). They register under their own

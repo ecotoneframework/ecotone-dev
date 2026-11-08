@@ -120,7 +120,7 @@ $ecotone->deleteProjection('name');      // Cleanup
 
 ### Rebuild vs Backfill
 
-`triggerProjection()` calls `executeAll()` -- it reads directly from the stream source and processes pending events synchronously, immediately, in the same call. `resetProjection()` calls `executeAllWithReset()` (delete + init + `executeAll()`), so it replays full history, not just what's pending.
+`triggerProjection()` reads directly from the stream source and processes pending events synchronously, immediately, in the same call. `resetProjection()` deletes, initializes and then triggers the projection, so it replays full history, not just what's pending.
 
 To test rebuild behavior (emissions suppressed), run the `ecotone:projection:rebuild` console command:
 
@@ -138,13 +138,11 @@ There is no framework-invoked "upcaster" -- test that the `#[Apply]` reads the i
 one, bootstrap accepts the class but `sendCommand()` throws `Ecotone\Messaging\Support\InvalidArgumentException`.
 
 ```php
-use Ecotone\Test\LicenceTesting;
-
 public function test_apply_method_receives_revision_header(): void
 {
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         [Person::class],
-        licenceKey: LicenceTesting::VALID_LICENCE,
+        licenceKey: getenv('ECOTONE_LICENCE_KEY') ?: null,
     );
 
     $ecotone->sendCommand(new RegisterPerson('person-1', 'premium'));

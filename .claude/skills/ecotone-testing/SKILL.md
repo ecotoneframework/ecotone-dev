@@ -208,8 +208,7 @@ public function test_with_service_dependency(): void
 | "If $x is a service rather than the message payload, mark it with #[Reference]" | First parameter without attribute is the payload | Add `#[Reference]` to the service parameter |
 | "Aggregate ... was not found ... was sent by X::y() while handling ..." | A handler reacting to another message sent the command | Seed the aggregate or register only the classes the test needs |
 | "Module not found" | Wrong `ModulePackageList` config | Check `enabledModules: [...]` lists the needed packages |
-| Database errors | Missing DSN env vars | Run inside Docker container with env vars set |
-| Lowest dependency failures | API differences between versions | Test both `--prefer-lowest` and latest |
+| Database errors | The connection handed to the test points at no reachable database | Build the `DbalConnectionFactory` from your test environment's DSN, or leave it out to run in memory |
 
 ## Key Rules
 

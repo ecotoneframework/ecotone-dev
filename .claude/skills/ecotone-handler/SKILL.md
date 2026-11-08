@@ -12,7 +12,7 @@ description: >-
 
 ## Overview
 
-Message handlers are the core building blocks in Ecotone. They process messages using PHP 8.1+ attributes. Use this skill when creating command handlers (write operations), event handlers (side effects), query handlers (read operations), or service activators (low-level message endpoints).
+Message handlers are the core building blocks in Ecotone. They process messages using PHP 8.1+ attributes. Use this skill when creating command handlers (write operations), event handlers (side effects), query handlers (read operations), or internal handlers (low-level message endpoints).
 
 ## Handler Types
 
@@ -155,8 +155,6 @@ public function placeOrder(PlaceOrder $command): void { }
 - First parameter is the message object (type-hinted)
 - `#[CommandHandler]` on aggregates: static = factory (creation), instance = action (modification)
 - Use `#[Header]` for metadata access, not message wrapping
-- Names carry the meaning; no comments or descriptive docblocks (see
-  [coding-conventions.md rule 6](../../../docs/coding-conventions.md#6-names-carry-the-meaning-no-comments-no-descriptive-docblocks))
 
 ## Enterprise Upgrade Paths
 

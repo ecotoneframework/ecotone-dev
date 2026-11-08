@@ -273,8 +273,14 @@ jobs:
           }
           export -f _run_tests _install_component _run_pass
 
+          # Installs run one at a time against the runner's one Composer cache. Composer writes a download
+          # into its cache with a plain, non-atomic copy, so a parallel install that finds the file already
+          # there reads it half-written: "not a valid zip archive". One at a time, each shared archive is
+          # downloaded once and no two installs touch the cache together.
           install_exit_code=0
-          echo "$COMPONENTS" | xargs -n1 | parallel -j +3 "_install_component {} '$COMPOSER_UP'" || install_exit_code=1
+          for dir in $COMPONENTS; do
+            _install_component "$dir" "$COMPOSER_UP" || install_exit_code=1
+          done
 
           # Determine if database passes are needed (direct or transitive doctrine/dbal).
           # Split passes are listed first, so the longest tasks start first.

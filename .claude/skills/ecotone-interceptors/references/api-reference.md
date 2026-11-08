@@ -28,8 +28,8 @@ class Before
 Source: `Ecotone\Api\Attribute\After`
 
 Runs after the handler completes. Receives the handler's return value as first parameter. **Only runs when the
-handler actually returns a value** -- verified against `EcotoneLite`: on a `void` handler, `#[After]` (with or
-without `changeHeaders`) never executes, while `#[Before]` on the same pointcut still does.
+handler actually returns a value**: on a `void` handler, `#[After]` (with or without `changeHeaders`) never
+executes, while `#[Before]` on the same pointcut still does.
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD)]
@@ -167,16 +167,3 @@ Lower value = runs earlier (wraps the handler further out).
 | AND | `A::class . '&&' . B::class` | Both must match |
 | OR | `A::class . '\|\|' . B::class` | Either matches |
 | NOT | `'not(' . A::class . ')'` | Excludes matching |
-
-## Pointcut Expression Internal Classes
-
-Source: `Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut\`
-
-| Class | Purpose |
-|-------|---------|
-| `PointcutAttributeExpression` | Match by attribute on the handler method |
-| `PointcutInterfaceExpression` | Match by class/interface of the handler |
-| `PointcutMethodExpression` | Match by specific method name |
-| `PointcutOrExpression` | Logical OR of two expressions |
-| `PointcutAndExpression` | Logical AND of two expressions |
-| `PointcutNotExpression` | Logical NOT of an expression |

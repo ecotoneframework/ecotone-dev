@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
@@ -143,6 +144,26 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         self::assertSame($storage === 'dbal' ? 'database, connection ' . DbalConnectionFactory::class : 'in memory', $features['Event store']['settings']['Storage']);
         self::assertSame('1000', $features['Event store']['settings']['Load batch size']);
         self::assertStringContainsString('read back 1000 events at a time', $features['Event store']['hint']);
+    }
+
+    public function test_the_event_store_feature_reports_the_aggregates_it_snapshots_and_how_often(): void
+    {
+        $this->bootstrap('dbal', [], extensionObjects: [EventSourcingConfiguration::createWithDefaults()->withSnapshotsFor(Ticket::class, thresholdTrigger: 50)]);
+
+        $eventStore = array_column(array_column($this->requestSnapshot()['packages'], 'features', 'name')['eventSourcing'], null, 'name')['Event store'];
+
+        self::assertSame('Ticket every 50 events, in DocumentStore', $eventStore['settings']['Snapshots']);
+        self::assertStringContainsString('Ticket is loaded from its latest snapshot and only the events after it, and a new snapshot is taken every 50 events.', $eventStore['hint']);
+    }
+
+    public function test_an_event_store_without_snapshots_says_every_aggregate_is_rebuilt_from_all_its_events(): void
+    {
+        $this->bootstrap('dbal', []);
+
+        $eventStore = array_column(array_column($this->requestSnapshot()['packages'], 'features', 'name')['eventSourcing'], null, 'name')['Event store'];
+
+        self::assertSame('none', $eventStore['settings']['Snapshots']);
+        self::assertStringContainsString('No aggregate is snapshotted, so each one is rebuilt from all of its events.', $eventStore['hint']);
     }
 
     #[DataProvider('storages')]

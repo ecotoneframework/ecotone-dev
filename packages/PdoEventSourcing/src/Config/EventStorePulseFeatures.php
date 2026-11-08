@@ -41,6 +41,12 @@ final class EventStorePulseFeatures
         }
 
         $storage = $configuration->isInMemory() ? 'in memory' : 'database, connection ' . $configuration->getConnectionReferenceName();
+        $snapshots = [];
+        $snapshotHints = [];
+        foreach ($configuration->getSnapshotsConfig() as $aggregateClass => $snapshot) {
+            $snapshots[] = sprintf('%s every %d events, in %s', PulseFeature::shortNameOf($aggregateClass), $snapshot['thresholdTrigger'], PulseFeature::shortNameOf($snapshot['documentStore']));
+            $snapshotHints[] = sprintf('%s is loaded from its latest snapshot and only the events after it, and a new snapshot is taken every %d events.', PulseFeature::shortNameOf($aggregateClass), $snapshot['thresholdTrigger']);
+        }
 
         return [new PulseFeature(
             package: ModulePackageList::EVENT_SOURCING_PACKAGE,
@@ -50,9 +56,10 @@ final class EventStorePulseFeatures
                 'Storage' => $storage,
                 'Default stream table' => $configuration->getDefaultEventStreamTableName(),
                 'Load batch size' => (string) $configuration->getLoadBatchSize(),
+                'Snapshots' => implode('; ', $snapshots) ?: 'none',
             ],
             handlers: [],
-            hint: sprintf('The events of event-sourced aggregates are appended to their event streams (%s, in table %s unless a stream names its own) and read back %d events at a time, when an aggregate is loaded and when a projection catches up.', $storage, $configuration->getDefaultEventStreamTableName(), $configuration->getLoadBatchSize()),
+            hint: sprintf('The events of event-sourced aggregates are appended to their event streams (%s, in table %s unless a stream names its own) and read back %d events at a time, when an aggregate is loaded and when a projection catches up.', $storage, $configuration->getDefaultEventStreamTableName(), $configuration->getLoadBatchSize()) . ' ' . ($snapshotHints === [] ? 'No aggregate is snapshotted, so each one is rebuilt from all of its events.' : implode(' ', $snapshotHints)),
             configuration: sprintf("EventSourcingConfiguration::createWithDefaults()->withLoadBatchSize(%d)->withDefaultEventStreamTableName('%s')", $configuration->getLoadBatchSize(), $configuration->getDefaultEventStreamTableName()),
         )];
     }

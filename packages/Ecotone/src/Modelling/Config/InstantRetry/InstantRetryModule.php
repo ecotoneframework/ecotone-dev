@@ -22,7 +22,6 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Modelling\Config\DatabaseTransaction\CommandsWithoutDatabaseTransaction;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
-use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 use Symfony\Component\Uid\Uuid;
 
 #[ModuleAnnotation]
@@ -32,8 +31,8 @@ use Symfony\Component\Uid\Uuid;
 final class InstantRetryModule implements AnnotationModule
 {
     /**
-     * @param list<string> $commandBusOverrides
-     * @param list<string> $endpointOverrides
+     * @param array<string, InstantRetry> $commandBusOverrides
+     * @param array<string, InstantRetry> $endpointOverrides
      */
     private function __construct(private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction, private array $commandBusOverrides, private array $endpointOverrides)
     {
@@ -46,13 +45,13 @@ final class InstantRetryModule implements AnnotationModule
     {
         $commandBusOverrides = [];
         foreach ($annotationRegistrationService->findAnnotatedClasses(InstantRetry::class) as $commandBusInterface) {
-            $commandBusOverrides[] = self::overrideOf(PulseFeature::shortNameOf($commandBusInterface), $annotationRegistrationService->getAttributeForClass($commandBusInterface, InstantRetry::class));
+            $commandBusOverrides[$commandBusInterface] = $annotationRegistrationService->getAttributeForClass($commandBusInterface, InstantRetry::class);
         }
         $endpointOverrides = [];
         foreach ($annotationRegistrationService->findAnnotatedMethods(InstantRetry::class) as $annotatedMethod) {
             $consumers = $annotatedMethod->getMethodAnnotationsWithType(MessageConsumer::class);
             if ($consumers !== []) {
-                $endpointOverrides[] = self::overrideOf($consumers[0]->getEndpointId(), $annotatedMethod->getAnnotationForMethod());
+                $endpointOverrides[$consumers[0]->getEndpointId()] = $annotatedMethod->getAnnotationForMethod();
             }
         }
 
@@ -61,11 +60,6 @@ final class InstantRetryModule implements AnnotationModule
             commandBusOverrides: $commandBusOverrides,
             endpointOverrides: $endpointOverrides,
         );
-    }
-
-    private static function overrideOf(string $target, InstantRetry $instantRetry): string
-    {
-        return sprintf('%s: %d retry times on %s', $target, $instantRetry->retryTimes, PulseFeature::exceptionsOf($instantRetry->exceptions));
     }
 
     /**
@@ -110,15 +104,7 @@ final class InstantRetryModule implements AnnotationModule
      */
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        if (! PulseFeature::isReportedFor($serviceExtensions)) {
-            return [];
-        }
-
-        return [new InstantRetryPulseFeatures(
-            configuration: ExtensionObjectResolver::resolveUnique(InstantRetryConfiguration::class, $serviceExtensions, InstantRetryConfiguration::createWithDefaults()),
-            commandBusOverrides: $this->commandBusOverrides,
-            endpointOverrides: $this->endpointOverrides,
-        )];
+        return InstantRetryPulseFeatures::reportedFor($serviceExtensions, $this->commandBusOverrides, $this->endpointOverrides);
     }
 
     public function getModulePackageName(): string

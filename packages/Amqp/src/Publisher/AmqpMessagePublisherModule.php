@@ -22,7 +22,6 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaders
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 #[ModuleAnnotation]
 /**
@@ -104,26 +103,7 @@ final class AmqpMessagePublisherModule implements AnnotationModule
      */
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        if (! PulseFeature::isReportedFor($serviceExtensions)) {
-            return [];
-        }
-
-        return [PulseFeature::messagePublishers(
-            package: ModulePackageList::AMQP_PACKAGE,
-            broker: 'RabbitMQ',
-            publishers: array_map(
-                static fn (AmqpMessagePublisherConfiguration $publisher): string => sprintf(
-                    "%s: exchange '%s'%s%s%s",
-                    PulseFeature::shortNameOf($publisher->getReferenceName()),
-                    $publisher->getExchangeName(),
-                    $publisher->getDefaultRoutingKey() === '' ? '' : sprintf(", routing key '%s'", $publisher->getDefaultRoutingKey()),
-                    $publisher->getDefaultPersistentDelivery() ? ', persistent' : '',
-                    $publisher->isBatchPublishingEnabled() ? ', batch publishing' : '',
-                ),
-                ExtensionObjectResolver::resolve(AmqpMessagePublisherConfiguration::class, $serviceExtensions),
-            ),
-            configuration: "AmqpMessagePublisherConfiguration::create(MessagePublisher::class, exchangeName: 'orders')",
-        )];
+        return AmqpMessagePublisherPulseFeatures::reportedFor($serviceExtensions);
     }
 
     public function getModulePackageName(): string

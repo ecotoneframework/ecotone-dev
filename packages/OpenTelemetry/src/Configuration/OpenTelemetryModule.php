@@ -27,7 +27,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 use Ecotone\OpenTelemetry\EcotoneForcedTraceFlush;
 use Ecotone\OpenTelemetry\OpenTelemetryTracer;
 use Ecotone\Tracing\Config\TracerReference;
@@ -48,25 +47,8 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
     {
         $tracing = ! ExtensionObjectResolver::contains(NoTracerProviderGiven::class, $serviceExtensions);
         $extensions = $tracing ? [new TracerReference(OpenTelemetryTracer::class)] : [];
-        if (! PulseFeature::isReportedFor($serviceExtensions)) {
-            return $extensions;
-        }
-        $configuration = ExtensionObjectResolver::resolveUnique(OpenTelemetryConfiguration::class, $serviceExtensions, OpenTelemetryConfiguration::createWithDefaults());
 
-        return [...$extensions, new PulseFeature(
-            package: ModulePackageList::TRACING_PACKAGE,
-            name: 'OpenTelemetry tracing',
-            enabled: $tracing,
-            settings: $tracing ? [
-                'Flush after a bus call' => PulseFeature::onOff($configuration->forceFlushOnBusExecution),
-                'Flush after an asynchronous message' => PulseFeature::onOff($configuration->forceFlushOnAsynchronousMessageHandled),
-            ] : [],
-            handlers: [],
-            hint: $tracing
-                ? 'Every message this service sends and handles becomes a span of its trace, exported through the TracerProviderInterface of the container to your collector.' . ($configuration->forceFlushOnBusExecution || $configuration->forceFlushOnAsynchronousMessageHandled ? ' Spans are flushed as soon as the work listed in the settings ends, instead of when the exporter batches them.' : ' Spans leave when the exporter batches them.')
-                : 'No TracerProviderInterface is registered in the container, so no span is exported.',
-            configuration: 'OpenTelemetryConfiguration::createWithDefaults()->withForceFlushOnBusExecution(true)->withForceFlushOnAsynchronousMessageHandled(true)',
-        )];
+        return [...$extensions, ...OpenTelemetryPulseFeatures::reportedFor($serviceExtensions, $tracing)];
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void

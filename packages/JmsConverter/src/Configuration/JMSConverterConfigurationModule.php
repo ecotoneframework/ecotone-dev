@@ -26,7 +26,6 @@ use Ecotone\Messaging\Config\ModuleDefaultSerializationMediaType;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 #[ModuleAnnotation]
 /**
@@ -147,34 +146,7 @@ final class JMSConverterConfigurationModule extends NoExternalConfigurationModul
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        if (! PulseFeature::isReportedFor($serviceExtensions)) {
-            return [new ModuleDefaultSerializationMediaType(MediaType::APPLICATION_JSON)];
-        }
-        $configuration = JMSConverterConfiguration::createWithDefaults();
-        foreach ($serviceExtensions as $serviceExtension) {
-            if ($serviceExtension instanceof JMSConverterConfiguration) {
-                $configuration = $serviceExtension;
-            }
-        }
-
-        return [new ModuleDefaultSerializationMediaType(MediaType::APPLICATION_JSON), new PulseFeature(
-            package: ModulePackageList::JMS_CONVERTER_PACKAGE,
-            name: 'JMS serialization',
-            enabled: true,
-            settings: [
-                'Naming strategy' => $configuration->namingStrategy,
-                'Null values' => $configuration->defaultNullSerialization ? 'serialized' : 'left out',
-                'Enums' => PulseFeature::onOff($configuration->enableEnumSupport),
-            ],
-            handlers: [],
-            hint: sprintf(
-                'JMS Serializer converts objects to and from JSON, which it makes the default serialization media type unless ServiceConfiguration::withDefaultSerializationMediaType names another: property names are kept %s, null values are %s and enums are %s.',
-                $configuration->namingStrategy === JMSConverterConfiguration::IDENTICAL_PROPERTY_NAMING_STRATEGY ? 'as they are' : 'converted to ' . $configuration->namingStrategy,
-                $configuration->defaultNullSerialization ? 'serialized' : 'left out',
-                $configuration->enableEnumSupport ? 'converted to their values' : 'not converted',
-            ),
-            configuration: 'JMSConverterConfiguration::createWithDefaults()->withNamingStrategy(JMSConverterConfiguration::CAMEL_CASE_PROPERTY_NAMING_STRATEGY)->withDefaultNullSerialization(false)',
-        )];
+        return [new ModuleDefaultSerializationMediaType(MediaType::APPLICATION_JSON), ...JMSConverterPulseFeatures::reportedFor($serviceExtensions)];
     }
 
     public function getModulePackageName(): string

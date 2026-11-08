@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\Config\InstantRetry;
 
+use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 /**
@@ -31,14 +33,33 @@ use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 final class InstantRetryPulseFeatures
 {
     /**
-     * @param list<string> $commandBusOverrides
-     * @param list<string> $endpointOverrides
+     * @param array<string, InstantRetry> $commandBusOverrides
+     * @param array<string, InstantRetry> $endpointOverrides
      */
     public function __construct(
         private InstantRetryConfiguration $configuration,
         private array $commandBusOverrides,
         private array $endpointOverrides,
     ) {
+    }
+
+    /**
+     * @param object[] $serviceExtensions
+     * @param array<string, InstantRetry> $commandBusOverrides
+     * @param array<string, InstantRetry> $endpointOverrides
+     * @return self[]
+     */
+    public static function reportedFor(array $serviceExtensions, array $commandBusOverrides, array $endpointOverrides): array
+    {
+        if (! PulseFeature::isReportedFor($serviceExtensions)) {
+            return [];
+        }
+
+        return [new self(
+            configuration: ExtensionObjectResolver::resolveUnique(InstantRetryConfiguration::class, $serviceExtensions, InstantRetryConfiguration::createWithDefaults()),
+            commandBusOverrides: $commandBusOverrides,
+            endpointOverrides: $endpointOverrides,
+        )];
     }
 
     /**
@@ -66,7 +87,7 @@ final class InstantRetryPulseFeatures
                 'Retried on' => $exceptions,
                 ...($this->configuration->isEnabledForAsynchronousEndpoints === null ? ['Applied' => 'by default, to endpoints running in a database transaction' . ($excluded === [] ? '' : ', except ' . implode(', ', $excluded))] : []),
             ] : [],
-            handlers: $this->endpointOverrides,
+            handlers: self::overridesOf($this->endpointOverrides),
             hint: match (true) {
                 $this->configuration->isEnabledForAsynchronousEndpoints === true => sprintf('A message an asynchronous endpoint fails on is handled once and, when that fails, tried again right away up to %d more times (%d attempts in total) on %s, before the failure is handed on to the error channel, when one is set.', $retryTimes, $retryTimes + 1, $exceptions) . $override,
                 $this->configuration->isEnabledForAsynchronousEndpoints === false => 'A message an asynchronous endpoint fails on is handed straight on to the error channel, when one is set, with no immediate second attempt.' . $override,
@@ -94,7 +115,7 @@ final class InstantRetryPulseFeatures
                 'Retried on' => $exceptions,
                 ...($this->configuration->isEnabledForCommandBus === null ? ['Applied' => 'by default, to commands handled in a database transaction'] : []),
             ] : [],
-            handlers: $this->commandBusOverrides,
+            handlers: self::overridesOf($this->commandBusOverrides),
             hint: match (true) {
                 $this->configuration->isEnabledForCommandBus === true => sprintf('A command sent through the command bus is handled once and, when that fails, tried again right away up to %d more times (%d attempts in total) on %s, before the exception reaches the caller.', $retryTimes, $retryTimes + 1, $exceptions) . $override,
                 $this->configuration->isEnabledForCommandBus === false => 'A command sent through the command bus is sent once: when its handler fails, the exception reaches the caller with no immediate second attempt.' . $override,
@@ -104,5 +125,19 @@ final class InstantRetryPulseFeatures
             },
             configuration: sprintf('InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(isEnabled: true, retryTimes: %d, retryExceptions: %s)', $retryTimes, PulseFeature::exceptionClassesOf($this->configuration->commandBuExceptions)),
         );
+    }
+
+    /**
+     * @param array<string, InstantRetry> $overrides
+     * @return list<string>
+     */
+    private static function overridesOf(array $overrides): array
+    {
+        $described = [];
+        foreach ($overrides as $target => $instantRetry) {
+            $described[] = sprintf('%s: %d retry times on %s', PulseFeature::shortNameOf($target), $instantRetry->retryTimes, PulseFeature::exceptionsOf($instantRetry->exceptions));
+        }
+
+        return $described;
     }
 }

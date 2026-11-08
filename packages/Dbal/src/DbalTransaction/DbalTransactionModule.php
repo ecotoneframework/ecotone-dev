@@ -3,12 +3,9 @@
 namespace Ecotone\Dbal\DbalTransaction;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\Attribute\DbalTransaction;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
@@ -16,6 +13,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Pulse\PulseSavepointIsolation;
 use Ecotone\Enqueue\CachedConnectionFactory;
@@ -32,7 +30,6 @@ use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Modelling\Config\DatabaseTransaction\CommandsWithoutDatabaseTransaction;
 use Ecotone\Modelling\Config\DatabaseTransaction\DatabaseTransactionRegistration;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
-use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSectionIsolationRegistration;
 use Ecotone\Projecting\Config\ProjectingConsoleCommands;
 
@@ -150,61 +147,12 @@ final class DbalTransactionModule implements AnnotationModule
             onAsynchronousEndpoints: $dbalConfiguration->transactionOnAsynchronousEndpoints,
             asynchronousEndpointsWithoutTransaction: $dbalConfiguration->disableTransactionsOnAsynchronousEndpointNames,
         );
-        if (! PulseFeature::isReportedFor($serviceExtensions)) {
-            return [$databaseTransactions];
-        }
 
-        return [$databaseTransactions, ...($opensTransactions ? [new PulseSectionIsolationRegistration(PulseSavepointIsolation::class)] : []), $this->transactionsFeature($dbalConfiguration)];
-    }
-
-    private function transactionsFeature(DbalConfiguration $dbalConfiguration): PulseFeature
-    {
-        $connections = implode(', ', $dbalConfiguration->defaultConnectionReferenceNames ?: [DbalConnectionReference::DEFAULT]);
-        $excluded = $dbalConfiguration->disableTransactionsOnAsynchronousEndpointNames;
-        $handlersWithout = [];
-        if ($dbalConfiguration->transactionOnCommandBus) {
-            foreach ($this->annotationFinder->findAnnotatedMethods(WithoutDatabaseTransaction::class) as $annotatedMethod) {
-                if ($annotatedMethod->hasMethodAnnotation(CommandHandler::class)) {
-                    $handlersWithout[] = PulseFeature::handlerOf($annotatedMethod);
-                }
-            }
-        }
-        if ($dbalConfiguration->transactionOnAsynchronousEndpoints) {
-            foreach ($this->annotationFinder->findAnnotatedMethods(Asynchronous::class) as $annotatedMethod) {
-                foreach ($annotatedMethod->getMethodAnnotationsWithType(Asynchronous::class) as $asynchronous) {
-                    if (array_filter($asynchronous->asynchronousExecution, static fn (object $attribute): bool => $attribute instanceof WithoutDatabaseTransaction) !== []) {
-                        $handlersWithout[] = PulseFeature::handlerOf($annotatedMethod);
-                    }
-                }
-            }
-        }
-        $entryPoints = array_filter([
-            'command sent through the command bus' => $dbalConfiguration->transactionOnCommandBus,
-            'message an asynchronous endpoint consumes' => $dbalConfiguration->transactionOnAsynchronousEndpoints,
-            'console command' => $dbalConfiguration->transactionOnConsoleCommands,
-        ]);
-        $hint = $entryPoints === []
-            ? 'No entry point opens a database transaction, so every handler writes on its own: a failure halfway through leaves what was already written.'
-            : sprintf('Each %s runs inside one database transaction on %s: what its handler writes, and the messages it sends to database channels, are committed together or rolled back together, so a failure leaves no half-done work.', implode(', each ', array_keys($entryPoints)), $connections);
-        $hint .= $handlersWithout === [] ? '' : ' The handlers listed here have #[WithoutDatabaseTransaction] and run without one.';
-        $hint .= $dbalConfiguration->transactionOnCommandBus ? '' : ' A command sent through the command bus does not open a transaction.';
-        $hint .= $dbalConfiguration->transactionOnAsynchronousEndpoints ? ($excluded === [] ? '' : ' Endpoints ' . implode(', ', $excluded) . ' are excluded with withoutTransactionOnAsynchronousEndpoints and run without one.') : ' A message an asynchronous endpoint consumes does not open a transaction.';
-        $hint .= $dbalConfiguration->transactionOnConsoleCommands ? '' : ' A console command does not open a transaction.';
-
-        return new PulseFeature(
-            package: ModulePackageList::DBAL_PACKAGE,
-            name: 'Database transactions',
-            enabled: $entryPoints !== [],
-            settings: [
-                'Command bus' => PulseFeature::onOff($dbalConfiguration->transactionOnCommandBus),
-                'Asynchronous endpoints' => $dbalConfiguration->transactionOnAsynchronousEndpoints && $excluded !== [] ? 'on, except ' . implode(', ', $excluded) : PulseFeature::onOff($dbalConfiguration->transactionOnAsynchronousEndpoints),
-                'Console commands' => PulseFeature::onOff($dbalConfiguration->transactionOnConsoleCommands),
-                'Connections' => $connections,
-            ],
-            handlers: $handlersWithout,
-            hint: $hint,
-            configuration: 'DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true)->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnConsoleCommands(true)',
-        );
+        return [
+            $databaseTransactions,
+            ...($opensTransactions && ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== [] ? [new PulseSectionIsolationRegistration(PulseSavepointIsolation::class)] : []),
+            ...DbalTransactionPulseFeatures::reportedFor($serviceExtensions, $dbalConfiguration, $this->annotationFinder),
+        ];
     }
 
     public function getModulePackageName(): string

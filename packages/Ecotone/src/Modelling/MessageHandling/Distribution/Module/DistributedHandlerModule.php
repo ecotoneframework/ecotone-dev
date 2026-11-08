@@ -2,6 +2,7 @@
 
 namespace Ecotone\Modelling\MessageHandling\Distribution\Module;
 
+use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
@@ -32,7 +33,6 @@ use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Modelling\MessageHandling\Distribution\DistributedMessageHandler;
 use Ecotone\Modelling\MessageHandling\Distribution\DistributionEntrypoint;
-use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 #[ModuleAnnotation]
 /**
@@ -41,23 +41,23 @@ use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 final class DistributedHandlerModule implements AnnotationModule
 {
     /**
-     * @param list<string> $distributedHandlers
+     * @param AnnotatedFinding[] $distributedRegistrations
      */
     public function __construct(
         private BusRoutingMapBuilder $commandBusDistributedRoutes,
         private BusRoutingMapBuilder $eventBusDistributedRoutes,
-        private array $distributedHandlers,
+        private array $distributedRegistrations,
     ) {
     }
 
     public static function create(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        $distributedHandlers = [];
+        $distributedRegistrations = [];
         $commandBusDistributedRoutes = new BusRoutingMapBuilder();
         foreach ($annotationFinder->findAnnotatedMethods(CommandHandler::class) as $registration) {
             if ($registration->hasAnnotation(Distributed::class)) {
                 $commandBusDistributedRoutes->addRoutesFromAnnotatedFinding($registration, $interfaceToCallRegistry);
-                $distributedHandlers[] = PulseFeature::handlerOf($registration);
+                $distributedRegistrations[] = $registration;
             }
         }
 
@@ -65,10 +65,10 @@ final class DistributedHandlerModule implements AnnotationModule
         foreach ($annotationFinder->findAnnotatedMethods(EventHandler::class) as $registration) {
             if ($registration->hasAnnotation(Distributed::class)) {
                 $eventBusDistributedRoutes->addRoutesFromAnnotatedFinding($registration, $interfaceToCallRegistry);
-                $distributedHandlers[] = PulseFeature::handlerOf($registration);
+                $distributedRegistrations[] = $registration;
             }
         }
-        return new self(commandBusDistributedRoutes: $commandBusDistributedRoutes, eventBusDistributedRoutes: $eventBusDistributedRoutes, distributedHandlers: $distributedHandlers);
+        return new self(commandBusDistributedRoutes: $commandBusDistributedRoutes, eventBusDistributedRoutes: $eventBusDistributedRoutes, distributedRegistrations: $distributedRegistrations);
     }
 
     /**
@@ -81,21 +81,7 @@ final class DistributedHandlerModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        if (! PulseFeature::isReportedFor($serviceExtensions)) {
-            return [$this];
-        }
-
-        return [$this, new PulseFeature(
-            package: ModulePackageList::CORE_PACKAGE,
-            name: 'Distributed Bus',
-            enabled: $this->distributedHandlers !== [],
-            settings: ['Distributed handlers' => (string) count($this->distributedHandlers)],
-            handlers: $this->distributedHandlers,
-            hint: $this->distributedHandlers === []
-                ? 'No handler of this service is marked #[Distributed], so other services cannot send it commands or events over the Distributed Bus. It can still send to them.'
-                : sprintf('Other services can send this service the %d commands and events of the handlers listed here over the Distributed Bus, which routes them by the DistributedServiceMap of each sender. The Topology page shows the whole map.', count($this->distributedHandlers)),
-            configuration: "#[Distributed] next to #[CommandHandler('order.place')] or #[EventHandler('order.placed')], and DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'orders', channelName: 'orders') in the sending service",
-        )];
+        return [$this, ...DistributedBusPulseFeatures::reportedFor($serviceExtensions, $this->distributedRegistrations)];
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void

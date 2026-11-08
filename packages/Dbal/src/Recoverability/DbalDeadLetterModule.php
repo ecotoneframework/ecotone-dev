@@ -42,7 +42,6 @@ use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseRequestBodyBuilder;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
@@ -147,18 +146,7 @@ final class DbalDeadLetterModule implements AnnotationModule
             array_values(array_unique($connectionReferences)),
         );
         if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
-            $storage = $dbalConfiguration->deadLetterInMemory ? 'in memory' : 'database, connection ' . $dbalConfiguration->getDeadLetterConnectionReference();
-            $extensions[] = new PulseFeature(
-                package: ModulePackageList::DBAL_PACKAGE,
-                name: 'Dead letter',
-                enabled: $dbalConfiguration->deadLetterEnabled,
-                settings: $dbalConfiguration->deadLetterEnabled ? ['Storage' => $storage] : [],
-                handlers: [],
-                hint: $dbalConfiguration->deadLetterEnabled
-                    ? sprintf("A message sent to dead letter channel '%s', which the error channel does once a message has used all its retries, is stored (%s) instead of being lost. From there it can be replayed or deleted, on the Dead letters page of Pulse or with ecotone:deadletter:replay.", DbalDeadLetterBuilder::STORE_CHANNEL, $storage)
-                    : sprintf("A message sent to dead letter channel '%s' after its last retry is not stored, so it cannot be looked at or replayed later.", DbalDeadLetterBuilder::STORE_CHANNEL),
-                configuration: 'DbalConfiguration::createWithDefaults()->withDeadLetter(isDeadLetterEnabled: true)',
-            );
+            $extensions = [...$extensions, ...DbalDeadLetterPulseFeatures::reportedFor($serviceExtensions, $dbalConfiguration)];
             $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetter', serviceReference: PulseDeadLetterStatus::class, tenantScoped: false);
             if ($dbalConfiguration->deadLetterEnabled) {
                 $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetters', serviceReference: PulseDeadLetters::class, tenantScoped: true);

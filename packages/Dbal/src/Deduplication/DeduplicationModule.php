@@ -33,7 +33,6 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 #[ModuleAnnotation]
 /**
@@ -155,33 +154,8 @@ final class DeduplicationModule implements AnnotationModule
         $extensions = [
             new DbalTableManagerReference(DeduplicationTableManager::class, $dbalConfiguration->getDeduplicationConnectionReference()),
         ];
-        if (! PulseFeature::isReportedFor($serviceExtensions)) {
-            return $extensions;
-        }
 
-        $storage = $dbalConfiguration->deduplicationInMemory ? 'in memory' : 'database, connection ' . $dbalConfiguration->getDeduplicationConnectionReference();
-        $keptFor = PulseFeature::durationOf($dbalConfiguration->minimumTimeToRemoveMessageInMilliseconds);
-        $handlers = [];
-        foreach ($this->annotationFinder->findAnnotatedMethods(Deduplicated::class) as $annotatedMethod) {
-            $deduplicated = $annotatedMethod->getAnnotationForMethod();
-            $handlers[] = PulseFeature::handlerOf($annotatedMethod) . match (true) {
-                $deduplicated->hasExpression() => ' (by expression)',
-                $deduplicated->deduplicationHeaderName !== '' => ' (by header ' . $deduplicated->deduplicationHeaderName . ')',
-                default => ' (by message id)',
-            };
-        }
-
-        return [...$extensions, new PulseFeature(
-            package: ModulePackageList::DBAL_PACKAGE,
-            name: 'Deduplication',
-            enabled: $dbalConfiguration->deduplicatedEnabled,
-            settings: ['Storage' => $storage, 'Expiration time' => $keptFor, 'Removal batch size' => (string) $dbalConfiguration->deduplicationRemovalBatchSize],
-            handlers: $handlers,
-            hint: $dbalConfiguration->deduplicatedEnabled
-                ? sprintf('A message an asynchronous endpoint has already handled that arrives again with the same message id, such as a broker redelivery or a resent outbox message, is skipped instead of being handled twice. Handled message ids are kept (%s) for %s, then removed. A handler with #[Deduplicated] is deduplicated too, by the header or expression it names, whichever way it is called.', $storage, $keptFor)
-                : 'Asynchronous endpoints do not check whether a message was handled before, so a redelivered message is handled again. A handler with #[Deduplicated] is still deduplicated, by the header or expression it names.',
-            configuration: 'DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: true)',
-        )];
+        return [...$extensions, ...DeduplicationPulseFeatures::reportedFor($serviceExtensions, $dbalConfiguration, $this->annotationFinder)];
     }
 
     public function getModulePackageName(): string

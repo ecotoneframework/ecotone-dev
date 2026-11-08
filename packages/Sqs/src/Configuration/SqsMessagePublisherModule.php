@@ -24,7 +24,6 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaders
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 use Ecotone\Sqs\SqsOutboundChannelAdapterBuilder;
 
 #[ModuleAnnotation]
@@ -93,19 +92,7 @@ final class SqsMessagePublisherModule extends NoExternalConfigurationModule impl
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        if (! PulseFeature::isReportedFor($serviceExtensions)) {
-            return [];
-        }
-
-        return [PulseFeature::messagePublishers(
-            package: ModulePackageList::SQS_PACKAGE,
-            broker: 'SQS',
-            publishers: array_map(
-                static fn (SqsMessagePublisherConfiguration $publisher): string => sprintf("%s: queue '%s'%s", PulseFeature::shortNameOf($publisher->getReferenceName()), $publisher->getQueueName(), $publisher->isBatchPublishingEnabled() ? ', batch publishing' : ''),
-                ExtensionObjectResolver::resolve(SqsMessagePublisherConfiguration::class, $serviceExtensions),
-            ),
-            configuration: "SqsMessagePublisherConfiguration::create(MessagePublisher::class, queueName: 'orders')",
-        )];
+        return SqsMessagePublisherPulseFeatures::reportedFor($serviceExtensions);
     }
 
     public function getModulePackageName(): string

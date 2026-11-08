@@ -15,6 +15,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -56,6 +57,14 @@ final class PulseFeaturesTest extends TestCase
         self::assertSame(JMSConverterConfiguration::CAMEL_CASE_PROPERTY_NAMING_STRATEGY, $serialization['settings']['Naming strategy']);
         self::assertSame('left out', $serialization['settings']['Null values']);
         self::assertStringContainsString('null values are left out', $serialization['hint']);
+    }
+
+    public function test_a_service_reporting_to_pulse_still_names_the_way_out_of_two_identical_configurations(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Ecotone was given 2 identical JMSConverterConfigurations');
+
+        $this->features([JMSConverterConfiguration::createWithDefaults(), JMSConverterConfiguration::createWithDefaults()]);
     }
 
     /**

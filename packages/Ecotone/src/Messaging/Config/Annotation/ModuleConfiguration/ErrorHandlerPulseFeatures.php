@@ -34,17 +34,21 @@ final class ErrorHandlerPulseFeatures
 {
     /**
      * @param object[] $serviceExtensions
-     * @param array<string, ErrorHandlerConfiguration> $delayedRetries
+     * @param list<array{string, ErrorHandlerConfiguration}> $endpointDelayedRetries
+     * @param list<array{class-string, ErrorHandlerConfiguration}> $gatewayDelayedRetries
      * @return PulseFeature[]
      */
-    public static function reportedFor(array $serviceExtensions, ServiceConfiguration $serviceConfiguration, array $delayedRetries): array
+    public static function reportedFor(array $serviceExtensions, ServiceConfiguration $serviceConfiguration, array $endpointDelayedRetries, array $gatewayDelayedRetries): array
     {
         if (! PulseFeature::isReportedFor($serviceExtensions)) {
             return [];
         }
         $delayedRetryTargets = [];
-        foreach ($delayedRetries as $target => $configuration) {
-            $delayedRetryTargets[] = PulseFeature::shortNameOf($target) . ': ' . self::scheduleOf($configuration->delayedRetryTemplate, $configuration->deadLetterChannel);
+        foreach ($endpointDelayedRetries as [$endpointId, $configuration]) {
+            $delayedRetryTargets[] = $endpointId . ': ' . self::scheduleOf($configuration->delayedRetryTemplate, $configuration->deadLetterChannel);
+        }
+        foreach ($gatewayDelayedRetries as [$gatewayInterface, $configuration]) {
+            $delayedRetryTargets[] = PulseFeature::shortNameOf($gatewayInterface) . ': ' . self::scheduleOf($configuration->delayedRetryTemplate, $configuration->deadLetterChannel);
         }
         $defaultErrorChannel = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $serviceExtensions, $serviceConfiguration)->defaultErrorChannel;
         $configurations = ExtensionObjectResolver::resolve(ErrorHandlerConfiguration::class, $serviceExtensions) ?: [ErrorHandlerConfiguration::createDefault()];

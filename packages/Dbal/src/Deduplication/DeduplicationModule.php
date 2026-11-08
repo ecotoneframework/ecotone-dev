@@ -155,7 +155,7 @@ final class DeduplicationModule implements AnnotationModule
             new DbalTableManagerReference(DeduplicationTableManager::class, $dbalConfiguration->getDeduplicationConnectionReference()),
         ];
 
-        return [...$extensions, ...DeduplicationPulseFeatures::reportedFor($serviceExtensions, $dbalConfiguration, $this->annotationFinder)];
+        return [...$extensions, ...DeduplicationPulseFeatures::reportedFor(serviceExtensions: $serviceExtensions, dbalConfiguration: $dbalConfiguration, annotationFinder: $this->annotationFinder)];
     }
 
     public function getModulePackageName(): string

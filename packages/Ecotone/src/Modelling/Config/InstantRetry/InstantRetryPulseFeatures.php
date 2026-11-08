@@ -34,7 +34,7 @@ final class InstantRetryPulseFeatures
 {
     /**
      * @param array<string, InstantRetry> $commandBusOverrides
-     * @param array<string, InstantRetry> $endpointOverrides
+     * @param list<array{string, InstantRetry}> $endpointOverrides
      */
     public function __construct(
         private InstantRetryConfiguration $configuration,
@@ -46,7 +46,7 @@ final class InstantRetryPulseFeatures
     /**
      * @param object[] $serviceExtensions
      * @param array<string, InstantRetry> $commandBusOverrides
-     * @param array<string, InstantRetry> $endpointOverrides
+     * @param list<array{string, InstantRetry}> $endpointOverrides
      * @return self[]
      */
     public static function reportedFor(array $serviceExtensions, array $commandBusOverrides, array $endpointOverrides): array
@@ -87,7 +87,7 @@ final class InstantRetryPulseFeatures
                 'Retried on' => $exceptions,
                 ...($this->configuration->isEnabledForAsynchronousEndpoints === null ? ['Applied' => 'by default, to endpoints running in a database transaction' . ($excluded === [] ? '' : ', except ' . implode(', ', $excluded))] : []),
             ] : [],
-            handlers: self::overridesOf($this->endpointOverrides),
+            handlers: array_map(static fn (array $override): string => self::overrideOf($override[0], $override[1]), $this->endpointOverrides),
             hint: match (true) {
                 $this->configuration->isEnabledForAsynchronousEndpoints === true => sprintf('A message an asynchronous endpoint fails on is handled once and, when that fails, tried again right away up to %d more times (%d attempts in total) on %s, before the failure is handed on to the error channel, when one is set.', $retryTimes, $retryTimes + 1, $exceptions) . $override,
                 $this->configuration->isEnabledForAsynchronousEndpoints === false => 'A message an asynchronous endpoint fails on is handed straight on to the error channel, when one is set, with no immediate second attempt.' . $override,
@@ -115,7 +115,7 @@ final class InstantRetryPulseFeatures
                 'Retried on' => $exceptions,
                 ...($this->configuration->isEnabledForCommandBus === null ? ['Applied' => 'by default, to commands handled in a database transaction'] : []),
             ] : [],
-            handlers: self::overridesOf($this->commandBusOverrides),
+            handlers: array_map(static fn (string $commandBus, InstantRetry $instantRetry): string => self::overrideOf(PulseFeature::shortNameOf($commandBus), $instantRetry), array_keys($this->commandBusOverrides), array_values($this->commandBusOverrides)),
             hint: match (true) {
                 $this->configuration->isEnabledForCommandBus === true => sprintf('A command sent through the command bus is handled once and, when that fails, tried again right away up to %d more times (%d attempts in total) on %s, before the exception reaches the caller.', $retryTimes, $retryTimes + 1, $exceptions) . $override,
                 $this->configuration->isEnabledForCommandBus === false => 'A command sent through the command bus is sent once: when its handler fails, the exception reaches the caller with no immediate second attempt.' . $override,
@@ -127,17 +127,8 @@ final class InstantRetryPulseFeatures
         );
     }
 
-    /**
-     * @param array<string, InstantRetry> $overrides
-     * @return list<string>
-     */
-    private static function overridesOf(array $overrides): array
+    private static function overrideOf(string $target, InstantRetry $instantRetry): string
     {
-        $described = [];
-        foreach ($overrides as $target => $instantRetry) {
-            $described[] = sprintf('%s: %d retry times on %s', PulseFeature::shortNameOf($target), $instantRetry->retryTimes, PulseFeature::exceptionsOf($instantRetry->exceptions));
-        }
-
-        return $described;
+        return sprintf('%s: %d retry times on %s', $target, $instantRetry->retryTimes, PulseFeature::exceptionsOf($instantRetry->exceptions));
     }
 }

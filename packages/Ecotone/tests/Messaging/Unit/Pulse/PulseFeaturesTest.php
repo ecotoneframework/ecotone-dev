@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Orchestrator;
+use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -168,6 +169,36 @@ final class PulseFeaturesTest extends TestCase
         self::assertStringContainsString("is sent to error channel 'order_errors'", $errorChannel['hint']);
     }
 
+    public function test_endpoints_are_listed_under_their_retries_by_the_id_they_were_given_and_gateways_by_their_name(): void
+    {
+        $handlers = new class () {
+            #[Asynchronous('orders', asynchronousExecution: [new DelayedRetry(initialDelayInMilliseconds: 500, multiplier: 2, maxRetries: 2)])]
+            #[CommandHandler('order.place', endpointId: 'Orders\\place')]
+            public function place(string $orderId): void
+            {
+            }
+
+            #[InstantRetry(retryTimes: 2)]
+            #[Scheduled('order.expire', '2')]
+            public function expire(): ?string
+            {
+                return null;
+            }
+
+            #[InstantRetry(retryTimes: 3)]
+            #[Scheduled('order.archive', 'Orders\\archive')]
+            public function archive(): ?string
+            {
+                return null;
+            }
+        };
+
+        $features = $this->coreFeatures($handlers, [SimpleMessageChannelBuilder::createQueueChannel('orders')], [PulseDelayedRetryCommandBus::class]);
+
+        self::assertSame(['Orders\\place: 2 retries: after 500 ms and 1000 ms, then no further retry', 'PulseDelayedRetryCommandBus: 1 retry: after 100 ms, then dead letter channel order_dead_letters'], $features['Error channel and delayed retries']['handlers']);
+        self::assertSame(['2: 2 retry times on any exception', 'Orders\\archive: 3 retry times on any exception'], $features['Instant retries on asynchronous endpoints']['handlers']);
+    }
+
     public function test_distributed_handlers_and_orchestrators_are_listed_under_their_feature(): void
     {
         $handlers = new class () {
@@ -286,5 +317,10 @@ final class PulseFeaturesTest extends TestCase
 
 #[InstantRetry(retryTimes: 5, exceptions: [InvalidArgumentException::class])]
 interface PulseInstantRetryCommandBus extends CommandBus
+{
+}
+
+#[DelayedRetry(initialDelayInMilliseconds: 100, maxRetries: 1, deadLetterChannel: 'order_dead_letters')]
+interface PulseDelayedRetryCommandBus extends CommandBus
 {
 }

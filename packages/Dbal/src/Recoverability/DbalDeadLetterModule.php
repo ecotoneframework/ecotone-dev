@@ -145,8 +145,8 @@ final class DbalDeadLetterModule implements AnnotationModule
             fn (string $connectionReference): DbalTableManagerReference => new DbalTableManagerReference(DeadLetterTableManager::class, $connectionReference),
             array_values(array_unique($connectionReferences)),
         );
+        $extensions = [...$extensions, ...DbalDeadLetterPulseFeatures::reportedFor($serviceExtensions, $dbalConfiguration)];
         if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
-            $extensions = [...$extensions, ...DbalDeadLetterPulseFeatures::reportedFor($serviceExtensions, $dbalConfiguration)];
             $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetter', serviceReference: PulseDeadLetterStatus::class, tenantScoped: false);
             if ($dbalConfiguration->deadLetterEnabled) {
                 $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetters', serviceReference: PulseDeadLetters::class, tenantScoped: true);

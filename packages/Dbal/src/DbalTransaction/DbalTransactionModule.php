@@ -151,7 +151,7 @@ final class DbalTransactionModule implements AnnotationModule
         return [
             $databaseTransactions,
             ...($opensTransactions && ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== [] ? [new PulseSectionIsolationRegistration(PulseSavepointIsolation::class)] : []),
-            ...DbalTransactionPulseFeatures::reportedFor($serviceExtensions, $dbalConfiguration, $this->annotationFinder),
+            ...DbalTransactionPulseFeatures::reportedFor(serviceExtensions: $serviceExtensions, dbalConfiguration: $dbalConfiguration, annotationFinder: $this->annotationFinder),
         ];
     }
 

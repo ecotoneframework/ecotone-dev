@@ -43,9 +43,10 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
 {
     /**
      * @param ErrorHandlerConfiguration[] $perHandlerRetryConfigurations
-     * @param array<string, ErrorHandlerConfiguration> $delayedRetries
+     * @param list<array{string, ErrorHandlerConfiguration}> $endpointDelayedRetries
+     * @param list<array{class-string, ErrorHandlerConfiguration}> $gatewayDelayedRetries
      */
-    private function __construct(private array $perHandlerRetryConfigurations, private array $delayedRetries)
+    private function __construct(private array $perHandlerRetryConfigurations, private array $endpointDelayedRetries, private array $gatewayDelayedRetries)
     {
     }
 
@@ -55,7 +56,8 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $perHandlerRetryConfigurations = [];
-        $delayedRetries = [];
+        $endpointDelayedRetries = [];
+        $gatewayDelayedRetries = [];
 
         foreach ($annotationRegistrationService->findAnnotatedMethods(DelayedRetry::class) as $delayedRetryMethod) {
             if (! $delayedRetryMethod->hasMethodAnnotation(\Ecotone\Messaging\Attribute\MessageConsumer::class)) {
@@ -110,7 +112,8 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
                     $delayedRetry->maxRetries,
                 );
 
-                $perHandlerRetryConfigurations[] = $delayedRetries[$handlerEndpointId] = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
+                $perHandlerRetryConfigurations[] = $errorHandlerConfiguration = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
+                $endpointDelayedRetries[] = [$handlerEndpointId, $errorHandlerConfiguration];
                 break;
             }
         }
@@ -134,15 +137,21 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
                 $delayedRetry->maxDelayInMilliseconds,
                 $delayedRetry->maxRetries,
             );
-            $perHandlerRetryConfigurations[] = $delayedRetries[$gatewayInterfaceFqn] = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
+            $perHandlerRetryConfigurations[] = $errorHandlerConfiguration = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
+            $gatewayDelayedRetries[] = [$gatewayInterfaceFqn, $errorHandlerConfiguration];
         }
 
-        return new self(perHandlerRetryConfigurations: $perHandlerRetryConfigurations, delayedRetries: $delayedRetries);
+        return new self(perHandlerRetryConfigurations: $perHandlerRetryConfigurations, endpointDelayedRetries: $endpointDelayedRetries, gatewayDelayedRetries: $gatewayDelayedRetries);
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return ErrorHandlerPulseFeatures::reportedFor($serviceExtensions, $serviceConfiguration, $this->delayedRetries);
+        return ErrorHandlerPulseFeatures::reportedFor(
+            serviceExtensions: $serviceExtensions,
+            serviceConfiguration: $serviceConfiguration,
+            endpointDelayedRetries: $this->endpointDelayedRetries,
+            gatewayDelayedRetries: $this->gatewayDelayedRetries,
+        );
     }
 
     private static function buildErrorHandlerConfig(string $errorChannelName, RetryTemplateBuilder $retryTemplateBuilder, ?string $deadLetterChannel): ErrorHandlerConfiguration

@@ -32,7 +32,7 @@ final class InstantRetryModule implements AnnotationModule
 {
     /**
      * @param array<string, InstantRetry> $commandBusOverrides
-     * @param array<string, InstantRetry> $endpointOverrides
+     * @param list<array{string, InstantRetry}> $endpointOverrides
      */
     private function __construct(private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction, private array $commandBusOverrides, private array $endpointOverrides)
     {
@@ -49,9 +49,8 @@ final class InstantRetryModule implements AnnotationModule
         }
         $endpointOverrides = [];
         foreach ($annotationRegistrationService->findAnnotatedMethods(InstantRetry::class) as $annotatedMethod) {
-            $consumers = $annotatedMethod->getMethodAnnotationsWithType(MessageConsumer::class);
-            if ($consumers !== []) {
-                $endpointOverrides[$consumers[0]->getEndpointId()] = $annotatedMethod->getAnnotationForMethod();
+            if ($annotatedMethod->hasMethodAnnotation(MessageConsumer::class)) {
+                $endpointOverrides[] = [$annotatedMethod->getMethodAnnotationsWithType(MessageConsumer::class)[0]->getEndpointId(), $annotatedMethod->getAnnotationForMethod()];
             }
         }
 
@@ -104,7 +103,7 @@ final class InstantRetryModule implements AnnotationModule
      */
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return InstantRetryPulseFeatures::reportedFor($serviceExtensions, $this->commandBusOverrides, $this->endpointOverrides);
+        return InstantRetryPulseFeatures::reportedFor(serviceExtensions: $serviceExtensions, commandBusOverrides: $this->commandBusOverrides, endpointOverrides: $this->endpointOverrides);
     }
 
     public function getModulePackageName(): string

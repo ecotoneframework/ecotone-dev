@@ -40,7 +40,8 @@ final class JMSConverterPulseFeatures
         if (! PulseFeature::isReportedFor($serviceExtensions)) {
             return [];
         }
-        $configuration = ExtensionObjectResolver::resolveUnique(JMSConverterConfiguration::class, $serviceExtensions, JMSConverterConfiguration::createWithDefaults());
+        $configurations = ExtensionObjectResolver::resolve(JMSConverterConfiguration::class, $serviceExtensions);
+        $configuration = $configurations === [] ? JMSConverterConfiguration::createWithDefaults() : end($configurations);
 
         return [new PulseFeature(
             package: ModulePackageList::JMS_CONVERTER_PACKAGE,

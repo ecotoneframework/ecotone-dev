@@ -31,7 +31,8 @@ You don't need Enterprise on day one. These are the growth signals that tell you
 - Dynamic step lists adapt to input data without touching step code
 
 **"We're running multiple services that need to talk to each other"**
-- Distributed Bus with Service Map routes commands and events across services transparently
+- Distributed Bus with Service Map routes commands and events across services transparently -- every service that
+  sends through `DistributedBus` needs Enterprise, whether it talks to one other service or many
 - Supports mixed brokers (RabbitMQ, SQS, Redis, Kafka) in a single topology -- swap transports without changing application code
 
 **"We need high-throughput event streaming"**
@@ -67,7 +68,7 @@ You don't need Enterprise on day one. These are the growth signals that tell you
 
 | Feature | What It Does |
 |---------|-------------|
-| **Distributed Bus with Service Map** | Cross-service messaging supporting multiple brokers in a single topology |
+| **Distributed Bus with Service Map** | `DistributedBus` and `DistributedServiceMap`: cross-service commands and events over one broker or several in a single topology |
 | **Kafka Integration** | Native Kafka support with the same attribute-driven programming model |
 | **RabbitMQ Streaming Channel** | Persistent event streaming with independent consumer position tracking on existing RabbitMQ |
 | **RabbitMQ Consumer** | Declarative consumer setup with built-in reconnection, graceful shutdown, and health checks |

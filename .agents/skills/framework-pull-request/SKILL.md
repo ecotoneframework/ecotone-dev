@@ -37,11 +37,11 @@ downstream suites for a core change, `php bin/check-licence.php`, `php bin/check
 Before every `git push` and `gh pr create`, start **three separate review sessions** automatically: the agent
 launches them itself, without asking whether to, every time the branch is about to be published. That includes a
 push to a pull request that is already open (new commits, a merge from `main`, a rebase), and a request worded
-"now", "just push" or "create the PR now", which asks for no further questions, not for no reviews. Only the
-maintainer saying in so many words to skip the reviews for this push skips them, and the agent says in its report
-that they were skipped. Each session has a fresh context — a new agent session or a fresh subagent, never a fork
-of the implementing conversation, so no review is anchored on the implementer's reasoning. Give each only: the diff range (`git diff main...HEAD`), the problem the change solves in
-the reporter's terms, and the skill to load:
+"now", "just push" or "create the PR now", which asks for no further questions, not for no reviews (the
+P4 approval of the title, body and contribution terms is still asked for). Only the maintainer saying in so many
+words to skip the reviews for this push skips them, and the agent says in its report that they were skipped. Each session has a fresh context — a new agent session or a fresh subagent, never a fork
+of the implementing conversation, so no review is anchored on the implementer's reasoning. Give each only: the
+diff range (`git diff main...HEAD`), the problem the change solves in the reporter's terms, and the skill to load:
 
 | Session | Loads | Verifies |
 |---|---|---|

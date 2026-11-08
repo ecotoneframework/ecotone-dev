@@ -146,6 +146,7 @@ final class DbalTransactionModule implements AnnotationModule
 
         return [
             $databaseTransactions,
+            ...DbalTransactionPulseFeatures::sectionIsolationFor($serviceExtensions, $dbalConfiguration),
             ...DbalTransactionPulseFeatures::reportedFor(serviceExtensions: $serviceExtensions, dbalConfiguration: $dbalConfiguration, annotationFinder: $this->annotationFinder),
         ];
     }

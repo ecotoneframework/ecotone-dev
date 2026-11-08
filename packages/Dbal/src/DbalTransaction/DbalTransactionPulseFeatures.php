@@ -39,14 +39,24 @@ final class DbalTransactionPulseFeatures
 {
     /**
      * @param object[] $serviceExtensions
-     * @return array<PulseFeature|PulseSectionIsolationRegistration>
+     * @return PulseSectionIsolationRegistration[]
+     */
+    public static function sectionIsolationFor(array $serviceExtensions, DbalConfiguration $dbalConfiguration): array
+    {
+        $opensTransactions = $dbalConfiguration->transactionOnAsynchronousEndpoints || $dbalConfiguration->transactionOnCommandBus || $dbalConfiguration->transactionOnConsoleCommands;
+
+        return $opensTransactions && PulseFeature::isReportedFor($serviceExtensions) ? [new PulseSectionIsolationRegistration(PulseSavepointIsolation::class)] : [];
+    }
+
+    /**
+     * @param object[] $serviceExtensions
+     * @return PulseFeature[]
      */
     public static function reportedFor(array $serviceExtensions, DbalConfiguration $dbalConfiguration, AnnotationFinder $annotationFinder): array
     {
         if (! PulseFeature::isReportedFor($serviceExtensions)) {
             return [];
         }
-        $opensTransactions = $dbalConfiguration->transactionOnAsynchronousEndpoints || $dbalConfiguration->transactionOnCommandBus || $dbalConfiguration->transactionOnConsoleCommands;
 
         $connections = implode(', ', $dbalConfiguration->defaultConnectionReferenceNames ?: [DbalConnectionReference::DEFAULT]);
         $excluded = $dbalConfiguration->disableTransactionsOnAsynchronousEndpointNames;
@@ -80,7 +90,7 @@ final class DbalTransactionPulseFeatures
         $hint .= $dbalConfiguration->transactionOnAsynchronousEndpoints ? ($excluded === [] ? '' : ' Endpoints ' . implode(', ', $excluded) . ' are excluded with withoutTransactionOnAsynchronousEndpoints and run without one.') : ' A message an asynchronous endpoint consumes does not open a transaction.';
         $hint .= $dbalConfiguration->transactionOnConsoleCommands ? '' : ' A console command does not open a transaction.';
 
-        return [...($opensTransactions ? [new PulseSectionIsolationRegistration(PulseSavepointIsolation::class)] : []), new PulseFeature(
+        return [new PulseFeature(
             package: ModulePackageList::DBAL_PACKAGE,
             name: 'Database transactions',
             enabled: $entryPoints !== [],

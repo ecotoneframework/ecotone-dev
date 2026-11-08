@@ -1931,7 +1931,7 @@ Only the builder moved, not what it builds: `RetryTemplateBuilder::build()` stil
 application, calls `build()`. `MediaType` is also still what `CommandBus`, `QueryBus`, `EventBus`,
 `DistributedBus`, `MessagePublisher` and `#[ContentType]` name, which is why it could not stay in `src`: a public
 signature was forcing an `@internal` import on every application that used it. The rule this closes is
-[conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
+[conventions rule 12a](.agents/skills/framework-public-api/references/rules.md#12a-the-boundary-holds-in-both-directions).
 
 ### 13b. `EventStore` moved into `Api`; `ConversionService` moved in and back out
 
@@ -2076,7 +2076,7 @@ forwarded metadata with framework keys stripped keeps the keys it set itself, by
 Only these nine moved here. `EcotoneLite` stayed behind at first: it hands the application `FlowTestSupport` and
 `ConfiguredMessagingSystem`, so moving it alone would have relocated the boundary without closing it. The three
 moved together later, in §13e. `ErrorMessage` moved last, in §13i. The rule this closes is
-[conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
+[conventions rule 12a](.agents/skills/framework-public-api/references/rules.md#12a-the-boundary-holds-in-both-directions).
 
 ### 13d. `MetadataMatcher`, the clock's types, `Future`, `ErrorContext`, `LoggingLevel` and `FetchMode` moved into `Api` too
 
@@ -2148,7 +2148,7 @@ the old name through `FetchMode`; the three rows are in the namespace map for co
 `ErrorMessage` stayed `Ecotone\Messaging\Support\ErrorMessage` at this step, now returning the public `ErrorContext`
 from `getErrorContext()`. It implements `Message` and takes one in `create()` and `createFromMessage()`, and `Message`
 was then still internal; once `Message` moved (§13g), `ErrorMessage` followed it (§13i). The rule this closes is
-[conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
+[conventions rule 12a](.agents/skills/framework-public-api/references/rules.md#12a-the-boundary-holds-in-both-directions).
 
 ### 13e. `EcotoneLite`, `FlowTestSupport`, `ConfiguredMessagingSystem` and the channel interfaces moved into `Api` — two container ids change with them
 
@@ -2232,7 +2232,7 @@ directory in Ecotone Lite.
   an application calls names either
 
 The rule this closes is
-[conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
+[conventions rule 12a](.agents/skills/framework-public-api/references/rules.md#12a-the-boundary-holds-in-both-directions).
 
 ### 13f. The console writer types moved into `Api` — the `ConsoleWriter` and `InMemoryConsoleWriter` container ids change with them
 
@@ -4027,7 +4027,7 @@ rename test-support methods without aliases; the renamed methods are listed in e
   the bootstrap. Per-package `composer install` is now documented as an explicit step before
   `composer tests:ci`, and `packages/DataProtection/tests/before-tests.sh` no longer silently
   fails to create its fixture when run from a different working directory. See
-  `docs/dev-environment-cold-start-findings.md` for the full list of gaps this closed. This only
+  `.agents/skills/framework-dev-environment/references/cold-start-findings.md` for the full list of gaps this closed. This only
   affects working on the `ecotone-dev` monorepo itself.
   **How to adapt:** nothing; application code using the published packages is unaffected.
 - **Bootstrap is faster; nothing in configuration or behaviour changes.** Measured on the monorepo example

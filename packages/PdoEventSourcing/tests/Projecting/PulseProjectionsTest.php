@@ -148,7 +148,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         $this->orderService->sendCommand(new ChangeAssignedPerson('ticket-1', 'Mark'));
         $behind = $this->requestSnapshot()['projections'][0];
 
-        $this->orderService->run('tickets_async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3));
+        $this->orderService->run('tickets_async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
         $caughtUp = $this->requestSnapshot()['projections'][0];
 
         self::assertSame(['events' => 3, 'atLeast' => false], $behind['eventsBehind']);
@@ -199,7 +199,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         $this->orderService->sendCommand(new RegisterTicket('ticket-2', 'Jane', 'feature'));
         $behind = $this->requestSnapshot()['projections'][0];
 
-        $this->orderService->run('tickets_partitioned_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
+        $this->orderService->run('tickets_partitioned_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
         $this->orderService->sendCommand(new ChangeAssignedPerson('ticket-1', 'Mark'));
         $oneBehind = $this->requestSnapshot()['projections'][0];
 
@@ -223,7 +223,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         $initial = $this->requestSnapshot()['projections'][0]['positionDigest'];
         $this->orderService->sendCommand(new RegisterTicket('ticket-2', 'Jane', 'bug'));
         $eventsAppendedProjectionIdle = $this->requestSnapshot()['projections'][0]['positionDigest'];
-        $this->orderService->run('tickets_async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
+        $this->orderService->run('tickets_async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
         $afterRun = $this->requestSnapshot()['projections'][0]['positionDigest'];
 
         self::assertSame($initial, $eventsAppendedProjectionIdle);
@@ -386,15 +386,15 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
     private function act(string $routingKey, string $projection, string $tracingId, ?string $tenant = null): void
     {
         $this->pulseService->getDistributedBus()->sendMessage('order_service', $routingKey, json_encode(['projection' => $projection], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId, ...($tenant === null ? [] : ['tenant' => $tenant])], replyRoutingKey: 'ecotone.pulse.snapshot_received');
-        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
     }
 
     private function requestSnapshot(?string $tenant = null): array
     {
         $this->pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, metadata: $tenant === null ? [] : ['tenant' => $tenant], replyRoutingKey: 'ecotone.pulse.snapshot_received');
-        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         return json_decode(array_pop($this->pulse->snapshots), true, flags: JSON_THROW_ON_ERROR);
     }

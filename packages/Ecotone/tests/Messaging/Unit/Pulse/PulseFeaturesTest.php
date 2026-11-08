@@ -317,6 +317,23 @@ final class PulseFeaturesTest extends TestCase
         self::assertStringContainsString('runs on its own schedule', $scheduled['hint']);
     }
 
+    public function test_the_service_configuration_reports_serialization_memory_limit_connection_retries_and_logged_headers(): void
+    {
+        $service = $this->coreFeatures($this->orders(), serviceConfiguration: ServiceConfiguration::createWithDefaults()
+            ->withServiceName('order_service')
+            ->withConsumerMemoryLimit(256)
+            ->withHeadersInLogContext(['tenant']))['Service configuration'];
+
+        self::assertTrue($service['enabled']);
+        self::assertSame([
+            'Default serialization' => 'application/x-php-serialized',
+            'Consumer memory limit' => '256 MB',
+            'Connection retries' => '3 retries: after 100 ms, 300 ms and 900 ms',
+            'Headers in log context' => 'tenant',
+        ], $service['settings']);
+        self::assertStringContainsString('stops after the message it is handling once it uses more than 256 MB', $service['hint']);
+    }
+
     public function test_distributed_handlers_and_orchestrators_are_listed_under_their_feature(): void
     {
         $handlers = new class () {

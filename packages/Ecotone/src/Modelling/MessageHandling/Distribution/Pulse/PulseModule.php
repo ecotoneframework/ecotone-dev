@@ -131,6 +131,7 @@ final class PulseModule implements AnnotationModule
                 $tenancy === null ? [] : ['header' => $tenancy->tenantHeaderName, 'tenants' => $tenancy->tenants],
                 self::licenceOf((string) $bootstrapConfiguration->licenceKey),
                 self::packagesOf($bootstrapConfiguration, [
+                    self::serviceConfigurationFeature($serviceConfiguration),
                     ...ExtensionObjectResolver::resolve(PulseFeature::class, $extensionObjects),
                     ...array_merge(...array_map(static fn (InstantRetryPulseFeatures $instantRetries): array => $instantRetries->under(InstantRetryDefaults::from($extensionObjects)), ExtensionObjectResolver::resolve(InstantRetryPulseFeatures::class, $extensionObjects))),
                 ]),
@@ -190,6 +191,30 @@ final class PulseModule implements AnnotationModule
         ksort($channels);
 
         return ['channels' => array_values($channels), 'probes' => $probes];
+    }
+
+    private static function serviceConfigurationFeature(ServiceConfiguration $serviceConfiguration): PulseFeature
+    {
+        $memoryLimit = $serviceConfiguration->defaultMemoryLimitInMegabytes;
+        $connectionRetries = $serviceConfiguration->connectionRetryTemplate?->build()->describe() ?? 'none';
+
+        return new PulseFeature(
+            package: ModulePackageList::CORE_PACKAGE,
+            name: 'Service configuration',
+            enabled: true,
+            settings: [
+                'Default serialization' => (string) $serviceConfiguration->defaultSerializationMediaType,
+                'Consumer memory limit' => $memoryLimit === null || $memoryLimit === 0 ? 'none' : $memoryLimit . ' MB',
+                'Connection retries' => $connectionRetries,
+                'Headers in log context' => implode(', ', $serviceConfiguration->headersInLogContext) ?: 'none',
+            ],
+            handlers: [],
+            hint: sprintf('Messages sent to asynchronous channels and across services are serialized as %s unless a channel names its own media type.', $serviceConfiguration->defaultSerializationMediaType)
+                . ($memoryLimit === null || $memoryLimit === 0 ? ' A consumer has no memory limit.' : sprintf(' A consumer stops after the message it is handling once it uses more than %d MB, so the process manager can start a fresh one.', $memoryLimit))
+                . sprintf(' A consumer that loses its broker or database connection reconnects: %s.', $connectionRetries)
+                . ($serviceConfiguration->headersInLogContext === [] ? '' : ' Log lines carry the headers ' . implode(', ', $serviceConfiguration->headersInLogContext) . ' of the message being handled.'),
+            configuration: 'ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON)->withConsumerMemoryLimit(512)->withHeadersInLogContext([\'tenant\'])',
+        );
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

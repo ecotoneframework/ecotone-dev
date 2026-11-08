@@ -22,6 +22,7 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
@@ -203,6 +204,21 @@ final class PulseFeaturesTest extends TestCase
 
         self::assertSame(['Orders\\place: 2 retries: after 500 ms and 1000 ms, then no further retry', 'PulseDelayedRetryCommandBus: 1 retry: after 100 ms, then dead letter channel order_dead_letters'], $features['Error channel and delayed retries']['handlers']);
         self::assertSame(['2: 2 retry times on any exception', 'Orders\\archive: 3 retry times on any exception'], $features['Instant retries on asynchronous endpoints']['handlers']);
+    }
+
+    public function test_each_pollable_channel_reports_what_happens_to_a_message_that_finally_fails(): void
+    {
+        $failure = $this->coreFeatures($this->orders(), [
+            SimpleMessageChannelBuilder::createQueueChannel('orders'),
+            SimpleMessageChannelBuilder::createQueueChannel('payments', finalFailureStrategy: FinalFailureStrategy::STOP),
+        ])['Final failure strategy'];
+
+        self::assertTrue($failure['enabled']);
+        self::assertSame('resend', $failure['settings']['Channel orders']);
+        self::assertSame('stop', $failure['settings']['Channel payments']);
+        self::assertStringContainsString('resend: the message is sent back to its channel, so the consumer goes on with the next messages', $failure['hint']);
+        self::assertStringContainsString('stop: the consumer stops and the message stays in the channel', $failure['hint']);
+        self::assertSame("->withFinalFailureStrategy(FinalFailureStrategy::STOP) on the channel's builder", $failure['configuration']);
     }
 
     public function test_distributed_handlers_and_orchestrators_are_listed_under_their_feature(): void

@@ -4,6 +4,7 @@ namespace Ecotone\Enqueue;
 
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -12,7 +13,7 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 /**
  * licence Apache-2.0
  */
-abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder
+abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder, FinalFailureStrategyChannelBuilder
 {
     protected EnqueueInboundChannelAdapterBuilder $inboundChannelAdapter;
     protected EnqueueOutboundChannelAdapterBuilder $outboundChannelAdapter;
@@ -51,6 +52,11 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         $this->getOutboundChannelAdapter()->withHeaderMapper($headerMapper);
 
         return $this;
+    }
+
+    public function getFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return $this->getInboundChannelAdapter()->getFinalFailureStrategy();
     }
 
     public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): static

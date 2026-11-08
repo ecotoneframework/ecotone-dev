@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
@@ -74,6 +76,42 @@ final class ErrorHandlerPulseFeatures
                 default => 'No default error channel is set, so a message an asynchronous endpoint fails on is not sent to an error channel and is not retried later: what happens to it is decided by the final failure strategy of its channel.' . $perHandler,
             },
             configuration: sprintf("ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('%s')", $defaultErrorChannel ?? $configurations[0]->getErrorChannelName()),
+        )];
+    }
+
+    /**
+     * @param object[] $serviceExtensions
+     * @return PulseFeature[]
+     */
+    public static function finalFailureStrategyFor(array $serviceExtensions): array
+    {
+        if (! PulseFeature::isReportedFor($serviceExtensions)) {
+            return [];
+        }
+        $strategies = [];
+        foreach (ExtensionObjectResolver::resolve(FinalFailureStrategyChannelBuilder::class, $serviceExtensions) as $channel) {
+            if ($channel->isPollable()) {
+                $strategies['Channel ' . $channel->getMessageChannelName()] = $channel->getFinalFailureStrategy();
+            }
+        }
+        $explained = [
+            FinalFailureStrategy::RESEND->value => 'resend: the message is sent back to its channel, so the consumer goes on with the next messages and tries this one again later',
+            FinalFailureStrategy::RELEASE->value => 'release: the message is released back to its channel for another attempt, which keeps the order but blocks the consumer while it keeps failing',
+            FinalFailureStrategy::IGNORE->value => 'ignore: the message is dropped and the consumer goes on',
+            FinalFailureStrategy::STOP->value => 'stop: the consumer stops and the message stays in the channel, to be consumed when the consumer is started again',
+        ];
+        $used = array_unique(array_map(static fn (FinalFailureStrategy $strategy): string => $strategy->value, $strategies));
+
+        return [new PulseFeature(
+            package: ModulePackageList::CORE_PACKAGE,
+            name: 'Final failure strategy',
+            enabled: $strategies !== [],
+            settings: array_map(static fn (FinalFailureStrategy $strategy): string => $strategy->value, $strategies),
+            handlers: [],
+            hint: $strategies === []
+                ? 'This service consumes no pollable channel, so no final failure strategy applies.'
+                : 'The final failure strategy is the last decision for a message that still fails after its retries, when no error channel is set or the error channel fails too. On this service: ' . implode('; ', array_map(static fn (string $strategy): string => $explained[$strategy], $used)) . '. Channels default to resend.',
+            configuration: "->withFinalFailureStrategy(FinalFailureStrategy::STOP) on the channel's builder",
         )];
     }
 

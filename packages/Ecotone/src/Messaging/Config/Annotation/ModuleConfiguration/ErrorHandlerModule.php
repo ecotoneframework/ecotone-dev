@@ -146,12 +146,15 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return ErrorHandlerPulseFeatures::reportedFor(
-            serviceExtensions: $serviceExtensions,
-            serviceConfiguration: $serviceConfiguration,
-            endpointDelayedRetries: $this->endpointDelayedRetries,
-            gatewayDelayedRetries: $this->gatewayDelayedRetries,
-        );
+        return [
+            ...ErrorHandlerPulseFeatures::reportedFor(
+                serviceExtensions: $serviceExtensions,
+                serviceConfiguration: $serviceConfiguration,
+                endpointDelayedRetries: $this->endpointDelayedRetries,
+                gatewayDelayedRetries: $this->gatewayDelayedRetries,
+            ),
+            ...ErrorHandlerPulseFeatures::finalFailureStrategyFor($serviceExtensions),
+        ];
     }
 
     private static function buildErrorHandlerConfig(string $errorChannelName, RetryTemplateBuilder $retryTemplateBuilder, ?string $deadLetterChannel): ErrorHandlerConfiguration

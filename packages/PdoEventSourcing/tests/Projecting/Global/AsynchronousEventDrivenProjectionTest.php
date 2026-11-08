@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\OnConsumerStop;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Projection;
@@ -140,13 +145,15 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
     public function test_asynchronous_projection_runs_on_default_testing_pollable_setup(): void
     {
         $projection = $this->createAsyncProjection();
+        $consumerStops = $this->consumerStops();
 
         $ecotone = $this->bootstrapFlowTesting(
-            classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
-            containerOrAvailableServices: [$projection, new TicketEventConverter(), self::getConnectionFactory()],
+            classesToResolve: [$projection::class, $consumerStops::class, Ticket::class, TicketEventConverter::class],
+            containerOrAvailableServices: [$projection, $consumerStops, new TicketEventConverter(), self::getConnectionFactory()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel($projection::CHANNEL, true)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 00:00:00')),
         );
 
         $ecotone->deleteProjection($projection::NAME)
@@ -154,12 +161,9 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
 
-        $currentTime = microtime(true);
         $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
-        $finishTime = microtime(true);
 
-        // well below the default 1s polling timeout, proving the run does not wait for it (CI runners can be slow)
-        self::assertLessThan(500, ($finishTime - $currentTime) * 1000);
+        self::assertSame(['async_projection stopped at 00:00:00.000'], $ecotone->sendQueryWithRouting('consumer.stops'));
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
@@ -167,13 +171,15 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
     public function test_asynchronous_projection_runs_on_default_testing_pollable_setup_with_dbal_channel(): void
     {
         $projection = $this->createAsyncProjection();
+        $consumerStops = $this->consumerStops();
 
         $ecotone = $this->bootstrapFlowTesting(
-            classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
-            containerOrAvailableServices: [$projection, new TicketEventConverter(), self::getConnectionFactory()],
+            classesToResolve: [$projection::class, $consumerStops::class, Ticket::class, TicketEventConverter::class],
+            containerOrAvailableServices: [$projection, $consumerStops, new TicketEventConverter(), self::getConnectionFactory()],
             extensionObjects: [DbalBackedMessageChannelBuilder::create($projection::CHANNEL)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 00:00:00')),
         );
 
         $ecotone->deleteProjection($projection::NAME)
@@ -181,12 +187,9 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
 
-        $currentTime = microtime(true);
         $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
-        $finishTime = microtime(true);
 
-        // around ~300 ms as default testing setup is 100ms (however connection and set up might take longer)
-        self::assertLessThan(300, ($finishTime - $currentTime) * 1000);
+        self::assertSame(['async_projection stopped at 00:00:00.000'], $ecotone->sendQueryWithRouting('consumer.stops'));
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
@@ -292,6 +295,25 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
                 $this->connection->executeStatement(<<<SQL
                         DELETE FROM in_progress_tickets
                     SQL);
+            }
+        };
+    }
+
+    private function consumerStops(): object
+    {
+        return new class () {
+            private array $stops = [];
+
+            #[OnConsumerStop]
+            public function stopped(string $endpointId, #[Reference] EcotoneClockInterface $clock): void
+            {
+                $this->stops[] = $endpointId . ' stopped at ' . $clock->now()->format('H:i:s.v');
+            }
+
+            #[QueryHandler('consumer.stops')]
+            public function stops(): array
+            {
+                return $this->stops;
             }
         };
     }

@@ -16,7 +16,6 @@ final class NotificationSender
     public function sendWelcomeNotification(Customer $customer, string $tenant, Connection $connection): void
     {
         $connection->executeStatement('INSERT INTO customer_notifications (customer_id) VALUES (:customerId)', ['customerId' => $customer->getCustomerId()]);
-        echo "Sending welcome notification to customer {$customer->getCustomerId()} for tenant {$tenant}\n";
     }
 
     #[QueryHandler('getNotificationsCount')]

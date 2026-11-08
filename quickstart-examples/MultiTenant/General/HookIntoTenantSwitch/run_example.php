@@ -4,7 +4,6 @@ use App\MultiTenant\Application\Command\RegisterCustomer;
 use App\MultiTenant\Application\HookTenantSwitchSubscription;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 
@@ -16,7 +15,6 @@ $messagingSystem = EcotoneLite::bootstrap(
         new HookTenantSwitchSubscription(),
         'tenant_a_connection' => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'),
         'tenant_b_connection' => new DbalConnectionFactory(getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@localhost:3306/ecotone'),
-        'logger' => new EchoLogger()
     ],
     pathToRootCatalog: __DIR__,
     licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,

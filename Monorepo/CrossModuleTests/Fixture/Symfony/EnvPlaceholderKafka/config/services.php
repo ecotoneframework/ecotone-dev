@@ -3,6 +3,7 @@
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Psr\Log\NullLogger;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
@@ -14,6 +15,8 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     ]);
 
     $services = $containerConfigurator->services();
+
+    $services->set('logger', NullLogger::class);
 
     $services->set(KafkaBrokerConfiguration::class)
         ->factory([KafkaBrokerConfiguration::class, 'createWithDefaults'])

@@ -22,7 +22,6 @@ use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
-use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Test\LicenceTesting;
 use Exception;
 use PHPUnit\Framework\Attributes\Group;
@@ -102,7 +101,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             [
                 new MultipleInternalCommandsService(),
                 DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
-                //                "logger" => new EchoLogger()
             ],
             extensionObjects: [
                 DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnCommandBus(false)->withDoctrineORMRepositories(true),
@@ -169,7 +167,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             [
                 new MultipleInternalCommandsService(),
                 DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
-                'logger' => new EchoLogger(),
             ],
             extensionObjects: [
                 DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnCommandBus(false)->withDoctrineORMRepositories(true),

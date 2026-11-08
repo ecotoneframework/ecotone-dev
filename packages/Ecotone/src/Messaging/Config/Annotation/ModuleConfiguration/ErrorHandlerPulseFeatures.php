@@ -7,9 +7,11 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseConsumerFeature;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 /**
@@ -113,6 +115,36 @@ final class ErrorHandlerPulseFeatures
                 : 'The final failure strategy is the last decision for a message that still fails after its retries, when no error channel is set or the error channel fails too. On this service: ' . implode('; ', array_map(static fn (string $strategy): string => $explained[$strategy], $used)) . '. Channels default to resend.',
             configuration: "->withFinalFailureStrategy(FinalFailureStrategy::STOP) on the channel's builder",
         )];
+    }
+
+    /**
+     * @param object[] $serviceExtensions
+     * @param list<array{string, ErrorHandlerConfiguration}> $endpointDelayedRetries
+     * @return PulseConsumerFeature[]
+     */
+    public static function consumerFeaturesFor(array $serviceExtensions, ServiceConfiguration $serviceConfiguration, array $endpointDelayedRetries): array
+    {
+        if (! PulseFeature::isReportedFor($serviceExtensions)) {
+            return [];
+        }
+        $features = [PulseConsumerFeature::global('Error channel', ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $serviceExtensions, $serviceConfiguration)->defaultErrorChannel ?? 'none')];
+        foreach ($endpointDelayedRetries as [$endpointId, $configuration]) {
+            $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Delayed retries', self::scheduleOf($configuration->delayedRetryTemplate, $configuration->deadLetterChannel));
+        }
+        foreach (ExtensionObjectResolver::resolve(FinalFailureStrategyChannelBuilder::class, $serviceExtensions) as $channel) {
+            if ($channel->isPollable()) {
+                $features[] = $channel->getFinalFailureStrategy() === FinalFailureStrategy::RESEND
+                    ? PulseConsumerFeature::defaultFor($channel->getMessageChannelName(), 'Final failure strategy', FinalFailureStrategy::RESEND->value)
+                    : PulseConsumerFeature::forConsumer($channel->getMessageChannelName(), 'Final failure strategy', $channel->getFinalFailureStrategy()->value);
+            }
+        }
+        foreach (ExtensionObjectResolver::resolve(PollingMetadata::class, $serviceExtensions) as $pollingMetadata) {
+            if ($pollingMetadata->getErrorChannelName() !== '') {
+                $features[] = PulseConsumerFeature::forConsumer($pollingMetadata->getEndpointId(), 'Error channel', $pollingMetadata->getErrorChannelName());
+            }
+        }
+
+        return $features;
     }
 
     private static function scheduleOf(RetryTemplate $retryTemplate, ?string $deadLetterChannel): string

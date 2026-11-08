@@ -45,7 +45,7 @@ final class PulseSnapshot
     public const ROUTING_KEY = 'ecotone.pulse.snapshot';
     public const REPLY_ROUTING_KEY = 'ecotone.pulse.snapshot_received';
     public const PROBE_BUDGET_IN_MILLISECONDS = 2000;
-    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels', 'tenancy', 'tenant', 'sectionErrors', 'packages'];
+    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels', 'tenancy', 'tenant', 'sectionErrors', 'packages', 'consumers'];
 
     /**
      * @param array<array{referenceName: string, commandMapping: array<string, string>, eventSubscriptions: array<array{channel: string, subscriptionKeys: string[], excludePublishingServices: string[], includePublishingServices: string[]}>, asynchronousChannel: string|null}> $serviceMaps
@@ -56,6 +56,8 @@ final class PulseSnapshot
      * @param array{header: string, tenants: list<string>}|array{} $tenancy
      * @param array{enterprise: bool, expiresAt: string, testing: bool} $licence
      * @param list<array{name: string, composerPackage: string, features: list<array<string, mixed>>}> $packages
+     * @param list<array{name: string, value: string, scope: string, target: ?string}> $consumerFeatures
+     * @param array<string, list<string>> $endpointsByChannel
      */
     public function __construct(
         private string $serviceName,
@@ -69,6 +71,8 @@ final class PulseSnapshot
         private array $tenancy,
         private array $licence,
         private array $packages,
+        private array $consumerFeatures,
+        private array $endpointsByChannel,
         private ConfiguredMessagingSystem $messagingSystem,
         private EcotoneClockInterface $clock,
         private PulseSectionIsolation $sectionIsolation,
@@ -161,6 +165,7 @@ final class PulseSnapshot
             'flowGraph' => $this->messagingSystem->getMessageFlowGraph()->toArray(),
             'topology' => ['serviceMaps' => $this->serviceMaps],
             'channels' => $this->channelsWithDepth(forTenant: false),
+            'consumers' => $this->consumers(),
             'packages' => array_map(
                 static fn (array $package): array => [...$package, 'version' => InstalledVersions::isInstalled($package['composerPackage']) ? InstalledVersions::getPrettyVersion($package['composerPackage']) : null],
                 $this->packages,
@@ -239,6 +244,38 @@ final class PulseSnapshot
             ],
             $listed
         ));
+    }
+
+    /**
+     * @return list<array{name: string, kind: string, handlers: list<string>, features: list<array{name: string, value: string, scope: string, handler: ?string}>}>
+     */
+    private function consumers(): array
+    {
+        $channelNames = array_column($this->channels, 'name');
+        $consumers = [];
+        foreach ($this->messagingSystem->list() as $consumerName) {
+            $handlers = $this->endpointsByChannel[$consumerName] ?? [];
+            $features = [];
+            foreach ($this->consumerFeatures as $feature) {
+                if ($feature['target'] === null || $feature['target'] === $consumerName) {
+                    $features[$feature['name']] = ['name' => $feature['name'], 'value' => $feature['value'], 'scope' => $feature['scope'], 'handler' => null];
+                }
+            }
+            $features = array_values($features);
+            foreach ($this->consumerFeatures as $feature) {
+                if ($feature['target'] !== null && in_array($feature['target'], $handlers, true)) {
+                    $features[] = ['name' => $feature['name'], 'value' => $feature['value'], 'scope' => $feature['scope'], 'handler' => $feature['target']];
+                }
+            }
+            $consumers[] = [
+                'name' => $consumerName,
+                'kind' => isset($this->endpointsByChannel[$consumerName]) || in_array($consumerName, $channelNames, true) ? 'polling' : 'inbound',
+                'handlers' => $handlers,
+                'features' => $features,
+            ];
+        }
+
+        return $consumers;
     }
 
     /**

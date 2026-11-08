@@ -414,6 +414,48 @@ final class PulseFeaturesTest extends TestCase
         self::assertStringContainsString('appended with the tags of their #[EventTag] properties', $boundary['hint']);
     }
 
+    public function test_each_consumer_lists_its_features_tagged_as_its_own_configuration_or_the_global_one(): void
+    {
+        $handlers = new class () {
+            #[Asynchronous('orders', asynchronousExecution: [new DelayedRetry(initialDelayInMilliseconds: 500, multiplier: 2, maxRetries: 2)])]
+            #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
+            public function place(string $orderId): void
+            {
+            }
+
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.cancel', endpointId: 'order.cancel.endpoint')]
+            public function cancel(string $orderId): void
+            {
+            }
+
+            #[InstantRetry(retryTimes: 2)]
+            #[Scheduled('report.send', 'reports')]
+            #[Poller(fixedRateInMilliseconds: 60000)]
+            public function report(): ?string
+            {
+                return null;
+            }
+        };
+
+        $consumers = array_column($this->snapshotOf($handlers, [
+            SimpleMessageChannelBuilder::createQueueChannel('orders'),
+            InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 1),
+        ])['consumers'], null, 'name');
+
+        self::assertSame('polling', $consumers['orders']['kind']);
+        self::assertSame(['order.place.endpoint', 'order.cancel.endpoint'], $consumers['orders']['handlers']);
+        $orders = array_column($consumers['orders']['features'], null, 'name');
+        self::assertSame(['name' => 'Instant retries', 'value' => '1 retry times on any exception', 'scope' => 'global', 'handler' => null], $orders['Instant retries']);
+        self::assertSame(['name' => 'Error channel', 'value' => 'none', 'scope' => 'global', 'handler' => null], $orders['Error channel']);
+        self::assertSame(['name' => 'Final failure strategy', 'value' => 'resend', 'scope' => 'global', 'handler' => null], $orders['Final failure strategy']);
+        self::assertSame(['name' => 'Delayed retries', 'value' => '2 retries: after 500 ms and 1000 ms, then no further retry', 'scope' => 'consumer-level config', 'handler' => 'order.place.endpoint'], $orders['Delayed retries']);
+        self::assertSame('inbound', $consumers['reports']['kind']);
+        $reports = array_column($consumers['reports']['features'], null, 'name');
+        self::assertSame(['name' => 'Instant retries', 'value' => '2 retry times on any exception', 'scope' => 'consumer-level config', 'handler' => null], $reports['Instant retries']);
+        self::assertSame(['name' => 'Poller', 'value' => 'every 1 minute', 'scope' => 'consumer-level config', 'handler' => null], $reports['Poller']);
+    }
+
     /**
      * @param object[] $extensionObjects
      * @param string[] $classesToResolve
@@ -426,8 +468,17 @@ final class PulseFeaturesTest extends TestCase
 
     /**
      * @param object[] $extensionObjects
+     * @return array<string, mixed>
+     */
+    private function snapshotOf(object $handlers, array $extensionObjects = []): array
+    {
+        return $this->reportedBy($handlers, $extensionObjects)[2];
+    }
+
+    /**
+     * @param object[] $extensionObjects
      * @param string[] $classesToResolve
-     * @return array{0: FlowTestSupport, 1: array<string, array<string, mixed>>}
+     * @return array{0: FlowTestSupport, 1: array<string, array<string, mixed>>, 2: array<string, mixed>}
      */
     private function reportedBy(object $handlers, array $extensionObjects = [], array $classesToResolve = [], ?ServiceConfiguration $serviceConfiguration = null): array
     {
@@ -470,9 +521,10 @@ final class PulseFeaturesTest extends TestCase
         $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        $packages = array_column(json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['packages'], 'features', 'name');
+        $snapshot = json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR);
+        $packages = array_column($snapshot['packages'], 'features', 'name');
 
-        return [$orderService, array_column($packages['core'], null, 'name')];
+        return [$orderService, array_column($packages['core'], null, 'name'), $snapshot];
     }
 
     private function orders(): object

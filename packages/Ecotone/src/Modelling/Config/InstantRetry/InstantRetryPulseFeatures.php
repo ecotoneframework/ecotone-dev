@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseConsumerFeature;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 /**
@@ -68,6 +69,22 @@ final class InstantRetryPulseFeatures
     public function under(InstantRetryDefaults $defaults): array
     {
         return [$this->asynchronousEndpoints($defaults), $this->commandBus($defaults)];
+    }
+
+    /**
+     * @return PulseConsumerFeature[]
+     */
+    public function consumerFeaturesUnder(InstantRetryDefaults $defaults): array
+    {
+        $isEnabled = $this->configuration->isEnabledForAsynchronousEndpoints ?? $defaults->forAsynchronousEndpoints();
+        $global = $isEnabled
+            ? sprintf('%d retry times on %s', $this->configuration->asynchronousRetryTimes, PulseFeature::exceptionsOf($this->configuration->asynchronousExceptions)) . ($this->configuration->isEnabledForAsynchronousEndpoints === null ? ', in a database transaction' : '')
+            : 'off';
+
+        return [
+            PulseConsumerFeature::global('Instant retries', $global),
+            ...array_map(static fn (array $override): PulseConsumerFeature => PulseConsumerFeature::forConsumer($override[0], 'Instant retries', sprintf('%d retry times on %s', $override[1]->retryTimes, PulseFeature::exceptionsOf($override[1]->exceptions))), $this->endpointOverrides),
+        ];
     }
 
     private function asynchronousEndpoints(InstantRetryDefaults $defaults): PulseFeature

@@ -154,6 +154,7 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
                 gatewayDelayedRetries: $this->gatewayDelayedRetries,
             ),
             ...ErrorHandlerPulseFeatures::finalFailureStrategyFor($serviceExtensions),
+            ...ErrorHandlerPulseFeatures::consumerFeaturesFor($serviceExtensions, $serviceConfiguration, $this->endpointDelayedRetries),
         ];
     }
 

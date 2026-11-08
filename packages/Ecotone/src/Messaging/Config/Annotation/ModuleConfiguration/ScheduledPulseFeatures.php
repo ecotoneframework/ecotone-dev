@@ -8,6 +8,7 @@ use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\Api\Attribute\Poller;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseConsumerFeature;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 /**
@@ -65,7 +66,25 @@ final class ScheduledPulseFeatures
         )];
     }
 
-    private static function scheduleOf(PollingMetadata|Poller|null $schedule): string
+    /**
+     * @param object[] $serviceExtensions
+     * @param PollingMetadata[] $pollerMetadata
+     * @return PulseConsumerFeature[]
+     */
+    public static function pollerFeaturesFor(array $serviceExtensions, array $pollerMetadata): array
+    {
+        if (! PulseFeature::isReportedFor($serviceExtensions)) {
+            return [];
+        }
+        $byEndpoint = [];
+        foreach ([...$pollerMetadata, ...ExtensionObjectResolver::resolve(PollingMetadata::class, $serviceExtensions)] as $metadata) {
+            $byEndpoint[$metadata->getEndpointId()] = PulseConsumerFeature::forConsumer($metadata->getEndpointId(), 'Poller', self::scheduleOf($metadata));
+        }
+
+        return array_values($byEndpoint);
+    }
+
+    public static function scheduleOf(PollingMetadata|Poller|null $schedule): string
     {
         return match (true) {
             $schedule === null => 'every ' . PulseFeature::durationOf(PollingMetadata::DEFAULT_FIXED_RATE),

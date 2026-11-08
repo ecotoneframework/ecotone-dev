@@ -20,6 +20,7 @@ use Ecotone\Messaging\Channel\DepthProbedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Configuration;
@@ -135,6 +136,11 @@ final class PulseModule implements AnnotationModule
                     ...ExtensionObjectResolver::resolve(PulseFeature::class, $extensionObjects),
                     ...array_merge(...array_map(static fn (InstantRetryPulseFeatures $instantRetries): array => $instantRetries->under(InstantRetryDefaults::from($extensionObjects)), ExtensionObjectResolver::resolve(InstantRetryPulseFeatures::class, $extensionObjects))),
                 ]),
+                [
+                    ...array_map(static fn (PulseConsumerFeature $feature): array => $feature->toArray(), ExtensionObjectResolver::resolve(PulseConsumerFeature::class, $extensionObjects)),
+                    ...array_map(static fn (PulseConsumerFeature $feature): array => $feature->toArray(), array_merge(...array_map(static fn (InstantRetryPulseFeatures $instantRetries): array => $instantRetries->consumerFeaturesUnder(InstantRetryDefaults::from($extensionObjects)), ExtensionObjectResolver::resolve(InstantRetryPulseFeatures::class, $extensionObjects)))),
+                ],
+                self::endpointsByChannel($extensionObjects),
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),
                 new Reference(ExtensionObjectResolver::resolve(PulseSectionIsolationRegistration::class, $extensionObjects)[0]->serviceReference ?? NoPulseSectionIsolation::class),
@@ -191,6 +197,24 @@ final class PulseModule implements AnnotationModule
         ksort($channels);
 
         return ['channels' => array_values($channels), 'probes' => $probes];
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     * @return array<string, list<string>>
+     */
+    private static function endpointsByChannel(array $extensionObjects): array
+    {
+        $endpointsByChannel = [];
+        foreach (ExtensionObjectResolver::resolve(AsynchronousModule::class, $extensionObjects) as $asynchronousModule) {
+            foreach ($asynchronousModule->resolveChannels($extensionObjects) as $endpointId => $channels) {
+                foreach ($channels as $channel) {
+                    $endpointsByChannel[$channel][] = $endpointId;
+                }
+            }
+        }
+
+        return $endpointsByChannel;
     }
 
     private static function serviceConfigurationFeature(ServiceConfiguration $serviceConfiguration): PulseFeature

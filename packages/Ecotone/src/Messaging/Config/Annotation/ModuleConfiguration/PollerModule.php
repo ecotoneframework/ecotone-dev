@@ -7,6 +7,7 @@ use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\Poller;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Attribute\ChannelAdapter;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -68,6 +69,11 @@ final class PollerModule extends NoExternalConfigurationModule implements Annota
         foreach ($this->pollingMetadata as $metadata) {
             $messagingConfiguration->registerPollingMetadata($metadata);
         }
+    }
+
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
+    {
+        return ScheduledPulseFeatures::pollerFeaturesFor($serviceExtensions, $this->pollingMetadata);
     }
 
     public function getModulePackageName(): string

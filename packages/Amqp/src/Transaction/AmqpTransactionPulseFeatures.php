@@ -8,6 +8,7 @@ use Ecotone\Amqp\Configuration\AmqpConfiguration;
 use Ecotone\Api\Amqp\AmqpConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseConsumerFeature;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 /**
@@ -34,7 +35,7 @@ final class AmqpTransactionPulseFeatures
 {
     /**
      * @param object[] $serviceExtensions
-     * @return PulseFeature[]
+     * @return array<PulseFeature|PulseConsumerFeature>
      */
     public static function reportedFor(array $serviceExtensions): array
     {
@@ -49,7 +50,9 @@ final class AmqpTransactionPulseFeatures
             'console command' => $amqpConfiguration->isTransactionOnConsoleCommands(),
         ]));
 
-        return [new PulseFeature(
+        $consumerFeature = PulseConsumerFeature::global('RabbitMQ transaction', PulseFeature::onOff($amqpConfiguration->isTransactionOnAsynchronousEndpoints()));
+
+        return [$consumerFeature, new PulseFeature(
             package: ModulePackageList::AMQP_PACKAGE,
             name: 'RabbitMQ transactions',
             enabled: $entryPoints !== [],

@@ -6,10 +6,12 @@ namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
 use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Amqp\RabbitConsumer;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -75,6 +77,28 @@ final class PulseFeaturesTest extends AmqpMessagingTestCase
         self::assertStringContainsString('only through message channels', $publishers['hint']);
     }
 
+    public function test_each_amqp_consumer_is_listed_with_its_final_failure_strategy_tagged_default_or_its_own(): void
+    {
+        $handlers = new class () {
+            #[RabbitConsumer('rabbit.orders', 'orders_queue')]
+            public function orders(string $orderId): void
+            {
+            }
+
+            #[RabbitConsumer('rabbit.payments', 'payments_queue', FinalFailureStrategy::RESEND)]
+            public function payments(string $orderId): void
+            {
+            }
+        };
+
+        $consumers = array_column($this->snapshot([], handlers: $handlers)['consumers'], null, 'name');
+
+        self::assertSame('inbound', $consumers['rabbit.orders']['kind']);
+        self::assertContains(['name' => 'Final failure strategy', 'value' => 'stop', 'scope' => 'global', 'handler' => null], $consumers['rabbit.orders']['features']);
+        self::assertContains(['name' => 'Final failure strategy', 'value' => 'resend', 'scope' => 'consumer-level config', 'handler' => null], $consumers['rabbit.payments']['features']);
+        self::assertContains(['name' => 'RabbitMQ transaction', 'value' => 'off', 'scope' => 'global', 'handler' => null], $consumers['rabbit.orders']['features']);
+    }
+
     /**
      * @param object[] $extensionObjects
      * @param array<string, object> $services
@@ -82,7 +106,17 @@ final class PulseFeaturesTest extends AmqpMessagingTestCase
      */
     private function features(array $extensionObjects, array $services = []): array
     {
-        $handlers = new class () {
+        return array_column(array_column($this->snapshot($extensionObjects, $services)['packages'], 'features', 'name')['amqp'], null, 'name');
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     * @param array<string, object> $services
+     * @return array<string, mixed>
+     */
+    private function snapshot(array $extensionObjects, array $services = [], ?object $handlers = null): array
+    {
+        $handlers ??= new class () {
             #[CommandHandler('order.place')]
             public function place(string $orderId): void
             {
@@ -127,8 +161,6 @@ final class PulseFeaturesTest extends AmqpMessagingTestCase
         $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        $packages = array_column(json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['packages'], 'features', 'name');
-
-        return array_column($packages['amqp'], null, 'name');
+        return json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR);
     }
 }

@@ -8,10 +8,12 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Kafka\KafkaConsumer;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Pulse\PulseConfiguration;
@@ -57,6 +59,27 @@ final class PulseFeaturesTest extends TestCase
         self::assertSame('0', $publishers['settings']['Publishers']);
     }
 
+    public function test_each_kafka_consumer_is_listed_with_its_final_failure_strategy_tagged_default_or_its_own(): void
+    {
+        $handlers = new class () {
+            #[KafkaConsumer('kafka.orders', 'orders')]
+            public function orders(string $orderId): void
+            {
+            }
+
+            #[KafkaConsumer('kafka.payments', 'payments', finalFailureStrategy: FinalFailureStrategy::RESEND)]
+            public function payments(string $orderId): void
+            {
+            }
+        };
+
+        $consumers = array_column($this->snapshot([], handlers: $handlers)['consumers'], null, 'name');
+
+        self::assertSame('inbound', $consumers['kafka.orders']['kind']);
+        self::assertContains(['name' => 'Final failure strategy', 'value' => 'stop', 'scope' => 'global', 'handler' => null], $consumers['kafka.orders']['features']);
+        self::assertContains(['name' => 'Final failure strategy', 'value' => 'resend', 'scope' => 'consumer-level config', 'handler' => null], $consumers['kafka.payments']['features']);
+    }
+
     /**
      * @param object[] $extensionObjects
      * @param array<string, object> $services
@@ -64,7 +87,17 @@ final class PulseFeaturesTest extends TestCase
      */
     private function features(array $extensionObjects, array $services = []): array
     {
-        $handlers = new class () {
+        return array_column(array_column($this->snapshot($extensionObjects, $services)['packages'], 'features', 'name')['kafka'], null, 'name');
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     * @param array<string, object> $services
+     * @return array<string, mixed>
+     */
+    private function snapshot(array $extensionObjects, array $services = [], ?object $handlers = null): array
+    {
+        $handlers ??= new class () {
             #[CommandHandler('order.place')]
             public function place(string $orderId): void
             {
@@ -109,8 +142,6 @@ final class PulseFeaturesTest extends TestCase
         $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        $packages = array_column(json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['packages'], 'features', 'name');
-
-        return array_column($packages['kafka'], null, 'name');
+        return json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR);
     }
 }

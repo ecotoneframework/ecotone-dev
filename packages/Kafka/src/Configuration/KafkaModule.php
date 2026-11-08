@@ -7,6 +7,7 @@ namespace Ecotone\Kafka\Configuration;
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -36,6 +37,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayload
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseConsumerFeature;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 /**
@@ -224,7 +226,12 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
             return [];
         }
 
-        return [PulseFeature::messagePublishers(
+        return [...array_map(
+            static fn (KafkaConsumer $kafkaConsumer): PulseConsumerFeature => $kafkaConsumer->getFinalFailureStrategy() === FinalFailureStrategy::STOP
+                ? PulseConsumerFeature::defaultFor($kafkaConsumer->getEndpointId(), 'Final failure strategy', FinalFailureStrategy::STOP->value)
+                : PulseConsumerFeature::forConsumer($kafkaConsumer->getEndpointId(), 'Final failure strategy', $kafkaConsumer->getFinalFailureStrategy()->value),
+            array_values($this->kafkaConsumers),
+        ), PulseFeature::messagePublishers(
             package: ModulePackageList::KAFKA_PACKAGE,
             broker: 'Kafka',
             publishers: array_map(

@@ -51,8 +51,21 @@ if [ -z "${ECOTONE_LICENCE_KEY:-}" ]; then
     fi
 fi
 
+install_importmap() {
+    local deadline=$(( $(date +%s) + 150 )) attempt=1
+    until php -d default_socket_timeout=20 bin/console importmap:install; do
+        if [ "$(date +%s)" -ge "$deadline" ]; then
+            echo "Demo: $DEMO_APP could not download its JavaScript packages (importmap:install) from cdn.jsdelivr.net after about 150 seconds of attempts; the last error is above. Check that the container reaches https://cdn.jsdelivr.net, then restart it." >&2
+            return 1
+        fi
+        echo "Demo: $DEMO_APP's importmap:install attempt $attempt failed, retrying in 3 seconds, for up to $(( deadline - $(date +%s) )) more seconds."
+        attempt=$(( attempt + 1 ))
+        sleep 3
+    done
+}
+
 if [ "$DEMO_APP" = pulse ]; then
-    php bin/console importmap:install
+    install_importmap
     export DEMO_PUBLIC_DIR="$PWD/public"
     exec /repo/apps/Pulse/docker/entrypoint.sh run
 fi
@@ -60,8 +73,6 @@ fi
 if [ "$DEMO_APP" = ticketing ]; then
     console=(php bin/console)
     prepare() {
-        find "var/cache/${APP_ENV:-dev}/ecotone/jms/metadata" -type f -delete 2>/dev/null || true
-        "${console[@]}" importmap:install
         "${console[@]}" doctrine:migrations:migrate --no-interaction --allow-no-migration
         "${console[@]}" messenger:setup-transports
         "${console[@]}" ecotone:migration:database:setup --initialize
@@ -78,6 +89,10 @@ fi
 
 case "$role" in
     web)
+        if [ "$DEMO_APP" = ticketing ]; then
+            find "var/cache/${APP_ENV:-dev}/ecotone/jms/metadata" -type f -delete 2>/dev/null || true
+            install_importmap
+        fi
         deadline=$(( $(date +%s) + 60 ))
         prepare_log=/tmp/demo-prepare.log
         attempt=1

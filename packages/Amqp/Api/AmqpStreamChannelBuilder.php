@@ -6,6 +6,7 @@ namespace Ecotone\Api\Amqp;
 
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\Amqp\AmqpStreamInboundChannelAdapterBuilder;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 
@@ -98,5 +99,10 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
     public function __toString()
     {
         return sprintf('AMQP Stream Channel - %s', $this->channelName);
+    }
+
+    public function getDefaultFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return FinalFailureStrategy::RELEASE;
     }
 }

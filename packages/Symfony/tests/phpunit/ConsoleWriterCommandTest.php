@@ -14,6 +14,8 @@ use Symfony\Component\Console\Tester\CommandTester;
  */
 final class ConsoleWriterCommandTest extends KernelTestCase
 {
+    use RestoresGlobalHandlers;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -21,13 +23,6 @@ final class ConsoleWriterCommandTest extends KernelTestCase
         self::bootKernel([
             'environment' => 'test',
         ]);
-    }
-
-    protected function tearDown(): void
-    {
-        restore_exception_handler();
-
-        parent::tearDown();
     }
 
     public function test_console_command_writes_formatted_output_through_symfony_console(): void

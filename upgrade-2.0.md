@@ -3641,6 +3641,16 @@ refused, naming both.
 
 The snapshot of a service that has the Dbal package carries a `deadLetter` section, `{"enabled": true|false}`, next to `deadLetters` (which is still present only when dead letters are enabled), so a consumer of the snapshot tells "dead letter storage is enabled and empty" from "not configured". The field is additive: a snapshot without it is read by whether `deadLetters` is present, as before.
 
+The snapshot also carries a `packages` list: one `{name, composerPackage, version, features}` per Ecotone package the
+service has installed, a package that needs no table included, where each feature is `{name, enabled, settings,
+handlers, hint, configuration}`. Each table in the `setup` section names its `package`, and `overview.licence` is
+`{enterprise, expiresAt, testing}`, where `expiresAt` is the licence's expiry as an ATOM date (it was always `null`
+before) and `testing` is `true` on Ecotone's testing licence. A `consumers` list names every consumer the
+service can run, `{name, kind, handlers, features}`, where `kind` is `polling` or `inbound` and each feature is `{name, value,
+scope, handler}` with `scope` either `global` or `consumer-level config`. All of it is additive and `schemaVersion` stays `1`: an
+older Pulse ignores the new keys, and a newer Pulse shows the tables of an older service in one list, without packages,
+and its licence expiry as unknown.
+
 With the DBAL dead letter enabled, the snapshot gains a `deadLetters` section: the `total`, the `groups` by message name
 and exception class, and the 100 `recent` dead letters newest first. Each recent dead letter has its message id, name,
 `failedAt`, exception class and message, stack trace and payload (both cut at 4096 bytes with a `... [truncated]`

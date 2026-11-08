@@ -251,7 +251,7 @@ final class DbalDocumentStoreModule implements AnnotationModule
             );
         }
 
-        return $extensions;
+        return [...$extensions, ...DbalDocumentStorePulseFeatures::reportedFor($serviceExtensions, $dbalConfiguration)];
     }
 
     public function getModulePackageName(): string

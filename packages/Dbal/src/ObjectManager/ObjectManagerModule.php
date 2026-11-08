@@ -91,7 +91,7 @@ final class ObjectManagerModule implements AnnotationModule
             $repositories[] = new DoctrineORMRepositoryBuilder($dbalConfiguration);
         }
 
-        return $repositories;
+        return [...$repositories, ...ObjectManagerPulseFeatures::reportedFor($serviceExtensions, $dbalConfiguration)];
     }
 
     public function getModulePackageName(): string

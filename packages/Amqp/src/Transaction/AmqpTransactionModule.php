@@ -93,7 +93,7 @@ final class AmqpTransactionModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [];
+        return AmqpTransactionPulseFeatures::reportedFor($serviceExtensions);
     }
 
     /**

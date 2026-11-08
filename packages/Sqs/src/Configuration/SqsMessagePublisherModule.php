@@ -90,6 +90,11 @@ final class SqsMessagePublisherModule extends NoExternalConfigurationModule impl
         }
     }
 
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
+    {
+        return SqsMessagePublisherPulseFeatures::reportedFor($serviceExtensions);
+    }
+
     public function getModulePackageName(): string
     {
         return ModulePackageList::SQS_PACKAGE;

@@ -7,6 +7,7 @@ namespace App\Tests\Settings;
 use App\Settings\PulseConfigurationException;
 use App\Settings\PulseSettings;
 use App\Tests\Support\PulseEnvironmentTrait;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -31,6 +32,15 @@ final class EnvironmentRefusalTest extends KernelTestCase
         $settings = PulseSettings::fromEnvironment(['ECOTONE_LICENCE_KEY' => 'key', 'PULSE_VERSION' => '2.0.1', 'PULSE_TRANSPORT_DSN' => 'amqp://guest:guest@rabbitmq:5672', 'PULSE_SERVICES' => 'orders'], __DIR__);
 
         self::assertSame('2.0.1', $settings->version);
+    }
+
+    public function test_pulse_on_its_own_licence_is_not_the_demo_version(): void
+    {
+        $own = PulseSettings::fromEnvironment(['ECOTONE_LICENCE_KEY' => 'key', 'PULSE_VERSION' => 'test', 'PULSE_TRANSPORT_DSN' => 'amqp://guest:guest@rabbitmq:5672', 'PULSE_SERVICES' => 'orders'], __DIR__);
+        $testing = PulseSettings::fromEnvironment(['ECOTONE_LICENCE_KEY' => LicenceTesting::VALID_LICENCE, 'PULSE_VERSION' => 'test', 'PULSE_TRANSPORT_DSN' => 'amqp://guest:guest@rabbitmq:5672', 'PULSE_SERVICES' => 'orders'], __DIR__);
+
+        self::assertFalse($own->runsOnTestingLicence);
+        self::assertTrue($testing->runsOnTestingLicence);
     }
 
     public function test_services_listed_by_name_consume_a_channel_named_like_the_service(): void
@@ -96,7 +106,7 @@ final class EnvironmentRefusalTest extends KernelTestCase
     public static function invalid_environments(): iterable
     {
         yield 'missing licence key' => [['ECOTONE_LICENCE_KEY' => null], 'ECOTONE_LICENCE_KEY is not set, but Ecotone Pulse is an Ecotone Enterprise application and does not start without a licence. Set ECOTONE_LICENCE_KEY to your Enterprise licence key (trial: https://ecotone.tech/pricing).'];
-        yield 'missing version' => [['PULSE_VERSION' => null], 'PULSE_VERSION is not set, so Pulse cannot tell which image version a browser has already seen the intro for. The Docker image sets it from its build argument: build with --build-arg PULSE_VERSION=<tag>, or when running outside the image set PULSE_VERSION to any non-empty value such as dev.'];
+        yield 'missing version' => [['PULSE_VERSION' => null], 'PULSE_VERSION is not set, so Pulse cannot say which version of the image it runs. The Docker image sets it from its build argument: build with --build-arg PULSE_VERSION=<tag>, or when running outside the image set PULSE_VERSION to any non-empty value such as dev.'];
         yield 'missing transport' => [['PULSE_TRANSPORT_DSN' => null], 'PULSE_TRANSPORT_DSN is not set, so Pulse does not know which broker the services are reachable on.'];
         yield 'unknown transport scheme' => [['PULSE_TRANSPORT_DSN' => 'ftp://host'], 'PULSE_TRANSPORT_DSN "ftp://host" does not start with a supported scheme (matched case-insensitively), so Pulse cannot tell which broker to connect to. Use one of: amqp:// (Amqp), amqps:// (Amqp), redis:// (Redis), sqs: (Sqs), kafka:// (Kafka), pgsql:// (Dbal), mysql:// (Dbal), sqlite:// (Dbal).'];
         yield 'missing services' => [['PULSE_SERVICES' => null], 'PULSE_SERVICES is not set, so Pulse has no services to ask for snapshots. PULSE_SERVICES has to list the services Pulse manages by name, optionally with the channel the service consumes, as "service_name" or "service_name:channel_name" separated by commas, for example PULSE_SERVICES=orders,billing or PULSE_SERVICES=orders:orders_channel,billing:billing_channel.'];

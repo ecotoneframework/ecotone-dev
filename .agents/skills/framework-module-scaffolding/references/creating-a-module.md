@@ -113,7 +113,7 @@ Steps:
 2. Rename the template module class to `<YourPackage>Module`
 3. Update namespace from template namespace to `Ecotone\<YourPackage>`
 4. Update `composer.json` (name, autoload)
-5. Register package: constant in `ModulePackageList`, then `packageNames()` and the `forPackage()` match case in `ModuleClassList`
+5. Register package: constant in `ModulePackageList`, then `packageNames()`, the `forPackage()` match case and the `composerPackageNameOf()` match case in `ModuleClassList`
 6. Add the module class to its package's `ModuleClassList::*_MODULES` constant (`DBAL_MODULES`, `CORE_MODULES`, ...).
    This is also the only step a new module in an **existing** package needs, and the one nothing reports when it is
    missing: `forPackage()` returns that constant, so a module left out of it is never loaded

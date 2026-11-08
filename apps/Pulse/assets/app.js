@@ -17,7 +17,7 @@ const showIntro = () => {
         }
         ended = true;
         timers.forEach(clearTimeout);
-        try { localStorage.setItem('ecotone-pulse.intro-seen', root.dataset.pulseVersion); } catch (error) {}
+        try { localStorage.setItem('ecotone-pulse.intro-seen-on', root.dataset.introDay); } catch (error) {}
         intro.classList.add('intro-leaving');
         setTimeout(() => { root.classList.remove('intro-pending'); intro.remove(); }, reduced ? 0 : 500);
     };

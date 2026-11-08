@@ -21,10 +21,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 class SymfonyApplicationTest extends KernelTestCase
 {
-    protected function tearDown(): void
-    {
-        restore_exception_handler();
-    }
+    use RestoresGlobalHandlers;
 
     public function test_it_boots_kernel_with_test_support(): void
     {

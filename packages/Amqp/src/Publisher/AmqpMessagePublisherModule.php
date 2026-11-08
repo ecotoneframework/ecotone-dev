@@ -103,7 +103,7 @@ final class AmqpMessagePublisherModule implements AnnotationModule
      */
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [];
+        return AmqpMessagePublisherPulseFeatures::reportedFor($serviceExtensions);
     }
 
     public function getModulePackageName(): string

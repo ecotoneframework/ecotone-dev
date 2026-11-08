@@ -23,12 +23,13 @@ A module implements `AnnotationModule`, carries `#[ModuleAnnotation]`, and its c
 - **Expected:** a new module class appears in a `ModuleClassList` constant in the same change.
 - **Verified by:** `eval:new-package`
 
-### M2. A new package starts from `_PackageTemplate/` and is registered in three places
+### M2. A new package starts from `_PackageTemplate/` and is registered in four places
 Its name goes into `ModulePackageList` (`Ecotone\Api\ExtensionObject\ModulePackageList`), into
-`ModuleClassList::packageNames()` and `ModuleClassList::forPackage()`. It has its own `composer.json`,
+`ModuleClassList::packageNames()`, `ModuleClassList::forPackage()` and `ModuleClassList::composerPackageNameOf()`,
+which names its Composer package and refuses an unknown package at bootstrap. It has its own `composer.json`,
 `phpstan.neon`, `phpunit.xml.dist`, `Api/` beside `src/`, and is split by `monorepo-builder.php`.
 - **Expected:** the plan copies `_PackageTemplate/` and names `ModulePackageList`,
-  `ModuleClassList::packageNames()` and `ModuleClassList::forPackage()`.
+  `ModuleClassList::packageNames()`, `ModuleClassList::forPackage()` and `ModuleClassList::composerPackageNameOf()`.
 - **Verified by:** `eval:new-package`
 
 ### M3. A module is never named in its test

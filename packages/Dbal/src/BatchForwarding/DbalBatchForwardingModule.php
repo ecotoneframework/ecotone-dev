@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\WithoutMessageCollector;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\OutboxForwardingMessageChannel;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Tracing\FlowTrackingScope;
@@ -30,6 +31,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 #[ModuleAnnotation]
 /**
@@ -110,6 +112,29 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
                     ->withEndpointAnnotations([new AttributeDefinition(WithoutMessageCollector::class), new AttributeDefinition(WithoutDatabaseTransaction::class)]),
             );
         }
+    }
+
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
+    {
+        if (! PulseFeature::isReportedFor($serviceExtensions)) {
+            return [];
+        }
+        $settings = [];
+        foreach (ExtensionObjectResolver::resolve(OutboxForwardingMessageChannel::class, $serviceExtensions) as $forwarding) {
+            $settings['Channel ' . $forwarding->getReferenceName()] = sprintf('from %s to %s, up to %d messages per run, run with ecotone:run %s', $forwarding->getSourceChannelName(), $forwarding->getTargetChannelName(), $forwarding->getMaxForwardingBatchSize(), $forwarding->getEndpointId());
+        }
+
+        return [new PulseFeature(
+            package: ModulePackageList::DBAL_PACKAGE,
+            name: 'Outbox forwarding',
+            enabled: $settings !== [],
+            settings: $settings,
+            handlers: [],
+            hint: $settings === []
+                ? 'No outbox is drained in batches: a message stored in a database channel is moved on by a consumer handling it like any other message.'
+                : 'Messages stored in the outbox in the same transaction as their data are claimed in batches straight from the database and published to the target channel, instead of a consumer handling them one by one. Each run of the forwarding process moves one batch.',
+            configuration: "OutboxForwardingMessageChannel::create('orders', DbalBackedMessageChannelBuilder::create('outbox'), 'orders_broker')",
+        )];
     }
 
     public function getModulePackageName(): string

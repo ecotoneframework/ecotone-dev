@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Database;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Dbal\Database\DbalTableManager;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\EventSourcing\Dbal\Tag\TaggedEventSchemaFactory;
@@ -43,6 +44,11 @@ final class TagTableManager implements DbalTableManager
     public function getFeatureName(): string
     {
         return self::FEATURE_NAME;
+    }
+
+    public function getModulePackageName(): string
+    {
+        return ModulePackageList::EVENT_SOURCING_PACKAGE;
     }
 
     public function isUsed(): bool

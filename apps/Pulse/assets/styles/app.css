@@ -25,6 +25,7 @@ main{max-width:76rem;margin:0 auto;padding:1.5rem 1.25rem;min-width:0}
 .topbar{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;align-items:center;padding:.6rem 1.25rem;background:color-mix(in srgb,var(--surface) 78%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:6}
 .brand{font-weight:700;letter-spacing:.01em;display:flex;gap:.5rem;align-items:center;color:var(--fg);text-decoration:none}
 .brand-logo{height:28px;width:auto;flex:none}
+.demo-version{flex:none;font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.2rem .55rem;border-radius:999px;color:var(--wait);background:var(--wait-bg);border:1px solid var(--wait)}
 .intro{display:none}
 .intro-pending .intro{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;position:fixed;inset:0;z-index:50;background:var(--bg);color:var(--magenta);transition:opacity .5s;cursor:pointer}
 .intro-pending .intro.intro-leaving{opacity:0}
@@ -209,3 +210,8 @@ td details form{margin-top:.5rem}
 .tenant-switcher{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}.tenant-switcher a[aria-current=page]{font-weight:700;text-decoration:underline}
 .scope-filter,.flow-find{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem}.greyed,.greyed h2,.greyed th{color:var(--muted)}
 section[data-group],.card.flush{overflow-x:auto}
+.package{border-top:1px solid var(--line);padding:.75rem 0 .25rem}.package:first-of-type{border-top:0}.package h3{margin:.2rem 0 .5rem;font-size:1rem}
+.features{list-style:none;padding:0;margin:.5rem 0 0;display:grid;gap:.6rem}.feature{border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;background:var(--surface)}
+.feature-title{margin:0 0 .35rem}.feature-settings{display:grid;grid-template-columns:max-content 1fr;gap:.15rem .9rem;margin:.25rem 0 .4rem;font-size:.9rem}.feature-settings dt{color:var(--muted)}.feature-settings dd{margin:0;overflow-wrap:anywhere}
+.consumer{border-top:1px solid var(--line);padding:.75rem 0 .25rem}.consumer:first-of-type{border-top:0}.consumer h3{margin:.2rem 0 .3rem;font-size:1rem}.consumer-features{width:100%;font-size:.9rem}.consumer-features td{overflow-wrap:anywhere}.pill.scope-consumer{color:var(--accent)}.pill.scope-global,.pill.muted-pill{color:var(--muted)}
+.feature-handlers{margin:.25rem 0 .5rem;padding-left:1.2rem;font-size:.9rem}.feature .hint{margin:.4rem 0 0}.feature .hint pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:.3rem 0 0}

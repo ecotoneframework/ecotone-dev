@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
@@ -117,6 +118,65 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
             array_column($before, 'initialization', 'name'),
         );
         self::assertSame('initialized', array_column($after, 'initialization', 'name')['tickets_sync']);
+    }
+
+    public function test_the_event_store_tables_are_reported_under_the_event_sourcing_package(): void
+    {
+        $this->bootstrap('dbal', [$this->asynchronousProjection()]);
+
+        $snapshot = $this->requestSnapshot();
+        $tables = array_column($snapshot['setup']['tables'], 'package', 'feature');
+
+        self::assertSame('eventSourcing', $tables['event_stream']);
+        self::assertSame('eventSourcing', $tables['projection_state']);
+        self::assertSame('dbal', $tables['dead_letter']);
+        self::assertSame(['core', 'dbal', 'eventSourcing', 'test'], array_column($snapshot['packages'], 'name'));
+    }
+
+    #[DataProvider('storages')]
+    public function test_the_event_store_feature_reports_where_events_are_stored_and_how_many_are_read_at_a_time(string $storage): void
+    {
+        $this->bootstrap($storage, []);
+
+        $features = array_column(array_column($this->requestSnapshot()['packages'], 'features', 'name')['eventSourcing'], null, 'name');
+
+        self::assertTrue($features['Event store']['enabled']);
+        self::assertSame($storage === 'dbal' ? 'database, connection ' . DbalConnectionFactory::class : 'in memory', $features['Event store']['settings']['Storage']);
+        self::assertSame('1000', $features['Event store']['settings']['Load batch size']);
+        self::assertStringContainsString('read back 1000 events at a time', $features['Event store']['hint']);
+    }
+
+    public function test_the_event_store_feature_reports_the_aggregates_it_snapshots_and_how_often(): void
+    {
+        $this->bootstrap('dbal', [], extensionObjects: [EventSourcingConfiguration::createWithDefaults()->withSnapshotsFor(Ticket::class, thresholdTrigger: 50)]);
+
+        $eventStore = array_column(array_column($this->requestSnapshot()['packages'], 'features', 'name')['eventSourcing'], null, 'name')['Event store'];
+
+        self::assertSame('Ticket every 50 events, in DocumentStore', $eventStore['settings']['Snapshots']);
+        self::assertStringContainsString('Ticket is loaded from its latest snapshot and only the events after it, and a new snapshot is taken every 50 events.', $eventStore['hint']);
+    }
+
+    public function test_an_event_store_without_snapshots_says_every_aggregate_is_rebuilt_from_all_its_events(): void
+    {
+        $this->bootstrap('dbal', []);
+
+        $eventStore = array_column(array_column($this->requestSnapshot()['packages'], 'features', 'name')['eventSourcing'], null, 'name')['Event store'];
+
+        self::assertSame('none', $eventStore['settings']['Snapshots']);
+        self::assertStringContainsString('No aggregate is snapshotted, so each one is rebuilt from all of its events.', $eventStore['hint']);
+    }
+
+    public function test_an_asynchronous_projection_consumer_is_instantly_retried_as_it_manages_its_own_transaction(): void
+    {
+        $this->bootstrap('dbal', [$this->asynchronousProjection()], extensionObjects: [DbalConfiguration::createWithDefaults()->withoutTransactionOnAsynchronousEndpoints(['tickets_async_channel'])]);
+
+        $snapshot = $this->requestSnapshot();
+        $consumer = array_column($snapshot['consumers'], 'features', 'name')['tickets_async_channel'];
+        $instantRetries = array_column(array_column($snapshot['packages'], 'features', 'name')['core'], null, 'name')['Instant retries on asynchronous endpoints'];
+
+        self::assertSame('by default, to endpoints running in a database transaction', $instantRetries['settings']['Applied']);
+
+        self::assertContains(['name' => 'Instant retries', 'value' => '3 retries on any exception, as the projection manages its own transaction', 'scope' => 'global', 'handler' => null], $consumer);
     }
 
     #[DataProvider('storages')]

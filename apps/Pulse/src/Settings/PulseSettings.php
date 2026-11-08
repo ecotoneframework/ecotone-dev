@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Settings;
 
 use App\Snapshot\Snapshots;
+use Ecotone\Test\LicenceTesting;
 
 final readonly class PulseSettings
 {
@@ -18,6 +19,7 @@ final readonly class PulseSettings
      */
     public function __construct(
         public string $version,
+        public bool $runsOnTestingLicence,
         public string $serviceName,
         public string $channel,
         public array $connections,
@@ -51,13 +53,14 @@ final readonly class PulseSettings
             return is_string($value) && trim($value) !== '' ? trim($value) : $default;
         };
 
-        if ($read('ECOTONE_LICENCE_KEY') === null) {
+        $licenceKey = $read('ECOTONE_LICENCE_KEY');
+        if ($licenceKey === null) {
             throw new PulseConfigurationException('ECOTONE_LICENCE_KEY is not set, but Ecotone Pulse is an Ecotone Enterprise application and does not start without a licence. Set ECOTONE_LICENCE_KEY to your Enterprise licence key (trial: https://ecotone.tech/pricing).');
         }
 
         $version = $read('PULSE_VERSION');
         if ($version === null) {
-            throw new PulseConfigurationException('PULSE_VERSION is not set, so Pulse cannot tell which image version a browser has already seen the intro for. The Docker image sets it from its build argument: build with --build-arg PULSE_VERSION=<tag>, or when running outside the image set PULSE_VERSION to any non-empty value such as dev.');
+            throw new PulseConfigurationException('PULSE_VERSION is not set, so Pulse cannot say which version of the image it runs. The Docker image sets it from its build argument: build with --build-arg PULSE_VERSION=<tag>, or when running outside the image set PULSE_VERSION to any non-empty value such as dev.');
         }
 
         $serviceName = self::name($read('PULSE_SERVICE_NAME', 'ecotone_pulse'), 'PULSE_SERVICE_NAME');
@@ -93,7 +96,7 @@ final readonly class PulseSettings
         $routes = self::routes($read('PULSE_SERVICES'), $serviceName, $channel, $connections);
         $serviceChannels = array_map(static fn (ServiceRoute $route) => $route->channel, $routes);
 
-        return new self($version, $serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $doctorBudget, $projectionStalledAfter, $channelStalledAfter, $trackingDays, $internalDatabasePath, QueueThresholds::fromEnvironment($read('PULSE_QUEUE_WARNING'), $read('PULSE_QUEUE_CRITICAL')));
+        return new self($version, $licenceKey === LicenceTesting::VALID_LICENCE, $serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $doctorBudget, $projectionStalledAfter, $channelStalledAfter, $trackingDays, $internalDatabasePath, QueueThresholds::fromEnvironment($read('PULSE_QUEUE_WARNING'), $read('PULSE_QUEUE_CRITICAL')));
     }
 
     public function transportConnectionReference(): string

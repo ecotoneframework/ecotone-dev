@@ -30,6 +30,7 @@ use Ecotone\Api\DataProtection\Key;
 use Ecotone\Api\DataProtection\Sensitive;
 use Ecotone\Api\DataProtection\WithEncryptionKey;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\DataProtection\Channel\OutboundDecryptionChannelBuilder;
 use Ecotone\DataProtection\Channel\OutboundEncryptionChannelBuilder;
@@ -54,6 +55,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 use stdClass;
 
 #[ModuleAnnotation]
@@ -159,6 +161,36 @@ final class DataProtectionModule extends NoExternalConfigurationModule
                 $messagingConfiguration->registerChannelInterceptor($channelDecryption[$pollableMessageChannel->getMessageChannelName()]);
             }
         }
+    }
+
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
+    {
+        if (! PulseFeature::isReportedFor($serviceExtensions)) {
+            return [];
+        }
+        $dataProtection = ExtensionObjectResolver::resolve(DataProtectionConfiguration::class, $serviceExtensions)[0] ?? null;
+        $protected = [
+            ...array_map(
+                static fn (ChannelProtectionConfiguration $channel): string => sprintf('channel %s: %s', $channel->channelName, implode(', ', array_filter([$channel->isPayloadSensitive ? 'payload' : null, $channel->sensitiveHeaders === [] ? null : 'headers ' . implode(', ', $channel->sensitiveHeaders)])) ?: 'nothing'),
+                ExtensionObjectResolver::resolve(ChannelProtectionConfiguration::class, $serviceExtensions),
+            ),
+            ...array_map(
+                static fn (DataProtectorConfig $config): string => sprintf('%s: %s', PulseFeature::shortNameOf($config->supportedType->toString()), $config->sensitiveProperties === [] ? 'every property' : implode(', ', $config->sensitiveProperties)),
+                $this->dataProtectorConfigs,
+            ),
+        ];
+
+        return [new PulseFeature(
+            package: ModulePackageList::DATA_PROTECTION_PACKAGE,
+            name: 'Data protection',
+            enabled: $dataProtection !== null,
+            settings: $dataProtection === null ? [] : ['Keys' => implode(', ', array_keys($dataProtection->keys)), 'Default key' => $dataProtection->defaultKey],
+            handlers: $protected,
+            hint: $dataProtection === null
+                ? 'No DataProtectionConfiguration is registered, so messages are sent through channels unencrypted, also those of classes marked #[Sensitive].'
+                : sprintf('The payloads and headers listed here, of protected channels and of classes marked #[Sensitive], are encrypted with key %s (unless they name another) before they leave the service, and decrypted when they are consumed, so the broker and the database only ever store them encrypted.', $dataProtection->defaultKey),
+            configuration: "DataProtectionConfiguration::create('primary', Key::createNewRandomKey()) and ChannelProtectionConfiguration::create('orders')",
+        )];
     }
 
     public function getModulePackageName(): string

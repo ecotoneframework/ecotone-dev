@@ -7,16 +7,18 @@ namespace Test\MultiTenant;
 use Ecotone\Messaging\Support\LicensingException;
 use PHPUnit\Framework\TestCase;
 use Symfony\App\MultiTenant\Configuration\Kernel;
+use Test\RestoresGlobalHandlers;
 
 /**
  * @internal
  */
 final class MultiTenantLicensingTest extends TestCase
 {
+    use RestoresGlobalHandlers;
+
     protected function tearDown(): void
     {
         putenv('SYMFONY_LICENCE_KEY');
-        restore_exception_handler();
     }
 
     public function test_throws_when_multi_tenant_configuration_is_used_without_enterprise_licence(): void

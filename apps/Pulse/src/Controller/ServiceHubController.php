@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Connect\ConnectSnippets;
+use App\Consumer\Consumer;
 use App\Doctor\Doctor;
 use App\Doctor\DoctorCheck;
 use App\Home\ProblemBoard;
@@ -63,6 +64,7 @@ final class ServiceHubController extends AbstractController
             'focus' => $focus,
             'tiles' => $tiles,
             'focusSetup' => $focus === null ? null : SetupStatus::of($focus),
+            'focusConsumers' => $focus === null ? [] : Consumer::allOf($focus),
             'focusChannels' => $focus === null ? [] : ChannelDepth::of($focus, $this->settings->queueThresholds, $this->settings->channelStalledAfterSeconds),
             'focusProjectionCounts' => ProjectionOverview::counts($focusProjections),
             'focusTracing' => $focusFlowTypes['tracing'],

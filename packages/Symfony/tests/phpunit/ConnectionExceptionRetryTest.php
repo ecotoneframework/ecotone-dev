@@ -15,18 +15,13 @@ use Symfony\Component\Console\Output\BufferedOutput;
  */
 final class ConnectionExceptionRetryTest extends KernelTestCase
 {
+    use RestoresGlobalHandlers;
+
     protected function setUp(): void
     {
         self::bootKernel([
             'environment' => 'test',
         ]);
-    }
-
-    protected function tearDown(): void
-    {
-        restore_exception_handler();
-
-        parent::tearDown();
     }
 
     public function test_consumer_reconnects_as_many_times_as_max_attempts_in_default_connection_exception_retry(): void

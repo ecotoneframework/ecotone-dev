@@ -463,6 +463,7 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
             ...$this->buildEventSourcingRepositoryBuilder($serviceExtensions),
             ...$tableManagerReferences,
             new DbalTableManagerReference(TagTableManager::class),
+            ...EventStorePulseFeatures::reportedFor($serviceExtensions, $eventSourcingConfiguration),
         ];
     }
 

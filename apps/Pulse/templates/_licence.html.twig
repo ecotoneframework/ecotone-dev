@@ -1,0 +1,2 @@
+{% set licence = snapshot.overview.licence|default({}) %}
+{% if licence.testing|default(false) %}<span data-licence="testing">Testing licence</span>{% elseif licence.expiresAt|default(null) %}<span data-licence="expires">{{ licence.expiresAt|date('Y-m-d') }}</span>{% else %}<span data-licence="unknown">unknown</span>{% endif %}

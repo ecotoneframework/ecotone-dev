@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Schema\Table;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**
@@ -34,6 +35,11 @@ final class EnqueueTableManager implements DbalTableManager
     public function getFeatureName(): string
     {
         return self::FEATURE_NAME;
+    }
+
+    public function getModulePackageName(): string
+    {
+        return ModulePackageList::DBAL_PACKAGE;
     }
 
     public function isUsed(): bool

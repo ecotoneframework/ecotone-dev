@@ -53,6 +53,17 @@ final class BrandTest extends ReleasingWebTestCase
         self::assertCount(1, $crawler->filter('[data-intro] [data-intro-heart]'));
     }
 
+    public function test_pulse_on_the_testing_licence_says_demo_version_at_the_top_of_every_page(): void
+    {
+        $client = $this->pulseClient();
+
+        foreach (['/', '/services', '/dead-letters', '/flow', '/topology', '/traces', '/connect', '/catalogue'] as $path) {
+            $crawler = $client->request('GET', $path);
+
+            self::assertSame('Demo Version', trim($crawler->filter('header.topbar [data-demo-version]')->text()), $path);
+        }
+    }
+
     private function pulseClient(): KernelBrowser
     {
         $this->configurePulseWithServices('orders');

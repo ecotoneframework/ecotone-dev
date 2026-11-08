@@ -13,6 +13,8 @@ use Ecotone\Kafka\Inbound\KafkaInboundChannelAdapterBuilder;
 use Ecotone\Kafka\Outbound\KafkaOutboundChannelAdapterBuilder;
 use Ecotone\Kafka\Pulse\KafkaChannelDepthProbe;
 use Ecotone\Messaging\Channel\DepthProbedMessageChannelBuilder;
+use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
+use Ecotone\Messaging\Channel\HighThroughputPublishingChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -26,7 +28,7 @@ use Ecotone\Messaging\Support\Assert;
  *
  * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
-final class KafkaMessageChannelBuilder implements MessageChannelWithSerializationBuilder, DepthProbedMessageChannelBuilder
+final class KafkaMessageChannelBuilder implements MessageChannelWithSerializationBuilder, DepthProbedMessageChannelBuilder, FinalFailureStrategyChannelBuilder, HighThroughputPublishingChannelBuilder
 {
     private KafkaInboundChannelAdapterBuilder $inboundChannelAdapterBuilder;
     private KafkaOutboundChannelAdapterBuilder $outboundChannelAdapterBuilder;
@@ -105,6 +107,16 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
         $this->headerMapper = $headerMapper;
 
         return $this;
+    }
+
+    public function getDefaultFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return FinalFailureStrategy::RESEND;
+    }
+
+    public function getFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return $this->inboundChannelAdapterBuilder->getFinalFailureStrategy();
     }
 
     public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self

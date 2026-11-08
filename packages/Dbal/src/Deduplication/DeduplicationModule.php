@@ -151,9 +151,11 @@ final class DeduplicationModule implements AnnotationModule
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
 
-        return [
+        $extensions = [
             new DbalTableManagerReference(DeduplicationTableManager::class, $dbalConfiguration->getDeduplicationConnectionReference()),
         ];
+
+        return [...$extensions, ...DeduplicationPulseFeatures::reportedFor(serviceExtensions: $serviceExtensions, dbalConfiguration: $dbalConfiguration, annotationFinder: $this->annotationFinder), ...DeduplicationPulseFeatures::consumerFeaturesFor(serviceExtensions: $serviceExtensions, dbalConfiguration: $dbalConfiguration, annotationFinder: $this->annotationFinder)];
     }
 
     public function getModulePackageName(): string

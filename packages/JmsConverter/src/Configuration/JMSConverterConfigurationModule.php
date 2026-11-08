@@ -146,7 +146,7 @@ final class JMSConverterConfigurationModule extends NoExternalConfigurationModul
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [new ModuleDefaultSerializationMediaType(MediaType::APPLICATION_JSON)];
+        return [new ModuleDefaultSerializationMediaType(MediaType::APPLICATION_JSON), ...JMSConverterPulseFeatures::reportedFor($serviceExtensions)];
     }
 
     public function getModulePackageName(): string

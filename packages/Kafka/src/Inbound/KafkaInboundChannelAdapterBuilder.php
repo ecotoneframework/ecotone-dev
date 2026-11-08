@@ -119,6 +119,11 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
         return $this;
     }
 
+    public function getFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return $this->finalFailureStrategy;
+    }
+
     public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self
     {
         $this->finalFailureStrategy = $finalFailureStrategy;

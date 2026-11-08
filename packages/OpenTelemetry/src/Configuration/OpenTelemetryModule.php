@@ -45,11 +45,10 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions, ?InterfaceToCallRegistry $interfaceToCallRegistry = null): array
     {
-        if (ExtensionObjectResolver::contains(NoTracerProviderGiven::class, $serviceExtensions)) {
-            return [];
-        }
+        $tracing = ! ExtensionObjectResolver::contains(NoTracerProviderGiven::class, $serviceExtensions);
+        $extensions = $tracing ? [new TracerReference(OpenTelemetryTracer::class)] : [];
 
-        return [new TracerReference(OpenTelemetryTracer::class)];
+        return [...$extensions, ...OpenTelemetryPulseFeatures::reportedFor($serviceExtensions, $tracing)];
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void

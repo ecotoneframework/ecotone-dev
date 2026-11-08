@@ -20,10 +20,15 @@ no licence key, because it runs on Ecotone's testing licence:
 docker compose -f demo/docker-compose.yml up -d --build
 ```
 
-Open http://localhost:8080 once `docker compose -f demo/docker-compose.yml ps` shows every container healthy. The
+Open http://localhost:8080 once `docker compose -f demo/docker-compose.yml ps` shows every container healthy. The first
+page a browser opens on a day shows a short splash, the Ecotone logo with a beating heart, before the dashboard (any click
+or key skips it; reduced motion shortens it). The
 **Services** page shows `ticketing` and `storefront` as **Connected**, and a rush of buyers started from the storefront
 (http://localhost:8000) fills **Dead letters**, **Traces**, the projections and the flow graph. [demo/README.md](../../demo/README.md)
-walks through it. Your own services need your Ecotone Enterprise key ([trial](https://ecotone.tech/pricing)).
+walks through it. The demo runs on Ecotone's testing licence unless you pass
+`ECOTONE_LICENCE_KEY`: on it every page says **Demo Version** at the top, and a service on the testing licence shows
+"Testing licence" where a service on its own key shows the day its licence expires. Your own services need your Ecotone
+Enterprise key ([trial](https://ecotone.tech/pricing)).
 
 To manage your own services, run Pulse with three settings (the broker of your services and their names):
 
@@ -97,7 +102,26 @@ trace whether or not the service tracks its own flows.
 * `GET /readyz` answers `200 {"status":"ready"}` or `503 {"status":"not_ready", "checks":[...]}` with one line per failing check and what to do about it: the internal SQLite database is writable, every reply consumer reported within the last `max(3 x PULSE_REFRESH_INTERVAL, 15)` seconds, and the refresh reported within `3 x PULSE_REFRESH_INTERVAL`. `pulse:refresh` records its own heartbeat at every tick and, in the same tick, one for each reply consumer the supervisor started that is still running and not stopped (it reads the process ids the supervisor wrote), both in the internal database; no extra process is started for it. Neither probe depends on the services being Connected. Use `/healthz` for liveness and `/readyz` for readiness (Kubernetes: `livenessProbe` and `readinessProbe`; `Deployment` with `replicas: 1`, `strategy: Recreate`, no volume).
 
 Every service has a page, `/services/{name}`, with breadcrumbs: its health and last seen time, versions, dead letters, flow types
-(linked to their traces) and a link to its slice of the flow graph. A snapshot carries `deadLetter.enabled` (`true` or `false`, from the
+(linked to their traces) and a link to its slice of the flow graph.
+
+Its **Packages and setup** section lists every Ecotone package the service has installed, from the snapshot's `packages`, also one
+that needs no table. Under each package are the tables it owns, set up or missing with the command that creates them, and the
+features it reports: database transactions, instant retries, deduplication, dead letter, the error channel and its delayed
+retries, the final failure strategy of each channel, high-throughput publishing, resilient sending, combined channels and
+outbox forwarding, scheduled endpoints, the dynamic consistency boundary, event-store snapshots, the service configuration,
+flow tracking, publishers and the rest. Each feature says whether it is on, its settings (for instant retries the retry times
+and the exceptions retried), the handlers that use its attribute (`#[Deduplicated]`,
+`#[WithoutDatabaseTransaction]`, `#[DelayedRetry]`, `#[Distributed]`), and a hint box that explains what it does with those values
+and names the call that changes it. The text comes from the module that owns the feature, so it describes the version of Ecotone
+the service runs. A service older than this list shows its tables without packages.
+
+The **Consumers** section lists every consumer the service can run: a polling consumer per asynchronous channel, with the
+handler endpoints it serves, and every inbound consumer (`#[Scheduled]`, `#[RabbitConsumer]`, `#[KafkaConsumer]`). Each one
+lists the features that apply to the messages it handles: database transaction, deduplication, instant retries, error channel,
+delayed retries, final failure strategy, poller and RabbitMQ transaction. Every value is tagged **consumer-level config** when it
+is set for that consumer or one of its handlers (`withoutTransactionOnAsynchronousEndpoints`, `asynchronousExecution`,
+`#[InstantRetry]`, `#[Poller]`, `#[Deduplicated]`, the consumer's own failure strategy), or **global** when it is not set for it and comes from the
+service-wide configuration or Ecotone's default. A snapshot carries `deadLetter.enabled` (`true` or `false`, from the
 service's `DbalConfiguration`), so Pulse says "dead letter storage is enabled, none stored" for an empty store and "not configured" for a
 service that does not store dead letters; a service older than this field is told apart by whether its snapshot has the `deadLetters` section.
 
@@ -202,7 +226,7 @@ docker run -p 8080:8080 \
 |---|---|---|
 | `PULSE_CONNECTION_<NAME>_DSN` | | Another broker for some services, see below (also `_FILE`) |
 | `PULSE_CONNECTION_<NAME>_REPLY_CHANNEL` | `PULSE_CHANNEL` | The destination Pulse reads that connection's replies from |
-| `PULSE_VERSION` | `dev` (set by the Docker image's `PULSE_VERSION` build argument) | The version of this Pulse. Shown in the page markup, and the first time a browser opens Pulse for a version it sees a short splash, the Ecotone logo with a beating heart, before the dashboard (any click or key skips it; reduced motion shortens it). Required: Pulse refuses to start without it when run outside the image |
+| `PULSE_VERSION` | `dev` (set by the Docker image's `PULSE_VERSION` build argument) | The version of this Pulse, shown in the page markup. Required: Pulse refuses to start without it when run outside the image |
 | `PULSE_SERVICE_NAME` | `ecotone_pulse` | Pulse's own service name. Services accept requests only from this name |
 | `PULSE_CHANNEL` | `ecotone_pulse` | The channel Pulse consumes replies from |
 | `PULSE_REPLY_TIMEOUT` | `10` | Seconds after which a request without reply is Unreachable |
@@ -362,5 +386,6 @@ Two checks need a browser engine, so they run on the host (Node 22 in CI; 20 or 
 * `tests/Accessibility` crawls a running Pulse from its navigation, then runs axe-core on every page (two per page kind, plus a followed node, folded channels and a Find result on `/flow`), in light
   and dark, at 1440px and 390px, and fails on a serious or critical violation or a horizontal page scroll:
   `cd tests/Accessibility && npm ci && node axe.mjs http://localhost:8080` (`CHROME_PATH` selects the Chrome binary). It also audits the
-  first-visit splash. `PULSE_EXPECTED_VERSION=<the running PULSE_VERSION> node intro.mjs http://localhost:8080` checks the splash itself:
-  shown on the first visit, gone on reload, shown again for a new version, skippable, reduced motion and unavailable storage respected.
+  first-visit splash. `node intro.mjs http://localhost:8080` checks the splash itself:
+  shown on the first visit of the day, gone on reload, shown again on the next day, skippable, reduced motion and unavailable storage respected.
+  CI runs neither accessibility script: run both against a local Pulse before changing a page or the splash.

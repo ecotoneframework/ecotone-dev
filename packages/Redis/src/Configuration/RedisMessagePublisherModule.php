@@ -90,6 +90,11 @@ final class RedisMessagePublisherModule extends NoExternalConfigurationModule im
         }
     }
 
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
+    {
+        return RedisMessagePublisherPulseFeatures::reportedFor($serviceExtensions);
+    }
+
     public function getModulePackageName(): string
     {
         return ModulePackageList::REDIS_PACKAGE;

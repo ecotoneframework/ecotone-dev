@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Ecotone Pulse{% endblock %}</title>
     <script>try{var t=localStorage.getItem('pulse-theme');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t}}catch(e){}</script>
-    <script>try{var v=document.documentElement.dataset.pulseVersion;localStorage.setItem('ecotone-pulse.probe','1');localStorage.removeItem('ecotone-pulse.probe');if(localStorage.getItem('ecotone-pulse.intro-seen')!==v){document.documentElement.classList.add('intro-pending')}}catch(e){}</script>
+    <script>try{var r=document.documentElement,n=new Date(),d=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');r.dataset.introDay=d;localStorage.setItem('ecotone-pulse.probe','1');localStorage.removeItem('ecotone-pulse.probe');if(localStorage.getItem('ecotone-pulse.intro-seen-on')!==d){r.classList.add('intro-pending')}}catch(e){}</script>
     {% block head %}{% endblock %}
     {% block importmap %}{{ importmap('app') }}{% endblock %}
 </head>
@@ -17,6 +17,7 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="topbar">
     <a class="brand" href="{{ path('home') }}">{% include '_logo.html.twig' with {class: 'brand-logo', id: 'brand', decorative: true} %}<span class="brand-title">Ecotone Pulse</span></a>
+    {% if pulse.runsOnTestingLicence %}<span class="demo-version" data-demo-version title="Pulse runs on Ecotone's testing licence. Your own services need your Ecotone Enterprise licence key.">Demo Version</span>{% endif %}
     <nav>
         {% set current = app.request.attributes.get('_route') %}
         <a href="{{ path('home') }}"{% if current == 'home' %} class="active"{% endif %}>Home</a>

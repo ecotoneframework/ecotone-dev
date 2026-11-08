@@ -13,7 +13,6 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\Precedence;
-use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Pulse\PulseSavepointIsolation;
 use Ecotone\Enqueue\CachedConnectionFactory;
@@ -30,7 +29,6 @@ use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Modelling\Config\DatabaseTransaction\CommandsWithoutDatabaseTransaction;
 use Ecotone\Modelling\Config\DatabaseTransaction\DatabaseTransactionRegistration;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
-use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSectionIsolationRegistration;
 use Ecotone\Projecting\Config\ProjectingConsoleCommands;
 
 #[ModuleAnnotation]
@@ -140,17 +138,18 @@ final class DbalTransactionModule implements AnnotationModule
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
-        $opensTransactions = $dbalConfiguration->transactionOnAsynchronousEndpoints || $dbalConfiguration->transactionOnCommandBus || $dbalConfiguration->transactionOnConsoleCommands;
-
         $databaseTransactions = new DatabaseTransactionRegistration(
             onCommandBus: $dbalConfiguration->transactionOnCommandBus,
             onAsynchronousEndpoints: $dbalConfiguration->transactionOnAsynchronousEndpoints,
             asynchronousEndpointsWithoutTransaction: $dbalConfiguration->disableTransactionsOnAsynchronousEndpointNames,
         );
 
-        return $opensTransactions && ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []
-            ? [$databaseTransactions, new PulseSectionIsolationRegistration(PulseSavepointIsolation::class)]
-            : [$databaseTransactions];
+        return [
+            $databaseTransactions,
+            ...DbalTransactionPulseFeatures::sectionIsolationFor($serviceExtensions, $dbalConfiguration),
+            ...DbalTransactionPulseFeatures::reportedFor(serviceExtensions: $serviceExtensions, dbalConfiguration: $dbalConfiguration, annotationFinder: $this->annotationFinder),
+            ...DbalTransactionPulseFeatures::consumerFeaturesFor(serviceExtensions: $serviceExtensions, dbalConfiguration: $dbalConfiguration, annotationFinder: $this->annotationFinder),
+        ];
     }
 
     public function getModulePackageName(): string

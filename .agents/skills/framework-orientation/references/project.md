@@ -26,8 +26,8 @@ Every directory under `packages/` is a separate Composer package with its own `c
   version-bumped, each app runs its own `composer tests:ci` (phpstan and phpunit) in its container, and php-cs-fixer
   covers it
 - Template for a new package: `_PackageTemplate/`. Registering it also means adding its name to
-  `ModulePackageList` (`Ecotone\Api\ExtensionObject\ModulePackageList`), to `ModuleClassList::packageNames()` and
-  `ModuleClassList::forPackage()`, and its module class to the right `ModuleClassList` constant
+  `ModulePackageList` (`Ecotone\Api\ExtensionObject\ModulePackageList`), to `ModuleClassList::packageNames()`,
+  `ModuleClassList::forPackage()` and `ModuleClassList::composerPackageNameOf()`, and its module class to the right `ModuleClassList` constant
 
 ## Architecture Patterns
 

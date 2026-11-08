@@ -17,6 +17,7 @@ use Ecotone\Api\Dbal\Attribute\OnTenantDeactivation;
 use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
@@ -248,6 +249,11 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                 )
             );
         }
+    }
+
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
+    {
+        return MultiTenantPulseFeatures::reportedFor($serviceExtensions);
     }
 
     public function getModulePackageName(): string

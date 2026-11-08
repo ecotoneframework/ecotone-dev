@@ -92,8 +92,49 @@ final class ServicesTableTest extends ReleasingWebTestCase
         self::assertStringContainsString('2.0.0, 2.1.0', $crawler->filter('[data-version-drift]')->text());
     }
 
-    private function versionSnapshot(string $service, string $version): string
+    public function test_a_service_on_the_testing_licence_shows_it_instead_of_an_expiry_date(): void
     {
-        return json_encode(['schemaVersion' => 1, 'serviceName' => $service, 'takenAt' => '2026-10-20T12:00:00+00:00', 'overview' => ['ecotoneVersion' => $version, 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]], 'flowGraph' => ['nodes' => [], 'edges' => []], 'topology' => ['serviceMaps' => []]], JSON_THROW_ON_ERROR);
+        $this->configurePulseWithServices('orders');
+        $client = static::createClient();
+        $client->disableReboot();
+        $this->setUpPulseDatabase($client->getKernel());
+        $this->serviceWithDeadLetters('orders');
+        $client->request('POST', '/refresh');
+        $this->runAllServices();
+        $this->runPulseWorker($client->getKernel());
+
+        $row = $client->request('GET', '/services')->filter('tr[data-service="orders"] [data-licence]');
+        $hub = $client->request('GET', '/services/orders')->filter('[data-hub-versions] [data-licence]');
+
+        self::assertSame('testing', $row->attr('data-licence'));
+        self::assertSame('Testing licence', trim($row->text()));
+        self::assertSame('Testing licence', trim($hub->text()));
+    }
+
+    public function test_a_service_on_its_own_licence_shows_the_day_it_expires(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = static::createClient();
+        $client->disableReboot();
+        $this->setUpPulseDatabase($client->getKernel());
+        $orders = $this->serviceAnsweringWith('orders', $this->versionSnapshot('orders', '2.0.0', ['enterprise' => true, 'expiresAt' => '2027-03-01T00:00:00+00:00', 'testing' => false]));
+        $client->request('GET', '/services');
+        $this->runService($orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+
+        $row = $client->request('GET', '/services')->filter('tr[data-service="orders"] [data-licence]');
+        $hub = $client->request('GET', '/services/orders')->filter('[data-hub-versions] [data-licence]');
+
+        self::assertSame('expires', $row->attr('data-licence'));
+        self::assertSame('2027-03-01', trim($row->text()));
+        self::assertSame('2027-03-01', trim($hub->text()));
+    }
+
+    /**
+     * @param array<string, mixed> $licence
+     */
+    private function versionSnapshot(string $service, string $version, array $licence = ['enterprise' => true, 'expiresAt' => null]): string
+    {
+        return json_encode(['schemaVersion' => 1, 'serviceName' => $service, 'takenAt' => '2026-10-20T12:00:00+00:00', 'overview' => ['ecotoneVersion' => $version, 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => $licence], 'flowGraph' => ['nodes' => [], 'edges' => []], 'topology' => ['serviceMaps' => []]], JSON_THROW_ON_ERROR);
     }
 }

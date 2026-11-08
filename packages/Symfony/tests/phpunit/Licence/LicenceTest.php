@@ -10,6 +10,7 @@ use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Symfony\App\Licence\Configuration\Kernel;
+use Test\RestoresGlobalHandlers;
 
 /**
  * licence Enterprise
@@ -33,6 +34,8 @@ use Symfony\App\Licence\Configuration\Kernel;
  */
 final class LicenceTest extends TestCase
 {
+    use RestoresGlobalHandlers;
+
     private QueryBus $queryBus;
     private CommandBus $commandBus;
     private Kernel $kernel;
@@ -54,8 +57,6 @@ final class LicenceTest extends TestCase
     protected function tearDown(): void
     {
         putenv('SYMFONY_LICENCE_KEY');
-
-        restore_exception_handler();
     }
 
     public function test_triggering_symfony_with_licence_key(): void

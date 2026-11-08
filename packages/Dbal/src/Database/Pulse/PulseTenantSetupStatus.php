@@ -38,7 +38,7 @@ final class PulseTenantSetupStatus implements PulseSnapshotSection
     }
 
     /**
-     * @return array{tenantTables: list<array{feature: string, connection: string, initialized: bool|null, error: string|null}>}
+     * @return array{tenantTables: list<array{feature: string, package: string, connection: string, initialized: bool|null, error: string|null}>}
      */
     public function snapshot(): array
     {

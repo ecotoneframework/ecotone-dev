@@ -15,6 +15,7 @@ use Symfony\App\MultiTenant\Configuration\Kernel;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\ConsoleOutput;
+use Test\RestoresGlobalHandlers;
 
 require_once __DIR__ . '/boostrap.php';
 
@@ -27,6 +28,8 @@ require_once __DIR__ . '/boostrap.php';
  */
 final class MultiTenantTest extends TestCase
 {
+    use RestoresGlobalHandlers;
+
     private QueryBus $queryBus;
     private CommandBus $commandBus;
     private Kernel $kernel;
@@ -49,7 +52,6 @@ final class MultiTenantTest extends TestCase
     protected function tearDown(): void
     {
         putenv('SYMFONY_LICENCE_KEY');
-        restore_exception_handler();
     }
 
     public function test_run_message_handlers_for_multi_tenant_connection(): void

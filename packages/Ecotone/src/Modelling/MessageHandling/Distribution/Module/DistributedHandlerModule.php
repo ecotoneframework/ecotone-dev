@@ -68,7 +68,7 @@ final class DistributedHandlerModule implements AnnotationModule
                 $distributedHandlers[] = PulseFeature::handlerOf($registration);
             }
         }
-        return new self($commandBusDistributedRoutes, $eventBusDistributedRoutes, $distributedHandlers);
+        return new self(commandBusDistributedRoutes: $commandBusDistributedRoutes, eventBusDistributedRoutes: $eventBusDistributedRoutes, distributedHandlers: $distributedHandlers);
     }
 
     /**

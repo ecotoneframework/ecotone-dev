@@ -56,11 +56,11 @@ final readonly class SetupStatus
                 continue;
             }
             $packages[] = new PackageSetup(
-                $package['name'],
-                $package['composerPackage'],
-                is_string($package['version'] ?? null) ? $package['version'] : null,
-                array_values(array_filter($items, static fn (SetupItem $item): bool => $item->kind === 'table' && $item->package === $package['name'])),
-                array_values(array_filter(array_map(static fn (mixed $feature): ?Feature => is_array($feature) ? Feature::fromSnapshot($feature) : null, is_array($package['features'] ?? null) ? $package['features'] : []))),
+                name: $package['name'],
+                composerPackage: $package['composerPackage'],
+                version: is_string($package['version'] ?? null) ? $package['version'] : null,
+                tables: array_values(array_filter($items, static fn (SetupItem $item): bool => $item->kind === 'table' && $item->package === $package['name'])),
+                features: array_values(array_filter(array_map(static fn (mixed $feature): ?Feature => is_array($feature) ? Feature::fromSnapshot($feature) : null, is_array($package['features'] ?? null) ? $package['features'] : []))),
             );
         }
 

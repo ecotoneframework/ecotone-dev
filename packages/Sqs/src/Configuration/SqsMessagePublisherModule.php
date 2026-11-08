@@ -98,13 +98,13 @@ final class SqsMessagePublisherModule extends NoExternalConfigurationModule impl
         }
 
         return [PulseFeature::messagePublishers(
-            ModulePackageList::SQS_PACKAGE,
-            'SQS',
-            array_map(
+            package: ModulePackageList::SQS_PACKAGE,
+            broker: 'SQS',
+            publishers: array_map(
                 static fn (SqsMessagePublisherConfiguration $publisher): string => sprintf("%s: queue '%s'%s", PulseFeature::shortNameOf($publisher->getReferenceName()), $publisher->getQueueName(), $publisher->isBatchPublishingEnabled() ? ', batch publishing' : ''),
                 ExtensionObjectResolver::resolve(SqsMessagePublisherConfiguration::class, $serviceExtensions),
             ),
-            "SqsMessagePublisherConfiguration::create(MessagePublisher::class, queueName: 'orders')",
+            configuration: "SqsMessagePublisherConfiguration::create(MessagePublisher::class, queueName: 'orders')",
         )];
     }
 

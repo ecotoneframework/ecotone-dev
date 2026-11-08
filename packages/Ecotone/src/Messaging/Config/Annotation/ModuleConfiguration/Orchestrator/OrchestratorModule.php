@@ -126,7 +126,7 @@ final class OrchestratorModule implements AnnotationModule
                 ->withInputChannelName(self::ORCHESTRATOR_GATEWAY_ENTRYPOINT_CHANNEL);
         }
 
-        return new self($messageHandlerBuilders, $orchestratorGateways, $orchestrators);
+        return new self(orchestratorsServiceActivators: $messageHandlerBuilders, orchestratorGateways: $orchestratorGateways, orchestrators: $orchestrators);
     }
 
     /**

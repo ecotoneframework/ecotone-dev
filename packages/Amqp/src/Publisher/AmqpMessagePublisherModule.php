@@ -109,9 +109,9 @@ final class AmqpMessagePublisherModule implements AnnotationModule
         }
 
         return [PulseFeature::messagePublishers(
-            ModulePackageList::AMQP_PACKAGE,
-            'RabbitMQ',
-            array_map(
+            package: ModulePackageList::AMQP_PACKAGE,
+            broker: 'RabbitMQ',
+            publishers: array_map(
                 static fn (AmqpMessagePublisherConfiguration $publisher): string => sprintf(
                     "%s: exchange '%s'%s%s%s",
                     PulseFeature::shortNameOf($publisher->getReferenceName()),
@@ -122,7 +122,7 @@ final class AmqpMessagePublisherModule implements AnnotationModule
                 ),
                 ExtensionObjectResolver::resolve(AmqpMessagePublisherConfiguration::class, $serviceExtensions),
             ),
-            "AmqpMessagePublisherConfiguration::create(MessagePublisher::class, exchangeName: 'orders')",
+            configuration: "AmqpMessagePublisherConfiguration::create(MessagePublisher::class, exchangeName: 'orders')",
         )];
     }
 

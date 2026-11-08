@@ -225,13 +225,13 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
         }
 
         return [PulseFeature::messagePublishers(
-            ModulePackageList::KAFKA_PACKAGE,
-            'Kafka',
-            array_map(
+            package: ModulePackageList::KAFKA_PACKAGE,
+            broker: 'Kafka',
+            publishers: array_map(
                 static fn (KafkaPublisherConfiguration $publisher): string => sprintf("%s: topic '%s'%s", PulseFeature::shortNameOf($publisher->getReferenceName()), $publisher->defaultTopicName, $publisher->isBatchPublishingEnabled() ? ', batch publishing' : ''),
                 ExtensionObjectResolver::resolve(KafkaPublisherConfiguration::class, $serviceExtensions),
             ),
-            "KafkaPublisherConfiguration::createWithDefaults(topicName: 'orders')",
+            configuration: "KafkaPublisherConfiguration::createWithDefaults(topicName: 'orders')",
         )];
     }
 

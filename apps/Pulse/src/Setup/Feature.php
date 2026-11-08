@@ -30,12 +30,12 @@ final readonly class Feature
         }
 
         return new self(
-            $feature['name'],
-            $feature['enabled'],
-            array_map(strval(...), array_filter(is_array($feature['settings'] ?? null) ? $feature['settings'] : [], is_scalar(...))),
-            array_values(array_filter(is_array($feature['handlers'] ?? null) ? $feature['handlers'] : [], is_string(...))),
-            is_string($feature['hint'] ?? null) ? $feature['hint'] : '',
-            is_string($feature['configuration'] ?? null) ? $feature['configuration'] : '',
+            name: $feature['name'],
+            enabled: $feature['enabled'],
+            settings: array_map(strval(...), array_filter(is_array($feature['settings'] ?? null) ? $feature['settings'] : [], is_scalar(...))),
+            handlers: array_values(array_filter(is_array($feature['handlers'] ?? null) ? $feature['handlers'] : [], is_string(...))),
+            hint: is_string($feature['hint'] ?? null) ? $feature['hint'] : '',
+            configuration: is_string($feature['configuration'] ?? null) ? $feature['configuration'] : '',
         );
     }
 }

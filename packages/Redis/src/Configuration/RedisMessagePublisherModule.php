@@ -98,13 +98,13 @@ final class RedisMessagePublisherModule extends NoExternalConfigurationModule im
         }
 
         return [PulseFeature::messagePublishers(
-            ModulePackageList::REDIS_PACKAGE,
-            'Redis',
-            array_map(
+            package: ModulePackageList::REDIS_PACKAGE,
+            broker: 'Redis',
+            publishers: array_map(
                 static fn (RedisMessagePublisherConfiguration $publisher): string => sprintf("%s: queue '%s'%s", PulseFeature::shortNameOf($publisher->getReferenceName()), $publisher->getQueueName(), $publisher->isBatchPublishingEnabled() ? ', batch publishing' : ''),
                 ExtensionObjectResolver::resolve(RedisMessagePublisherConfiguration::class, $serviceExtensions),
             ),
-            "RedisMessagePublisherConfiguration::create(MessagePublisher::class, queueName: 'orders')",
+            configuration: "RedisMessagePublisherConfiguration::create(MessagePublisher::class, queueName: 'orders')",
         )];
     }
 

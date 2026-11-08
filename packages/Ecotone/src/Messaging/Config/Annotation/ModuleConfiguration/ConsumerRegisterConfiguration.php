@@ -30,10 +30,19 @@ abstract class ConsumerRegisterConfiguration extends NoExternalConfigurationModu
      * AnnotationGatewayConfiguration constructor.
      *
      * @param ConsumerLifecycleBuilder[] $messageHandlerBuilders
+     * @param AnnotatedFinding[] $consumerRegistrations
      */
-    private function __construct(array $messageHandlerBuilders)
+    private function __construct(array $messageHandlerBuilders, private array $consumerRegistrations)
     {
         $this->messageHandlerBuilders = $messageHandlerBuilders;
+    }
+
+    /**
+     * @return AnnotatedFinding[]
+     */
+    protected function consumerRegistrations(): array
+    {
+        return $this->consumerRegistrations;
     }
 
     /**
@@ -42,12 +51,13 @@ abstract class ConsumerRegisterConfiguration extends NoExternalConfigurationModu
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $consumerBuilders = [];
-        foreach ($annotationRegistrationService->findAnnotatedMethods(static::getConsumerAnnotation()) as $annotationRegistration) {
+        $consumerRegistrations = $annotationRegistrationService->findAnnotatedMethods(static::getConsumerAnnotation());
+        foreach ($consumerRegistrations as $annotationRegistration) {
             $consumerBuilders[] = static::createConsumerFrom($annotationRegistration, $interfaceToCallRegistry);
         }
 
         /** @phpstan-ignore-next-line */
-        return new static($consumerBuilders);
+        return new static($consumerBuilders, $consumerRegistrations);
     }
 
     /**

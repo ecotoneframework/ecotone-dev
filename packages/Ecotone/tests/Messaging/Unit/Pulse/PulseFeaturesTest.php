@@ -16,6 +16,7 @@ use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Orchestrator;
+use Ecotone\Api\Attribute\Poller;
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
@@ -282,6 +283,38 @@ final class PulseFeaturesTest extends TestCase
 
         self::assertFalse($outbox['enabled']);
         self::assertSame("CombinedMessageChannel::create('orders', ['outbox', 'orders_broker'])", $outbox['configuration']);
+    }
+
+    public function test_scheduled_endpoints_are_listed_with_how_often_they_run(): void
+    {
+        $handlers = new class () {
+            #[Scheduled('order.expire', 'order.expire.endpoint')]
+            #[Poller(fixedRateInMilliseconds: 60000)]
+            public function expire(): ?string
+            {
+                return null;
+            }
+
+            #[Scheduled('report.send', 'reports')]
+            #[Poller(cron: '0 6 * * *')]
+            public function report(): ?string
+            {
+                return null;
+            }
+
+            #[Scheduled('cache.warm', 'cache.warm.endpoint')]
+            public function warm(): ?string
+            {
+                return null;
+            }
+        };
+
+        $scheduled = $this->coreFeatures($handlers)['Scheduled endpoints'];
+
+        self::assertTrue($scheduled['enabled']);
+        self::assertSame(['Scheduled endpoints' => '3'], $scheduled['settings']);
+        self::assertSame(['order.expire.endpoint: every 1 minute', 'reports: cron 0 6 * * *', 'cache.warm.endpoint: every 1 second'], $scheduled['handlers']);
+        self::assertStringContainsString('runs on its own schedule', $scheduled['hint']);
     }
 
     public function test_distributed_handlers_and_orchestrators_are_listed_under_their_feature(): void

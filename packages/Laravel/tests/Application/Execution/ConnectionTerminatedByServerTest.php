@@ -21,12 +21,12 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Laravel\LaravelConnectionReference;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Test\Ecotone\Laravel\RestoresLaravelHandlers;
-use Throwable;
 
 /**
  * licence Apache-2.0
@@ -38,12 +38,11 @@ final class ConnectionTerminatedByServerTest extends TestCase
 
     protected function setUp(): void
     {
+        $app = require __DIR__ . '/../bootstrap/app.php';
+        $app->make(Kernel::class)->bootstrap();
         if (! preg_match('/^(pgsql|mysql)/', (string) getenv('DATABASE_DSN'))) {
             $this->markTestSkipped('Terminating a Laravel connection from the server side needs a database server');
         }
-
-        $app = require __DIR__ . '/../bootstrap/app.php';
-        $app->make(Kernel::class)->bootstrap();
     }
 
     protected function tearDown(): void
@@ -80,7 +79,7 @@ final class ConnectionTerminatedByServerTest extends TestCase
         self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
     }
 
-    public function test_a_laravel_transaction_that_reconnected_is_rolled_back_whole_when_a_command_sent_inside_it_finds_the_old_connection_lost(): void
+    public function test_a_command_sent_inside_a_laravel_transaction_that_reconnected_at_its_begin_is_committed_with_it(): void
     {
         DB::statement('DROP TABLE IF EXISTS laravel_written_orders');
         DB::statement('CREATE TABLE laravel_written_orders (id VARCHAR(255))');
@@ -89,18 +88,15 @@ final class ConnectionTerminatedByServerTest extends TestCase
         $ecotone->sendCommandWithRouting('order.place', 'tea');
         $this->terminateServerSideOfLaravelConnection();
 
-        try {
-            DB::transaction(static function () use ($ecotone): void {
-                DB::table('laravel_written_orders')->insert(['id' => 'milk']);
-                $ecotone->sendCommandWithRouting('order.place', 'milk');
-            });
-        } catch (Throwable) {
-        }
+        DB::transaction(static function () use ($ecotone): void {
+            DB::table('laravel_written_orders')->insert(['id' => 'milk']);
+            $ecotone->sendCommandWithRouting('order.place', 'milk');
+        });
         $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $ecotone->run('shipping', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
-        self::assertSame([], DB::table('laravel_written_orders')->pluck('id')->all());
-        self::assertSame(['tea'], $ecotone->sendQueryWithRouting('order.shipped'));
+        self::assertSame(['milk'], DB::table('laravel_written_orders')->pluck('id')->all());
+        self::assertSame(['tea', 'milk'], $ecotone->sendQueryWithRouting('order.shipped'));
     }
 
     public function test_a_consumer_on_a_laravel_connection_keeps_running_while_the_database_is_still_starting_after_a_restart(): void
@@ -186,6 +182,62 @@ final class ConnectionTerminatedByServerTest extends TestCase
         self::assertSame(['milk'], $ecotone->sendQueryWithRouting('order.shipped'));
     }
 
+    public function test_an_eloquent_write_in_a_consumed_message_that_lost_the_laravel_connection_is_stored_once_after_the_retry(): void
+    {
+        DB::statement('DROP TABLE IF EXISTS laravel_written_orders');
+        DB::statement('CREATE TABLE laravel_written_orders (id VARCHAR(255))');
+        $handler = $this->writingOrderHandler(fn () => $this->terminateServerSideOfLaravelConnection());
+        $ecotone = $this->bootstrap($handler);
+
+        $ecotone->sendCommandWithRouting('order.write', 'milk');
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+
+        self::assertSame(['milk'], DB::table('laravel_written_orders')->pluck('id')->all());
+    }
+
+    public function test_an_eloquent_write_after_a_caught_lost_laravel_connection_in_a_consumed_message_is_not_stored_outside_its_transaction(): void
+    {
+        DB::statement('DROP TABLE IF EXISTS laravel_written_orders');
+        DB::statement('CREATE TABLE laravel_written_orders (id VARCHAR(255))');
+        $handler = $this->writingOrderHandler(fn () => $this->terminateServerSideOfLaravelConnection(), catchingTheFirstFailure: true);
+        $ecotone = $this->bootstrap($handler);
+
+        $ecotone->sendCommandWithRouting('order.write', 'milk');
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+
+        self::assertSame(['milk'], DB::table('laravel_written_orders')->pluck('id')->all());
+    }
+
+    public function test_a_transactional_command_after_the_server_terminated_the_idle_laravel_connection_reconnects_at_its_begin_and_is_stored_once(): void
+    {
+        DB::statement('DROP TABLE IF EXISTS laravel_written_orders');
+        DB::statement('CREATE TABLE laravel_written_orders (id VARCHAR(255))');
+        $ecotone = $this->bootstrap($this->writingOrderHandler(static function (): void {
+        }), [
+            DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+        ]);
+
+        $ecotone->sendCommandWithRouting('order.record', 'tea');
+        $this->terminateServerSideOfLaravelConnection();
+        $ecotone->sendCommandWithRouting('order.record', 'milk');
+
+        self::assertSame(['tea', 'milk'], DB::table('laravel_written_orders')->pluck('id')->all());
+    }
+
+    public function test_a_consumed_message_after_the_server_terminated_the_idle_laravel_connection_reconnects_at_its_begin_and_is_stored_once(): void
+    {
+        DB::statement('DROP TABLE IF EXISTS laravel_written_orders');
+        DB::statement('CREATE TABLE laravel_written_orders (id VARCHAR(255))');
+        $ecotone = $this->bootstrap($this->writingOrderHandler(static function (): void {
+        }));
+
+        $ecotone->sendCommandWithRouting('order.write', 'milk');
+        $this->terminateServerSideOfLaravelConnection();
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+
+        self::assertSame(['milk'], DB::table('laravel_written_orders')->pluck('id')->all());
+    }
+
     private static function untilOneMessageIsHandled(): ExecutionPollingMetadata
     {
         return ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000, stopOnError: false);
@@ -237,6 +289,40 @@ final class ConnectionTerminatedByServerTest extends TestCase
             public function shipped(): array
             {
                 return $this->shipped;
+            }
+        };
+    }
+
+    private function writingOrderHandler(Closure $onFirstAttempt, bool $catchingTheFirstFailure = false): object
+    {
+        return new class ($onFirstAttempt, $catchingTheFirstFailure) {
+            private int $attempts = 0;
+
+            public function __construct(private Closure $onFirstAttempt, private bool $catchingTheFirstFailure)
+            {
+            }
+
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.write', endpointId: 'writeOrder')]
+            public function write(string $order): void
+            {
+                $this->record($order);
+            }
+
+            #[CommandHandler('order.record')]
+            public function record(string $order): void
+            {
+                $this->attempts++;
+                if ($this->attempts === 1) {
+                    ($this->onFirstAttempt)();
+                    if ($this->catchingTheFirstFailure) {
+                        try {
+                            DB::table('laravel_written_orders')->insert(['id' => $order]);
+                        } catch (QueryException) {
+                        }
+                    }
+                }
+                DB::table('laravel_written_orders')->insert(['id' => $order]);
             }
         };
     }

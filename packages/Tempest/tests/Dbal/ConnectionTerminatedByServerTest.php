@@ -18,6 +18,7 @@ use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tempest\TempestConnectionReference;
@@ -33,6 +34,7 @@ use Tempest\Database\Connection\PDOConnection;
 use Tempest\Database\Migrations\MigrationNamingStrategy;
 use Tempest\Database\Tables\NamingStrategy;
 use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
+use Throwable;
 use UnitEnum;
 
 /**
@@ -180,6 +182,59 @@ final class ConnectionTerminatedByServerTest extends TestCase
         $ecotone->sendCommandWithRouting('order.place', 'milk');
     }
 
+    #[DataProvider('connectionReferences')]
+    public function test_a_tempest_write_in_a_consumed_message_that_lost_the_tempest_connection_is_stored_once_after_the_retry(Closure $connectionReference, ?string $tag): void
+    {
+        $this->registerTempestConnection($tag);
+        $ecotone = $this->bootstrap($this->writingOrderHandler(), $connectionReference());
+
+        $ecotone->sendCommandWithRouting('order.write', 'milk');
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+
+        self::assertSame(['milk'], $this->writtenOrders());
+    }
+
+    #[DataProvider('connectionReferences')]
+    public function test_a_document_stored_after_a_caught_lost_tempest_connection_in_a_consumed_message_is_not_stored_outside_its_transaction(Closure $connectionReference, ?string $tag): void
+    {
+        $this->registerTempestConnection($tag);
+        $collection = uniqid('orders_');
+        $ecotone = $this->bootstrap($this->orderHandler(fn () => $this->terminateServerSideOfTempestConnection()), $connectionReference());
+
+        $ecotone->sendCommandWithRouting('order.store', $collection);
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+
+        self::assertSame(1, $ecotone->getGateway(DocumentStore::class)->countDocuments($collection));
+    }
+
+    #[DataProvider('connectionReferences')]
+    public function test_a_transactional_command_after_the_server_terminated_the_idle_tempest_connection_reconnects_at_its_begin_and_is_stored_once(Closure $connectionReference, ?string $tag): void
+    {
+        $this->registerTempestConnection($tag);
+        $ecotone = $this->bootstrap($this->writingOrderHandler(terminatingOnFirstAttempt: false), $connectionReference(), [
+            DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+        ]);
+
+        $ecotone->sendCommandWithRouting('order.record', 'tea');
+        $this->terminateServerSideOfTempestConnection();
+        $ecotone->sendCommandWithRouting('order.record', 'milk');
+
+        self::assertSame(['tea', 'milk'], $this->writtenOrders());
+    }
+
+    #[DataProvider('connectionReferences')]
+    public function test_a_consumed_message_after_the_server_terminated_the_idle_tempest_connection_reconnects_at_its_begin_and_is_stored_once(Closure $connectionReference, ?string $tag): void
+    {
+        $this->registerTempestConnection($tag);
+        $ecotone = $this->bootstrap($this->writingOrderHandler(terminatingOnFirstAttempt: false), $connectionReference());
+
+        $ecotone->sendCommandWithRouting('order.write', 'milk');
+        $this->terminateServerSideOfTempestConnection();
+        $ecotone->run('orders', self::untilOneMessageIsHandled());
+
+        self::assertSame(['milk'], $this->writtenOrders());
+    }
+
     private static function untilOneMessageIsHandled(): ExecutionPollingMetadata
     {
         return ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000, stopOnError: false);
@@ -285,6 +340,21 @@ final class ConnectionTerminatedByServerTest extends TestCase
                 $commandBus->sendWithRouting('order.ship', $order);
             }
 
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.store', endpointId: 'storeOrder')]
+            public function store(string $collection, DocumentStore $documentStore): void
+            {
+                $this->attempts++;
+                if ($this->attempts === 1) {
+                    ($this->onFirstAttempt)();
+                    try {
+                        $documentStore->addDocument($collection, uniqid('order_'), '{"order":"milk"}');
+                    } catch (Throwable) {
+                    }
+                }
+                $documentStore->addDocument($collection, uniqid('order_'), '{"order":"milk"}');
+            }
+
             #[Asynchronous('shipping')]
             #[CommandHandler('order.ship', endpointId: 'shipOrder')]
             public function ship(string $order): void
@@ -298,6 +368,45 @@ final class ConnectionTerminatedByServerTest extends TestCase
                 return $this->shipped;
             }
         };
+    }
+
+    private function writingOrderHandler(bool $terminatingOnFirstAttempt = true): object
+    {
+        $administrator = (new DbalConnectionFactory((string) getenv('DATABASE_DSN')))->createContext()->getDbalConnection();
+        $administrator->executeStatement('DROP TABLE IF EXISTS tempest_written_orders');
+        $administrator->executeStatement('CREATE TABLE tempest_written_orders (id VARCHAR(255))');
+
+        $terminate = $terminatingOnFirstAttempt ? fn () => $this->terminateServerSideOfTempestConnection() : null;
+
+        return new class ($this->tempestConnection, $terminate) {
+            private int $attempts = 0;
+
+            public function __construct(private Connection $tempestConnection, private ?Closure $terminate)
+            {
+            }
+
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.write', endpointId: 'writeOrder')]
+            public function write(string $order): void
+            {
+                $this->record($order);
+            }
+
+            #[CommandHandler('order.record')]
+            public function record(string $order): void
+            {
+                $this->attempts++;
+                if ($this->attempts === 1 && $this->terminate !== null) {
+                    ($this->terminate)();
+                }
+                $this->tempestConnection->prepare('INSERT INTO tempest_written_orders (id) VALUES (?)')->execute([$order]);
+            }
+        };
+    }
+
+    private function writtenOrders(): array
+    {
+        return (new DbalConnectionFactory((string) getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->fetchFirstColumn('SELECT id FROM tempest_written_orders');
     }
 
     private function bootstrap(object $handler, TempestConnectionReference $connectionReference, array $extensionObjects = []): FlowTestSupport

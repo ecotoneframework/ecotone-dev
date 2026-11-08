@@ -24,8 +24,8 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/services');
 
         self::assertResponseIsSuccessful();
-        self::assertSame('waiting', $this->statusOf($crawler, 'orders'));
-        self::assertSame('waiting', $this->statusOf($crawler, 'billing'));
+        self::assertSame('waiting', $this->serviceStatusOf($crawler, 'orders'));
+        self::assertSame('waiting', $this->serviceStatusOf($crawler, 'billing'));
     }
 
     public function test_services_answer_the_snapshot_request_the_first_view_sent(): void
@@ -41,8 +41,8 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->runPulseWorker($client->getKernel());
         $crawler = $client->request('GET', '/services');
 
-        self::assertSame('connected', $this->statusOf($crawler, 'orders'));
-        self::assertSame('connected', $this->statusOf($crawler, 'billing'));
+        self::assertSame('connected', $this->serviceStatusOf($crawler, 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($crawler, 'billing'));
         $card = $crawler->filter('[data-service="orders"]');
         self::assertStringContainsString(PHP_VERSION, $card->text());
         self::assertStringContainsString('lite', $card->text());
@@ -57,11 +57,11 @@ final class ServicesPageTest extends ReleasingWebTestCase
 
         $client->request('GET', '/services');
         $this->advanceTimeBy(9);
-        self::assertSame('waiting', $this->statusOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('waiting', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));
         $this->advanceTimeBy(1);
         $crawler = $client->request('GET', '/services');
 
-        self::assertSame('unreachable', $this->statusOf($crawler, 'orders'));
+        self::assertSame('unreachable', $this->serviceStatusOf($crawler, 'orders'));
         self::assertStringContainsString('never', $crawler->filter('[data-service="orders"]')->text());
     }
 
@@ -79,7 +79,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->advanceTimeBy(10);
         $crawler = $client->request('GET', '/services');
 
-        self::assertSame('unreachable', $this->statusOf($crawler, 'orders'));
+        self::assertSame('unreachable', $this->serviceStatusOf($crawler, 'orders'));
         $card = $crawler->filter('[data-service="orders"]')->text();
         self::assertStringContainsString('2026-10-20 12:00:00', $card);
         self::assertStringContainsString('80s', $card);
@@ -117,7 +117,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->runPulseWorker($client->getKernel());
 
         $crawler = $client->request('GET', '/services');
-        self::assertSame('connected', $this->statusOf($crawler, 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($crawler, 'orders'));
         self::assertSame('0s', $this->ageOf($crawler, 'orders'));
     }
 
@@ -147,7 +147,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/services');
 
         self::assertResponseIsSuccessful();
-        self::assertSame('unreachable', $this->statusOf($crawler, 'orders'));
+        self::assertSame('unreachable', $this->serviceStatusOf($crawler, 'orders'));
         self::assertCount(1, $crawler->filter('[data-service="orders"] [data-request-error]'));
         $error = $crawler->filter('[data-service="orders"] [data-request-error]')->text();
         self::assertStringContainsString('ConnectionException', $error);
@@ -168,11 +168,11 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $client->request('POST', '/refresh');
         $waiting = $client->request('GET', '/services');
 
-        self::assertSame('waiting', $this->statusOf($waiting, 'orders'));
+        self::assertSame('waiting', $this->serviceStatusOf($waiting, 'orders'));
         self::assertSame('20s', $this->ageOf($waiting, 'orders'));
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
-        self::assertSame('connected', $this->statusOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));
     }
 
     public function test_a_timed_out_request_is_sent_again_only_after_sixty_seconds_and_that_view_stays_unreachable(): void
@@ -183,17 +183,17 @@ final class ServicesPageTest extends ReleasingWebTestCase
 
         $client->request('GET', '/services');
         $this->advanceTimeBy(10);
-        self::assertSame('unreachable', $this->statusOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('unreachable', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));
         $this->advanceTimeBy(49);
-        self::assertSame('unreachable', $this->statusOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('unreachable', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));
         $this->advanceTimeBy(1);
         $retry = $client->request('GET', '/services');
 
-        self::assertSame('unreachable', $this->statusOf($retry, 'orders'));
+        self::assertSame('unreachable', $this->serviceStatusOf($retry, 'orders'));
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
         self::assertSame(2, $handler->requests);
-        self::assertSame('connected', $this->statusOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));
     }
 
     public function test_a_service_whose_reply_was_rejected_is_requested_again_only_after_sixty_seconds(): void
@@ -242,7 +242,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
 
-        self::assertSame('waiting', $this->statusOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('waiting', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));
     }
 
     public function test_a_reply_that_is_not_json_does_not_stop_the_worker(): void
@@ -258,8 +258,8 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->runPulseWorker($client->getKernel());
         $crawler = $client->request('GET', '/services');
 
-        self::assertSame('waiting', $this->statusOf($crawler, 'orders'));
-        self::assertSame('connected', $this->statusOf($crawler, 'billing'));
+        self::assertSame('waiting', $this->serviceStatusOf($crawler, 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($crawler, 'billing'));
     }
 
     public function test_a_reply_that_is_not_a_supported_snapshot_is_shown_as_an_error_of_that_service(): void
@@ -273,7 +273,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->runPulseWorker($client->getKernel());
         $crawler = $client->request('GET', '/services');
 
-        self::assertSame('waiting', $this->statusOf($crawler, 'orders'));
+        self::assertSame('waiting', $this->serviceStatusOf($crawler, 'orders'));
         self::assertStringContainsString('schema version 2', $crawler->filter('[data-service="orders"] [data-reply-error]')->text());
     }
 
@@ -349,11 +349,6 @@ final class ServicesPageTest extends ReleasingWebTestCase
         }
 
         return $client;
-    }
-
-    private function statusOf(Crawler $crawler, string $service): string
-    {
-        return $crawler->filter(sprintf('[data-service="%s"] [data-status]', $service))->attr('data-status');
     }
 
     private function ageOf(Crawler $crawler, string $service): string

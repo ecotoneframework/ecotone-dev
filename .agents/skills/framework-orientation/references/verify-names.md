@@ -10,10 +10,10 @@ is in [known-deviations.md](../../framework-review-guidelines/references/known-d
 
 Every `docs/superpowers/` path cited below — the design records, the audits and the research reports — lives on
 branch `dgafka/dcb-docs` and is deliberately untracked here, since `docs/superpowers/` is in `.gitignore`. The
-paths resolve on that branch. Commit SHAs cited below resolve on any branch.
+paths resolve on that branch.
 
 Rule numbers are global across the framework skills: rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
-mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 1d, 6a, 10a, 16a, 16b,
+mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 1d, 6a, 10a, 10b, 16a, 16b,
 12a, 13a, 14a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.
 
 > **Verify names before you write them.** Every attribute, parameter, method and console option in code you write

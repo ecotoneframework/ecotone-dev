@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use DateTimeImmutable;
+use Ecotone\Api\Attribute\OnConsumerStop;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -43,52 +48,54 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
 
     public function test_asynchronous_projection_runs_on_default_testing_pollable_setup(): void
     {
+        $consumerStops = self::consumerStops();
         $ecotone = self::bootstrapEcotone(
             classesToResolve: [
                 InProgressTicketList::class,
+                $consumerStops::class,
             ],
             namespaces: [
                 'Test\Ecotone\EventSourcing\Fixture\Ticket',
             ],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel(InProgressTicketList::PROJECTION_CHANNEL, true),
-            ]
+            ],
+            services: [$consumerStops],
+            initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
 
-        $currentTime = microtime(true);
         $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
-        $finishTime = microtime(true);
 
-        // well below the default 1s polling timeout, proving the run does not wait for it (CI runners can be slow)
-        self::assertLessThan(500, ($finishTime - $currentTime) * 1000);
+        self::assertSame(['asynchronous_projections stopped at 00:00:00.001'], $ecotone->sendQueryWithRouting('consumer.stops'));
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
 
     public function test_asynchronous_projection_runs_on_default_testing_pollable_setup_with_dbal_channel(): void
     {
+        $consumerStops = self::consumerStops();
         $ecotone = self::bootstrapEcotone(
             classesToResolve: [
                 InProgressTicketList::class,
+                $consumerStops::class,
             ],
             namespaces: [
                 'Test\Ecotone\EventSourcing\Fixture\Ticket',
             ],
             extensionObjects: [
                 DbalBackedMessageChannelBuilder::create(InProgressTicketList::PROJECTION_CHANNEL),
-            ]
+            ],
+            services: [$consumerStops],
+            initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
 
-        $currentTime = microtime(true);
         $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
-        $finishTime = microtime(true);
 
-        // well below the default 1s polling timeout, proving the run does not wait for it (CI runners can be slow)
-        self::assertLessThan(1000, ($finishTime - $currentTime) * 1000);
+        self::assertSame(['asynchronous_projections stopped at 00:00:00.101'], $ecotone->sendQueryWithRouting('consumer.stops'));
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
@@ -149,6 +156,25 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
         ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
 
+    private static function consumerStops(): object
+    {
+        return new class () {
+            private array $stops = [];
+
+            #[OnConsumerStop]
+            public function stopped(string $endpointId, #[Reference] EcotoneClockInterface $clock): void
+            {
+                $this->stops[] = $endpointId . ' stopped at ' . $clock->now()->format('H:i:s.v');
+            }
+
+            #[QueryHandler('consumer.stops')]
+            public function stops(): array
+            {
+                return $this->stops;
+            }
+        };
+    }
+
     private static function bootstrapEcotone(
         $classesToResolve = [],
         $namespaces = [
@@ -156,15 +182,18 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
             'Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjection',
         ],
         array $extensionObjects = [],
+        array $services = [],
+        ?DateTimeImmutable $initialTime = null,
     ): FlowTestSupport {
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
-            containerOrAvailableServices: [new InProgressTicketList(self::getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => self::getConnectionFactory()],
+            containerOrAvailableServices: [...$services, new InProgressTicketList(self::getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => self::getConnectionFactory()],
             extensionObjects: array_merge([EventSourcingConfiguration::createWithDefaults(), ], $extensionObjects),
             enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
             namespaces: $namespaces,
             environment: 'prod',
+            initialTime: $initialTime,
         )->setupDatabaseTables();
     }
 }

@@ -145,7 +145,7 @@ Pin the clock at bootstrap, so the first message the test sends is already stamp
 $ecotone = EcotoneLite::bootstrapFlowTesting(
     [OrderExpiry::class],
     [new OrderExpiry()],                                                                   // #[Delayed(hours: 24)]
-    testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-03-01 12:00:00')),
+    initialTime: new DateTimeImmutable('2026-03-01 12:00:00'),
 );
 $ecotone->publishEvent(new OrderPlaced('order-1'))->run('async');   // not due yet
 
@@ -157,7 +157,10 @@ $ecotone->now();                                                    // DatePoint
   and the event store's `created_at`, on in-memory and DBAL channels alike. The pattern above is the proof for a delay
   on a `DbalBackedMessageChannelBuilder` channel too: `run()` before the advance shows nothing handled, after it shows
   the handler ran.
-- Without `withTimeAt()` the clock runs on real time until the first `changeTimeTo()` or `advanceTimeBy()`.
+- A test that passes a `testConfiguration:` anyway can pin the clock there with `withTimeAt()` instead; passing both
+  with different instants is refused at bootstrap.
+- Without `initialTime:` (or `withTimeAt()`) the clock runs on real time until the first `changeTimeTo()` or
+  `advanceTimeBy()`.
 - The test clock stays where the test put it: handlers inside `run()` see exactly that time, and `run()` never moves it.
 - `advanceTimeBy()` calls add up; `changeTimeTo()` accepts the same or a later instant.
 - `run()` delivers what is due at the clock's current time, earliest due first. It has no time argument.
@@ -240,8 +243,8 @@ and compare `popRecordedEvents()` with the events you expect. No connection is n
 - **Verified by:** `eval:ticket-lifecycle`
 
 ### 4. Control time with the test clock, never with `sleep()`
-Pin the clock with `TestConfiguration::createWithDefaults()->withTimeAt(...)` passed as `testConfiguration:`, and move
-it with `advanceTimeBy(TimeSpan::with...())`; `run()` before the advance handles nothing that is not yet due.
+Pin the clock with `bootstrapFlowTesting(initialTime: new DateTimeImmutable(...))` (or `withTimeAt()` on a
+`TestConfiguration` you pass anyway), and move it with `advanceTimeBy(TimeSpan::with...())`; `run()` before the advance handles nothing that is not yet due.
 - **Expected:** a delayed message is tested by running the channel before and after `advanceTimeBy()` (or
   `changeTimeTo()`), with no `sleep()`/`usleep()` and no real-time waiting.
 - **Verified by:** `eval:ticket-lifecycle`

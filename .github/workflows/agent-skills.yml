@@ -28,3 +28,6 @@ jobs:
       # Expected and Verified by), eval graders per rule, links, marketplace list, public skill imports
       - name: Check agent skills
         run: php bin/check-agent-skills.php
+
+      - name: Test the agent skills checker
+        run: php bin/test-check-agent-skills.php

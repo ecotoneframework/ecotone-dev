@@ -16,7 +16,6 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -205,7 +204,7 @@ final class FinishWhenNoMessagesTest extends DbalMessagingTestCase
             [$consumer, DbalConnectionFactory::class => $this->getConnectionFactory()],
             extensionObjects: array_filter([$onDbal ? DbalBackedMessageChannelBuilder::create('async') : SimpleMessageChannelBuilder::createQueueChannel('async'), $pollingMetadata]),
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
-            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 00:00:00')),
+            initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
         );
     }
 }

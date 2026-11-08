@@ -24,7 +24,7 @@
   before `advanceTimeBy()` shows nothing handled, `run()` after it shows the handler ran, on DBAL channels as on
   in-memory ones. Only Ecotone's own channel and interceptor suites drive a channel, through the internal
   `Ecotone\Test\ChannelTestSupport::of($ecotone)` (conventions rule 10)
-- **Time is pinned at bootstrap** with `TestConfiguration::createWithDefaults()->withTimeAt(...)`, read with
+- **Time is pinned at bootstrap** with `bootstrapFlowTesting(initialTime: ...)`, read with
   `$ecotone->now()`, moved with `advanceTimeBy()`, and history is seeded with `withEventsFor(..., at: ...)`. One clock
   stamps every message and event, so a test asserts exact timestamps instead of tolerances
 - **A test that needs a raw `Message` builds it with `Ecotone\Test\StaticMessageBuilder`.** `MessageBuilder` is a
@@ -44,6 +44,9 @@
 - **One test per path the guarantee has to hold on**, not one per change: a class-routed `CommandBus::send()`, a
   routed send, a gateway, a console command and an aggregate save all reach the same behaviour differently, and the
   backfill path of a concept has to be proved alongside its live path (conventions rule 10a)
+- **Messages run through Ecotone's testing support, never around it**: `run()` is the only consumer, time is the pinned
+  clock, and a flow across services boots each application in the test process. No fork, `Process`, socket or
+  hand-written polling loop; a missing capability is a framework increment (conventions rule 10b)
 - **A seam with two implementations is asserted in one suite both of them run** — an in-memory store that nobody
   proves equal to the DBAL one makes every flow test using it suspect (conventions rule 9)
 - Run the suite of the package you modified, **one package at a time, never in parallel** — the packages share the

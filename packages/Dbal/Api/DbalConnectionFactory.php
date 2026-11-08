@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Dbal;
 
+use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Ecotone\Dbal\Connection\DbalContext;
@@ -96,7 +97,7 @@ class DbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
     public function establishConnection(): Connection
     {
         if (false == $this->connection) {
-            $this->connection = DriverManager::getConnection($this->config['connection']);
+            $this->connection = DriverManager::getConnection($this->config['connection'], (new Configuration())->setMiddlewares([new TransactionReconnectProtectionMiddleware()]));
 
             try {
                 $this->connection->getNativeConnection();

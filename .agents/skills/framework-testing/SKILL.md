@@ -44,6 +44,15 @@ beside the live one — one test per path.
 - **Expected:** a guarantee reachable through several entry points gets a test per entry point.
 - **Verified by:** `eval:write-feature-test`
 
+### 10b. Tests run messages through Ecotone's own testing support
+`EcotoneLite`, `run()`, `FlowTestSupport`, the pinned clock, and several applications booted in one process for a
+cross-service flow. Never `pcntl_fork`, `proc_open`/`Process`, a socket or pipe handshake, or a
+`microtime()`/`time()`/`usleep()` loop; when the support falls short, add it to the framework in its own commit.
+Real concurrency (processes racing a database constraint or lock) is the one exception, named in the test.
+- **Expected:** a test needing a consumer or a second service boots it with `EcotoneLite` and drives it with
+  `run()` (waiting with `whenWaiting()` on the pinned clock); no fork, process, socket or wall-clock loop appears.
+- **Verified by:** `eval:cross-service-test`
+
 ### 11. Test shape: snake_case, no comments, inline anonymous fixtures
 Method names describe the behaviour in `snake_case`; no comments, docblocks or assertion messages. Fixtures are
 inline anonymous classes registered via `$fixture::class`; a named class below the `TestCase` only where PHP forces
@@ -60,9 +69,9 @@ before `advanceTimeBy()` handles nothing, `run()` after it does.
 - **Verified by:** `eval:write-feature-test`
 
 ### T3. Time is pinned at bootstrap
-`TestConfiguration::createWithDefaults()->withTimeAt(...)`, read with `$ecotone->now()`, moved with
-`advanceTimeBy()`; assert exact timestamps, not tolerances.
-- **Expected:** a time-dependent test pins the clock and asserts exact values.
+`bootstrapFlowTesting(initialTime: ...)` (or `withTimeAt()` on a `TestConfiguration` the test passes anyway), read
+with `$ecotone->now()`, moved with `advanceTimeBy()`; assert exact timestamps, not tolerances.
+- **Expected:** a time-dependent test pins the clock at bootstrap and asserts exact values.
 - **Verified by:** `eval:write-feature-test`
 
 ## References

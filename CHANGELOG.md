@@ -3,6 +3,28 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0-beta.8] - 2026-11-08
+
+## What's Changed
+* fix: partitioned projections run on a manager-registry connection and project #[NamedEvent] events by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/739
+* feat(pulse): follow one path through the flow graph with focus, find, collapse and folded channels by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/740
+* feat: protect projection state with optimistic locking, retry conflicts under a database transaction, and initialize projections only from the console by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/741
+* fix: the Laravel quickstarts install again, on Laravel 12 by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/746
+* feat: infer distributed sends through helpers, distributed command replies and projection paths in the flow graph by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/743
+* fix: JMS re-reads the metadata of a changed class outside production by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/747
+* fix: version-check Eloquent aggregates that declare #[Version] by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/748
+* fix: scope the cached connection factory to the booted application by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/749
+* fix: a DBAL consumer keeps handling messages after a database restart, on Laravel, Tempest and plain Doctrine by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/751
+* fix: a finish-when-no-messages run keeps its limits, stops on the first empty receive and survives a lost connection by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/753
+* fix: a handler marked #[DbalTransaction] runs in a transaction instead of failing by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/752
+* docs: skills are for Ecotone users; the module scaffold moves to docs/ by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/754
+* fix(ci): Split Testing installs its packages one at a time, so parallel installs no longer corrupt the shared Composer cache by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/757
+* fix: a transactional message that loses its database connection is retried whole, never continued outside its transaction by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/755
+* test: three timing flakes in PdoEventSourcing and Dbal are fixed at their cause instead of rerun by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/756
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/2.0.0-beta.7...2.0.0-beta.8
+
 ## [2.0.0-beta.7] - 2026-10-28
 
 ## What's Changed

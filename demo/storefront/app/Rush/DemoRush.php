@@ -1,0 +1,45 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Rush;
+
+use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\ConsoleParameterOption;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Console\ConsoleWriter;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
+use Symfony\Component\Uid\Uuid;
+
+final class DemoRush
+{
+    #[ConsoleCommand('demo:rush')]
+    public function rush(
+        ConsoleWriter $writer,
+        string $concertId,
+        #[Reference] CommandBus $commandBus,
+        #[Reference] QueryBus $queryBus,
+        #[ConsoleParameterOption] int $buyers = StartRush::DEFAULTS['buyers'],
+        #[ConsoleParameterOption] int $declinedShare = StartRush::DEFAULTS['declinedShare'],
+        #[ConsoleParameterOption] int $outageShare = StartRush::DEFAULTS['outageShare'],
+        #[ConsoleParameterOption] int $bounceShare = StartRush::DEFAULTS['bounceShare'],
+        #[ConsoleParameterOption] int $seatsPerBuyer = StartRush::DEFAULTS['seatsPerBuyer'],
+    ): void {
+        $refusal = RushSimulator::refusalOf($queryBus->sendWithRouting('concert.detail', $concertId), $concertId);
+        if ($refusal !== null) {
+            throw $refusal;
+        }
+        $rushId = Uuid::v7()->toRfc4122();
+        $commandBus->send(new StartRush(
+            rushId: $rushId,
+            concertId: $concertId,
+            buyers: $buyers,
+            declinedShare: $declinedShare,
+            outageShare: $outageShare,
+            bounceShare: $bounceShare,
+            seatsPerBuyer: $seatsPerBuyer,
+        ));
+        $writer->success(sprintf('Started rush %s of %d buyers on concert %s. Follow it on the concert page or with the rush.state query; storefront-worker lets the buyers join a few at a time.', $rushId, $buyers, $concertId));
+    }
+}

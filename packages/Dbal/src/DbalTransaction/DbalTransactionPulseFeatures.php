@@ -11,7 +11,9 @@ use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Dbal\Pulse\PulseSavepointIsolation;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSectionIsolationRegistration;
 
 /**
  * licence Enterprise
@@ -37,13 +39,14 @@ final class DbalTransactionPulseFeatures
 {
     /**
      * @param object[] $serviceExtensions
-     * @return PulseFeature[]
+     * @return array<PulseFeature|PulseSectionIsolationRegistration>
      */
     public static function reportedFor(array $serviceExtensions, DbalConfiguration $dbalConfiguration, AnnotationFinder $annotationFinder): array
     {
         if (! PulseFeature::isReportedFor($serviceExtensions)) {
             return [];
         }
+        $opensTransactions = $dbalConfiguration->transactionOnAsynchronousEndpoints || $dbalConfiguration->transactionOnCommandBus || $dbalConfiguration->transactionOnConsoleCommands;
 
         $connections = implode(', ', $dbalConfiguration->defaultConnectionReferenceNames ?: [DbalConnectionReference::DEFAULT]);
         $excluded = $dbalConfiguration->disableTransactionsOnAsynchronousEndpointNames;
@@ -77,7 +80,7 @@ final class DbalTransactionPulseFeatures
         $hint .= $dbalConfiguration->transactionOnAsynchronousEndpoints ? ($excluded === [] ? '' : ' Endpoints ' . implode(', ', $excluded) . ' are excluded with withoutTransactionOnAsynchronousEndpoints and run without one.') : ' A message an asynchronous endpoint consumes does not open a transaction.';
         $hint .= $dbalConfiguration->transactionOnConsoleCommands ? '' : ' A console command does not open a transaction.';
 
-        return [new PulseFeature(
+        return [...($opensTransactions ? [new PulseSectionIsolationRegistration(PulseSavepointIsolation::class)] : []), new PulseFeature(
             package: ModulePackageList::DBAL_PACKAGE,
             name: 'Database transactions',
             enabled: $entryPoints !== [],

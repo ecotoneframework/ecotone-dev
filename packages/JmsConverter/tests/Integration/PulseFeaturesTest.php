@@ -67,6 +67,14 @@ final class PulseFeaturesTest extends TestCase
         $this->features([JMSConverterConfiguration::createWithDefaults(), JMSConverterConfiguration::createWithDefaults()]);
     }
 
+    public function test_a_service_reporting_to_pulse_still_names_the_way_out_of_two_different_configurations(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Ecotone was given more than one JMSConverterConfiguration');
+
+        $this->features([JMSConverterConfiguration::createWithDefaults(), JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false)]);
+    }
+
     /**
      * @param object[] $extensionObjects
      * @param array<string, object> $services

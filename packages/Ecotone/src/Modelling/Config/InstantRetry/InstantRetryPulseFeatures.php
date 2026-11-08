@@ -36,7 +36,7 @@ final class InstantRetryPulseFeatures
      * @param array<string, InstantRetry> $commandBusOverrides
      * @param list<array{string, InstantRetry}> $endpointOverrides
      */
-    public function __construct(
+    private function __construct(
         private InstantRetryConfiguration $configuration,
         private array $commandBusOverrides,
         private array $endpointOverrides,

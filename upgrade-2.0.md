@@ -3835,12 +3835,14 @@ rename test-support methods without aliases; the renamed methods are listed in e
   **Before:** the test clock was frozen only once `changeTimeTo()` or `advanceTimeBy()` was called, so the first
   message a test sent carried real time; the current time was reachable only by fetching `EcotoneClockInterface` from
   the container; `withEventsFor()` and `withEventStream()` recorded every seeded event at the clock's current time.
-  **Now:** `TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2024-03-01 10:00:00'))` starts
-  the clock there, so the first message is stamped with it and `changeTimeTo()` to an earlier instant is refused with
-  `Cannot move time backwards`. `FlowTestSupport::now()` returns the clock's `DatePoint`. `withEventsFor()`,
+  **Now:** `EcotoneLite::bootstrapFlowTesting(initialTime: new DateTimeImmutable('2024-03-01 10:00:00'))` starts the
+  clock there, so the first message is stamped with it and `changeTimeTo()` to an earlier instant is refused with
+  `Cannot move time backwards`. A test that passes a `testConfiguration:` anyway can pin it with
+  `TestConfiguration::withTimeAt()` instead; `initialTime:` keeps the configuration's other settings, and the two
+  given different instants are refused at bootstrap. `FlowTestSupport::now()` returns the clock's `DatePoint`. `withEventsFor()`,
   `withEventStream()` and `withEvents()` take `at: DateTimeImmutable`, record the events as of that time, and put the
   clock back afterwards. A `StaticPsrClock` constructed with an explicit time counts as pinned the same way.
-  **How to adapt:** nothing is required. Replace a `changeTimeTo()` placed right after bootstrap with `withTimeAt()`,
+  **How to adapt:** nothing is required. Replace a `changeTimeTo()` placed right after bootstrap with `initialTime:`,
   and a chain of `advanceTimeBy()` calls around seeding with `at:`.
 - **`FlowTestSupport` no longer hands out channels.** `getMessageChannel()`, `getMessageChannelByName()`,
   `receiveMessageFrom()`, `sendMessageDirectToChannel()` and `sendMessageDirectToChannelWithMessageReply()` are

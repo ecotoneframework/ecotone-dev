@@ -10,14 +10,19 @@ Standard test bootstrap. Loads every installed module package; each runs in memo
 public static function bootstrapFlowTesting(
     array                    $classesToResolve = [],
     ContainerInterface|array $containerOrAvailableServices = [],
-    ?ServiceConfiguration    $configuration = null,
+    array                    $extensionObjects = [],
+    ?array                   $enabledModules = null,
     array                    $configurationVariables = [],
     ?string                  $pathToRootCatalog = null,
     bool                     $allowGatewaysToBeRegisteredInContainer = false,
     bool                     $addInMemoryStateStoredRepository = true,
     bool                     $addInMemoryEventSourcedRepository = true,
     ?TestConfiguration       $testConfiguration = null,
-    ?string                  $licenceKey = null
+    ?DateTimeInterface       $initialTime = null,
+    ?string                  $licenceKey = null,
+    array                    $namespaces = [],
+    string                   $environment = 'dev',
+    ?string                  $cacheDirectoryPath = null,
 ): FlowTestSupport
 ```
 
@@ -116,8 +121,11 @@ calling `->run($endpointId)` again; a synchronous or async-channel projection ha
 | `advanceTimeBy(TimeSpan\|Duration $span)` | `self` | Move clock forward by span; calls add up |
 | `now()` | `DatePoint` | The clock's current time |
 
-`TestConfiguration::createWithDefaults()->withTimeAt(DateTimeImmutable $time)` pins the clock before bootstrap, so
-the first message is already stamped with it; `changeTimeTo()` earlier than that start is refused.
+`bootstrapFlowTesting(initialTime: new DateTimeImmutable(...))` pins the clock before bootstrap, so the first message
+is already stamped with it; `changeTimeTo()` earlier than that start is refused. It is applied onto the
+`testConfiguration:` you pass, keeping its other settings. A test building a `TestConfiguration` anyway can pin the
+clock with `withTimeAt(DateTimeImmutable $time)` on it instead; passing both with different instants is refused at
+bootstrap.
 
 ### Infrastructure
 

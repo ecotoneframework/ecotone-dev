@@ -164,7 +164,7 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
   before `advanceTimeBy()` shows nothing handled, `run()` after it shows the handler ran, on DBAL channels as on
   in-memory ones. Only Ecotone's own channel and interceptor suites drive a channel, through the internal
   `Ecotone\Test\ChannelTestSupport::of($ecotone)` (conventions rule 10)
-- **Time is pinned at bootstrap** with `TestConfiguration::createWithDefaults()->withTimeAt(...)`, read with
+- **Time is pinned at bootstrap** with `bootstrapFlowTesting(initialTime: ...)`, read with
   `$ecotone->now()`, moved with `advanceTimeBy()`, and history is seeded with `withEventsFor(..., at: ...)`. One clock
   stamps every message and event, so a test asserts exact timestamps instead of tolerances
 - **A test that needs a raw `Message` builds it with `Ecotone\Test\StaticMessageBuilder`.** `MessageBuilder` is a

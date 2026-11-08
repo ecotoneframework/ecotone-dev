@@ -13,6 +13,8 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\ExtensionObject\TransactionReconnectProtection;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Dbal\Pulse\PulseSavepointIsolation;
+use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseConsumerFeature;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSectionIsolationRegistration;
 
@@ -111,5 +113,32 @@ final class DbalTransactionPulseFeatures
             hint: $hint,
             configuration: 'DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true)->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnConsoleCommands(true)',
         )];
+    }
+
+    /**
+     * @param object[] $serviceExtensions
+     * @return PulseConsumerFeature[]
+     */
+    public static function consumerFeaturesFor(array $serviceExtensions, DbalConfiguration $dbalConfiguration, AnnotationFinder $annotationFinder): array
+    {
+        if (! PulseFeature::isReportedFor($serviceExtensions)) {
+            return [];
+        }
+        $features = [PulseConsumerFeature::global('Database transaction', PulseFeature::onOff($dbalConfiguration->transactionOnAsynchronousEndpoints))];
+        if (! $dbalConfiguration->transactionOnAsynchronousEndpoints) {
+            return $features;
+        }
+        foreach ($dbalConfiguration->disableTransactionsOnAsynchronousEndpointNames as $consumerName) {
+            $features[] = PulseConsumerFeature::forConsumer($consumerName, 'Database transaction', 'off');
+        }
+        foreach ($annotationFinder->findAnnotatedMethods(Asynchronous::class) as $annotatedMethod) {
+            foreach ($annotatedMethod->getMethodAnnotationsWithType(Asynchronous::class) as $asynchronous) {
+                if (array_filter($asynchronous->asynchronousExecution, static fn (object $attribute): bool => $attribute instanceof WithoutDatabaseTransaction) !== [] && $annotatedMethod->hasMethodAnnotation(IdentifiedAnnotation::class)) {
+                    $features[] = PulseConsumerFeature::forConsumer($annotatedMethod->getMethodAnnotationsWithType(IdentifiedAnnotation::class)[0]->getEndpointId(), 'Database transaction', 'off');
+                }
+            }
+        }
+
+        return $features;
     }
 }

@@ -181,6 +181,41 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
         self::assertStringContainsString('may reconnect inside the transaction', $transactions['hint']);
     }
 
+    public function test_a_consumer_shows_its_database_transaction_and_deduplication_as_global_or_its_own(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('orders')]
+            #[Deduplicated('orderId')]
+            #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
+            public function place(string $order): void
+            {
+            }
+
+            #[Asynchronous('orders', asynchronousExecution: [new WithoutDatabaseTransaction()])]
+            #[CommandHandler('order.notify', endpointId: 'order.notify.endpoint')]
+            public function notify(string $order): void
+            {
+            }
+
+            #[Asynchronous('audit')]
+            #[CommandHandler('order.audit', endpointId: 'order.audit.endpoint')]
+            public function audit(string $order): void
+            {
+            }
+        };
+        $consumers = array_column($this->reportedBy($orders, [
+            DbalBackedMessageChannelBuilder::create('audit'),
+            DbalConfiguration::createWithDefaults()->withoutTransactionOnAsynchronousEndpoints(['audit']),
+        ])[2]['consumers'], null, 'name');
+
+        $orders = $consumers['orders']['features'];
+        self::assertContains(['name' => 'Database transaction', 'value' => 'on', 'scope' => 'global', 'handler' => null], $orders);
+        self::assertContains(['name' => 'Database transaction', 'value' => 'off', 'scope' => 'consumer-level config', 'handler' => 'order.notify.endpoint'], $orders);
+        self::assertContains(['name' => 'Deduplication', 'value' => 'by message id', 'scope' => 'global', 'handler' => null], $orders);
+        self::assertContains(['name' => 'Deduplication', 'value' => 'by header orderId', 'scope' => 'consumer-level config', 'handler' => 'order.place.endpoint'], $orders);
+        self::assertContains(['name' => 'Database transaction', 'value' => 'off', 'scope' => 'consumer-level config', 'handler' => null], $consumers['audit']['features']);
+    }
+
     public function test_transactions_turned_off_on_an_entry_point_or_an_endpoint_are_reported_where_they_are_off(): void
     {
         $features = $this->dbalFeatures([
@@ -295,7 +330,7 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
 
     /**
      * @param object[] $extensionObjects
-     * @return array{0: FlowTestSupport, 1: array<string, array<string, array<string, mixed>>>}
+     * @return array{0: FlowTestSupport, 1: array<string, array<string, array<string, mixed>>>, 2: array<string, mixed>}
      */
     private function reportedBy(object $orders, array $extensionObjects): array
     {
@@ -339,8 +374,9 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
         $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        $packages = array_column(json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['packages'], 'features', 'name');
+        $snapshot = json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR);
+        $packages = array_column($snapshot['packages'], 'features', 'name');
 
-        return [$orderService, array_map(static fn (array $features): array => array_column($features, null, 'name'), $packages)];
+        return [$orderService, array_map(static fn (array $features): array => array_column($features, null, 'name'), $packages), $snapshot];
     }
 }

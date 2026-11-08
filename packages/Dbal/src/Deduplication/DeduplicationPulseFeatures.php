@@ -8,6 +8,8 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseConsumerFeature;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 /**
@@ -65,5 +67,30 @@ final class DeduplicationPulseFeatures
                 : 'Asynchronous endpoints do not check whether a message was handled before, so a redelivered message is handled again. A handler with #[Deduplicated] is still deduplicated, by the header or expression it names.',
             configuration: 'DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: true)',
         )];
+    }
+
+    /**
+     * @param object[] $serviceExtensions
+     * @return PulseConsumerFeature[]
+     */
+    public static function consumerFeaturesFor(array $serviceExtensions, DbalConfiguration $dbalConfiguration, AnnotationFinder $annotationFinder): array
+    {
+        if (! PulseFeature::isReportedFor($serviceExtensions)) {
+            return [];
+        }
+        $features = [PulseConsumerFeature::global('Deduplication', $dbalConfiguration->deduplicatedEnabled ? 'by message id' : 'off')];
+        foreach ($annotationFinder->findAnnotatedMethods(Deduplicated::class) as $annotatedMethod) {
+            if (! $annotatedMethod->hasMethodAnnotation(IdentifiedAnnotation::class)) {
+                continue;
+            }
+            $deduplicated = $annotatedMethod->getAnnotationForMethod();
+            $features[] = PulseConsumerFeature::forConsumer($annotatedMethod->getMethodAnnotationsWithType(IdentifiedAnnotation::class)[0]->getEndpointId(), 'Deduplication', match (true) {
+                $deduplicated->hasExpression() => 'by expression',
+                $deduplicated->deduplicationHeaderName !== '' => 'by header ' . $deduplicated->deduplicationHeaderName,
+                default => 'by message id',
+            });
+        }
+
+        return $features;
     }
 }

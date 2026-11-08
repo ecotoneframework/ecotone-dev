@@ -17,7 +17,6 @@ use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
-use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StaticMessageBuilder;
@@ -320,7 +319,6 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
                     getenv('KAFKA_DSN') ?? 'localhost:9094',
                 ]), new KafkaAsyncCommandHandler(), new MeetingHistory(),
-                //'logger' => new EchoLogger(),
             ],
             extensionObjects: [
                 KafkaMessageChannelBuilder::create($channelName, topicName:($topicName = $topicName ?: Uuid::v7()->toRfc4122()), messageGroupId:$topicName),
@@ -337,7 +335,6 @@ final class KafkaMessageChannelTest extends TestCase
             [KafkaAsyncEventHandler::class],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new KafkaAsyncEventHandler(),
-                //                'logger' => new EchoLogger(),
             ],
             extensionObjects: [KafkaMessageChannelBuilder::create($channelName, topicName:$uniqueId = Uuid::v7()->toRfc4122(), messageGroupId:$uniqueId)],
             enabledModules: [ModulePackageList::KAFKA_PACKAGE],

@@ -16,13 +16,11 @@ final class OrderService
     #[EventHandler(endpointId: 'send_confirmation_email')]
     public function sendConfirmationEmail(OrderWasPlaced $event): void
     {
-        echo "Sending confirmation email\n";
     }
 
     #[Asynchronous('asynchronous_queue')]
     #[EventHandler(endpointId: 'deliver_order')]
     public function deliverOrder(OrderWasPlaced $event): void
     {
-        echo "Deliver order\n";
     }
 }

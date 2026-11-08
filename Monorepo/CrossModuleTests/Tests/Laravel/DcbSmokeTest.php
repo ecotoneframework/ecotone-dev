@@ -15,6 +15,7 @@ use Ecotone\Test\LicenceTesting;
 use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
+use Monorepo\Benchmark\RestoresGlobalHandlers;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -36,6 +37,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class DcbSmokeTest extends TestCase
 {
+    use RestoresGlobalHandlers;
+
     private Application $app;
 
     public function setUp(): void
@@ -61,7 +64,6 @@ final class DcbSmokeTest extends TestCase
     protected function tearDown(): void
     {
         putenv('LARAVEL_DCB_SMOKE_LICENCE_KEY');
-        restore_exception_handler();
     }
 
     public function test_a_tagged_event_is_appended_and_a_decision_model_is_injected_into_a_handler(): void

@@ -9,7 +9,6 @@ namespace Workflows {
     use Ecotone\Api\ExtensionObject\ServiceConfiguration;
     use Ecotone\Api\Lite\EcotoneLite;
     use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
-    use Ecotone\Messaging\Handler\Logger\EchoLogger;
     use Ecotone\Dbal\DbalConnection;
     use Ecotone\Api\Dbal\DbalConnectionFactory;
 
@@ -18,7 +17,6 @@ namespace Workflows {
     {
         $messagingSystem = EcotoneLite::bootstrap(
             containerOrAvailableServices: array_merge([
-                'logger' => new EchoLogger(),
                 // Registering connection for tenants. Look src/Configuration/EcotoneConfiguration.php for usage based on tenant header
                 DbalConnectionFactory::class => getConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'),
             ], $services),

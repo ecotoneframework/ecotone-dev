@@ -25,3 +25,5 @@ quickstart-examples/**/config/reference.php
 Monorepo/CrossModuleTests/Fixture/Symfony/*/config/reference.php
 
 !/apps/Pulse/.env
+.agents/evals/results/
+api/evals/results/

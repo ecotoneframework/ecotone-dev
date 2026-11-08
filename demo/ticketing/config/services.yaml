@@ -25,3 +25,7 @@ services:
 when@test:
     parameters:
         ticketFilesDirectory: '%kernel.cache_dir%/tickets'
+
+    services:
+        OpenTelemetry\API\Trace\TracerProviderInterface:
+            class: OpenTelemetry\API\Trace\NoopTracerProvider

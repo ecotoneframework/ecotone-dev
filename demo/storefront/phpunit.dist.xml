@@ -3,6 +3,8 @@
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="tests/bootstrap.php"
          colors="true"
+         beStrictAboutOutputDuringTests="true"
+         failOnRisky="true"
 >
     <testsuites>
         <testsuite name="Storefront">

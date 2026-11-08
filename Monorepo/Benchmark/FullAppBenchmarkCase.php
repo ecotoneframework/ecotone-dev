@@ -18,4 +18,5 @@ use PHPUnit\Framework\TestCase;
 abstract class FullAppBenchmarkCase extends TestCase
 {
     use FullAppBenchmarkCaseTrait;
+    use RestoresGlobalHandlers;
 }

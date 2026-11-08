@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# licence Apache-2.0
+#
+# Runs the `claude plugin eval` cases of agent skills.
+#   bin/test-agent-skills                       skills changed against main (committed, staged and unstaged)
+#   bin/test-agent-skills framework-testing     the named skills (framework-* or ecotone-*)
+#   bin/test-agent-skills --all                 every skill
+# Environment: RUNS (default 1), THRESHOLD (default 0.8), BASE (default origin/main), EVAL_ARGS (extra flags).
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+RUNS="${RUNS:-1}"
+THRESHOLD="${THRESHOLD:-0.8}"
+BASE="${BASE:-origin/main}"
+
+if ! command -v claude >/dev/null 2>&1; then
+    echo "claude CLI not found. Skill evals run real agent sessions through 'claude plugin eval'; install Claude Code (https://code.claude.com) and log in, then rerun." >&2
+    exit 1
+fi
+
+skills=()
+if [[ "${1:-}" == "--all" ]]; then
+    for dir in .agents/skills/*/ api/skills/*/; do skills+=("$(basename "$dir")"); done
+elif [[ $# -gt 0 ]]; then
+    skills=("$@")
+else
+    base_commit="$(git merge-base "$BASE" HEAD)"
+    while IFS= read -r skill; do
+        skills+=("$skill")
+    done < <(
+        { git diff --name-only --diff-filter=d "$base_commit"; git ls-files --others --exclude-standard; } \
+            | sed -nE 's#^(\.agents|api)/(skills|evals)/([^/]+)/.*#\3#p' \
+            | sort -u
+    )
+fi
+
+if [[ ${#skills[@]} -eq 0 ]]; then
+    echo "No skill changed against $BASE; nothing to evaluate. Name skills explicitly or pass --all."
+    exit 0
+fi
+
+framework=()
+public=()
+for skill in "${skills[@]}"; do
+    if [[ -d ".agents/skills/$skill" ]]; then
+        framework+=("$skill")
+    elif [[ -d "api/skills/$skill" ]]; then
+        public+=("$skill")
+    else
+        echo "Unknown skill '$skill': no .agents/skills/$skill or api/skills/$skill. Check the name, or it was deleted (then delete its evals too)." >&2
+        exit 1
+    fi
+done
+
+status=0
+run_suite() {
+    local plugin_root="$1" results="$2"; shift 2
+    [[ $# -eq 0 ]] && return 0
+    echo "Evaluating $plugin_root skills: $*"
+    # shellcheck disable=SC2086
+    claude plugin eval "$plugin_root" --tag "$@" \
+        --runs "$RUNS" --threshold "$THRESHOLD" \
+        --output-dir "$results/$(date -u +%Y-%m-%dT%H-%M-%SZ)" \
+        --ablation none --trust-plugin --no-publish ${EVAL_ARGS:-} || status=$?
+}
+
+# api/ keeps the published ecotoneframework/skills layout (a marketplace with strict:false, no plugin.json),
+# so its skills are evaluated through a throwaway plugin wrapping api/skills and api/evals.
+public_plugin="$(mktemp -d)"
+trap 'rm -rf "$public_plugin"' EXIT
+mkdir "$public_plugin/.claude-plugin"
+printf '{"name":"ecotone-skills"}\n' > "$public_plugin/.claude-plugin/plugin.json"
+ln -s "$PWD/api/skills" "$public_plugin/skills"
+ln -s "$PWD/api/evals" "$public_plugin/evals"
+
+run_suite .agents "$PWD/.agents/evals/results" "${framework[@]+"${framework[@]}"}"
+run_suite "$public_plugin" "$PWD/api/evals/results" "${public[@]+"${public[@]}"}"
+
+exit $status

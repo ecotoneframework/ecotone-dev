@@ -25,7 +25,6 @@ use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Kafka\Outbound\MessagePublishingException;
-use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
@@ -149,7 +148,7 @@ final class KafkaChannelAdapterTest extends TestCase
             [],
             [KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
                 'wrongKafkaDsn',
-            ]), 'logger' => new EchoLogger()],
+            ])],
             extensionObjects: [
                 KafkaPublisherConfiguration::createWithDefaults(Uuid::v7()->toRfc4122()),
                 InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -171,7 +170,6 @@ final class KafkaChannelAdapterTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [ExampleKafkaConsumer::class],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new ExampleKafkaConsumer(),
-                //                'logger' => new EchoLogger()
             ],
             extensionObjects: [
                 KafkaPublisherConfiguration::createWithDefaults($topicName = Uuid::v7()->toRfc4122()),

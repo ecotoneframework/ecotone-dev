@@ -5,15 +5,13 @@
 declare(strict_types=1);
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Monorepo\Benchmark\RestoresGlobalHandlers;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 
 class SymfonyEventSourcingIntegrationTest extends TestCase
 {
-    protected function tearDown(): void
-    {
-        restore_exception_handler();
-    }
+    use RestoresGlobalHandlers;
 
     #[DoesNotPerformAssertions]
     public function test_symfony_in_test_mode_with_es_should_boot(): void

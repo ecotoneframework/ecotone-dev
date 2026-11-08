@@ -69,7 +69,7 @@ function getPackages(): array {
     ];
 
     $packages[] = [
-            'directory'  => realpath(__DIR__ . "/../.claude"),
+            'directory'  => realpath(__DIR__ . "/../api"),
             'name' => "skills",
             'package' => 'ecotone/skills',
             'organisation' => 'ecotoneframework',

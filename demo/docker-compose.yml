@@ -6,6 +6,7 @@
 #
 #   COMPOSE_PROJECT_NAME           stack name, default ecotone-demo; give each parallel stack its own
 #   ECOTONE_LICENCE_KEY            your Ecotone Enterprise licence key; when unset the services run on Ecotone's testing licence
+#   COMPOSER_AUTH                  Composer credentials for the install each container runs on start, e.g. a GitHub token
 #   DEMO_UID, DEMO_GID             host user and group the containers run as, default 1000:1000, so vendor/ stays yours
 #   DEMO_STOREFRONT_PORT           host port of the Laravel storefront, default 8000
 #   DEMO_TICKETING_PORT            host port of the Symfony ticketing service, default 8001
@@ -40,6 +41,7 @@ x-app: &app
 
 x-environment: &environment
   ECOTONE_LICENCE_KEY:
+  COMPOSER_AUTH:
   AMQP_DSN: amqp://guest:guest@rabbitmq:5672
   OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
   DEMO_PULSE_URL: http://localhost:${DEMO_PULSE_PORT:-8080}
@@ -136,6 +138,7 @@ services:
     command: ["pulse"]
     environment:
       ECOTONE_LICENCE_KEY:
+      COMPOSER_AUTH:
       DEMO_APP: pulse
       APP_ENV: dev
       PULSE_TRANSPORT_DSN: amqp://guest:guest@rabbitmq:5672

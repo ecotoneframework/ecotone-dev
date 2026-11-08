@@ -101,6 +101,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Start the demo, run a rush and check Pulse and Jaeger, on the demo's PHP 8.5 image
+        env:
+          COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
         run: |
           export DEMO_UID="$(id -u)" DEMO_GID="$(id -g)"
           demo/docker/smoke.sh

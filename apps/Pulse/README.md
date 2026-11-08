@@ -378,3 +378,4 @@ Two checks need a browser engine, so they run on the host (Node 22 in CI; 20 or 
   `cd tests/Accessibility && npm ci && node axe.mjs http://localhost:8080` (`CHROME_PATH` selects the Chrome binary). It also audits the
   first-visit splash. `node intro.mjs http://localhost:8080` checks the splash itself:
   shown on the first visit of the day, gone on reload, shown again on the next day, skippable, reduced motion and unavailable storage respected.
+  CI runs neither accessibility script: run both against a local Pulse before changing a page or the splash.

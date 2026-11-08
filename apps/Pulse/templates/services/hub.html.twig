@@ -153,7 +153,7 @@
                     <h3><span data-package-name>{{ package.composerPackage }}</span>{% if package.version %} <span class="muted" data-package-version>{{ package.version }}</span>{% endif %}</h3>
                     {% if package.tables %}
                         <ul data-setup-items>{% for item in package.tables %}{{ _self.setupItem(item) }}{% endfor %}</ul>
-                    {% else %}
+                    {% elseif focusSetup.sectionErrors is empty %}
                         <p class="muted" data-no-tables>Needs no database table.</p>
                     {% endif %}
                     {% if package.features %}

@@ -45,17 +45,20 @@ $messagingSystem = EcotoneLite::bootstrap(
 
 ## Testing with Enterprise Features
 
-Use `LicenceTesting::VALID_LICENCE` for test environments:
+Pass your own licence key (or trial key) to the flow-test bootstrap, read from the test environment so it never
+lands in source control:
 
 ```php
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Test\LicenceTesting;
 
 $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
     [OrderFulfillmentOrchestrator::class],
-    licenceKey: LicenceTesting::VALID_LICENCE,
+    licenceKey: getenv('ECOTONE_LICENCE_KEY') ?: null,
 );
 ```
+
+Export `ECOTONE_LICENCE_KEY` from your CI job's secrets, and locally from your shell or an untracked `.env`. Keep it
+out of a committed `phpunit.xml.dist`; an `<env>` entry belongs only in a local `phpunit.xml` that is git-ignored.
 
 ## Obtaining a Licence Key
 

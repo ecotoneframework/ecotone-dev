@@ -197,9 +197,9 @@ class NotificationProjection
 }
 ```
 
-**Emit suppression during rebuild:** When a projection is rebuilt via `prepareRebuild()` (console command `ecotone:projection:rebuild`), emitted events via `EventStreamEmitter` are automatically suppressed. The projection state is replayed from events, but `linkTo()` and `emit()` calls do not publish to downstream streams. This prevents duplicate events in linked streams during rebuild.
+**Emit suppression during rebuild:** When a projection is rebuilt with the `ecotone:projection:rebuild` console command, emitted events via `EventStreamEmitter` are automatically suppressed. The projection state is replayed from events, but `linkTo()` and `emit()` calls do not publish to downstream streams. This prevents duplicate events in linked streams during rebuild.
 
-**Backfill does emit:** In contrast, `triggerProjection()` / `prepareBackfill()` does NOT suppress emissions -- events are emitted normally during backfill. Use rebuild when you want to replay without side effects.
+**Backfill does emit:** In contrast, `triggerProjection()` and the `ecotone:projection:backfill` console command do NOT suppress emissions -- events are emitted normally during backfill. Use rebuild when you want to replay without side effects.
 
 **Blue/green deployment:** Use `#[ProjectionDeployment(live: false)]` to suppress emissions during normal running (not just rebuild). This is for blue/green scenarios where a new projection version is catching up in the background.
 

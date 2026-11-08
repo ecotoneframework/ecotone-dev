@@ -71,7 +71,7 @@ jobs:
         env:
           VERSION: ${{ github.ref_name }}
         run: |
-          MARKETPLACE=".claude/.claude-plugin/marketplace.json"
+          MARKETPLACE="api/.claude-plugin/marketplace.json"
           if [ -f "$MARKETPLACE" ]; then
             jq --arg v "$VERSION" '.metadata.version = $v | .plugins[].version = $v' "$MARKETPLACE" > tmp.json && mv tmp.json "$MARKETPLACE"
           fi

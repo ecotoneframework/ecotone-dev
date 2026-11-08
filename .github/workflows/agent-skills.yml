@@ -1,0 +1,33 @@
+name: Agent Skills
+
+on:
+  pull_request:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '*.*'
+
+concurrency:
+  group: agent-skills-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  check-agent-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          coverage: none
+
+      # AGENTS.md size, CLAUDE.md and .claude/skills symlinks, skill format (Applies when, Rules with
+      # Expected and Verified by), eval graders per rule, links, marketplace list, public skill imports
+      - name: Check agent skills
+        run: php bin/check-agent-skills.php
+
+      - name: Test the agent skills checker
+        run: php bin/test-check-agent-skills.php

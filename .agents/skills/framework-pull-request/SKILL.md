@@ -65,10 +65,14 @@ whether they agree to the terms; never tick it for them. Show the full title and
   terms) before running `gh pr create`.
 - **Verified by:** `eval:open-pr`
 
-### P5. Changed skills run their tests
-A change under `.agents/skills`, `api/skills`, `.agents/evals` or `api/evals` runs `bin/test-agent-skills` for the
-changed skills before pushing (`framework-agent-tooling` rule A4).
-- **Expected:** a branch that changes a skill runs `bin/test-agent-skills` and reports the scores.
+### P5. Changed skills are evaluated in the local review, before the PR
+CI never runs a model: it runs only the deterministic `php bin/check-agent-skills.php`. So when the branch changes
+anything under `.agents/skills`, `api/skills`, `.agents/evals` or `api/evals`, the behaviour review session (rule
+P3, `framework-review-behaviour` rule V7) runs `bin/test-agent-skills` for the changed skills and puts the scores in
+its report. A case below the threshold is a BLOCKING finding; the PR is not opened until it passes or the
+maintainer accepts the score.
+- **Expected:** for a branch that changes a skill, the pre-PR plan includes the eval run inside the behaviour review,
+  treats a failing case as blocking, and does not rely on CI to evaluate skills.
 - **Verified by:** `eval:open-pr`
 
 ## References

@@ -55,7 +55,8 @@ Eval cases live in `.agents/evals/<skill>/<case>/` (framework) and `api/evals/<s
 `claude plugin eval` format: `prompt.md` (frontmatter + task), `graders/rule-<id>.md` (one `llm` grader per rule,
 PASS/FAIL rubric) and `graders/skill-loaded.md` (`tool_used: Skill`). Run `bin/test-agent-skills` — it runs the
 cases of every skill changed against `main` (or the skills named as arguments) and fails below the threshold. It
-uses real agent runs, so it runs locally, not in CI.
+uses real agent runs, so it never runs in CI (CI runs only the deterministic `check:agent-skills`); it runs in the
+local review before the PR, as part of the behaviour review session (`framework-pull-request` rule P5).
 - **Expected:** after changing a skill the agent runs `bin/test-agent-skills` (or explains it cannot) and adds or
   updates a grader for each new or changed rule.
 - **Verified by:** `eval:new-rule-enforcement`

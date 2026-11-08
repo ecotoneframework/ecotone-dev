@@ -54,6 +54,15 @@ A test using SQL on Ecotone tables, reflection, or a `src/` class proves the imp
 - **Expected:** internal-coupled tests are flagged with the userland alternative.
 - **Verified by:** `eval:review-diff-behaviour`
 
+### V7. Changed skills are evaluated, not only read
+CI checks a skill's format but never runs a model. When the diff touches `.agents/skills`, `api/skills`,
+`.agents/evals` or `api/evals`, run `bin/test-agent-skills` (in your own worktree) for the changed skills. Report
+each case's score and every failing grader as a finding: below the threshold is BLOCKING, and a failing grader
+names the rule it grades. Also check every new or changed rule has a grader in a case.
+- **Expected:** for a diff that changes a skill, the report contains `bin/test-agent-skills` scores per case and
+  ranks a failing case as BLOCKING; it never defers skill evaluation to CI.
+- **Verified by:** `eval:review-skill-change`
+
 ### V6. Findings are ranked and actionable
 `[BLOCKING|SHOULD-FIX|NIT] <rule id> — <file>:<line> — the scenario that fails — the test to add or the fix`.
 - **Expected:** each finding has severity, rule id, location, a concrete failing scenario and a fix.

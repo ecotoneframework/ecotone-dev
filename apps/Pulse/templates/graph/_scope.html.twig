@@ -7,7 +7,7 @@
             {% endfor %}
         </select>
     </label>
-    {% for name, value in carry|default({}) %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+    {% include 'graph/_carried.html.twig' with {carry: carry|default({})} only %}
     <button type="submit">Show</button>
 </form>
 {% if scope.narrowed %}

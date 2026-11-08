@@ -39,8 +39,11 @@ final class ServicePackagesTest extends ReleasingWebTestCase
         self::assertStringContainsString('tried again right away up to 3 more times (4 attempts in total)', $retries->filter('[data-hint]')->text());
         self::assertStringStartsWith('InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(', trim($retries->filter('[data-feature-configuration]')->text()));
         $commandBus = $crawler->filter('[data-package="core"] [data-feature="Instant retries on the command bus"]');
-        self::assertSame('false', $commandBus->attr('data-feature-enabled'));
-        self::assertSame('Off', trim($commandBus->filter('[data-feature-status]')->text()));
+        self::assertSame('true', $commandBus->attr('data-feature-enabled'));
+        self::assertSame('by default, to commands handled in a database transaction', trim($commandBus->filter('[data-feature-setting="Applied"]')->text()));
+        $repositories = $crawler->filter('[data-package="dbal"] [data-feature="Doctrine ORM repositories"]');
+        self::assertSame('false', $repositories->attr('data-feature-enabled'));
+        self::assertSame('Off', trim($repositories->filter('[data-feature-status]')->text()));
         self::assertSame('on', trim($crawler->filter('[data-package="dbal"] [data-feature="Database transactions"] [data-feature-setting="Command bus"]')->text()));
     }
 

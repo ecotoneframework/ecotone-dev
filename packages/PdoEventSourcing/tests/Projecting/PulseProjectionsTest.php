@@ -17,6 +17,7 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromAggregateStream;
@@ -112,7 +113,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
             array_map(fn (array $projection): array => array_intersect_key($projection, array_flip(['name', 'mode', 'partitioned', 'manualKickOff', 'asyncChannel', 'rebuildAsyncChannel', 'backfillAsyncChannel'])), $before),
         );
         self::assertSame(
-            ['tickets_async' => 'uninitialized', 'tickets_partitioned' => 'uninitialized', 'tickets_polling' => 'uninitialized', 'tickets_sync' => 'uninitialized'],
+            ['tickets_async' => 'prepared', 'tickets_partitioned' => 'uninitialized', 'tickets_polling' => 'prepared', 'tickets_sync' => 'prepared'],
             array_column($before, 'initialization', 'name'),
         );
         self::assertSame('initialized', array_column($after, 'initialization', 'name')['tickets_sync']);
@@ -173,7 +174,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         $this->orderService->sendCommand(new ChangeAssignedPerson('ticket-1', 'Mark'));
         $behind = $this->requestSnapshot()['projections'][0];
 
-        $this->orderService->run('tickets_async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3));
+        $this->orderService->run('tickets_async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
         $caughtUp = $this->requestSnapshot()['projections'][0];
 
         self::assertSame(['events' => 3, 'atLeast' => false], $behind['eventsBehind']);
@@ -224,7 +225,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         $this->orderService->sendCommand(new RegisterTicket('ticket-2', 'Jane', 'feature'));
         $behind = $this->requestSnapshot()['projections'][0];
 
-        $this->orderService->run('tickets_partitioned_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
+        $this->orderService->run('tickets_partitioned_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
         $this->orderService->sendCommand(new ChangeAssignedPerson('ticket-1', 'Mark'));
         $oneBehind = $this->requestSnapshot()['projections'][0];
 
@@ -248,7 +249,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         $initial = $this->requestSnapshot()['projections'][0]['positionDigest'];
         $this->orderService->sendCommand(new RegisterTicket('ticket-2', 'Jane', 'bug'));
         $eventsAppendedProjectionIdle = $this->requestSnapshot()['projections'][0]['positionDigest'];
-        $this->orderService->run('tickets_async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
+        $this->orderService->run('tickets_async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
         $afterRun = $this->requestSnapshot()['projections'][0]['positionDigest'];
 
         self::assertSame($initial, $eventsAppendedProjectionIdle);
@@ -329,11 +330,11 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
                 $this->handled++;
             }
         };
-        $this->bootstrap('dbal', [$backfilled]);
-        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'));
+        $this->bootstrap('dbal', [$backfilled], initializeProjections: false);
         self::assertSame(['tickets_kick_off_backfilled' => 'uninitialized'], array_column($this->requestSnapshot()['projections'], 'initialization', 'name'));
         self::assertSame(['tickets_kick_off_backfilled' => true], array_column($this->requestSnapshot()['projections'], 'manualKickOff', 'name'));
         $this->orderService->runConsoleCommand('ecotone:projection:init', ['name' => 'tickets_kick_off_backfilled']);
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'));
         self::assertSame(['tickets_kick_off_backfilled' => 'prepared'], array_column($this->requestSnapshot()['projections'], 'initialization', 'name'));
 
         $this->act('ecotone.pulse.projections.backfill', 'tickets_kick_off_backfilled', '1af7651916cd43dd8448eb211c80319c');
@@ -352,7 +353,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         };
     }
 
-    private function bootstrap(string $storage, array $projections, bool $multiTenant = false, array $extensionObjects = []): void
+    private function bootstrap(string $storage, array $projections, bool $multiTenant = false, array $extensionObjects = [], bool $initializeProjections = true): void
     {
         $this->pulse = new class () {
             public array $snapshots = [];
@@ -389,8 +390,12 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
             ],
             enabledModules: $dbal ? [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE] : [ModulePackageList::EVENT_SOURCING_PACKAGE],
             addInMemoryEventSourcedRepository: ! $dbal,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap($initializeProjections),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        if (! $initializeProjections) {
+            $this->orderService->setupDatabaseTables(initializeProjections: false);
+        }
         $this->pulseService = $this->bootstrapFlowTesting(
             classesToResolve: [$this->pulse::class],
             containerOrAvailableServices: [$this->pulse],
@@ -407,15 +412,15 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
     private function act(string $routingKey, string $projection, string $tracingId, ?string $tenant = null): void
     {
         $this->pulseService->getDistributedBus()->sendMessage('order_service', $routingKey, json_encode(['projection' => $projection], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId, ...($tenant === null ? [] : ['tenant' => $tenant])], replyRoutingKey: 'ecotone.pulse.snapshot_received');
-        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
     }
 
     private function requestSnapshot(?string $tenant = null): array
     {
         $this->pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, metadata: $tenant === null ? [] : ['tenant' => $tenant], replyRoutingKey: 'ecotone.pulse.snapshot_received');
-        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         return json_decode(array_pop($this->pulse->snapshots), true, flags: JSON_THROW_ON_ERROR);
     }

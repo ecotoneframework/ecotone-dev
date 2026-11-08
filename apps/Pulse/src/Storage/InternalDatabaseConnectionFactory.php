@@ -12,6 +12,7 @@ use Doctrine\DBAL\Driver\Middleware\AbstractConnectionMiddleware;
 use Doctrine\DBAL\Driver\Middleware\AbstractDriverMiddleware;
 use Doctrine\DBAL\DriverManager;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\TransactionReconnectProtectionMiddleware;
 use PDO;
 
 final class InternalDatabaseConnectionFactory extends DbalConnectionFactory
@@ -51,7 +52,7 @@ final class InternalDatabaseConnectionFactory extends DbalConnectionFactory
                         }
                     };
                 }
-            }]);
+            }, new TransactionReconnectProtectionMiddleware()]);
             $this->connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'path' => $this->path, 'driverOptions' => [PDO::ATTR_TIMEOUT => $this->busyTimeoutSeconds]], $configuration);
         }
 

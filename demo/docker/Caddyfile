@@ -1,0 +1,11 @@
+{
+	frankenphp
+	auto_https off
+	admin off
+}
+
+:{$DEMO_HTTP_PORT:8080} {
+	root * {$DEMO_PUBLIC_DIR}
+	encode zstd gzip
+	php_server
+}

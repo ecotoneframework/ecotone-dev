@@ -50,19 +50,29 @@ use RuntimeException;
  */
 final class PulseFeaturesTest extends TestCase
 {
-    public function test_instant_retries_by_default_retry_an_asynchronous_endpoint_three_more_times_on_any_exception_and_leave_the_command_bus_alone(): void
+    public function test_without_database_transactions_the_instant_retry_defaults_leave_asynchronous_endpoints_and_the_command_bus_alone(): void
     {
         $features = $this->coreFeatures($this->orders());
+
+        $asynchronous = $features['Instant retries on asynchronous endpoints'];
+        self::assertFalse($asynchronous['enabled']);
+        self::assertSame([], $asynchronous['settings']);
+        self::assertStringContainsString('Not configured, and asynchronous endpoints run without a database transaction, so the default retries only asynchronous projections', $asynchronous['hint']);
+        self::assertSame('InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: 3, retryExceptions: [])', $asynchronous['configuration']);
+        $commandBus = $features['Instant retries on the command bus'];
+        self::assertFalse($commandBus['enabled']);
+        self::assertStringContainsString('Not configured, and the command bus runs without a database transaction', $commandBus['hint']);
+        self::assertSame('InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(isEnabled: true, retryTimes: 3, retryExceptions: [])', $commandBus['configuration']);
+    }
+
+    public function test_instant_retries_turned_on_retry_an_asynchronous_endpoint_three_more_times_on_any_exception(): void
+    {
+        $features = $this->coreFeatures($this->orders(), [InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true)]);
 
         $asynchronous = $features['Instant retries on asynchronous endpoints'];
         self::assertTrue($asynchronous['enabled']);
         self::assertSame(['Extra attempts' => '3', 'Retried on' => 'any exception'], $asynchronous['settings']);
         self::assertStringContainsString('handled once and, when that fails, tried again right away up to 3 more times (4 attempts in total) on any exception', $asynchronous['hint']);
-        self::assertSame('InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: 3, retryExceptions: [])', $asynchronous['configuration']);
-        $commandBus = $features['Instant retries on the command bus'];
-        self::assertFalse($commandBus['enabled']);
-        self::assertStringContainsString('is sent once', $commandBus['hint']);
-        self::assertSame('InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(isEnabled: true, retryTimes: 3, retryExceptions: [])', $commandBus['configuration']);
     }
 
     public function test_configured_instant_retries_report_their_count_and_exceptions_and_the_endpoints_overriding_them(): void

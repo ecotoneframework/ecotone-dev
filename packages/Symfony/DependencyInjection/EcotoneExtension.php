@@ -3,6 +3,7 @@
 namespace Ecotone\SymfonyBundle\DependencyInjection;
 
 use Ecotone\Api\Console\ConsoleWriter;
+use Ecotone\Api\Dbal\TransactionReconnectProtectionMiddleware;
 use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
@@ -71,6 +72,11 @@ class EcotoneExtension extends Extension
                 '%kernel.build_dir%/ecotone',
                 true,
             ]);
+
+        if (class_exists(TransactionReconnectProtectionMiddleware::class)) {
+            $container->register(TransactionReconnectProtectionMiddleware::class, TransactionReconnectProtectionMiddleware::class)
+                ->addTag('doctrine.middleware', ['priority' => PHP_INT_MIN]);
+        }
 
         $container->register(CacheWarmer::class)->setAutowired(true)->addTag('kernel.cache_warmer');
         $container->register(CacheClearer::class)->setAutowired(true)->addTag('kernel.cache_clearer')->setPublic(true);

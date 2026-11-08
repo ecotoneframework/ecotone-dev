@@ -8,23 +8,28 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
+use Ecotone\Api\Dbal\Attribute\DbalTransaction;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Pulse\PulseSavepointIsolation;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
+use Ecotone\Modelling\Config\DatabaseTransaction\CommandsWithoutDatabaseTransaction;
+use Ecotone\Modelling\Config\DatabaseTransaction\DatabaseTransactionRegistration;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSectionIsolationRegistration;
@@ -70,25 +75,25 @@ final class DbalTransactionModule implements AnnotationModule
             $pointcut .= '&&not(' . ProjectingConsoleCommands::class . '::' . $projectionCommandWithoutTransaction . ')';
         }
         $connectionFactories = $dbalConfiguration->defaultConnectionReferenceNames ?: [DbalConnectionReference::DEFAULT];
+        $this->refuseDbalTransactionOnUnconfiguredConnection($connectionFactories);
 
-        [$commandRoutingKeysWithoutTransaction, $commandClassesWithoutTransaction] = $dbalConfiguration->transactionOnCommandBus
-            ? $this->findCommandHandlersWithoutTransaction($interfaceToCallRegistry)
-            : [[], []];
+        $cachedConnectionFactories = array_map(
+            fn (string $id) => CachedConnectionFactory::registerIn($messagingConfiguration, $id, DbalReconnectableConnectionFactory::definitionFor($id)),
+            $connectionFactories,
+        );
 
         $messagingConfiguration->registerServiceDefinition(PulseSavepointIsolation::class, [
-            array_map(fn (string $id) => new Reference($id), $connectionFactories),
-            new Reference(EcotoneClockInterface::class),
+            $cachedConnectionFactories,
         ]);
 
         $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [
-            array_map(fn (string $id) => new Reference($id), $connectionFactories),
+            array_combine($connectionFactories, $cachedConnectionFactories),
             $dbalConfiguration->disableTransactionsOnAsynchronousEndpointNames,
             new Reference(RetryRunner::class),
             new Reference(LoggingGateway::class),
             new Reference(TransactionStatusTracker::class),
-            new Reference(EcotoneClockInterface::class),
-            $commandRoutingKeysWithoutTransaction,
-            $commandClassesWithoutTransaction,
+            new Reference(CommandsWithoutDatabaseTransaction::class),
+            $dbalConfiguration->transactionReconnectProtection,
         ]);
 
         $messagingConfiguration
@@ -103,35 +108,32 @@ final class DbalTransactionModule implements AnnotationModule
     }
 
     /**
-     * @return array{0: string[], 1: string[]}
+     * @param string[] $configuredConnectionReferenceNames
      */
-    private function findCommandHandlersWithoutTransaction(InterfaceToCallRegistry $interfaceToCallRegistry): array
+    private function refuseDbalTransactionOnUnconfiguredConnection(array $configuredConnectionReferenceNames): void
     {
-        $routingKeys = [];
-        $commandClasses = [];
-        foreach ($this->annotationFinder->findAnnotatedMethods(WithoutDatabaseTransaction::class) as $annotatedMethod) {
-            if (! $annotatedMethod->hasMethodAnnotation(CommandHandler::class)) {
-                continue;
-            }
-
-            foreach ($annotatedMethod->getMethodAnnotationsWithType(CommandHandler::class) as $commandHandler) {
-                if ($commandHandler->getInputChannelName() !== '') {
-                    $routingKeys[] = $commandHandler->getInputChannelName();
-                    continue;
-                }
-
-                $interfaceToCall = $interfaceToCallRegistry->getFor($annotatedMethod->getClassName(), $annotatedMethod->getMethodName());
-                if ($interfaceToCall->hasNoParameters()) {
-                    continue;
-                }
-
-                foreach ($interfaceToCall->getFirstParameter()->getTypeDescriptor()->getUnionTypes() as $unionType) {
-                    $commandClasses[] = (string) $unionType;
-                }
-            }
+        $placements = [];
+        foreach ($this->annotationFinder->findAnnotatedMethods(DbalTransaction::class) as $annotatedMethod) {
+            $placements[$annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName() . '()'] = $annotatedMethod->getAnnotationForMethod();
+        }
+        foreach ($this->annotationFinder->findAnnotatedClasses(DbalTransaction::class) as $className) {
+            $placements[$className] = $this->annotationFinder->getAttributeForClass($className, DbalTransaction::class);
         }
 
-        return [$routingKeys, $commandClasses];
+        foreach ($placements as $placement => $dbalTransaction) {
+            foreach ($dbalTransaction->connectionReferenceNames as $connectionReferenceName) {
+                if (in_array($connectionReferenceName, $configuredConnectionReferenceNames, true)) {
+                    continue;
+                }
+
+                throw ConfigurationException::create(
+                    "#[DbalTransaction] on {$placement} names the connection \"{$connectionReferenceName}\", "
+                    . 'but Ecotone opens transactions only on the connections in DbalConfiguration::withDefaultConnectionReferenceNames(): "'
+                    . implode('", "', $configuredConnectionReferenceNames) . "\". Either add \"{$connectionReferenceName}\" to DbalConfiguration::withDefaultConnectionReferenceNames([...]) "
+                    . 'in a #[ServiceContext] method, or name one of the configured connections in #[DbalTransaction(connectionReferenceNames: [...])].'
+                );
+            }
+        }
     }
 
     /**
@@ -142,11 +144,16 @@ final class DbalTransactionModule implements AnnotationModule
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
         $opensTransactions = $dbalConfiguration->transactionOnAsynchronousEndpoints || $dbalConfiguration->transactionOnCommandBus || $dbalConfiguration->transactionOnConsoleCommands;
 
+        $databaseTransactions = new DatabaseTransactionRegistration(
+            onCommandBus: $dbalConfiguration->transactionOnCommandBus,
+            onAsynchronousEndpoints: $dbalConfiguration->transactionOnAsynchronousEndpoints,
+            asynchronousEndpointsWithoutTransaction: $dbalConfiguration->disableTransactionsOnAsynchronousEndpointNames,
+        );
         if (! PulseFeature::isReportedFor($serviceExtensions)) {
-            return [];
+            return [$databaseTransactions];
         }
 
-        return [...($opensTransactions ? [new PulseSectionIsolationRegistration(PulseSavepointIsolation::class)] : []), $this->transactionsFeature($dbalConfiguration)];
+        return [$databaseTransactions, ...($opensTransactions ? [new PulseSectionIsolationRegistration(PulseSavepointIsolation::class)] : []), $this->transactionsFeature($dbalConfiguration)];
     }
 
     private function transactionsFeature(DbalConfiguration $dbalConfiguration): PulseFeature

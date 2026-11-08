@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Dbal;
 
+use DateTimeInterface;
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
@@ -45,11 +46,15 @@ abstract class DbalMessagingTestCase extends TestCase
             return self::$defaultConnection;
         }
 
-        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
-        $dbalConnection = new DbalConnectionFactory($dsn);
+        $dbalConnection = new DbalConnectionFactory(self::databaseDsn());
         self::$defaultConnection = $dbalConnection;
 
         return $dbalConnection;
+    }
+
+    protected static function databaseDsn(): string
+    {
+        return getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
     }
 
 
@@ -225,26 +230,28 @@ abstract class DbalMessagingTestCase extends TestCase
         bool $addInMemoryStateStoredRepository = true,
         bool $addInMemoryEventSourcedRepository = true,
         ?TestConfiguration $testConfiguration = null,
+        ?DateTimeInterface $initialTime = null,
         ?string $licenceKey = null,
         array $namespaces = [],
         string $environment = 'dev',
         ?string $cacheDirectoryPath = null,
     ): FlowTestSupport {
         return EcotoneLite::bootstrapFlowTesting(
-            $classesToResolve,
-            $containerOrAvailableServices,
-            $extensionObjects,
-            $enabledModules,
-            $configurationVariables,
-            $pathToRootCatalog,
-            $allowGatewaysToBeRegisteredInContainer,
-            $addInMemoryStateStoredRepository,
-            $addInMemoryEventSourcedRepository,
-            $testConfiguration,
-            $licenceKey,
-            $namespaces,
-            $environment,
-            $cacheDirectoryPath,
+            classesToResolve: $classesToResolve,
+            containerOrAvailableServices: $containerOrAvailableServices,
+            extensionObjects: $extensionObjects,
+            enabledModules: $enabledModules,
+            configurationVariables: $configurationVariables,
+            pathToRootCatalog: $pathToRootCatalog,
+            allowGatewaysToBeRegisteredInContainer: $allowGatewaysToBeRegisteredInContainer,
+            addInMemoryStateStoredRepository: $addInMemoryStateStoredRepository,
+            addInMemoryEventSourcedRepository: $addInMemoryEventSourcedRepository,
+            testConfiguration: $testConfiguration,
+            initialTime: $initialTime,
+            licenceKey: $licenceKey,
+            namespaces: $namespaces,
+            environment: $environment,
+            cacheDirectoryPath: $cacheDirectoryPath,
         );
     }
 }

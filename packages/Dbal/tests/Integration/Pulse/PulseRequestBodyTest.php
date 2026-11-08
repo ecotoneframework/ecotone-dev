@@ -22,7 +22,6 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
@@ -213,7 +212,7 @@ final class PulseRequestBodyTest extends DbalMessagingTestCase
             ],
             enabledModules: $enabledModules,
             licenceKey: LicenceTesting::VALID_LICENCE,
-            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-10-20 12:00:00', new DateTimeZone('UTC'))),
+            initialTime: new DateTimeImmutable('2026-10-20 12:00:00', new DateTimeZone('UTC')),
         );
         $this->orderService->withEventStream('orders_stream', [Event::createWithType('order.placed', ['orderId' => '1']), Event::createWithType('order.placed', ['orderId' => '2'])]);
         $this->orderService->initializeProjection('orders');

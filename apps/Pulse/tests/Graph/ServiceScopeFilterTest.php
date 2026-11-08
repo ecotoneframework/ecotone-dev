@@ -43,6 +43,25 @@ final class ServiceScopeFilterTest extends ReleasingWebTestCase
         self::assertCount(0, $full->filter('[data-scope-note]'));
     }
 
+    public function test_following_a_node_within_one_service_keeps_the_services_it_talks_to_greyed(): void
+    {
+        $client = $this->pulseWithOrdersBillingAndShipping();
+        $page = $client->request('GET', '/flow?service=billing');
+        $nodes = json_decode($page->filter('pre.mermaid')->attr('data-graph-nodes'), true, flags: JSON_THROW_ON_ERROR);
+        $create = array_values(array_filter($nodes, fn (array $node) => $node['service'] === 'billing' && str_ends_with($node['title'], '::create')));
+
+        $focused = $client->request('GET', $create[0]['href']);
+
+        self::assertCount(1, $focused->filter('[data-focus]'));
+        self::assertCount(1, $focused->filter('[data-scope-note]'));
+        $diagram = MermaidDiagram::fromPage($focused);
+        $greyed = array_values(array_filter($diagram->lines, fn (string $line) => str_ends_with($line, ' greyed') && str_starts_with($line, '    class ')));
+        self::assertCount(1, $greyed);
+        $greyedServices = array_unique(array_map(fn (string $id) => $diagram->nodes[$id]['service'], explode(',', explode(' ', $greyed[0])[5])));
+        self::assertSame(['orders'], array_values($greyedServices));
+        self::assertGreaterThan(0, $diagram->nodesOf('billing'));
+    }
+
     public function test_a_service_that_talks_to_nobody_is_shown_alone(): void
     {
         $client = $this->pulseWithOrdersBillingAndShipping();

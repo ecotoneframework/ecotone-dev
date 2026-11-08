@@ -78,7 +78,9 @@ class ProjectingBenchmark
     public static function deleteEcotoneProjection(): void
     {
         $registry = self::$ecotone->getServiceFromContainer(ProjectionRegistry::class);
-        $registry->get(PriceChangeOverTimeProjectionWithEcotoneProjection::NAME)->delete();
+        $projection = $registry->get(PriceChangeOverTimeProjectionWithEcotoneProjection::NAME);
+        $projection->delete();
+        $projection->init();
     }
 
     public static function execute(ConfiguredMessagingSystem $messagingSystem): void
@@ -136,6 +138,7 @@ class ProjectingBenchmark
     {
         $projectionManager = self::$ecotone->getServiceFromContainer(ProjectionRegistry::class)->get(PriceChangeOverTimeProjectionWithEcotoneProjection::NAME);
         $projectionManager->delete();
+        $projectionManager->init();
         Assert::assertEquals(
             [],
             self::$ecotone->getQueryBus()->sendWithRouting('product.getPriceChange', self::$expectedProductIds[0])

@@ -1,0 +1,58 @@
+{% extends 'public/layout.html.twig' %}
+{% import '_icons.html.twig' as icons %}
+
+{% block title %}Seats of {{ concert.artist }}{% endblock %}
+
+{% block head %}
+    <meta http-equiv="refresh" content="{{ refreshSeconds }}">
+{% endblock %}
+
+{% block main_class %}public-page{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">Seat map</p>
+            <h1>{{ concert.artist }}</h1>
+            <p class="page-meta">
+                <span class="badge status status-{{ concert.status }} badge-{{ concert.status }}">{{ concert.status|replace({'_': ' '}) }}</span>
+                <span class="meta-item">{{ icons.icon('building') }} {{ concert.venueName }}</span>
+                <span class="meta-item">{{ icons.icon('calendar') }} {{ concert.startsAt|date('D, j M Y · H:i') }} UTC</span>
+                <span class="badge badge-live">live · refreshes every {{ refreshSeconds }} seconds</span>
+            </p>
+        </div>
+    </header>
+
+    <ul class="legend" aria-label="Seats by state">
+        <li class="legend-free"><span class="swatch swatch-free" aria-hidden="true"></span>{{ seatCounts.free }} free</li>
+        <li class="legend-held"><span class="swatch swatch-held" aria-hidden="true"></span>{{ seatCounts.held }} held</li>
+        <li class="legend-sold"><span class="swatch swatch-sold" aria-hidden="true"></span>{{ seatCounts.sold }} sold</li>
+        <li class="legend-vip"><span class="swatch swatch-free tier-vip" aria-hidden="true"></span>VIP seat</li>
+    </ul>
+
+    <section class="venue card" aria-label="Seat map of {{ concert.venueName }}">
+        <div class="venue-scroll">
+            <div class="venue-floor">
+                <div class="stage" aria-hidden="true">Stage</div>
+                {% for block in tierBlocks %}
+                    <div class="seat-block seat-block-{{ block.tier }}">
+                        <p class="seat-block-label">{{ block.tier == 'vip' ? 'VIP' : 'Standard' }}</p>
+                        {% for row, seats in block.rows %}
+                            {% set aisleAfter = (seats|length / 2)|round(0, 'ceil') %}
+                            <div class="seat-row">
+                                <span class="row-label" aria-hidden="true">{{ row }}</span>
+                                {% for seat in seats %}
+                                    {%- set description = seat.seatCode ~ ', ' ~ seat.tier ~ ', ' ~ seat.status ~ (seat.orderId ? ', order ' ~ seat.orderId : '') ~ (seat.expiresAt ? ', until ' ~ seat.expiresAt|date('H:i:s') ~ ' UTC' : '') -%}
+                                    <span class="seat seat-{{ seat.status }} tier-{{ seat.tier }}" role="img" aria-label="{{ description }}" title="{{ description }}"><span class="visually-hidden">{{ row }}-</span>{{ seat.seatCode|split('-')|last }}</span>
+                                    {%- if loop.index == aisleAfter and not loop.last %}<span class="aisle" aria-hidden="true"></span>{% endif %}
+                                {% endfor %}
+                                <span class="row-label" aria-hidden="true">{{ row }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+                <p class="venue-back" aria-hidden="true">Back of the hall</p>
+            </div>
+        </div>
+    </section>
+{% endblock %}

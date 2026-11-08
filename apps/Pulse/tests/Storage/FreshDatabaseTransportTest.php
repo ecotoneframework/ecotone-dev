@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Storage;
 
-use App\Tests\Support\ConcurrentRespondersTrait;
 use App\Tests\Support\OpenedConnections;
 use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
+use App\Tests\Support\RespondingWhileWaitingTrait;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -17,7 +17,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 final class FreshDatabaseTransportTest extends ReleasingWebTestCase
 {
     use PulseServicesTrait;
-    use ConcurrentRespondersTrait;
+    use RespondingWhileWaitingTrait;
 
     private string $freshDatabase = '';
 
@@ -35,7 +35,7 @@ final class FreshDatabaseTransportTest extends ReleasingWebTestCase
         (new CommandTester($application->find('ecotone:migration:database:setup')))->execute(['--initialize' => true]);
         self::assertSame([['deduplication', 'pulse_transport', 'Yes', 'Yes'], ['message_queue', 'pulse_transport', 'Yes', 'Yes']], $this->missingOnTransport($application));
 
-        $this->respondInBackground(['orders']);
+        $this->respondWhileWaiting($client->getKernel(), ['orders' => $this->realService('orders')]);
         $client->request('POST', '/refresh');
         $crawler = $client->followRedirect();
 

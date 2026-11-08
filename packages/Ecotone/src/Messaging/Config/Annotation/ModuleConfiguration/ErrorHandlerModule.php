@@ -34,6 +34,7 @@ use Ecotone\Messaging\Handler\Router\HeaderRouter;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\Config\InstantRetry\InstantRetryDefaults;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
 #[ModuleAnnotation]
@@ -197,7 +198,7 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
         }
         $extensionObjects = array_merge($extensionObjects, $this->perHandlerRetryConfigurations);
         $instantRetryConfiguration = ExtensionObjectResolver::resolveUnique(InstantRetryConfiguration::class, $extensionObjects, InstantRetryConfiguration::createWithDefaults());
-        $instantRetriesPerDelivery = $instantRetryConfiguration->isEnabledForAsynchronousEndpoints ? $instantRetryConfiguration->asynchronousRetryTimes : 0;
+        $instantRetriesPerDelivery = ($instantRetryConfiguration->isEnabledForAsynchronousEndpoints ?? InstantRetryDefaults::from($extensionObjects)->forAsynchronousEndpoints()) ? $instantRetryConfiguration->asynchronousRetryTimes : 0;
 
         $messagingConfiguration->registerServiceDefinition(RetryRunner::class, [new Reference(EcotoneClockInterface::class), new Reference(LoggingGateway::class)]);
 

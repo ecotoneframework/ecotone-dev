@@ -78,6 +78,10 @@ Every directory under `packages/` is a separate Composer package with its own `c
 - **A change to `packages/Ecotone` can affect every package**, so run the downstream suites too, and a
   cross-package change needs tests in both packages
 - Splits are managed by `symplify/monorepo-builder` (`monorepo-builder.php`)
+- `demo/` is the showcase, not a package: a Symfony ticketing service and a Laravel storefront running on the
+  `packages/` checkout over the Distributed Bus, with Pulse and Jaeger (`demo/README.md`). It is never split or
+  version-bumped, each app runs its own `composer tests:ci` (phpstan and phpunit) in its container, and php-cs-fixer
+  covers it
 - Template for a new package: `_PackageTemplate/`. Registering it also means adding its name to
   `ModulePackageList` (`Ecotone\Api\ExtensionObject\ModulePackageList`), to `ModuleClassList::packageNames()`,
   `ModuleClassList::forPackage()` and `ModuleClassList::composerPackageNameOf()`, and its module class to the right
@@ -108,6 +112,7 @@ commit that evidences it. The summary:
 | 9 | **A feature needing external storage ships an in-memory implementation**, named to mirror the storage one, and one shared suite proves the two behave identically. A race decided by a database constraint cannot be proved in-memory: state the contract as behaviour both sides assert, and leave a connection-racing case to the storage suite, named so the gap is visible | Otherwise the feature cannot be used in an `EcotoneLite` flow test — and `InMemoryEventStore` silently diverged from DBAL three times |
 | 10 | **Tests validate at the userland level only.** Every test boots the application with `EcotoneLite::bootstrapFlowTesting()` and drives it the way an application does: buses, gateways, attributes, `#[ServiceContext]` configuration, console commands. A test never constructs, calls or names a class outside `Api/` — no store, recorder, ledger, module, extension object or channel interceptor from `src/` — never runs SQL or schema calls against Ecotone's tables, and never uses reflection or statement counting. A failure is simulated through a seam the application owns: the connection it hands Ecotone, an `#[Around]` interceptor, a handler that throws. The test is right when every class under `src/` could be rewritten and the test would stay unchanged | A whole worktree — 22 commits — did nothing but pull one feature's tests back to the public surface |
 | 10a | **A guarantee is proved on every path that has to hold it** — direct call, class-routed bus send, routed send, gateway, console command, and the reconstruction path beside the live one | Five times in one feature, a fix covered one entry point and looked finished |
+| 10b | **Tests run messages through Ecotone's own testing support** — `EcotoneLite`, `run()`, `FlowTestSupport`, the pinned clock, several applications in one process for a cross-service flow. Never `pcntl_fork`, `Process`, a socket handshake or a `microtime()`/`usleep()` loop; when the support falls short, add it to the framework. Real concurrency is the one exception, named in the test | A test that forks its own consumer proves PHP can fork, not that Ecotone can be tested — the Pulse awaited-request tests went flaky on exactly that |
 | 11 | **`EcotoneLite`, `snake_case`, no comments, inline anonymous fixtures in the test file** — a named class below the `TestCase` only where PHP forces one. Test-first: RED, GREEN, refactor | An anonymous fixture cannot drift out of the test that owns it |
 | 12 | **The public surface is `Api/`, a sibling of `src/`** — never `src/Api/`, which breaks Tempest discovery. Everything outside `Api` is `@internal` | |
 | 12a | **The boundary holds both ways** — nothing an application writes stays outside `Api`, and no module, resolver or container plumbing moves into it. Builders may, since an application constructs a builder but never a module or a container. The test is who calls it: an internal type is fine in a method the *framework* calls, a leak in one the *application* calls | Adding to `Api/` almost never fails a build — phpstan finds a missing class and a broken return type, but has no rule for an internal type in a public signature, and the licence check walks `src` only |
@@ -165,7 +170,7 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
   before `advanceTimeBy()` shows nothing handled, `run()` after it shows the handler ran, on DBAL channels as on
   in-memory ones. Only Ecotone's own channel and interceptor suites drive a channel, through the internal
   `Ecotone\Test\ChannelTestSupport::of($ecotone)` (conventions rule 10)
-- **Time is pinned at bootstrap** with `TestConfiguration::createWithDefaults()->withTimeAt(...)`, read with
+- **Time is pinned at bootstrap** with `bootstrapFlowTesting(initialTime: ...)`, read with
   `$ecotone->now()`, moved with `advanceTimeBy()`, and history is seeded with `withEventsFor(..., at: ...)`. One clock
   stamps every message and event, so a test asserts exact timestamps instead of tolerances
 - **A test that needs a raw `Message` builds it with `Ecotone\Test\StaticMessageBuilder`.** `MessageBuilder` is a
@@ -185,10 +190,19 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
 - **One test per path the guarantee has to hold on**, not one per change: a class-routed `CommandBus::send()`, a
   routed send, a gateway, a console command and an aggregate save all reach the same behaviour differently, and the
   backfill path of a concept has to be proved alongside its live path (conventions rule 10a)
+- **Messages run through Ecotone's testing support, never around it**: `run()` is the only consumer, time is the pinned
+  clock, and a flow across services boots each application in the test process. No fork, `Process`, socket or
+  hand-written polling loop; a missing capability is a framework increment (conventions rule 10b)
 - **A seam with two implementations is asserted in one suite both of them run** — an in-memory store that nobody
   proves equal to the DBAL one makes every flow test using it suspect (conventions rule 9)
 - Run the suite of the package you modified, **one package at a time, never in parallel** — the packages share the
   compose services and a parallel run produces false failures
+- **A flaky test is a defect, and a failed check is never rerun.** A test that passes on a second run has a
+  timing assumption, an order dependency or a shared resource in it, and a rerun hides it until it fires on someone
+  else's PR. Reproduce it instead: force the timing (a 1 ms execution limit, `--order-by=reverse`, the job's engine
+  and PHP version, the per-package install Split Testing does), find the cause, fix it, push the fix. The same holds
+  for an install or infrastructure failure in CI: the workflow is code in this repository, and it gets the fix.
+  [docs/dev-workflow.md § When a check is red](./docs/dev-workflow.md#when-a-check-is-red) has the commands
 
 Conventions [rule 11](./docs/coding-conventions.md#11-test-shape) has a full worked example.
 [docs/dev-workflow.md](./docs/dev-workflow.md) has every command, the database DSNs, and what each package's
@@ -314,7 +328,8 @@ For a contribution targeting `main`. Work on 2.0 is merged through its own branc
 
 Run the checks in
 [docs/dev-workflow.md § Before opening a pull request](./docs/dev-workflow.md#before-opening-a-pull-request)
-first — CI is `fail-fast`, so the first failure hides everything after it.
+first — CI is `fail-fast`, so the first failure hides everything after it. A red check is reproduced and fixed, never rerun
+(Testing Guidelines above); a flaky test or a flaky install step is a defect to push a fix for.
 
 **Title and branch** use a conventional prefix, matching the commit subjects above: `feat:`, `fix:`, `refactor:`,
 `docs:`, `test:`.
@@ -350,6 +365,21 @@ publish a description they have not seen.
 
 `CONTRIBUTING.md` covers the fork-and-clone side for outside contributors.
 
+## Skills are for Ecotone users
+
+`.claude/skills/ecotone-*` are shared with Ecotone users: each one teaches an application developer how to use one
+area of the user-facing API, in their own project. Nothing about how *this repository* is developed belongs there.
+
+- **A skill describes user-land usage only** - attributes, gateways, configuration objects, console commands, the
+  testing support an application uses. Every sample is one an Ecotone user could paste into their application.
+- **Internal conventions go to this file and `docs/`** - how tests are shaped here, that the suite runs on
+  Ecotone's own testing support and never around it, how a module or a package is scaffolded
+  ([docs/creating-a-module.md](./docs/creating-a-module.md)), naming and docblock rules, the review and brief
+  process. None of it is a skill, and a skill never links into `docs/coding-conventions.md`, `docs/dev-workflow.md`
+  or any other repository-internal document.
+- **The test for a sentence:** would it read as instructions to someone who has never cloned ecotone-dev? If not, it
+  is a convention, not a skill.
+
 ## Documentation Resources
 
 In this repository:
@@ -360,8 +390,10 @@ In this repository:
 - `upgrade/namespace-map-2.0.csv` - the full old → new FQCN mapping for the 2.0 `Api` move
 - `docs/superpowers/specs/` - design decisions, the alternatives considered, and why. Untracked here:
   `docs/superpowers/` is in `.gitignore`, and the records live on branch `dgafka/dcb-docs`
-- `.claude/skills/ecotone-*` - per-area guides for the user-facing API: `ecotone-testing` for test patterns,
-  `ecotone-module-creator` for new modules and packages, and one per feature area
+- [docs/creating-a-module.md](./docs/creating-a-module.md) and [docs/module-anatomy.md](./docs/module-anatomy.md) -
+  scaffolding a new module or package, and the module interfaces in full
+- `.claude/skills/ecotone-*` - per-area guides for Ecotone users on the user-facing API, `ecotone-testing` for the
+  test patterns an application writes; shared outside this repository, see the rule above
 
 Published:
 

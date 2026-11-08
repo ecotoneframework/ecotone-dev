@@ -68,7 +68,7 @@ final class RebuildBatchProgressTracingTest extends ProjectingTestCase
             $ecotone->sendCommand(new RegisterTicket((string) $i, "User{$i}", "type{$i}"));
         }
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'rebuild_progress']);
-        $ecotone->run('rebuild_progress_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('rebuild_progress_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
     }
 
     /**

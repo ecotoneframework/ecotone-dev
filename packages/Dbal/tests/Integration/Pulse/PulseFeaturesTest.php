@@ -59,6 +59,28 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
         self::assertSame('DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true)->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnConsoleCommands(true)', $transactions['configuration']);
     }
 
+    public function test_with_database_transactions_instant_retries_apply_by_default_to_what_runs_in_a_transaction(): void
+    {
+        $features = $this->featuresOf([], 'core');
+
+        $asynchronous = $features['Instant retries on asynchronous endpoints'];
+        self::assertTrue($asynchronous['enabled']);
+        self::assertSame(['Extra attempts' => '3', 'Retried on' => 'any exception', 'Applied' => 'by default, to endpoints running in a database transaction'], $asynchronous['settings']);
+        self::assertStringContainsString('Not configured, so the default applies: a message an asynchronous endpoint consumes in a database transaction is handled once and, when that fails, its transaction is rolled back and it is tried again right away up to 3 more times (4 attempts in total)', $asynchronous['hint']);
+        $commandBus = $features['Instant retries on the command bus'];
+        self::assertTrue($commandBus['enabled']);
+        self::assertSame('by default, to commands handled in a database transaction', $commandBus['settings']['Applied']);
+        self::assertStringContainsString('A command whose handler has #[WithoutDatabaseTransaction] is not retried.', $commandBus['hint']);
+    }
+
+    public function test_an_asynchronous_endpoint_without_a_transaction_is_named_where_the_default_instant_retries_do_not_apply(): void
+    {
+        $features = $this->featuresOf([DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)->withoutTransactionOnAsynchronousEndpoints(['order.place.endpoint'])], 'core');
+
+        self::assertSame('by default, to endpoints running in a database transaction, except order.place.endpoint', $features['Instant retries on asynchronous endpoints']['settings']['Applied']);
+        self::assertFalse($features['Instant retries on the command bus']['enabled']);
+    }
+
     public function test_transactions_turned_off_on_an_entry_point_or_an_endpoint_are_reported_where_they_are_off(): void
     {
         $features = $this->dbalFeatures([
@@ -141,6 +163,15 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
      */
     private function dbalFeatures(array $extensionObjects): array
     {
+        return $this->featuresOf($extensionObjects, 'dbal');
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     * @return array<string, array<string, mixed>>
+     */
+    private function featuresOf(array $extensionObjects, string $package): array
+    {
         $orders = new class () {
             #[Asynchronous('orders')]
             #[Deduplicated('orderId')]
@@ -197,6 +228,6 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
 
         $packages = array_column(json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['packages'], 'features', 'name');
 
-        return array_column($packages['dbal'], null, 'name');
+        return array_column($packages[$package], null, 'name');
     }
 }

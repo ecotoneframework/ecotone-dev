@@ -3,9 +3,9 @@
 namespace Test\Ecotone\Amqp;
 
 use AMQPQueueException;
+use DateTimeInterface;
 use Ecotone\Api\Amqp\AmqpExtConnectionFactory as AmqpExtConnection;
 use Ecotone\Api\Amqp\AmqpLibConnectionFactory as AmqpLibConnection;
-use Ecotone\Enqueue\CachedConnectionFactory;
 use Interop\Amqp\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
 use PHPUnit\Framework\TestCase;
@@ -70,9 +70,6 @@ abstract class AmqpMessagingTestCase extends TestCase
 
     public function setUp(): void
     {
-        // Clear cached connection factories to prevent channel mode conflicts between tests
-        // (e.g., confirm mode vs transaction mode on the same channel)
-        CachedConnectionFactory::clearInstances();
         // Ensure cache directory is writable for tests
         $this->queueCleanUp();
     }
@@ -120,26 +117,28 @@ abstract class AmqpMessagingTestCase extends TestCase
         bool $addInMemoryStateStoredRepository = true,
         bool $addInMemoryEventSourcedRepository = true,
         ?\Ecotone\Api\ExtensionObject\TestConfiguration $testConfiguration = null,
+        ?DateTimeInterface $initialTime = null,
         ?string $licenceKey = null,
         array $namespaces = [],
         string $environment = 'dev',
         ?string $cacheDirectoryPath = null,
     ): \Ecotone\Api\Lite\Test\FlowTestSupport {
         return \Ecotone\Api\Lite\EcotoneLite::bootstrapFlowTesting(
-            $classesToResolve,
-            $containerOrAvailableServices,
-            $extensionObjects,
-            $enabledModules,
-            $configurationVariables,
-            $pathToRootCatalog,
-            $allowGatewaysToBeRegisteredInContainer,
-            $addInMemoryStateStoredRepository,
-            $addInMemoryEventSourcedRepository,
-            $testConfiguration,
-            $licenceKey,
-            $namespaces,
-            $environment,
-            $cacheDirectoryPath,
+            classesToResolve: $classesToResolve,
+            containerOrAvailableServices: $containerOrAvailableServices,
+            extensionObjects: $extensionObjects,
+            enabledModules: $enabledModules,
+            configurationVariables: $configurationVariables,
+            pathToRootCatalog: $pathToRootCatalog,
+            allowGatewaysToBeRegisteredInContainer: $allowGatewaysToBeRegisteredInContainer,
+            addInMemoryStateStoredRepository: $addInMemoryStateStoredRepository,
+            addInMemoryEventSourcedRepository: $addInMemoryEventSourcedRepository,
+            testConfiguration: $testConfiguration,
+            initialTime: $initialTime,
+            licenceKey: $licenceKey,
+            namespaces: $namespaces,
+            environment: $environment,
+            cacheDirectoryPath: $cacheDirectoryPath,
         );
     }
 

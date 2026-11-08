@@ -45,6 +45,8 @@ $backofficeService = EcotoneLite::bootstrap(
     licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
     namespaces: ["App\Microservices\BackofficeService"],
 );
+$backofficeService->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
+$backofficeService->runConsoleCommand('ecotone:projection:init', ['all' => true]);
 /** Running consumer for first time in order to create the queue */
 $backofficeService->run(BACKOFFICE_SERVICE);
 

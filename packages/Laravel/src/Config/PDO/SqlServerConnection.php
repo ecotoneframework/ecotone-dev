@@ -166,6 +166,6 @@ class SqlServerConnection implements ServerInfoAwareConnection
      */
     public function getWrappedConnection(): PDO
     {
-        return $this->connection->getWrappedConnection();
+        return $this->connection->getNativeConnection();
     }
 }

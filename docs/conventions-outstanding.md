@@ -68,7 +68,7 @@ shared-container setup) and the `Type`/`MediaType` caches (value objects, never 
 | 1a | **`ecotone:run --stopOnFailure` can switch stop-on-failure on but never off.** Found in wave 13 while proving `defaultConnectionExceptionRetry`: `MessagingBaseCommand::runAsynchronousEndpointCommand()` calls `withStopOnError(true)` when the flag is true and does nothing when it is false, so an endpoint whose `PollingMetadata` already stops on error keeps stopping, whatever the command line says. With the test package loaded, `AsynchronousModule::registerDefaultPollingMetadata()` gives every asynchronous endpoint without its own `PollingMetadata` `stopOnError: true`, so in a test-mode Symfony or Laravel application a consumer never retries a lost connection, and `--stopOnFailure=false` is silently ignored. The wave-13 retry tests register `PollingMetadata::create(...)->withStopOnError(false)` for their endpoints. Not fixed: distinguishing "not given" from "false" on a `bool` option is the same question the bare-flag fix answered for `true`, and changing it alters what every test-mode consumer does |
 | — | **Quickstart examples, after wave 20 and its follow-up: every example runs, on Postgres and on MySQL.** Wave 13 measured five examples; wave 20 ran all of them: the 43 distinct examples in `quickstart-examples/composer.json`'s `tests:ci` (45 entries), with `ECOTONE_LICENSE_KEY` set as CI sets it, plus the three Tempest examples CI does not run. Before: 11 of 45 entries exited 0, six of them falsely (Laravel's HTTP-kernel exception handler let PHP exit 0; each script now restores PHP's handler after the bootstrap). Before wave 20 none of the `EcotoneLite` examples ran: `EcotoneLiteApplication` (deleted in 2.0) loaded the `src` catalog and autowired services, and the mechanical swap in `e85ef8592` did neither. After wave 20, 40 of 45; five multi-tenant examples stopped on R34. **Follow-up, at the maintainer's request:** R34 fixed, and running both database orders as CI does surfaced R36 (Ecotone's projection console commands failed on MySQL), R37 (Laravel's null-default console arguments) and R38 (console commands never activated a tenant), all fixed. Now 45 of 45 entries exit 0 with Postgres primary and MySQL secondary and with the reverse, and the three Tempest examples run in both orders | Done. R33 remains open but stops no example (`EventSourcing` uses the DBAL event store) |
 | 16, 1, 12a | **R34: `ecotone:migration:database:setup` could not create Ecotone's tables in tenant databases** (it refused with `Lack of context about tenant in Message Headers`, while the missing-table message told the user to run it) | **Shipped, wave 20 follow-up (`2bd47bd02`).** `DatabaseSetupManager` runs every operation on each tenant database of the configured `tenantToConnectionMapping` plus the default connection, each physical connection once; `DbalDatabaseTablesSetUp` reuses it. The design questions were settled as: (1) the configured mapping, no discovery; (2) `--sql` labels each tenant database's statements `-- connection '<reference>'`; (3) an unreachable tenant stops the command and a rerun finishes the rest, since existing tables are skipped. `DatabaseSetupMultiTenantTest`; `upgrade-2.0.md` §8a. `DatabaseSetupManager` is `final` without descriptive docblocks (rules 17, 6). **Still open:** its public `Api` constructor takes the internal `DbalTableManager[]` (rule 12a), recorded on the `Api` inward-surface row |
-| 1, 10a | **R36, what remains after the console-command fix.** (a) A projection that relies on automatic initialization still runs its `#[ProjectionInitialization]` DDL inside the first event's transaction, and on MySQL/MariaDB the commit then fails with the driver's `There is no active transaction`, naming neither the DDL nor a way out (rule 1). Fix shape: on a commit failure 1.x's `ImplicitCommit` detection recognises, throw a `ConfigurationException` naming `ecotone:projection:init <name>` at deploy time, creating the table in migrations, and `#[WithoutDatabaseTransaction]`. (b) A flow test without an explicit `DbalConfiguration` extension object opened no transaction around a console command, where production opens one, so `ProjectionLifecycleConsoleCommandTest` had to pass `DbalConfiguration::createWithDefaults()` to see the bug; not investigated | Open. `upgrade-2.0.md` §8 tells MySQL users to initialize such projections at deploy time |
+| 1, 10a | **R36, what remains after the console-command fix.** (a) A projection that relies on automatic initialization still runs its `#[ProjectionInitialization]` DDL inside the first event's transaction, and on MySQL/MariaDB the commit then fails with the driver's `There is no active transaction`, naming neither the DDL nor a way out (rule 1). Fix shape: on a commit failure 1.x's `ImplicitCommit` detection recognises, throw a `ConfigurationException` naming `ecotone:projection:init <name>` at deploy time, creating the table in migrations, and `#[WithoutDatabaseTransaction]`. (b) A flow test without an explicit `DbalConfiguration` extension object opened no transaction around a console command, where production opens one, so `ProjectionLifecycleConsoleCommandTest` had to pass `DbalConfiguration::createWithDefaults()` to see the bug; not investigated | (a) **Closed**: a projection is no longer initialized on its first event. `#[ProjectionInitialization]` runs only through `ecotone:projection:init`, which a flow test's bootstrap and `setupDatabaseTables()` run too, and an event reaching a projection that was never initialized is refused naming the command (`ProjectionInitializationTest`, `ProjectionInitializationOnSetupTest` on PostgreSQL, MySQL and MariaDB). (b) Open |
 | 1, 1a | **R33: `EventSourcingConfiguration::createInMemory()` outside flow tests gives a projection no state storage**, so the first event fails at runtime with `No projection state storage found for projection: …` (`ProjectionStateStorageRegistry.php:34`); only `EcotoneTestSupportModule.php:253` supplies the in-memory storage. Either production bootstrap registers the in-memory storage and stream source, or bootstrap refuses the combination naming the DBAL event store | Open. `quickstart-examples/EventSourcing` moved to the DBAL event store in wave 20 |
 | — | **The thirteen multi-tenant quickstarts (Laravel 5, Symfony 5, General 2, Tempest 1) need an Enterprise licence key on 2.0, where those on 1.x ran without one** (`upgrade-2.0.md` §2 gates all multi-tenancy), as do `Microservices` and `MicroservicesAdvanced` (`DistributedServiceMap`, §6). Each reads `ECOTONE_LICENSE_KEY` through its framework's licence setting (Laravel `config/ecotone.php`, Symfony `config/services.php`, Tempest `app/ecotone.config.php`, Lite `licenceKey:`), the README says where a trial comes from, and without it the example stops with the rule-1 `LicensingException`. `quickstart-examples.yml` takes the key from `Ecotone\Test\LicenceTesting::VALID_LICENCE`; no example source carries a key. The variable name matches the one `EventProjecting/PartitionedProjection` already documented. That example still falls back to `LicenceTesting` inside the monorepo, which predates wave 20 | Recorded so the next merge does not rediscover it. With `EventProjecting/PartitionedProjection`, sixteen of 46 published examples need a key; whether they should is a product question for the maintainer |
 | 1 | **An object default value on a handler parameter is refused with an opaque message.** `#[ProjectionState] TicketCounterState $state = new TicketCounterState(0)` (2.0's own `quickstart-examples/StatefulProjection`, `19b67095f`) failed bootstrap with `Argument is not a self defined object: …TicketCounterState` (`ValidityCheckPass.php:53`), which names neither the parameter nor the way out (a nullable parameter defaulting to `null`, the form the 2.0 projection docs use). Wave 20 changed the example to `?TicketCounterState $state = null` | Open, small |
@@ -89,10 +89,10 @@ shared-container setup) and the `Type`/`MediaType` caches (value objects, never 
 
 ### Rule 8 — what shipped, and four limits of the rule as written
 
-**The finding: "always use optimistic locking" is achievable today on two of five storage paths** — the DBAL event
-store and the document store. On the other three it describes an aspiration, not a convention the tree follows:
-projection state is a work lease, not a record; three of the four state-stored backends have no version to compare
-for an aggregate without `#[Version]`; Eloquent never persists `#[Version]`; and Tempest cannot observe whether a
+**The finding: "always use optimistic locking" is achievable today on four of five storage paths** — the DBAL event
+store, the document store, projection state (Limit 1, closed) and Eloquent models with `#[Version]` (Limit 3,
+closed). It stops where there is nothing to compare or nothing to observe: three of the four state-stored backends
+have no version for an aggregate without `#[Version]` (Limit 2), and Tempest cannot observe whether a
 guarded update matched, so a versioned Tempest model is now refused at bootstrap (Limit 4). Each limit below carries its evidence, so none of them is re-filed as a violation.
 
 **Shipped** (`0f47c62f6`, `b403ebfb8`, `4036d4c20`, `8c2d96d8b`):
@@ -111,7 +111,14 @@ guarded update matched, so a versioned Tempest model is now refused at bootstrap
   `#[Version]`, which `outputChannelName` chains read back as `TARGET_VERSION` — fixed. It also records **R1**: a
   refused save leaves the handler's change in the stored instance on both in-memory rows (D3's root cause)
 
-**Limit 1 — projection state is a work lease, not a record write. `DbalProjectionStateStorage` keeps `FOR UPDATE`.**
+**Limit 1 — closed.** Projection state is saved under a version check (`UPDATE … WHERE version = ?`) and `FOR UPDATE` is
+gone. The failure the prototype below hit — the losing run failing its command on MySQL and MariaDB — is now the
+intended outcome: the losing run rolls back and the instant retry, on by default wherever a database transaction wraps
+the command bus or the asynchronous endpoint (and always for an asynchronous projection), runs it again from the
+position the winner stored. `ProjectionOptimisticLockingTest` proves it on PostgreSQL, MySQL and MariaDB, and the first
+draft sentence for rule 8 below is superseded. The record of the original decision follows.
+
+**(Superseded) Limit 1 — projection state is a work lease, not a record write. `DbalProjectionStateStorage` keeps `FOR UPDATE`.**
 The second run of a partition must *wait and continue from where the first got to*, not fail; a version predicate
 turns that benign catch-up into a failed command for a synchronous projection, whose transaction is the command's.
 On MySQL and MariaDB the lock also makes the read current: under REPEATABLE READ a plain `SELECT` returns the
@@ -129,34 +136,31 @@ quickstarts store in the document store lack `#[Version]`, and refusing in one b
 flow test uses does not would pass tests and fail at boot. Creation is still checked where the repository runs
 before the row exists (document store, in-memory).
 
-**Limit 3 — `#[Version]` on an Eloquent aggregate is a silent no-op.** Measured with a throwaway test (not
-committed, it would pin the no-op): a model hydrated by `EloquentRepository::findBy()` reads its `#[Version]` as
-**`0` on every load** — the declared property's default, never hydrated from the column — and
-`EloquentRepository::save()` with the property at `7` leaves the `version` column at **`0`**: Ecotone's enrichment
-writes the declared PHP property, which Eloquent never persists. So `$versionBeforeHandling` is `0` on every load
-and a check has nothing to compare. **Decided by the storage-defects unit: a documented limitation**, after the two
-shapes ahead of it were measured and ruled out:
+**Limit 3 — closed: an Eloquent aggregate with `#[Version]` is version-checked.** It used to be a silent no-op:
+Ecotone wrote the declared `#[Version]` property, which Eloquent never persists, and read it back as its default on
+every load. The two objections that kept it a documented limitation are both answered by `EloquentRepository` doing
+the guarded write *beside* `Model::save()` rather than through it or instead of it:
 
-- *Making it work* needs a persistence convention an application has to know. Ecotone reads and writes `#[Version]`
-  through `getVersion()` / `setVersion()` or else the declared property (`PropertyReaderAccessor`,
-  `PropertyEditorAccessor`), and the attribute only targets a property, so the repository would have to copy a column
-  named after that property into it on `findBy()` — a declared property shadowing an Eloquent attribute of the same
-  name. And the guarded write cannot go through `Model::save()`: `performUpdate()` discards the affected-row count, so
-  `UPDATE … AND version = ?` matching nothing is indistinguishable from success, and bypassing `save()` drops the
-  model's `saving` / `updating` / `saved` events and its timestamps
-- *A bootstrap refusal* cannot tell when it applies. The repository serving an aggregate is chosen at runtime, by the
-  first `canHandle()` in `AllAggregateRepository` — an application's own `#[Repository]` first — so compile time cannot
-  know whether Eloquent will store a given model, and the refusal would fire on the very configuration it should point
-  to. Blast radius, measured anyway: the quickstarts hold 2 Eloquent aggregates
-  (`Laravel/Projection/EloquentReadModel` `UserReadModel`, `MultiTenant/Laravel/Aggregate` `Customer`) and `#[Version]`
-  appears nowhere in `quickstart-examples`, so it would have broken none of them
+- the column is named after the `#[Version]` property, and `findBy()` copies it into that property — the one
+  persistence convention, stated in `upgrade-2.0.md`
+- `save()` of a loaded model first runs `UPDATE … SET <version> = <next> WHERE <key> = ? AND <version> = <loaded>`
+  through the query builder, whose affected-row count *is* observable, and throws
+  `ConcurrencyException::forStaleAggregate()` on zero rows; only then does `Model::save()` write the changed
+  attributes, so the model's events and timestamps run as before. Both statements run in one transaction on the
+  model's connection (a savepoint inside the application's), so a failed save, or one a listener cancels by returning
+  `false` (refused with `EloquentSaveCancelled`), leaves the version where it was. When Ecotone hands no loaded
+  version — a save through a `#[Repository]` interface — the version column the model was loaded with is the
+  expected one. A first save inserts at the version Ecotone set (1); a unique violation on that insert is the same
+  `ConcurrencyException` only when a row is stored under the key, and Laravel's own exception otherwise
 
-`upgrade-2.0.md` states the no-op and the two ways out: a plain class in the document-store repository, or the
-application's own `#[Repository]` for the model, running the guarded update itself.
-`EloquentRepositoryTest::test_an_application_repository_for_an_eloquent_model_is_chosen_over_eloquent_and_given_the_version_it_loaded`
-pins what that second way out relies on — the application's repository wins over Eloquent's, and `save()` receives the
-version `findBy()` loaded with the property moved past it; with the application's `canHandle()` returning `false`, the
-same test reaches `EloquentRepository` and fails on the table.
+A model without `#[Version]` is unchanged (Limit 2). The bootstrap-refusal shape was not needed. Proved in
+`packages/Laravel/tests/EloquentRepositoryTest.php` on PostgreSQL, MySQL and SQLite (`DATABASE_DSN`), through the
+command bus, a factory command and a `#[Repository]` interface: two loads with the second save refused (declared
+property and `WithAggregateVersioning`), sequential saves moving the version, a chained handler after creation, a
+create under a stored id (also inside an application transaction, the PostgreSQL 25P02 case), a collision on another
+unique column, model events on every save, a cancelled and a failing save leaving the version, and the unversioned
+model keeping last write wins. The column name is fixed to the property name; a bootstrap check cannot see the
+schema, so a different name surfaces as the database's missing-column error.
 
 **Limit 4 — Tempest cannot observe a guarded update.** `UpdateQueryBuilder::execute()` returns `?PrimaryKey`,
 `Database::execute()` returns `void`, `GenericDatabase` keeps the `PDOStatement` in a private property, and

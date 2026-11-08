@@ -90,7 +90,7 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
             }
 
             $messagingConfiguration->registerBatchForwardingSourceChannel($sourceChannelName);
-            $outboxesPerEndpointId[$outboxForwardingChannel->getEndpointId()][] = $this->createOutboxPublisherDefinition($channelBuilder, $outboxForwardingChannel);
+            $outboxesPerEndpointId[$outboxForwardingChannel->getEndpointId()][] = $this->createOutboxPublisherDefinition($channelBuilder, $outboxForwardingChannel, $messagingConfiguration);
         }
 
         foreach ($outboxesPerEndpointId as $endpointId => $outboxPublishers) {
@@ -117,17 +117,12 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
         return ModulePackageList::DBAL_PACKAGE;
     }
 
-    private function createOutboxPublisherDefinition(DbalBackedMessageChannelBuilder $channelBuilder, OutboxForwardingMessageChannel $outboxForwardingChannel): Definition
+    private function createOutboxPublisherDefinition(DbalBackedMessageChannelBuilder $channelBuilder, OutboxForwardingMessageChannel $outboxForwardingChannel, Configuration $messagingConfiguration): Definition
     {
         $inboundChannelAdapter = $channelBuilder->getInboundChannelAdapter();
 
         return new Definition(DbalOutboxPublisher::class, [
-            new Definition(CachedConnectionFactory::class, [
-                new Definition(DbalReconnectableConnectionFactory::class, [
-                    new Reference($inboundChannelAdapter->getConnectionReferenceName()),
-                    new Reference(EcotoneClockInterface::class),
-                ]),
-            ], 'createFor'),
+            CachedConnectionFactory::registerIn($messagingConfiguration, $inboundChannelAdapter->getConnectionReferenceName(), DbalReconnectableConnectionFactory::definitionFor($inboundChannelAdapter->getConnectionReferenceName())),
             $channelBuilder->getMessageChannelName(),
             new Reference(ChannelResolver::class),
             new Reference(LoggingGateway::class),

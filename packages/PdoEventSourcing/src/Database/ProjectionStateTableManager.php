@@ -100,6 +100,14 @@ final class ProjectionStateTableManager implements DbalTableManager
         return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
     }
 
+    public function getMissingVersionColumnInstructions(): string
+    {
+        return "The '{$this->tableName}' table required by the '" . self::FEATURE_NAME . "' feature has no 'version' column: it was created before Ecotone 2.0 (by ProjectionV2 in 1.x, or by an earlier 2.0 beta), "
+            . 'and since 2.0 every save of a projection partition checks the version it loaded, so two runs of the same partition cannot both commit. '
+            . "Ecotone never alters a table while it handles a message. Add the column: ALTER TABLE {$this->tableName} ADD COLUMN version INTEGER NOT NULL DEFAULT 0; "
+            . 'It is safe to run on a populated table: every stored partition starts at version 0 and keeps its position.';
+    }
+
     private function getPostgresCreateSql(): string
     {
         return <<<SQL
@@ -109,6 +117,7 @@ final class ProjectionStateTableManager implements DbalTableManager
                 last_position TEXT NOT NULL,
                 metadata JSON NOT NULL,
                 user_state JSON,
+                version INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (projection_name, partition_key)
             )
             SQL;
@@ -123,6 +132,7 @@ final class ProjectionStateTableManager implements DbalTableManager
                 `last_position` TEXT NOT NULL,
                 `metadata` JSON NOT NULL,
                 `user_state` JSON,
+                `version` INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (`projection_name`, `partition_key`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             SQL;

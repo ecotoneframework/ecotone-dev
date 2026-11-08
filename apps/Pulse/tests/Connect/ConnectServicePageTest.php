@@ -107,7 +107,7 @@ final class ConnectServicePageTest extends ReleasingWebTestCase
         $orders->run($this->serviceChannels['orders'], ExecutionPollingMetadata::createWithTestingSetup());
         $this->runPulseWorker($client->getKernel());
 
-        self::assertSame('connected', $this->statusOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));
         unlink($file);
     }
 
@@ -186,10 +186,5 @@ final class ConnectServicePageTest extends ReleasingWebTestCase
         $this->setUpPulseDatabase($client->getKernel());
 
         return $client;
-    }
-
-    private function statusOf(Crawler $crawler, string $service): string
-    {
-        return $crawler->filter('tr[data-service="' . $service . '"] [data-status]')->attr('data-status');
     }
 }

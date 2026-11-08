@@ -50,8 +50,8 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "~2.0.0-beta.7",
-        "doctrine/dbal": "^4.0",
+        "ecotone/enqueue": "~2.0.0-beta.8",
+        "doctrine/dbal": "^4.2.3",
         "enqueue/dsn": "^0.10.4"
     },
     "require-dev": {
@@ -61,7 +61,7 @@
         "doctrine/orm": "^3.0",
         "doctrine/cache": "^1.0.0|^2.0",
         "doctrine/annotations": "^1.13|^2.0",
-        "ecotone/jms-converter": "~2.0.0-beta.7",
+        "ecotone/jms-converter": "~2.0.0-beta.8",
         "symfony/expression-language": "^6.4|^7.0|^8.0"
     },
     "scripts": {
@@ -90,6 +90,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-10-28 18:55:11"
+        "release-time": "2026-11-08 11:07:02"
     }
 }

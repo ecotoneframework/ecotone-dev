@@ -715,7 +715,8 @@ application that does not register `DynamicConsistencyBoundaryConfiguration` see
 tables, and the append path stays today's single `INSERT`.
 
 **Retry — read this before using decision models.** A `DecisionModelConcurrencyException` always means *the command
-should run again*; nothing retries it automatically. Configure retry explicitly:
+should run again*. The command bus retries it by default when `DbalConfiguration` runs the command bus in a database
+transaction (its default, see [§9](#9-changed-defaults)); without one, configure retry explicitly:
 
 ```php
 #[ServiceContext]
@@ -733,8 +734,8 @@ or, Enterprise, on a custom command bus interface:
 interface MyCommandBus extends CommandBus {}
 ```
 
-Without retry configured, a conflict surfaces to the caller as a technical exception naming the tag (or the aggregate)
-and the version it was read at — not a business answer. Asynchronous endpoints already retry 3 times by default. Retry never
+Without retry, a conflict surfaces to the caller as a technical exception naming the tag (or the aggregate)
+and the version it was read at — not a business answer. Asynchronous endpoints in a database transaction retry 3 times by default too. Retry never
 fires inside an already-open database transaction; that transaction is already unsafe to continue. A conflict is not
 always another writer: a handler that sends a command from inside itself, whose handler appends to the same tag in
 the same transaction, moves the tag under its own feet and fails on every retry — decide both in one handler.
@@ -1534,21 +1535,27 @@ SQLite it also works inside one, because DDL is transactional there.
   `ecotone:projection:delete`, which like `ecotone:projection:init` and `ecotone:projection:backfill` runs outside the
   console-command transaction — and `ecotone:migration:database:setup --initialize` recreates the dropped stream table
   before the rebuild emits into it again.
-- `#[ProjectionInitialization]` handlers now run **before** the projection-state transaction is opened, instead of
-  inside it. Previously a partition's first batch opened the transaction and then called your initialization handler
-  from within it, so DDL in that handler triggered MySQL's implicit commit and broke the later commit. Your handler
-  may still create its read-model tables, but it is no longer covered by the projection-state transaction: if
-  initialization succeeds and the batch then fails, the initialization is not rolled back. Make initialization
-  idempotent — `CREATE TABLE IF NOT EXISTS` rather than a bare `CREATE TABLE` — since it may be re-attempted.
+- `#[ProjectionInitialization]` runs only when the projection is initialized, never while Ecotone handles a message.
+  **Before:** the first event of a projection that nobody had initialized ran its `#[ProjectionInitialization]` inside
+  that event's transaction — the command's, or the asynchronous endpoint's — so DDL in it committed implicitly on
+  MySQL/MariaDB and the event failed with `There is no active transaction`; a partitioned projection ran it again for
+  every new partition. **Now:** `ecotone:projection:init <name>` (or `--all`) runs it once, outside any transaction,
+  and records the projection as initialized; running the command again leaves an initialized projection as it is, so
+  it belongs in every deployment, after `ecotone:migration:database:setup`. A new partition of an initialized
+  projection only gets its position recorded. An event reaching a projection that was never initialized is refused
+  with a `ConfigurationException` naming the projection and the command. `#[ProjectionDeployment(manualKickOff: true)]`
+  keeps its meaning for an initialized projection: it waits for `ecotone:projection:backfill` before projecting.
+  **How to adapt:** add `ecotone:projection:init --all` to your deployment, or create what your projections project
+  into in your own migrations and initialize them the same way. An EcotoneLite flow test initializes every projection
+  on bootstrap together with the database tables, and `$ecotone->setupDatabaseTables()` does too —
+  `setupDatabaseTables(initializeProjections: false)` sets up the tables only.
 - **Before (early 2.0):** `ecotone:projection:init` and `ecotone:projection:delete` ran inside the console-command
   transaction, so a projection whose `#[ProjectionInitialization]` or `#[ProjectionDelete]` issues DDL failed on
   MySQL/MariaDB with `There is no active transaction`; and `ecotone:projection:init` left a global projection's state
   unrecorded, so its first event ran the initialization handler again, inside the command's transaction.
   **Now:** both commands run outside the console-command transaction, as `ecotone:projection:backfill` already did,
   and `ecotone:projection:init` records a global projection's state, so its first event does not initialize it again.
-  **How to adapt:** drop `withTransactionOnConsoleCommands(false)` if you set it only for these commands. A projection
-  that relies on automatic initialization on its first event still initializes inside that event's transaction: on
-  MySQL/MariaDB, run `ecotone:projection:init <name>` once at deploy time, or create its tables in your migrations.
+  **How to adapt:** drop `withTransactionOnConsoleCommands(false)` if you set it only for these commands.
 - **Before:** a synchronous `#[CommandHandler]` marked `#[WithoutDatabaseTransaction]` was only honoured when it ran
   through a `#[ConsoleCommand]` or an asynchronous endpoint. Dispatched through `CommandBus` (`send()` /
   `sendWithRouting()`), the transaction was still opened around the whole gateway call before routing picked a
@@ -1637,7 +1644,8 @@ test needs nothing: its bootstrap sets the table up.
 | `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `createWithTestingSetup(handledMessageLimit: 1)` |
 | `ExecutionPollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
 | `PollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
-| Instant retries on asynchronous endpoints | disabled | enabled (3 retries, so up to 4 handler invocations per delivery) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
+| Instant retries on asynchronous endpoints | disabled | enabled (3 retries, so up to 4 handler invocations per delivery) when `DbalConfiguration` runs asynchronous endpoints in a database transaction (its default), except an endpoint in `withoutTransactionOnAsynchronousEndpoints()` or a handler with `#[WithoutDatabaseTransaction]`; an asynchronous projection, which manages its own transaction, always; anything else not | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)`, or `(true)` to retry without a transaction |
+| Instant retries on the command bus | disabled | enabled (3 retries, every exception) when `DbalConfiguration` runs the command bus in a database transaction (its default), except a command whose handler has `#[WithoutDatabaseTransaction]`; without one not | `InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false)`, or `(true)` to retry without a transaction |
 | Module packages | all except explicitly skipped | Core + Asynchronous + what `withEnabledModulePackageNames()` lists; with no call, all installed packages load | `ServiceConfiguration::withEnabledModulePackageNames([...])` |
 
 Test-suite impact of the new defaults:
@@ -1648,9 +1656,14 @@ Test-suite impact of the new defaults:
   `ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)`, or
   `->withTestingSetup(handledMessageLimit: 1)` on an `ExecutionPollingMetadata` it already builds (or
   `--handledMessageLimit=1` on `ecotone:run`).
-- A test that expected the first consumer run to fail and a second run to succeed now sees the failure retried instantly inside the first
-  run; disable it for that test with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)`
-  or assert the retried outcome.
+- Instant retry never retries a `ConfigurationException`, whatever `InstantRetryConfiguration` or `#[InstantRetry]` lists:
+  a missing table, a refused setup or an uninitialized projection fails the same way on every attempt, so it reaches the
+  caller or the error channel on the first one.
+- A flow test applies the instant-retry defaults of the two rows above too. A test that expected the first consumer run to fail
+  and a second run to succeed now sees the failure retried instantly inside the first run, and a test that expects a command or
+  a consumer to fail runs it up to 4 times before the failure reaches it. Switch the defaults off for such a test with
+  `testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false)` — an `InstantRetryConfiguration`
+  the test sets still applies — or assert the retried outcome.
 - Instant retries multiply the delayed ones: `ErrorHandlerConfiguration` counts *deliveries*, and each delivery runs the
   handler up to `1 + asynchronousRetryTimes` times before the error channel sees it. With the default of 3 instant retries and a
   `RetryTemplateBuilder` of 3 retries, a message that always fails runs its handler 16 times before it reaches the dead letter.
@@ -2469,6 +2482,7 @@ extends `EnqueueMessageChannelBuilder`, as `AmqpBackedMessageChannelBuilder` alr
 | `Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration` | `Ecotone\Api\DataProtection\ChannelProtectionConfiguration` | returned from a `#[ServiceContext]` method, it protects one channel (Enterprise) |
 | `Ecotone\DataProtection\Encryption\Key` | `Ecotone\Api\DataProtection\Key` | an application creates or loads a key (`Key::createNewRandomKey()`, `Key::loadFromAsciiSafeString()`) to pass to `DataProtectionConfiguration` |
 | `Ecotone\EventSourcing\EventStreamEmitter` | `Ecotone\Api\EventSourcing\EventStreamEmitter` | a projection handler takes it as a parameter to `emit()` or `linkTo()` events (§3) |
+| `Ecotone\Dbal\DbalTransaction\DbalTransaction` | `Ecotone\Api\Dbal\Attribute\DbalTransaction` | written on a handler or its class, it runs that handler in a transaction on the connections it names — `#[DbalTransaction(connectionReferenceNames: [...])]`, the default connection when it names none; the list was a writable property, and is now a constructor argument |
 
 **How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Clear Ecotone's cache on
 deploy, since the compiled container records class names. **One container id changes:** `EventStreamEmitter` is a
@@ -2530,6 +2544,18 @@ own. One that registers it under the literal pre-release string has to use the c
   time, before raising the setup instructions. **Now:** the `ConfigurationException` naming the
   `ecotone:migration:database:setup` command is raised on the first attempt; a lost connection is still retried, as
   before. Nothing to adapt.
+- **A discarded application releases its broker and database connections.** **Before:** every DBAL, AMQP, SQS and
+  Redis connection Ecotone opened was cached for the life of the PHP process, so a test suite booting an application
+  per test kept one connection open per bootstrap until the database ran out of `max_connections`, and
+  `CachedConnectionFactory::clearInstances()` was the way to reset it. **Now:** the connections belong to the booted
+  application: its channels, transactions and stores still share one connection, and Ecotone no longer keeps it
+  open. Once the application is discarded and PHP's cycle collector has run (`gc_collect_cycles()`, or PHP's
+  automatic collection), the connection is closed unless something else still holds its connection factory, such as a
+  `DbalConnectionFactory` kept in a test property or a framework's database manager. **How to adapt:** remove calls to
+  `CachedConnectionFactory::clearInstances()`, and any workaround that terminated leftover backends between tests.
+  Replace `CachedConnectionFactory::createFor()` with the connection factory you registered:
+  `$connectionFactory->createContext()->getDbalConnection()` returns the Doctrine connection Ecotone runs its
+  transaction on.
 - **An unknown case name for a pure enum is reported as a `ValueError`.** Converting a scalar to a non-backed enum
   (a header `'PENDING'` into a `#[Header] Status $status` parameter, say) failed with a `MethodInvocationException`
   whose cause was a `ReflectionException` ("Case … does not exist"); the cause is now a `ValueError` reading
@@ -2689,6 +2715,52 @@ Ecotone's own missing-table messages print the bare form.
 
 **How to adapt:** nothing. Deployment scripts that already pass `--initialize=true` behave as before.
 
+### Finish-when-no-messages keeps the run's other limits
+
+**Before:** `PollingMetadata::withFinishWhenNoMessages()` set the handled-message, execution-amount and
+execution-time limits to zero, so `ecotone:run orders --finishWhenNoMessages --executionTimeLimit=2000` ignored the
+time limit, `--handledMessageLimit` was ignored the same way, and a run of a queue that kept receiving messages never
+stopped.
+
+**Now:** every limit stays as configured and the run stops at whichever comes first: no message left, the handled
+messages, the executions, or the execution time. `ExecutionPollingMetadata::createWithFinishWhenNoMessages()` clears
+the handled-message, execution-amount and execution-time limits on purpose, so a test drains the channel whatever the
+endpoint's own polling metadata says. Before, it left the execution-amount limit as configured, so an endpoint whose
+`PollingMetadata` set `withExecutionAmountLimit()` capped a test run at that many executions.
+
+**How to adapt:** drop a limit you passed together with `--finishWhenNoMessages` (or `withFinishWhenNoMessages(true)`)
+only if you relied on it being ignored. An endpoint whose `PollingMetadata` sets a limit and calls
+`withFinishWhenNoMessages(true)` now honours that limit; remove the limit to drain the channel in one run.
+
+### Finish-when-no-messages stops on the first empty receive
+
+**Before:** a run with finish-when-no-messages stopped only once 10 ms of the clock had passed without a message.
+On a pinned test clock that took about ten polls, and against a broker each empty poll waits for the broker's receive
+timeout, so a test run of an idle AMQP queue took about ten seconds.
+
+**Now:** the run stops on the first receive that returns no message, so an idle queue ends a run after one receive
+timeout. A receive that failed — a lost connection retried through the connection retry template — is not an empty
+one: the run keeps going and handles the messages waiting behind it, where before that failed poll ended the run. A
+channel that stays unreachable is retried through the whole connection retry template, and then the run throws the
+connection failure, where before it ended quietly: `ecotone:run orders --finishWhenNoMessages` against a database or
+broker that is down now exits with an error after the back-off — about two minutes with the default
+`exponentialBackOff(1000, 3)->maxRetries(5)`.
+
+**How to adapt:** nothing, unless a test relied on a message becoming available a few milliseconds after the channel
+went empty within the same run: call `run()` again after it arrives. A cron job or CI step that runs
+`--finishWhenNoMessages` and must give up sooner on an unreachable channel bounds the run with `--executionTimeLimit`,
+or shortens the back-off with `ServiceConfiguration::withConnectionRetryTemplate()`.
+
+A consumer with an initial delay now waits for it, receives once, and then stops. Before, the delay already passed the
+10 ms window, so the run stopped without receiving.
+
+A polled-method consumer has no queue to drain, so it stops after its first execution: a `#[Polling]` projection and a
+`#[Scheduled]` method. The value a `#[Scheduled]` method
+returns is still sent to its channel and handled, and a method returning `null` stops the run as before. A `#[Polling]`
+projection's one execution projects every event in its stream, so `$ecotone->run('tickets_runner',
+ExecutionPollingMetadata::createWithFinishWhenNoMessages())` leaves it caught up. Before, these runs stopped only once
+10 ms of the clock had passed, which on a pinned test clock depended on how long the execution took.
+
 ### Symfony and Laravel `defaultConnectionExceptionRetry` is applied as configured
 
 **Before:** both integrations passed `maxAttempts` as the back-off multiplier and `multiplier` as a maximum delay in
@@ -2701,6 +2773,140 @@ attempts before the consumer gives up.
 
 **How to adapt:** check that the configured values describe the reconnection behaviour you want — they now take effect.
 The key itself has since moved to `ServiceConfiguration::withConnectionRetryTemplate()` in a `#[ServiceContext]` method (§12).
+
+### A DBAL channel send that lost its transaction's connection is not retried in place
+
+**Before:** a message that failed to reach a DBAL channel was retried in place by the channel's send retries (or sent
+to its error channel), even when the failure was the database connection of the transaction it was sent in being lost
+(a database restart). Doctrine reset that connection, and the retry wrote the message on a fresh connection in
+autocommit, outside the transaction it belonged to. The transaction then failed to commit, the command or consumed
+message ran again, and the outbox message was sent twice.
+
+**Now:** such a send fails with `Ecotone\Api\Messaging\DatabaseTransactionLost`, which the send retries and the channel's error channel
+leave alone: the transaction rolls back and the whole command or consumed message is retried — by the instant retries
+a transactional command bus and asynchronous endpoint have by default (§9), or by the consumer's redelivery. Every
+other send failure is retried and dead-lettered as before, inside a transaction or outside one, on DBAL and on brokers.
+
+**How to adapt:** nothing for most applications. With a transactional command bus whose instant retries are turned
+off (`InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false)`), or that lists its retry
+exceptions without `DatabaseTransactionLost::class`, such a command now fails with `DatabaseTransactionLost`: turn the
+command bus retry back on, add `DatabaseTransactionLost::class` to the listed exceptions, or catch it and send the
+command again in the caller. A console command run in a transaction and a transaction the application opened itself are
+not retried by Ecotone: run the command again, or retry the work that opened the transaction. To keep the message being
+stored and retried in place instead, run its handler without a database transaction: `#[WithoutDatabaseTransaction]`
+on the handler, or `DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)`,
+`->withTransactionOnAsynchronousEndpoints(false)` or `->withTransactionOnConsoleCommands(false)`.
+
+### A Laravel connection recovers after the database restarts
+
+**Before:** Ecotone wrapped the PDO object the Laravel connection held when Ecotone first used it. After a database
+restart a consumer on a DBAL channel, the dead letter or the outbox over a `LaravelConnectionReference` reconnected to
+that same dead PDO: every message failed with `no connection to the server`, then `There is already an active
+transaction`, until the worker was restarted.
+
+**Now:** Ecotone connects through the Laravel connection each time it connects. A failure Laravel recognises as a lost
+connection drops Laravel's PDO and is raised as Doctrine's `ConnectionLost`, so the consumer reconnects, the failed
+message is redelivered, and the worker keeps handling messages. A connect the database refuses while it is still
+starting is raised as Doctrine's `ConnectionException`, so the consumer backs off with its connection retry template
+(`ServiceConfiguration::withConnectionRetryTemplate()`) instead of exiting.
+
+**How to adapt:** nothing.
+
+### A Tempest connection recovers after the database restarts
+
+**Before:** a `TempestConnectionReference::create($configTag)` handed Ecotone the PDO object the Tempest connection held
+when Ecotone first used it, and `TempestConnectionReference::defaultConnection()` kept using the Tempest connection's
+PDO after it was lost. After a database restart a consumer on a DBAL channel, the dead letter or the outbox failed every
+message with `no connection to the server` until the worker was restarted.
+
+**Now:** Ecotone connects through the Tempest connection each time it connects. A failure that reports a lost
+connection closes the Tempest connection and is raised as Doctrine's `ConnectionLost`, so the next connect opens a new
+one for Ecotone and for the Tempest ORM alike, the failed message is redelivered, and the worker keeps handling
+messages. That includes a transaction refused with `There is already an active transaction`, which is how
+`pdo_pgsql` reports a connection the server has terminated. A connect the database refuses while it is still starting
+is raised as Doctrine's `ConnectionException`, so the consumer backs off with its connection retry template
+(`ServiceConfiguration::withConnectionRetryTemplate()`) instead of exiting.
+
+**How to adapt:** nothing.
+
+### A transactional message that lost its database connection is retried whole, never continued on a new connection
+
+**Before:** when the database connection was lost while a message was handled inside Ecotone's database transaction
+(a restart, an idle timeout, a failover), the next SQL statement usually failed and the message was retried. In some
+flows, though — a middleware in your codebase, or a library that retries automatically and ignores the connection
+failure — Doctrine DBAL reconnected and ran the following SQL statements on a new connection, as if nothing had
+happened. That connection was outside the transaction: part of the message's data was stored while the rest was rolled
+back, and stored again when the message was retried.
+
+**Now:** Ecotone puts stability first and prevents this by default. Once the connection is lost inside Ecotone's
+transaction, it refuses to reconnect until the message ends: the next statement fails with
+`Ecotone\Api\Messaging\DatabaseTransactionLost`, and the message is rolled back and retried as a whole — by the instant
+retries a transactional command bus and asynchronous endpoint have by default, or by the consumer's redelivery. A
+connection that died while idle, before the message, is still reconnected when Ecotone begins its transaction.
+
+The protection needs `Ecotone\Api\Dbal\TransactionReconnectProtectionMiddleware` on the Doctrine connection. Ecotone adds it to
+every connection it builds — a `DbalConnectionFactory` from a DSN or connection parameters, a
+`LaravelConnectionReference`, a `TempestConnectionReference` — and the Symfony bundle registers it on every DoctrineBundle
+connection. A connection the application builds itself and hands to Ecotone (`DbalConnection::create($connection)`, a
+manager registry outside Symfony) is refused before its first transaction, with a message naming the middleware to add.
+`DbalConfiguration::withTransactionReconnectProtection()` decides how strict this is:
+
+| `TransactionReconnectProtection` | Connection with the middleware | Connection without it |
+|---|---|---|
+| `REQUIRED` (default) | protected | refused before its first transaction |
+| `WHEN_AVAILABLE` | protected | may reconnect inside the transaction, as before |
+| `IGNORE` | may reconnect inside the transaction, as before | may reconnect inside the transaction, as before |
+
+`DbalConfiguration::createForTesting()` uses `WHEN_AVAILABLE`, so a test can hand Ecotone a connection it built without
+the middleware.
+
+**How to adapt:** nothing on Laravel, Tempest, Symfony with DoctrineBundle, or a `DbalConnectionFactory` built from a DSN.
+For a Doctrine connection you build yourself, add the middleware where you build it, as its last middleware:
+
+```php
+use Doctrine\DBAL\Configuration;
+use Doctrine\DBAL\DriverManager;
+use Ecotone\Api\Dbal\TransactionReconnectProtectionMiddleware;
+
+$connection = DriverManager::getConnection($params, (new Configuration())->setMiddlewares([new TransactionReconnectProtectionMiddleware()]));
+```
+
+To keep Doctrine DBAL's reconnect instead, choose
+`DbalConfiguration::createWithDefaults()->withTransactionReconnectProtection(TransactionReconnectProtection::WHEN_AVAILABLE)`
+or `TransactionReconnectProtection::IGNORE`. With a transactional command bus whose instant retries are turned off, or
+that lists its retry exceptions without `DatabaseTransactionLost::class`, a command that lost its connection now fails
+with `DatabaseTransactionLost`. To let a handler reconnect and continue, run it without a database transaction:
+`#[WithoutDatabaseTransaction]` on the handler, or `->withTransactionOnCommandBus(false)`,
+`->withTransactionOnAsynchronousEndpoints(false)` or `->withTransactionOnConsoleCommands(false)`.
+
+### Ecotone's transaction on a Laravel connection is Laravel's transaction
+
+**Before:** Ecotone began its transaction on the PDO underneath the Laravel connection, so Laravel did not know about
+it: `DB::transactionLevel()` stayed 0 inside a transactional handler, `DB::afterCommit()` (and `ShouldDispatchAfterCommit`
+jobs, `afterCommit` listeners and model events) ran its callback at once, inside the transaction — also when the
+message then rolled back — and an Eloquent query that hit a lost connection was reconnected and re-run by Laravel in
+autocommit, outside Ecotone's transaction, and stored again when the message was retried.
+
+**Now:** Ecotone begins, commits and rolls back through the Laravel connection. Inside a transactional handler
+`DB::transactionLevel()` is 1, after commit callbacks run once Ecotone's transaction has committed and are dropped when
+it rolls back, and Laravel does not retry a query in place: the lost connection fails the message, which is retried
+whole. A callback that throws propagates its exception after the commit, as it does in `DB::transaction()`. A command
+sent inside the application's own `DB::transaction()` joins it as a savepoint, and commits or rolls back with it.
+
+**How to adapt:** nothing for most applications. A callback registered with `DB::afterCommit()` inside a handler that
+relied on running immediately runs after the commit now: call it directly instead.
+
+### `ecotone/dbal`, `ecotone/laravel` and `ecotone/tempest` require `doctrine/dbal` 4.2.3 or later
+
+**Before:** they accepted any `doctrine/dbal` 4.x. Before 4.2.3, Doctrine raised a PostgreSQL connection the server
+terminated (`terminating connection due to administrator command`, a database restart) as a plain `DriverException`
+instead of `ConnectionLost`, so a consumer never reconnected and a send that lost its transaction's connection was
+not recognised as such.
+
+**Now:** `doctrine/dbal` `^4.2.3` is required, and the recovery after a database restart works on every version
+Composer installs.
+
+**How to adapt:** run `composer update doctrine/dbal` if your lock file holds a version below 4.2.3.
 
 ### `#[Partitioned]` with `#[ProjectionDeployment(manualKickOff: true)]` is refused at bootstrap
 
@@ -2854,21 +3060,33 @@ repository of a flow test, is now checked against the version it was loaded at:
   until now; or stop making the class a Tempest model and store it through the DBAL document-store repository
   (`DbalConfiguration::withDocumentStore(enableDocumentStoreStateStoredRepository: true)`), where `#[Version]` is
   checked; or make it an `#[EventSourcingAggregate]`. A Tempest model without `#[Version]` is unchanged.
-- **Eloquent aggregates are not version-checked**, with or without `#[Version]`. On an Eloquent model,
-  `#[Version]` is not persisted: Ecotone writes it to the declared PHP property, which Eloquent never saves, and reads
-  it back as `0` on every load. Concurrent saves still overwrite each other.
-  `#[Version]` on an Eloquent model is accepted and has no effect. If the model needs the check, either keep it out of
-  Eloquent — a plain class saved through the document-store repository, where `#[Version]` is checked — or keep the
-  table and register a repository of your own for the model: a `#[Repository]` class implementing
-  `Ecotone\Api\Modelling\StateStoredRepository` is chosen ahead of Ecotone's Eloquent repository. Its `findBy()` sets the
-  `#[Version]` property from your version column, since Eloquent never hydrates a declared property; Ecotone then hands
-  `save()` that version as `$versionBeforeHandling`, with the property already moved to the next one. `save()` runs
-  `UPDATE … WHERE id = ? AND version = ?` and, when it matched no row, throws
-  `Ecotone\Api\Messaging\ConcurrencyException::forStaleAggregate()`, as every other backend does.
+- **An Eloquent aggregate with `#[Version]` is version-checked.** **Before:** `#[Version]` on an Eloquent model was
+  accepted and had no effect: Ecotone wrote the declared PHP property, which Eloquent never saves, read it back as `0`
+  on every load, and concurrent saves overwrote each other — so applications registered a `#[Repository]` of their own
+  running `UPDATE … WHERE id = ? AND version = ?`. **Now:** Ecotone's Eloquent repository keeps the `#[Version]`
+  property in a column of the same name: `findBy()` sets the property from the column, the first save inserts the row
+  at version 1, and every later save — through the command bus or through a `#[Repository]` interface — moves the
+  column from the version it loaded to the next one with `UPDATE … WHERE <key> = ? AND <version column> = ?`, then
+  lets Eloquent's own `save()` write the changed attributes. Both run in one transaction on the model's connection (a
+  savepoint inside yours), so a failed save leaves the version where it was. A save whose loaded version is no longer
+  stored, and a create under an id that is already stored, throw
+  `Ecotone\Api\Messaging\ConcurrencyException::forStaleAggregate()`, as every other backend does; a create that
+  collides on another unique column raises Laravel's `UniqueConstraintViolationException` unchanged. A save that a
+  `saving`, `creating` or `updating` listener cancels by returning `false` is refused with
+  `Ecotone\Api\Laravel\EloquentSaveCancelled` instead of being reported as handled. With
+  `#[Version(autoIncrease: false)]` the application moves the version itself: the guarded update compares the version
+  the model was loaded with and stores the one the handler set, and a save that does not increase it is refused with
+  `Ecotone\Api\Laravel\EloquentVersionNotIncreased`. **How to adapt:** add an integer
+  column named after the `#[Version]` property — `$table->integer('version')` on a new table,
+  `$table->integer('version')->default(0)` on a table that already has rows, which then start at version 0. Keep it
+  non-null: a `NULL` version matches no guarded update, so that row would refuse every save. A repository of your own
+  written only to get the check can be removed. An Eloquent model without `#[Version]` is unchanged: last write wins,
+  and a duplicate id raises Laravel's own `UniqueConstraintViolationException`.
 
-A conflict is a technical failure, not a business answer. Retry it by reloading: send the command again, or configure
-`InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class])`;
-asynchronous endpoints already retry. A save made earlier in the same transaction — a command sent from inside the
+A conflict is a technical failure, not a business answer. Retry it by reloading: the command bus and asynchronous
+endpoints retry by default when `DbalConfiguration` runs them in a database transaction ([§9](#9-changed-defaults));
+without one, send the command again or configure
+`InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class])`. A save made earlier in the same transaction — a command sent from inside the
 handler whose own handler saves the same aggregate — fails on every retry; decide both in one handler instead.
 
 **The document store table gains a `version` column.** A table created by Ecotone 1.x is refused on the first write
@@ -2915,6 +3133,31 @@ hand-built `AppendCondition::forAggregate()` may now see the refusal it was alwa
    writer.
 3. Add `#[Version]` to each document-store aggregate or saga that is changed concurrently.
 4. Fix flow tests that create one aggregate id twice.
+
+### Projection state is saved under a version check, not a row lock
+
+**Before:** a projection run loaded its partition's position with `SELECT ... FOR UPDATE` (except on SQLite), so a
+second run of the same partition waited for the first. **Now:** the run loads the position without a lock and saves it
+with `UPDATE ... WHERE version = ?`. When another run of the same partition saved first, the save matches no row and
+the run fails with `ConcurrencyException` ("Projection 'x' (partition: global) was loaded at version 3, but another
+run of the same partition saved it first. ..."), and its transaction rolls back, so nothing it projected is kept. For a
+synchronous projection the run is the command's transaction, so the command fails; for an asynchronous one, the
+message. Both are retried by default where a database transaction wraps them, and an asynchronous projection always
+([§9](#9-changed-defaults)), so the retry projects from the position the other run stored. A projection that sends
+mail or calls another service from its handlers can do so twice when a run is retried: only what it writes inside the
+transaction is rolled back.
+
+**How to adapt:**
+- The `ecotone_projection_state` table gains a `version` column. A table created by an earlier 2.0 beta is refused on
+  the first projection run (as is one created by 1.x `ProjectionV2`) with a `ConfigurationException` naming the statement:
+  `ALTER TABLE ecotone_projection_state ADD COLUMN version INTEGER NOT NULL DEFAULT 0;` It is safe to run on a
+  populated table; every partition keeps its position.
+- Without a database transaction around the command bus, a synchronous projection's conflict reaches the caller; enable
+  `InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class])` or send
+  the command again.
+- A `#[StateStorage]` class implementing `ProjectionStateStorage`: `loadPartition()` no longer takes `bool $lock`, and
+  `savePartition()` saves only when the stored `ProjectionPartitionState::$version` is the one the state was loaded at,
+  storing the next one, and throws `ConcurrencyException::forStaleProjection()` otherwise.
 
 ### Framework headers that never leave the process are renamed to `ecotone_{module}_{feature}_{action}`
 
@@ -3069,6 +3312,56 @@ the class itself.
 **How to adapt:** nothing, unless you extended one. A subclass that only added configuration calls becomes a
 `#[ServiceContext]` method returning the chained configuration. A subclass that added state of its own becomes a
 separate extension object, registered beside the configuration rather than inside it.
+
+### `JMSConverterConfiguration` returns a copy from every `with*()` and is `final`
+
+**Before:** `withNamingStrategy()`, `withDefaultNullSerialization()` and `withDefaultEnumSupport()` changed the
+instance they were called on and returned it, so `$configuration->withDefaultNullSerialization(false);` written as a
+statement kept its change. The class was open to extension, and its settings were read through `getNamingStrategy()`,
+`getDefaultNullSerialization()` and `isEnumSupportEnabled()`.
+
+**Now:** each `with*()` returns a changed copy and leaves the instance alone — its properties are `readonly` — and the
+class is `final`. A statement-form call still runs, but its value never reaches the configuration Ecotone uses. The
+three getters are gone: the settings are `public readonly` properties under their own names, `namingStrategy`,
+`defaultNullSerialization`, `enableEnumSupport` and `metadataCacheFreshnessCheck`.
+
+**How to adapt:** assign the result or chain the calls,
+`$configuration = $configuration->withDefaultNullSerialization(false);`. Configuration returned from a
+`#[ServiceContext]` method as a chained expression is unaffected. A subclass becomes a `#[ServiceContext]` method
+returning the chained configuration. Replace `getNamingStrategy()` with `->namingStrategy`,
+`getDefaultNullSerialization()` with `->defaultNullSerialization` and `isEnumSupportEnabled()` with `->enableEnumSupport`.
+
+### JMS re-reads a changed class outside production
+
+**Before:** the JMS metadata cache under Ecotone's cache directory (`.../ecotone/jms/metadata`) was written once and
+never checked against the class it describes. When a class gained a property, deserialization kept the old shape —
+the new property stayed uninitialized, and reading it failed with "Typed property ... must not be accessed before
+initialization" — until the directory was deleted by hand.
+
+**Now:** outside production the cache compares each entry with the files of its class and of every trait the class
+uses, and re-reads a class whose file changed after the entry was written. The comparison is by modification time, so
+a deployment that keeps the files' older timestamps (`rsync -a`, a Docker `COPY`, an archive) still needs Ecotone's
+cache cleared. Production — the `prod` or `production` environment (Symfony's `kernel.environment`, Laravel's
+`APP_ENV`, `EcotoneLite`'s `environment:`) — keeps trusting the cache as before, so a deployment still clears Ecotone's
+cache. Any other environment name checks freshness, `staging` included. `EcotoneLite`'s `environment:` defaults to
+`dev`, so a Lite deployment that never passed it now checks freshness in production too: a `filemtime` per class and
+trait file each process reads metadata for, repeated by `doctrine/annotations`' cached reader when that package is
+installed.
+
+**How to adapt:** nothing. To keep the old behaviour in such a deployment, pass `environment: 'prod'` to `EcotoneLite`.
+To decide it yourself in any environment, return
+`JMSConverterConfiguration::createWithDefaults()->withMetadataCacheFreshnessCheck(true)` (or `false`) from a
+`#[ServiceContext]` method.
+
+### A second `JMSConverterConfiguration` is refused at bootstrap
+
+**Before:** when two `JMSConverterConfiguration` objects were registered — two `#[ServiceContext]` methods, or two
+entries in `EcotoneLite`'s `extensionObjects` — the last one found silently replaced the other.
+
+**Now:** bootstrap fails with a `ConfigurationException` that describes both configurations.
+
+**How to adapt:** keep one `#[ServiceContext]` method returning `JMSConverterConfiguration::createWithDefaults()` and
+move every `with*()` call onto it.
 
 ### `AmqpQueue` and `AmqpExchange` name their mutators `set*()`
 
@@ -3609,12 +3902,14 @@ rename test-support methods without aliases; the renamed methods are listed in e
   **Before:** the test clock was frozen only once `changeTimeTo()` or `advanceTimeBy()` was called, so the first
   message a test sent carried real time; the current time was reachable only by fetching `EcotoneClockInterface` from
   the container; `withEventsFor()` and `withEventStream()` recorded every seeded event at the clock's current time.
-  **Now:** `TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2024-03-01 10:00:00'))` starts
-  the clock there, so the first message is stamped with it and `changeTimeTo()` to an earlier instant is refused with
-  `Cannot move time backwards`. `FlowTestSupport::now()` returns the clock's `DatePoint`. `withEventsFor()`,
+  **Now:** `EcotoneLite::bootstrapFlowTesting(initialTime: new DateTimeImmutable('2024-03-01 10:00:00'))` starts the
+  clock there, so the first message is stamped with it and `changeTimeTo()` to an earlier instant is refused with
+  `Cannot move time backwards`. A test that passes a `testConfiguration:` anyway can pin it with
+  `TestConfiguration::withTimeAt()` instead; `initialTime:` keeps the configuration's other settings, and the two
+  given different instants are refused at bootstrap. `FlowTestSupport::now()` returns the clock's `DatePoint`. `withEventsFor()`,
   `withEventStream()` and `withEvents()` take `at: DateTimeImmutable`, record the events as of that time, and put the
   clock back afterwards. A `StaticPsrClock` constructed with an explicit time counts as pinned the same way.
-  **How to adapt:** nothing is required. Replace a `changeTimeTo()` placed right after bootstrap with `withTimeAt()`,
+  **How to adapt:** nothing is required. Replace a `changeTimeTo()` placed right after bootstrap with `initialTime:`,
   and a chain of `advanceTimeBy()` calls around seeding with `at:`.
 - **`FlowTestSupport` no longer hands out channels.** `getMessageChannel()`, `getMessageChannelByName()`,
   `receiveMessageFrom()`, `sendMessageDirectToChannel()` and `sendMessageDirectToChannelWithMessageReply()` are
@@ -3851,5 +4146,6 @@ normal section with "How to adapt" steps when it ships.
     relax its aggregate `NOT NULL` constraints — while still on 1.x; deploy 2.0 to every node; release `#[EventTag]`;
     run `ecotone:event-store:backfill-tags` and wait for it to finish; only then release `#[DecisionModel]` (§4).
 14. Add the `version` column to `ecotone_document_store`, pass an expected version (or `DocumentStore::LAST_WRITE_WINS`) to `updateDocument()` / `upsertDocument()`, and add `#[Version]` to document-store aggregates that are changed concurrently (§14).
-15. Add `ecotone:migration:database:setup --initialize` (or its `--sql` output, fed to your migration tool) to your deployment (§8).
-16. Once it ships: move framework YAML/PHP config options into `#[ServiceContext]` (§12).
+15. Add `ecotone:projection:init --all` to your deployment, after the database setup (§8). Add the `version` column to `ecotone_projection_state` (`ALTER TABLE ecotone_projection_state ADD COLUMN version INTEGER NOT NULL DEFAULT 0`), and check which commands and asynchronous endpoints now retry by default (§9, §14).
+16. Add `ecotone:migration:database:setup --initialize` (or its `--sql` output, fed to your migration tool) to your deployment (§8).
+17. Once it ships: move framework YAML/PHP config options into `#[ServiceContext]` (§12).

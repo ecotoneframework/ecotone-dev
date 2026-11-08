@@ -83,7 +83,7 @@ final class FlowGraphNavigationTest extends ReleasingWebTestCase
         self::assertStringContainsString('class@anonymous', $handler[0]['title']);
     }
 
-    public function test_nodes_link_to_the_dead_letters_of_their_service_and_the_legend_lists_each_service_with_its_dead_letters_and_traces(): void
+    public function test_nodes_link_to_their_focus_and_the_legend_lists_each_service_with_its_dead_letters_and_traces(): void
     {
         $this->configurePulseWithServices('orders', 'billing');
         $client = $this->pulseWebClient();
@@ -94,7 +94,7 @@ final class FlowGraphNavigationTest extends ReleasingWebTestCase
         $diagram = MermaidDiagram::fromPage($crawler);
         $nodes = $this->graphNodes($crawler);
         foreach ($diagram->nodes as $id => $node) {
-            self::assertSame('/dead-letters?service=' . $node['service'], $nodes[$id]['href']);
+            self::assertStringStartsWith('/flow?focus=' . $node['service'] . ':', $nodes[$id]['href']);
         }
         self::assertSame('/dead-letters?service=billing', $crawler->filter('[data-service-link="billing"] a[data-dead-letters]')->attr('href'));
         self::assertSame('/traces#service-billing', $crawler->filter('[data-service-link="billing"] a[data-traces]')->attr('href'));

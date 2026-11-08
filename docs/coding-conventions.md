@@ -12,10 +12,10 @@ is in [docs/conventions-outstanding.md](./conventions-outstanding.md).
 
 Every `docs/superpowers/` path cited below — the design records, the audits and the research reports — lives on
 branch `dgafka/dcb-docs` and is deliberately untracked here, since `docs/superpowers/` is in `.gitignore`. The
-paths resolve on that branch. Commit SHAs cited below resolve on any branch.
+paths resolve on that branch.
 
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
-mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 1d, 6a, 10a, 16a, 16b,
+mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 1d, 6a, 10a, 10b, 16a, 16b,
 12a, 13a, 14a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.
 
 > **Verify names before you write them.** Every attribute, parameter, method and console option in code you write
@@ -546,8 +546,15 @@ Locking is a version check on a write, never a pessimistic lock and never a besp
 - `ca8a1b0fc` removed InnoDB own-bump snapshot tracking, which had been tried: "the guarded `UPDATE` is the sole
   conflict mechanism". It was removed both because it was state on a service (rule 3) and because it duplicated the
   lock.
-- A conflict surfaces as `ConcurrencyException` (`packages/Ecotone/src/Messaging/Support/ConcurrencyException.php`)
+- A conflict surfaces as `ConcurrencyException` (`packages/Ecotone/Api/Messaging/ConcurrencyException.php`)
   or `DecisionModelConcurrencyException`, with a message that names what was being decided (`c9b54d3f9`).
+- This holds for a row that serialises work too, not only for a record two writers decide on. Projection state kept
+  `SELECT ... FOR UPDATE` as a "work lease" until the save was guarded on the partition's `version`: the run that loses
+  rolls back and is retried from the position the winner stored (`ProjectionOptimisticLockingTest`).
+- A conflict is resolved by running the work again, so the instant retry is on by default wherever a database
+  transaction wraps the work — the command bus and asynchronous endpoints under `DbalConfiguration`, and an
+  asynchronous projection, which opens its own (`InstantRetryByDefaultTest`). Without a transaction nothing retries by
+  default: the failed attempt's writes were never rolled back.
 - Because the check and the write must commit together, tagged appends require an active transaction and say so
   when there is none (`78bb0d244`, and `TagTransactionRequirement` in rule 1).
 
@@ -730,6 +737,91 @@ enumerate the entry points it must work through, and write one test per entry po
 reconstruction path of one concept count as two of them — and they should share one method rather than be
 maintained as two.
 
+### 10b. Tests run messages through Ecotone's own testing support
+
+Ecotone's tests dogfood Ecotone. A test sends, runs and consumes messages with the testing support and the
+user-land features an application has, and never around them. That is what proves those features are enough to
+test an Ecotone application: a test that forks its own consumer proves only that PHP can fork, and the next
+application with the same scenario has no way to test it. When the support cannot express a scenario, the gap is a
+framework feature to add, not a workaround to write in the test.
+
+Allowed — the whole toolbox:
+
+- `EcotoneLite::bootstrapFlowTesting()`, or the framework kernel's own bootstrap for a Symfony or Laravel app
+- `run('channel', ExecutionPollingMetadata::...)` as the only consumer, and console commands (`ecotone:run`)
+  executed through the framework
+- `FlowTestSupport`: `sendCommand()`, `sendCommandWithRouting()`, `publishEvent()`, `sendQueryWithRouting()`,
+  `getRecordedEvents()`, gateways from `getGateway()`
+- time through `TestConfiguration::createWithDefaults()->withTimeAt()`, `advanceTimeBy()` and `$ecotone->now()`;
+  a wait the application performs on Ecotone's clock runs on the pinned clock, and
+  `FlowTestSupport::whenWaiting()` runs a step — another application's `run()` — at each wait
+- in-memory channels, DBAL or broker channels configured through extension objects, and `#[Environment]`-scoped
+  channel configuration
+- `Ecotone\Test\*` only where no `FlowTestSupport` exists: the framework's own kernel-booted applications (Pulse)
+  take the container's `StaticPsrClock` and call its `whenWaiting()`, as `StaticMessageBuilder` serves the rare
+  internal test that drives a channel interceptor. An `EcotoneLite` test never takes a `StaticPsrClock`: it pins
+  time with `withTimeAt()`, moves it with `advanceTimeBy()` and runs a step with `FlowTestSupport::whenWaiting()`
+- a flow across services (Pulse, the Distributed Bus): every application booted with `EcotoneLite` in the one test
+  process, over shared in-memory or real channels, each driven with `run()` at the moment the test chooses
+
+Refused:
+
+- `pcntl_fork()`, and `proc_open()` or Symfony `Process` to run a consumer or a responder
+- a socket, a pipe or a file as a readiness signal or a reply channel
+- a hand-written polling loop over `microtime()`, `time()`, `sleep()` or `usleep()`, and a `usleep()` to make
+  two messages' timestamps differ
+- a broker or database client that reads a queue directly
+- any consumer that is not `run()`
+
+```php
+// wrong — a forked process consumes in its own loop, and the test measures the wall clock
+if (pcntl_fork() === 0) {
+    $deadline = microtime(true) + 40;
+    while (microtime(true) < $deadline) {
+        $billing->run('billing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        usleep(100_000);
+    }
+}
+$startedAt = microtime(true);
+$orders->sendCommandWithRouting('order.awaitInvoice', $orderId);
+self::assertGreaterThanOrEqual(6.0, microtime(true) - $startedAt);
+
+// right — the clock is pinned at bootstrap, the step runs billing once the test says it answers,
+// and the wait is read off that clock to the second billing answered in
+$startedAt = new DateTimeImmutable('2026-03-01 12:00:00');
+$orders = EcotoneLite::bootstrapFlowTesting(
+    [OrderService::class],
+    [new OrderService()],
+    testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt($startedAt),
+);
+$orders->whenWaiting(function (DateTimeImmutable $now) use ($billing, $startedAt): void {
+    if ($now >= $startedAt->modify('+6 seconds')) {
+        $billing->run('billing', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+    }
+});
+$orders->sendCommandWithRouting('order.awaitInvoice', $orderId);
+self::assertSame('2026-03-01 12:00:06', $orders->now()->format('Y-m-d H:i:s'));
+```
+
+**The escape is a framework increment.** When the testing support cannot express what a test needs, stop and add
+the support to `Ecotone\Test`, `FlowTestSupport` or `TestConfiguration` in its own commit, with a test of the
+support itself, and then write the test on it. **The one accepted exception is real concurrency**: two processes
+racing a database constraint or a database lock cannot be put in one process. Such a test says so in its name,
+and still drives each process through `EcotoneLite` or the kernel and a single `run()` each — no handshake, no
+loop of its own.
+
+Evidence: `apps/Pulse/tests/Support/ConcurrentRespondersTrait.php` forked its responders, waited for them over a
+`stream_socket_pair()` handshake and consumed in a `microtime()` loop with `usleep(100_000)`, and
+`apps/Pulse/tests/Awaited/AwaitedRequestsTest.php` asserted wall-clock bounds on top of it — the tests went flaky
+and #735 was spent on start-up timing instead of behaviour. `apps/Pulse/tests/Traces/TraceListPageTest.php` slept
+`usleep(2000)` between two commands so their traces sorted apart, `apps/Pulse/tests/Accessibility/states-service.php`
+consumed in a `time()` loop, and `apps/Pulse/tests/Storage/ConcurrentWritersTest.php` is the concurrency exception:
+three processes racing SQLite's write lock. `packages/Ecotone/tests/Lite/Test/WaitingOnTestClockTest.php` proves
+the support that was missing (`FlowTestSupport::whenWaiting()`), `apps/Pulse/src/Snapshot/ReplyAwaiter.php` now
+measures its reply budget on the clock the wait sleeps on, and `AwaitedRequestsTest`, `ConcurrentWritersTest`,
+`TraceListPageTest` and `states-service.php` run on the testing support — the awaited-request suite went from
+forked responders to one process.
+
 ---
 
 ## 11. Test shape
@@ -868,6 +960,9 @@ final class BasketTest extends TestCase
   form — including, at line 81, an exception-message assertion that could have interpolated `::class` instead.
 - **No static properties or static methods** in a test class, for the same reason as rule 3.
 - A private `bootstrap()` helper on the test class is fine and common when several tests need the same wiring.
+- **An Enterprise feature is tested with `licenceKey: LicenceTesting::VALID_LICENCE`** (`Ecotone\Test\LicenceTesting`),
+  the key this repository's suites share. It is internal to them: the skills and the published documentation show an
+  application passing its own key from the test environment instead.
 
 **Write the test first.** RED, then GREEN, then refactor, one increment per commit, and prove the test is red
 against the base commit before making it pass. This was in every DCB task brief. `424220979` is a RED commit
@@ -1029,7 +1124,7 @@ naming its class, constructor arguments and optional factory. `LicenceDecider::p
 (`packageNames()`, and the `forPackage()` match arm). `ModulePackageList` is `Ecotone\Api\ExtensionObject\ModulePackageList`,
 because an application names its constants in `EcotoneLite::bootstrap(..., enabledModules: [...])` and the framework's `enabledModulePackageNames` key; the lookups only the
 framework calls stay in the internal `ModuleClassList` (rule 12a). Modules implement `AnnotationModule`, carry `#[ModuleAnnotation]`, and
-are `final`. The `ecotone-module-creator` skill has the full scaffold — including the `NoExternalConfigurationModule`
+are `final`. [docs/creating-a-module.md](./creating-a-module.md) has the full scaffold — including the `NoExternalConfigurationModule`
 base class and the `AnnotationFinder` API — and is the place to look rather than this file.
 
 ### 13a. Class metadata comes from the registry, not from fresh reflection
@@ -1361,10 +1456,11 @@ two copies of a rule drift apart.
 |---|---|
 | [AGENTS.md](../AGENTS.md) | what the project is, the monorepo layout, the test-first loop, committing, opening a PR |
 | [docs/dev-workflow.md](./dev-workflow.md) | containers, per-package test commands, database DSNs, licence and style tooling, what CI runs |
-| `ecotone-testing` | `EcotoneLite` patterns, async-tested-synchronously, projection tests, diagnosing failures |
-| `ecotone-module-creator` | `AnnotationModule` scaffold, `AnnotationFinder`, `ExtensionObjectResolver`, new packages |
-| `ecotone-enterprise` | which features are Enterprise and why |
-| `ecotone-handler`, `ecotone-aggregate`, `ecotone-event-sourcing`, `ecotone-workflow`, `ecotone-interceptors`, `ecotone-asynchronous`, `ecotone-resiliency`, `ecotone-metadata`, `ecotone-identifier-mapping`, `ecotone-business-interface`, `ecotone-distribution` | the user-facing API of each area |
+| [docs/creating-a-module.md](./creating-a-module.md) | `AnnotationModule` scaffold, `AnnotationFinder`, `ExtensionObjectResolver`, new packages |
+
+The `.claude/skills/ecotone-*` skills teach Ecotone users the user-facing API of each area, in their own
+applications. They are not a source for any rule here: a convention for this repository lives in `AGENTS.md` or
+under `docs/` (this file, `dev-workflow.md`, `creating-a-module.md`), and a skill never states or links to one.
 
 - [Full documentation](https://docs.ecotone.tech)
 - `upgrade-2.0.md` — every 1.x → 2.0 behaviour change

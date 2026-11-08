@@ -135,6 +135,7 @@ class ChannelConfig
 - **Dynamic Message Channels** (section 5 above): Per-tenant/per-client async channel routing, round-robin deployment strategies, SaaS multi-tenant processing, dynamic channel selection based on message headers
 - **Asynchronous Message Buses**: Custom async command/event buses where messages are routed through asynchronous channels -- useful for implementing the outbox pattern at bus level
 - **RabbitMQ Streaming Channel**: Persistent event streaming with RabbitMQ Streams, allowing multiple independent consumers to read from the same stream with independent offsets
+- **Distributed Bus with Service Map**: Sending commands and events from one application to another through `DistributedBus`, routed by `DistributedServiceMap` over any broker -- when the user wants a handler in another service to receive a message, rather than a background worker of the same application
 
 ## Additional resources
 

@@ -1,0 +1,7 @@
+ecotone:
+    licenceKey: '%env(ECOTONE_LICENCE_KEY)%'
+    loadSrcNamespaces: true
+
+when@test:
+    ecotone:
+        test: true

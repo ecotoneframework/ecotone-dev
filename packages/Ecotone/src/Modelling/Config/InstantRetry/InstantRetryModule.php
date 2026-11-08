@@ -20,6 +20,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Modelling\Config\DatabaseTransaction\CommandsWithoutDatabaseTransaction;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 use Symfony\Component\Uid\Uuid;
@@ -34,7 +35,7 @@ final class InstantRetryModule implements AnnotationModule
      * @param list<string> $commandBusOverrides
      * @param list<string> $endpointOverrides
      */
-    private function __construct(private array $commandBusOverrides, private array $endpointOverrides)
+    private function __construct(private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction, private array $commandBusOverrides, private array $endpointOverrides)
     {
     }
 
@@ -55,7 +56,7 @@ final class InstantRetryModule implements AnnotationModule
             }
         }
 
-        return new self($commandBusOverrides, $endpointOverrides);
+        return new self(CommandsWithoutDatabaseTransaction::find($annotationRegistrationService, $interfaceToCallRegistry), $commandBusOverrides, $endpointOverrides);
     }
 
     private static function overrideOf(string $target, InstantRetry $instantRetry): string
@@ -69,14 +70,34 @@ final class InstantRetryModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $configuration = ExtensionObjectResolver::resolveUnique(InstantRetryConfiguration::class, $extensionObjects, InstantRetryConfiguration::createWithDefaults());
+        $defaults = InstantRetryDefaults::from($extensionObjects);
         $messagingConfiguration->registerServiceDefinition(RetryStatusTracker::class, Definition::createFor(RetryStatusTracker::class, [false]));
         $messagingConfiguration->registerServiceDefinition(TransactionStatusTracker::class, Definition::createFor(TransactionStatusTracker::class, [false]));
+        $messagingConfiguration->registerServiceDefinition(CommandsWithoutDatabaseTransaction::class, $this->commandsWithoutDatabaseTransaction->getDefinition());
 
-        if ($configuration->isEnabledForCommandBus) {
+        if ($configuration->isEnabledForCommandBus === true) {
             $this->registerInterceptor($messagingConfiguration, $interfaceToCallRegistry, $configuration->commandBusRetryTimes, $configuration->commandBuExceptions, CommandBus::class, Precedence::GLOBAL_INSTANT_RETRY_PRECEDENCE);
         }
-        if ($configuration->isEnabledForAsynchronousEndpoints) {
+        if ($configuration->isEnabledForCommandBus === null && $defaults->forCommandBus()) {
+            $this->registerRetryByDefault(
+                $messagingConfiguration,
+                $interfaceToCallRegistry,
+                CommandBusInstantRetryByDefault::class,
+                [$this->instantRetry($configuration->commandBusRetryTimes, $configuration->commandBuExceptions), Reference::to(CommandsWithoutDatabaseTransaction::class)],
+                CommandBus::class,
+            );
+        }
+        if ($configuration->isEnabledForAsynchronousEndpoints === true) {
             $this->registerInterceptor($messagingConfiguration, $interfaceToCallRegistry, $configuration->asynchronousRetryTimes, $configuration->asynchronousExceptions, AsynchronousRunningEndpoint::class, Precedence::GLOBAL_INSTANT_RETRY_PRECEDENCE);
+        }
+        if ($configuration->isEnabledForAsynchronousEndpoints === null && $defaults->apply) {
+            $this->registerRetryByDefault(
+                $messagingConfiguration,
+                $interfaceToCallRegistry,
+                AsynchronousEndpointInstantRetryByDefault::class,
+                [$this->instantRetry($configuration->asynchronousRetryTimes, $configuration->asynchronousExceptions), $defaults->databaseTransactions->onAsynchronousEndpoints, $defaults->databaseTransactions->asynchronousEndpointsWithoutTransaction],
+                AsynchronousRunningEndpoint::class,
+            );
         }
     }
 
@@ -88,41 +109,12 @@ final class InstantRetryModule implements AnnotationModule
         if (! PulseFeature::isReportedFor($serviceExtensions)) {
             return [];
         }
-        $configuration = ExtensionObjectResolver::resolveUnique(InstantRetryConfiguration::class, $serviceExtensions, InstantRetryConfiguration::createWithDefaults());
 
-        return [
-            new PulseFeature(
-                package: ModulePackageList::CORE_PACKAGE,
-                name: 'Instant retries on asynchronous endpoints',
-                enabled: $configuration->isEnabledForAsynchronousEndpoints,
-                settings: self::settingsOf($configuration->isEnabledForAsynchronousEndpoints, $configuration->asynchronousRetryTimes, $configuration->asynchronousExceptions),
-                handlers: $this->endpointOverrides,
-                hint: $configuration->isEnabledForAsynchronousEndpoints
-                    ? sprintf('A message an asynchronous endpoint fails on is handled once and, when that fails, tried again right away up to %d more times (%d attempts in total) on %s, before the failure is handed on to the error channel, when one is set. An endpoint with #[InstantRetry] uses its own count instead.', $configuration->asynchronousRetryTimes, $configuration->asynchronousRetryTimes + 1, PulseFeature::exceptionsOf($configuration->asynchronousExceptions))
-                    : 'A message an asynchronous endpoint fails on is handed straight on to the error channel, when one is set, with no immediate second attempt.',
-                configuration: sprintf('InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: %d, retryExceptions: %s)', $configuration->asynchronousRetryTimes, PulseFeature::exceptionClassesOf($configuration->asynchronousExceptions)),
-            ),
-            new PulseFeature(
-                package: ModulePackageList::CORE_PACKAGE,
-                name: 'Instant retries on the command bus',
-                enabled: $configuration->isEnabledForCommandBus,
-                settings: self::settingsOf($configuration->isEnabledForCommandBus, $configuration->commandBusRetryTimes, $configuration->commandBuExceptions),
-                handlers: $this->commandBusOverrides,
-                hint: $configuration->isEnabledForCommandBus
-                    ? sprintf('A command sent through the command bus is handled once and, when that fails, tried again right away up to %d more times (%d attempts in total) on %s, before the exception reaches the caller. A CommandBus interface with #[InstantRetry] uses its own count instead.', $configuration->commandBusRetryTimes, $configuration->commandBusRetryTimes + 1, PulseFeature::exceptionsOf($configuration->commandBuExceptions))
-                    : 'A command sent through the command bus is sent once: when its handler fails, the exception reaches the caller with no immediate second attempt. A CommandBus interface with #[InstantRetry] still retries.',
-                configuration: sprintf('InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(isEnabled: true, retryTimes: %d, retryExceptions: %s)', $configuration->commandBusRetryTimes, PulseFeature::exceptionClassesOf($configuration->commandBuExceptions)),
-            ),
-        ];
-    }
-
-    /**
-     * @param string[] $exceptions
-     * @return array<string, string>
-     */
-    private static function settingsOf(bool $isEnabled, int $retryTimes, array $exceptions): array
-    {
-        return $isEnabled ? ['Extra attempts' => (string) $retryTimes, 'Retried on' => PulseFeature::exceptionsOf($exceptions)] : [];
+        return [new InstantRetryPulseFeatures(
+            ExtensionObjectResolver::resolveUnique(InstantRetryConfiguration::class, $serviceExtensions, InstantRetryConfiguration::createWithDefaults()),
+            $this->commandBusOverrides,
+            $this->endpointOverrides,
+        )];
     }
 
     public function getModulePackageName(): string
@@ -153,5 +145,33 @@ final class InstantRetryModule implements AnnotationModule
                     $pointcut
                 )
             );
+    }
+
+    /**
+     * @param string[] $exceptions
+     */
+    private function instantRetry(int $retryAttempt, array $exceptions): Definition
+    {
+        return Definition::createFor(InstantRetryInterceptor::class, [$retryAttempt, $exceptions, Reference::to(RetryStatusTracker::class), Reference::to(TransactionStatusTracker::class)]);
+    }
+
+    private function registerRetryByDefault(
+        Configuration $messagingConfiguration,
+        InterfaceToCallRegistry $interfaceToCallRegistry,
+        string $interceptorClass,
+        array $arguments,
+        string $pointcut,
+    ): void {
+        $interceptorId = Uuid::v7()->toRfc4122();
+        $messagingConfiguration->registerServiceDefinition($interceptorId, Definition::createFor($interceptorClass, $arguments));
+
+        $messagingConfiguration->registerAroundMethodInterceptor(
+            AroundInterceptorBuilder::create(
+                $interceptorId,
+                $interfaceToCallRegistry->getFor($interceptorClass, 'retry'),
+                Precedence::GLOBAL_INSTANT_RETRY_PRECEDENCE,
+                $pointcut
+            )
+        );
     }
 }

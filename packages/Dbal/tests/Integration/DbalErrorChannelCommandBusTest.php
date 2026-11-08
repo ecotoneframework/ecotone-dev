@@ -10,6 +10,7 @@ use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
@@ -278,6 +279,7 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
             namespaces: $namespaces,
             environment: 'prod',
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         ));
     }
 }

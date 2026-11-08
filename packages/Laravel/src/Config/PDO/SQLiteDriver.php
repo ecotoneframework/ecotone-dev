@@ -3,6 +3,7 @@
 namespace Ecotone\Laravel\Config\PDO;
 
 use Doctrine\DBAL\Driver\AbstractSQLiteDriver;
+use Ecotone\Dbal\DbalTransaction\TransactionReconnectProtectionAwareDriver;
 use Ecotone\Laravel\Config\PDO\Concerns\ConnectsToDatabase;
 
 /**
@@ -19,7 +20,7 @@ use Ecotone\Laravel\Config\PDO\Concerns\ConnectsToDatabase;
 /**
  * licence Apache-2.0
  */
-class SQLiteDriver extends AbstractSQLiteDriver
+class SQLiteDriver extends AbstractSQLiteDriver implements TransactionReconnectProtectionAwareDriver
 {
     use ConnectsToDatabase;
 

@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use DateTimeImmutable;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -210,7 +211,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $this->assertNotNull($messageChannel->receive());
     }
 
-    public function test_delaying_the_message_with_native_clock()
+    public function test_a_message_delayed_by_milliseconds_is_received_only_once_time_is_advanced_past_the_delay(): void
     {
         $channelName = Uuid::v7()->toRfc4122();
 
@@ -220,6 +221,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             ],
             extensionObjects: [DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00'),
         );
 
         /** @var PollableChannel $messageChannel */
@@ -240,7 +242,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $this->assertNotNull($messageChannel->receive());
     }
 
-    public function test_delaying_the_message_with_native_clock_using_date_time()
+    public function test_a_message_delayed_by_milliseconds_is_received_only_once_time_is_changed_past_the_delay(): void
     {
         $channelName = Uuid::v7()->toRfc4122();
 
@@ -250,6 +252,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             ],
             extensionObjects: [DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00'),
         );
 
         /** @var PollableChannel $messageChannel */

@@ -14,9 +14,12 @@ mermaid.initialize({
     },
 });
 
-const link = (element, href, title) => {
+const link = (element, href, title, current) => {
     const anchor = document.createElementNS(SVG, 'a');
     anchor.setAttribute('href', href);
+    if (current) {
+        anchor.setAttribute('aria-current', 'true');
+    }
     const text = document.createElementNS(SVG, 'title');
     text.textContent = title;
     element.replaceWith(anchor);
@@ -30,9 +33,9 @@ const decorate = (graph, svg) => {
         cluster.classList.add('svc-' + ((service === undefined ? index : Number(service)) % 8));
     });
     svg.querySelectorAll('g.node, g.cluster').forEach((element) => {
-        const id = /(?:flowchart-)?(s\d+(?:n\d+)?)(?:-\d+)?$/.exec(element.id)?.[1];
+        const id = /(?:flowchart-)?(s\d+(?:n\d+|c)?)(?:-\d+)?$/.exec(element.id)?.[1];
         if (id && nodes[id]) {
-            link(element, nodes[id].href, nodes[id].title);
+            link(element, nodes[id].href, nodes[id].title, nodes[id].current === true);
         }
     });
 };
@@ -64,6 +67,13 @@ const zoomable = (graph, svg) => {
     });
     graph.before(toolbar);
     graph.classList.add('graph-ready');
+    const focused = svg.querySelector('.focused');
+    if (focused && graph.clientWidth < home.width) {
+        const bounds = focused.getBoundingClientRect();
+        const centre = new DOMPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2).matrixTransform(svg.getScreenCTM().inverse());
+        view = {x: centre.x - graph.clientWidth / 2, y: centre.y - graph.clientHeight / 2, width: graph.clientWidth, height: graph.clientHeight};
+        apply();
+    }
     graph.tabIndex = 0;
     graph.setAttribute('role', 'group');
     graph.setAttribute('aria-label', 'Flow graph, arrow keys pan, plus and minus zoom');

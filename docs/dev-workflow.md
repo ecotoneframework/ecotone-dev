@@ -238,6 +238,31 @@ beside `pull_request` — so a branch pushed and then opened as a pull request r
 concurrency group falls back from the PR number to `github.ref_name`, so a newer push still cancels the older run
 for the same event. If the minutes bite, narrow `branches` to `['2.0', 'dgafka/ecotone-2-0-*']`.
 
+### When a check is red
+
+**A failed check is never rerun, and there is no list of known flaky tests.** A test that passes on a second run
+has a timing assumption, an order dependency or a shared resource in it; the rerun hides it until it fires on
+someone else's pull request. Read the failure, reproduce it the way the job ran it, fix the cause with a RED commit
+then a GREEN one, and push:
+
+```bash
+gh pr checks <pr>                     # which job failed
+gh run view <run-id> --log-failed     # its output; Split Testing prints the failing pass under "::error::KO"
+```
+
+Reproduce with the job's shape, not the default container's. The install recipes rewrite lock resolution, so like
+[§ Dependency ranges](#dependency-ranges) they were not executed while writing this file:
+
+| The job ran | Reproduce with |
+|---|---|
+| PHP 8.2, or PHP 8.2 `--prefer-lowest` | the isolated install below, run in `app8_2` with `composer update [--prefer-lowest]` — and mind that `app8_2` makes MySQL the primary database. Updating only the package's `vendor/` is not enough: the root `vendor/`, resolved for PHP 8.5, is still the one the annotation finder loads |
+| Split Testing's MySQL or SQLite pass | the same package run with both connections swapped as the job swaps them: `DATABASE_DSN="$DATABASE_MYSQL" SECONDARY_DATABASE_DSN="$DATABASE_DSN"` (MySQL primary, PostgreSQL secondary), or `DATABASE_DSN='sqlite:////tmp/ecotone_test.db' SECONDARY_DATABASE_DSN='sqlite:////tmp/ecotone_test_b.db'` (`split-testing.yml` `_run_pass`). Changing only `DATABASE_DSN` in `app` leaves both connections on MySQL |
+| Split Testing's isolated install | the job has no root `vendor/`, so the annotation finder walks up from the symlinked `packages/Ecotone` to the first `vendor/autoload.php` it finds, `packages/Ecotone/vendor`. Locally: move the root `vendor/` aside, `composer update` in `packages/Ecotone` and in the package, run its `composer tests:ci`, then delete both package `vendor/`s and move the root one back. For the package's own `vendor/` alone, set its path repositories to `"symlink": false` instead, reinstall, and `git checkout` its `composer.json` afterwards |
+| a timing-sensitive test | the deadline forced down — `ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 1)` in the test — and the suite in reverse, `vendor/bin/phpunit --no-coverage --order-by=reverse` |
+
+An install or infrastructure failure — a dependency download, a service that was not ready, a step that raced
+another — is fixed the same way, in `.github/workflows/*.yml`: the workflow is code in this repository.
+
 
 ---
 
@@ -390,7 +415,7 @@ Recorded as deliberately as the mistakes, because each of these demonstrably sto
 6. `vendor/bin/phpstan` is clean
 7. Anything touching event sourcing, the event store, DBAL, transaction wrapping or DDL ran on **MySQL and
    MariaDB** too, not only the PostgreSQL default. They implicitly commit on DDL
-   ([rule 16](./coding-conventions.md#16-a-table-is-created-on-the-message-path-only-through-the-auto-create-gate)), so nothing a PostgreSQL or
+   ([rule 16](./coding-conventions.md#16-no-table-is-created-on-the-message-path)), so nothing a PostgreSQL or
    SQLite run does will show it, and the omission has cost two whole worktrees weeks apart —
    `implement-mysql-mariadb-green` (merged at `22fe48dbc`) and `implement-dbal-mysql-green` (`57c076084`,
    `9ae4e3fd3`), both chasing the same engine-specific failure

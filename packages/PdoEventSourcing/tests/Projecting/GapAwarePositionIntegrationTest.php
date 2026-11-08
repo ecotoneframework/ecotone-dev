@@ -96,7 +96,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             self::$eventStore->delete(Ticket::STREAM_NAME);
         }
         self::$ecotone->setupDatabaseTables();
-        self::$ecotone->deleteProjection(DbalTicketProjection::NAME);
+        self::$ecotone->deleteProjection(DbalTicketProjection::NAME)->initializeProjection(DbalTicketProjection::NAME);
     }
 
     protected function tearDown(): void

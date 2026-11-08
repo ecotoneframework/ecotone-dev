@@ -89,7 +89,7 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
     #[DataProvider('operationsOnImplementations')]
     public function test_an_operation_on_a_projection_that_is_not_initialized_is_refused_pointing_to_the_console_command(string $implementation, string $operation): void
     {
-        $this->bootstrap($implementation);
+        $this->bootstrap($implementation, initializeProjections: false);
         self::assertSame('uninitialized', $this->initializationOf('kickoff_orders'));
 
         $reply = $this->act("ecotone.pulse.projections.{$operation}", 'kickoff_orders', self::FIRST_TRACE);
@@ -236,7 +236,7 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
         return json_decode($this->pulse->queryResults[$queryId], true, flags: JSON_THROW_ON_ERROR);
     }
 
-    private function bootstrap(string $implementation): void
+    private function bootstrap(string $implementation, bool $initializeProjections = true): void
     {
         $inMemory = $implementation === 'in-memory';
         $this->clockAdvance = $clockAdvance = new class () {
@@ -369,8 +369,11 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-10-20 12:00:00', new DateTimeZone('UTC'))),
+            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-10-20 12:00:00', new DateTimeZone('UTC')))->withDatabaseTablesSetUpOnBootstrap($initializeProjections)->withDefaultInstantRetries(false),
         );
+        if (! $initializeProjections) {
+            $this->orderService->setupDatabaseTables(initializeProjections: false);
+        }
         $this->orderService->withEventStream('orders_stream', [Event::createWithType('order.placed', ['orderId' => '1']), Event::createWithType('order.placed', ['orderId' => '2'])]);
         $this->pulseService = $this->bootstrapFlowTesting(
             classesToResolve: [$this->pulse::class],
@@ -382,6 +385,7 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
             ],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
     }
 }

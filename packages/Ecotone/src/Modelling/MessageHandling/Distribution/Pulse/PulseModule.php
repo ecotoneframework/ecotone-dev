@@ -39,6 +39,8 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\Config\InstantRetry\InstantRetryDefaults;
+use Ecotone\Modelling\Config\InstantRetry\InstantRetryPulseFeatures;
 use Ecotone\Test\LicenceTesting;
 
 #[ModuleAnnotation]
@@ -128,7 +130,10 @@ final class PulseModule implements AnnotationModule
                 self::sectionReferences($sectionRegistrations, tenantScoped: true),
                 $tenancy === null ? [] : ['header' => $tenancy->tenantHeaderName, 'tenants' => $tenancy->tenants],
                 self::licenceOf((string) $bootstrapConfiguration->licenceKey),
-                self::packagesOf($bootstrapConfiguration, ExtensionObjectResolver::resolve(PulseFeature::class, $extensionObjects)),
+                self::packagesOf($bootstrapConfiguration, [
+                    ...ExtensionObjectResolver::resolve(PulseFeature::class, $extensionObjects),
+                    ...array_merge(...array_map(static fn (InstantRetryPulseFeatures $instantRetries): array => $instantRetries->under(InstantRetryDefaults::from($extensionObjects)), ExtensionObjectResolver::resolve(InstantRetryPulseFeatures::class, $extensionObjects))),
+                ]),
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),
                 new Reference(ExtensionObjectResolver::resolve(PulseSectionIsolationRegistration::class, $extensionObjects)[0]->serviceReference ?? NoPulseSectionIsolation::class),

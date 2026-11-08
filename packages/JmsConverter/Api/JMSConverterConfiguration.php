@@ -5,56 +5,41 @@ namespace Ecotone\Api\JMSConverter;
 /**
  * licence Apache-2.0
  */
-class JMSConverterConfiguration
+final class JMSConverterConfiguration
 {
     public const IDENTICAL_PROPERTY_NAMING_STRATEGY = 'identicalPropertyNamingStrategy';
     public const CAMEL_CASE_PROPERTY_NAMING_STRATEGY = 'camelCasePropertyNamingStrategy';
 
     public function __construct(
-        private string $namingStrategy = self::IDENTICAL_PROPERTY_NAMING_STRATEGY,
-        private bool $defaultNullSerialization = true,
-        private bool $enableEnumSupport = true,
+        public readonly string $namingStrategy = self::IDENTICAL_PROPERTY_NAMING_STRATEGY,
+        public readonly bool $defaultNullSerialization = true,
+        public readonly bool $enableEnumSupport = true,
+        public readonly ?bool $metadataCacheFreshnessCheck = null,
     ) {
     }
 
-    public static function createWithDefaults()
+    public static function createWithDefaults(): self
     {
         return new self();
     }
 
-    public function withNamingStrategy(string $namingStrategy): static
+    public function withNamingStrategy(string $namingStrategy): self
     {
-        $this->namingStrategy = $namingStrategy;
-
-        return $this;
+        return new self(...[...get_object_vars($this), 'namingStrategy' => $namingStrategy]);
     }
 
-    public function withDefaultNullSerialization(bool $isEnabled): static
+    public function withDefaultNullSerialization(bool $isEnabled): self
     {
-        $this->defaultNullSerialization = $isEnabled;
-
-        return $this;
+        return new self(...[...get_object_vars($this), 'defaultNullSerialization' => $isEnabled]);
     }
 
-    public function withDefaultEnumSupport(bool $enabled): static
+    public function withDefaultEnumSupport(bool $enabled): self
     {
-        $this->enableEnumSupport = $enabled;
-
-        return $this;
+        return new self(...[...get_object_vars($this), 'enableEnumSupport' => $enabled]);
     }
 
-    public function getNamingStrategy(): string
+    public function withMetadataCacheFreshnessCheck(bool $enabled): self
     {
-        return $this->namingStrategy;
-    }
-
-    public function getDefaultNullSerialization(): bool
-    {
-        return $this->defaultNullSerialization;
-    }
-
-    public function isEnumSupportEnabled(): bool
-    {
-        return $this->enableEnumSupport;
+        return new self(...[...get_object_vars($this), 'metadataCacheFreshnessCheck' => $enabled]);
     }
 }

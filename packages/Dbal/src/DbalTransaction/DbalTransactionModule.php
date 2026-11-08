@@ -3,6 +3,7 @@
 namespace Ecotone\Dbal\DbalTransaction;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
@@ -168,6 +169,15 @@ final class DbalTransactionModule implements AnnotationModule
                 }
             }
         }
+        if ($dbalConfiguration->transactionOnAsynchronousEndpoints) {
+            foreach ($this->annotationFinder->findAnnotatedMethods(Asynchronous::class) as $annotatedMethod) {
+                foreach ($annotatedMethod->getMethodAnnotationsWithType(Asynchronous::class) as $asynchronous) {
+                    if (array_filter($asynchronous->asynchronousExecution, static fn (object $attribute): bool => $attribute instanceof WithoutDatabaseTransaction) !== []) {
+                        $handlersWithout[] = PulseFeature::handlerOf($annotatedMethod);
+                    }
+                }
+            }
+        }
         $entryPoints = array_filter([
             'command sent through the command bus' => $dbalConfiguration->transactionOnCommandBus,
             'message an asynchronous endpoint consumes' => $dbalConfiguration->transactionOnAsynchronousEndpoints,
@@ -176,7 +186,8 @@ final class DbalTransactionModule implements AnnotationModule
         $hint = $entryPoints === []
             ? 'No entry point opens a database transaction, so every handler writes on its own: a failure halfway through leaves what was already written.'
             : sprintf('Each %s runs inside one database transaction on %s: what its handler writes, and the messages it sends to database channels, are committed together or rolled back together, so a failure leaves no half-done work.', implode(', each ', array_keys($entryPoints)), $connections);
-        $hint .= $dbalConfiguration->transactionOnCommandBus ? ' A command handler with #[WithoutDatabaseTransaction] runs without one.' : ' A command sent through the command bus does not open a transaction.';
+        $hint .= $handlersWithout === [] ? '' : ' The handlers listed here have #[WithoutDatabaseTransaction] and run without one.';
+        $hint .= $dbalConfiguration->transactionOnCommandBus ? '' : ' A command sent through the command bus does not open a transaction.';
         $hint .= $dbalConfiguration->transactionOnAsynchronousEndpoints ? ($excluded === [] ? '' : ' Endpoints ' . implode(', ', $excluded) . ' are excluded with withoutTransactionOnAsynchronousEndpoints and run without one.') : ' A message an asynchronous endpoint consumes does not open a transaction.';
         $hint .= $dbalConfiguration->transactionOnConsoleCommands ? '' : ' A console command does not open a transaction.';
 

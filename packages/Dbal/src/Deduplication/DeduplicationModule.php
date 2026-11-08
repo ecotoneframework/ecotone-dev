@@ -175,7 +175,7 @@ final class DeduplicationModule implements AnnotationModule
             package: ModulePackageList::DBAL_PACKAGE,
             name: 'Deduplication',
             enabled: $dbalConfiguration->deduplicatedEnabled,
-            settings: ['Storage' => $storage, 'Kept for' => $keptFor, 'Removal batch size' => (string) $dbalConfiguration->deduplicationRemovalBatchSize],
+            settings: ['Storage' => $storage, 'Expiration time' => $keptFor, 'Removal batch size' => (string) $dbalConfiguration->deduplicationRemovalBatchSize],
             handlers: $handlers,
             hint: $dbalConfiguration->deduplicatedEnabled
                 ? sprintf('A message an asynchronous endpoint has already handled that arrives again with the same message id, such as a broker redelivery or a resent outbox message, is skipped instead of being handled twice. Handled message ids are kept (%s) for %s, then removed. A handler with #[Deduplicated] is deduplicated too, by the header or expression it names, whichever way it is called.', $storage, $keptFor)

@@ -35,7 +35,7 @@ final class ServicePackagesTest extends ReleasingWebTestCase
         $retries = $crawler->filter('[data-package="core"] [data-feature="Instant retries on asynchronous endpoints"]');
         self::assertSame('true', $retries->attr('data-feature-enabled'));
         self::assertSame('On', trim($retries->filter('[data-feature-status]')->text()));
-        self::assertSame('3', trim($retries->filter('[data-feature-setting="Extra attempts"]')->text()));
+        self::assertSame('3', trim($retries->filter('[data-feature-setting="Retry times"]')->text()));
         self::assertStringContainsString('tried again right away up to 3 more times (4 attempts in total)', $retries->filter('[data-hint]')->text());
         self::assertStringStartsWith('InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(', trim($retries->filter('[data-feature-configuration]')->text()));
         $commandBus = $crawler->filter('[data-package="core"] [data-feature="Instant retries on the command bus"]');

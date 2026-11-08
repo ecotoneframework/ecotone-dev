@@ -19,9 +19,11 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Test\LicenceTesting;
+use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
@@ -65,7 +67,7 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
 
         $asynchronous = $features['Instant retries on asynchronous endpoints'];
         self::assertTrue($asynchronous['enabled']);
-        self::assertSame(['Extra attempts' => '3', 'Retried on' => 'any exception', 'Applied' => 'by default, to endpoints running in a database transaction'], $asynchronous['settings']);
+        self::assertSame(['Retry times' => '3', 'Retried on' => 'any exception', 'Applied' => 'by default, to endpoints running in a database transaction'], $asynchronous['settings']);
         self::assertStringContainsString('Not configured, so the default applies: a message an asynchronous endpoint consumes in a database transaction is handled once and, when that fails, its transaction is rolled back and it is tried again right away up to 3 more times (4 attempts in total)', $asynchronous['hint']);
         $commandBus = $features['Instant retries on the command bus'];
         self::assertTrue($commandBus['enabled']);
@@ -79,6 +81,63 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
 
         self::assertSame('by default, to endpoints running in a database transaction, except order.place.endpoint', $features['Instant retries on asynchronous endpoints']['settings']['Applied']);
         self::assertFalse($features['Instant retries on the command bus']['enabled']);
+    }
+
+    public function test_a_failing_command_goes_through_the_instant_retries_reported_for_the_command_bus_and_one_without_a_transaction_does_not(): void
+    {
+        $orders = new class () {
+            public array $attempts = ['order.place' => 0, 'order.cancel' => 0];
+
+            #[CommandHandler('order.place')]
+            public function place(string $order): void
+            {
+                $this->attempts['order.place']++;
+                throw new RuntimeException('Payment gateway is down');
+            }
+
+            #[WithoutDatabaseTransaction]
+            #[CommandHandler('order.cancel')]
+            public function cancel(string $order): void
+            {
+                $this->attempts['order.cancel']++;
+                throw new RuntimeException('Payment gateway is down');
+            }
+        };
+        [$orderService, $packages] = $this->reportedBy($orders, []);
+
+        foreach (['order.place', 'order.cancel'] as $routingKey) {
+            try {
+                $orderService->sendCommandWithRouting($routingKey, 'order-1');
+            } catch (RuntimeException) {
+            }
+        }
+
+        self::assertSame('3', $packages['core']['Instant retries on the command bus']['settings']['Retry times']);
+        self::assertSame(['order.cancel → cancel'], $packages['dbal']['Database transactions']['handlers']);
+        self::assertSame(['order.place' => 4, 'order.cancel' => 1], $orders->attempts);
+    }
+
+    public function test_an_asynchronous_handler_without_a_transaction_is_listed_as_running_without_one_and_is_not_retried(): void
+    {
+        $orders = new class () {
+            public int $attempts = 0;
+
+            #[Asynchronous('orders', asynchronousExecution: [new WithoutDatabaseTransaction()])]
+            #[CommandHandler('order.notify', endpointId: 'order.notify.endpoint')]
+            public function notify(string $order): void
+            {
+                $this->attempts++;
+                throw new RuntimeException('Mail server is down');
+            }
+        };
+        [$orderService, $packages] = $this->reportedBy($orders, []);
+
+        $orderService->sendCommandWithRouting('order.notify', 'order-1');
+        $orderService->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+
+        self::assertSame(['order.notify → notify'], $packages['dbal']['Database transactions']['handlers']);
+        self::assertStringContainsString('The handlers listed here have #[WithoutDatabaseTransaction] and run without one.', $packages['dbal']['Database transactions']['hint']);
+        self::assertSame(1, $orders->attempts);
     }
 
     public function test_transactions_turned_off_on_an_entry_point_or_an_endpoint_are_reported_where_they_are_off(): void
@@ -102,7 +161,7 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
 
         $deduplication = $features['Deduplication'];
         self::assertTrue($deduplication['enabled']);
-        self::assertSame(['Storage' => 'database, connection ' . DbalConnectionFactory::class, 'Kept for' => '7 days', 'Removal batch size' => '1000'], $deduplication['settings']);
+        self::assertSame(['Storage' => 'database, connection ' . DbalConnectionFactory::class, 'Expiration time' => '7 days', 'Removal batch size' => '1000'], $deduplication['settings']);
         self::assertSame(['order.place → place (by header orderId)'], $deduplication['handlers']);
         self::assertStringContainsString('is skipped instead of being handled twice', $deduplication['hint']);
         self::assertStringContainsString('7 days', $deduplication['hint']);
@@ -142,7 +201,7 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
         self::assertFalse($disabled['enabled']);
         self::assertSame('FlowTrackingConfiguration::createWithDefaults()', $disabled['configuration']);
         self::assertTrue($enabled['enabled']);
-        self::assertSame('2 hours', $enabled['settings']['Kept for']);
+        self::assertSame('2 hours', $enabled['settings']['Retention']);
         self::assertSame('every flow', $enabled['settings']['Tracked flows']);
         self::assertStringContainsString('Traces page', $enabled['hint']);
     }
@@ -172,7 +231,12 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
      */
     private function featuresOf(array $extensionObjects, string $package): array
     {
-        $orders = new class () {
+        return $this->reportedBy($this->orders(), $extensionObjects)[1][$package];
+    }
+
+    private function orders(): object
+    {
+        return new class () {
             #[Asynchronous('orders')]
             #[Deduplicated('orderId')]
             #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
@@ -186,6 +250,14 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
             {
             }
         };
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     * @return array{0: FlowTestSupport, 1: array<string, array<string, array<string, mixed>>>}
+     */
+    private function reportedBy(object $orders, array $extensionObjects): array
+    {
         $pulse = new class () {
             public array $snapshots = [];
 
@@ -228,6 +300,6 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
 
         $packages = array_column(json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['packages'], 'features', 'name');
 
-        return array_column($packages[$package], null, 'name');
+        return [$orderService, array_map(static fn (array $features): array => array_column($features, null, 'name'), $packages)];
     }
 }

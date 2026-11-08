@@ -62,7 +62,7 @@ final class InstantRetryPulseFeatures
             name: 'Instant retries on asynchronous endpoints',
             enabled: $isEnabled,
             settings: $isEnabled ? [
-                'Extra attempts' => (string) $retryTimes,
+                'Retry times' => (string) $retryTimes,
                 'Retried on' => $exceptions,
                 ...($this->configuration->isEnabledForAsynchronousEndpoints === null ? ['Applied' => 'by default, to endpoints running in a database transaction' . ($excluded === [] ? '' : ', except ' . implode(', ', $excluded))] : []),
             ] : [],
@@ -90,7 +90,7 @@ final class InstantRetryPulseFeatures
             name: 'Instant retries on the command bus',
             enabled: $isEnabled,
             settings: $isEnabled ? [
-                'Extra attempts' => (string) $retryTimes,
+                'Retry times' => (string) $retryTimes,
                 'Retried on' => $exceptions,
                 ...($this->configuration->isEnabledForCommandBus === null ? ['Applied' => 'by default, to commands handled in a database transaction'] : []),
             ] : [],

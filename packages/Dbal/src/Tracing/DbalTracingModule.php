@@ -327,7 +327,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
                 enabled: $flowTracking !== null,
                 settings: $flowTracking === null ? [] : [
                     'Tracked flows' => $flowTracking->onlyRequestedFlows ? 'only flows a caller asks to track' : 'every flow',
-                    'Kept for' => PulseFeature::durationOf($flowTracking->retention->inMilliseconds()),
+                    'Retention' => PulseFeature::durationOf($flowTracking->retention->inMilliseconds()),
                     'Storage' => $storage,
                     'Notifications' => PulseFeature::onOff($flowTracking->notifications),
                     'Tracing gateway' => PulseFeature::onOff($flowTracking->tracingGateway),

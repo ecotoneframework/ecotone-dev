@@ -56,12 +56,16 @@ final class InstantRetryModule implements AnnotationModule
             }
         }
 
-        return new self(CommandsWithoutDatabaseTransaction::find($annotationRegistrationService, $interfaceToCallRegistry), $commandBusOverrides, $endpointOverrides);
+        return new self(
+            commandsWithoutDatabaseTransaction: CommandsWithoutDatabaseTransaction::find($annotationRegistrationService, $interfaceToCallRegistry),
+            commandBusOverrides: $commandBusOverrides,
+            endpointOverrides: $endpointOverrides,
+        );
     }
 
     private static function overrideOf(string $target, InstantRetry $instantRetry): string
     {
-        return sprintf('%s: %d extra attempts on %s', $target, $instantRetry->retryTimes, PulseFeature::exceptionsOf($instantRetry->exceptions));
+        return sprintf('%s: %d retry times on %s', $target, $instantRetry->retryTimes, PulseFeature::exceptionsOf($instantRetry->exceptions));
     }
 
     /**
@@ -111,9 +115,9 @@ final class InstantRetryModule implements AnnotationModule
         }
 
         return [new InstantRetryPulseFeatures(
-            ExtensionObjectResolver::resolveUnique(InstantRetryConfiguration::class, $serviceExtensions, InstantRetryConfiguration::createWithDefaults()),
-            $this->commandBusOverrides,
-            $this->endpointOverrides,
+            configuration: ExtensionObjectResolver::resolveUnique(InstantRetryConfiguration::class, $serviceExtensions, InstantRetryConfiguration::createWithDefaults()),
+            commandBusOverrides: $this->commandBusOverrides,
+            endpointOverrides: $this->endpointOverrides,
         )];
     }
 

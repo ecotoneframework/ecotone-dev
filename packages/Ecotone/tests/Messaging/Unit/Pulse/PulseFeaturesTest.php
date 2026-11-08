@@ -22,6 +22,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
@@ -65,13 +66,44 @@ final class PulseFeaturesTest extends TestCase
         self::assertSame('InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(isEnabled: true, retryTimes: 3, retryExceptions: [])', $commandBus['configuration']);
     }
 
+    public function test_a_failing_command_runs_once_when_the_command_bus_retries_are_reported_off_and_four_times_when_reported_on_with_three_retry_times(): void
+    {
+        $handlers = new class () {
+            public int $attempts = 0;
+
+            #[CommandHandler('order.place')]
+            public function place(string $orderId): void
+            {
+                $this->attempts++;
+                throw new RuntimeException('Payment gateway is down');
+            }
+        };
+
+        [$withoutRetries, $reportedOff] = $this->reportedBy($handlers);
+        try {
+            $withoutRetries->sendCommandWithRouting('order.place', 'order-1');
+        } catch (RuntimeException) {
+        }
+        $attemptsWithoutRetries = $handlers->attempts;
+        [$withRetries, $reportedOn] = $this->reportedBy($handlers, [InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true)]);
+        try {
+            $withRetries->sendCommandWithRouting('order.place', 'order-1');
+        } catch (RuntimeException) {
+        }
+
+        self::assertFalse($reportedOff['Instant retries on the command bus']['enabled']);
+        self::assertSame(1, $attemptsWithoutRetries);
+        self::assertSame('3', $reportedOn['Instant retries on the command bus']['settings']['Retry times']);
+        self::assertSame(5, $handlers->attempts);
+    }
+
     public function test_instant_retries_turned_on_retry_an_asynchronous_endpoint_three_more_times_on_any_exception(): void
     {
         $features = $this->coreFeatures($this->orders(), [InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true)]);
 
         $asynchronous = $features['Instant retries on asynchronous endpoints'];
         self::assertTrue($asynchronous['enabled']);
-        self::assertSame(['Extra attempts' => '3', 'Retried on' => 'any exception'], $asynchronous['settings']);
+        self::assertSame(['Retry times' => '3', 'Retried on' => 'any exception'], $asynchronous['settings']);
         self::assertStringContainsString('handled once and, when that fails, tried again right away up to 3 more times (4 attempts in total) on any exception', $asynchronous['hint']);
     }
 
@@ -94,8 +126,8 @@ final class PulseFeaturesTest extends TestCase
 
         $commandBus = $features['Instant retries on the command bus'];
         self::assertTrue($commandBus['enabled']);
-        self::assertSame(['Extra attempts' => '2', 'Retried on' => 'RuntimeException'], $commandBus['settings']);
-        self::assertSame(['PulseInstantRetryCommandBus: 5 extra attempts on InvalidArgumentException'], $commandBus['handlers']);
+        self::assertSame(['Retry times' => '2', 'Retried on' => 'RuntimeException'], $commandBus['settings']);
+        self::assertSame(['PulseInstantRetryCommandBus: 5 retry times on InvalidArgumentException'], $commandBus['handlers']);
         self::assertStringContainsString('up to 2 more times (3 attempts in total) on RuntimeException', $commandBus['hint']);
         self::assertFalse($features['Instant retries on asynchronous endpoints']['enabled']);
         self::assertStringContainsString('with no immediate second attempt', $features['Instant retries on asynchronous endpoints']['hint']);
@@ -187,6 +219,16 @@ final class PulseFeaturesTest extends TestCase
      */
     private function coreFeatures(object $handlers, array $extensionObjects = [], array $classesToResolve = [], ?ServiceConfiguration $serviceConfiguration = null): array
     {
+        return $this->reportedBy($handlers, $extensionObjects, $classesToResolve, $serviceConfiguration)[1];
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     * @param string[] $classesToResolve
+     * @return array{0: FlowTestSupport, 1: array<string, array<string, mixed>>}
+     */
+    private function reportedBy(object $handlers, array $extensionObjects = [], array $classesToResolve = [], ?ServiceConfiguration $serviceConfiguration = null): array
+    {
         $pulse = new class () {
             public array $snapshots = [];
 
@@ -228,7 +270,7 @@ final class PulseFeaturesTest extends TestCase
 
         $packages = array_column(json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['packages'], 'features', 'name');
 
-        return array_column($packages['core'], null, 'name');
+        return [$orderService, array_column($packages['core'], null, 'name')];
     }
 
     private function orders(): object

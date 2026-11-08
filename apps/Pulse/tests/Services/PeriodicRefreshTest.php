@@ -9,7 +9,6 @@ use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\Console\Tester\CommandTester;
-use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
@@ -46,7 +45,7 @@ final class PeriodicRefreshTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/services');
         $this->runService($orders, 'orders');
 
-        self::assertSame('connected', $this->statusOf($crawler, 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($crawler, 'orders'));
         self::assertSame('15s', $crawler->filter('[data-service="orders"] [data-age]')->text());
         self::assertSame(1, $handler->requests);
     }
@@ -104,10 +103,10 @@ final class PeriodicRefreshTest extends ReleasingWebTestCase
 
         $this->refreshTick($client);
         $this->advanceTimeBy(9);
-        self::assertSame('waiting', $this->statusOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('waiting', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));
         $this->advanceTimeBy(1);
 
-        self::assertSame('unreachable', $this->statusOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('unreachable', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));
     }
 
     public function test_a_service_whose_request_timed_out_stays_unreachable_while_the_retry_is_outstanding(): void
@@ -122,18 +121,18 @@ final class PeriodicRefreshTest extends ReleasingWebTestCase
         $this->advanceTimeBy(20);
         $this->refreshTick($client);
         $this->advanceTimeBy(10);
-        self::assertSame('unreachable', $this->statusOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('unreachable', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));
         $this->advanceTimeBy(10);
         $this->refreshTick($client);
         $this->advanceTimeBy(5);
         $crawler = $client->request('GET', '/services');
 
-        self::assertSame('unreachable', $this->statusOf($crawler, 'orders'));
+        self::assertSame('unreachable', $this->serviceStatusOf($crawler, 'orders'));
         self::assertStringContainsString('Unreachable — retrying', $crawler->filter('[data-service="orders"] [data-status]')->text());
         self::assertSame('45s', $crawler->filter('[data-service="orders"] [data-age]')->text());
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
-        self::assertSame('connected', $this->statusOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));
     }
 
     public function test_a_service_that_never_answered_stays_unreachable_across_ticks(): void
@@ -145,7 +144,7 @@ final class PeriodicRefreshTest extends ReleasingWebTestCase
         $this->advanceTimeBy(5);
 
         $crawler = $client->request('GET', '/services');
-        self::assertSame('unreachable', $this->statusOf($crawler, 'orders'));
+        self::assertSame('unreachable', $this->serviceStatusOf($crawler, 'orders'));
         self::assertStringContainsString('retrying', $crawler->filter('[data-service="orders"] [data-status]')->text());
     }
 
@@ -191,11 +190,6 @@ final class PeriodicRefreshTest extends ReleasingWebTestCase
         $this->setUpPulseDatabase($client->getKernel());
 
         return $client;
-    }
-
-    private function statusOf(Crawler $crawler, string $service): string
-    {
-        return $crawler->filter(sprintf('[data-service="%s"] [data-status]', $service))->attr('data-status');
     }
 
     private function snapshotJson(string $service): string

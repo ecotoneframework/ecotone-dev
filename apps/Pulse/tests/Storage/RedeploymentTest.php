@@ -7,7 +7,6 @@ namespace App\Tests\Storage;
 use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
@@ -24,16 +23,16 @@ final class RedeploymentTest extends ReleasingWebTestCase
         $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
-        self::assertSame('connected', $this->statusOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));
 
         self::ensureKernelShutdown();
         $restarted = $this->pulseClient();
-        self::assertSame('connected', $this->statusOf($restarted->request('GET', '/services'), 'orders'));
+        self::assertSame('connected', $this->serviceStatusOf($restarted->request('GET', '/services'), 'orders'));
 
         $this->useNewInternalDatabase();
         self::ensureKernelShutdown();
         $redeployed = $this->pulseClient();
-        self::assertSame('waiting', $this->statusOf($redeployed->request('GET', '/services'), 'orders'));
+        self::assertSame('waiting', $this->serviceStatusOf($redeployed->request('GET', '/services'), 'orders'));
     }
 
     private function useNewInternalDatabase(): void
@@ -50,10 +49,5 @@ final class RedeploymentTest extends ReleasingWebTestCase
         $this->setUpPulseDatabase($client->getKernel());
 
         return $client;
-    }
-
-    private function statusOf(Crawler $crawler, string $service): string
-    {
-        return $crawler->filter(sprintf('[data-service="%s"] [data-status]', $service))->attr('data-status');
     }
 }

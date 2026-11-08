@@ -55,6 +55,10 @@ Visit [ecotone.tech](https://ecotone.tech) for the full overview.
 The [quickstart guide](https://docs.ecotone.tech/quick-start) in the [reference documentation](https://docs.ecotone.tech) is the fastest path to your first handler.
 Read more on the [Ecotone Blog](https://blog.ecotone.tech).
 
+To see it run, [`demo/`](demo/README.md) starts two services from this repository with one `docker compose` command: a
+Symfony ticketing service and a Laravel storefront selling concert seats over the Distributed Bus, monitored by Ecotone
+Pulse and traced into Jaeger.
+
 ## AI-Ready by design
 
 Declarative attributes mean less infrastructure code for your coding agent to read and less boilerplate for it to generate — smaller context, faster iteration, more accurate results.

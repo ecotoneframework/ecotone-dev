@@ -1,0 +1,203 @@
+# Run from the repository root:
+#
+#   docker compose -f demo/docker-compose.yml up -d --build
+#
+# Environment variables, all optional:
+#
+#   COMPOSE_PROJECT_NAME           stack name, default ecotone-demo; give each parallel stack its own
+#   ECOTONE_LICENCE_KEY            your Ecotone Enterprise licence key; when unset the services run on Ecotone's testing licence
+#   DEMO_UID, DEMO_GID             host user and group the containers run as, default 1000:1000, so vendor/ stays yours
+#   DEMO_STOREFRONT_PORT           host port of the Laravel storefront, default 8000
+#   DEMO_TICKETING_PORT            host port of the Symfony ticketing service, default 8001
+#   DEMO_PULSE_PORT                host port of Ecotone Pulse, default 8080
+#   DEMO_JAEGER_PORT               host port of the Jaeger UI, default 16686
+#   DEMO_RABBITMQ_MANAGEMENT_PORT  host port of the RabbitMQ management UI, default 15672
+#   TICKETING_HOLD_SECONDS         how long ticketing holds a seat before it expires, default 120
+#   TICKETING_RENDER_FAILS_FOR_SEAT  a seat code, like C-7, whose ticket render fails on ticketing-worker; empty by default
+#   RUSH_DEADLINE_SECONDS          how long a rush runs before its buyers still picking give up, default 600
+#
+# The repository root is mounted at /repo: the applications run from demo/ticketing, demo/storefront and apps/Pulse,
+# and resolve ecotone/* from packages/ through symlinked path repositories, so a package edit is live on the next request.
+#
+# APP_KEY, APP_SECRET and the database and broker passwords below are demo-only values; never reuse them outside the demo.
+
+name: ${COMPOSE_PROJECT_NAME:-ecotone-demo}
+
+x-app: &app
+  build:
+    context: ..
+    dockerfile: demo/docker/Dockerfile
+  image: ${COMPOSE_PROJECT_NAME:-ecotone-demo}-php
+  user: "${DEMO_UID:-1000}:${DEMO_GID:-1000}"
+  volumes:
+    - ..:/repo
+  restart: unless-stopped
+  depends_on: &infrastructure
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+
+x-environment: &environment
+  ECOTONE_LICENCE_KEY:
+  AMQP_DSN: amqp://guest:guest@rabbitmq:5672
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+  DEMO_PULSE_URL: http://localhost:${DEMO_PULSE_PORT:-8080}
+  DEMO_JAEGER_URL: http://localhost:${DEMO_JAEGER_PORT:-16686}
+
+x-ticketing-environment: &ticketing-environment
+  <<: *environment
+  DEMO_APP: ticketing
+  APP_ENV: dev
+  APP_SECRET: ecotone-demo-ticketing
+  DATABASE_URL: postgresql://ecotone:secret@postgres:5432/ticketing?serverVersion=16&charset=utf8
+  TICKETING_HOLD_SECONDS: ${TICKETING_HOLD_SECONDS:-120}
+
+x-storefront-environment: &storefront-environment
+  <<: *environment
+  DEMO_APP: storefront
+  APP_ENV: local
+  APP_DEBUG: "true"
+  APP_KEY: base64:ZWNvdG9uZS1kZW1vLXN0b3JlZnJvbnQta2V5LTMyYnk=
+  APP_URL: http://localhost:${DEMO_STOREFRONT_PORT:-8000}
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_DATABASE: storefront
+  DB_USERNAME: ecotone
+  DB_PASSWORD: secret
+  QUEUE_CONNECTION: database
+  RUSH_DEADLINE_SECONDS: ${RUSH_DEADLINE_SECONDS:-600}
+  SESSION_DRIVER: file
+  CACHE_STORE: file
+  LOG_CHANNEL: stderr
+  LOG_LEVEL: notice
+
+x-web-healthcheck: &web-healthcheck
+  test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/') === false ? 1 : 0);"]
+  interval: 5s
+  timeout: 5s
+  start_period: 300s
+  retries: 6
+
+x-worker-healthcheck: &worker-healthcheck
+  test: ["CMD-SHELL", "ls /tmp/demo-workers/*.pid >/dev/null 2>&1 && for pid in $$(cat /tmp/demo-workers/*.pid); do kill -0 $$pid || exit 1; done"]
+  interval: 5s
+  timeout: 5s
+  start_period: 120s
+  retries: 6
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ecotone
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: ecotone
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ecotone -d storefront_test"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    hostname: rabbitmq
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    ports:
+      - "${DEMO_RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.76.0
+    tmpfs:
+      - /tmp
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "${DEMO_JAEGER_PORT:-16686}:16686"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:14269/"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  pulse:
+    <<: *app
+    working_dir: /repo/apps/Pulse
+    command: ["pulse"]
+    environment:
+      ECOTONE_LICENCE_KEY:
+      DEMO_APP: pulse
+      APP_ENV: dev
+      PULSE_TRANSPORT_DSN: amqp://guest:guest@rabbitmq:5672
+      PULSE_SERVICES: ticketing,storefront
+      PULSE_VERSION: dev
+      PULSE_REFRESH_INTERVAL: "10"
+      PULSE_HTTP_PORT: "8080"
+    ports:
+      - "${DEMO_PULSE_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/healthz') === 'ok' ? 0 : 1);"]
+      interval: 5s
+      timeout: 5s
+      start_period: 300s
+      retries: 6
+
+  ticketing:
+    <<: *app
+    working_dir: /repo/demo/ticketing
+    command: ["web"]
+    environment: *ticketing-environment
+    ports:
+      - "${DEMO_TICKETING_PORT:-8001}:8080"
+    healthcheck: *web-healthcheck
+
+  ticketing-worker:
+    <<: *app
+    working_dir: /repo/demo/ticketing
+    command: ["worker", "ticketing", "ticketing_async"]
+    environment:
+      <<: *ticketing-environment
+      TICKETING_RENDER_FAILS_FOR_SEAT: ${TICKETING_RENDER_FAILS_FOR_SEAT:-}
+    deploy:
+      replicas: 2
+    healthcheck: *worker-healthcheck
+    depends_on:
+      <<: *infrastructure
+      ticketing:
+        condition: service_healthy
+
+  storefront:
+    <<: *app
+    working_dir: /repo/demo/storefront
+    command: ["web"]
+    environment: *storefront-environment
+    ports:
+      - "${DEMO_STOREFRONT_PORT:-8000}:8080"
+    healthcheck: *web-healthcheck
+
+  storefront-worker:
+    <<: *app
+    working_dir: /repo/demo/storefront
+    command: ["worker", "storefront", "storefront_async"]
+    environment: *storefront-environment
+    deploy:
+      replicas: 2
+    healthcheck: *worker-healthcheck
+    depends_on:
+      <<: *infrastructure
+      storefront:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  rabbitmq-data:

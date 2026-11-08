@@ -165,6 +165,8 @@ jobs:
         with:
           context: .
           file: apps/Pulse/Dockerfile
+          secrets: |
+            composer_auth={"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}
           push: false
           load: true
           tags: ecotone-pulse:ci
@@ -232,6 +234,8 @@ jobs:
         with:
           context: .
           file: apps/Pulse/Dockerfile
+          secrets: |
+            composer_auth={"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}
           push: false
           load: true
           tags: ecotone-pulse:ci

@@ -20,6 +20,8 @@ use Tempest\Framework\Testing\IntegrationTest;
  */
 abstract class EcotoneIntegrationTestCase extends IntegrationTest
 {
+    use RestoresGlobalHandlers;
+
     protected string $root = '';
 
     protected function ecotoneConfig(): EcotoneConfig
@@ -83,8 +85,6 @@ abstract class EcotoneIntegrationTestCase extends IntegrationTest
     protected function tearDown(): void
     {
         parent::tearDown();
-        restore_exception_handler();
-        restore_error_handler();
         EcotoneServiceInitializer::clearCache();
         MessagingSystemInitializer::clearDefinitionHolder();
         $this->removeProxyCache();

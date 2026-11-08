@@ -12,6 +12,7 @@ use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Ecotone\Test\LicenceTesting;
+use Monorepo\Benchmark\RestoresGlobalHandlers;
 use PHPUnit\Framework\TestCase;
 use Symfony\App\DcbSmoke\IssueCoupon;
 use Symfony\App\DcbSmoke\Kernel;
@@ -41,6 +42,8 @@ use Symfony\Component\Console\Output\NullOutput;
  */
 final class DcbSmokeTest extends TestCase
 {
+    use RestoresGlobalHandlers;
+
     public function setUp(): void
     {
         putenv('SYMFONY_LICENCE_KEY=' . LicenceTesting::VALID_LICENCE);
@@ -49,7 +52,6 @@ final class DcbSmokeTest extends TestCase
     protected function tearDown(): void
     {
         putenv('SYMFONY_LICENCE_KEY');
-        restore_exception_handler();
     }
 
     public function test_a_tagged_event_is_appended_and_a_decision_model_is_injected_into_a_handler(): void

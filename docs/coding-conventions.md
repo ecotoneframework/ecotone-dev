@@ -960,6 +960,9 @@ final class BasketTest extends TestCase
   form — including, at line 81, an exception-message assertion that could have interpolated `::class` instead.
 - **No static properties or static methods** in a test class, for the same reason as rule 3.
 - A private `bootstrap()` helper on the test class is fine and common when several tests need the same wiring.
+- **An Enterprise feature is tested with `licenceKey: LicenceTesting::VALID_LICENCE`** (`Ecotone\Test\LicenceTesting`),
+  the key this repository's suites share. It is internal to them: the skills and the published documentation show an
+  application passing its own key from the test environment instead.
 
 **Write the test first.** RED, then GREEN, then refactor, one increment per commit, and prove the test is red
 against the base commit before making it pass. This was in every DCB task brief. `424220979` is a RED commit
@@ -1121,7 +1124,7 @@ naming its class, constructor arguments and optional factory. `LicenceDecider::p
 (`packageNames()`, and the `forPackage()` match arm). `ModulePackageList` is `Ecotone\Api\ExtensionObject\ModulePackageList`,
 because an application names its constants in `EcotoneLite::bootstrap(..., enabledModules: [...])` and the framework's `enabledModulePackageNames` key; the lookups only the
 framework calls stay in the internal `ModuleClassList` (rule 12a). Modules implement `AnnotationModule`, carry `#[ModuleAnnotation]`, and
-are `final`. The `ecotone-module-creator` skill has the full scaffold — including the `NoExternalConfigurationModule`
+are `final`. [docs/creating-a-module.md](./creating-a-module.md) has the full scaffold — including the `NoExternalConfigurationModule`
 base class and the `AnnotationFinder` API — and is the place to look rather than this file.
 
 ### 13a. Class metadata comes from the registry, not from fresh reflection
@@ -1453,10 +1456,11 @@ two copies of a rule drift apart.
 |---|---|
 | [AGENTS.md](../AGENTS.md) | what the project is, the monorepo layout, the test-first loop, committing, opening a PR |
 | [docs/dev-workflow.md](./dev-workflow.md) | containers, per-package test commands, database DSNs, licence and style tooling, what CI runs |
-| `ecotone-testing` | `EcotoneLite` patterns, async-tested-synchronously, projection tests, diagnosing failures |
-| `ecotone-module-creator` | `AnnotationModule` scaffold, `AnnotationFinder`, `ExtensionObjectResolver`, new packages |
-| `ecotone-enterprise` | which features are Enterprise and why |
-| `ecotone-handler`, `ecotone-aggregate`, `ecotone-event-sourcing`, `ecotone-workflow`, `ecotone-interceptors`, `ecotone-asynchronous`, `ecotone-resiliency`, `ecotone-metadata`, `ecotone-identifier-mapping`, `ecotone-business-interface`, `ecotone-distribution` | the user-facing API of each area |
+| [docs/creating-a-module.md](./creating-a-module.md) | `AnnotationModule` scaffold, `AnnotationFinder`, `ExtensionObjectResolver`, new packages |
+
+The `.claude/skills/ecotone-*` skills teach Ecotone users the user-facing API of each area, in their own
+applications. They are not a source for any rule here: a convention for this repository lives in `AGENTS.md` or
+under `docs/` (this file, `dev-workflow.md`, `creating-a-module.md`), and a skill never states or links to one.
 
 - [Full documentation](https://docs.ecotone.tech)
 - `upgrade-2.0.md` — every 1.x → 2.0 behaviour change

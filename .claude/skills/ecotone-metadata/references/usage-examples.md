@@ -253,9 +253,8 @@ class OrderService
 
 ### What Does NOT Get Propagated
 
-- `OVERRIDE_AGGREGATE_IDENTIFIER` — aggregate internal routing
-- `CONSUMER_POLLING_METADATA` — polling consumer metadata
-- Other framework-internal headers
+- Headers Ecotone sets for its own routing, such as the aggregate identifier override and the polling consumer's
+  metadata
 
 ## Disabling Propagation
 

@@ -85,11 +85,12 @@ public function test_error_handler_routes_to_dead_letter(): void
             SimpleMessageChannelBuilder::createQueueChannel('orders'),
             SimpleMessageChannelBuilder::createQueueChannel('dead_letter'),
         ],
+        testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('dead_letter'),
     );
 
     $ecotone->sendCommand(new PlaceOrder('123'));
     $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
-    $this->assertNotNull($ecotone->receiveMessageFrom('dead_letter'));
+    $this->assertCount(1, $ecotone->popRecordedMessagesFrom('dead_letter'));
 }
 ```

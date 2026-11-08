@@ -30,8 +30,9 @@ WORKDIR /build/apps/Pulse
 
 ENV COMPOSER=composer.pinned.json
 
-RUN php docker/pin-path-package-versions.php --copy \
-    && COMPOSER_ALLOW_SUPERUSER=1 composer update --no-dev --no-interaction --no-scripts --prefer-dist --no-autoloader \
+RUN --mount=type=secret,id=composer_auth \
+    php docker/pin-path-package-versions.php --copy \
+    && COMPOSER_AUTH="$(cat /run/secrets/composer_auth 2>/dev/null || true)" COMPOSER_ALLOW_SUPERUSER=1 composer update --no-dev --no-interaction --no-scripts --prefer-dist --no-autoloader \
     && COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload --no-dev --classmap-authoritative --no-scripts
 
 RUN sh docker/with-build-env.sh php bin/console importmap:install \
@@ -44,9 +45,10 @@ ARG ECOTONE_VERSION=
 
 ENV COMPOSER=composer.released.json
 
-RUN php docker/use-released-packages.php "$ECOTONE_VERSION" \
+RUN --mount=type=secret,id=composer_auth \
+    php docker/use-released-packages.php "$ECOTONE_VERSION" \
     && rm -rf vendor composer.pinned.json composer.pinned.lock \
-    && COMPOSER_ALLOW_SUPERUSER=1 composer update --no-dev --no-interaction --no-scripts --prefer-dist --no-autoloader \
+    && COMPOSER_AUTH="$(cat /run/secrets/composer_auth 2>/dev/null || true)" COMPOSER_ALLOW_SUPERUSER=1 composer update --no-dev --no-interaction --no-scripts --prefer-dist --no-autoloader \
     && COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload --no-dev --classmap-authoritative --no-scripts
 
 FROM ${PULSE_DEPENDENCIES} AS dependencies

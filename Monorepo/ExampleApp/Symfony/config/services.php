@@ -7,6 +7,7 @@ use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
 use Monorepo\ExampleApp\Common\UI\OrderController;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
+use Psr\Log\NullLogger;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Test\Ecotone\OpenTelemetry\Integration\TracingTestCase;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -19,6 +20,8 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     ]);
 
     $services = $containerConfigurator->services();
+
+    $services->set('logger', NullLogger::class);
 
     $services->load('Monorepo\\ExampleApp\\Common\\', '%kernel.project_dir%/../Common/')
         ->autowire()

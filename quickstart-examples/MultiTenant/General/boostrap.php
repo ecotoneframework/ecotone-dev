@@ -6,14 +6,12 @@ use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Handler\Logger\EchoLogger;
 
 /** Setup */
 function bootstrapEcotone(string $rootDirectory, array $services = []): ConfiguredMessagingSystem
 {
     return EcotoneLite::bootstrap(
         containerOrAvailableServices: array_merge([
-            'logger' => new EchoLogger(),
             // Registering connection for tenants. Look src/Configuration/EcotoneConfiguration.php for usage based on tenant header
             'tenant_a_factory' => getTenantAConnection(),
             'tenant_b_factory' => getTenantBConnection(),

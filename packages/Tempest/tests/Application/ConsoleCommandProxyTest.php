@@ -66,6 +66,8 @@ final class ConsoleCommandProxyTest extends EcotoneIntegrationTestCase
 
         $proxy = $this->container->get($proxyClassName);
 
+        $this->expectOutputRegex('/Name.*ecotone_test_queue/s');
+
         $result = $proxy->__invoke();
 
         $this->assertSame(\Tempest\Console\ExitCode::SUCCESS, $result);

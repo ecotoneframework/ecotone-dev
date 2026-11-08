@@ -9,6 +9,7 @@ use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Test\LicenceTesting;
+use Monorepo\Benchmark\RestoresGlobalHandlers;
 use PHPUnit\Framework\TestCase;
 use Symfony\App\EnvPlaceholderKafka\Configuration\Kernel;
 use Symfony\Component\Filesystem\Filesystem;
@@ -42,6 +43,8 @@ use Symfony\Component\Uid\Uuid;
  */
 final class EnvPlaceholderKafkaConsumerTest extends TestCase
 {
+    use RestoresGlobalHandlers;
+
     protected function setUp(): void
     {
         putenv('SYMFONY_LICENCE_KEY=' . LicenceTesting::VALID_LICENCE);
@@ -54,8 +57,6 @@ final class EnvPlaceholderKafkaConsumerTest extends TestCase
     {
         putenv('SYMFONY_LICENCE_KEY');
         putenv('ECOTONE_KAFKA_SUFFIX');
-
-        restore_exception_handler();
     }
 
     public function test_publishing_and_consuming_from_topic_built_from_env_placeholder(): void

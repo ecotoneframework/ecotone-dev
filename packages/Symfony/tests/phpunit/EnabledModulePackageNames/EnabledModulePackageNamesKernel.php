@@ -6,6 +6,7 @@ namespace Test\EnabledModulePackageNames;
 
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\SymfonyBundle\EcotoneSymfonyBundle;
+use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -48,5 +49,6 @@ final class EnabledModulePackageNamesKernel extends Kernel
         $container->extension('ecotone', ['loadSrcNamespaces' => false, 'namespaces' => ['Test\\EnabledModulePackageNames\\Application']]);
         $container->extension('ecotone', $this->ecotoneConfiguration);
         $container->services()->set(DbalConnectionFactory::class)->args(['pgsql://ecotone:secret@localhost:5432/ecotone']);
+        $container->services()->set('logger', NullLogger::class);
     }
 }

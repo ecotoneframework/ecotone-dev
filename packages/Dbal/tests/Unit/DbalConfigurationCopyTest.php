@@ -6,6 +6,7 @@ namespace Test\Ecotone\Dbal\Unit;
 
 use Closure;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\TransactionReconnectProtection;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -30,7 +31,8 @@ final class DbalConfigurationCopyTest extends TestCase
             ->withDeduplication(false, 'deduplication_connection', 1000, 10, true)
             ->withDeadLetter(false, 'dead_letter_connection', true)
             ->withConsumerPositionTracking(false, 'position_connection')
-            ->withDocumentStore(false, true, 'document_store', true, 'document_store_connection', ['Basket']);
+            ->withDocumentStore(false, true, 'document_store', true, 'document_store_connection', ['Basket'])
+            ->withTransactionReconnectProtection(TransactionReconnectProtection::WHEN_AVAILABLE);
 
         self::assertEqualsCanonicalizing(
             [
@@ -40,12 +42,14 @@ final class DbalConfigurationCopyTest extends TestCase
                 'consumerPositionTrackingEnabled', 'consumerPositionTrackingConnectionReference', 'enableDoctrineORMRepositories', 'doctrineORMRepositoryConnectionReference',
                 'doctrineORMClasses', 'enableDbalDocumentStore', 'dbalDocumentStoreReference', 'documentStoreConnectionReference', 'inMemoryDocumentStore',
                 'documentStoreRelatedAggregates', 'enableDocumentStoreStateStoredRepository', 'minimumTimeToRemoveMessageInMilliseconds', 'deduplicationRemovalBatchSize',
+                'transactionReconnectProtection',
             ],
             array_keys(get_object_vars($original)),
         );
         self::assertCopyChangesOnly($original, fn (DbalConfiguration $configuration) => $configuration->withTransactionOnAsynchronousEndpoints(true), ['transactionOnAsynchronousEndpoints' => true]);
         self::assertCopyChangesOnly($original, fn (DbalConfiguration $configuration) => $configuration->withoutTransactionOnAsynchronousEndpoints(['payments']), ['disableTransactionsOnAsynchronousEndpointNames' => ['payments']]);
         self::assertCopyChangesOnly($original, fn (DbalConfiguration $configuration) => $configuration->withTransactionOnCommandBus(true), ['transactionOnCommandBus' => true]);
+        self::assertCopyChangesOnly($original, fn (DbalConfiguration $configuration) => $configuration->withTransactionReconnectProtection(TransactionReconnectProtection::IGNORE), ['transactionReconnectProtection' => TransactionReconnectProtection::IGNORE]);
         self::assertCopyChangesOnly(
             $original,
             fn (DbalConfiguration $configuration) => $configuration->withDoctrineORMRepositories(false, ['Invoice'], 'other_orm_connection'),

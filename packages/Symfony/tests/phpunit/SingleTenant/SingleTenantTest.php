@@ -68,6 +68,17 @@ final class SingleTenantTest extends TestCase
         );
     }
 
+    public function test_a_write_after_a_caught_lost_connection_in_a_transactional_command_is_not_stored_outside_its_transaction(): void
+    {
+        $connection = $this->kernel->getContainer()->get('doctrine.dbal.defined_connection_connection');
+        $connection->executeStatement('DROP TABLE IF EXISTS symfony_recorded_orders');
+        $connection->executeStatement('CREATE TABLE symfony_recorded_orders (id VARCHAR(255))');
+
+        $this->commandBus->sendWithRouting('order.record', 'milk');
+
+        $this->assertSame(['milk'], $this->queryBus->sendWithRouting('order.recorded'));
+    }
+
     public function test_transactions_rollbacks_model_changes_and_published_events(): void
     {
         /** This one will be rolled back */

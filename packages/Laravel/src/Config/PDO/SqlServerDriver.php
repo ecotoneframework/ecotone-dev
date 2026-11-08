@@ -6,14 +6,17 @@ use Doctrine\DBAL\Driver\AbstractSQLServerDriver;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
 use Doctrine\DBAL\Driver\Connection as DriverConnection;
 use Doctrine\DBAL\Driver\PDO\Exception;
+use Ecotone\Dbal\DbalTransaction\TransactionReconnectProtectionAwareDriver;
 use Illuminate\Support\Facades\DB;
 use PDOException;
 
 /**
  * licence MIT
  */
-class SqlServerDriver extends AbstractSQLServerDriver
+class SqlServerDriver extends AbstractSQLServerDriver implements TransactionReconnectProtectionAwareDriver
 {
+    private ?Connection $connection = null;
+
     public function __construct(private string $laravelConnectionName)
     {
     }
@@ -33,11 +36,16 @@ class SqlServerDriver extends AbstractSQLServerDriver
             $laravelConnection->reconnectIfMissingConnection();
 
             return new SqlServerConnection(
-                new Connection($laravelConnection->getPdo())
+                $this->connection = new Connection($laravelConnection)
             );
         } catch (PDOException $exception) {
             throw Exception::new($exception);
         }
+    }
+
+    public function leaveTransactionBoundary(): void
+    {
+        $this->connection?->endLostTransaction();
     }
 
     public function getExceptionConverter(): ExceptionConverter

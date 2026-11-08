@@ -2829,6 +2829,73 @@ is raised as Doctrine's `ConnectionException`, so the consumer backs off with it
 
 **How to adapt:** nothing.
 
+### A transactional message that lost its database connection is retried whole, never continued on a new connection
+
+**Before:** when the database connection was lost while a message was handled inside Ecotone's database transaction
+(a restart, an idle timeout, a failover), the next SQL statement usually failed and the message was retried. In some
+flows, though — a middleware in your codebase, or a library that retries automatically and ignores the connection
+failure — Doctrine DBAL reconnected and ran the following SQL statements on a new connection, as if nothing had
+happened. That connection was outside the transaction: part of the message's data was stored while the rest was rolled
+back, and stored again when the message was retried.
+
+**Now:** Ecotone puts stability first and prevents this by default. Once the connection is lost inside Ecotone's
+transaction, it refuses to reconnect until the message ends: the next statement fails with
+`Ecotone\Api\Messaging\DatabaseTransactionLost`, and the message is rolled back and retried as a whole — by the instant
+retries a transactional command bus and asynchronous endpoint have by default, or by the consumer's redelivery. A
+connection that died while idle, before the message, is still reconnected when Ecotone begins its transaction.
+
+The protection needs `Ecotone\Api\Dbal\TransactionReconnectProtectionMiddleware` on the Doctrine connection. Ecotone adds it to
+every connection it builds — a `DbalConnectionFactory` from a DSN or connection parameters, a
+`LaravelConnectionReference`, a `TempestConnectionReference` — and the Symfony bundle registers it on every DoctrineBundle
+connection. A connection the application builds itself and hands to Ecotone (`DbalConnection::create($connection)`, a
+manager registry outside Symfony) is refused before its first transaction, with a message naming the middleware to add.
+`DbalConfiguration::withTransactionReconnectProtection()` decides how strict this is:
+
+| `TransactionReconnectProtection` | Connection with the middleware | Connection without it |
+|---|---|---|
+| `REQUIRED` (default) | protected | refused before its first transaction |
+| `WHEN_AVAILABLE` | protected | may reconnect inside the transaction, as before |
+| `IGNORE` | may reconnect inside the transaction, as before | may reconnect inside the transaction, as before |
+
+`DbalConfiguration::createForTesting()` uses `WHEN_AVAILABLE`, so a test can hand Ecotone a connection it built without
+the middleware.
+
+**How to adapt:** nothing on Laravel, Tempest, Symfony with DoctrineBundle, or a `DbalConnectionFactory` built from a DSN.
+For a Doctrine connection you build yourself, add the middleware where you build it, as its last middleware:
+
+```php
+use Doctrine\DBAL\Configuration;
+use Doctrine\DBAL\DriverManager;
+use Ecotone\Api\Dbal\TransactionReconnectProtectionMiddleware;
+
+$connection = DriverManager::getConnection($params, (new Configuration())->setMiddlewares([new TransactionReconnectProtectionMiddleware()]));
+```
+
+To keep Doctrine DBAL's reconnect instead, choose
+`DbalConfiguration::createWithDefaults()->withTransactionReconnectProtection(TransactionReconnectProtection::WHEN_AVAILABLE)`
+or `TransactionReconnectProtection::IGNORE`. With a transactional command bus whose instant retries are turned off, or
+that lists its retry exceptions without `DatabaseTransactionLost::class`, a command that lost its connection now fails
+with `DatabaseTransactionLost`. To let a handler reconnect and continue, run it without a database transaction:
+`#[WithoutDatabaseTransaction]` on the handler, or `->withTransactionOnCommandBus(false)`,
+`->withTransactionOnAsynchronousEndpoints(false)` or `->withTransactionOnConsoleCommands(false)`.
+
+### Ecotone's transaction on a Laravel connection is Laravel's transaction
+
+**Before:** Ecotone began its transaction on the PDO underneath the Laravel connection, so Laravel did not know about
+it: `DB::transactionLevel()` stayed 0 inside a transactional handler, `DB::afterCommit()` (and `ShouldDispatchAfterCommit`
+jobs, `afterCommit` listeners and model events) ran its callback at once, inside the transaction — also when the
+message then rolled back — and an Eloquent query that hit a lost connection was reconnected and re-run by Laravel in
+autocommit, outside Ecotone's transaction, and stored again when the message was retried.
+
+**Now:** Ecotone begins, commits and rolls back through the Laravel connection. Inside a transactional handler
+`DB::transactionLevel()` is 1, after commit callbacks run once Ecotone's transaction has committed and are dropped when
+it rolls back, and Laravel does not retry a query in place: the lost connection fails the message, which is retried
+whole. A callback that throws propagates its exception after the commit, as it does in `DB::transaction()`. A command
+sent inside the application's own `DB::transaction()` joins it as a savepoint, and commits or rolls back with it.
+
+**How to adapt:** nothing for most applications. A callback registered with `DB::afterCommit()` inside a handler that
+relied on running immediately runs after the commit now: call it directly instead.
+
 ### `ecotone/dbal`, `ecotone/laravel` and `ecotone/tempest` require `doctrine/dbal` 4.2.3 or later
 
 **Before:** they accepted any `doctrine/dbal` 4.x. Before 4.2.3, Doctrine raised a PostgreSQL connection the server

@@ -91,6 +91,7 @@ final class DbalTransactionModule implements AnnotationModule
             new Reference(LoggingGateway::class),
             new Reference(TransactionStatusTracker::class),
             new Reference(CommandsWithoutDatabaseTransaction::class),
+            $dbalConfiguration->transactionReconnectProtection,
         ]);
 
         $messagingConfiguration

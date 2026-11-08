@@ -12,9 +12,11 @@ use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 // No need for version detection, we'll implement the DBAL 4.x interface
 use Doctrine\DBAL\ServerVersionProvider;
+use Illuminate\Database\Connection as LaravelConnection;
 use PDO;
 use PDOException;
 use PDOStatement;
+use Throwable;
 
 /**
  * This file is a modified version of a class from the Laravel framework.
@@ -32,34 +34,16 @@ use PDOStatement;
  */
 class Connection implements DriverConnection, ServerVersionProvider
 {
-    /**
-     * The underlying PDO connection.
-     *
-     * @var PDO
-     */
-    protected $connection;
+    private ?int $laravelTransactionLevelBeforeBegin = null;
 
-    /**
-     * Create a new PDO connection instance.
-     *
-     * @param  PDO  $connection
-     * @return void
-     */
-    public function __construct(PDO $connection)
+    public function __construct(private LaravelConnection $laravelConnection)
     {
-        $this->connection = $connection;
     }
 
-    /**
-     * Execute an SQL statement.
-     *
-     * @param  string  $statement
-     * @return int
-     */
     public function exec(string $statement): int
     {
         try {
-            $result = $this->connection->exec($statement);
+            $result = $this->pdo()->exec($statement);
 
             assert($result !== false);
 
@@ -69,35 +53,19 @@ class Connection implements DriverConnection, ServerVersionProvider
         }
     }
 
-    /**
-     * Prepare a new SQL statement.
-     *
-     * @param  string  $sql
-     * @return StatementInterface
-     *
-     * @throws Exception
-     */
     public function prepare(string $sql): StatementInterface
     {
         try {
-            return $this->createStatement(
-                $this->connection->prepare($sql)
-            );
+            return new Statement($this->pdo()->prepare($sql));
         } catch (PDOException $exception) {
             throw Exception::new($exception);
         }
     }
 
-    /**
-     * Execute a new query against the connection.
-     *
-     * @param  string  $sql
-     * @return ResultInterface
-     */
     public function query(string $sql): ResultInterface
     {
         try {
-            $stmt = $this->connection->query($sql);
+            $stmt = $this->pdo()->query($sql);
 
             assert($stmt instanceof PDOStatement);
 
@@ -107,109 +75,85 @@ class Connection implements DriverConnection, ServerVersionProvider
         }
     }
 
-    /**
-     * Get the last insert ID.
-     *
-     * @param  string|null  $name
-     * @return mixed
-     *
-     * @throws Exception
-     */
     public function lastInsertId(): string|int
     {
         try {
-            return $this->connection->lastInsertId();
+            return $this->pdo()->lastInsertId();
         } catch (PDOException $exception) {
             throw Exception::new($exception);
         }
     }
 
-    /**
-     * Create a new statement instance.
-     *
-     * @param  PDOStatement  $stmt
-     * @return Statement
-     */
-    protected function createStatement(PDOStatement $stmt): Statement
-    {
-        return new Statement($stmt);
-    }
-
-    /**
-     * Begin a new database transaction.
-     */
     public function beginTransaction(): void
     {
+        $levelBeforeBegin = $this->laravelConnection->transactionLevel();
         try {
-            $this->connection->beginTransaction();
+            $this->laravelConnection->beginTransaction();
         } catch (PDOException $exception) {
             throw Exception::new($exception);
         }
+        $this->laravelTransactionLevelBeforeBegin = $levelBeforeBegin;
     }
 
-    /**
-     * Commit a database transaction.
-     */
     public function commit(): void
     {
         try {
-            $this->connection->commit();
+            $this->laravelConnection->commit();
         } catch (PDOException $exception) {
             throw Exception::new($exception);
         }
+        $this->laravelTransactionLevelBeforeBegin = null;
     }
 
-    /**
-     * Rollback a database transaction.
-     */
     public function rollBack(): void
     {
         try {
-            $this->connection->rollBack();
+            $this->laravelConnection->rollBack();
         } catch (PDOException $exception) {
             throw Exception::new($exception);
         }
+        $this->laravelTransactionLevelBeforeBegin = null;
     }
 
-    /**
-     * Wrap quotes around the given input.
-     *
-     * @param  string  $input
-     * @param  string  $type
-     * @return string
-     */
+    public function endLostTransaction(): void
+    {
+        if ($this->laravelTransactionLevelBeforeBegin === null) {
+            return;
+        }
+
+        $levelBeforeBegin = $this->laravelTransactionLevelBeforeBegin;
+        $this->laravelTransactionLevelBeforeBegin = null;
+        while ($this->laravelConnection->transactionLevel() > $levelBeforeBegin) {
+            try {
+                $this->laravelConnection->rollBack();
+            } catch (Throwable) {
+                break;
+            }
+        }
+        if ($this->laravelConnection->transactionLevel() === 0) {
+            $this->laravelConnection->disconnect();
+        }
+    }
+
     public function quote(string $value): string
     {
-        return $this->connection->quote($value);
+        return $this->pdo()->quote($value);
     }
 
-    /**
-     * Get the server version for the connection.
-     *
-     * @return string
-     */
     public function getServerVersion(): string
     {
-        return $this->connection->getAttribute(PDO::ATTR_SERVER_VERSION);
+        return $this->pdo()->getAttribute(PDO::ATTR_SERVER_VERSION);
     }
 
-    /**
-     * Get the native connection.
-     *
-     * @return PDO
-     */
     public function getNativeConnection(): PDO
     {
-        return $this->connection;
+        return $this->pdo();
     }
 
-    /**
-     * Get the wrapped PDO connection.
-     *
-     * @return PDO
-     */
-    public function getWrappedConnection(): PDO
+    private function pdo(): PDO
     {
-        return $this->connection;
+        $this->laravelConnection->reconnectIfMissingConnection();
+
+        return $this->laravelConnection->getPdo();
     }
 }

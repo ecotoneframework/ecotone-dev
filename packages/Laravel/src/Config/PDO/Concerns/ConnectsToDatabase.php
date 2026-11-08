@@ -26,6 +26,8 @@ use PDOException;
  */
 trait ConnectsToDatabase
 {
+    private ?Connection $connection = null;
+
     public function __construct(private string $laravelConnectionName)
     {
     }
@@ -36,10 +38,15 @@ trait ConnectsToDatabase
             $laravelConnection = DB::connection($this->laravelConnectionName);
             $laravelConnection->reconnectIfMissingConnection();
 
-            return new Connection($laravelConnection->getPdo());
+            return $this->connection = new Connection($laravelConnection);
         } catch (PDOException $exception) {
             throw Exception::new($exception);
         }
+    }
+
+    public function leaveTransactionBoundary(): void
+    {
+        $this->connection?->endLostTransaction();
     }
 
     public function getExceptionConverter(): ExceptionConverter

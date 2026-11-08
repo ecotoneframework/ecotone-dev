@@ -13,6 +13,7 @@ use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\OutboxForwardingMessageChannel;
+use Ecotone\Api\Dbal\ExtensionObject\TransactionReconnectProtection;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -55,7 +56,8 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
 
         $transactions = $features['Database transactions'];
         self::assertTrue($transactions['enabled']);
-        self::assertSame(['Command bus' => 'on', 'Asynchronous endpoints' => 'on', 'Console commands' => 'on', 'Connections' => DbalConnectionFactory::class], $transactions['settings']);
+        self::assertSame(['Command bus' => 'on', 'Asynchronous endpoints' => 'on', 'Console commands' => 'on', 'Connections' => DbalConnectionFactory::class, 'Reconnect protection' => 'required'], $transactions['settings']);
+        self::assertStringContainsString('A connection lost inside the transaction is never reconnected mid-message: the message is rolled back and retried as a whole, and a connection without TransactionReconnectProtectionMiddleware is refused before its first transaction.', $transactions['hint']);
         self::assertSame(['order.cancel → cancel'], $transactions['handlers']);
         self::assertStringContainsString('runs inside one database transaction', $transactions['hint']);
         self::assertStringContainsString('#[WithoutDatabaseTransaction]', $transactions['hint']);
@@ -169,6 +171,14 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
 
         self::assertFalse($forwarding['enabled']);
         self::assertSame("OutboxForwardingMessageChannel::create('orders', DbalBackedMessageChannelBuilder::create('outbox'), 'orders_broker')", $forwarding['configuration']);
+    }
+
+    public function test_relaxed_reconnect_protection_is_reported_with_what_it_lets_through(): void
+    {
+        $transactions = $this->dbalFeatures([DbalConfiguration::createWithDefaults()->withTransactionReconnectProtection(TransactionReconnectProtection::IGNORE)])['Database transactions'];
+
+        self::assertSame('ignore', $transactions['settings']['Reconnect protection']);
+        self::assertStringContainsString('may reconnect inside the transaction', $transactions['hint']);
     }
 
     public function test_transactions_turned_off_on_an_entry_point_or_an_endpoint_are_reported_where_they_are_off(): void

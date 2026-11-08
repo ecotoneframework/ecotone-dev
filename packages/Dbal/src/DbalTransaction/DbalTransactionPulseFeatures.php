@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\Dbal\ExtensionObject\TransactionReconnectProtection;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Dbal\Pulse\PulseSavepointIsolation;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
@@ -89,6 +90,11 @@ final class DbalTransactionPulseFeatures
         $hint .= $dbalConfiguration->transactionOnCommandBus ? '' : ' A command sent through the command bus does not open a transaction.';
         $hint .= $dbalConfiguration->transactionOnAsynchronousEndpoints ? ($excluded === [] ? '' : ' Endpoints ' . implode(', ', $excluded) . ' are excluded with withoutTransactionOnAsynchronousEndpoints and run without one.') : ' A message an asynchronous endpoint consumes does not open a transaction.';
         $hint .= $dbalConfiguration->transactionOnConsoleCommands ? '' : ' A console command does not open a transaction.';
+        $hint .= $entryPoints === [] ? '' : match ($dbalConfiguration->transactionReconnectProtection) {
+            TransactionReconnectProtection::REQUIRED => ' A connection lost inside the transaction is never reconnected mid-message: the message is rolled back and retried as a whole, and a connection without TransactionReconnectProtectionMiddleware is refused before its first transaction.',
+            TransactionReconnectProtection::WHEN_AVAILABLE => ' A connection with TransactionReconnectProtectionMiddleware is never reconnected mid-message, so the message is rolled back and retried as a whole; a connection without it may reconnect inside the transaction and carry on outside it.',
+            TransactionReconnectProtection::IGNORE => ' A connection lost inside the transaction may reconnect inside the transaction and carry on outside it, so the work before and after the reconnect is not committed together.',
+        };
 
         return [new PulseFeature(
             package: ModulePackageList::DBAL_PACKAGE,
@@ -99,6 +105,7 @@ final class DbalTransactionPulseFeatures
                 'Asynchronous endpoints' => $dbalConfiguration->transactionOnAsynchronousEndpoints && $excluded !== [] ? 'on, except ' . implode(', ', $excluded) : PulseFeature::onOff($dbalConfiguration->transactionOnAsynchronousEndpoints),
                 'Console commands' => PulseFeature::onOff($dbalConfiguration->transactionOnConsoleCommands),
                 'Connections' => $connections,
+                'Reconnect protection' => $dbalConfiguration->transactionReconnectProtection->value,
             ],
             handlers: $handlersWithout,
             hint: $hint,

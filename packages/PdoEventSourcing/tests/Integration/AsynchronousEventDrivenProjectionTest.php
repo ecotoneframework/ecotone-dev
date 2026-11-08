@@ -13,7 +13,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -62,7 +61,7 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
                 SimpleMessageChannelBuilder::createQueueChannel(InProgressTicketList::PROJECTION_CHANNEL, true),
             ],
             services: [$consumerStops],
-            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 00:00:00')),
+            initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
@@ -89,7 +88,7 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
                 DbalBackedMessageChannelBuilder::create(InProgressTicketList::PROJECTION_CHANNEL),
             ],
             services: [$consumerStops],
-            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 00:00:00')),
+            initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
@@ -184,7 +183,7 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
         ],
         array $extensionObjects = [],
         array $services = [],
-        ?TestConfiguration $testConfiguration = null,
+        ?DateTimeImmutable $initialTime = null,
     ): FlowTestSupport {
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
@@ -194,7 +193,7 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
             pathToRootCatalog: __DIR__ . '/../../',
             namespaces: $namespaces,
             environment: 'prod',
-            testConfiguration: $testConfiguration,
+            initialTime: $initialTime,
         )->setupDatabaseTables();
     }
 }

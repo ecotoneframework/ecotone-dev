@@ -18,7 +18,6 @@ use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -194,7 +193,7 @@ final class FinishWhenNoMessagesTest extends TestCase
             [$scheduler::class],
             [$scheduler],
             enabledModules: [],
-            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 00:00:00')),
+            initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
         );
 
         $ecotone->run('ticker', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
@@ -229,7 +228,7 @@ final class FinishWhenNoMessagesTest extends TestCase
             [$projection::class],
             [$projection],
             enabledModules: [],
-            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 00:00:00')),
+            initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->withEventStream('ticket_stream', [
             Event::createWithType('ticket.registered', ['ticketId' => '1']),
@@ -281,7 +280,7 @@ final class FinishWhenNoMessagesTest extends TestCase
             [$consumer],
             extensionObjects: array_filter([SimpleMessageChannelBuilder::createQueueChannel('async'), $pollingMetadata]),
             enabledModules: [],
-            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 00:00:00')),
+            initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
         );
     }
 }

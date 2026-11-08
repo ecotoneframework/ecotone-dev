@@ -15,7 +15,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
@@ -153,7 +152,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel($projection::CHANNEL, true)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 00:00:00')),
+            initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
         );
 
         $ecotone->deleteProjection($projection::NAME)
@@ -179,7 +178,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
             extensionObjects: [DbalBackedMessageChannelBuilder::create($projection::CHANNEL)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 00:00:00')),
+            initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
         );
 
         $ecotone->deleteProjection($projection::NAME)

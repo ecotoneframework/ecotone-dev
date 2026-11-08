@@ -221,7 +221,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             ],
             extensionObjects: [DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
-            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 12:00:00')),
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00'),
         );
 
         /** @var PollableChannel $messageChannel */
@@ -252,7 +252,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             ],
             extensionObjects: [DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
-            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-01-01 12:00:00')),
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00'),
         );
 
         /** @var PollableChannel $messageChannel */

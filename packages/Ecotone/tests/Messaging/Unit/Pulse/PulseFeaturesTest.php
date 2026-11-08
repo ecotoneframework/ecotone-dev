@@ -19,6 +19,7 @@ use Ecotone\Api\Attribute\Orchestrator;
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -245,6 +246,42 @@ final class PulseFeaturesTest extends TestCase
         self::assertSame('off', $sending['settings']['Message collector']);
         self::assertSame('collector on, no retry, failed sends to notification_errors', $sending['settings']['Channel notifications']);
         self::assertStringContainsString('sent at once', $sending['hint']);
+    }
+
+    public function test_combined_channels_report_the_channels_a_message_passes_through_and_the_handlers_using_them(): void
+    {
+        $handlers = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
+            public function place(string $orderId): void
+            {
+            }
+
+            #[Asynchronous(['outbox', 'payments'])]
+            #[CommandHandler('order.pay', endpointId: 'order.pay.endpoint')]
+            public function pay(string $orderId): void
+            {
+            }
+        };
+
+        $outbox = $this->coreFeatures($handlers, [
+            SimpleMessageChannelBuilder::createQueueChannel('outbox'),
+            SimpleMessageChannelBuilder::createQueueChannel('payments'),
+            CombinedMessageChannel::create('orders', ['outbox', 'payments']),
+        ])['Combined channels (outbox)'];
+
+        self::assertTrue($outbox['enabled']);
+        self::assertSame(['Channel orders' => 'outbox, then payments'], $outbox['settings']);
+        self::assertSame(['order.place.endpoint: orders', 'order.pay.endpoint: outbox, then payments'], $outbox['handlers']);
+        self::assertStringContainsString('goes through each of its channels in turn', $outbox['hint']);
+    }
+
+    public function test_a_service_without_combined_channels_reports_the_outbox_off(): void
+    {
+        $outbox = $this->coreFeatures($this->orders())['Combined channels (outbox)'];
+
+        self::assertFalse($outbox['enabled']);
+        self::assertSame("CombinedMessageChannel::create('orders', ['outbox', 'orders_broker'])", $outbox['configuration']);
     }
 
     public function test_distributed_handlers_and_orchestrators_are_listed_under_their_feature(): void

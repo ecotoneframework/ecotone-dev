@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\OutboxForwardingMessageChannel;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -148,6 +149,26 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
         self::assertSame(['Channel notifications' => 'batch publishing', 'Channel orders' => 'one message at a time'], $publishing['settings']);
         self::assertStringContainsString('notifications: the messages sent in one handler call are written together', $publishing['hint']);
         self::assertSame("->withHighThroughputPublishing() on the channel's builder", $publishing['configuration']);
+    }
+
+    public function test_outbox_forwarding_reports_where_it_forwards_and_how_many_messages_a_run_moves(): void
+    {
+        $forwarding = $this->featuresOf([
+            OutboxForwardingMessageChannel::create('payments', DbalBackedMessageChannelBuilder::create('payments_outbox'), 'payments_broker')->withMaxForwardingBatchSize(250),
+            SimpleMessageChannelBuilder::createQueueChannel('payments_broker'),
+        ], 'dbal')['Outbox forwarding'];
+
+        self::assertTrue($forwarding['enabled']);
+        self::assertSame(['Channel payments' => 'from payments_outbox to payments_broker, up to 250 messages per run, run with ecotone:run payments_outbox'], $forwarding['settings']);
+        self::assertStringContainsString('instead of a consumer handling them one by one', $forwarding['hint']);
+    }
+
+    public function test_without_outbox_forwarding_the_feature_is_off_with_the_channel_that_enables_it(): void
+    {
+        $forwarding = $this->featuresOf([], 'dbal')['Outbox forwarding'];
+
+        self::assertFalse($forwarding['enabled']);
+        self::assertSame("OutboxForwardingMessageChannel::create('orders', DbalBackedMessageChannelBuilder::create('outbox'), 'orders_broker')", $forwarding['configuration']);
     }
 
     public function test_transactions_turned_off_on_an_entry_point_or_an_endpoint_are_reported_where_they_are_off(): void

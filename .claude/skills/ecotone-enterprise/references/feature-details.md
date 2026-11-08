@@ -158,7 +158,8 @@ Each step is an independent `#[InternalHandler]` -- testable in isolation, reusa
 
 #### You'll Know You Need This When
 
-- You're running 3+ microservices that need to exchange commands and events
+- You're running two or more services that need to exchange commands and events -- `DistributedBus` is registered
+  only by a `DistributedServiceMap`, so every Distributed Bus is this Enterprise feature, over a single broker too
 - Different services use different message brokers (some RabbitMQ, some SQS) and you need them to communicate
 - You're migrating from one broker to another and want to do it incrementally without rewriting application code
 - Building custom inter-service messaging wiring for each service pair has become unsustainable

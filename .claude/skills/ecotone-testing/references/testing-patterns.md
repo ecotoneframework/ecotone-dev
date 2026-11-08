@@ -94,15 +94,15 @@ public function test_with_dbal_module(): void
 | "Cannot move time backwards" | `changeTimeTo()` earlier than the test clock | Use a later time or `advanceTimeBy()` |
 | Message not processed | Async handler not run | Call `$ecotone->run('channelName')` |
 | "Module not found" | Wrong `ModulePackageList` config | Check `enabledModules: [...]` lists the needed packages |
-| Database errors | Missing DSN env vars | Run inside Docker container with env vars set |
-| Lowest dependency failures | API differences between versions | Test both `--prefer-lowest` and latest |
+| Database errors | The connection handed to the test points at no reachable database | Build the `DbalConnectionFactory` from your test environment's DSN, or leave it out to run in memory |
 
 ## Common Mistakes
 
 - **Don't** use raw PHPUnit mocking instead of EcotoneLite -- use the framework's test support
 - **Don't** create separate fixture class files for test-only handlers -- use inline anonymous classes, aggregates
-  included. `docs/coding-conventions.md` rule 11 is the single statement of this rule, including the two cases where
-  PHP forces a named class below the `TestCase`
+  included, registered with `$fixture::class`. Name a class only where PHP forces one: a class used as a type
+  declaration (a command, event or query the handler type-hints), or one named inside another class's attribute
+  argument, which has to be a constant expression
 - **Don't** test implementation details -- test behavior from the end-user perspective
 - **Don't** forget to call `->run('channel')` for async handlers -- messages won't process otherwise
 - **Don't** reach for in-memory switches to keep a test off the database -- leave the connection out instead

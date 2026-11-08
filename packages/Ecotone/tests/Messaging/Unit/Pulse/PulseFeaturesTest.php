@@ -32,6 +32,8 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
+use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -219,6 +221,30 @@ final class PulseFeaturesTest extends TestCase
         self::assertStringContainsString('resend: the message is sent back to its channel, so the consumer goes on with the next messages', $failure['hint']);
         self::assertStringContainsString('stop: the consumer stops and the message stays in the channel', $failure['hint']);
         self::assertSame("->withFinalFailureStrategy(FinalFailureStrategy::STOP) on the channel's builder", $failure['configuration']);
+    }
+
+    public function test_resilient_sending_by_default_collects_messages_and_retries_a_failed_send_twice(): void
+    {
+        $sending = $this->coreFeatures($this->orders(), [SimpleMessageChannelBuilder::createQueueChannel('orders')])['Resilient sending'];
+
+        self::assertTrue($sending['enabled']);
+        self::assertSame(['Message collector' => 'on', 'Sending retries' => '2 retries: after 1 ms and 20 ms', 'Error channel for failed sends' => 'none'], $sending['settings']);
+        self::assertStringContainsString('collected and sent only once the handler that produced them has finished', $sending['hint']);
+        self::assertSame('GlobalPollableChannelConfiguration::createWithDefaults()->withCollector(true)', $sending['configuration']);
+    }
+
+    public function test_resilient_sending_reports_a_channel_that_overrides_the_global_configuration(): void
+    {
+        $sending = $this->coreFeatures($this->orders(), [
+            SimpleMessageChannelBuilder::createQueueChannel('orders'),
+            SimpleMessageChannelBuilder::createQueueChannel('notifications'),
+            GlobalPollableChannelConfiguration::createWithDefaults()->withCollector(false),
+            PollableChannelConfiguration::neverRetry('notifications')->withErrorChannel('notification_errors'),
+        ])['Resilient sending'];
+
+        self::assertSame('off', $sending['settings']['Message collector']);
+        self::assertSame('collector on, no retry, failed sends to notification_errors', $sending['settings']['Channel notifications']);
+        self::assertStringContainsString('sent at once', $sending['hint']);
     }
 
     public function test_distributed_handlers_and_orchestrators_are_listed_under_their_feature(): void

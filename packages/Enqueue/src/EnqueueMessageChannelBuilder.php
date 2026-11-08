@@ -5,6 +5,7 @@ namespace Ecotone\Enqueue;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
+use Ecotone\Messaging\Channel\HighThroughputPublishingChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -13,7 +14,7 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 /**
  * licence Apache-2.0
  */
-abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder, FinalFailureStrategyChannelBuilder
+abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder, FinalFailureStrategyChannelBuilder, HighThroughputPublishingChannelBuilder
 {
     protected EnqueueInboundChannelAdapterBuilder $inboundChannelAdapter;
     protected EnqueueOutboundChannelAdapterBuilder $outboundChannelAdapter;
@@ -129,6 +130,11 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
             $this->outboundChannelAdapter->compile($builder),
             $this->supportsBatchMessages(),
         ]);
+    }
+
+    public function isBatchPublishingEnabled(): bool
+    {
+        return $this->supportsBatchMessages();
     }
 
     protected function supportsBatchMessages(): bool

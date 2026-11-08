@@ -15,6 +15,7 @@ description: >-
 
 - Committing work, pushing a branch, or opening or updating a pull request
 - The user asks to "create a PR", "open a PR", "push this", or "ship it"
+- Pushing more commits to a branch whose pull request is already open: a fix, a merge from `main`, a rebase
 
 ## Rules
 
@@ -33,9 +34,13 @@ downstream suites for a core change, `php bin/check-licence.php`, `php bin/check
 - **Verified by:** `eval:open-pr`
 
 ### P3. Three independent reviews report back before anything is pushed
-Before `git push` or `gh pr create`, start **three separate review sessions**, each with a fresh context — a new
-agent session or a fresh subagent, never a fork of the implementing conversation, so no review is anchored on the
-implementer's reasoning. Give each only: the diff range (`git diff main...HEAD`), the problem the change solves in
+Before every `git push` and `gh pr create`, start **three separate review sessions** automatically: the agent
+launches them itself, without asking whether to, every time the branch is about to be published. That includes a
+push to a pull request that is already open (new commits, a merge from `main`, a rebase), and a request worded
+"now", "just push" or "create the PR now", which asks for no further questions, not for no reviews. Only the
+maintainer saying in so many words to skip the reviews for this push skips them, and the agent says in its report
+that they were skipped. Each session has a fresh context — a new agent session or a fresh subagent, never a fork
+of the implementing conversation, so no review is anchored on the implementer's reasoning. Give each only: the diff range (`git diff main...HEAD`), the problem the change solves in
 the reporter's terms, and the skill to load:
 
 | Session | Loads | Verifies |
@@ -50,9 +55,10 @@ worktree (`git worktree add`), so no session changes the tree another is reading
 compose services. Fix every
 BLOCKING finding (or get the maintainer's explicit decision on it), re-run the session that raised it, and only
 then push.
-- **Expected:** the agent launches three separate, fresh-context reviews (one per review skill) and waits for all
-  three reports before pushing or opening the PR; it does not review the change itself in place of them.
-- **Verified by:** `eval:open-pr`
+- **Expected:** the agent launches three separate, fresh-context reviews (one per review skill) on its own, without
+  asking, and waits for all three reports before pushing or opening the PR, also when the PR is already open or the
+  user asks for it "now"; it does not review the change itself in place of them.
+- **Verified by:** `eval:open-pr`, `eval:update-open-pr`
 
 ### P4. The PR body is drafted from the template and agreed before publishing
 Title and branch use a conventional prefix (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`). The body follows

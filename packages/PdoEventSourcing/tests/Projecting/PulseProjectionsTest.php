@@ -170,7 +170,11 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
     {
         $this->bootstrap('dbal', [$this->asynchronousProjection()], extensionObjects: [DbalConfiguration::createWithDefaults()->withoutTransactionOnAsynchronousEndpoints(['tickets_async_channel'])]);
 
-        $consumer = array_column($this->requestSnapshot()['consumers'], 'features', 'name')['tickets_async_channel'];
+        $snapshot = $this->requestSnapshot();
+        $consumer = array_column($snapshot['consumers'], 'features', 'name')['tickets_async_channel'];
+        $instantRetries = array_column(array_column($snapshot['packages'], 'features', 'name')['core'], null, 'name')['Instant retries on asynchronous endpoints'];
+
+        self::assertSame('by default, to endpoints running in a database transaction', $instantRetries['settings']['Applied']);
 
         self::assertContains(['name' => 'Instant retries', 'value' => '3 retries on any exception, as the projection manages its own transaction', 'scope' => 'global', 'handler' => null], $consumer);
     }

@@ -135,7 +135,7 @@ final class PulseModule implements AnnotationModule
                 self::packagesOf($bootstrapConfiguration, [
                     self::serviceConfigurationFeature($serviceConfiguration),
                     ...ExtensionObjectResolver::resolve(PulseFeature::class, $extensionObjects),
-                    ...array_merge(...array_map(static fn (InstantRetryPulseFeatures $instantRetries): array => $instantRetries->under(InstantRetryDefaults::from($extensionObjects)), ExtensionObjectResolver::resolve(InstantRetryPulseFeatures::class, $extensionObjects))),
+                    ...array_merge(...array_map(static fn (InstantRetryPulseFeatures $instantRetries): array => $instantRetries->under(InstantRetryDefaults::from($extensionObjects), self::projectionChannels($extensionObjects)), ExtensionObjectResolver::resolve(InstantRetryPulseFeatures::class, $extensionObjects))),
                 ]),
                 [
                     ...array_map(static fn (PulseConsumerFeature $feature): array => $feature->toArray(), ExtensionObjectResolver::resolve(PulseConsumerFeature::class, $extensionObjects)),

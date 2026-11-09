@@ -264,14 +264,14 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
 
     public function test_a_handler_whose_class_runs_without_a_database_transaction_shows_no_transaction_and_no_default_instant_retries(): void
     {
-        $orders = new #[WithoutDatabaseTransaction] class () {
+        $handlers = new #[WithoutDatabaseTransaction] class () {
             #[Asynchronous('orders')]
             #[EventHandler('order.shipped', endpointId: 'order.shipped.endpoint')]
             public function whenShipped(string $order): void
             {
             }
         };
-        $orders = array_column($this->reportedBy($orders, [])[2]['consumers'], 'features', 'name')['orders'];
+        $orders = array_column($this->reportedBy($handlers, [])[2]['consumers'], 'features', 'name')['orders'];
 
         self::assertContains(['name' => 'Database transaction', 'value' => 'off', 'scope' => 'consumer-level config', 'handler' => 'order.shipped.endpoint'], $orders);
         self::assertContains(['name' => 'Instant retries', 'value' => 'off, runs without a database transaction', 'scope' => 'consumer-level config', 'handler' => 'order.shipped.endpoint'], $orders);

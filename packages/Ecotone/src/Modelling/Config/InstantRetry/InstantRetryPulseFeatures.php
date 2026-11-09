@@ -68,11 +68,12 @@ final class InstantRetryPulseFeatures
     }
 
     /**
+     * @param list<string> $projectionChannels
      * @return PulseFeature[]
      */
-    public function under(InstantRetryDefaults $defaults): array
+    public function under(InstantRetryDefaults $defaults, array $projectionChannels): array
     {
-        return [$this->asynchronousEndpoints($defaults), $this->commandBus($defaults)];
+        return [$this->asynchronousEndpoints($defaults, $projectionChannels), $this->commandBus($defaults)];
     }
 
     /**
@@ -96,11 +97,14 @@ final class InstantRetryPulseFeatures
         ];
     }
 
-    private function asynchronousEndpoints(InstantRetryDefaults $defaults): PulseFeature
+    /**
+     * @param list<string> $projectionChannels
+     */
+    private function asynchronousEndpoints(InstantRetryDefaults $defaults, array $projectionChannels): PulseFeature
     {
         $retryTimes = $this->configuration->asynchronousRetryTimes;
         $exceptions = PulseFeature::exceptionsOf($this->configuration->asynchronousExceptions);
-        $excluded = $defaults->databaseTransactions->asynchronousEndpointsWithoutTransaction;
+        $excluded = array_values(array_diff($defaults->databaseTransactions->asynchronousEndpointsWithoutTransaction, $projectionChannels));
         $isEnabled = $this->configuration->isEnabledForAsynchronousEndpoints ?? $defaults->forAsynchronousEndpoints();
         $override = ' An endpoint with #[InstantRetry] uses its own count instead.';
 

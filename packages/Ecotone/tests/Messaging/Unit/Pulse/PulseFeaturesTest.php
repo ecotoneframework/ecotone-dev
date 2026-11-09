@@ -349,7 +349,7 @@ final class PulseFeaturesTest extends TestCase
         self::assertSame(['stop, as the consumer stops on error'], array_values(array_map(static fn (array $feature): string => $feature['value'], array_filter($features, static fn (array $feature): bool => $feature['name'] === 'Final failure strategy'))));
     }
 
-    public function test_a_value_set_for_a_consumer_replaces_the_global_one(): void
+    public function test_a_consumer_error_channel_replaces_the_default_error_channel(): void
     {
         $handlers = new class () {
             #[Asynchronous('payments')]

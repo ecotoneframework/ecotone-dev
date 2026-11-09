@@ -121,7 +121,7 @@ final class HandlerSourceScanner
                 }
                 $helper = $this->scanMethods([$helperKey => [$className, $call['method']]], $path, $files, $methodFacts, $reflections)[$helperKey];
                 $bindings = $this->bindingsOf($reflections[$helperKey] ??= new ReflectionMethod($className, $call['method']), $call);
-                foreach ($helper->instantiations as $instantiation) {
+                foreach (($call['insideAnotherArgument'] ?? false) ? [] : $helper->instantiations as $instantiation) {
                     if ($instantiation['enclosingCall'] === null) {
                         $instantiation['enclosingCall'] = $call['enclosingCall'];
                         $instantiation['receiver'] = $call['receiver'];
@@ -377,6 +377,8 @@ final class HandlerSourceScanner
         $calls = [];
         $literals = [];
         $enclosingCalls = [];
+        $bracketDepthOfCalls = [];
+        $bracketDepth = 0;
         $variables = [];
         $unresolvable = $this->unresolvableVariablesOf($tokens, $className);
         $returning = false;
@@ -393,14 +395,15 @@ final class HandlerSourceScanner
                     $variables[$token->text] = $this->resolve($tokens[$index + 3], $className, $namespace, $imports);
                 }
             }
+            $insideAnotherArgument = $this->isInsideAnotherArgument($enclosingCalls, $bracketDepthOfCalls, $bracketDepth);
             if ($id === T_NEW && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
                 $resolved = $this->resolve($tokens[$index + 1], $className, $namespace, $imports);
-                if ($resolved !== null) {
+                if ($resolved !== null && ! $insideAnotherArgument && ! ($tokens[$index - 1] ?? null)?->is(T_THROW)) {
                     $instantiations[] = ['class' => $resolved, 'returned' => $returning, 'enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null];
                 }
             } elseif ($id === T_DOUBLE_COLON && isset($tokens[$index - 1], $tokens[$index + 1], $tokens[$index + 2]) && $this->isName($tokens[$index - 1]) && $tokens[$index + 1]->is(T_STRING) && $tokens[$index + 2]->text === '(') {
                 $resolved = $this->resolve($tokens[$index - 1], $className, $namespace, $imports);
-                if ($resolved !== null && $resolved !== $className) {
+                if ($resolved !== null && $resolved !== $className && ! $insideAnotherArgument) {
                     $instantiations[] = ['class' => $resolved, 'returned' => $returning, 'enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null];
                 }
             } elseif ($id === 40) {
@@ -410,11 +413,17 @@ final class HandlerSourceScanner
                     if ($argument?->is(T_VARIABLE) && isset($variables[$argument->text]) && in_array($call['method'], ['publish', 'recordThat', 'send'], true)) {
                         array_unshift($instantiations, ['class' => $variables[$argument->text], 'returned' => false, 'enclosingCall' => $call['method'], 'receiver' => $call['receiver']]);
                     }
-                    $calls[] = $call + ['enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null] + $this->argumentsAt($tokens, $index + 1, $unresolvable, $className, $namespace, $imports, $typedReceivers);
+                    $calls[] = $call + ['enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null, 'insideAnotherArgument' => $insideAnotherArgument] + $this->argumentsAt($tokens, $index + 1, $unresolvable, $className, $namespace, $imports, $typedReceivers);
                 }
                 $enclosingCalls[] = $call;
+                $bracketDepthOfCalls[] = $bracketDepth;
             } elseif ($id === 41) {
                 array_pop($enclosingCalls);
+                array_pop($bracketDepthOfCalls);
+            } elseif ($id === 91) {
+                $bracketDepth++;
+            } elseif ($id === 93) {
+                $bracketDepth--;
             } elseif ($id === T_CONSTANT_ENCAPSED_STRING) {
                 $literals[] = $this->literal($token);
             }
@@ -903,6 +912,19 @@ final class HandlerSourceScanner
      * @param list<array{receiver: string|null, method: string}|null> $enclosingCalls
      * @return array{receiver: string|null, method: string}|null
      */
+    /**
+     * @param list<array{receiver: string|null, method: string}|null> $enclosingCalls
+     * @param list<int> $bracketDepthOfCalls
+     */
+    private function isInsideAnotherArgument(array $enclosingCalls, array $bracketDepthOfCalls, int $bracketDepth): bool
+    {
+        if ($enclosingCalls === []) {
+            return false;
+        }
+
+        return $enclosingCalls[count($enclosingCalls) - 1] === null || $bracketDepth > $bracketDepthOfCalls[count($bracketDepthOfCalls) - 1];
+    }
+
     private function innermostCall(array $enclosingCalls): ?array
     {
         for ($i = count($enclosingCalls) - 1; $i >= 0; $i--) {

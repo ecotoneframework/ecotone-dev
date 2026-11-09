@@ -69,7 +69,7 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 1000));
 
         $this->assertEquals(
             [],
@@ -96,7 +96,7 @@ final class KafkaMessageChannelTest extends TestCase
             $messaging->sendQueryWithRouting('consumer.getMessages')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
 
         $receivedMessage = $messaging->sendQueryWithRouting('consumer.getMessages');
         $this->assertEquals($messagePayload, $receivedMessage[0]['payload']);
@@ -122,11 +122,11 @@ final class KafkaMessageChannelTest extends TestCase
         $messaging
             ->sendCommand(new ScheduleMeeting($calendarId, Uuid::v7()->toRfc4122()));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
         $meetings = $messaging->sendQueryWithRouting('calendar.getMeetings', metadata: ['aggregate.id' => $calendarId]);
         $this->assertEquals($calendarId, $meetings[0]['metadata'][KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME]);
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
         $calendarHistory = $messaging->sendQueryWithRouting('meeting.getHistory');
         $this->assertCount(1, $calendarHistory);
         $this->assertEquals($calendarId, $calendarHistory[0]['metadata'][KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME]);
@@ -149,11 +149,11 @@ final class KafkaMessageChannelTest extends TestCase
                 ]
             );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
         $meetings = $messaging->sendQueryWithRouting('calendar.getMeetings', metadata: ['aggregate.id' => $calendarId]);
         $this->assertEquals('123', $meetings[0]['metadata'][KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME]);
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
         $calendarHistory = $messaging->sendQueryWithRouting('meeting.getHistory');
         $this->assertEquals($calendarId, $calendarHistory[0]['metadata'][KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME]);
     }
@@ -174,7 +174,7 @@ final class KafkaMessageChannelTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 1000));
 
         $this->assertEmpty($messaging->sendQueryWithRouting('consumer.getMessages'));
         ;
@@ -191,10 +191,25 @@ final class KafkaMessageChannelTest extends TestCase
         $messaging->sendCommandWithRouting('execute.example_command', $messagePayload);
         $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 1000));
+        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
+    }
+
+    public function test_a_run_of_an_idle_consumer_whose_partitions_are_assigned_stops_at_its_execution_time_limit(): void
+    {
+        $channelName = 'async';
+        $messaging = $this->prepareAsyncCommandHandler($channelName);
+        $messaging->sendCommandWithRouting('execute.example_command', new ExampleCommand(Uuid::v7()->toRfc4122()));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 20000));
+        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
+
+        $startedAt = hrtime(true);
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 500));
+
+        $this->assertLessThan(5.0, (hrtime(true) - $startedAt) / 1e9);
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
@@ -229,7 +244,7 @@ final class KafkaMessageChannelTest extends TestCase
         $messaging->sendCommandWithRouting('execute.noPayload');
         $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
 
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
@@ -244,7 +259,7 @@ final class KafkaMessageChannelTest extends TestCase
         $messaging->sendCommandWithRouting('execute.arrayPayload', $payload);
         $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
 
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
         $this->assertEquals($payload, $messaging->sendQueryWithRouting('consumer.getMessages')[0]['payload']);
@@ -259,7 +274,7 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging->sendCommandWithRouting('execute.stringPayload', $payload, MediaType::APPLICATION_JSON);
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
 
         $headers = $messaging->sendQueryWithRouting('consumer.getMessages')[0]['headers'];
         $this->assertEquals(
@@ -276,7 +291,7 @@ final class KafkaMessageChannelTest extends TestCase
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
         $messaging->sendCommandWithRouting('execute.example_command', $messagePayload);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
 
         $this->assertEquals(
             ExampleCommand::class,
@@ -298,13 +313,13 @@ final class KafkaMessageChannelTest extends TestCase
             $messaging->sendQueryWithRouting('consumer.getEvents')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
         $this->assertEquals(
             [$messagePayload],
             $messaging->sendQueryWithRouting('consumer.getEvents')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
         $this->assertEquals(
             [$messagePayload, $messagePayload],
             $messaging->sendQueryWithRouting('consumer.getEvents')

@@ -2797,6 +2797,19 @@ time limit at once and the `#[OnConsumerStop]` handler observes the clock moved 
 **How to adapt:** a test that asserted an exact timestamp read after a run of an idle DBAL channel on a pinned clock
 now sees it advanced by the execution time limit; read the clock before the run, or assert the value the run produces.
 
+### A Kafka consumer with assigned partitions honours a short execution time limit
+
+**Before:** every poll of a Kafka consumer waited at least ten seconds (`MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING`),
+also once the consumer group had assigned its partitions, so `ecotone:run orders --executionTimeLimit=1000` or a test
+run with `ExecutionPollingMetadata::createWithTestingSetup()` on an idle topic ended after ten seconds, not one.
+
+**Now:** the ten-second floor applies only while the consumer has no partition assignment yet, which is the time the
+group needs to balance. Once assigned, a poll waits the configured receive timeout bounded by the execution time
+limit, as every other channel does, so an idle run stops at its execution time limit.
+
+**How to adapt:** nothing. A run that relied on the floor to give a rebalance time after a consumer joined later keeps
+its execution time limit at or above ten seconds.
+
 ### Symfony and Laravel `defaultConnectionExceptionRetry` is applied as configured
 
 **Before:** both integrations passed `maxAttempts` as the back-off multiplier and `multiplier` as a maximum delay in

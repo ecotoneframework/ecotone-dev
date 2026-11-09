@@ -2781,6 +2781,22 @@ once it is due, where before a delay shorter than the receive timeout was waited
 being handled in the same run; run again, or bound the run with `--executionTimeLimit` and no
 `--finishWhenNoMessages`.
 
+### A DBAL channel consumer waits through Ecotone's clock
+
+**Before:** a DBAL channel consumer polling an empty queue slept in real time between its polls, whatever clock the
+application ran on. A test on a pinned clock (`bootstrapFlowTesting(initialTime: ...)`) running such a consumer with
+`ExecutionPollingMetadata::createWithTestingSetup()` therefore never reached its 100 ms execution time limit on the
+pinned clock and polled for about ten seconds of real time before another limit stopped it.
+
+**Now:** the consumer sleeps through Ecotone's clock, as the DBAL subscription consumer already did. In production
+that is the system clock and nothing changes. On a pinned test clock, an empty poll advances the clock by the time it
+would have waited (the receive timeout, at most the execution time limit left), so the run stops at its execution
+time limit at once and the `#[OnConsumerStop]` handler observes the clock moved by that limit, e.g.
+`00:00:00.200` after an idle run with the testing setup.
+
+**How to adapt:** a test that asserted an exact timestamp read after a run of an idle DBAL channel on a pinned clock
+now sees it advanced by the execution time limit; read the clock before the run, or assert the value the run produces.
+
 ### Symfony and Laravel `defaultConnectionExceptionRetry` is applied as configured
 
 **Before:** both integrations passed `maxAttempts` as the back-off multiplier and `multiplier` as a maximum delay in

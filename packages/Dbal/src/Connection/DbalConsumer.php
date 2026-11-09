@@ -6,6 +6,7 @@ namespace Ecotone\Dbal\Connection;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\Scheduling\DatePoint;
+use Ecotone\Api\Scheduling\Duration;
 use Interop\Queue\Consumer;
 use Interop\Queue\Exception\InvalidMessageException;
 use Interop\Queue\Impl\ConsumerPollingTrait;
@@ -76,6 +77,32 @@ class DbalConsumer implements Consumer
     public function getQueue(): Queue
     {
         return $this->queue;
+    }
+
+    public function receive(int $timeout = 0): ?Message
+    {
+        $clock = $this->context->getClock();
+        $deadline = $timeout > 0 ? $this->now()->add(Duration::milliseconds($timeout)) : null;
+
+        while (true) {
+            $message = $this->receiveNoWait();
+            if ($message) {
+                return $message;
+            }
+
+            $sleep = Duration::milliseconds($this->getPollingInterval());
+            if ($deadline !== null) {
+                $timeLeft = $deadline->durationSince($this->now());
+                if ($timeLeft->isNegativeOrZero()) {
+                    return null;
+                }
+                if ($timeLeft->isLessThan($sleep)) {
+                    $sleep = $timeLeft;
+                }
+            }
+
+            $clock->sleep($sleep);
+        }
     }
 
     public function receiveNoWait(): ?Message

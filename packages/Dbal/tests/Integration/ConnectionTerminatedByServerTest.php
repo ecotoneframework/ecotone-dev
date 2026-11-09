@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration;
 
 use Closure;
+use DateTimeImmutable;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
@@ -442,6 +443,7 @@ final class ConnectionTerminatedByServerTest extends DbalMessagingTestCase
             [DbalBackedMessageChannelBuilder::create('orders'), DbalBackedMessageChannelBuilder::create('shipping'), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
         );
     }
 

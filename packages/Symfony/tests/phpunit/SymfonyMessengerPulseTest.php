@@ -39,9 +39,10 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class SymfonyMessengerPulseTest extends WebTestCase
 {
+    use RestoresGlobalHandlers;
+
     protected function tearDown(): void
     {
-        restore_exception_handler();
         static::ensureKernelShutdown();
     }
 

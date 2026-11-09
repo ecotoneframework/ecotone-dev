@@ -3645,7 +3645,9 @@ The snapshot also carries a `packages` list: one `{name, composerPackage, versio
 service has installed, a package that needs no table included, where each feature is `{name, enabled, settings,
 handlers, hint, configuration}`. Each table in the `setup` section names its `package`, and `overview.licence` is
 `{enterprise, expiresAt, testing}`, where `expiresAt` is the licence's expiry as an ATOM date (it was always `null`
-before) and `testing` is `true` on Ecotone's testing licence. All of it is additive and `schemaVersion` stays `1`: an
+before) and `testing` is `true` on Ecotone's testing licence. A `consumers` list names every consumer the
+service can run, `{name, kind, handlers, features}`, where `kind` is `polling` or `inbound` and each feature is `{name, value,
+scope, handler}` with `scope` either `global` or `consumer-level config`. All of it is additive and `schemaVersion` stays `1`: an
 older Pulse ignores the new keys, and a newer Pulse shows the tables of an older service in one list, without packages,
 and its licence expiry as unknown.
 

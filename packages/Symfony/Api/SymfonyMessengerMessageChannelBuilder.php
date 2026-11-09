@@ -6,6 +6,7 @@ namespace Ecotone\Api\Symfony;
 
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
+use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -21,7 +22,7 @@ use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannel;
 /**
  * licence Apache-2.0
  */
-final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuilder
+final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuilder, FinalFailureStrategyChannelBuilder
 {
     private const TRANSPORT_SERVICE_PREFIX = 'messenger.transport.';
 
@@ -60,6 +61,16 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
         $this->headerMapper = DefaultHeaderMapper::createWith($headerMapper, $headerMapper);
 
         return $this;
+    }
+
+    public function getFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return $this->finalFailureStrategy;
+    }
+
+    public function getDefaultFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return FinalFailureStrategy::RESEND;
     }
 
     public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self

@@ -8,6 +8,7 @@ use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Laravel\Queue\LaravelQueueAcknowledgementCallback;
 use Ecotone\Laravel\Queue\LaravelQueueMessageChannel;
+use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -23,7 +24,7 @@ use Illuminate\Support\Facades\Config;
 /**
  * licence Apache-2.0
  */
-final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder
+final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder, FinalFailureStrategyChannelBuilder
 {
     private HeaderMapper $headerMapper;
 
@@ -73,6 +74,16 @@ final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSeria
         $this->defaultOutboundConversionMediaType = $mediaType;
 
         return $this;
+    }
+
+    public function getFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return $this->finalFailureStrategy;
+    }
+
+    public function getDefaultFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return FinalFailureStrategy::RESEND;
     }
 
     public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self

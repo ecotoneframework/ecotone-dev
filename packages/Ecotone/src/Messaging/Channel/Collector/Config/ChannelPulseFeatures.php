@@ -98,11 +98,11 @@ final class ChannelPulseFeatures
         $global = ExtensionObjectResolver::resolveUnique(GlobalPollableChannelConfiguration::class, $serviceExtensions, GlobalPollableChannelConfiguration::createWithDefaults());
         $settings = [
             'Message collector' => PulseFeature::onOff($global->isCollectorEnabled()),
-            'Sending retries' => $global->getRetryTemplate()->describe(),
+            'Sending retries' => PulseFeature::retryScheduleOf($global->getRetryTemplate()),
             'Error channel for failed sends' => $global->getErrorChannelName() ?? 'none',
         ];
         foreach (ExtensionObjectResolver::resolve(PollableChannelConfiguration::class, $serviceExtensions) as $channel) {
-            $settings['Channel ' . $channel->getChannelName()] = sprintf('collector %s, %s, failed sends to %s', PulseFeature::onOff($channel->isCollectorEnabled()), $channel->getRetryTemplate()->describe(), $channel->getErrorChannelName() ?? 'nowhere');
+            $settings['Channel ' . $channel->getChannelName()] = sprintf('collector %s, %s, failed sends to %s', PulseFeature::onOff($channel->isCollectorEnabled()), PulseFeature::retryScheduleOf($channel->getRetryTemplate()), $channel->getErrorChannelName() ?? 'nowhere');
         }
 
         return new PulseFeature(
@@ -114,7 +114,7 @@ final class ChannelPulseFeatures
             hint: ($global->isCollectorEnabled()
                 ? 'Messages for asynchronous channels are collected and sent only once the handler that produced them has finished, just before its transaction commits, so a failed handler sends none of them. On a database channel in the same transaction they become visible only when it commits; a broker channel receives them just before the commit, so its consumer may read one before the data is committed.'
                 : 'Messages for asynchronous channels are sent at once, while the handler is still running, so a handler that fails afterwards has already sent them.')
-                . sprintf(' A send that fails is retried: %s%s.', $global->getRetryTemplate()->describe(), $global->getErrorChannelName() === null ? ', then the failure reaches the sender' : ", then the message goes to error channel '" . $global->getErrorChannelName() . "'")
+                . sprintf(' A send that fails is retried: %s%s.', PulseFeature::retryScheduleOf($global->getRetryTemplate()), $global->getErrorChannelName() === null ? ', then the failure reaches the sender' : ", then the message goes to error channel '" . $global->getErrorChannelName() . "'")
                 . ' A channel listed here has its own configuration instead.',
             configuration: 'GlobalPollableChannelConfiguration::createWithDefaults()->withCollector(true)',
         );

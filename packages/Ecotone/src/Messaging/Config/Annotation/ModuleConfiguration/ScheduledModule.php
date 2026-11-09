@@ -8,7 +8,6 @@ use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycleBuilder;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
@@ -44,11 +43,6 @@ class ScheduledModule extends ConsumerRegisterConfiguration
             ->withEndpointId($annotation->getEndpointId())
             ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames())
             ->withEndpointAnnotations($annotationRegistration->getAllAnnotationDefinitions());
-    }
-
-    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
-    {
-        return ScheduledPulseFeatures::reportedFor($serviceExtensions, $this->consumerRegistrations());
     }
 
     public function getModulePackageName(): string

@@ -78,29 +78,6 @@ final class RetryTemplate implements DefinedObject
         return $this->delayForRetryNumber($retryNumber - 1) * $this->multiplier;
     }
 
-    public function describe(): string
-    {
-        $shown = 5;
-        $delays = [];
-        for ($retryNumber = self::FIRST_RETRY; $retryNumber <= $shown && $this->canBeCalledNextTime($retryNumber); $retryNumber++) {
-            $delays[] = $this->delayForRetryNumber($retryNumber) . ' ms';
-        }
-        $retries = 0;
-        while ($retries < 1000 && $this->canBeCalledNextTime($retries + 1)) {
-            $retries++;
-        }
-
-        if ($delays === []) {
-            return 'no retry';
-        }
-        $schedule = count($delays) === 1 ? $delays[0] : implode(', ', array_slice($delays, 0, -1)) . ' and ' . end($delays);
-        if ($retries === 1000) {
-            return 'retries without a limit: after ' . implode(', ', $delays) . ', each next delay ' . $this->multiplier . ' times longer';
-        }
-
-        return sprintf('%d %s: after %s%s', $retries, $retries === 1 ? 'retry' : 'retries', $schedule, $retries > $shown ? ', …' : '');
-    }
-
     public function getMaxAttempts(): ?int
     {
         return $this->maxAttempts;

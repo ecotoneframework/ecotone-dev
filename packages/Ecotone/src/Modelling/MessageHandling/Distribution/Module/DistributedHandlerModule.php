@@ -52,12 +52,10 @@ final class DistributedHandlerModule implements AnnotationModule
 
     public static function create(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        $distributedRegistrations = [];
         $commandBusDistributedRoutes = new BusRoutingMapBuilder();
         foreach ($annotationFinder->findAnnotatedMethods(CommandHandler::class) as $registration) {
             if ($registration->hasAnnotation(Distributed::class)) {
                 $commandBusDistributedRoutes->addRoutesFromAnnotatedFinding($registration, $interfaceToCallRegistry);
-                $distributedRegistrations[] = $registration;
             }
         }
 
@@ -65,10 +63,9 @@ final class DistributedHandlerModule implements AnnotationModule
         foreach ($annotationFinder->findAnnotatedMethods(EventHandler::class) as $registration) {
             if ($registration->hasAnnotation(Distributed::class)) {
                 $eventBusDistributedRoutes->addRoutesFromAnnotatedFinding($registration, $interfaceToCallRegistry);
-                $distributedRegistrations[] = $registration;
             }
         }
-        return new self(commandBusDistributedRoutes: $commandBusDistributedRoutes, eventBusDistributedRoutes: $eventBusDistributedRoutes, distributedRegistrations: $distributedRegistrations);
+        return new self(commandBusDistributedRoutes: $commandBusDistributedRoutes, eventBusDistributedRoutes: $eventBusDistributedRoutes, distributedRegistrations: DistributedBusPulseFeatures::distributedHandlersOf($annotationFinder));
     }
 
     /**

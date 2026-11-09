@@ -17,7 +17,6 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -59,7 +58,6 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
     {
         $perHandlerRetryConfigurations = [];
         $endpointDelayedRetries = [];
-        $endpointErrorChannels = [];
         $gatewayDelayedRetries = [];
 
         foreach ($annotationRegistrationService->findAnnotatedMethods(DelayedRetry::class) as $delayedRetryMethod) {
@@ -85,9 +83,6 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
                     $delayedRetry = $endpointAnnotation;
                 } elseif ($endpointAnnotation instanceof ErrorChannel) {
                     $hasErrorChannel = true;
-                    if ($asynchronousMethod->hasMethodAnnotation(IdentifiedAnnotation::class)) {
-                        $endpointErrorChannels[] = [$asynchronousMethod->getMethodAnnotationsWithType(IdentifiedAnnotation::class)[0]->getEndpointId(), $endpointAnnotation->errorChannelName];
-                    }
                 }
             }
             if ($delayedRetry === null) {
@@ -147,7 +142,7 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
             $gatewayDelayedRetries[] = [$gatewayInterfaceFqn, $errorHandlerConfiguration];
         }
 
-        return new self(perHandlerRetryConfigurations: $perHandlerRetryConfigurations, endpointDelayedRetries: $endpointDelayedRetries, gatewayDelayedRetries: $gatewayDelayedRetries, endpointErrorChannels: $endpointErrorChannels);
+        return new self(perHandlerRetryConfigurations: $perHandlerRetryConfigurations, endpointDelayedRetries: $endpointDelayedRetries, gatewayDelayedRetries: $gatewayDelayedRetries, endpointErrorChannels: ErrorHandlerPulseFeatures::errorChannelsOf($annotationRegistrationService));
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

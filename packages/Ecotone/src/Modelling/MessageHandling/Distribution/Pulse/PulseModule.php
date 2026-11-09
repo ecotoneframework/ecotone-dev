@@ -231,7 +231,7 @@ final class PulseModule implements AnnotationModule
     private static function serviceConfigurationFeature(ServiceConfiguration $serviceConfiguration): PulseFeature
     {
         $memoryLimit = $serviceConfiguration->defaultMemoryLimitInMegabytes;
-        $connectionRetries = $serviceConfiguration->connectionRetryTemplate?->build()->describe() ?? 'none';
+        $connectionRetries = $serviceConfiguration->connectionRetryTemplate === null ? 'none' : PulseFeature::retryScheduleOf($serviceConfiguration->connectionRetryTemplate->build());
 
         return new PulseFeature(
             package: ModulePackageList::CORE_PACKAGE,

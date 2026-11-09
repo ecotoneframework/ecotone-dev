@@ -48,12 +48,9 @@ final class InstantRetryPulseFeatures
 
     /**
      * @param object[] $serviceExtensions
-     * @param array<string, InstantRetry> $commandBusOverrides
-     * @param list<array{string, InstantRetry}> $endpointOverrides
-     * @param list<string> $handlersWithoutTransaction
      * @return self[]
      */
-    public static function reportedFor(array $serviceExtensions, array $commandBusOverrides, array $endpointOverrides, array $handlersWithoutTransaction): array
+    public static function reportedFor(array $serviceExtensions, InstantRetryPulseAnnotations $annotations): array
     {
         if (! PulseFeature::isReportedFor($serviceExtensions)) {
             return [];
@@ -61,9 +58,9 @@ final class InstantRetryPulseFeatures
 
         return [new self(
             configuration: ExtensionObjectResolver::resolveUnique(InstantRetryConfiguration::class, $serviceExtensions, InstantRetryConfiguration::createWithDefaults()),
-            commandBusOverrides: $commandBusOverrides,
-            endpointOverrides: $endpointOverrides,
-            handlersWithoutTransaction: $handlersWithoutTransaction,
+            commandBusOverrides: $annotations->commandBusOverrides,
+            endpointOverrides: $annotations->endpointOverrides,
+            handlersWithoutTransaction: $annotations->handlersWithoutTransaction,
         )];
     }
 

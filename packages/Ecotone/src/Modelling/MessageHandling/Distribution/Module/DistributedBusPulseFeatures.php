@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\MessageHandling\Distribution\Module;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
+use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 
@@ -30,6 +34,17 @@ use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
  */
 final class DistributedBusPulseFeatures
 {
+    /**
+     * @return AnnotatedFinding[]
+     */
+    public static function distributedHandlersOf(AnnotationFinder $annotationFinder): array
+    {
+        return array_values(array_filter(
+            [...$annotationFinder->findAnnotatedMethods(CommandHandler::class), ...$annotationFinder->findAnnotatedMethods(EventHandler::class)],
+            static fn (AnnotatedFinding $registration): bool => $registration->hasAnnotation(Distributed::class),
+        ));
+    }
+
     /**
      * @param object[] $serviceExtensions
      * @param AnnotatedFinding[] $distributedRegistrations

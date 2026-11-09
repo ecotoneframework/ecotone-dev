@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
+use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\Poller;
@@ -25,8 +26,9 @@ final class PollerModule extends NoExternalConfigurationModule implements Annota
 
     /**
      * @param PollingMetadata[] $pollingMetadata
+     * @param AnnotatedFinding[] $scheduledEndpoints
      */
-    public function __construct(array $pollingMetadata)
+    public function __construct(array $pollingMetadata, private array $scheduledEndpoints)
     {
         $this->pollingMetadata = $pollingMetadata;
     }
@@ -61,7 +63,7 @@ final class PollerModule extends NoExternalConfigurationModule implements Annota
             }
         }
 
-        return new self($multiplePollingMetadata);
+        return new self($multiplePollingMetadata, ScheduledPulseFeatures::scheduledEndpointsOf($annotationRegistrationService));
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -73,7 +75,10 @@ final class PollerModule extends NoExternalConfigurationModule implements Annota
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return ScheduledPulseFeatures::pollerFeaturesFor($serviceExtensions, $this->pollingMetadata);
+        return [
+            ...ScheduledPulseFeatures::reportedFor($serviceExtensions, $this->scheduledEndpoints),
+            ...ScheduledPulseFeatures::pollerFeaturesFor($serviceExtensions, $this->pollingMetadata),
+        ];
     }
 
     public function getModulePackageName(): string

@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
+use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\ErrorChannel;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseConsumerFeature;
@@ -151,6 +155,26 @@ final class ErrorHandlerPulseFeatures
     }
 
     /**
+     * @return list<array{string, string}>
+     */
+    public static function errorChannelsOf(AnnotationFinder $annotationFinder): array
+    {
+        $errorChannels = [];
+        foreach ($annotationFinder->findAnnotatedMethods(Asynchronous::class) as $asynchronousMethod) {
+            if (! $asynchronousMethod->hasMethodAnnotation(IdentifiedAnnotation::class)) {
+                continue;
+            }
+            foreach ($asynchronousMethod->getAnnotationForMethod()->asynchronousExecution as $endpointAnnotation) {
+                if ($endpointAnnotation instanceof ErrorChannel) {
+                    $errorChannels[] = [$asynchronousMethod->getMethodAnnotationsWithType(IdentifiedAnnotation::class)[0]->getEndpointId(), $endpointAnnotation->errorChannelName];
+                }
+            }
+        }
+
+        return $errorChannels;
+    }
+
+    /**
      * @param object[] $serviceExtensions
      */
     public static function delayedRetriesOn(array $serviceExtensions, string $errorChannelName): string
@@ -166,6 +190,6 @@ final class ErrorHandlerPulseFeatures
 
     private static function scheduleOf(RetryTemplate $retryTemplate, ?string $deadLetterChannel): string
     {
-        return $retryTemplate->describe() . ($deadLetterChannel === null ? ', then no further retry' : ', then dead letter channel ' . $deadLetterChannel);
+        return PulseFeature::retryScheduleOf($retryTemplate) . ($deadLetterChannel === null ? ', then no further retry' : ', then dead letter channel ' . $deadLetterChannel);
     }
 }

@@ -10,6 +10,7 @@ use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 
 /**
  * licence Enterprise
@@ -118,6 +119,32 @@ final class PulseFeature
         }
 
         return $milliseconds . ' ms';
+    }
+
+    public static function retryScheduleOf(RetryTemplate $retryTemplate): string
+    {
+        $shown = 5;
+        $delays = [];
+        for ($retryNumber = 1; $retryNumber <= $shown && $retryTemplate->canBeCalledNextTime($retryNumber); $retryNumber++) {
+            $delays[] = $retryTemplate->calculateNextDelay($retryNumber) . ' ms';
+        }
+        $unlimited = 1000;
+        $retries = 0;
+        while ($retries < $unlimited && $retryTemplate->canBeCalledNextTime($retries + 1)) {
+            $retries++;
+        }
+
+        if ($delays === []) {
+            return 'no retry';
+        }
+        $schedule = count($delays) === 1 ? $delays[0] : implode(', ', array_slice($delays, 0, -1)) . ' and ' . end($delays);
+        if ($retries === $unlimited) {
+            $firstDelay = $retryTemplate->calculateNextDelay(1);
+
+            return 'retries without a limit: after ' . implode(', ', $delays) . ($firstDelay > 0 ? ', each next delay ' . intdiv($retryTemplate->calculateNextDelay(2), $firstDelay) . ' times longer' : '');
+        }
+
+        return sprintf('%d %s: after %s%s', $retries, $retries === 1 ? 'retry' : 'retries', $schedule, $retries > $shown ? ', …' : '');
     }
 
     public static function retriesOf(int $retryTimes): string

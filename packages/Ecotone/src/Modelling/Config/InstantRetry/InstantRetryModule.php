@@ -4,15 +4,12 @@ namespace Ecotone\Modelling\Config\InstantRetry;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\Precedence;
-use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
-use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
@@ -21,7 +18,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Modelling\Config\DatabaseTransaction\AsynchronousHandlersWithoutTransaction;
 use Ecotone\Modelling\Config\DatabaseTransaction\CommandsWithoutDatabaseTransaction;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
 use Symfony\Component\Uid\Uuid;
@@ -32,12 +28,7 @@ use Symfony\Component\Uid\Uuid;
  */
 final class InstantRetryModule implements AnnotationModule
 {
-    /**
-     * @param array<string, InstantRetry> $commandBusOverrides
-     * @param list<array{string, InstantRetry}> $endpointOverrides
-     * @param list<string> $handlersWithoutTransaction
-     */
-    private function __construct(private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction, private array $commandBusOverrides, private array $endpointOverrides, private array $handlersWithoutTransaction)
+    private function __construct(private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction, private InstantRetryPulseAnnotations $pulseAnnotations)
     {
     }
 
@@ -46,29 +37,9 @@ final class InstantRetryModule implements AnnotationModule
      */
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        $commandBusOverrides = [];
-        foreach ($annotationRegistrationService->findAnnotatedClasses(InstantRetry::class) as $commandBusInterface) {
-            $commandBusOverrides[$commandBusInterface] = $annotationRegistrationService->getAttributeForClass($commandBusInterface, InstantRetry::class);
-        }
-        $endpointOverrides = [];
-        foreach ($annotationRegistrationService->findAnnotatedMethods(InstantRetry::class) as $annotatedMethod) {
-            if ($annotatedMethod->hasMethodAnnotation(MessageConsumer::class)) {
-                $endpointOverrides[] = [$annotatedMethod->getMethodAnnotationsWithType(MessageConsumer::class)[0]->getEndpointId(), $annotatedMethod->getAnnotationForMethod()];
-            }
-        }
-
-        $handlersWithoutTransaction = [];
-        foreach (AsynchronousHandlersWithoutTransaction::in($annotationRegistrationService) as $annotatedMethod) {
-            if ($annotatedMethod->hasMethodAnnotation(IdentifiedAnnotation::class)) {
-                $handlersWithoutTransaction[] = $annotatedMethod->getMethodAnnotationsWithType(IdentifiedAnnotation::class)[0]->getEndpointId();
-            }
-        }
-
         return new self(
-            handlersWithoutTransaction: $handlersWithoutTransaction,
             commandsWithoutDatabaseTransaction: CommandsWithoutDatabaseTransaction::find($annotationRegistrationService, $interfaceToCallRegistry),
-            commandBusOverrides: $commandBusOverrides,
-            endpointOverrides: $endpointOverrides,
+            pulseAnnotations: InstantRetryPulseAnnotations::of($annotationRegistrationService),
         );
     }
 
@@ -114,7 +85,7 @@ final class InstantRetryModule implements AnnotationModule
      */
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return InstantRetryPulseFeatures::reportedFor(serviceExtensions: $serviceExtensions, commandBusOverrides: $this->commandBusOverrides, endpointOverrides: $this->endpointOverrides, handlersWithoutTransaction: $this->handlersWithoutTransaction);
+        return InstantRetryPulseFeatures::reportedFor($serviceExtensions, $this->pulseAnnotations);
     }
 
     public function getModulePackageName(): string

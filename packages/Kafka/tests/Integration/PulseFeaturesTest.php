@@ -14,11 +14,14 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Kafka\KafkaConsumer;
+use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
+use Test\Ecotone\Kafka\ConnectionTestCase;
 
 /**
  * licence Enterprise
@@ -78,6 +81,14 @@ final class PulseFeaturesTest extends TestCase
         self::assertSame('inbound', $consumers['kafka.orders']['kind']);
         self::assertContains(['name' => 'Final failure strategy', 'value' => 'stop', 'scope' => 'global', 'handler' => null], $consumers['kafka.orders']['features']);
         self::assertContains(['name' => 'Final failure strategy', 'value' => 'resend', 'scope' => 'consumer-level config', 'handler' => null], $consumers['kafka.payments']['features']);
+    }
+
+    public function test_a_kafka_channel_reports_its_failure_strategy_and_batch_publishing(): void
+    {
+        $core = array_column(array_column($this->snapshot([KafkaMessageChannelBuilder::create('kafka_orders')->withHighThroughputPublishing()], [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()])['packages'], 'features', 'name')['core'], null, 'name');
+
+        self::assertSame('resend', $core['Final failure strategy']['settings']['Channel kafka_orders']);
+        self::assertSame('batch publishing', $core['High-throughput publishing']['settings']['Channel kafka_orders']);
     }
 
     /**

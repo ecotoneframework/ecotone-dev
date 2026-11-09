@@ -42,6 +42,7 @@ use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryDefaults;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryPulseFeatures;
+use Ecotone\Projecting\Config\ProjectionExecutorBuilder;
 use Ecotone\Test\LicenceTesting;
 
 #[ModuleAnnotation]
@@ -138,7 +139,7 @@ final class PulseModule implements AnnotationModule
                 ]),
                 [
                     ...array_map(static fn (PulseConsumerFeature $feature): array => $feature->toArray(), ExtensionObjectResolver::resolve(PulseConsumerFeature::class, $extensionObjects)),
-                    ...array_map(static fn (PulseConsumerFeature $feature): array => $feature->toArray(), array_merge(...array_map(static fn (InstantRetryPulseFeatures $instantRetries): array => $instantRetries->consumerFeaturesUnder(InstantRetryDefaults::from($extensionObjects)), ExtensionObjectResolver::resolve(InstantRetryPulseFeatures::class, $extensionObjects)))),
+                    ...array_map(static fn (PulseConsumerFeature $feature): array => $feature->toArray(), array_merge(...array_map(static fn (InstantRetryPulseFeatures $instantRetries): array => $instantRetries->consumerFeaturesUnder(InstantRetryDefaults::from($extensionObjects), self::projectionChannels($extensionObjects)), ExtensionObjectResolver::resolve(InstantRetryPulseFeatures::class, $extensionObjects)))),
                 ],
                 self::endpointsByChannel($extensionObjects),
                 new Reference(ConfiguredMessagingSystem::class),
@@ -197,6 +198,18 @@ final class PulseModule implements AnnotationModule
         ksort($channels);
 
         return ['channels' => array_values($channels), 'probes' => $probes];
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     * @return list<string>
+     */
+    private static function projectionChannels(array $extensionObjects): array
+    {
+        return array_values(array_unique(array_filter(array_map(
+            static fn (ProjectionExecutorBuilder $projection): ?string => $projection->asyncChannelName(),
+            ExtensionObjectResolver::resolve(ProjectionExecutorBuilder::class, $extensionObjects),
+        ))));
     }
 
     /**

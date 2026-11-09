@@ -222,7 +222,7 @@ final class PulseFeaturesTest extends TestCase
         self::assertTrue($failure['enabled']);
         self::assertSame('resend', $failure['settings']['Channel orders']);
         self::assertSame('stop', $failure['settings']['Channel payments']);
-        self::assertStringContainsString('a streaming channel to release', $failure['hint']);
+        self::assertStringContainsString('an in-memory or RabbitMQ streaming channel to release', $failure['hint']);
         self::assertStringContainsString('resend: the message is sent back to its channel, so the consumer goes on with the next messages', $failure['hint']);
         self::assertStringContainsString('stop: the consumer stops and the message stays in the channel', $failure['hint']);
         self::assertSame("->withFinalFailureStrategy(FinalFailureStrategy::STOP) on the channel's builder", $failure['configuration']);
@@ -276,6 +276,7 @@ final class PulseFeaturesTest extends TestCase
         self::assertContains(['name' => 'Error channel', 'value' => 'payment_errors', 'scope' => 'consumer-level config', 'handler' => 'order.pay.endpoint'], $consumers['payments']['features']);
         self::assertContains(['name' => 'Error channel', 'value' => 'order_errors', 'scope' => 'global', 'handler' => null], $consumers['payments']['features']);
         self::assertContains(['name' => 'Delayed retries', 'value' => '2 retries: after 200 ms and 200 ms, then no further retry', 'scope' => 'global', 'handler' => null], $consumers['payments']['features']);
+        self::assertContains(['name' => 'Delayed retries', 'value' => 'none', 'scope' => 'consumer-level config', 'handler' => 'order.pay.endpoint'], $consumers['payments']['features']);
     }
 
     public function test_a_scheduled_consumer_follows_its_poller_over_a_service_context_polling_metadata_and_reports_its_error_channel(): void
@@ -297,7 +298,35 @@ final class PulseFeaturesTest extends TestCase
 
         self::assertContains(['name' => 'Poller', 'value' => "rate expression '5000'", 'scope' => 'consumer-level config', 'handler' => null], $reports);
         self::assertContains(['name' => 'Error channel', 'value' => 'report_errors', 'scope' => 'consumer-level config', 'handler' => null], $reports);
+        self::assertContains(['name' => 'Delayed retries', 'value' => 'none', 'scope' => 'consumer-level config', 'handler' => null], $reports);
         self::assertSame(["reports: rate expression '5000'"], array_column(array_column($snapshot['packages'], 'features', 'name')['core'], 'handlers', 'name')['Scheduled endpoints']);
+    }
+
+    public function test_a_consumer_that_stops_on_error_or_has_its_error_channel_disabled_shows_it(): void
+    {
+        $handlers = new class () {
+            #[Scheduled('report.send', 'reports')]
+            public function report(): ?string
+            {
+                return null;
+            }
+
+            #[Scheduled('stock.sync', 'stock')]
+            public function sync(): ?string
+            {
+                return null;
+            }
+        };
+
+        $consumers = array_column($this->snapshotOf($handlers, [
+            PollingMetadata::create('reports')->withStopOnError(true),
+            PollingMetadata::create('stock')->withEnabledErrorChannel(false),
+        ])['consumers'], 'features', 'name');
+
+        self::assertContains(['name' => 'Error channel', 'value' => 'off, the consumer stops on the first error', 'scope' => 'consumer-level config', 'handler' => null], $consumers['reports']);
+        self::assertContains(['name' => 'Final failure strategy', 'value' => 'stop, as the consumer stops on error', 'scope' => 'consumer-level config', 'handler' => null], $consumers['reports']);
+        self::assertContains(['name' => 'Error channel', 'value' => 'off', 'scope' => 'consumer-level config', 'handler' => null], $consumers['stock']);
+        self::assertContains(['name' => 'Delayed retries', 'value' => 'none', 'scope' => 'consumer-level config', 'handler' => null], $consumers['stock']);
     }
 
     public function test_a_streaming_channel_left_at_its_release_default_is_tagged_global_and_a_queue_set_to_stop_is_its_own(): void
@@ -392,11 +421,11 @@ final class PulseFeaturesTest extends TestCase
             }
         };
 
-        $scheduled = $this->coreFeatures($handlers)['Scheduled endpoints'];
+        $scheduled = $this->coreFeatures($handlers, [PollingMetadata::create('cache.warm.endpoint')->withFixedRateInMilliseconds(30000)])['Scheduled endpoints'];
 
         self::assertTrue($scheduled['enabled']);
         self::assertSame(['Scheduled endpoints' => '4'], $scheduled['settings']);
-        self::assertSame(['order.expire.endpoint: every 1 minute', 'reports: cron 0 6 * * *', 'cache.warm.endpoint: every 1 second', "stock.sync.endpoint: cron expression '*/5 * * * *'"], $scheduled['handlers']);
+        self::assertSame(['order.expire.endpoint: every 1 minute', 'reports: cron 0 6 * * *', 'cache.warm.endpoint: every 30 seconds', "stock.sync.endpoint: cron expression '*/5 * * * *'"], $scheduled['handlers']);
         self::assertStringContainsString('runs on its own schedule', $scheduled['hint']);
     }
 

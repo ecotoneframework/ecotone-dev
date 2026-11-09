@@ -67,13 +67,27 @@ final class ChannelPulseFeatures
             settings: $settings,
             handlers: [],
             hint: match (true) {
-                $settings === [] => 'This service sends to no broker or database channel, so there is nothing to publish in batches.',
+                $settings === [] => 'No channel of this service supports high-throughput publishing (database, RabbitMQ, SQS, Redis and Kafka channels do), so nothing is published in batches.',
                 $batched === [] => 'Each message sent to a broker or database channel is a round trip of its own, and the sender waits for it to be confirmed before sending the next.',
                 default => sprintf('On %s: the messages sent in one handler call are written together, in one batch per channel (one multi-row insert for a database channel), and a broker\'s confirmations are awaited before the transaction commits, instead of one blocking round trip per message. The other channels send one message at a time.', implode(', ', $batched))
-                    . (ExtensionObjectResolver::resolveUnique(GlobalPollableChannelConfiguration::class, $serviceExtensions, GlobalPollableChannelConfiguration::createWithDefaults())->isCollectorEnabled() ? '' : ' The message collector is off, so messages are sent as they are produced and no batch is formed.'),
+                    . (($withoutCollector = array_values(array_filter($batched, static fn (string $channel): bool => ! self::collectsFor($serviceExtensions, $channel)))) === [] ? '' : sprintf(' The message collector is off for %s, so messages are sent there as they are produced and no batch is formed.', implode(', ', $withoutCollector))),
             },
             configuration: "->withHighThroughputPublishing() on the channel's builder",
         );
+    }
+
+    /**
+     * @param object[] $serviceExtensions
+     */
+    private static function collectsFor(array $serviceExtensions, string $channelName): bool
+    {
+        foreach (ExtensionObjectResolver::resolve(PollableChannelConfiguration::class, $serviceExtensions) as $channel) {
+            if ($channel->getChannelName() === $channelName) {
+                return $channel->isCollectorEnabled();
+            }
+        }
+
+        return ExtensionObjectResolver::resolveUnique(GlobalPollableChannelConfiguration::class, $serviceExtensions, GlobalPollableChannelConfiguration::createWithDefaults())->isCollectorEnabled();
     }
 
     /**

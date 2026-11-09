@@ -166,6 +166,15 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         self::assertStringContainsString('No aggregate is snapshotted, so each one is rebuilt from all of its events.', $eventStore['hint']);
     }
 
+    public function test_an_asynchronous_projection_consumer_is_instantly_retried_as_it_manages_its_own_transaction(): void
+    {
+        $this->bootstrap('dbal', [$this->asynchronousProjection()]);
+
+        $consumer = array_column($this->requestSnapshot()['consumers'], 'features', 'name')['tickets_async_channel'];
+
+        self::assertContains(['name' => 'Instant retries', 'value' => '3 retries on any exception, as the projection manages its own transaction', 'scope' => 'consumer-level config', 'handler' => null], $consumer);
+    }
+
     #[DataProvider('storages')]
     public function test_a_service_without_projections_reports_an_empty_projections_list(string $storage): void
     {

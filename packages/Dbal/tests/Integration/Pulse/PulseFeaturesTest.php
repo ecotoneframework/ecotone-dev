@@ -7,6 +7,7 @@ namespace Test\Ecotone\Dbal\Integration\Pulse;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
@@ -25,6 +26,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -242,6 +244,32 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
 
         self::assertSame(['order.place → place (by expression)'], $packages['dbal']['Deduplication']['handlers']);
         self::assertContains(['name' => 'Deduplication', 'value' => 'by expression', 'scope' => 'consumer-level config', 'handler' => 'order.place.endpoint'], array_column($snapshot['consumers'], 'features', 'name')['orders']);
+    }
+
+    public function test_a_handler_with_its_own_without_database_transaction_attribute_shows_no_transaction_and_no_default_instant_retries(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('orders')]
+            #[WithoutDatabaseTransaction]
+            #[EventHandler('order.placed', endpointId: 'order.placed.endpoint')]
+            public function whenPlaced(string $order): void
+            {
+            }
+        };
+        $orders = array_column($this->reportedBy($orders, [])[2]['consumers'], 'features', 'name')['orders'];
+
+        self::assertContains(['name' => 'Database transaction', 'value' => 'off', 'scope' => 'consumer-level config', 'handler' => 'order.placed.endpoint'], $orders);
+        self::assertContains(['name' => 'Instant retries', 'value' => 'off, runs without a database transaction', 'scope' => 'consumer-level config', 'handler' => 'order.placed.endpoint'], $orders);
+    }
+
+    public function test_a_batch_publishing_channel_without_the_message_collector_is_said_to_form_no_batch(): void
+    {
+        $publishing = $this->featuresOf([
+            DbalBackedMessageChannelBuilder::create('notifications')->withHighThroughputPublishing(),
+            PollableChannelConfiguration::createWithDefaults('notifications')->withCollector(false),
+        ], 'core')['High-throughput publishing'];
+
+        self::assertStringContainsString('The message collector is off for notifications, so messages are sent there as they are produced and no batch is formed.', $publishing['hint']);
     }
 
     public function test_transactions_turned_off_on_an_entry_point_or_an_endpoint_are_reported_where_they_are_off(): void

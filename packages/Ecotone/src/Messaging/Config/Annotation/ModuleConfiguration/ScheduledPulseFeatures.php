@@ -61,7 +61,7 @@ final class ScheduledPulseFeatures
             handlers: $handlers,
             hint: $handlers === []
                 ? 'No method is marked #[Scheduled], so nothing runs on a schedule of its own.'
-                : 'Each endpoint listed here runs on its own schedule while its consumer is started (ecotone:run with the endpoint id), and sends what it returns to its request channel. #[Poller] next to #[Scheduled] sets the rate or the cron expression; without it the endpoint runs every second.',
+                : 'Each endpoint listed here runs on its own schedule while its consumer is started (ecotone:run with the endpoint id), and sends what it returns to its request channel. #[Poller] next to #[Scheduled], or a PollingMetadata registered for the endpoint id, sets the rate or the cron expression (#[Poller] wins when both are set); without either the endpoint runs every second.',
             configuration: "#[Scheduled('report.send', 'reports')] with #[Poller(cron: '0 6 * * *')]",
         )];
     }
@@ -83,8 +83,16 @@ final class ScheduledPulseFeatures
         $features = [];
         foreach ($byEndpoint as $endpointId => $metadata) {
             $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Poller', self::scheduleOf($metadata));
-            if ($metadata->getErrorChannelName() !== '') {
+            if ($metadata->stopOnError) {
+                $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Error channel', 'off, the consumer stops on the first error');
+                $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Delayed retries', 'none');
+                $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Final failure strategy', 'stop, as the consumer stops on error');
+            } elseif (! $metadata->isErrorChannelEnabled) {
+                $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Error channel', 'off');
+                $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Delayed retries', 'none');
+            } elseif ($metadata->getErrorChannelName() !== '') {
                 $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Error channel', $metadata->getErrorChannelName());
+                $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Delayed retries', ErrorHandlerPulseFeatures::delayedRetriesOn($serviceExtensions, $metadata->getErrorChannelName()));
             }
         }
 

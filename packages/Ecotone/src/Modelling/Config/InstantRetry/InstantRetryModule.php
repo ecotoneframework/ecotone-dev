@@ -3,11 +3,9 @@
 namespace Ecotone\Modelling\Config\InstantRetry;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -23,6 +21,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Modelling\Config\DatabaseTransaction\AsynchronousHandlersWithoutTransaction;
 use Ecotone\Modelling\Config\DatabaseTransaction\CommandsWithoutDatabaseTransaction;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
 use Symfony\Component\Uid\Uuid;
@@ -59,11 +58,9 @@ final class InstantRetryModule implements AnnotationModule
         }
 
         $handlersWithoutTransaction = [];
-        foreach ($annotationRegistrationService->findAnnotatedMethods(Asynchronous::class) as $annotatedMethod) {
-            foreach ($annotatedMethod->getMethodAnnotationsWithType(Asynchronous::class) as $asynchronous) {
-                if (array_filter($asynchronous->asynchronousExecution, static fn (object $attribute): bool => $attribute instanceof WithoutDatabaseTransaction) !== [] && $annotatedMethod->hasMethodAnnotation(IdentifiedAnnotation::class)) {
-                    $handlersWithoutTransaction[] = $annotatedMethod->getMethodAnnotationsWithType(IdentifiedAnnotation::class)[0]->getEndpointId();
-                }
+        foreach (AsynchronousHandlersWithoutTransaction::in($annotationRegistrationService) as $annotatedMethod) {
+            if ($annotatedMethod->hasMethodAnnotation(IdentifiedAnnotation::class)) {
+                $handlersWithoutTransaction[] = $annotatedMethod->getMethodAnnotationsWithType(IdentifiedAnnotation::class)[0]->getEndpointId();
             }
         }
 

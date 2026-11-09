@@ -111,7 +111,7 @@ final class ErrorHandlerPulseFeatures
             handlers: [],
             hint: $strategies === []
                 ? 'This service consumes no pollable channel. A #[RabbitConsumer] or #[KafkaConsumer] carries its own final failure strategy, stop unless it names another, shown with the consumer under Consumers.'
-                : 'The final failure strategy is the last decision for a message that still fails after its retries, when no error channel is set or the error channel fails too. On this service: ' . implode('; ', array_map(static fn (string $strategy): string => $explained[$strategy], $used)) . '. A queue channel defaults to resend and a streaming channel to release; a #[RabbitConsumer] or #[KafkaConsumer] carries its own strategy, stop unless it names another, shown with the consumer under Consumers.',
+                : 'The final failure strategy is the last decision for a message that still fails after its retries, when no error channel is set or the error channel fails too. On this service: ' . implode('; ', array_map(static fn (string $strategy): string => $explained[$strategy], $used)) . '. A queue or Kafka channel defaults to resend and an in-memory or RabbitMQ streaming channel to release; a #[RabbitConsumer] or #[KafkaConsumer] carries its own strategy, stop unless it names another, shown with the consumer under Consumers.',
             configuration: "->withFinalFailureStrategy(FinalFailureStrategy::STOP) on the channel's builder",
         )];
     }
@@ -128,16 +128,13 @@ final class ErrorHandlerPulseFeatures
             return [];
         }
         $defaultErrorChannel = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $serviceExtensions, $serviceConfiguration)->defaultErrorChannel;
-        $retriedChannels = [];
-        foreach (ExtensionObjectResolver::resolve(ErrorHandlerConfiguration::class, $serviceExtensions) ?: [ErrorHandlerConfiguration::createDefault()] as $configuration) {
-            $retriedChannels[$configuration->getErrorChannelName()] = self::scheduleOf($configuration->delayedRetryTemplate, $configuration->deadLetterChannel);
-        }
         $features = [
             PulseConsumerFeature::global('Error channel', $defaultErrorChannel ?? 'none'),
-            PulseConsumerFeature::global('Delayed retries', $defaultErrorChannel !== null && isset($retriedChannels[$defaultErrorChannel]) ? $retriedChannels[$defaultErrorChannel] : 'none'),
+            PulseConsumerFeature::global('Delayed retries', $defaultErrorChannel === null ? 'none' : self::delayedRetriesOn($serviceExtensions, $defaultErrorChannel)),
         ];
         foreach ($endpointErrorChannels as [$endpointId, $errorChannelName]) {
             $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Error channel', $errorChannelName);
+            $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Delayed retries', self::delayedRetriesOn($serviceExtensions, $errorChannelName));
         }
         foreach ($endpointDelayedRetries as [$endpointId, $configuration]) {
             $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Delayed retries', self::scheduleOf($configuration->delayedRetryTemplate, $configuration->deadLetterChannel));
@@ -151,6 +148,20 @@ final class ErrorHandlerPulseFeatures
         }
 
         return $features;
+    }
+
+    /**
+     * @param object[] $serviceExtensions
+     */
+    public static function delayedRetriesOn(array $serviceExtensions, string $errorChannelName): string
+    {
+        foreach (ExtensionObjectResolver::resolve(ErrorHandlerConfiguration::class, $serviceExtensions) ?: [ErrorHandlerConfiguration::createDefault()] as $configuration) {
+            if ($configuration->getErrorChannelName() === $errorChannelName) {
+                return self::scheduleOf($configuration->delayedRetryTemplate, $configuration->deadLetterChannel);
+            }
+        }
+
+        return 'none';
     }
 
     private static function scheduleOf(RetryTemplate $retryTemplate, ?string $deadLetterChannel): string

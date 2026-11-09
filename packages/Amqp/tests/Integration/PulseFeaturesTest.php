@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Api\Amqp\RabbitConsumer;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -97,6 +99,16 @@ final class PulseFeaturesTest extends AmqpMessagingTestCase
         self::assertContains(['name' => 'Final failure strategy', 'value' => 'stop', 'scope' => 'global', 'handler' => null], $consumers['rabbit.orders']['features']);
         self::assertContains(['name' => 'Final failure strategy', 'value' => 'resend', 'scope' => 'consumer-level config', 'handler' => null], $consumers['rabbit.payments']['features']);
         self::assertContains(['name' => 'RabbitMQ transaction', 'value' => 'off', 'scope' => 'global', 'handler' => null], $consumers['rabbit.orders']['features']);
+    }
+
+    public function test_rabbitmq_channels_report_their_failure_strategy_default_and_batch_publishing(): void
+    {
+        $snapshot = $this->snapshot([AmqpStreamChannelBuilder::create('ticket_stream', 'ticket_stream_queue', 'first', 'pulse_group'), AmqpBackedMessageChannelBuilder::create('orders')->withHighThroughputPublishing()]);
+        $core = array_column(array_column($snapshot['packages'], 'features', 'name')['core'], null, 'name');
+
+        self::assertSame('release', $core['Final failure strategy']['settings']['Channel ticket_stream']);
+        self::assertSame('batch publishing', $core['High-throughput publishing']['settings']['Channel orders']);
+        self::assertContains(['name' => 'Final failure strategy', 'value' => 'release', 'scope' => 'global', 'handler' => null], array_column($snapshot['consumers'], 'features', 'name')['ticket_stream']);
     }
 
     /**

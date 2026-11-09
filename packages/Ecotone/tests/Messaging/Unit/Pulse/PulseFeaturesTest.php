@@ -239,6 +239,28 @@ final class PulseFeaturesTest extends TestCase
         self::assertSame('GlobalPollableChannelConfiguration::createWithDefaults()->withCollector(true)', $sending['configuration']);
     }
 
+    public function test_retry_schedules_are_described_without_a_limit_beyond_five_retries_capped_by_a_max_delay_and_never(): void
+    {
+        $sending = $this->coreFeatures($this->orders(), [
+            SimpleMessageChannelBuilder::createQueueChannel('orders'),
+            SimpleMessageChannelBuilder::createQueueChannel('instant'),
+            SimpleMessageChannelBuilder::createQueueChannel('many'),
+            SimpleMessageChannelBuilder::createQueueChannel('capped'),
+            SimpleMessageChannelBuilder::createQueueChannel('never'),
+            GlobalPollableChannelConfiguration::create(RetryTemplateBuilder::exponentialBackOff(10, 2)->build()),
+            PollableChannelConfiguration::create('instant', RetryTemplateBuilder::fixedBackOff(0)->build()),
+            PollableChannelConfiguration::create('many', RetryTemplateBuilder::exponentialBackOff(10, 2)->maxRetries(7)->build()),
+            PollableChannelConfiguration::create('capped', RetryTemplateBuilder::exponentialBackOffWithMaxDelay(10, 2, 50)->build()),
+            PollableChannelConfiguration::neverRetry('never'),
+        ])['Resilient sending'];
+
+        self::assertSame('retries without a limit: after 10 ms, 20 ms, 40 ms, 80 ms, 160 ms, each next delay 2 times longer', $sending['settings']['Sending retries']);
+        self::assertSame('collector on, retries without a limit: after 0 ms, 0 ms, 0 ms, 0 ms, 0 ms, failed sends to nowhere', $sending['settings']['Channel instant']);
+        self::assertSame('collector on, 7 retries: after 10 ms, 20 ms, 40 ms, 80 ms and 160 ms, …, failed sends to nowhere', $sending['settings']['Channel many']);
+        self::assertSame('collector on, 3 retries: after 10 ms, 20 ms and 40 ms, failed sends to nowhere', $sending['settings']['Channel capped']);
+        self::assertSame('collector on, no retry, failed sends to nowhere', $sending['settings']['Channel never']);
+    }
+
     public function test_resilient_sending_reports_a_channel_that_overrides_the_global_configuration(): void
     {
         $sending = $this->coreFeatures($this->orders(), [

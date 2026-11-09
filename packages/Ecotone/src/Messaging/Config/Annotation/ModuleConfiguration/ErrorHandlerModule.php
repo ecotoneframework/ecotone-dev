@@ -43,11 +43,8 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
 {
     /**
      * @param ErrorHandlerConfiguration[] $perHandlerRetryConfigurations
-     * @param list<array{string, ErrorHandlerConfiguration}> $endpointDelayedRetries
-     * @param list<array{class-string, ErrorHandlerConfiguration}> $gatewayDelayedRetries
-     * @param list<array{string, string}> $endpointErrorChannels
      */
-    private function __construct(private array $perHandlerRetryConfigurations, private array $endpointDelayedRetries, private array $gatewayDelayedRetries, private array $endpointErrorChannels)
+    private function __construct(private array $perHandlerRetryConfigurations, private ErrorHandlerPulseAnnotations $pulseAnnotations)
     {
     }
 
@@ -57,8 +54,6 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $perHandlerRetryConfigurations = [];
-        $endpointDelayedRetries = [];
-        $gatewayDelayedRetries = [];
 
         foreach ($annotationRegistrationService->findAnnotatedMethods(DelayedRetry::class) as $delayedRetryMethod) {
             if (! $delayedRetryMethod->hasMethodAnnotation(\Ecotone\Messaging\Attribute\MessageConsumer::class)) {
@@ -113,8 +108,7 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
                     $delayedRetry->maxRetries,
                 );
 
-                $perHandlerRetryConfigurations[] = $errorHandlerConfiguration = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
-                $endpointDelayedRetries[] = [$handlerEndpointId, $errorHandlerConfiguration];
+                $perHandlerRetryConfigurations[] = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
                 break;
             }
         }
@@ -138,11 +132,10 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
                 $delayedRetry->maxDelayInMilliseconds,
                 $delayedRetry->maxRetries,
             );
-            $perHandlerRetryConfigurations[] = $errorHandlerConfiguration = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
-            $gatewayDelayedRetries[] = [$gatewayInterfaceFqn, $errorHandlerConfiguration];
+            $perHandlerRetryConfigurations[] = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
         }
 
-        return new self(perHandlerRetryConfigurations: $perHandlerRetryConfigurations, endpointDelayedRetries: $endpointDelayedRetries, gatewayDelayedRetries: $gatewayDelayedRetries, endpointErrorChannels: ErrorHandlerPulseFeatures::errorChannelsOf($annotationRegistrationService));
+        return new self(perHandlerRetryConfigurations: $perHandlerRetryConfigurations, pulseAnnotations: ErrorHandlerPulseAnnotations::of($annotationRegistrationService));
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
@@ -151,15 +144,15 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
             ...ErrorHandlerPulseFeatures::reportedFor(
                 serviceExtensions: $serviceExtensions,
                 serviceConfiguration: $serviceConfiguration,
-                endpointDelayedRetries: $this->endpointDelayedRetries,
-                gatewayDelayedRetries: $this->gatewayDelayedRetries,
+                endpointDelayedRetries: $this->pulseAnnotations->endpointDelayedRetries,
+                gatewayDelayedRetries: $this->pulseAnnotations->gatewayDelayedRetries,
             ),
             ...ErrorHandlerPulseFeatures::finalFailureStrategyFor($serviceExtensions),
             ...ErrorHandlerPulseFeatures::consumerFeaturesFor(
                 serviceExtensions: $serviceExtensions,
                 serviceConfiguration: $serviceConfiguration,
-                endpointDelayedRetries: $this->endpointDelayedRetries,
-                endpointErrorChannels: $this->endpointErrorChannels,
+                endpointDelayedRetries: $this->pulseAnnotations->endpointDelayedRetries,
+                endpointErrorChannels: $this->pulseAnnotations->endpointErrorChannels,
             ),
         ];
     }

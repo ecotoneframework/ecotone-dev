@@ -27,6 +27,7 @@ use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 
 /**
  * licence Enterprise
@@ -214,6 +215,14 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
         self::assertContains(['name' => 'Deduplication', 'value' => 'by message id', 'scope' => 'global', 'handler' => null], $orders);
         self::assertContains(['name' => 'Deduplication', 'value' => 'by header orderId', 'scope' => 'consumer-level config', 'handler' => 'order.place.endpoint'], $orders);
         self::assertContains(['name' => 'Database transaction', 'value' => 'off', 'scope' => 'consumer-level config', 'handler' => null], $consumers['audit']['features']);
+    }
+
+    public function test_a_database_channel_reports_the_final_failure_strategy_it_was_given(): void
+    {
+        $failure = $this->featuresOf([DbalBackedMessageChannelBuilder::create('audit')->withFinalFailureStrategy(FinalFailureStrategy::STOP)], 'core')['Final failure strategy'];
+
+        self::assertSame('stop', $failure['settings']['Channel audit']);
+        self::assertSame('resend', $failure['settings']['Channel orders']);
     }
 
     public function test_transactions_turned_off_on_an_entry_point_or_an_endpoint_are_reported_where_they_are_off(): void

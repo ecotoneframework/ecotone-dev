@@ -55,6 +55,11 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         return $this;
     }
 
+    public function getDefaultFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return FinalFailureStrategy::RESEND;
+    }
+
     public function getFinalFailureStrategy(): FinalFailureStrategy
     {
         return $this->getInboundChannelAdapter()->getFinalFailureStrategy();

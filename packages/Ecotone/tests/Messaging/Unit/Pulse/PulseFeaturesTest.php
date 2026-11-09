@@ -220,6 +220,7 @@ final class PulseFeaturesTest extends TestCase
         self::assertTrue($failure['enabled']);
         self::assertSame('resend', $failure['settings']['Channel orders']);
         self::assertSame('stop', $failure['settings']['Channel payments']);
+        self::assertStringContainsString('a streaming channel to release', $failure['hint']);
         self::assertStringContainsString('resend: the message is sent back to its channel, so the consumer goes on with the next messages', $failure['hint']);
         self::assertStringContainsString('stop: the consumer stops and the message stays in the channel', $failure['hint']);
         self::assertSame("->withFinalFailureStrategy(FinalFailureStrategy::STOP) on the channel's builder", $failure['configuration']);
@@ -247,6 +248,31 @@ final class PulseFeaturesTest extends TestCase
         self::assertSame('off', $sending['settings']['Message collector']);
         self::assertSame('collector on, no retry, failed sends to notification_errors', $sending['settings']['Channel notifications']);
         self::assertStringContainsString('sent at once', $sending['hint']);
+    }
+
+    public function test_a_streaming_channel_left_at_its_release_default_is_tagged_global_and_a_queue_set_to_stop_is_its_own(): void
+    {
+        $handlers = new class () {
+            #[Asynchronous('events')]
+            #[EventHandler('order.placed', endpointId: 'order.placed.endpoint')]
+            public function whenPlaced(string $orderId): void
+            {
+            }
+
+            #[Asynchronous('payments')]
+            #[CommandHandler('order.pay', endpointId: 'order.pay.endpoint')]
+            public function pay(string $orderId): void
+            {
+            }
+        };
+
+        $consumers = array_column($this->snapshotOf($handlers, [
+            SimpleMessageChannelBuilder::createStreamingChannel('events'),
+            SimpleMessageChannelBuilder::createQueueChannel('payments', finalFailureStrategy: FinalFailureStrategy::STOP),
+        ])['consumers'], null, 'name');
+
+        self::assertContains(['name' => 'Final failure strategy', 'value' => 'release', 'scope' => 'global', 'handler' => null], $consumers['events']['features']);
+        self::assertContains(['name' => 'Final failure strategy', 'value' => 'stop', 'scope' => 'consumer-level config', 'handler' => null], $consumers['payments']['features']);
     }
 
     public function test_combined_channels_report_the_channels_a_message_passes_through_and_the_handlers_using_them(): void

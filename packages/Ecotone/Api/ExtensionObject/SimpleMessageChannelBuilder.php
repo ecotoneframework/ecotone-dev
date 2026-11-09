@@ -110,6 +110,11 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return $this->isStreamingChannel;
     }
 
+    public function getDefaultFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return $this->isStreamingChannel ? FinalFailureStrategy::RELEASE : FinalFailureStrategy::RESEND;
+    }
+
     public function getFinalFailureStrategy(): FinalFailureStrategy
     {
         return $this->finalFailureStrategy;

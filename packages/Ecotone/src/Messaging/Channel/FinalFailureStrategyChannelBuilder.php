@@ -13,4 +13,6 @@ use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 interface FinalFailureStrategyChannelBuilder extends MessageChannelBuilder
 {
     public function getFinalFailureStrategy(): FinalFailureStrategy;
+
+    public function getDefaultFinalFailureStrategy(): FinalFailureStrategy;
 }

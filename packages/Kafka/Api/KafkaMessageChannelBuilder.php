@@ -109,6 +109,11 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
         return $this;
     }
 
+    public function getDefaultFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return FinalFailureStrategy::RESEND;
+    }
+
     public function getFinalFailureStrategy(): FinalFailureStrategy
     {
         return $this->inboundChannelAdapterBuilder->getFinalFailureStrategy();

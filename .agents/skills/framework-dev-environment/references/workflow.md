@@ -221,8 +221,8 @@ not add licence headers.
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `test-monorepo.yml` | every branch push **and** pull request | One unified job: `bin/check-suite-parity.php` first, then PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then phpunit against PostgreSQL with MySQL as the secondary connection |
-| `split-testing.yml` | every branch push **and** pull request | Per-package `composer tests:ci` for every package with a `phpunit.xml.dist`, on PHP 8.2, PHP 8.5, and PHP 8.2 `--prefer-lowest`. Tempest is excluded — it needs PHP 8.5 and a monorepo-tied boot harness, so the unified job covers it |
+| `test-monorepo.yml` | every branch push **and** pull request | A `shards` job runs `bin/check-monorepo-shards.php`, which checks that `.github/monorepo-shards.json` names every test suite of `phpunit.xml.dist` exactly once and emits the matrix; then one `Monorepo (<shard>)` job per shard: `bin/check-suite-parity.php` first, then PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then `phpunit --testsuite <the shard's suites>` against PostgreSQL with MySQL as the secondary connection. A new suite in `phpunit.xml.dist` must be added to a shard or the run fails |
+| `split-testing.yml` | every branch push **and** pull request | Per-package `composer tests:ci` for every package with a `phpunit.xml.dist`, on PHP 8.2, PHP 8.5, and PHP 8.2 `--prefer-lowest`. Tempest is excluded — it needs PHP 8.5 and a monorepo-tied boot harness, so a Monorepo shard covers it |
 | `file-licence.yml` | every push **and** pull request | `php bin/check-licence.php` over `packages/*/src` |
 | `contribution-check.yml` | PR opened or edited | Fails unless the PR body has the CLA checkbox ticked |
 | `quickstart-examples.yml` | every branch push **and** pull request | The quickstart applications, as their own package |

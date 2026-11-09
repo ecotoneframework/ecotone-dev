@@ -109,6 +109,33 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertContains('cheese', $orders);
     }
 
+    public function test_a_run_of_an_idle_stream_with_finish_when_no_messages_stops_without_waiting_for_the_receive_timeout(): void
+    {
+        $channelName = 'orders';
+        $queueName = 'stream_queue_idle_' . Uuid::v7()->toRfc4122();
+
+        $ecotoneLite = $this->bootstrapFlowTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            extensionObjects: [
+                AmqpQueue::createStreamQueue($queueName),
+                AmqpStreamChannelBuilder::create(channelName:$channelName, startPosition:'first', amqpConnectionReferenceName:AmqpLibConnection::class, queueName:$queueName, ),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $startedAt = hrtime(true);
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $secondsTaken = (hrtime(true) - $startedAt) / 1e9;
+
+        $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+        $this->assertLessThan(5.0, $secondsTaken);
+    }
+
     public function test_consuming_stream_messages_from_last_position()
     {
         $channelName = 'orders';

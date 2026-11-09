@@ -92,7 +92,7 @@ final class RequiredExistingDestinationTest extends ConnectionTestCase
         $ecotone = $this->bootstrap(Uuid::v7()->toRfc4122(), false);
 
         $ecotone->getCommandBus()->sendWithRouting('place_order', 'order-1');
-        $ecotone->run('required_orders', ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
+        $ecotone->run('required_orders', ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 1000));
 
         self::assertSame(['order-1'], $ecotone->getQueryBus()->sendWithRouting('placed_orders'));
     }

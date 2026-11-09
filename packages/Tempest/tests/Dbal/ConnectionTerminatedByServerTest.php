@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Tempest\Dbal;
 
 use Closure;
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
@@ -421,6 +422,7 @@ final class ConnectionTerminatedByServerTest extends TestCase
                 ...$extensionObjects,
             ],
             enabledModules: [ModulePackageList::TEMPEST_PACKAGE, ModulePackageList::DBAL_PACKAGE],
+            initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
         );
     }
 

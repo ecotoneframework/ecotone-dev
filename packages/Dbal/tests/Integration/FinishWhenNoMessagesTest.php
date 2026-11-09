@@ -13,6 +13,7 @@ use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -164,6 +165,40 @@ final class FinishWhenNoMessagesTest extends DbalMessagingTestCase
         $this->assertSame(['stopped at 00:00:00.000'], $ecotone->sendQueryWithRouting('consumer.log'));
     }
 
+    public function test_an_idle_dbal_run_stops_without_waiting_for_the_receive_timeout(): void
+    {
+        $ecotone = $this->bootstrap(true, channel: DbalBackedMessageChannelBuilder::create('async')->withReceiveTimeout(60_000));
+
+        $startedAt = microtime(true);
+        $ecotone->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $this->assertLessThan(5.0, microtime(true) - $startedAt);
+        $this->assertSame(['stopped at 00:00:00.000'], $ecotone->sendQueryWithRouting('consumer.log'));
+    }
+
+    public function test_a_dbal_run_stops_without_waiting_for_the_receive_timeout_after_the_last_message(): void
+    {
+        $ecotone = $this->bootstrap(true, channel: DbalBackedMessageChannelBuilder::create('async')->withReceiveTimeout(60_000));
+        $ecotone->sendCommandWithRouting('register', 'first');
+
+        $startedAt = microtime(true);
+        $ecotone->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $this->assertLessThan(5.0, microtime(true) - $startedAt);
+        $this->assertSame(['first', 'stopped at 00:00:00.001'], $ecotone->sendQueryWithRouting('consumer.log'));
+    }
+
+    public function test_a_console_run_of_an_idle_dbal_channel_stops_without_waiting_for_the_receive_timeout(): void
+    {
+        $ecotone = $this->bootstrap(true, channel: DbalBackedMessageChannelBuilder::create('async')->withReceiveTimeout(60_000));
+
+        $startedAt = microtime(true);
+        $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => 'async', 'finishWhenNoMessages' => true]);
+
+        $this->assertLessThan(5.0, microtime(true) - $startedAt);
+        $this->assertSame(['stopped at 00:00:00.000'], $ecotone->sendQueryWithRouting('consumer.log'));
+    }
+
     private function bootstrapWithThreeMessages(bool $onDbal, ?PollingMetadata $pollingMetadata = null): FlowTestSupport
     {
         $ecotone = $this->bootstrap($onDbal, $pollingMetadata);
@@ -174,7 +209,7 @@ final class FinishWhenNoMessagesTest extends DbalMessagingTestCase
         return $ecotone;
     }
 
-    private function bootstrap(bool $onDbal, ?PollingMetadata $pollingMetadata = null): FlowTestSupport
+    private function bootstrap(bool $onDbal, ?PollingMetadata $pollingMetadata = null, ?MessageChannelBuilder $channel = null): FlowTestSupport
     {
         $consumer = new class () {
             private array $log = [];
@@ -202,7 +237,7 @@ final class FinishWhenNoMessagesTest extends DbalMessagingTestCase
         return $this->bootstrapFlowTesting(
             [$consumer::class],
             [$consumer, DbalConnectionFactory::class => $this->getConnectionFactory()],
-            extensionObjects: array_filter([$onDbal ? DbalBackedMessageChannelBuilder::create('async') : SimpleMessageChannelBuilder::createQueueChannel('async'), $pollingMetadata]),
+            extensionObjects: array_filter([$channel ?? ($onDbal ? DbalBackedMessageChannelBuilder::create('async') : SimpleMessageChannelBuilder::createQueueChannel('async')), $pollingMetadata]),
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
         );

@@ -2739,7 +2739,7 @@ On a pinned test clock that took about ten polls, and against a broker each empt
 timeout, so a test run of an idle AMQP queue took about ten seconds.
 
 **Now:** the run stops on the first receive that returns no message, so an idle queue ends a run after one receive
-timeout. A receive that failed — a lost connection retried through the connection retry template — is not an empty
+timeout (see the next section for the receive no longer waiting). A receive that failed — a lost connection retried through the connection retry template — is not an empty
 one: the run keeps going and handles the messages waiting behind it, where before that failed poll ended the run. A
 channel that stays unreachable is retried through the whole connection retry template, and then the run throws the
 connection failure, where before it ended quietly: `ecotone:run orders --finishWhenNoMessages` against a database or
@@ -2760,6 +2760,26 @@ returns is still sent to its channel and handled, and a method returning `null` 
 projection's one execution projects every event in its stream, so `$ecotone->run('tickets_runner',
 ExecutionPollingMetadata::createWithFinishWhenNoMessages())` leaves it caught up. Before, these runs stopped only once
 10 ms of the clock had passed, which on a pinned test clock depended on how long the execution took.
+
+### Finish-when-no-messages does not wait for the receive timeout
+
+**Before (2.0.0-beta.8):** the empty receive that ends a finish-when-no-messages run still waited the channel's
+receive timeout, 10 seconds by default, so `ecotone:run orders --finishWhenNoMessages` or
+`$ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages())` on an idle queue took that
+long to end.
+
+**Now:** the receive that finds no message does not wait. A DBAL, AMQP queue or Redis consumer polls once and the
+run ends at once. An SQS consumer long-polls for one second, because a short poll (`WaitTimeSeconds=0`) samples a
+subset of the SQS servers and may report an empty queue that is not. An AMQP stream consumer waits at most one
+second for the broker to start delivering, unless the channel sets its own receive timeout with `withReceiveTimeout()`,
+which is then waited. A DBAL, AMQP queue, Redis or SQS channel's `withReceiveTimeout()` is not applied to that one
+receive.
+A DBAL message whose delivery delay has not passed is not a waiting message: the run ends and the next run handles it
+once it is due, where before a delay shorter than the receive timeout was waited out within the run.
+
+**How to adapt:** nothing, unless a drain relied on a message published a few seconds after the queue went empty
+being handled in the same run; run again, or bound the run with `--executionTimeLimit` and no
+`--finishWhenNoMessages`.
 
 ### Symfony and Laravel `defaultConnectionExceptionRetry` is applied as configured
 

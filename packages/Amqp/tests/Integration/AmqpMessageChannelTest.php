@@ -280,7 +280,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
             enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
         );
 
-        $ecotoneLite->run('incorrectOrdersEndpoint');
+        $ecotoneLite->run('incorrectOrdersEndpoint', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         /** https://www.rabbitmq.com/channels.html */
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
@@ -290,13 +290,13 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
 
         /** We consume the message and fail. First retry is done to same queue */
         $ecotoneLite->run($queueName);
-        $ecotoneLite->run('incorrectOrdersEndpoint');
+        $ecotoneLite->run('incorrectOrdersEndpoint', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getOrderAmount'));
         $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getIncorrectOrderAmount'));
 
         /** We consume the message and fail. Second retry is done to same queue */
         $ecotoneLite->run($queueName);
-        $ecotoneLite->run('incorrectOrdersEndpoint');
+        $ecotoneLite->run('incorrectOrdersEndpoint', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getOrderAmount'));
         $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getIncorrectOrderAmount'));
 

@@ -81,7 +81,7 @@ final class DistributedEventBusTest extends AmqpMessagingTestCase
             [new TicketServiceReceiver(), new TicketNotificationSubscriber()]
         );
 
-        $ticketService->run('ticket_service');
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
         $userService->sendCommandWithRouting(
@@ -114,7 +114,7 @@ final class DistributedEventBusTest extends AmqpMessagingTestCase
             ]
         );
 
-        $ticketService->run('ticket_service');
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
         $userService->sendCommandWithRouting(

@@ -11,6 +11,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
+use Interop\Queue\Consumer;
 use Interop\Queue\Message as EnqueueMessage;
 
 use function spl_object_id;
@@ -56,11 +57,10 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
                 $context->createQueue($this->queueName)
             );
 
-            $timeoutInMilliseconds = $pollingMetadata->executionTimeLimitInMilliseconds > 0
-                ? min($pollingMetadata->executionTimeLimitInMilliseconds, $this->receiveTimeoutInMilliseconds)
-                : $this->receiveTimeoutInMilliseconds;
             /** @var EnqueueMessage|null $message */
-            $message = $consumer->receive($timeoutInMilliseconds);
+            $message = $pollingMetadata->finishWhenNoMessages
+                ? $this->receiveWithoutWaiting($consumer)
+                : $consumer->receive($this->receiveTimeoutFor($pollingMetadata));
 
             if (! $message) {
                 return null;
@@ -85,6 +85,18 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
     }
 
     abstract public function connectionException(): array;
+
+    protected function receiveWithoutWaiting(Consumer $consumer): ?EnqueueMessage
+    {
+        return $consumer->receiveNoWait();
+    }
+
+    private function receiveTimeoutFor(PollingMetadata $pollingMetadata): int
+    {
+        return $pollingMetadata->executionTimeLimitInMilliseconds > 0
+            ? min($pollingMetadata->executionTimeLimitInMilliseconds, $this->receiveTimeoutInMilliseconds)
+            : $this->receiveTimeoutInMilliseconds;
+    }
 
     private function isConnectionException(Exception $exception): bool
     {

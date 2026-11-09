@@ -25,12 +25,6 @@ final class ConsoleWriterCommandTest extends KernelTestCase
         ]);
     }
 
-    protected function tearDown(): void
-    {
-
-        parent::tearDown();
-    }
-
     public function test_console_command_writes_formatted_output_through_symfony_console(): void
     {
         $commandTester = $this->prepareCommandTester();

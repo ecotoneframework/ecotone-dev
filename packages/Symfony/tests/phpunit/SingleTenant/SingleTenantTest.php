@@ -183,6 +183,7 @@ final class SingleTenantTest extends TestCase
         $application->setAutoExit(false);
         $output = new ConsoleOutput();
 
+
         // Register a customer that will cause an exception in the async event handler
         $this->commandBus->send(
             new RegisterCustomer(3, 'Error Customer'),

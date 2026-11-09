@@ -24,12 +24,6 @@ final class ConnectionExceptionRetryTest extends KernelTestCase
         ]);
     }
 
-    protected function tearDown(): void
-    {
-
-        parent::tearDown();
-    }
-
     public function test_consumer_reconnects_as_many_times_as_max_attempts_in_default_connection_exception_retry(): void
     {
         $this->assertSame(0, $this->runConsumer('connection_lost_four_times'));

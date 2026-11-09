@@ -67,15 +67,112 @@ final class HomeBoardTest extends ReleasingWebTestCase
         self::assertSame('2', $crawler->filter('[data-summary="healthy"] b')->text());
     }
 
-    public function test_the_tile_shows_at_most_four_problems_and_says_how_many_more(): void
+    public function test_the_summary_strip_explains_that_a_kept_failed_message_is_a_warning_and_what_makes_a_problem_critical(): void
     {
-        $client = $this->boardWith(['orders' => null]);
-        $this->boardState['orders']->channels = array_map(fn (int $number): array => $this->channel('queue_' . $number, 2000), range(1, 6));
+        $client = $this->boardWith(['alpha' => null]);
+        $this->boardState['alpha']->deadLetters = ['total' => 1, 'groups' => [$this->failureGroup('A', 1)], 'recent' => []];
 
         $crawler = $this->observeBoard($client);
 
-        self::assertCount(4, $crawler->filter('[data-tile="orders"] [data-problem]'));
-        self::assertSame('2 more', trim($crawler->filter('[data-tile="orders"] [data-more-problems]')->text()));
+        $severity = $crawler->filter('[data-verdict-meta] [data-concept="severity"]');
+        self::assertCount(1, $severity);
+        self::assertStringContainsString('failed message', $severity->filter('[data-concept-what]')->text());
+        self::assertStringContainsString('Critical', $severity->filter('[data-concept-what]')->text());
+    }
+
+    public function test_the_page_shows_at_most_three_problem_cards_worst_first_and_says_how_many_more(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [...array_map(fn (int $number): array => $this->channel('queue_' . $number, 2000), range(1, 5)), $this->channel('invoices', 20000)];
+
+        $crawler = $this->observeBoard($client);
+
+        $cards = $crawler->filter('[data-home-problems] [data-problem]');
+        self::assertCount(3, $cards);
+        self::assertSame(['critical', 'warning', 'warning'], $cards->each(static fn (Crawler $card): string => (string) $card->attr('data-problem-severity')));
+        self::assertSame('invoices: 20 000 ready (critical)', $cards->first()->filter('[data-problem-text]')->text());
+        self::assertSame(['orders', 'invoices'], $cards->first()->filter('[data-problem-where] li')->each(static fn (Crawler $place): string => $place->text()));
+        self::assertSame('Open the channels', $cards->first()->filter('.pri')->text());
+        self::assertSame('/services/orders/channels', $cards->first()->filter('.pri')->attr('href'));
+        self::assertSame('3 more problems in the services below', trim($crawler->filter('[data-more-problems]')->text()));
+        self::assertSame('#services', $crawler->filter('[data-more-problems] a')->attr('href'));
+    }
+
+    public function test_the_tile_lists_every_problem_of_its_service_collapsed_under_a_count(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [...array_map(fn (int $number): array => $this->channel('queue_' . $number, 2000), range(1, 5)), $this->channel('invoices', 20000)];
+
+        $crawler = $this->observeBoard($client);
+
+        $list = $crawler->filter('[data-tile="orders"] details[data-tile-problems]');
+        self::assertNull($list->attr('open'));
+        self::assertSame('6 problems · 1 critical, 5 warning', $list->filter('summary [data-summary-state]')->text());
+        self::assertCount(6, $list->filter('[data-problem]'));
+        self::assertCount(0, $crawler->filter('details details'));
+    }
+
+    public function test_the_page_opens_with_one_verdict_that_names_the_services_needing_attention(): void
+    {
+        $client = $this->boardWith(['alpha' => null, 'bravo' => null]);
+        $this->boardState['bravo']->deadLetters = ['total' => 1, 'groups' => [$this->failureGroup('A', 1)], 'recent' => []];
+
+        $crawler = $this->observeBoard($client);
+
+        $verdict = $crawler->filter('[data-verdict]');
+        self::assertCount(1, $verdict);
+        self::assertSame('warning', $verdict->attr('data-verdict'));
+        self::assertSame('1 of 2 services needs attention: bravo has 1 problem.', $verdict->filter('[data-verdict-sentence]')->text());
+        $html = (string) $client->getResponse()->getContent();
+        self::assertLessThan(strpos($html, 'data-home-problems'), strpos($html, 'data-verdict='));
+        self::assertLessThan(strpos($html, 'data-tile='), strpos($html, 'data-verdict='));
+    }
+
+    public function test_an_all_clear_verdict_names_what_it_checked_across_every_service(): void
+    {
+        $client = $this->boardWith(['alpha' => null, 'bravo' => null]);
+        $this->boardState['alpha']->channels = [$this->channel('invoices', 3), $this->channel('emails', 0)];
+        $this->boardState['bravo']->projections = [$this->projectionReport('totals')];
+
+        $crawler = $this->observeBoard($client);
+
+        self::assertSame('ok', $crawler->filter('[data-verdict]')->attr('data-verdict'));
+        self::assertSame('All clear: 2 services answered, 2 channels, none stuck, no failed messages, 1 projection, none behind.', $crawler->filter('[data-verdict-sentence]')->text());
+        self::assertCount(0, $crawler->filter('[data-problem]'));
+    }
+
+    public function test_each_tile_says_whether_the_service_is_connected_and_links_its_channels_failures_and_projections(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [$this->channel('invoices', 3)];
+        $this->boardState['orders']->deadLetters = ['total' => 2, 'groups' => [$this->failureGroup('OrderPlaced', 2)], 'recent' => []];
+        $this->boardState['orders']->projections = [$this->projectionReport('totals')];
+
+        $crawler = $this->observeBoard($client);
+
+        $tile = $crawler->filter('[data-tile="orders"]');
+        self::assertSame('ok', $tile->filter('[data-status] [data-status-pill]')->attr('data-status-pill'));
+        self::assertSame('Connected', $tile->filter('[data-status] [data-status-pill]')->text());
+        self::assertSame([
+            ['channels', '1 channel · none stuck', '/services/orders/channels'],
+            ['dead-letters', '2 failed messages · in 1 failure group', '/dead-letters?service=orders'],
+            ['projections', '1 projection · up to date', '/services/orders/projections'],
+        ], $tile->filter('[data-tile-fact]')->each(static fn (Crawler $fact): array => [$fact->attr('data-tile-fact'), trim($fact->filter('a')->text()), $fact->filter('a')->attr('href')]));
+    }
+
+    public function test_a_first_visit_introduction_explains_what_pulse_watches_and_stays_closed_once_dismissed(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+
+        $crawler = $this->observeBoard($client);
+
+        $introduction = $crawler->filter('[data-hint="home-introduction"]');
+        self::assertCount(1, $introduction);
+        self::assertSame('hint.home-introduction', $introduction->filter('details')->attr('data-disclosure'));
+        self::assertNotNull($introduction->filter('details')->attr('open'));
+        self::assertCount(1, $introduction->filter('[data-concept="service"]'));
+        self::assertCount(1, $crawler->filter('[data-updated] [data-concept="snapshot"]'));
+        self::assertCount(1, $crawler->filter('[data-intro]'));
     }
 
     public function test_a_multi_tenant_service_has_one_tile_per_tenant_and_a_single_tenant_one_has_one(): void
@@ -92,16 +189,6 @@ final class HomeBoardTest extends ReleasingWebTestCase
         self::assertSame('tenant_b', $crawler->filter('[data-tile="orders@tenant_b"]')->attr('data-tile-tenant'));
         self::assertSame('/services/orders?tenant=tenant_b', $crawler->filter('[data-tile="orders@tenant_b"] [data-tile-link]')->attr('href'));
         self::assertSame('/services/billing', $crawler->filter('[data-tile="billing"] [data-tile-link]')->attr('href'));
-    }
-
-    public function test_the_home_page_links_to_the_services_table(): void
-    {
-        $client = $this->boardWith(['orders' => null]);
-
-        $crawler = $this->observeBoard($client);
-
-        self::assertSame('/services', $crawler->filter('[data-all-services-link]')->attr('href'));
-        self::assertSame('All services table', trim($crawler->filter('[data-all-services-link]')->text()));
     }
 
     public function test_refreshing_from_the_home_page_returns_to_it(): void

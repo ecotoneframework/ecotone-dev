@@ -1,7 +1,15 @@
-<nav aria-label="Breadcrumb" class="crumbs">
+{% if trail is defined %}
+    {% set crumbs = [{label: 'Home', href: path('home')}] %}
+    {% if service ?? false %}
+        {% set crumbs = crumbs|merge([{label: 'Services', href: path('services')}, {label: service, href: path('service_hub', {service: service})}]) %}
+        {% if tenant ?? false %}{% set crumbs = crumbs|merge([{label: tenant, href: path('service_hub', {service: service, tenant: tenant})}]) %}{% endif %}
+    {% endif %}
+    {% set crumbs = crumbs|merge(trail) %}
+{% endif %}
+<nav aria-label="Breadcrumb" class="crumbs" data-crumbs>
     <ol>
         {% for crumb in crumbs %}
-            <li>{% if crumb.href is defined and not loop.last %}<a href="{{ crumb.href }}">{{ crumb.label }}</a>{% else %}<span{% if loop.last %} aria-current="page"{% endif %}>{{ crumb.label }}</span>{% endif %}</li>
+            <li>{% if crumb.href is defined and not loop.last %}<a href="{{ crumb.href }}">{{ crumb.label }}</a>{% else %}<span{% if loop.last %} aria-current="page"{% endif %}{% if crumb.title is defined %} title="{{ crumb.title }}"{% endif %}>{{ crumb.label }}</span>{% endif %}</li>
         {% endfor %}
     </ol>
 </nav>

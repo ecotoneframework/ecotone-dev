@@ -16,16 +16,15 @@ final class ServicePackagesTest extends ReleasingWebTestCase
 {
     use DeadLetterServicesTrait;
 
-    public function test_the_service_page_lists_every_installed_ecotone_package_with_its_tables_even_one_that_needs_none(): void
+    public function test_the_configuration_view_lists_every_installed_ecotone_package_and_names_the_package_of_each_table(): void
     {
         $crawler = $this->servicePage();
 
         $packages = $crawler->filter('[data-hub-setup] [data-package]');
         self::assertSame(['core', 'dbal', 'test'], $packages->each(static fn (Crawler $package): string => (string) $package->attr('data-package')));
         self::assertSame('ecotone/dbal', trim($crawler->filter('[data-package="dbal"] [data-package-name]')->text()));
-        self::assertCount(1, $crawler->filter('[data-package="dbal"] [data-setup-item="table:dead_letter"]'));
-        self::assertCount(0, $crawler->filter('[data-package="core"] [data-setup-item]'));
-        self::assertSame('Needs no database table.', trim($crawler->filter('[data-package="core"] [data-no-tables]')->text()));
+        self::assertSame('dbal', $crawler->filter('[data-hub-setup] [data-setup-item="table:dead_letter"]')->attr('data-setup-package'));
+        self::assertCount(0, $crawler->filter('[data-hub-setup] [data-setup-item][data-setup-package="core"]'));
     }
 
     public function test_each_feature_shows_whether_it_is_on_its_settings_and_a_hint_with_the_call_that_changes_it(): void
@@ -110,6 +109,6 @@ final class ServicePackagesTest extends ReleasingWebTestCase
 
     private function hubOf(KernelBrowser $client): Crawler
     {
-        return $client->request('GET', '/services/orders');
+        return $client->request('GET', '/services/orders/configuration');
     }
 }

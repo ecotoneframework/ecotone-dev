@@ -126,6 +126,22 @@ final readonly class TraceHighlight
         return $state;
     }
 
+    /**
+     * @return array<string, list<string>>
+     */
+    public function nodesInState(string $state): array
+    {
+        $nodes = [];
+        foreach ($this->nodeStates as $service => $states) {
+            $inState = array_keys(array_filter($states, static fn (string $nodeState): bool => $nodeState === $state));
+            if ($inState !== []) {
+                $nodes[$service] = array_map('strval', $inState);
+            }
+        }
+
+        return $nodes;
+    }
+
     public function durationLabelOf(string $service, string $nodeId): ?string
     {
         $microseconds = $this->durationsInMicroseconds[$service][$nodeId] ?? null;

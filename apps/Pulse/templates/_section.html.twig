@@ -1,0 +1,10 @@
+{% set view = status_view(status ?? null, reason ?? null) %}
+{% set level = level ?? 2 %}
+<details class="section sev-{{ view.status.value }}"{% if id ?? false %} id="{{ id }}"{% endif %}{% if hook ?? false %} data-{{ hook }}{% endif %} data-section="{{ key }}" data-disclosure="{{ key }}" data-section-status="{{ view.status.value }}"{% if open ?? (view.status.value not in ['ok', 'info']) %} open{% endif %}>
+    <summary><h{{ level }} class="section-title">{{ title }}</h{{ level }}> <span class="summary-state" data-summary-state>{{ summary }}</span>{% if view.status.value != 'ok' %} {% include '_status.html.twig' with {status: view, inline_reason: false} only %}{% endif %}</summary>
+    <div class="section-body">
+        {% if view.reason %}<p class="status-reason" data-status-reason>{{ view.reason }}</p>{% endif %}
+        {% if concept ?? false %}<p class="section-concept">{% include '_concept.html.twig' with {term: concept} only %}</p>{% endif %}
+        {% block body %}{% endblock %}
+    </div>
+</details>

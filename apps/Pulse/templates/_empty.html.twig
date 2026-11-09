@@ -1,0 +1,10 @@
+<div class="empty empty-{{ cause }}" data-empty="{{ cause }}"{% if hook ?? false %} data-{{ hook }}="{{ hook_value ?? '' }}"{% endif %}>
+    <p class="empty-sentence">{% block sentence %}{{ sentence }}{% endblock %}</p>
+    {% block action %}{% if action ?? false %}<p class="empty-action"><a href="{{ action.href }}">{{ action.label }}</a></p>{% endif %}{% endblock %}
+    {% if snippet ?? false %}
+        <details class="empty-snippet" data-empty-snippet>
+            <summary>{{ snippet.label }}</summary>
+            <pre><code>{{ snippet.code }}</code></pre>
+        </details>
+    {% endif %}
+</div>

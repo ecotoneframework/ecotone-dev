@@ -97,7 +97,7 @@ final class FlowGraphNavigationTest extends ReleasingWebTestCase
             self::assertStringStartsWith('/flow?focus=' . $node['service'] . ':', $nodes[$id]['href']);
         }
         self::assertSame('/dead-letters?service=billing', $crawler->filter('[data-service-link="billing"] a[data-dead-letters]')->attr('href'));
-        self::assertSame('/traces#service-billing', $crawler->filter('[data-service-link="billing"] a[data-traces]')->attr('href'));
+        self::assertSame('/traces?service=billing', $crawler->filter('[data-service-link="billing"] a[data-traces]')->attr('href'));
     }
 
     public function test_the_legend_explains_the_colours_and_arrows(): void

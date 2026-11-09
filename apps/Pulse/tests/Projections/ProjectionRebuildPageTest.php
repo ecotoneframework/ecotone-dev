@@ -113,11 +113,11 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
 
         self::assertSame('not_initialized', $this->statusOf($crawler, 'waiting'));
         self::assertSame('Not initialized', trim($crawler->filter('tr[data-projection="waiting"] [data-projection-status]')->text()));
-        self::assertSame('Not initialized yet', trim($crawler->filter('tr[data-projection="waiting"] [data-initialization]')->text()));
+        self::assertSame('Not initialized yet', trim($crawler->filter('[data-projection-panel="waiting"] [data-initialization]')->text()));
         self::assertSame('bin/console ecotone:projection:init waiting', trim($crawler->filter('tr[data-projection="waiting"] [data-initialize-command]')->text()));
-        self::assertCount(0, $crawler->filter('tr[data-projection="waiting"] details'));
-        self::assertCount(0, $crawler->filter('tr[data-projection="waiting"] form'));
-        self::assertSame('Initialized', trim($crawler->filter('tr[data-projection="ready"] [data-initialization]')->text()));
+        self::assertCount(0, $crawler->filter('[data-projection-panel="waiting"] details'));
+        self::assertCount(0, $crawler->filter('[data-projection-panel="waiting"] form'));
+        self::assertSame('Initialized', trim($crawler->filter('[data-projection-panel="ready"] [data-initialization]')->text()));
         self::assertCount(0, $crawler->filter('tr[data-projection="ready"] [data-initialize-command]'));
         self::assertNotSame('not_initialized', $this->statusOf($crawler, 'per_ticket'));
         self::assertCount(1, $crawler->filter('[data-rebuild-confirm="per_ticket"]'));
@@ -134,7 +134,7 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertSame('waiting_for_first_event', $this->statusOf($crawler, 'fresh'));
         self::assertSame('Waiting for its first event', trim($crawler->filter('tr[data-projection="fresh"] [data-projection-status]')->text()));
         self::assertCount(0, $crawler->filter('tr[data-projection="fresh"] [data-initialize-command]'));
-        self::assertCount(0, $crawler->filter('tr[data-projection="fresh"] form'));
+        self::assertCount(0, $crawler->filter('[data-projection-panel="fresh"] form'));
     }
 
     public function test_a_projection_kicked_off_from_the_console_and_not_run_yet_offers_backfill_and_rebuild(): void
@@ -145,7 +145,7 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         $crawler = $this->observe($client);
 
         self::assertSame('prepared', $this->statusOf($crawler, 'kicked'));
-        self::assertSame('Kicked off, not run yet', trim($crawler->filter('tr[data-projection="kicked"] [data-initialization]')->text()));
+        self::assertSame('Kicked off, not run yet', trim($crawler->filter('[data-projection-panel="kicked"] [data-initialization]')->text()));
         self::assertCount(1, $crawler->filter('[data-backfill-confirm="kicked"]'));
         self::assertCount(1, $crawler->filter('[data-rebuild-confirm="kicked"]'));
     }
@@ -248,6 +248,50 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertCount(0, $crawler->filter('tr[data-projection="waiting"] [data-rebuild-state]'));
         self::assertSame('running', $crawler->filter('tr[data-projection="totals"] [data-rebuild-state]')->attr('data-rebuild-state'));
         self::assertSame('backfilling', $this->statusOf($crawler, 'totals'));
+    }
+
+    public function test_recent_operations_fold_with_their_count_and_open_when_the_latest_of_a_projection_failed(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('totals'), $this->projection('broken')];
+        $this->orders->trackings = [$this->tracking('totals', 'done', batchesDone: 1, batchCount: 1, durationMs: 4200), $this->tracking('broken', 'failed', deadLetterMessageId: 'dead-1', tracingId: self::OTHER_TRACE)];
+
+        $crawler = $this->observe($client);
+
+        $operations = $crawler->filter('[data-projection-operations]');
+        self::assertNotNull($operations->attr('open'));
+        self::assertSame('2 · 1 failed', $operations->filter('[data-summary-state]')->text());
+        self::assertSame('warning', $crawler->filter('[data-verdict]')->attr('data-verdict'));
+        self::assertStringContainsString('the last rebuild of broken failed', $crawler->filter('[data-verdict-sentence]')->text());
+    }
+
+    public function test_recent_operations_that_all_finished_stay_folded(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('totals')];
+        $this->orders->trackings = [$this->tracking('totals', 'done', batchesDone: 1, batchCount: 1, durationMs: 4200)];
+
+        $crawler = $this->observe($client);
+
+        $operations = $crawler->filter('[data-projection-operations]');
+        self::assertNull($operations->attr('open'));
+        self::assertSame('1 · all done', $operations->filter('[data-summary-state]')->text());
+    }
+
+    public function test_rebuild_and_backfill_name_their_projection_with_what_they_affect_and_explain_what_they_do(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true), $this->projection('totals', events: 12)];
+
+        $crawler = $this->observe($client);
+
+        self::assertSame('Rebuild per_ticket · 5 partitions', trim($crawler->filter('[data-rebuild-confirm="per_ticket"] > summary')->text()));
+        self::assertSame('Rebuild per_ticket · 5 partitions', trim($crawler->filter('[data-rebuild-confirm="per_ticket"] button[data-rebuild-submit]')->text()));
+        self::assertSame('Backfill totals · 12 events behind', trim($crawler->filter('[data-backfill-confirm="totals"] > summary')->text()));
+        self::assertStringContainsString('#[ProjectionReset]', $crawler->filter('[data-rebuild-confirm="totals"] [data-rebuild-explanation]')->text());
+        self::assertStringContainsString('projected again on top of', $crawler->filter('[data-rebuild-confirm="totals"] [data-rebuild-explanation]')->text());
+        self::assertStringContainsString('nothing is reset or deleted', $crawler->filter('[data-backfill-confirm="totals"] [data-backfill-explanation]')->text());
+        self::assertCount(1, $crawler->filter('[data-rebuild-confirm="totals"] button.danger'));
     }
 
     public function test_a_confirmed_rebuild_is_sent_to_the_service_under_a_new_tracing_id(): void

@@ -1,17 +1,92 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Connect a service · Ecotone Pulse{% endblock %}
+{% block title %}{{ guide.focus ? 'Connect ' ~ guide.focus : 'Connect a service' }} · Ecotone Pulse{% endblock %}
 
 {% block body %}
-    <h1>Connect a service</h1>
-    <form method="get" action="{{ path('connect') }}" class="filters card">
-        <label for="c-service">Service name <input id="c-service" type="text" name="service" value="{{ service }}" list="known-services"></label>
-        <datalist id="known-services">{% for name in known %}<option value="{{ name }}">{% endfor %}</datalist>
-        <button type="submit" class="pri">Generate</button>
-    </form>
-    {% if invalid is not null %}
-        <p class="notice" data-invalid-service>"{{ invalid }}" cannot be a service name in generated code. Use only the characters [A-Za-z0-9_.-], the characters a name in PULSE_SERVICES can have without quoting.</p>
+    {% set connectScope = guide.focus ? {service: guide.focus} : {} %}
+    {% set connectName = guide.focus ?? 'your service' %}
+    {% if guide.focus %}
+        {% include '_breadcrumbs.html.twig' with {trail: [{label: 'Connect a service', href: path('connect', guide.framework == 'symfony' ? {} : {framework: guide.framework})}, {label: guide.focus}]} only %}
     {% else %}
-        {% include 'connect/_snippets.html.twig' %}
+        {% include '_breadcrumbs.html.twig' with {trail: [{label: 'Connect a service'}]} only %}
+    {% endif %}
+    <h1>{{ guide.focus ? 'Connect ' ~ guide.focus : 'Connect a service' }}</h1>
+
+    {% if invalid is not null %}
+        {% embed '_verdict.html.twig' with {status: 'warning', invalid: invalid} only %}
+            {% block sentence %}<span data-invalid-service>"{{ invalid }}" cannot be a service name in generated code. Use only the characters [A-Za-z0-9_.-], the characters a name in PULSE_SERVICES can have without quoting.</span>{% endblock %}
+        {% endembed %}
+    {% else %}
+        {% embed '_verdict.html.twig' with {status: guide.status, sentence: guide.sentence, action: guide.action ? {label: guide.action.label, href: path('service_hub', {service: guide.action.service}) ~ (guide.action.anchor ? '#' ~ guide.action.anchor : '')} : null, answering: guide.answering, notAnswering: guide.notAnswering} only %}
+            {% block meta %}
+                {% if answering or notAnswering %}
+                    <p class="verdict-meta" data-verdict-meta>
+                        {% if answering %}<span data-connect-answering>Answering: {% for name in answering %}<a href="{{ path('service_hub', {service: name}) }}">{{ name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</span>{% endif %}
+                        {% if answering and notAnswering %} · {% endif %}
+                        {% if notAnswering %}<span data-connect-not-answering>Not answering: {% for row in notAnswering %}<a href="{{ path('service_hub', {service: row.service}) }}">{{ row.service }}</a> ({{ row.label }}){% if not loop.last %}, {% endif %}{% endfor %}</span>{% endif %}
+                    </p>
+                {% endif %}
+            {% endblock %}
+        {% endembed %}
+    {% endif %}
+
+    <section class="card connect-setup" data-connect-setup>
+        {% if snippets is not empty %}
+            <nav aria-label="Framework" class="framework-tabs" data-framework-tabs>
+                <span class="muted">Your framework:</span>
+                {% for framework, snippet in snippets %}
+                    <a href="{{ path('connect', connectScope|merge({framework: framework})) }}" data-framework-tab="{{ framework }}"{% if framework == guide.framework %} aria-current="page"{% endif %}>{{ snippet.title }}</a>
+                {% endfor %}
+            </nav>
+        {% endif %}
+        <form method="get" action="{{ path('connect') }}" class="filters connect-form">
+            <input type="hidden" name="framework" value="{{ guide.framework }}">
+            <label for="c-service">Service name <input id="c-service" type="text" name="service" value="{{ guide.focus }}" placeholder="{{ service }}" list="known-services"></label>
+            <datalist id="known-services">{% for name in known %}<option value="{{ name }}">{% endfor %}</datalist>
+            <button type="submit" class="pri">Generate</button>
+        </form>
+    </section>
+
+    {% if invalid is null %}
+        <ol class="connect-steps" data-connect-steps>
+            <li class="connect-step" data-step="needs">
+                <h2><span class="step-number">1</span> What Pulse needs from {{ connectName }}</h2>
+                <ul class="connect-needs">
+                    <li>An Ecotone Enterprise {% include '_concept.html.twig' with {term: 'licence-key', text: 'licence key'} only %}: a service with a <code>PulseConfiguration</code> and no key refuses to boot.</li>
+                    <li>A {% include '_concept.html.twig' with {term: 'service-name', text: 'service name'} only %}, <code>{{ service }}</code>: Pulse ignores an answer whose name is not in PULSE_SERVICES.</li>
+                    <li>A <code>PulseConfiguration</code> naming this Pulse, <code>{{ pulseServiceName }}</code>, so {{ connectName }} answers each request for a {% include '_concept.html.twig' with {term: 'snapshot', text: 'snapshot'} only %} over the {% include '_concept.html.twig' with {term: 'distributed-bus', text: 'Distributed Bus'} only %} and replies on channel <code>{{ replyChannel }}</code>.</li>
+                    <li>A running consumer of its {% include '_concept.html.twig' with {term: 'request-channel', text: 'request channel'} only %}, <code>{{ requestChannel }}</code>, on the broker Pulse uses: Pulse writes its requests there.</li>
+                </ul>
+            </li>
+            <li class="connect-step" data-step="configure">
+                <h2><span class="step-number">2</span> Add the Pulse configuration to {{ connectName }}</h2>
+                <p>For {{ snippets[guide.framework].title }}: one class with three <code>#[ServiceContext]</code> methods, the licence key, and the command that consumes the request channel.</p>
+                {% for framework in guide.frameworkOrder %}
+                    {% if loop.index == 2 %}<h3 class="other-frameworks" data-other-frameworks>Other frameworks · {{ guide.frameworkOrder|length - 1 }}</h3>{% endif %}
+                    {% include 'connect/_framework.html.twig' with {framework: framework, snippet: snippets[framework], open: loop.first} only %}
+                {% endfor %}
+            </li>
+            <li class="connect-step" data-step="pulse-services">
+                <h2><span class="step-number">3</span> Add {{ connectName }} to {% include '_concept.html.twig' with {term: 'pulse-services', text: 'PULSE_SERVICES'} only %}</h2>
+                {% if guide.focusConfigured %}
+                    <p>{{ service }} is already in PULSE_SERVICES, so there is nothing to add:</p>
+                {% else %}
+                    <p>Add the entry to Pulse's PULSE_SERVICES, after a comma when it already lists services, then restart Pulse: it reads PULSE_SERVICES when it starts.</p>
+                {% endif %}
+                <div class="snippet-code">
+                    <pre class="mono" id="connect-pulse-services" data-pulse-services>PULSE_SERVICES={{ servicesEntry }}</pre>
+                    <button type="button" class="copy" data-copy="#connect-pulse-services" hidden>Copy the entry</button>
+                </div>
+            </li>
+            <li class="connect-step" data-step="verify">
+                <h2><span class="step-number">4</span> Check that {{ connectName }} answers</h2>
+                {% if guide.focusConfigured %}
+                    <p>Start {{ service }} with its consumer running, then <a href="{{ path('service_hub', {service: service}) }}">open {{ service }}</a>: Pulse asks it for a snapshot and shows Connected once it answers.</p>
+                {% else %}
+                    <p>Start {{ connectName }} with its consumer running, then <a href="{{ path('services') }}">open Services</a> once Pulse has restarted: Pulse asks every service and shows {{ connectName }} as Connected once it answers.</p>
+                {% endif %}
+                <p class="muted">Still not Connected after a few seconds? While a service does not answer, its Overview shows a Diagnose section with what Pulse checked, and <code>bin/console pulse:doctor</code> in the Pulse container runs the same checks.</p>
+            </li>
+        </ol>
     {% endif %}
 {% endblock %}

@@ -28,7 +28,7 @@ final class HomeProblemsTest extends ReleasingWebTestCase
         $problems = $this->problemsOf($crawler, 'orders');
         self::assertSame(['critical'], array_column($problems, 'severity'));
         self::assertSame(['unreachable'], array_column($problems, 'kind'));
-        self::assertSame('/services/orders', $problems[0]['href']);
+        self::assertSame('/services/orders#diagnose', $problems[0]['href']);
     }
 
     public function test_a_channel_over_the_critical_threshold_says_how_many_are_ready_and_links_to_the_channels(): void
@@ -38,7 +38,7 @@ final class HomeProblemsTest extends ReleasingWebTestCase
 
         $crawler = $this->observeBoard($client);
 
-        self::assertSame([['text' => 'invoices: 12 400 ready (critical)', 'href' => '/services/orders#channels', 'severity' => 'critical', 'kind' => 'queue-critical']], $this->problemsOf($crawler, 'orders'));
+        self::assertSame([['text' => 'invoices: 12 400 ready (critical)', 'href' => '/services/orders/channels', 'severity' => 'critical', 'kind' => 'queue-critical']], $this->problemsOf($crawler, 'orders'));
     }
 
     public function test_a_channel_over_the_warning_threshold_is_a_warning(): void
@@ -48,7 +48,7 @@ final class HomeProblemsTest extends ReleasingWebTestCase
 
         $crawler = $this->observeBoard($client);
 
-        self::assertSame([['text' => 'invoices: 1 200 ready (warning)', 'href' => '/services/orders#channels', 'severity' => 'warning', 'kind' => 'queue-warning']], $this->problemsOf($crawler, 'orders'));
+        self::assertSame([['text' => 'invoices: 1 200 ready (warning)', 'href' => '/services/orders/channels', 'severity' => 'warning', 'kind' => 'queue-warning']], $this->problemsOf($crawler, 'orders'));
     }
 
     public function test_a_failed_projection_is_critical_and_links_to_the_projections_of_the_service(): void
@@ -60,7 +60,7 @@ final class HomeProblemsTest extends ReleasingWebTestCase
         $crawler = $this->observeBoard($client);
 
         $failed = array_values(array_filter($this->problemsOf($crawler, 'orders'), static fn (array $problem): bool => $problem['kind'] === 'projection-failed'));
-        self::assertSame([['text' => 'orders_projection failed: its channel has dead letters', 'href' => '/services/orders/projections', 'severity' => 'critical', 'kind' => 'projection-failed']], $failed);
+        self::assertSame([['text' => 'orders_projection failed: its channel has dead letters', 'href' => '/services/orders/projections#projection-orders-orders_projection', 'severity' => 'critical', 'kind' => 'projection-failed']], $failed);
     }
 
     public function test_a_projection_that_stopped_moving_is_a_warning_that_says_for_how_long(): void
@@ -72,7 +72,7 @@ final class HomeProblemsTest extends ReleasingWebTestCase
         $this->advanceTimeBy(7 * 60);
         $crawler = $this->observeBoard($client);
 
-        self::assertSame([['text' => 'orders_projection stalled 7 min', 'href' => '/services/orders/projections', 'severity' => 'warning', 'kind' => 'projection-stalled']], $this->problemsOf($crawler, 'orders'));
+        self::assertSame([['text' => 'orders_projection stalled 7 min', 'href' => '/services/orders/projections#projection-orders-orders_projection', 'severity' => 'warning', 'kind' => 'projection-stalled']], $this->problemsOf($crawler, 'orders'));
     }
 
     public function test_a_projection_catching_up_is_a_warning(): void
@@ -82,7 +82,7 @@ final class HomeProblemsTest extends ReleasingWebTestCase
 
         $crawler = $this->observeBoard($client);
 
-        self::assertSame([['text' => 'orders_projection behind: 12 events behind', 'href' => '/services/orders/projections', 'severity' => 'warning', 'kind' => 'projection-behind']], $this->problemsOf($crawler, 'orders'));
+        self::assertSame([['text' => 'orders_projection behind: 12 events behind', 'href' => '/services/orders/projections#projection-orders-orders_projection', 'severity' => 'warning', 'kind' => 'projection-behind']], $this->problemsOf($crawler, 'orders'));
     }
 
     public function test_dead_letter_failures_are_a_warning_per_failure_linking_to_that_failure(): void
@@ -93,8 +93,8 @@ final class HomeProblemsTest extends ReleasingWebTestCase
         $crawler = $this->observeBoard($client);
 
         self::assertSame([
-            ['text' => '3 failures in OrderPlaced', 'href' => '/dead-letters?service=orders&failureId=f-placed', 'severity' => 'warning', 'kind' => 'dead-letters'],
-            ['text' => '1 failure in OrderCancelled', 'href' => '/dead-letters?service=orders&failureId=f-cancelled', 'severity' => 'warning', 'kind' => 'dead-letters'],
+            ['text' => '3 OrderPlaced messages failed after their retries and are kept until you replay or delete them.', 'href' => '/dead-letters?service=orders&failureId=f-placed', 'severity' => 'warning', 'kind' => 'dead-letters'],
+            ['text' => '1 OrderCancelled message failed after its retries and is kept until you replay or delete it.', 'href' => '/dead-letters?service=orders&failureId=f-cancelled', 'severity' => 'warning', 'kind' => 'dead-letters'],
         ], $this->problemsOf($crawler, 'orders'));
     }
 
@@ -143,8 +143,8 @@ final class HomeProblemsTest extends ReleasingWebTestCase
         $crawler = $this->observeBoard($client);
 
         self::assertSame([
-            ['text' => 'broken rebuild failed in the last 7 days', 'href' => '/services/orders/projections', 'severity' => 'warning', 'kind' => 'rebuild-failed'],
-            ['text' => 'totals rebuilding for 1m 5s', 'href' => '/services/orders/projections', 'severity' => 'info', 'kind' => 'rebuild-running'],
+            ['text' => 'broken rebuild failed in the last 7 days', 'href' => '/services/orders/projections#projection-orders-broken', 'severity' => 'warning', 'kind' => 'rebuild-failed'],
+            ['text' => 'totals rebuilding for 1m 5s', 'href' => '/services/orders/projections#projection-orders-totals', 'severity' => 'info', 'kind' => 'rebuild-running'],
         ], $this->problemsOf($crawler, 'orders'));
     }
 
@@ -167,8 +167,8 @@ final class HomeProblemsTest extends ReleasingWebTestCase
         $crawler = $this->observeBoard($client);
 
         self::assertSame([
-            ['text' => 'broken backfill failed in the last 7 days', 'href' => '/services/orders/projections', 'severity' => 'warning', 'kind' => 'backfill-failed'],
-            ['text' => 'totals backfilling for 1m 5s', 'href' => '/services/orders/projections', 'severity' => 'info', 'kind' => 'backfill-running'],
+            ['text' => 'broken backfill failed in the last 7 days', 'href' => '/services/orders/projections#projection-orders-broken', 'severity' => 'warning', 'kind' => 'backfill-failed'],
+            ['text' => 'totals backfilling for 1m 5s', 'href' => '/services/orders/projections#projection-orders-totals', 'severity' => 'info', 'kind' => 'backfill-running'],
         ], $this->problemsOf($crawler, 'orders'));
     }
 
@@ -194,9 +194,9 @@ final class HomeProblemsTest extends ReleasingWebTestCase
         $crawler = $this->observeBoard($client);
 
         self::assertSame([
-            ['text' => 'invoices: 12 400 ready (critical)', 'href' => '/services/orders?tenant=tenant_a#channels', 'severity' => 'critical', 'kind' => 'queue-critical'],
-            ['text' => 'totals behind: 2 events behind', 'href' => '/services/orders@tenant_a/projections', 'severity' => 'warning', 'kind' => 'projection-behind'],
-            ['text' => '3 failures in OrderPlaced', 'href' => '/dead-letters?service=orders@tenant_a&failureId=f-placed', 'severity' => 'warning', 'kind' => 'dead-letters'],
+            ['text' => 'invoices: 12 400 ready (critical)', 'href' => '/services/orders/channels?tenant=tenant_a', 'severity' => 'critical', 'kind' => 'queue-critical'],
+            ['text' => 'totals behind: 2 events behind', 'href' => '/services/orders@tenant_a/projections#projection-orders@tenant_a-totals', 'severity' => 'warning', 'kind' => 'projection-behind'],
+            ['text' => '3 OrderPlaced messages failed after their retries and are kept until you replay or delete them.', 'href' => '/dead-letters?service=orders@tenant_a&failureId=f-placed', 'severity' => 'warning', 'kind' => 'dead-letters'],
         ], $this->problemsOf($crawler, 'orders@tenant_a'));
         self::assertSame([], $this->problemsOf($crawler, 'orders@tenant_b'));
     }

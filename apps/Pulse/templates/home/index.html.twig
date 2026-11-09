@@ -6,50 +6,84 @@
     {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
 {% endblock %}
 
+{% macro problemText(parts) %}{% for part in parts %}{% if part.title is defined %}<span title="{{ part.title }}">{{ part.text }}</span>{% else %}{{ part.text }}{% endif %}{% endfor %}{% endmacro %}
+
+{% macro problemCard(card) %}
+    {% if card.failureId %}<div data-failure="{{ card.failureId }}">{% endif %}
+    {% embed '_problem.html.twig' with {status: card.severity, kind: card.kind, where: card.where, evidence: card.evidence, action: {label: card.actionLabel, href: card.actionHref}, concept: card.concept, parts: card.text} only %}
+        {% block text %}{% for part in parts %}{% if part.title is defined %}<span title="{{ part.title }}">{{ part.text }}</span>{% else %}{{ part.text }}{% endif %}{% endfor %}{% endblock %}
+    {% endembed %}
+    {% if card.failureId %}</div>{% endif %}
+{% endmacro %}
+
 {% block body %}
     <div class="heading">
         <div>
             <h1>Home</h1>
-            {% if updatedAgo is not null %}<p class="muted" data-updated>Updated {{ updatedAgo }}s ago</p>{% endif %}
+            {% if updatedAgo is not null %}<p class="muted" data-updated>Updated {{ updatedAgo }} s ago {% include '_concept.html.twig' with {term: 'snapshot'} only %}</p>{% endif %}
         </div>
         <form method="post" action="{{ path('services_refresh') }}"><input type="hidden" name="return" value="home"><button type="submit" data-await>Refresh</button></form>
     </div>
 
-    <div class="strip">
-        <p class="card stat{{ summary.critical > 0 ? ' bad' : '' }}" data-summary="critical"><b>{{ summary.critical }}</b><span>Critical</span></p>
-        <p class="card stat{{ summary.warning > 0 ? ' warn' : '' }}" data-summary="warning"><b>{{ summary.warning }}</b><span>Warning</span></p>
-        <p class="card stat" data-summary="healthy"><b>{{ summary.healthy }}</b><span>Healthy</span></p>
-        {% if summary.waiting > 0 %}<p class="card stat" data-summary="waiting"><b>{{ summary.waiting }}</b><span>Waiting for a snapshot</span></p>{% endif %}
-    </div>
+    {% embed '_verdict.html.twig' with {status: verdict.status, sentence: verdict.sentence, summary: summary} only %}
+        {% block meta %}
+            <p class="verdict-meta" data-verdict-meta>
+                <span data-summary="critical"><b>{{ summary.critical }}</b> critical</span>
+                · <span data-summary="warning"><b>{{ summary.warning }}</b> warning</span> {% include '_concept.html.twig' with {term: 'severity'} only %}
+                · <span data-summary="healthy"><b>{{ summary.healthy }}</b> healthy</span>
+                {% if summary.waiting > 0 %}· <span data-summary="waiting"><b>{{ summary.waiting }}</b> waiting for a first answer</span>{% endif %}
+            </p>
+        {% endblock %}
+    {% endembed %}
 
-    <p><a href="{{ path('services') }}" data-all-services-link>All services table</a></p>
-
-    {% if tiles is empty %}
-        <p class="notice" data-no-services>No service is configured. Add one to <code>PULSE_SERVICES</code>, for example <code>PULSE_SERVICES=orders:orders_channel</code>.</p>
+    {% if problems %}
+        <div class="home-problems" data-home-problems>
+            {% for card in problems|slice(0, problemsShown) %}{{ _self.problemCard(card) }}{% endfor %}
+            {% set hidden = problems|length - problemsShown %}
+            {% if hidden > 0 %}<p class="more-problems" data-more-problems><a href="#services">{{ hidden }} more {{ hidden == 1 ? 'problem' : 'problems' }} in the services below</a></p>{% endif %}
+        </div>
     {% endif %}
 
-    <div class="tiles">
-        {% for tile in tiles %}
-            {% set scope = tile.scope %}
-            {% set status = scope.status %}
-            <section class="card" data-tile="{{ scope.scope }}" data-tile-service="{{ scope.service }}"{% if scope.tenant %} data-tile-tenant="{{ scope.tenant }}"{% endif %} data-severity="{{ tile.worst ? tile.worst.value : 'none' }}" aria-labelledby="tile-{{ loop.index }}">
-                <h2 id="tile-{{ loop.index }}"><a href="{{ path('service_hub', {service: scope.service, tenant: scope.tenant}) }}" data-tile-link>{{ scope.service }}{% if scope.tenant %} <span class="muted">› {{ scope.tenant }}</span>{% endif %}</a></h2>
-                <p>
-                    <span class="pill {{ {connected: 'ok', waiting: 'wait'}[status.value] ?? 'bad sq' }}" data-status="{{ status.value }}">{{ status.value == 'channel_missing' ? 'Channel missing' : status.name }}</span>
-                </p>
-                {% if tile.problems %}
-                    <ul data-problems>
-                        {% for problem in tile.problems|slice(0, 4) %}
-                            <li data-problem="{{ problem.kind }}" data-problem-severity="{{ problem.severity.value }}"><span class="pill {{ {critical: 'bad sq', warning: 'wait', info: 'off'}[problem.severity.value] }}">{{ problem.severity.value|capitalize }}</span> <a href="{{ problem.href }}">{{ problem.text }}</a></li>
-                        {% endfor %}
-                    </ul>
-                    {% if tile.problems|length > 4 %}<p class="muted" data-more-problems><a href="{{ path('service_hub', {service: scope.service, tenant: scope.tenant}) }}">{{ tile.problems|length - 4 }} more</a></p>{% endif %}
-                {% elseif tile.waiting %}
-                    <p class="muted" data-waiting>Waiting for the first snapshot.</p>
-                {% else %}
-                    <p class="muted" data-all-clear>All clear</p>
-                {% endif %}
-            </section>
-        {% endfor %}
-    </div>
+    {% embed '_hint.html.twig' with {name: 'home-introduction', title: 'New to Pulse? How this page works'} only %}
+        {% block body %}
+            <p>Pulse watches the {% include '_concept.html.twig' with {term: 'service', text: 'services'} only %} listed in <code>PULSE_SERVICES</code>. It asks each one for a snapshot of its channels, failed messages and projections.</p>
+            <p>The verdict above says whether anything needs you, the cards show the worst problems first, and each service below links to its details. Close this note once you know your way around.</p>
+        {% endblock %}
+    {% endembed %}
+
+    <section class="home-services" id="services" aria-labelledby="services-title">
+        <h2 id="services-title">Services · {{ lines|length }}</h2>
+        {% if lines is empty %}
+            {% include '_empty.html.twig' with {cause: 'not-enabled', hook: 'no-services', sentence: 'No service is configured, so Pulse has nobody to ask. Add one to PULSE_SERVICES, for example PULSE_SERVICES=orders:orders_channel.', action: {label: '+ Connect a service', href: path('connect')}} only %}
+        {% endif %}
+        <div class="tiles">
+            {% for line in lines %}
+                {% set scope = line.tile.scope %}
+                <section class="card service-tile sev-{{ line.status.value }}" data-tile="{{ scope.scope }}" data-tile-service="{{ scope.service }}"{% if scope.tenant %} data-tile-tenant="{{ scope.tenant }}"{% endif %} data-severity="{{ line.tile.worst ? line.tile.worst.value : 'none' }}" aria-labelledby="tile-{{ loop.index }}">
+                    <h3 id="tile-{{ loop.index }}"><a href="{{ path('service_hub', {service: scope.service, tenant: scope.tenant}) }}" data-tile-link>{{ scope.service }}{% if scope.tenant %} <span class="muted">› {{ scope.tenant }}</span>{% endif %}</a></h3>
+                    <p class="service-tile-state">
+                        <span data-status="{{ scope.status.value }}">{% include '_status.html.twig' with {status: line.connectionStatus, label: line.connectionLabel} only %}</span>
+                        {% if line.cards is empty and line.tile.waiting %}<span class="muted" data-waiting>Waiting for its first answer.</span>{% elseif line.cards is empty %}<span data-all-clear>All clear</span>{% endif %}
+                    </p>
+                    {% if line.facts %}
+                        <ul class="service-facts">
+                            {% for fact in line.facts %}
+                                <li class="sev-{{ fact.status.value }}" data-tile-fact="{{ fact.kind }}"><a href="{{ fact.href }}"{% if fact.detail %} title="{{ fact.detail }}"{% endif %}>{{ fact.phrase }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    {% if line.cards %}
+                        <details class="tile-problems" data-tile-problems data-disclosure="home.{{ scope.scope }}.problems">
+                            <summary><span data-summary-state>{{ line.problemsSummary }}</span></summary>
+                            <ul data-problems>
+                                {% for card in line.cards %}
+                                    <li data-problem="{{ card.kind }}" data-problem-severity="{{ card.severity.value }}">{% include '_status.html.twig' with {status: card.severity} only %} <a href="{{ card.actionHref }}">{{ _self.problemText(card.text) }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        </details>
+                    {% endif %}
+                </section>
+            {% endfor %}
+        </div>
+    </section>
 {% endblock %}

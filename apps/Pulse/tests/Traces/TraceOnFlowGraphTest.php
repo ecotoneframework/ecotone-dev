@@ -100,6 +100,34 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
         self::assertFalse($graph->hasNode('tracePassed', 'orders', '::explode'));
     }
 
+    public function test_a_highlighted_failed_trace_is_the_verdict_and_names_the_failed_step_with_a_link_that_keeps_the_trace(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $crawler = $this->traceView($client, '/flow?trace=' . self::EXPLODED);
+
+        $verdict = $crawler->filter('[data-trace-banner] [data-verdict]');
+        self::assertSame('warning', $verdict->attr('data-verdict'));
+        self::assertMatchesRegularExpression('/^Trace 44444444… failed: \d+ nodes? failed and \d+ passed; the red nodes are where it failed\.$/', $verdict->filter('[data-verdict-sentence]')->text());
+        $problem = $crawler->filter('[data-problem="trace-failed"]');
+        self::assertStringContainsString('::explode failed in orders in this trace.', $problem->filter('[data-problem-text]')->text());
+        $follow = (string) $problem->filter('[data-problem-action]')->attr('href');
+        self::assertStringStartsWith('/flow?focus=orders', $follow);
+        self::assertStringContainsString('trace=' . self::EXPLODED, $follow);
+        self::assertSame('/traces/trace/' . self::EXPLODED, $problem->filter('[data-problem-secondary]')->attr('href'));
+        self::assertNotNull($crawler->filter('details[data-graph-legend]')->attr('open'));
+    }
+
+    public function test_a_highlighted_trace_that_passed_is_an_ok_verdict_saying_where_it_went(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $verdict = $this->traceView($client, '/flow?trace=' . self::INVOICED)->filter('[data-trace-banner] [data-verdict]');
+
+        self::assertSame('ok', $verdict->attr('data-verdict'));
+        self::assertMatchesRegularExpression('/^Trace 22222222… passed through \d+ nodes in (orders and billing|billing and orders); thick arrows show the way it went\.$/', $verdict->filter('[data-verdict-sentence]')->text());
+    }
+
     public function test_a_step_sent_but_not_processed_yet_is_marked_pending_on_the_graph(): void
     {
         $client = $this->pulseWithAllServices();

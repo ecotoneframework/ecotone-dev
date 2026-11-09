@@ -4,43 +4,88 @@
 
 {% block importmap %}{{ importmap(['app', 'graph']) }}{% endblock %}
 
+{% block crumbs %}
+    {% include '_breadcrumbs.html.twig' with {service: scope.selected, trail: [{label: 'Topology'}]} only %}
+{% endblock %}
+
 {% block body %}
     <h1>Topology</h1>
-    {% include 'graph/_scope.html.twig' %}
-    {% include 'graph/_notices.html.twig' %}
-    {% if not report.hasConnections %}
-        <p class="muted">No service maps commands or events to another service yet.</p>
+
+    {% embed '_verdict.html.twig' with {status: summary.status, reason: summary.reason, sentence: summary.sentence, checked: summary.checked, incomplete: report.incompleteBecause} only %}
+        {% block meta %}
+            {% if checked %}<p class="verdict-meta" data-topology-checked>Each kind of {% include '_concept.html.twig' with {term: 'mismatch', text: 'mismatch'} only %} was checked: every command sent over the Distributed Bus has a route to a service that answers Pulse, every published event has a subscriber, and every subscription has a publisher.</p>{% endif %}
+            {% if incomplete %}<p class="verdict-meta" data-notice="incomplete">Incomplete: {{ incomplete|join(', ') }} not answering, so published events and subscriptions cannot be compared yet.</p>{% endif %}
+        {% endblock %}
+    {% endembed %}
+
+    {% include 'graph/_notices.html.twig' with {notices: notices} only %}
+
+    {% if problems %}
+        <div class="topology-mismatches" data-topology-mismatches>
+            {% for problem in problems|slice(0, 3) %}
+                <div data-mismatch="{{ problem.kind }}">{% include '_problem.html.twig' with problem only %}</div>
+            {% endfor %}
+            {% if problems|length > 3 %}
+                {% set more = problems|length - 3 %}
+                <details class="flow-more-findings" data-topology-more-mismatches data-disclosure="topology.more-mismatches">
+                    <summary>{{ more }} more {{ more == 1 ? 'mismatch' : 'mismatches' }}</summary>
+                    {% for problem in problems|slice(3) %}
+                        <div data-mismatch="{{ problem.kind }}">{% include '_problem.html.twig' with problem only %}</div>
+                    {% endfor %}
+                </details>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if summary.hasRoutes %}
+        <p class="flow-reading" data-topology-reading>
+            Topology is the routing configuration: each service's {% include '_concept.html.twig' with {term: 'service-map', text: 'Service Map'} only %} tells the {% include '_concept.html.twig' with {term: 'distributed-bus', text: 'Distributed Bus'} only %} over which channel to send commands to another service, and to which channels to send the events it publishes.
+            Pulse knows which service is behind a channel from that service's {% include '_concept.html.twig' with {term: 'request-channel', text: 'request channel'} only %} in PULSE_SERVICES.
+            The <a href="{{ path('flow_graph', scope.selected ? {service: scope.selected} : {}) }}">Flow graph</a> instead draws the messages the handlers send.
+        </p>
+    {% endif %}
+
+    {% include 'graph/_scope.html.twig' with {scope: scope} only %}
+
+    {% if not summary.hasRoutes %}
+        {% if summary.status.value == 'unknown' %}
+            {% include '_empty.html.twig' with {cause: 'waiting', sentence: 'No service has answered Pulse yet, so there is no Service Map to show. Routes appear here after the first answer.', action: {label: 'See which services Pulse is waiting for', href: path('services')}} only %}
+        {% else %}
+            {% include '_empty.html.twig' with {
+                cause: 'nothing-yet',
+                sentence: 'No service here routes commands or events to another service. Routes appear when a service registers a DistributedServiceMap in a #[ServiceContext] and sends over the Distributed Bus.',
+                snippet: {label: 'Show how to add a Service Map', code: "#[ServiceContext]\npublic function serviceMap(): DistributedServiceMap\n{\n    return DistributedServiceMap::initialize()\n        ->withCommandMapping('billing', 'billing')\n        ->withEventMapping('billing', ['order.*']);\n}"},
+            } only %}
+        {% endif %}
     {% else %}
-        <pre class="mermaid" data-topology>{{ diagram }}</pre>
+        {% if report.hasConnections %}
+            <pre class="mermaid" data-topology>{{ diagram }}</pre>
+        {% endif %}
+
+        {% set staleCommands = summary.commandRoutes|filter(route => route.stale)|length > 0 %}
+        {% embed '_section.html.twig' with {key: 'topology.command-routes', title: 'Command routes', summary: summary.commandSection.summary, status: summary.commandSection.status, concept: staleCommands ? 'stale' : null, routes: summary.commandRoutes} only %}
+            {% block body %}
+                <ul>
+                    {% for route in routes %}
+                        <li data-command-route="{{ route.from }}>{{ route.to }}"{% if route.stale %} data-stale="true"{% endif %}>{{ route.from }} sends commands to {{ route.to }} over channel <code>{{ route.channel }}</code>{% if route.stale %} (stale){% endif %}</li>
+                    {% else %}
+                        <li class="muted">No Service Map here names a channel for another service's commands; add withCommandMapping() to the sending service.</li>
+                    {% endfor %}
+                </ul>
+            {% endblock %}
+        {% endembed %}
+
+        {% set staleEvents = summary.eventRoutes|filter(route => route.stale)|length > 0 %}
+        {% embed '_section.html.twig' with {key: 'topology.event-routes', title: 'Event subscriptions', summary: summary.eventSection.summary, status: summary.eventSection.status, concept: staleEvents ? 'stale' : null, routes: summary.eventRoutes} only %}
+            {% block body %}
+                <ul>
+                    {% for route in routes %}
+                        <li data-event-subscription="{{ route.service }}"{% if route.stale %} data-stale="true"{% endif %}>{{ route.text }}{% if route.stale %} (stale){% endif %}</li>
+                    {% else %}
+                        <li class="muted">No Service Map here routes published events to a channel; add withEventMapping() to send events to other services.</li>
+                    {% endfor %}
+                </ul>
+            {% endblock %}
+        {% endembed %}
     {% endif %}
-
-    <h2>Command routes</h2>
-    <ul>
-        {% for route in report.commandRoutes %}
-            <li data-command-route="{{ route.from }}>{{ route.to }}"{% if route.stale %} data-stale="true"{% endif %}>{{ route.from }} sends commands to {{ route.to }} over channel {{ route.channel }}{% if route.stale %} (stale){% endif %}</li>
-        {% else %}
-            <li class="muted">None</li>
-        {% endfor %}
-    </ul>
-
-    <h2>Event subscriptions</h2>
-    <ul>
-        {% for subscription in report.eventSubscriptions %}
-            <li data-event-subscription="{{ subscription.service }}"{% if subscription.stale %} data-stale="true"{% endif %}>{{ subscription.service }} over channel {{ subscription.channel }}: {{ subscription.keys|join(', ') }}{% if subscription.stale %} (stale){% endif %}</li>
-        {% else %}
-            <li class="muted">None</li>
-        {% endfor %}
-    </ul>
-
-    <h2>Mismatches</h2>
-    {% if report.incomplete %}
-        <p class="notice" data-notice="incomplete">Incomplete: {{ report.incompleteBecause|join(', ') }} not answering, so published events and subscriptions cannot be compared yet.</p>
-    {% endif %}
-    <ul>
-        {% for mismatch in report.mismatches %}
-            <li data-mismatch="{{ mismatch.kind }}">{{ mismatch.message }}</li>
-        {% else %}
-            <li class="muted">None found</li>
-        {% endfor %}
-    </ul>
 {% endblock %}

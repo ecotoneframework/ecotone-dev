@@ -1,0 +1,2 @@
+{% set view = status_view(status, reason ?? null) %}
+<span class="pill status sev-{{ view.status.value }}" data-status-pill="{{ view.status.value }}" title="{{ view.status.label }}: {{ view.status.meaning }}">{{ label|default(view.status.label) }}</span>{% if view.reason and (inline_reason ?? true) %} <span class="status-reason" data-status-reason>{{ view.reason }}</span>{% endif %}

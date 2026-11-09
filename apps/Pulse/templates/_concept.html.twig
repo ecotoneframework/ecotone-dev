@@ -1,0 +1,9 @@
+{% set entry = concept(term) %}
+{% set anchor = 'concept-' ~ entry.term ~ '-' ~ random() %}
+<span class="concept" data-concept="{{ entry.term }}">{% if text ?? false %}<span class="concept-term">{{ text }}</span>{% endif %}<button type="button" class="concept-toggle" popovertarget="{{ anchor }}" aria-label="{{ entry.question }}" title="{{ entry.question }}">?</button><span popover id="{{ anchor }}" class="concept-body" role="note" aria-label="{{ entry.name }}">
+<span class="concept-head"><b class="concept-name">{{ entry.name }}</b><button type="button" class="concept-close" popovertarget="{{ anchor }}" popovertargetaction="hide" aria-label="Close the explanation of {{ entry.name|lower }}">×</button></span>
+<span class="concept-line" data-concept-what><b>What it is:</b> {{ entry.what }}</span>
+<span class="concept-line" data-concept-why><b>Why it matters:</b> {{ entry.why }}</span>
+<span class="concept-line" data-concept-do><b>What to do:</b> {{ todo ?? entry.todo }}</span>
+{% if entry.docs %}<a class="concept-docs" href="{{ entry.docs }}" target="_blank" rel="noopener">{{ entry.name }} in the Ecotone docs</a>{% endif %}
+</span></span>

@@ -16,6 +16,8 @@ use App\Graph\UnknownCollapse;
 use App\Graph\UnknownFold;
 use App\Snapshot\Snapshots;
 use App\Trace\TraceLoader;
+use App\Ui\FlowGraphSummary;
+use App\Ui\Status;
 use Ecotone\Api\Messaging\Flow\FlowNode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -87,7 +89,25 @@ final class FlowGraphController extends AbstractController
             default => $this->generateUrl('dead_letters', ['service' => $node['service']]),
         }], $nodes);
 
+        $described = array_values(array_intersect($shown, [$scope->selected]));
+        $summary = FlowGraphSummary::of($flows, $described === [] ? $shown : $described, $highlight, $traceView !== null && $traceView->trace->isEmpty(), $traceView?->waiting ?? false, $serviceFlows->notices);
+        $findings = array_map(fn (array $finding): array => [
+            'kind' => $finding['kind'],
+            'status' => $finding['status'],
+            'text' => $finding['text'],
+            'where' => $finding['where'],
+            'evidence' => $finding['evidence'],
+            'concept' => $finding['concept'],
+            'action' => ['label' => 'Follow ' . $finding['follow']['label'], 'href' => $this->focusUrl($finding['follow']['service'], $finding['follow']['node'], $carried)],
+            'secondary' => $finding['kind'] === 'trace-failed' ? ['label' => 'Open the trace', 'href' => $this->generateUrl('trace_detail', ['traceId' => $traceId])] : null,
+        ], $summary->findings);
+
+        $doubts = array_values(array_filter($findings, static fn (array $finding): bool => $finding['status'] === Status::Info));
+
         return $this->render('graph/flow.html.twig', [
+            'summary' => $summary,
+            'findings' => array_values(array_filter($findings, static fn (array $finding): bool => $finding['status'] !== Status::Info)),
+            'doubts' => $doubts,
             'scope' => $scope,
             'find' => $find,
             'carried' => $carried,

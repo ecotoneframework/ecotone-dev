@@ -11,6 +11,7 @@ final readonly class Problem
         public string $kind,
         public string $text,
         public string $href,
+        public ?string $subject = null,
     ) {
     }
 }

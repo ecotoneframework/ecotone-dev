@@ -8,31 +8,86 @@
 
 {% block importmap %}{{ importmap(['app', 'graph']) }}{% endblock %}
 
+{% block crumbs %}
+    {% include '_breadcrumbs.html.twig' with {service: scope.selected, trail: [{label: 'Flow graph'}]} only %}
+{% endblock %}
+
 {% block body %}
     <h1>Flow graph</h1>
-    <p class="muted">Every service's message flow, joined along distributed commands and events. Dashed arrows are inferred from source code.</p>
-    {% include 'graph/_notices.html.twig' %}
+
     {% if trace %}
-        <section class="card" data-trace-banner>
-            <p>Highlighting trace <a href="{{ path('trace_detail', {traceId: trace.traceId}) }}"><code>{{ trace.traceId }}</code></a>{% if not traceEmpty %} ({{ trace.status }}){% endif %}.
-            {% if traceEmpty %}<span data-trace-no-spans>{% if waiting %}Waiting for the services to answer…{% else %}No service stored a span of this trace id.{% endif %}</span>{% endif %}
-            </p>
-            <p class="muted">Green: passed · amber dashed: sent but not processed yet · red: failed. Thick arrows: the trace crossed them. Durations are the longest step through the node.</p>
-            {% for state in traceStates %}
-                {% if state.state in ['waiting', 'not_answering', 'refused'] %}
-                    <p class="drift" data-trace-service-state="{{ state.service }}">{{ state.service }}: {{ state.state == 'waiting' ? 'pending, waiting for the answer…' : (state.state == 'refused' ? 'refused this query: ' ~ state.failure : 'not answering for this query.') }}</p>
-                {% endif %}
-            {% endfor %}
-        </section>
+        <div class="flow-trace" data-trace-banner>
+            {% embed '_verdict.html.twig' with {status: summary.status, reason: summary.reason, sentence: summary.sentence, trace: trace, traceEmpty: traceEmpty, waiting: waiting, traceStates: traceStates} only %}
+                {% block meta %}
+                    <p class="verdict-meta" data-verdict-meta>Highlighting trace <a href="{{ path('trace_detail', {traceId: trace.traceId}) }}"><code>{{ trace.traceId }}</code></a>{% if not traceEmpty %} ({{ trace.status }}){% endif %}.
+                        {% if traceEmpty %}<span data-trace-no-spans>{% if waiting %}Waiting for the services to answer…{% else %}No service stored a span of this trace id.{% endif %}</span>{% endif %}
+                    </p>
+                    {% for state in traceStates %}
+                        {% if state.state in ['waiting', 'not_answering', 'refused'] %}
+                            <p class="drift" data-trace-service-state="{{ state.service }}">{{ state.service }}: {{ state.state == 'waiting' ? 'pending, waiting for the answer…' : (state.state == 'refused' ? 'refused this query: ' ~ state.failure : 'not answering for this query.') }}</p>
+                        {% endif %}
+                    {% endfor %}
+                {% endblock %}
+            {% endembed %}
+        </div>
+    {% else %}
+        {% embed '_verdict.html.twig' with {status: summary.status, reason: summary.reason, sentence: summary.sentence, checked: summary.checked} only %}
+            {% block meta %}
+                <p class="verdict-meta" data-verdict-meta>Built from each service's last answer: handlers and channels declared by attributes, Distributed Bus routes, and sends inferred from handler source code.</p>
+                {% if checked %}<p class="verdict-meta" data-flow-checked>Nothing to look at: every command and query sent has a handler, and every message received over the Distributed Bus has a sender in the graph.</p>{% endif %}
+            {% endblock %}
+        {% endembed %}
     {% endif %}
-    {% include 'graph/_scope.html.twig' with {carry: carried|filter((value, name) => name != 'service')|merge(focus ? {focus: focus.parameter} : {})} %}
-    <form method="get" action="{{ path('flow_graph') }}" class="flow-find" role="search" data-flow-find>
-        <label for="flow-find">Find a node</label>
-        <input id="flow-find" type="search" name="find" list="flow-node-names" value="{{ find }}" autocomplete="off">
-        {% include 'graph/_carried.html.twig' with {carry: carried} only %}
-        <button type="submit">Follow</button>
-        <datalist id="flow-node-names">{% for name in nodeNames %}<option value="{{ name }}"></option>{% endfor %}</datalist>
-    </form>
+
+    {% include 'graph/_notices.html.twig' with {notices: notices} only %}
+
+    {% if findings %}
+        <div class="flow-findings" data-flow-findings>
+            {% for finding in findings|slice(0, 3) %}
+                {% include '_problem.html.twig' with finding only %}
+            {% endfor %}
+            {% if findings|length > 3 %}
+                {% set more = findings|length - 3 %}
+                <details class="flow-more-findings" data-flow-more-findings data-disclosure="flow.more-findings">
+                    <summary>{{ more }} more {{ more == 1 ? 'finding' : 'findings' }}</summary>
+                    {% for finding in findings|slice(3) %}
+                        {% include '_problem.html.twig' with finding only %}
+                    {% endfor %}
+                </details>
+            {% endif %}
+        </div>
+    {% endif %}
+    {% if doubts %}
+        <details class="flow-doubts" data-flow-doubts data-disclosure="flow.doubts">
+            <summary>{{ doubts|length }} {{ doubts|length == 1 ? 'thing' : 'things' }} Pulse could not confirm from the source code · info</summary>
+            {% for finding in doubts %}
+                {% include '_problem.html.twig' with finding only %}
+            {% endfor %}
+        </details>
+    {% endif %}
+
+    {% if services is not empty %}
+        <p class="flow-reading" data-flow-reading>
+            {% if trace %}{{ summary.graphSentence }} {% endif %}
+            {% if overview %}
+            Each box is a service. An arrow counts the {% include '_concept.html.twig' with {term: 'command', text: 'commands'} only %}, {% include '_concept.html.twig' with {term: 'event', text: 'events'} only %} and messages one service sends another across the {% include '_concept.html.twig' with {term: 'distributed-bus', text: 'Distributed Bus'} only %}, and a dashed arrow counts the replies. Click a service to draw its handlers with each command, event and {% include '_concept.html.twig' with {term: 'query', text: 'query'} only %}.
+            {% else %}
+            Each box is a {% include '_concept.html.twig' with {term: 'command', text: 'command'} only %}, an {% include '_concept.html.twig' with {term: 'event', text: 'event'} only %} or a {% include '_concept.html.twig' with {term: 'query', text: 'query'} only %}, or the handler that takes it, and an arrow points from what sends to what handles.
+            Thick arrows go through an asynchronous channel or across the {% include '_concept.html.twig' with {term: 'distributed-bus', text: 'Distributed Bus'} only %} to another service; dashed arrows are inferred from source code, so a send Pulse cannot read draws none.
+            {% endif %}
+        </p>
+    {% endif %}
+
+    <div class="flow-toolbar">
+        {% include 'graph/_scope.html.twig' with {scope: scope, carry: carried|filter((value, name) => name != 'service')|merge(focus ? {focus: focus.parameter} : {})} only %}
+        <form method="get" action="{{ path('flow_graph') }}" class="flow-find" role="search" data-flow-find>
+            <label for="flow-find">Find a node</label>
+            <input id="flow-find" type="search" name="find" list="flow-node-names" value="{{ find }}" autocomplete="off">
+            {% include 'graph/_carried.html.twig' with {carry: carried} only %}
+            <button type="submit">Follow</button>
+            <datalist id="flow-node-names">{% for name in nodeNames %}<option value="{{ name }}"></option>{% endfor %}</datalist>
+        </form>
+    </div>
     {% if find != '' %}
         {% if found is empty %}
             <p class="notice" data-find-none>No node matches "{{ find }}". Names are matched anywhere in the label, ignoring case; the suggestions under the box list every node.</p>
@@ -49,16 +104,22 @@
             <p class="muted">Only what led to it and what it causes, as far as the services report it, is drawn: a send whose routing key is computed at runtime reaches the service it is sent to, but not the message there. Click a node, or a step listed under the graph, to re-centre on it, or <a href="{{ focus.clearUrl }}" data-focus-clear>show everything</a>.</p>
         </section>
     {% endif %}
-    <form method="get" class="service-toggles">
-        {% include 'graph/_carried.html.twig' with {carry: carried|filter((value, name) => name != 'service')} only %}
-        {% for service in services %}
-            <label><input type="checkbox" name="services[]" value="{{ service }}"{% if service in shown %} checked{% endif %}> {{ service }}</label>{% if collapseUrls[service] is defined %} <a class="collapse-link" href="{{ collapseUrls[service] }}" {% if service in collapsed %}data-expand="{{ service }}" aria-label="Expand {{ service }}">expand{% else %}data-collapse="{{ service }}" aria-label="Collapse {{ service }}">collapse{% endif %}</a>{% endif %}
-        {% endfor %}
-        <button type="submit">Show</button>
-    </form>
+
     {% if services is empty %}
-        <p class="muted">No service has answered yet.</p>
+        {% include '_empty.html.twig' with {cause: 'nothing-yet', hook: 'flow-no-services', sentence: 'No service has answered with its flow graph yet: the graph appears once a service running PulseConfiguration answers Pulse.', action: {label: 'See which services Pulse asks and how they answer', href: path('services')}} only %}
     {% else %}
+        {% embed '_section.html.twig' with {key: 'flow.services', hook: 'flow-services', title: 'Services', summary: shown|length ~ ' of ' ~ services|length ~ ' shown' ~ (collapsed ? ' · ' ~ collapsed|length ~ ' collapsed' : ''), status: 'ok', open: false, services: services, shown: shown, collapsed: collapsed, collapseUrls: collapseUrls, carried: carried} only %}
+            {% block body %}
+                <form method="get" class="service-toggles">
+                    {% include 'graph/_carried.html.twig' with {carry: carried|filter((value, name) => name != 'service')} only %}
+                    {% for service in services %}
+                        <label><input type="checkbox" name="services[]" value="{{ service }}"{% if service in shown %} checked{% endif %}> {{ service }}</label>{% if collapseUrls[service] is defined %} <a class="collapse-link" href="{{ collapseUrls[service] }}" {% if service in collapsed %}data-expand="{{ service }}" aria-label="Expand {{ service }}">expand{% else %}data-collapse="{{ service }}" aria-label="Collapse {{ service }}">collapse{% endif %}</a>{% endif %}
+                    {% endfor %}
+                    <button type="submit">Show</button>
+                </form>
+                <p class="muted">Tick the services to draw. Collapse draws a service as one box, so the arrows into and out of it stay readable.</p>
+            {% endblock %}
+        {% endembed %}
         <p class="muted graph-view">
             {% if overview %}<span data-flow-overview>Service overview: one node per service, arrows are distributed commands, events and messages.</span> Click a service to see its flow, or <a href="{{ detailUrl }}">show every service in detail</a>.
             {% elseif services|length > 1 %}<a href="{{ overviewUrl }}">Show the service overview</a>{% endif %}
@@ -66,9 +127,9 @@
         </p>
         <pre class="mermaid" data-flow-graph data-graph-nodes="{{ nodes|json_encode }}">{{ diagram }}</pre>
         {% if focus %}
-            <details class="card focus" data-focus-steps>
+            <details class="card focus" data-focus-steps data-disclosure="flow.focus-steps">
                 <summary>Steps: {{ focus.upstream|length }} before, {{ focus.downstream|length }} after</summary>
-                <p class="muted" data-focus-order>What led here starts at the step farthest from {{ focus.label }}; what happens next starts at the step right after it. Both are ordered by distance, so steps of different branches at the same distance sit next to each other rather than in the order they run.</p>
+                <p class="muted" data-focus-order>Both lists are ordered by distance from {{ focus.label }}, nearest last before it and nearest first after it; parallel branches at the same distance sit together, not in the order they run.</p>
                 <div class="focus-steps">
                     <div>
                         <h3>What led here</h3>
@@ -85,24 +146,33 @@
                 </div>
             </details>
         {% endif %}
-        <details class="card legend" data-graph-legend open>
-            <summary>Legend</summary>
-            <ul class="legend-items">
-                <li data-legend="passed"><span class="pill ok sq">passed</span> the trace went through</li>
-                <li data-legend="pending"><span class="pill wait sq">pending</span> sent, not processed yet</li>
-                <li data-legend="failed"><span class="pill bad sq">failed</span> the step failed</li>
-                <li data-legend="asynchronous"><b>⟹</b> asynchronous or distributed</li>
-                <li data-legend="inferred"><b>⇢</b> inferred from source code</li>
-                <li data-legend="crossed"><b class="ok">━</b> arrow the trace crossed</li>
-            </ul>
-            <table class="service-links">
-                <thead><tr><th>Service</th><th>Dead letters</th><th>Traces</th></tr></thead>
-                <tbody>
-                {% for service in services %}
-                    <tr data-service-link="{{ service }}"><th scope="row">{{ service }}</th><td><a data-dead-letters href="{{ path('dead_letters', {service: service}) }}">dead letters</a></td><td><a data-traces href="{{ path('traces') }}#service-{{ service }}">traces</a></td></tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </details>
+        <ul class="graph-goto" aria-label="Go to a service's failures and traces" data-graph-goto>
+            {% for service in services %}
+                <li data-service-link="{{ service }}"><b>{{ service }}</b>: <a data-dead-letters href="{{ path('dead_letters', {service: service}) }}">Dead letters of {{ service }}</a> · <a data-traces href="{{ path('traces', {service: service}) }}">Traces of {{ service }}</a></li>
+            {% endfor %}
+        </ul>
+        {% embed '_section.html.twig' with {key: 'flow.legend', hook: 'graph-legend', title: 'Legend', summary: '5 shapes, 4 kinds of arrow, 4 trace marks', status: 'ok', open: trace is not null} only %}
+            {% block body %}
+                <ul class="legend-items">
+                    <li data-legend="command"><span class="legend-shape shape-command" aria-hidden="true"></span> command: asks for one thing to be done</li>
+                    <li data-legend="event"><span class="legend-shape shape-event" aria-hidden="true"></span> event: says something happened</li>
+                    <li data-legend="query"><span class="legend-shape shape-query" aria-hidden="true"></span> query: asks for data</li>
+                    <li data-legend="handler"><span class="legend-shape shape-handler" aria-hidden="true"></span> handler: its kind on the first line, Class::method below</li>
+                    <li data-legend="channel"><span class="legend-shape shape-channel" aria-hidden="true"></span> channel: where an asynchronous message waits</li>
+                </ul>
+                <ul class="legend-items">
+                    <li data-legend="declared"><b>→</b> declared by an attribute or the Service Map</li>
+                    <li data-legend="asynchronous"><b>⟹</b> {% include '_concept.html.twig' with {term: 'asynchronous-arrow', text: 'asynchronous or distributed'} only %}</li>
+                    <li data-legend="inferred"><b>⇢</b> {% include '_concept.html.twig' with {term: 'inferred-arrow', text: 'inferred from source code'} only %}</li>
+                    <li data-legend="reply"><b>⇢</b> labelled reply: the answer of a distributed message going back</li>
+                </ul>
+                <ul class="legend-items">
+                    <li data-legend="passed"><span class="pill ok sq">passed</span> the trace went through</li>
+                    <li data-legend="pending"><span class="pill wait sq">pending</span> sent, not processed yet</li>
+                    <li data-legend="failed"><span class="pill bad sq">failed</span> the step failed</li>
+                    <li data-legend="crossed"><b class="ok">━</b> arrow the trace crossed</li>
+                </ul>
+            {% endblock %}
+        {% endembed %}
     {% endif %}
 {% endblock %}

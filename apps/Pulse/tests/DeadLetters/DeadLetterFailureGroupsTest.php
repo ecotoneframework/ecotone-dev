@@ -29,7 +29,7 @@ final class DeadLetterFailureGroupsTest extends ReleasingWebTestCase
         self::assertStringContainsString('/DeadLetterServicesTrait.php:', $failure->filter('[data-failure-location]')->attr('title'));
         self::assertMatchesRegularExpression('/^no stock for order [12]$/', $failure->filter('[data-failure-message]')->text());
         self::assertSame('order.ship', $failure->filter('[data-failure-message-name]')->text());
-        self::assertSame('2 failed', $failure->filter('[data-failure-count]')->text());
+        self::assertSame('2 messages', $failure->filter('[data-failure-count]')->text());
         self::assertStringContainsString(gmdate('Y-m-d'), $failure->filter('[data-failure-seen]')->text());
     }
 
@@ -87,6 +87,7 @@ final class DeadLetterFailureGroupsTest extends ReleasingWebTestCase
 
         self::assertCount(1, $confirmation->filter('[data-confirm-delete]'));
         self::assertStringContainsString('order.ship', $confirmation->filter('[data-failure-label]')->text());
+        self::assertSame('Delete 2 failed messages', trim($confirmation->filter('[data-confirm-delete] button.danger')->text()));
         self::assertSame(['order.reserve', 'order.ship', 'order.ship'], $this->remainingNames($client));
 
         $client->submit($confirmation->filter('[data-confirm-delete] button')->form());
@@ -147,13 +148,13 @@ final class DeadLetterFailureGroupsTest extends ReleasingWebTestCase
 
         $services = $client->request('GET', '/services');
         self::assertSame('2', $services->filter('[data-summary="dead-letters"] b')->text());
-        self::assertStringContainsString('failures', $services->filter('[data-summary="dead-letters"] span')->text());
+        self::assertStringContainsString('failure groups', $services->filter('[data-summary="dead-letters"] span')->text());
         self::assertSame('2', $services->filter('tr[data-service="orders"] [data-dead-letters]')->text());
-        self::assertSame('2 failures', $services->filter('nav [data-nav-dead-letters]')->text());
+        self::assertSame('2 failure groups', $services->filter('nav [data-nav-dead-letters]')->text());
 
         $hub = $client->request('GET', '/services/orders');
-        self::assertSame('2', $hub->filter('[data-hub-dead-letters] [data-total]')->text());
-        self::assertStringContainsString('2 failures (3 stored)', preg_replace('/\s+/', ' ', $hub->filter('[data-hub-dead-letters]')->text()));
+        self::assertSame('3', $hub->filter('[data-hub-dead-letters] a.tile-link b')->text());
+        self::assertStringContainsString('3 failed messages in 2 failure groups', preg_replace('/\s+/', ' ', $hub->filter('[data-hub-dead-letters] a.tile-link')->text()));
     }
 
     private function pulseWithSharedException(): KernelBrowser

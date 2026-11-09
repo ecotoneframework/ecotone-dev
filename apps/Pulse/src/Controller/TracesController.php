@@ -13,7 +13,13 @@ use App\Trace\TraceAnswerState;
 use App\Trace\TraceLoader;
 use App\Trace\TraceQueries;
 use App\Trace\TraceQuery;
+use App\Ui\FlowTypeList;
+use App\Ui\ServiceOverview;
+use App\Ui\TraceDetail;
+use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,8 +27,13 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class TracesController extends AbstractController
 {
-    public function __construct(private readonly Snapshots $snapshots, private readonly TraceQueries $queries, private readonly TraceLoader $traces)
-    {
+    public function __construct(
+        private readonly Snapshots $snapshots,
+        private readonly TraceQueries $queries,
+        private readonly TraceLoader $traces,
+        private readonly ServiceOverview $overview,
+        #[Autowire(service: 'pulse.clock')] private readonly ClockInterface $clock,
+    ) {
     }
 
     #[Route('/traces', name: 'traces', methods: ['GET'])]
@@ -37,21 +48,74 @@ final class TracesController extends AbstractController
         }
 
         $snapshots = $this->snapshots->viewScopesAndRequestStale();
+        $scope = self::scopeOf($request);
+        $header = $scope === null ? null : $this->serviceHeader($scope, $snapshots);
+        $overview = FlowTypeOverview::of($snapshots, $scope === null ? '' : $scope->key());
+        $unmatched = match (true) {
+            $scope === null || $overview !== [] => null,
+            $header === null => sprintf('%s is not one of the services in PULSE_SERVICES', $scope->service),
+            default => sprintf('%s advertises no tenant %s', $scope->service, (string) $scope->tenant),
+        };
 
         return $this->render('traces/index.html.twig', [
-            'services' => FlowTypeOverview::of($snapshots, $request->query->getString('service')),
-            'serviceFilter' => $request->query->getString('service'),
+            'list' => FlowTypeList::of($overview, DateTimeImmutable::createFromInterface($this->clock->now()), $unmatched),
+            'unmatched' => $unmatched,
+            'scope' => $scope,
+            'header' => $header,
             'searchError' => $searchError,
             'waiting' => Snapshots::needsAutoRefresh($snapshots),
         ]);
     }
 
+    private static function scopeOf(Request $request): ?ServiceScope
+    {
+        $service = trim($request->query->getString('service'));
+        if ($service === '') {
+            return null;
+        }
+        $scope = ServiceScope::fromKey($service);
+        $tenant = trim($request->query->getString('tenant'));
+
+        return $scope->tenant === null && $tenant !== '' ? ServiceScope::ofTenant($scope->service, $tenant) : $scope;
+    }
+
+    /**
+     * @param list<ServiceSnapshot> $snapshots
+     * @return array{service: ServiceSnapshot, tenant: ?string, tabs: array<string, string>, failureCount: ?int}|null
+     */
+    private function serviceHeader(ServiceScope $scope, array $snapshots): ?array
+    {
+        $service = null;
+        foreach ($this->snapshots->all() as $snapshot) {
+            if ($snapshot->service === $scope->service) {
+                $service = $snapshot;
+            }
+        }
+        if ($service === null) {
+            return null;
+        }
+        $focus = null;
+        foreach ($snapshots as $snapshot) {
+            if ($snapshot->service === $service->service && ($scope->tenant === null ? ! $service->isMultiTenant() : $snapshot->tenant === $scope->tenant)) {
+                $focus = $snapshot;
+            }
+        }
+
+        return [
+            'service' => $service,
+            'tenant' => $scope->tenant,
+            'tabs' => $this->overview->tabRoutes($service, $scope->tenant),
+            'failureCount' => $focus?->deadLetterTotal(),
+        ];
+    }
+
     #[Route('/traces/trace/{traceId}', name: 'trace_detail', methods: ['GET'], requirements: ['traceId' => '[^/]+'])]
     public function detail(string $traceId): Response
     {
-        $view = $this->traces->load($traceId, $this->snapshots->viewScopesAndRequestStale());
+        $snapshots = $this->snapshots->viewScopesAndRequestStale();
+        $view = $this->traces->load($traceId, $snapshots);
 
-        return $this->render('traces/detail.html.twig', ['traceId' => $traceId, 'trace' => $view->trace, 'flame' => FlameGraph::of($view->trace), 'states' => $view->states, 'waiting' => $view->waiting]);
+        return $this->render('traces/detail.html.twig', ['traceId' => $traceId, 'trace' => $view->trace, 'flame' => FlameGraph::of($view->trace), 'detail' => TraceDetail::of($view, $snapshots), 'states' => $view->states, 'waiting' => $view->waiting]);
     }
 
     #[Route('/traces/{service}/{flowType}', name: 'trace_list', methods: ['GET'], requirements: ['service' => '[^/]+', 'flowType' => '.+'])]

@@ -1,50 +1,94 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Traces · Ecotone Pulse{% endblock %}
+{% block title %}{{ header ? 'Traces · ' ~ header.service.service : 'Traces' }} · Ecotone Pulse{% endblock %}
 
 {% block head %}
     {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
 {% endblock %}
 
-{% block body %}
-    <h1>Traces</h1>
-    <p class="muted">Flow types are named by how a flow entered its service, so the same business flow has a different flow type in each service. Statistics cover the latest runs of each flow type; errors recorded are failures inside a unit of work that still completed. A failed asynchronous step is found among the dead letters.</p>
+{% macro row(service, flowType) %}
+    <tr data-flow-type="{{ flowType.flowType }}" data-service="{{ service }}">
+        <td><a href="{{ path('trace_list', {service: service, flowType: flowType.flowType}) }}" title="{{ flowType.flowType }}">{{ flowType.shortName }}</a>{% if flowType.kind %} <span class="chip flow-kind" data-flow-kind="{{ flowType.kind }}">{{ flowType.kind }}</span>{% endif %}</td>
+        <td data-stat="runs"><a href="{{ path('trace_list', {service: service, flowType: flowType.flowType}) }}" title="{{ flowType.runs }} {{ flowType.runs == 1 ? 'trace' : 'traces' }} of {{ flowType.flowType }} stored in {{ service }}">{{ flowType.runs }}</a></td>
+        <td class="{{ flowType.runsWithErrors > 0 ? 'flow-errors' : 'flow-no-errors' }}"><span data-stat="runsWithErrors"><a href="{{ path('trace_list', {service: service, flowType: flowType.flowType}) }}">{{ flowType.runsWithErrors }}</a></span> <span class="muted flow-rate">(<span data-stat="errorRate">{{ flowType.errorRate }}</span>)</span></td>
+        <td><span data-stat="p95">{{ flowType.p95Ms }} ms</span> <span class="muted flow-timing">typical <span data-stat="p50">{{ flowType.p50Ms }} ms</span> · slowest <span data-stat="max">{{ flowType.maxMs }} ms</span></span></td>
+        <td><time data-stat="lastRun" datetime="{{ flowType.lastStartedAt }}" title="{{ flowType.lastRunUtc }}">{{ flowType.lastRunAgo }}</time></td>
+    </tr>
+{% endmacro %}
 
-    <form method="get" action="{{ path('traces') }}" data-trace-search>
-        <label>Find a trace by id <input type="text" name="traceId" required></label>
-        <button type="submit">Search</button>
+{% macro table(service, rows, label) %}
+    {% import _self as page %}
+    <div class="table-scroll" tabindex="0" role="region" aria-label="{{ label }}">
+        <table class="flow-types">
+            <thead><tr><th scope="col">Flow type</th><th scope="col" title="Traces stored for this flow type">Runs</th><th scope="col">Errors recorded</th><th scope="col" title="95% of runs finished within this time (p95)">95% finished within</th><th scope="col">Last run</th></tr></thead>
+            <tbody>
+            {% for flowType in rows %}{{ page.row(service, flowType) }}{% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endmacro %}
+
+{% block body %}
+    {% import _self as page %}
+    {% if header %}
+        {% include 'services/_header.html.twig' with {service: header.service, tenant: header.tenant, trail: [{label: 'Traces'}], route: 'traces', tabs: header.tabs, current: 'traces', failureCount: header.failureCount, heading: 'Traces'} only %}
+    {% else %}
+        {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Home', href: path('home')}, {label: 'Traces'}]} only %}
+        <h1>Traces</h1>
+    {% endif %}
+
+    {% embed '_verdict.html.twig' with {status: list.verdictStatus, reason: list.verdictReason, parts: list.verdictParts, meta: list.verdictMeta, action: list.verdictAction} only %}
+        {% block sentence %}{% for part in parts %}{% if part.service is defined %}<a href="{{ path('traces', {service: part.service}) }}">{{ part.text }}</a>{% else %}{{ part.text }}{% endif %}{% endfor %}{% endblock %}
+        {% block action %}{% if action %}<a class="btn pri verdict-action" data-verdict-action href="{{ path('trace_list', {service: action.service, flowType: action.flowType}) }}">{{ action.label }}</a>{% endif %}{% endblock %}
+    {% endembed %}
+
+    <p class="concept-legend" data-concept-legend>What the words mean:
+        {% include '_concept.html.twig' with {term: 'trace', text: 'trace'} only %},
+        {% include '_concept.html.twig' with {term: 'flow-type', text: 'flow type'} only %},
+        {% include '_concept.html.twig' with {term: 'span', text: 'step'} only %},
+        {% include '_concept.html.twig' with {term: 'errors-recorded', text: 'errors recorded'} only %},
+        {% include '_concept.html.twig' with {term: 'p95', text: '95% finished within (p95)'} only %}
+    </p>
+
+    <form method="get" action="{{ path('traces') }}" class="filters trace-search" data-trace-search>
+        {% if scope %}<span class="chip scope-chip" data-scope-chip>service: {{ scope.key|replace({'@': ' · tenant '}) }} <a href="{{ path('traces') }}" aria-label="Show the traces of every service" title="Show the traces of every service">✕</a></span>{% endif %}
+        <label for="trace-id">Find a trace by id <input id="trace-id" type="text" name="traceId" required placeholder="32 hex characters, as the service logged it"></label>
+        <button type="submit">Find trace</button>
     </form>
 
     {% if searchError %}<p class="notice" data-search-error>{{ searchError }}</p>{% endif %}
 
-    {% for service in services %}
-        <section class="card" id="service-{{ service.service }}" data-service-section="{{ service.service }}">
-            <h2>{{ service.name }}{% if service.tenant %} <span class="chip" data-tenant="{{ service.tenant }}">tenant {{ service.tenant }}</span>{% endif %}</h2>
-            {% if not service.status.hasSnapshot %}
-                <p class="muted" data-no-snapshot="{{ service.service }}">no snapshot yet ({{ service.status.status.name|lower }})</p>
-            {% elseif not service.tracing %}
-                <p class="muted" data-tracing-disabled="{{ service.service }}">flow tracking not enabled in {{ service.service }}. Enable it with <code>FlowTrackingConfiguration::createWithDefaults()</code> returned from a <code>#[ServiceContext]</code> method of the service.</p>
-            {% elseif service.flowTypes is empty %}
-                <p class="muted" data-no-flow-types="{{ service.service }}">No flow has been tracked yet.</p>
+    {% if list.services is empty %}
+        {% if unmatched %}
+            {% include '_empty.html.twig' with {cause: 'unavailable', sentence: 'Pulse has no traces to show here: ' ~ unmatched ~ '. Add the service to PULSE_SERVICES, or open a service Pulse already watches.', action: {label: 'See the traces of every service', href: path('traces')}} only %}
+        {% else %}
+            {% include '_empty.html.twig' with {cause: 'not-enabled', sentence: 'No service is configured in PULSE_SERVICES, so Pulse has no traces to show.', action: {label: 'Connect a service', href: path('connect')}} only %}
+        {% endif %}
+    {% endif %}
+
+    {% set flowTrackingSnippet = {label: 'Show how to enable flow tracking', code: "#[ServiceContext]\npublic function flowTracking(): FlowTrackingConfiguration\n{\n    return FlowTrackingConfiguration::createWithDefaults();\n}"} %}
+    {% for service in list.services %}
+        <section class="card flow-service sev-{{ service.sectionStatus.value }}" id="service-{{ service.service }}" data-service-section="{{ service.service }}" data-flow-state="{{ service.state }}">
+            <div class="service-head">
+                <h2>{{ service.name }}{% if service.tenant %} <span class="chip" data-tenant="{{ service.tenant }}">tenant {{ service.tenant }}</span>{% endif %}</h2>
+                <span class="summary-state" data-summary-state>{% if service.count > 0 %}<a href="{{ path('traces', {service: service.service}) }}">{{ service.count }} {{ service.count == 1 ? 'flow type' : 'flow types' }}</a> · {% endif %}{{ service.summary }}</span>
+                {% if service.sectionStatus.value != 'ok' %}{% include '_status.html.twig' with {status: service.sectionStatus, reason: service.sectionReason} only %}{% endif %}
+            </div>
+            {% if service.state == 'waiting' %}
+                {% include '_empty.html.twig' with {cause: 'waiting', hook: 'no-snapshot', hook_value: service.service, sentence: 'Waiting for ' ~ service.service ~ '’s first answer (' ~ service.status.status.name|lower ~ '). Its flow types appear once it answers Pulse.', action: {label: 'Diagnose ' ~ service.name, href: path('service_hub', {service: service.name})}} only %}
+            {% elseif service.state == 'not-enabled' %}
+                {% include '_empty.html.twig' with {cause: 'not-enabled', hook: 'tracing-disabled', hook_value: service.service, sentence: service.service ~ ' does not record traces: flow tracking is not enabled in it. Return FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method of the service to record each flow.', snippet: flowTrackingSnippet} only %}
+            {% elseif service.state == 'nothing-yet' %}
+                {% include '_empty.html.twig' with {cause: 'nothing-yet', hook: 'no-flow-types', hook_value: service.service, sentence: 'Flow tracking is on in ' ~ service.service ~ ', but no flow has been tracked yet. A flow type appears after the first message is handled there.', action: {label: 'See which messages ' ~ service.name ~ ' handles', href: path('catalogue')}} only %}
             {% else %}
-                <table>
-                    <thead><tr><th>Flow type</th><th>Runs</th><th>Errors recorded</th><th>Error rate</th><th>p50</th><th>p95</th><th>Max</th><th>Last run (UTC)</th></tr></thead>
-                    <tbody>
-                    {% for flowType in service.flowTypes %}
-                        <tr data-flow-type="{{ flowType.flowType }}" data-service="{{ service.service }}">
-                            <td><a href="{{ path('trace_list', {service: service.service, flowType: flowType.flowType}) }}">{{ flowType.flowType }}</a></td>
-                            <td data-stat="runs">{{ flowType.runs }}</td>
-                            <td data-stat="runsWithErrors">{{ flowType.runsWithErrors }}</td>
-                            <td data-stat="errorRate">{{ flowType.errorRate }}</td>
-                            <td data-stat="p50">{{ flowType.p50Ms }} ms</td>
-                            <td data-stat="p95">{{ flowType.p95Ms }} ms</td>
-                            <td data-stat="max">{{ flowType.maxMs }} ms</td>
-                            <td data-stat="lastRun">{{ flowType.lastStartedAt|date('Y-m-d H:i:s', 'UTC') }}</td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-                <p class="muted">Statistics cover the latest {{ service.statsWindow }} runs.</p>
+                {{ page.table(service.service, service.shown, 'Most urgent flow types of ' ~ service.service) }}
+                {% if service.more %}
+                    <details class="more-flow-types" data-more-flow-types data-disclosure="traces.{{ service.service }}.more">
+                        <summary>Show all {{ service.count }} flow types <span class="summary-state">{{ service.moreSummary }}</span></summary>
+                        {{ page.table(service.service, service.more, 'Other flow types of ' ~ service.service) }}
+                    </details>
+                {% endif %}
+                <p class="muted flow-note" data-retention>Errors and timings cover the newest {{ service.statsWindow }} runs of each flow type.{% if service.retention %} {{ service.service }} keeps traces for {{ service.retention }} (<code>FlowTrackingConfiguration::withRetention()</code>); <code>ecotone:tracing:remove-expired-traces</code> removes older ones.{% endif %}{% if service.reportsLimit %} {{ service.service }} reports its {{ service.count }} most-run flow types.{% endif %}</p>
             {% endif %}
         </section>
     {% endfor %}

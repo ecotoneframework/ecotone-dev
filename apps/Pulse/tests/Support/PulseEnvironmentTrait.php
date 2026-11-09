@@ -46,6 +46,12 @@ trait PulseEnvironmentTrait
         }
     }
 
+    private function exportPulseVariable(string $name, string $value): void
+    {
+        $_SERVER[$name] = $_ENV[$name] = $value;
+        putenv($name . '=' . $value);
+    }
+
     private function resetSharedState(): void
     {
         $dsn = getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16';

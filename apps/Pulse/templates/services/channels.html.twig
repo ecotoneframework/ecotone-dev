@@ -1,0 +1,135 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Channels & consumers · {{ service.service }} · Ecotone Pulse{% endblock %}
+
+{% block head %}
+    {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+
+{% macro notReported(reason) %}<span title="{{ reason }}">–</span>{% endmacro %}
+
+{% macro channelTable(channels, tenant, perTenantChannels, declaredConsumers = {}) %}
+    <div class="flush" style="overflow-x:auto" tabindex="0" role="region" aria-label="Channels{% if tenant %} of {{ tenant }}{% endif %}">
+        <table>
+            <thead>
+            <tr><th scope="col">Channel</th><th scope="col" class="num">Waiting (ready)</th><th scope="col" class="num">Scheduled (delayed)</th><th scope="col" class="num">Being handled (in flight)</th><th scope="col">Consumers</th><th scope="col">Consumer to run</th></tr>
+            </thead>
+            <tbody>
+            {% for channel in channels %}
+                {% set unreported = 'The transport of ' ~ channel.name ~ ' does not report this number.' %}
+                <tr data-channel="{{ channel.name }}"{% if tenant %} data-tenant="{{ tenant }}"{% endif %}>
+                    <th scope="row">{{ channel.name }} <span class="muted">{{ channel.kind }}</span></th>
+                    <td class="num">
+                        <span class="pill {{ {ok: 'ok', warning: 'wait', critical: 'bad sq', unknown: 'off'}[channel.level] }}" data-level="{{ channel.level }}"><span data-ready{% if channel.ready is null %} title="{{ channel.depthReason(channel.name in perTenantChannels) }}"{% endif %}>{{ channel.ready is null ? 'not reported' : channel.ready|number_format }}</span><span class="visually-hidden"> {{ channel.level }}</span></span>
+                        {% if channel.probeError %}<br><span class="drift" data-probe-error>{{ channel.probeError }}</span>{% endif %}
+                    </td>
+                    <td class="num" data-delayed>{{ channel.delayed is null ? _self.notReported(unreported) : channel.delayed|number_format }}</td>
+                    <td class="num" data-in-flight>{{ channel.inFlight is null ? _self.notReported(unreported) : channel.inFlight|number_format }}</td>
+                    <td data-consumers>{% if channel.consumers is not null %}{{ channel.consumers|number_format }}{% elseif channel.inFlight is not null %}{{ channel.inFlight|number_format }} in flight{% elseif declaredConsumers[channel.name] is defined %}{{ declaredConsumers[channel.name] }} declared · <span class="status-reason" title="The broker of {{ channel.name }} does not report how many consumers read it; the service declares this consumer, start it with the command in the next column.">running count not reported</span>{% else %}{{ _self.notReported('The broker of ' ~ channel.name ~ ' does not report how many consumers read it.') }}{% endif %}</td>
+                    <td>
+                        {% if channel.setUp is same as(false) %}<span class="pill bad sq" data-channel-not-set-up>Not set up</span> {% endif %}
+                        {% if channel.runCommand %}<code data-run-command>{{ channel.runCommand }}</code>{% else %}<span data-run-command>No polling consumer</span>{% endif %}
+                        {% if channel.notDrainingSeconds is not null %} <span class="pill wait" data-not-draining>Not draining for {{ (channel.notDrainingSeconds // 60) }} min</span>{% endif %}
+                        {% if channel.handlers %}
+                            <details data-disclosure="channels.{{ tenant ?: 'service' }}.{{ channel.name }}.handlers">
+                                <summary>{{ channel.handlers|length }} {{ channel.handlers|length == 1 ? 'handler' : 'handlers' }} on this channel</summary>
+                                <ul data-channel-handlers>{% for handler in channel.handlers %}<li>{{ handler }}</li>{% endfor %}</ul>
+                            </details>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endmacro %}
+
+{% macro featureRow(feature) %}
+    <tr data-consumer-feature="{{ feature.name }}">
+        <td>{{ feature.name }}{% if feature.handler %} <span class="muted">for</span> <code data-consumer-feature-handler>{{ feature.handler }}</code>{% endif %}</td>
+        <td data-consumer-feature-value>{{ feature.value }}</td>
+        <td><span class="pill {{ feature.scope == 'global' ? 'scope-global' : 'scope-consumer' }}" data-consumer-feature-scope>{{ feature.scope }}</span></td>
+    </tr>
+{% endmacro %}
+
+{% macro consumer(consumer, overrides, collapsible) %}
+    <article class="consumer" data-consumer="{{ consumer.name }}">
+        <h3><code>{{ consumer.name }}</code> <span class="pill muted-pill" data-consumer-kind>{{ consumer.kind }}</span></h3>
+        <p class="muted">Run it with <code>ecotone:run {{ consumer.name }}</code>.</p>
+        {% if consumer.handlers and collapsible %}
+            <details data-disclosure="consumers.{{ consumer.name }}.endpoints">
+                <summary>{{ consumer.handlers|length }} {{ consumer.handlers|length == 1 ? 'handler' : 'handlers' }} it runs</summary>
+                <ul class="feature-handlers" data-consumer-handlers>{% for handler in consumer.handlers %}<li><code>{{ handler }}</code></li>{% endfor %}</ul>
+            </details>
+        {% elseif consumer.handlers %}
+            <ul class="feature-handlers" data-consumer-handlers>{% for handler in consumer.handlers %}<li><code>{{ handler }}</code></li>{% endfor %}</ul>
+        {% endif %}
+        {% if overrides is empty %}
+            <p class="muted" data-consumer-no-overrides>Uses the service-wide settings above.</p>
+        {% elseif collapsible %}
+            <details data-consumer-overrides data-disclosure="consumers.{{ consumer.name }}.overrides">
+                <summary>Consumer settings · {{ overrides|length }} {{ overrides|length == 1 ? 'override' : 'overrides' }}</summary>
+                <table class="consumer-features"><thead><tr><th>Setting</th><th>Value</th><th>Configured</th></tr></thead><tbody>{% for feature in overrides %}{{ _self.featureRow(feature) }}{% endfor %}</tbody></table>
+            </details>
+        {% else %}
+            <table class="consumer-features" data-consumer-overrides><caption class="muted">Consumer settings · {{ overrides|length }} {{ overrides|length == 1 ? 'override' : 'overrides' }}</caption><thead><tr><th>Setting</th><th>Value</th><th>Configured</th></tr></thead><tbody>{% for feature in overrides %}{{ _self.featureRow(feature) }}{% endfor %}</tbody></table>
+        {% endif %}
+    </article>
+{% endmacro %}
+
+{% block body %}
+    {% include 'services/_header.html.twig' with {service: service, tenant: tenant, trail: [{label: 'Channels & consumers'}], route: 'service_channels', tabs: tabs, current: 'channels', failureCount: failureCount} only %}
+
+    {% set channelSentence = channels is empty ? service.service ~ ' reports no pollable message channel.' : channelsSummary ~ (unmeasured ? '; ' ~ unmeasured : '') ~ '.' %}
+    {% include '_verdict.html.twig' with {status: channelsStatus, sentence: channelSentence} only %}
+
+    <section class="card" id="channels" data-hub-channels>
+        <h2>{% include '_concept.html.twig' with {term: 'channel', text: 'Channels'} only %} <span class="summary-state" data-summary-state>{{ channelsSummary }}</span></h2>
+        {% if shownChannels is empty %}
+            {% include '_empty.html.twig' with {cause: 'nothing-yet', sentence: service.service ~ ' reports no pollable message channel to measure. A channel appears here once a handler is marked #[Asynchronous(\'name\')].'} only %}
+        {% else %}
+            <p class="muted">Worst first. {% include '_concept.html.twig' with {term: 'ready', text: 'Waiting'} only %} messages wait for a consumer; {% include '_concept.html.twig' with {term: 'delayed', text: 'scheduled'} only %} ones are held back on purpose, such as a delayed retry; {% include '_concept.html.twig' with {term: 'in-flight', text: 'being handled'} only %} ones are taken by a consumer right now.</p>
+            {{ _self.channelTable(shownChannels, tenant, perTenantChannels, declaredConsumers) }}
+            {% if service.isMultiTenant and not tenant %}<p class="muted">Channels on the tenant connection are measured per tenant, see below or pick a tenant.</p>{% endif %}
+        {% endif %}
+    </section>
+
+    {% if focus is null and tenantRows %}
+        <section class="card" data-hub-tenants>
+            <h2>Channels per tenant · {{ tenantRows|length }} {{ tenantRows|length == 1 ? 'tenant' : 'tenants' }}</h2>
+            {% for row in tenantRows %}
+                {% set ofTenant = tenantChannels[row.tenant] ?? [] %}
+                {% if ofTenant %}
+                    <h3>{{ row.tenant }}</h3>
+                    {{ _self.channelTable(ofTenant, row.tenant, perTenantChannels) }}
+                {% endif %}
+            {% endfor %}
+        </section>
+    {% endif %}
+
+    {% if focus is not null %}
+        <section class="card" id="consumers" data-hub-consumers>
+            <h2>{% include '_concept.html.twig' with {term: 'consumer', text: 'Consumers'} only %} <span class="summary-state" data-summary-state>{{ pollingConsumers|length + inboundConsumers|length }} · {{ pollingConsumers|length }} polling, {{ inboundConsumers|length }} inbound</span></h2>
+            {% if not anyConsumer %}
+                {% include '_empty.html.twig' with {cause: 'nothing-yet', sentence: service.service ~ ' reports no consumers. A service on an Ecotone version before Pulse listed consumers does not report them.'} only %}
+            {% else %}
+                {% if consumerSettings.serviceWide %}
+                    <h3>Service-wide settings · {{ consumerSettings.serviceWide|length }}</h3>
+                    <p class="muted">These come from the service-wide configuration or Ecotone's default (<span class="pill scope-global">global</span>). Every consumer that reports one of them uses the same value, so only the differences are listed under each consumer.</p>
+                    <table class="consumer-features" data-consumer-shared>
+                        <thead><tr><th>Setting</th><th>Value</th><th>Configured</th></tr></thead>
+                        <tbody>{% for feature in consumerSettings.serviceWide %}{{ _self.featureRow(feature) }}{% endfor %}</tbody>
+                    </table>
+                {% endif %}
+                {% for consumer in pollingConsumers %}{{ _self.consumer(consumer, consumerSettings.overridesOf(consumer), true) }}{% endfor %}
+                {% if inboundConsumers %}
+                    <details class="inbound-consumers" data-inbound-consumers data-disclosure="consumers.{{ service.service }}.inbound">
+                        <summary>Inbound consumers · {{ inboundConsumers|length }}</summary>
+                        <p class="muted">These do not read one of the channels above: they pull from their source directly, such as a <code>#[Scheduled]</code> method or a streaming projection, or they are channels that only send to another service.</p>
+                        {% for consumer in inboundConsumers %}{{ _self.consumer(consumer, consumerSettings.overridesOf(consumer), false) }}{% endfor %}
+                    </details>
+                {% endif %}
+            {% endif %}
+        </section>
+    {% endif %}
+{% endblock %}

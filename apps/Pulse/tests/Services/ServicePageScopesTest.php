@@ -22,7 +22,7 @@ final class ServicePageScopesTest extends ReleasingWebTestCase
         $crawler = $this->observeBoard($client, '/services/orders');
 
         self::assertCount(0, $crawler->filter('[data-tenant-switcher]'));
-        self::assertSame(['Home', 'orders'], $this->crumbs($crawler));
+        self::assertSame(['Home', 'Services', 'orders'], $this->crumbs($crawler));
     }
 
     public function test_a_single_tenant_service_page_gathers_its_problems_failures_channels_projections_and_traces(): void
@@ -35,12 +35,29 @@ final class ServicePageScopesTest extends ReleasingWebTestCase
         $crawler = $this->observeBoard($client, '/services/orders');
 
         self::assertSame(['queue-critical', 'projection-behind', 'dead-letters'], $crawler->filter('[data-hub-problems] [data-problem]')->each(static fn (Crawler $problem): string => $problem->attr('data-problem')));
-        self::assertSame('3 failures in OrderPlaced', trim($crawler->filter('[data-hub-dead-letters] [data-failure="f-placed"] a')->text()));
-        self::assertSame('/dead-letters?service=orders&failureId=f-placed', $crawler->filter('[data-hub-dead-letters] [data-failure="f-placed"] a')->attr('href'));
-        self::assertSame('/dead-letters?service=orders', $crawler->filter('[data-open-dead-letters]')->attr('href'));
-        self::assertSame('12,400', $crawler->filter('[data-hub-channels] tr[data-channel="invoices"] [data-ready]')->text());
-        self::assertSame('/services/orders/projections', $crawler->filter('[data-open-projections]')->attr('href'));
+        self::assertSame('3 OrderPlaced messages failed after their retries and are kept until you replay or delete them.', $crawler->filter('[data-hub-problems] [data-failure="f-placed"] [data-problem-text]')->text());
+        self::assertSame('/dead-letters?service=orders&failureId=f-placed', $crawler->filter('[data-hub-problems] [data-failure="f-placed"] [data-problem-action]')->attr('href'));
+        self::assertSame('/dead-letters?service=orders', $crawler->filter('[data-hub-dead-letters] a.tile-link')->attr('href'));
+        self::assertSame('/services/orders/projections', $crawler->filter('[data-hub-projections] a.tile-link')->attr('href'));
         self::assertCount(1, $crawler->filter('[data-hub-flow-types]'));
+        self::assertSame('12,400', $client->request('GET', '/services/orders/channels')->filter('[data-hub-channels] tr[data-channel="invoices"] [data-ready]')->text());
+    }
+
+    public function test_a_failure_holding_one_message_opens_that_message_and_a_larger_one_opens_its_list(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->deadLetters = ['total' => 3, 'groups' => [$this->failureGroup('OrderPlaced', 1, 'f-one'), $this->failureGroup('OrderPaid', 2, 'f-two')], 'recent' => [
+            ['messageId' => 'message-one', 'failureId' => 'f-one', 'messageName' => 'OrderPlaced'],
+            ['messageId' => 'message-two', 'failureId' => 'f-two', 'messageName' => 'OrderPaid'],
+            ['messageId' => 'message-three', 'failureId' => 'f-two', 'messageName' => 'OrderPaid'],
+        ]];
+
+        $crawler = $this->observeBoard($client, '/services/orders');
+
+        self::assertSame('/dead-letters/orders/message-one', $crawler->filter('[data-hub-problems] [data-failure="f-one"] [data-problem-action]')->attr('href'));
+        self::assertSame('Open the failed message', $crawler->filter('[data-hub-problems] [data-failure="f-one"] [data-problem-action]')->text());
+        self::assertSame('/dead-letters?service=orders&failureId=f-two', $crawler->filter('[data-hub-problems] [data-failure="f-two"] [data-problem-action]')->attr('href'));
+        self::assertSame('Open the 2 failed messages', $crawler->filter('[data-hub-problems] [data-failure="f-two"] [data-problem-action]')->text());
     }
 
     public function test_a_multi_tenant_service_page_offers_every_tenant_in_a_switcher_that_keeps_the_choice_in_the_url(): void
@@ -65,12 +82,13 @@ final class ServicePageScopesTest extends ReleasingWebTestCase
         $crawler = $this->observeBoard($client, '/services/orders?tenant=tenant_a');
 
         self::assertSame('tenant_a', $crawler->filter('[data-tenant-choice][aria-current="page"]')->attr('data-tenant-choice'));
-        self::assertSame('12,400', $crawler->filter('[data-hub-channels] tr[data-channel="invoices"] [data-ready]')->text());
-        self::assertSame('/dead-letters?service=orders@tenant_a', $crawler->filter('[data-open-dead-letters]')->attr('href'));
-        self::assertSame('/dead-letters?service=orders@tenant_a&failureId=f-placed', $crawler->filter('[data-failure="f-placed"] a')->attr('href'));
-        self::assertSame('/services/orders@tenant_a/projections', $crawler->filter('[data-open-projections]')->attr('href'));
+        self::assertSame('/dead-letters?service=orders@tenant_a', $crawler->filter('[data-hub-dead-letters] a.tile-link')->attr('href'));
+        self::assertSame('/dead-letters?service=orders@tenant_a&failureId=f-placed', $crawler->filter('[data-failure="f-placed"] [data-problem-action]')->attr('href'));
+        self::assertSame('/services/orders@tenant_a/projections', $crawler->filter('[data-hub-projections] a.tile-link')->attr('href'));
+        self::assertSame('/services/orders/channels?tenant=tenant_a', $crawler->filter('[data-service-tab="channels"]')->attr('href'));
         self::assertSame(['queue-critical', 'projection-behind', 'dead-letters'], $crawler->filter('[data-hub-problems] [data-problem]')->each(static fn (Crawler $problem): string => $problem->attr('data-problem')));
-        self::assertSame(['Home', 'orders', 'tenant_a'], $this->crumbs($crawler));
+        self::assertSame(['Home', 'Services', 'orders', 'tenant_a'], $this->crumbs($crawler));
+        self::assertSame('12,400', $client->request('GET', '/services/orders/channels?tenant=tenant_a')->filter('[data-hub-channels] tr[data-channel="invoices"] [data-ready]')->text());
     }
 
     public function test_the_page_of_one_tenant_does_not_show_the_problems_of_another(): void

@@ -86,7 +86,23 @@ final class ProjectionOverview
             $rebuilds->latestOf($name),
             $manualKickOff,
             $notInitialized && $manualKickOff ? SetupStatus::projectionInit(self::frameworkOf($service), $name) : null,
+            $asyncChannel,
+            self::partitionsOf($projection),
         );
+    }
+
+    /**
+     * @param array<string, mixed> $projection
+     * @return array{total: int, inspected: int, behind: int, atLeast: bool}|null
+     */
+    private static function partitionsOf(array $projection): ?array
+    {
+        $partitions = $projection['partitions'] ?? null;
+        if (! is_array($partitions)) {
+            return null;
+        }
+
+        return ['total' => (int) ($partitions['total'] ?? 0), 'inspected' => (int) ($partitions['inspected'] ?? 0), 'behind' => (int) ($partitions['behind'] ?? 0), 'atLeast' => ($partitions['atLeast'] ?? false) === true];
     }
 
     private static function frameworkOf(ServiceSnapshot $service): string

@@ -28,8 +28,8 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
 
         $list = $this->freshView($client, '/dead-letters');
 
-        self::assertSame('2 failures', $list->filter('nav [data-nav-dead-letters]')->text());
-        self::assertSame('2 failures', $client->request('GET', '/services')->filter('nav [data-nav-dead-letters]')->text());
+        self::assertSame('2 failure groups', $list->filter('nav [data-nav-dead-letters]')->text());
+        self::assertSame('2 failure groups', $client->request('GET', '/services')->filter('nav [data-nav-dead-letters]')->text());
     }
 
     public function test_the_navigation_has_no_badge_without_dead_letters(): void
@@ -53,8 +53,8 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
 
         $group = $list->filter('[data-group][data-service="orders"][data-message-name="order.place"]');
         self::assertCount(1, $group);
-        self::assertSame('Replay all 2', trim($group->filter('[data-group-replay] button')->text()));
-        self::assertSame('Replay all 1', trim($list->filter('[data-group][data-service="orders"][data-message-name="order.cancel"] [data-group-replay] button')->text()));
+        self::assertSame('Replay 2 messages', trim($group->filter('[data-group-replay] button')->text()));
+        self::assertSame('Replay 1 message', trim($list->filter('[data-group][data-service="orders"][data-message-name="order.cancel"] [data-group-replay] button')->text()));
     }
 
     public function test_replaying_all_of_a_group_replays_only_that_exception_and_message_name(): void
@@ -183,14 +183,14 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
         self::assertStringContainsString("{\n    \"orderId\": 2\n}", $detail->filter('[data-detail="payload"]')->html());
     }
 
-    public function test_a_named_and_an_unnamed_failure_both_say_replay_all_with_their_stored_count(): void
+    public function test_a_named_and_an_unnamed_failure_both_offer_to_replay_their_stored_count(): void
     {
         $client = $this->pulseWithUnnamedFailures();
 
         $list = $this->freshView($client, '/dead-letters');
 
-        self::assertSame('Replay all 2', trim($list->filter('[data-group][data-message-name="order.place"] [data-group-replay] button')->text()));
-        self::assertSame('Replay all 2', trim($list->filter('[data-group][data-message-name=""] [data-group-replay] button')->text()));
+        self::assertSame('Replay 2 messages', trim($list->filter('[data-group][data-message-name="order.place"] [data-group-replay] button')->text()));
+        self::assertSame('Replay 2 messages', trim($list->filter('[data-group][data-message-name=""] [data-group-replay] button')->text()));
     }
 
     public function test_replaying_an_unnamed_group_replays_those_messages_and_never_the_named_ones_of_the_same_exception(): void
@@ -241,7 +241,7 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
 
         $narrowed = $client->request('GET', '/dead-letters', ['search' => $messageId]);
 
-        self::assertSame('Replay all 2', trim($narrowed->filter('[data-group][data-message-name="order.place"] [data-group-replay] button')->text()));
+        self::assertSame('Replay 2 messages', trim($narrowed->filter('[data-group][data-message-name="order.place"] [data-group-replay] button')->text()));
         self::assertStringContainsString('1 of 2 listed', $narrowed->filter('[data-group][data-message-name="order.place"]')->text());
         $client->submit($narrowed->filter('[data-group-replay] button')->form());
         $this->deliver($client);

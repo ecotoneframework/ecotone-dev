@@ -6,67 +6,128 @@
     {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
 {% endblock %}
 
-{% macro pill(status, retrying) %}
-    {% set tone = {connected: 'ok', waiting: 'wait', unreachable: 'bad', channel_missing: 'bad'}[status.value] ?? 'off' %}
-    <span class="pill {{ tone }}{{ tone == 'bad' ? ' sq' : '' }}" data-status="{{ status.value }}">{{ status.value == 'channel_missing' ? 'Channel missing' : status.name }}{% if retrying and status.value == 'unreachable' %} — retrying{% endif %}</span>
+{% macro connection(row) %}
+    <span class="pill status sev-{{ row.connectionStatus.value }}" data-status="{{ row.service.status.value }}" title="{{ row.connectionStatus.label }}: {{ row.connectionStatus.meaning }}">{{ row.connectionLabel }}{% if row.service.retrying and row.service.status.value == 'unreachable' %} — retrying{% endif %}</span>
 {% endmacro %}
 
 {% block body %}
+    {% include '_breadcrumbs.html.twig' with {trail: [{label: 'Services'}]} only %}
+
     <div class="heading">
         <div>
             <h1>Services</h1>
-            {% if updatedAgo is not null %}<p class="muted" data-updated>Updated {{ updatedAgo }}s ago</p>{% endif %}
+            {% if updatedAgo is not null %}<p class="muted" data-updated>Updated {{ updatedAgo }} s ago</p>{% endif %}
         </div>
-        <form method="post" action="{{ path('services_refresh') }}"><button type="submit" data-await>Refresh</button></form>
+        <div class="heading-actions">
+            <a href="{{ path('connect') }}" data-connect-service>+ Connect a service</a>
+            <form method="post" action="{{ path('services_refresh') }}"><button type="submit" data-await>Refresh</button></form>
+        </div>
     </div>
 
-    <div class="strip">
-        <p class="card stat" data-summary="connected"><b>{{ summary.connected }}</b><span>Connected of {{ services|length }}</span></p>
-        <p class="card stat{{ summary.unreachable > 0 ? ' bad' : '' }}" data-summary="unreachable"><b>{{ summary.unreachable }}</b><span>Unreachable or channel missing</span></p>
-        <p class="card stat{{ summary.deadLetters > 0 ? ' bad' : '' }}" data-summary="dead-letters"><b>{{ summary.deadLetters }}</b><span>Dead letter {{ summary.deadLetters == 1 ? 'failure' : 'failures' }}</span></p>
-        <p class="card stat{{ summary.drift > 0 ? ' warn' : '' }}" data-summary="drift"><b>{{ summary.drift }}</b><span>Behind on Ecotone version</span></p>
-    </div>
+    {% embed '_verdict.html.twig' with {status: verdict.status, sentence: verdict.sentence, summary: summary, total: rows|length} only %}
+        {% block meta %}
+            <p class="verdict-meta" data-verdict-meta>
+                <span data-summary="connected"><b>{{ summary.connected }}</b> of {{ total }} connected</span>
+                · <span data-summary="unreachable"><b>{{ summary.unreachable }}</b> unreachable</span>
+                · <a href="{{ path('dead_letters') }}" data-summary="dead-letters"><b>{{ summary.deadLetters }}</b> <span>{{ summary.deadLetters == 1 ? 'failure group' : 'failure groups' }} of failed messages</span></a>
+                · <span data-summary="drift"><b>{{ summary.drift }}</b> behind on Ecotone</span>
+            </p>
+        {% endblock %}
+    {% endembed %}
 
     {% if versions|length > 1 %}
-        <p class="notice" data-version-drift>Ecotone version drift: services run {{ versions|join(', ') }}.</p>
+        <p class="notice" data-version-drift>Services run different Ecotone versions: {{ versions|join(', ') }}. The rows marked ≠ run an older one than {{ versions|last }}.</p>
     {% endif %}
 
-    <div class="card flush" tabindex="0" role="region" aria-label="Services">
-        <table>
-            <thead>
-            <tr>
-                <th scope="col">Service</th><th scope="col">Status</th><th scope="col">Ecotone</th><th scope="col" class="hide-narrow">PHP</th><th scope="col" class="hide-narrow">Framework</th>
-                <th scope="col" class="hide-narrow">Licence expires</th><th scope="col" class="num">Dead letter failures</th><th scope="col" class="num">Channels over threshold</th><th scope="col">Last seen</th><th scope="col"><span class="visually-hidden">Actions</span></th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for service in services %}
-                {% set version = service.ecotoneVersion %}
-                <tr data-service="{{ service.service }}">
-                    <th scope="row"><a href="{{ path('service_hub', {service: service.service}) }}" data-hub-link>{{ service.service }}</a>
-                        {% if service.hasSnapshot and service.snapshot.serviceName|default(service.service) != service.service %}<br><span class="muted mono">{{ service.snapshot.serviceName }}</span>{% endif %}
-                        {% if service.requestFailure %}<br><span class="drift" data-request-error>{{ service.requestFailure }}</span>{% endif %}
-                        {% include '_tenants.html.twig' with {service: service, tenantRows: tenantRows[service.service] ?? []} %}
-                        {% if service.refusalOf('ecotone.pulse.snapshot') %}<br><span class="drift" data-snapshot-refusal>Refused the snapshot request: {{ service.refusalOf('ecotone.pulse.snapshot') }}</span>{% endif %}
-                        {% if service.replyError %}<br><span class="drift" data-reply-error>Reply rejected: {{ service.replyError }}</span>{% endif %}
-                    </th>
-                    <td>{{ _self.pill(service.status, service.retrying) }}</td>
-                    {% if service.hasSnapshot %}
-                        <td{% if versions|length > 1 and version is not null and version != versions|last %} class="drifted" data-drifted{% endif %}>{{ version ?? 'unknown' }}</td>
-                        <td class="hide-narrow">{{ service.snapshot.overview.phpVersion|default('unknown') }}</td>
-                        <td class="hide-narrow">{{ service.snapshot.overview.framework|default('unknown') }}</td>
-                        <td class="hide-narrow">{% include '_licence.html.twig' with {snapshot: service.snapshot} only %}</td>
-                        <td class="num">{% if service.isMultiTenant %}<span data-dead-letters>{{ deadLetterTotals[service.service] ?? 0 }}</span>{% elseif service.failureCount is not null %}<span data-dead-letters>{% if service.failureCount > 0 %}<a href="{{ path('dead_letters', {service: service.service}) }}">{{ service.failureCount }}</a>{% else %}{{ service.failureCount }}{% endif %}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
-                        <td class="num"><span data-channels-over>{% if channelsOver[service.service] > 0 %}<a href="{{ path('service_hub', {service: service.service}) }}#channels">{{ channelsOver[service.service] }}</a>{% else %}{{ channelsOver[service.service] }}{% endif %}</span></td>
-                    {% else %}
-                        <td class="muted" colspan="6">no snapshot yet</td>
-                    {% endif %}
-                    <td>{{ service.lastSeenAt ? service.lastSeenAt|date('Y-m-d H:i:s T') : 'never' }}{% if service.hasSnapshot %} <span class="muted" data-age>{{ service.ageSeconds }}s</span>{% endif %}</td>
-                    <td>{% if service.status.value in ['unreachable', 'channel_missing'] %}<a href="{{ path('service_hub', {service: service.service}) }}#diagnose" data-diagnose>Diagnose</a>{% endif %}</td>
+    {% if rows is empty %}
+        {% include '_empty.html.twig' with {cause: 'not-enabled', hook: 'no-services', sentence: 'No service is configured, so Pulse has nobody to ask. Add one to PULSE_SERVICES, for example PULSE_SERVICES=orders:orders_channel.', action: {label: '+ Connect a service', href: path('connect')}} only %}
+    {% else %}
+        <div class="card flush" tabindex="0" role="region" aria-label="Services compared">
+            <table class="services-table">
+                <thead>
+                <tr>
+                    <th scope="col">Service</th>
+                    <th scope="col">Connection</th>
+                    <th scope="col">Last answer {% include '_concept.html.twig' with {term: 'snapshot'} only %}</th>
+                    <th scope="col">Ecotone</th>
+                    <th scope="col" class="hide-narrow">PHP</th>
+                    <th scope="col" class="hide-narrow">Framework</th>
+                    <th scope="col">Failed messages {% include '_concept.html.twig' with {term: 'dead-letter'} only %}</th>
+                    <th scope="col">Channels {% include '_concept.html.twig' with {term: 'channel'} only %}</th>
+                    <th scope="col">Projections {% include '_concept.html.twig' with {term: 'projection'} only %}</th>
                 </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
+                </thead>
+                <tbody>
+                {% for row in rows %}
+                    {% set service = row.service %}
+                    {% set rowStatus = row.status.value %}
+                    <tr class="sev-{{ rowStatus }}" data-service="{{ service.service }}" data-row-status="{{ rowStatus }}">
+                        <th scope="row">
+                            <a href="{{ row.links.hub }}" data-hub-link>{{ service.service }}</a>
+                            {% if service.requestFailure %}<span class="drift" data-request-error>{{ service.requestFailure }}</span>{% endif %}
+                            {% if service.refusalOf('ecotone.pulse.snapshot') %}<span class="drift" data-snapshot-refusal>Refused the snapshot request: {{ service.refusalOf('ecotone.pulse.snapshot') }}</span>{% endif %}
+                            {% if service.replyError %}<span class="drift" data-reply-error>Reply rejected: {{ service.replyError }}</span>{% endif %}
+                            {% if row.tenantScopes or service.unadvertisedTenants %}
+                                <details class="row-more" data-tenants-disclosure data-disclosure="services.{{ service.service }}.tenants"{% if row.tenantsNeedAttention %} open{% endif %}>
+                                    <summary>{{ row.tenantsSummary }}</summary>
+                                    {% include '_tenants.html.twig' with {service: service, tenantRows: row.tenantScopes} only %}
+                                </details>
+                            {% endif %}
+                            <details class="row-more" data-row-details data-disclosure="services.{{ service.service }}.details">
+                                <summary>Details · {{ service.hasSnapshot ? row.licenceState : 'no answer yet' }}</summary>
+                                <dl>
+                                    <dt>Request channel</dt><dd><code data-request-channel>{{ service.channel }}</code></dd>
+                                    {% if service.hasSnapshot and service.snapshot.serviceName|default(service.service) != service.service %}<dt>Calls itself</dt><dd><code>{{ service.snapshot.serviceName }}</code></dd>{% endif %}
+                                    <dt>Last answer at</dt><dd>{{ service.lastSeenAt ? service.lastSeenAt|date('Y-m-d H:i:s T') : 'never' }}</dd>
+                                    {% if service.hasSnapshot %}<dt>Licence</dt><dd>{% include '_licence.html.twig' with {snapshot: service.snapshot} only %}</dd>{% endif %}
+                                </dl>
+                            </details>
+                        </th>
+                        <td data-column="connection">
+                            {{ _self.connection(row) }}
+                            {% if service.status.value in ['unreachable', 'channel_missing'] %}<a href="{{ row.links.hub }}#diagnose" data-diagnose>Diagnose</a>{% endif %}
+                        </td>
+                        <td data-column="last-answer">{% if service.hasSnapshot %}<span data-age>{{ service.ageSeconds }} s</span> ago{% else %}<span class="muted">never answered</span>{% endif %}</td>
+                        {% if service.hasSnapshot %}
+                            {% set version = service.ecotoneVersion %}
+                            <td data-column="ecotone">{% if row.newerEcotone %}<span class="drifted" data-drifted title="This version is older than {{ row.newerEcotone }}, which another service runs">{{ version }}</span>{% else %}{{ version ?? 'not reported' }}{% endif %}</td>
+                            <td class="hide-narrow" data-column="php">{{ service.snapshot.overview.phpVersion|default('not reported') }}</td>
+                            <td class="hide-narrow" data-column="framework">{{ service.snapshot.overview.framework|default('not reported') }}</td>
+                            <td data-column="failed-messages" class="sev-{{ row.failedMessagesStatus.value }}">
+                                {% if row.failedMessages is null %}
+                                    <a class="quiet" href="{{ row.links.configuration }}" title="Enable it with DbalConfiguration::createWithDefaults()->withDeadLetter(true)">not stored</a>
+                                {% elseif row.failedMessages == 0 %}
+                                    <span class="quiet">none</span>
+                                {% else %}
+                                    <a href="{{ row.links.failures }}" data-failed-messages>{{ row.failedMessages }} failed {{ row.failedMessages == 1 ? 'message' : 'messages' }}</a>
+                                    <span class="muted">in <span data-dead-letters><a href="{{ row.links.failures }}">{{ row.failureGroups }}</a></span> failure {{ row.failureGroups == 1 ? 'group' : 'groups' }}</span>
+                                {% endif %}
+                            </td>
+                            <td data-column="channels" class="sev-{{ row.channelsStatus.value }}" title="{{ row.channelsState }}">
+                                {% if row.channelsOver > 0 %}
+                                    <span data-channels-over><a href="{{ row.links.channels }}">{{ row.channelsOver }}</a></span> of {{ row.channels|length }} over their threshold
+                                {% elseif row.channels is empty %}
+                                    <span class="quiet">none reported</span>
+                                {% else %}
+                                    <a class="{{ row.channelsStatus.value == 'ok' ? 'quiet' }}" href="{{ row.links.channels }}">{{ row.channels|length }} {{ row.channels|length == 1 ? 'channel' : 'channels' }}</a> · {{ row.channelsState }}
+                                {% endif %}
+                            </td>
+                            <td data-column="projections" class="sev-{{ row.projectionsStatus.value }}">
+                                {% if row.projections.total == 0 %}
+                                    <span class="quiet">none</span>
+                                {% elseif row.projectionsStatus.value == 'ok' %}
+                                    <a class="quiet" href="{{ row.links.projections }}">{{ row.projections.total }}</a> · {{ row.projectionsState }}
+                                {% else %}
+                                    <a href="{{ row.links.projections }}">{{ row.projectionsState }}</a>
+                                {% endif %}
+                            </td>
+                        {% else %}
+                            <td colspan="6" class="muted" data-column="no-answer">{{ service.status.value == 'waiting' ? 'Waiting for its first answer.' : 'Pulse has no answer from it yet, so nothing to compare.' }}</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
 {% endblock %}

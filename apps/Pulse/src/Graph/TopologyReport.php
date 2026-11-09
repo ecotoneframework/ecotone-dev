@@ -42,14 +42,35 @@ final readonly class TopologyReport
                 }
                 $routes[] = ['from' => $flow->name, 'to' => $target, 'channel' => $channel, 'stale' => $flow->isStale()];
                 if (! in_array($target, $configuredServices, true)) {
-                    $mismatches[] = new Mismatch('unconfigured-command-target', "{$flow->name} maps commands for {$target}, which is not configured in Pulse. Add {$target} to PULSE_SERVICES, or remove the command mapping from the Service Map of {$flow->name}.", [$flow->name, $target]);
+                    $mismatches[] = new Mismatch(
+                        'unconfigured-command-target',
+                        "{$flow->name} maps commands for {$target}, which is not configured in Pulse.",
+                        "Pulse does not ask {$target} for a snapshot, so it cannot check that {$target} runs and handles the commands {$flow->name} sends it.",
+                        "Add {$target} to PULSE_SERVICES, or remove the command mapping from the Service Map of {$flow->name}.",
+                        [$flow->name, $target],
+                        [$flow->name, $target],
+                    );
                 } elseif (! in_array($target, $answering, true)) {
-                    $mismatches[] = new Mismatch('silent-command-target', "{$flow->name} maps commands for {$target}, which is configured in Pulse but did not answer. Check that {$target} runs with PulseConfiguration and consumes its channel.", [$flow->name, $target]);
+                    $mismatches[] = new Mismatch(
+                        'silent-command-target',
+                        "{$flow->name} maps commands for {$target}, which is configured in Pulse but did not answer.",
+                        "If {$target} is not consuming channel {$channel}, the commands {$flow->name} sends there wait and no handler runs them.",
+                        "Check that {$target} runs with PulseConfiguration and consumes its channel.",
+                        [$flow->name, $target],
+                        [$flow->name, $target],
+                    );
                 }
             }
             foreach ($flow->targetServicesSentTo() as $target) {
                 if ($target !== $pulseServiceName && ! array_key_exists($target, $mapped)) {
-                    $mismatches[] = new Mismatch('unmapped-command-target', "{$flow->name} sends commands to {$target}, but its Service Map has no command mapping for {$target}. Add DistributedServiceMap::initialize()->withCommandMapping('{$target}', <channel>) to a #[ServiceContext] of {$flow->name}.", [$flow->name, $target]);
+                    $mismatches[] = new Mismatch(
+                        'unmapped-command-target',
+                        "{$flow->name} sends commands to {$target}, but its Service Map has no command mapping for {$target}.",
+                        "The Distributed Bus has no channel for {$target}, so each of these sends fails with UnknownDistributedDestination and the command is not delivered.",
+                        "Add DistributedServiceMap::initialize()->withCommandMapping('{$target}', <channel>) to a #[ServiceContext] of {$flow->name}.",
+                        [$flow->name, $target],
+                        [$flow->name, $target],
+                    );
                 }
             }
             foreach ($flow->eventSubscriptions() as $subscription) {
@@ -60,7 +81,14 @@ final readonly class TopologyReport
                 foreach ($subscription['subscriptionKeys'] as $key) {
                     $accepted = ['channel' => $subscription['channel'], 'subscriptionKeys' => [$key], 'excludePublishingServices' => $subscription['excludePublishingServices'], 'includePublishingServices' => $subscription['includePublishingServices']];
                     if (array_filter($publishedKeys, fn (array $published) => ServiceFlow::subscriptionAccepts($accepted, $published['service'], $published['routingKey'])) === []) {
-                        $mismatches[] = new Mismatch('unpublished-subscription', "{$flow->name} subscribes to {$key}, but no service publishes an event matching it. Publish it with DistributedBus::publishEvent(), or remove {$key} from withEventMapping().", [$flow->name]);
+                        $mismatches[] = new Mismatch(
+                            'unpublished-subscription',
+                            "{$flow->name} subscribes to {$key}, but no service publishes an event matching it.",
+                            "Nothing is sent over this route, so no handler consuming channel {$subscription['channel']} receives an event matching {$key}.",
+                            "Publish it with DistributedBus::publishEvent(), or remove {$key} from withEventMapping().",
+                            [$flow->name],
+                            [$flow->name, $key],
+                        );
                     }
                 }
             }
@@ -71,7 +99,14 @@ final readonly class TopologyReport
             foreach ($flows as $flow) {
                 foreach ($flow->publishedEvents() as $event) {
                     if (! in_array($flow->name . '|' . $event['routingKey'], $linked, true)) {
-                        $mismatches[] = new Mismatch('unsubscribed-event', "{$flow->name} publishes {$event['routingKey']}, but no service subscribes to it. Add a #[Distributed] #[EventHandler('{$event['routingKey']}')] to a service and a withEventMapping() entry whose keys match {$event['routingKey']}.", [$flow->name]);
+                        $mismatches[] = new Mismatch(
+                            'unsubscribed-event',
+                            "{$flow->name} publishes {$event['routingKey']}, but no service subscribes to it.",
+                            "The Service Map of {$flow->name} routes {$event['routingKey']} to no service with a #[Distributed] handler for it, so no other service reacts to it.",
+                            "Add a #[Distributed] #[EventHandler('{$event['routingKey']}')] to a service and a withEventMapping() entry whose keys match {$event['routingKey']}.",
+                            [$flow->name],
+                            [$flow->name, $event['routingKey']],
+                        );
                     }
                 }
             }
@@ -90,6 +125,11 @@ final readonly class TopologyReport
             $this->serviceByChannel,
             $scope,
         );
+    }
+
+    public function serviceOnChannel(string $channel): ?string
+    {
+        return $this->serviceByChannel[$channel] ?? null;
     }
 
     public function hasConnections(): bool
@@ -117,7 +157,7 @@ final readonly class TopologyReport
                     $lines[] = sprintf('    %s["%s"]', $ids[$service], MermaidText::escape($service . (($stale[$service] ?? false) ? ' (stale)' : '')));
                 }
             }
-            $lines[] = sprintf('    %s -->|"%s"| %s', $ids[$route['from']], MermaidText::escape($route['channel']), $ids[$route['to']]);
+            $lines[] = sprintf('    %s -->|"%s"| %s', $ids[$route['from']], MermaidText::escape('commands via ' . $route['channel']), $ids[$route['to']]);
         }
 
         foreach ($this->eventSubscriptions as $subscription) {

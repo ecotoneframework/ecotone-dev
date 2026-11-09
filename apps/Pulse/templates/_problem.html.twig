@@ -1,0 +1,22 @@
+{% set view = status_view(status, reason ?? null) %}
+<article class="problem sev-{{ view.status.value }}" data-problem="{{ kind ?? view.status.value }}" data-problem-severity="{{ view.status.value }}">
+    {% include '_status.html.twig' with {status: view, inline_reason: false} only %}
+    <div class="problem-body">
+        <p class="problem-text" data-problem-text>{% block text %}{{ text }}{% endblock %}</p>
+        {% if view.reason %}<p class="status-reason" data-status-reason>{{ view.reason }}</p>{% endif %}
+        {% if where ?? [] %}
+            <ol class="where" aria-label="Where" data-problem-where>
+                {% for place in where %}
+                    <li>{% if place.href is defined %}<a href="{{ place.href }}"{% if place.title is defined %} title="{{ place.title }}"{% endif %}>{{ place.label }}</a>{% elseif place.label is defined %}<code{% if place.title is defined %} title="{{ place.title }}"{% endif %}>{{ place.label }}</code>{% else %}<code>{{ place }}</code>{% endif %}</li>
+                {% endfor %}
+            </ol>
+        {% endif %}
+        {% if evidence ?? false %}<p class="problem-evidence" data-problem-evidence>{{ evidence }}</p>{% endif %}
+        {% if fix ?? false %}<p class="problem-fix" data-problem-fix><b>What to change:</b> {{ fix }}</p>{% endif %}
+        <p class="problem-actions">
+            {% block action %}<a class="btn pri" data-problem-action href="{{ action.href }}">{{ action.label }}</a>{% endblock %}
+            {% if secondary ?? false %}<a data-problem-secondary href="{{ secondary.href }}">{{ secondary.label }}</a>{% endif %}
+            {% if concept ?? false %}{% include '_concept.html.twig' with {term: concept} only %}{% endif %}
+        </p>
+    </div>
+</article>

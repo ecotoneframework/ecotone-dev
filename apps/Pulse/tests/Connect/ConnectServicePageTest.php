@@ -28,6 +28,7 @@ final class ConnectServicePageTest extends ReleasingWebTestCase
         yield 'lite' => ['lite'];
         yield 'symfony' => ['symfony'];
         yield 'laravel' => ['laravel'];
+        yield 'tempest' => ['tempest'];
     }
 
     public function test_the_connect_page_names_this_pulse_and_the_service(): void
@@ -61,6 +62,9 @@ final class ConnectServicePageTest extends ReleasingWebTestCase
         self::assertSame('bin/console ecotone:run ' . $channel, $crawler->filter('[data-snippet="symfony"] [data-consumer]')->text());
         self::assertStringContainsString("env('ECOTONE_LICENCE_KEY')", $crawler->filter('[data-snippet="laravel"] [data-wiring]')->text());
         self::assertSame('php artisan ecotone:run ' . $channel, $crawler->filter('[data-snippet="laravel"] [data-consumer]')->text());
+        self::assertStringContainsString("new EcotoneConfig(licenceKey: getenv('ECOTONE_LICENCE_KEY') ?: '')", $crawler->filter('[data-snippet="tempest"] [data-wiring]')->text(null, false));
+        self::assertStringContainsString('app/ecotone.config.php', $crawler->filter('[data-snippet="tempest"] [data-wiring]')->text(null, false));
+        self::assertSame('./tempest ecotone:run ' . $channel, $crawler->filter('[data-snippet="tempest"] [data-consumer]')->text());
     }
 
     #[DataProvider('frameworks')]
@@ -74,7 +78,7 @@ final class ConnectServicePageTest extends ReleasingWebTestCase
         $php = $crawler->filter('[data-snippet="' . $framework . '"] [data-php]')->text(null, false);
         self::assertNotEmpty(token_get_all($php, TOKEN_PARSE));
         self::assertSame($framework !== 'lite', str_contains($php, "namespace App;\n"));
-        self::assertStringContainsString(['lite' => 'any autoloaded file', 'symfony' => 'src/PulseSetup.php', 'laravel' => 'app/PulseSetup.php'][$framework], $crawler->filter('[data-snippet="' . $framework . '"] [data-location]')->text());
+        self::assertStringContainsString(['lite' => 'any autoloaded file', 'symfony' => 'src/PulseSetup.php', 'laravel' => 'app/PulseSetup.php', 'tempest' => 'app/PulseSetup.php'][$framework], $crawler->filter('[data-snippet="' . $framework . '"] [data-location]')->text());
     }
 
     #[DataProvider('frameworks')]

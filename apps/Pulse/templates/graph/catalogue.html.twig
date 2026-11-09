@@ -2,50 +2,112 @@
 
 {% block title %}Catalogue · Ecotone Pulse{% endblock %}
 
+{% block crumbs %}
+    {% include '_breadcrumbs.html.twig' with {service: scope.selected, trail: [{label: 'Catalogue'}]} only %}
+{% endblock %}
+
 {% block body %}
+    {% set catalogueCarry = {q: query, kind: summary.kind}|filter(value => value != '') %}
+    {% set catalogueBase = (scope.narrowed ? {service: scope.selected} : {})|merge(query != '' ? {q: query} : {}) %}
     <h1>Message catalogue</h1>
-    {% include 'graph/_notices.html.twig' %}
-    {% include 'graph/_scope.html.twig' with {carry: query ? {q: query} : {}} %}
-    <form method="get" data-catalogue-search>
-        {% if scope.narrowed %}<input type="hidden" name="service" value="{{ scope.selected }}">{% endif %}
-        <input type="search" name="q" aria-label="Search the catalogue" value="{{ query }}" placeholder="Class name, routing key, handler, aggregate or service">
-        <button type="submit">Search</button>
-    </form>
-    <p class="muted" data-search-help>A message is listed when its service, class name, routing key, aggregate, handler, endpoint id, asynchronous channel, emitting handler or subscriber contains the whole text, ignoring case. The text is not split into words.</p>
-    {% for group in groups %}
-        <section tabindex="0" role="region" aria-label="{{ group.service }}{% if group.aggregate is not null %} {{ group.aggregate }}{% endif %} messages"{% if group.greyed %} class="greyed" data-greyed{% endif %} data-group="{{ group.kind }}" data-service="{{ group.service }}"{% if group.aggregate is not null %} data-aggregate="{{ group.aggregate }}"{% endif %}>
-            <h2>{{ group.service }}{% if group.greyed %} <span class="chip">talks to {{ scope.selected }}</span>{% endif %} · {% if group.aggregate is not null %}{{ group.aggregate }} <span class="muted">aggregate</span>{% else %}Services and handlers{% endif %}</h2>
-            <table>
-                <thead>
-                <tr><th>Kind</th><th>Message</th><th>Handled by / subscribers</th><th>Emitted by</th></tr>
-                </thead>
-                <tbody>
-                {% for entry in group.entries %}
-                    <tr data-service="{{ entry.service }}" data-message="{{ entry.routingKey }}">
-                        <td>{{ entry.kind }}</td>
-                        <td>{{ entry.name }}{% if entry.name != entry.routingKey %} <span class="muted">{{ entry.routingKey }}</span>{% endif %}</td>
-                        <td>
-                            {% if entry.kind == 'event' %}
-                                {% for subscriber in entry.subscribers %}
-                                    <div data-subscriber data-subscriber-service="{{ subscriber.service }}">{{ subscriber.service }}{% if subscriber.label %} · {{ subscriber.label }}{% else %} <span class="muted">handler not shown in the service's graph</span>{% endif %}{% if subscriber.endpointId %} <span class="muted">{{ subscriber.endpointId }}</span>{% endif %}{% if subscriber.owner %} <span class="muted">{{ subscriber.owner }}</span>{% endif %}{% if subscriber.channel %} · async on {{ subscriber.channel }}{% endif %}</div>
-                                {% else %}
-                                    <span class="muted">no subscribers</span>
-                                {% endfor %}
-                            {% else %}
-                                {% for handler in entry.handlers %}
-                                    <div>{{ handler.label }}{% if handler.endpointId %} <span class="muted">{{ handler.endpointId }}</span>{% endif %}{% if handler.channel %} · async on {{ handler.channel }}{% endif %}</div>
-                                {% else %}
-                                    <span class="muted">not handled in this service</span>
-                                {% endfor %}
-                            {% endif %}
-                        </td>
-                        <td>{{ entry.emittedBy|join(', ') }}</td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+
+    {% embed '_verdict.html.twig' with {status: summary.status, reason: summary.reason, sentence: summary.sentence, serviceCounts: summary.serviceCounts, inferred: summary.inferred, narrowed: scope.narrowed} only %}
+        {% block meta %}
+            {% if serviceCounts|length > 1 or (serviceCounts|length == 1 and not narrowed) %}
+                <p class="verdict-meta" data-catalogue-service-totals>{% for service in serviceCounts %}{% if not loop.first %} · {% endif %}<a href="{{ path('catalogue', {service: service.service}) }}">{{ service.service }}</a>: {{ service.counts }}{% endfor %}</p>
+            {% endif %}
+            <p class="verdict-meta" data-verdict-meta>Listed from each service's last answer: the messages its handlers declare{% if inferred > 0 %}, and {{ inferred }} inferred from handler source code{% endif %}.</p>
+        {% endblock %}
+    {% endembed %}
+
+    {% include 'graph/_notices.html.twig' with {notices: notices} only %}
+
+    {% if summary.services is not empty %}
+        <p class="flow-reading" data-catalogue-reading>
+            A {% include '_concept.html.twig' with {term: 'command', text: 'command'} only %} asks one {% include '_concept.html.twig' with {term: 'handler', text: 'handler'} only %} to do something, an {% include '_concept.html.twig' with {term: 'event', text: 'event'} only %} tells every subscriber that something happened, and a {% include '_concept.html.twig' with {term: 'query', text: 'query'} only %} asks one handler for data.
+            Messages that cross to another service go over the {% include '_concept.html.twig' with {term: 'distributed-bus', text: 'Distributed Bus'} only %}. Each service lists its messages by aggregate, then by kind, alphabetically.
+        </p>
+    {% endif %}
+
+    <div class="flow-toolbar catalogue-toolbar">
+        {% include 'graph/_scope.html.twig' with {scope: scope, carry: catalogueCarry} only %}
+        <form method="get" role="search" class="catalogue-search" data-catalogue-search>
+            {% if scope.narrowed %}<input type="hidden" name="service" value="{{ scope.selected }}">{% endif %}
+            {% if summary.kind %}<input type="hidden" name="kind" value="{{ summary.kind }}">{% endif %}
+            <input type="search" name="q" aria-label="Search the catalogue" value="{{ query }}" placeholder="Class name, routing key, handler, aggregate or service">
+            <button type="submit">Search</button>
+            <button type="button" class="concept-toggle" popovertarget="catalogue-search-help" aria-label="How does the search match?" title="How does the search match?">?</button>
+            <span popover id="catalogue-search-help" class="concept-body" role="note" aria-label="How the search matches" data-search-help>A message is listed when its service, class name, routing key, aggregate, handler, endpoint id, asynchronous channel, emitting handler or subscriber contains the whole text, ignoring case. The text is not split into words.</span>
+        </form>
+    </div>
+
+    {% if summary.status.value != 'unknown' %}
+        <nav class="catalogue-kinds" aria-label="Show one kind of message" data-catalogue-kinds>
+            {% for chip in summary.kinds %}
+                <a class="chip" href="{{ path('catalogue', catalogueBase|merge(chip.kind ? {kind: chip.kind} : {})) }}" data-catalogue-kind-filter="{{ chip.kind }}"{% if chip.current %} aria-current="true"{% endif %}>{{ chip.label }} · {{ chip.count }}</a>
+            {% endfor %}
+        </nav>
+    {% endif %}
+
+    {% for service in summary.services %}
+        <section class="catalogue-service{% if service.greyed %} greyed{% endif %}" id="catalogue-{{ service.service }}" aria-labelledby="catalogue-{{ service.service }}-heading" data-catalogue-service="{{ service.service }}">
+            <h2 id="catalogue-{{ service.service }}-heading">{{ service.service }}{% if service.greyed %} <span class="chip">talks to {{ scope.selected }}</span>{% endif %} <span class="summary-state" data-catalogue-service-counts>{{ service.counts }}</span></h2>
+            {% for group in service.groups %}
+                <div class="catalogue-group" data-group="{{ group.kind }}" data-service="{{ group.service }}"{% if group.aggregate is not null %} data-aggregate="{{ group.aggregate }}"{% endif %}{% if group.greyed %} data-greyed{% endif %}>
+                    {% embed '_section.html.twig' with {key: group.key, title: group.title, summary: group.summary, open: group.open, level: 3, concept: group.explainAggregate ? 'aggregate' : null, group: group} only %}
+                        {% block body %}
+                            {% for list in group.byKind %}
+                                <div class="catalogue-kind" data-catalogue-kind="{{ list.kind }}" tabindex="0" role="region" aria-label="{{ group.service }} {{ group.title }}: {{ list.label }}">
+                                    <h4>{{ list.label }}</h4>
+                                    <table>
+                                        <thead>
+                                        <tr><th scope="col">Message</th><th scope="col">{{ list.kind == 'event' ? 'Subscribers' : 'Handled by' }}</th><th scope="col">{{ list.kind == 'event' ? 'Published by' : 'Sent by' }}</th><th scope="col">Go to</th></tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for entry in list.entries %}
+                                            <tr id="message-{{ (entry.service ~ "-" ~ entry.routingKey)|replace({" ": "-", "\n": "-", "\t": "-"}) }}" data-service="{{ entry.service }}" data-message="{{ entry.routingKey }}" data-kind="{{ entry.kind }}"{% if entry.inferred %} data-inferred="true"{% endif %}>
+                                                <th scope="row">
+                                                    <span title="{{ entry.routingKey }}">{{ entry.name }}</span>{% if entry.name != entry.routingKey %} <code class="muted">{{ entry.routingKey }}</code>{% endif %}
+                                                    {% if entry.inferred %}<span class="chip" data-inferred-mark title="Known only from handler source code">inferred</span>{% if entry.explainInferred %} {% include '_concept.html.twig' with {term: 'inferred-message'} only %}{% endif %}{% endif %}
+                                                </th>
+                                                <td>
+                                                    {% if entry.kind == 'event' %}
+                                                        <span class="muted" data-subscriber-count>{{ entry.subscribers is empty ? 'no subscribers' : (entry.subscribers|length == 1 ? '1 subscriber' : entry.subscribers|length ~ ' subscribers') }}</span>
+                                                        {% for subscriber in entry.subscribers %}
+                                                            <div data-subscriber data-subscriber-service="{{ subscriber.service }}">{{ subscriber.service }}{% if subscriber.label %} · {{ subscriber.label }}{% else %} <span class="muted">handler not shown in the service's graph</span>{% endif %}{% if subscriber.endpointId %} <span class="muted">{{ subscriber.endpointId }}</span>{% endif %}{% if subscriber.owner %} <span class="muted">{{ subscriber.owner }}</span>{% endif %}{% if subscriber.channel %} · async on {{ subscriber.channel }}{% endif %}</div>
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        {% for handler in entry.handlers %}
+                                                            <div>{{ handler.label }}{% if handler.endpointId %} <span class="muted">{{ handler.endpointId }}</span>{% endif %}{% if handler.channel %} · async on {{ handler.channel }}{% endif %}</div>
+                                                        {% else %}
+                                                            <span class="muted">not handled in {{ entry.service }}</span>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ entry.emittedBy|join(', ') }}</td>
+                                                <td class="catalogue-links">
+                                                    <a href="{{ path('flow_graph', {focus: entry.service ~ ':' ~ entry.nodeId}) }}" title="Follow {{ entry.name }} in {{ entry.service }} on the flow graph" data-message-flow>Flow graph</a>
+                                                    {% if entry.traces %}<a href="{{ path('trace_list', {service: entry.traces.service, flowType: entry.traces.flowType}) }}" title="Traces of {{ entry.traces.flowType }} in {{ entry.service }}" data-message-traces>{{ entry.traces.runs == 1 ? '1 trace' : entry.traces.runs ~ ' traces' }}</a>{% endif %}
+                                                    {% if entry.deadLetters %}<a href="{{ path('dead_letters', {service: entry.service, messageName: entry.deadLetters.messageName}) }}" title="Dead letters of {{ entry.deadLetters.messageName }} in {{ entry.service }}" data-message-dead-letters>{{ entry.deadLetters.count == 1 ? '1 dead letter' : entry.deadLetters.count ~ ' dead letters' }}</a>{% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% endfor %}
+                        {% endblock %}
+                    {% endembed %}
+                </div>
+            {% endfor %}
         </section>
     {% else %}
-        <p class="muted">Nothing matches.</p>
+        {% if summary.status.value == 'unknown' %}
+            {% include '_empty.html.twig' with {cause: 'waiting', sentence: 'No service has answered Pulse yet, so there are no messages to list. They appear here after the first answer.', action: {label: 'See which services Pulse is waiting for', href: path('services')}} only %}
+        {% elseif query != '' or summary.kind %}
+            {% include '_empty.html.twig' with {cause: 'nothing-yet', sentence: 'Nothing matches ' ~ (query != '' ? '"' ~ query ~ '"' : 'this kind') ~ (scope.narrowed ? ' in ' ~ scope.selected : '') ~ '. The search looks for the whole text in names, routing keys, handlers, endpoint ids and channels.', action: {label: 'Show every message', href: path('catalogue', scope.narrowed ? {service: scope.selected} : {})}} only %}
+        {% else %}
+            {% include '_empty.html.twig' with {cause: 'nothing-yet', sentence: 'Nothing matches: no service here declares a command, event or query handler yet. Messages appear when a service registers handlers with #[CommandHandler], #[EventHandler] or #[QueryHandler].', action: {label: 'Open the flow graph', href: path('flow_graph')}} only %}
+        {% endif %}
     {% endfor %}
 {% endblock %}

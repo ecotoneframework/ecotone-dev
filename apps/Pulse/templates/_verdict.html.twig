@@ -1,0 +1,10 @@
+{% set view = status_view(status, reason ?? null) %}
+<div class="verdict sev-{{ view.status.value }}" data-verdict="{{ view.status.value }}">
+    {% include '_status.html.twig' with {status: view, label: label ?? null, inline_reason: false} only %}
+    <div class="verdict-text">
+        <p class="verdict-sentence" data-verdict-sentence>{% block sentence %}{{ sentence }}{% endblock %}</p>
+        {% if view.reason %}<p class="status-reason" data-status-reason>{{ view.reason }}</p>{% endif %}
+        {% block meta %}{% if meta ?? false %}<p class="verdict-meta" data-verdict-meta>{% if meta is iterable %}{% for fact in meta %}{% if not loop.first %} · {% endif %}{{ fact }}{% endfor %}{% else %}{{ meta }}{% endif %}</p>{% endif %}{% endblock %}
+    </div>
+    {% block action %}{% if action ?? false %}<a class="btn pri verdict-action" data-verdict-action href="{{ action.href }}">{{ action.label }}</a>{% endif %}{% endblock %}
+</div>

@@ -198,9 +198,26 @@ ready(() => {
         origin = null;
     });
 
-    const fromHash = bars.find((bar) => bar.hash === location.hash);
-    if (fromHash) {
-        select(fromHash);
-    }
+    const openFromHash = () => {
+        const bar = bars.find((candidate) => candidate.hash === location.hash);
+        if (bar) {
+            select(bar);
+            return;
+        }
+        const panel = /^#span-\d+$/.test(location.hash) ? panels.querySelector(location.hash) : null;
+        if (panel) {
+            select(null);
+            panel.classList.add('open');
+            panels.classList.add('has-selection');
+        }
+    };
+    window.addEventListener('hashchange', () => {
+        openFromHash();
+        const panel = /^#span-\d+$/.test(location.hash) ? panels.querySelector(location.hash) : null;
+        if (panel) {
+            panel.scrollIntoView({block: 'nearest'});
+        }
+    });
+    openFromHash();
     draw();
 });

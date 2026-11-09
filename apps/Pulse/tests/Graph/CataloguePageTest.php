@@ -36,7 +36,7 @@ final class CataloguePageTest extends ReleasingWebTestCase
         self::assertResponseIsSuccessful();
         $handled = $crawler->filter('[data-service="billing"][data-message="invoice.create"]');
         self::assertCount(1, $handled);
-        self::assertStringContainsString('command', $handled->text());
+        self::assertSame('command', $handled->attr('data-kind'));
         self::assertStringContainsString('invoice.create.handler', $handled->text());
         self::assertCount(0, $crawler->filter('[data-message="order.place"]'));
     }

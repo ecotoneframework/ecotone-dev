@@ -54,14 +54,6 @@ final readonly class ConnectSnippets
         $connection = $this->connectionOf($service);
 
         return [
-            'lite' => [
-                'title' => 'Ecotone Lite / PSR-11',
-                'location' => 'any autoloaded file',
-                'php' => $this->serviceContextClass($service, null),
-                'bootstrap' => $this->liteBootstrap($connection),
-                'wiring' => '',
-                'consumer' => sprintf("\$ecotone->run('%s');", $channel),
-            ],
             'symfony' => [
                 'title' => 'Symfony',
                 'location' => 'src/PulseSetup.php, discovered with the other classes of the App namespace',
@@ -78,7 +70,33 @@ final readonly class ConnectSnippets
                 'wiring' => "// config/ecotone.php\n'licenceKey' => env('ECOTONE_LICENCE_KEY'),",
                 'consumer' => 'php artisan ecotone:run ' . $channel,
             ],
+            'lite' => [
+                'title' => 'Ecotone Lite / PSR-11',
+                'location' => 'any autoloaded file',
+                'php' => $this->serviceContextClass($service, null),
+                'bootstrap' => $this->liteBootstrap($connection),
+                'wiring' => '',
+                'consumer' => sprintf("\$ecotone->run('%s');", $channel),
+            ],
+            'tempest' => [
+                'title' => 'Tempest',
+                'location' => 'app/PulseSetup.php, discovered with the other classes of the PSR-4 roots in composer.json',
+                'php' => $this->serviceContextClass($service, 'App'),
+                'bootstrap' => null,
+                'wiring' => "<?php\n\n// app/ecotone.config.php\nuse Ecotone\\Tempest\\EcotoneConfig;\n\nreturn new EcotoneConfig(licenceKey: getenv('ECOTONE_LICENCE_KEY') ?: '');",
+                'consumer' => './tempest ecotone:run ' . $channel,
+            ],
         ];
+    }
+
+    public function requestChannel(string $service): string
+    {
+        return ($this->settings->routes[$service] ?? null)?->channel ?? $service;
+    }
+
+    public function replyChannel(string $service): string
+    {
+        return PulseSettings::replyChannelName($this->connectionOf($service), $this->settings->channel);
     }
 
     private function connectionOf(string $service): Connection
@@ -116,18 +134,13 @@ final readonly class ConnectSnippets
             PHP;
     }
 
-    private function requestChannel(string $service): string
-    {
-        return ($this->settings->routes[$service] ?? null)?->channel ?? $service;
-    }
-
     private function serviceContextClass(string $service, ?string $namespace): string
     {
         $connection = $this->connectionOf($service);
         $builder = $connection->transport->channelBuilderClass();
         $builderName = substr($builder, (int) strrpos($builder, '\\') + 1);
         $channel = $this->requestChannel($service);
-        $replyChannel = PulseSettings::replyChannelName($connection, $this->settings->channel);
+        $replyChannel = $this->replyChannel($service);
 
         $pulse = sprintf('PulseConfiguration::createWithDefaults(pulseServiceName: %s)', var_export($this->settings->serviceName, true));
         if ($channel !== $service) {

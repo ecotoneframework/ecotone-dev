@@ -48,7 +48,7 @@ final class ChannelMissingTest extends ReleasingWebTestCase
         $problem = $crawler->filter('[data-tile="orders"] [data-problem="channel-missing"]');
         self::assertSame('critical', $problem->attr('data-problem-severity'));
         self::assertSame(sprintf('Request channel "%s" does not exist on the broker', $this->serviceChannels['orders']), trim($problem->filter('a')->text()));
-        self::assertSame('/services/orders', $problem->filter('a')->attr('href'));
+        self::assertSame('/services/orders#diagnose', $problem->filter('a')->attr('href'));
     }
 
     public function test_the_service_becomes_connected_once_it_has_created_its_channel(): void

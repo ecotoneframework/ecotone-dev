@@ -1,0 +1,12 @@
+{% set view = status_view(status ?? null, reason ?? null) %}
+<div class="card stat tile sev-{{ view.status.value }}" data-tile-kind="{{ kind }}" data-tile-status="{{ view.status.value }}"{% if summary ?? false %} data-summary="{{ summary }}"{% endif %}>
+    <a class="tile-link" href="{{ href }}">
+        <span class="tile-label">{{ label }}</span>
+        <b>{{ count }}</b>
+        <span class="tile-noun">{{ noun }}</span>
+        {% if state ?? false %}<span class="tile-state" data-tile-state>{{ state }}</span>{% endif %}
+        {% if view.reason %}<span class="status-reason" data-status-reason>{{ view.reason }}</span>{% endif %}
+        {% if detail ?? false %}<span class="tile-detail" data-tile-detail>{{ detail }}</span>{% endif %}
+    </a>
+    {% if concept ?? false %}{% include '_concept.html.twig' with {term: concept} only %}{% endif %}
+</div>

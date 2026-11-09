@@ -24,7 +24,7 @@ final class SetupStatusTest extends ReleasingWebTestCase
         $this->boardState['orders']->channels = [[...$this->channel('invoices', 0), 'setUp' => true]];
 
         $this->observeBoard($client);
-        $crawler = $client->request('GET', '/services/orders');
+        $crawler = $client->request('GET', '/services/orders/configuration');
 
         self::assertCount(1, $crawler->filter('[data-hub-setup] [data-setup-ok]'));
         self::assertCount(0, $crawler->filter('[data-hub-setup] [data-setup-missing]'));
@@ -37,7 +37,7 @@ final class SetupStatusTest extends ReleasingWebTestCase
         $this->boardState['orders']->setup = ['tables' => [$this->table('message_queue', true), $this->table('dead_letter', false)]];
 
         $this->observeBoard($client);
-        $crawler = $client->request('GET', '/services/orders');
+        $crawler = $client->request('GET', '/services/orders/configuration');
 
         self::assertCount(0, $crawler->filter('[data-setup-item="table:message_queue"] [data-fix]'));
         self::assertCount(1, $crawler->filter('[data-setup-item="table:dead_letter"] [data-fix]'));
@@ -49,9 +49,9 @@ final class SetupStatusTest extends ReleasingWebTestCase
         $this->boardState['orders']->setup = ['tables' => [$this->table('message_queue', false), $this->table('dead_letter', true)]];
 
         $home = $this->observeBoard($client);
-        $crawler = $client->request('GET', '/services/orders');
+        $crawler = $client->request('GET', '/services/orders/configuration');
 
-        self::assertSame([['text' => 'Table for message_queue missing on ' . self::CONNECTION, 'href' => '/services/orders#setup', 'severity' => 'critical', 'kind' => 'table-missing']], $this->problemsOf($home, 'orders'));
+        self::assertSame([['text' => 'Table for message_queue missing on ' . self::CONNECTION, 'href' => '/services/orders/configuration#setup', 'severity' => 'critical', 'kind' => 'table-missing']], $this->problemsOf($home, 'orders'));
         $item = $crawler->filter('[data-hub-setup] [data-setup-item="table:message_queue"]');
         self::assertSame('Missing', trim($item->filter('[data-setup-status]')->text()));
         self::assertSame("bin/console ecotone:migration:database:setup --initialize --feature=message_queue --connection='Ecotone\\Api\\Dbal\\DbalConnectionFactory'", trim($item->filter('[data-fix]')->text()));
@@ -64,9 +64,9 @@ final class SetupStatusTest extends ReleasingWebTestCase
         $this->boardState['orders']->channels = [[...$this->channel('invoices', 0), 'setUp' => false], [...$this->channel('emails', 0), 'setUp' => true]];
 
         $home = $this->observeBoard($client);
-        $crawler = $client->request('GET', '/services/orders');
+        $crawler = $client->request('GET', '/services/orders/configuration');
 
-        self::assertSame([['text' => 'Channel invoices not set up', 'href' => '/services/orders#setup', 'severity' => 'critical', 'kind' => 'channel-not-set-up']], $this->problemsOf($home, 'orders'));
+        self::assertSame([['text' => 'Channel invoices not set up', 'href' => '/services/orders/configuration#setup', 'severity' => 'critical', 'kind' => 'channel-not-set-up']], $this->problemsOf($home, 'orders'));
         self::assertSame('bin/console ecotone:migration:channel:setup --initialize --channel=invoices', trim($crawler->filter('[data-setup-item="channel:invoices"] [data-fix]')->text()));
         self::assertCount(0, $crawler->filter('[data-setup-item="channel:emails"] [data-fix]'));
     }
@@ -77,9 +77,9 @@ final class SetupStatusTest extends ReleasingWebTestCase
         $this->boardState['orders']->sectionErrors = ['deadLetters' => "The 'ecotone_error_messages' table does not exist."];
 
         $home = $this->observeBoard($client);
-        $crawler = $client->request('GET', '/services/orders');
+        $crawler = $client->request('GET', '/services/orders/configuration');
 
-        self::assertSame([['text' => "deadLetters could not be read: The 'ecotone_error_messages' table does not exist.", 'href' => '/services/orders#setup', 'severity' => 'warning', 'kind' => 'section-failed']], $this->problemsOf($home, 'orders'));
+        self::assertSame([['text' => "deadLetters could not be read: The 'ecotone_error_messages' table does not exist.", 'href' => '/services/orders/configuration#setup', 'severity' => 'warning', 'kind' => 'section-failed']], $this->problemsOf($home, 'orders'));
         self::assertStringContainsString("'ecotone_error_messages' table does not exist", $crawler->filter('[data-hub-setup] [data-section-error="deadLetters"]')->text());
     }
 
@@ -90,7 +90,7 @@ final class SetupStatusTest extends ReleasingWebTestCase
         $this->boardState['orders']->framework = 'laravel';
 
         $this->observeBoard($client);
-        $crawler = $client->request('GET', '/services/orders');
+        $crawler = $client->request('GET', '/services/orders/configuration');
 
         self::assertStringStartsWith('php artisan ecotone:migration:database:setup --initialize', trim($crawler->filter('[data-setup-item="table:message_queue"] [data-fix]')->text()));
     }
@@ -102,7 +102,7 @@ final class SetupStatusTest extends ReleasingWebTestCase
         $this->boardState['orders']->framework = 'lite';
 
         $this->observeBoard($client);
-        $crawler = $client->request('GET', '/services/orders');
+        $crawler = $client->request('GET', '/services/orders/configuration');
 
         self::assertSame("\$ecotone->runConsoleCommand('ecotone:migration:channel:setup', ['initialize' => true, 'channel' => ['invoices']]);", trim($crawler->filter('[data-setup-item="channel:invoices"] [data-fix]')->text()));
     }
@@ -117,8 +117,8 @@ final class SetupStatusTest extends ReleasingWebTestCase
         ];
 
         $home = $this->observeBoard($client);
-        $ofTenantA = $client->request('GET', '/services/orders?tenant=tenant_a');
-        $ofTenantB = $client->request('GET', '/services/orders?tenant=tenant_b');
+        $ofTenantA = $client->request('GET', '/services/orders/configuration?tenant=tenant_a');
+        $ofTenantB = $client->request('GET', '/services/orders/configuration?tenant=tenant_b');
 
         self::assertSame(['table-missing'], array_column($this->problemsOf($home, 'orders@tenant_a'), 'kind'));
         self::assertSame([], $this->problemsOf($home, 'orders@tenant_b'));
@@ -133,9 +133,9 @@ final class SetupStatusTest extends ReleasingWebTestCase
         $this->boardState['orders']->setup = ['tables' => [$this->table('message_queue', true), $this->unknownTable('document_store', 'reporting', 'connection refused')]];
 
         $home = $this->observeBoard($client);
-        $crawler = $client->request('GET', '/services/orders');
+        $crawler = $client->request('GET', '/services/orders/configuration');
 
-        self::assertSame([['text' => 'Setup of reporting could not be checked: connection refused', 'href' => '/services/orders#setup', 'severity' => 'warning', 'kind' => 'setup-unknown']], $this->problemsOf($home, 'orders'));
+        self::assertSame([['text' => 'Setup of reporting could not be checked: connection refused', 'href' => '/services/orders/configuration#setup', 'severity' => 'warning', 'kind' => 'setup-unknown']], $this->problemsOf($home, 'orders'));
         self::assertCount(0, $crawler->filter('[data-hub-setup] [data-setup-ok]'));
         self::assertSame('Unknown', $this->statusOf($crawler, 'table:document_store'));
         self::assertStringContainsString('connection refused', $crawler->filter('[data-setup-item="table:document_store"] [data-setup-error]')->text());
@@ -147,7 +147,7 @@ final class SetupStatusTest extends ReleasingWebTestCase
         $this->boardState['orders']->channels = [[...$this->channel('invoices', 0), 'probeError' => 'connection refused', 'setUp' => null]];
 
         $home = $this->observeBoard($client);
-        $crawler = $client->request('GET', '/services/orders');
+        $crawler = $client->request('GET', '/services/orders/configuration');
 
         self::assertSame(['setup-unknown'], array_column($this->problemsOf($home, 'orders'), 'kind'));
         self::assertCount(0, $crawler->filter('[data-hub-setup] [data-setup-ok]'));
@@ -163,10 +163,10 @@ final class SetupStatusTest extends ReleasingWebTestCase
         ];
 
         $home = $this->observeBoard($client);
-        $ofTenantA = $client->request('GET', '/services/orders?tenant=tenant_a');
-        $ofTenantB = $client->request('GET', '/services/orders?tenant=tenant_b');
+        $ofTenantA = $client->request('GET', '/services/orders/configuration?tenant=tenant_a');
+        $ofTenantB = $client->request('GET', '/services/orders/configuration?tenant=tenant_b');
 
-        self::assertSame([['text' => 'Setup of tenant_a_connection could not be checked: connection refused', 'href' => '/services/orders?tenant=tenant_a#setup', 'severity' => 'warning', 'kind' => 'setup-unknown']], $this->problemsOf($home, 'orders@tenant_a'));
+        self::assertSame([['text' => 'Setup of tenant_a_connection could not be checked: connection refused', 'href' => '/services/orders/configuration?tenant=tenant_a#setup', 'severity' => 'warning', 'kind' => 'setup-unknown']], $this->problemsOf($home, 'orders@tenant_a'));
         self::assertSame([], $this->problemsOf($home, 'orders@tenant_b'));
         self::assertCount(0, $ofTenantA->filter('[data-setup-ok]'));
         self::assertSame('Unknown', $this->statusOf($ofTenantA, 'table:message_queue'));

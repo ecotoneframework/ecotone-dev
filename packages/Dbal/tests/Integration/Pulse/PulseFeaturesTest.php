@@ -150,7 +150,7 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
 
         self::assertTrue($publishing['enabled']);
         self::assertSame(['Channel notifications' => 'batch publishing', 'Channel orders' => 'one message at a time'], $publishing['settings']);
-        self::assertStringContainsString('notifications: the messages sent in one handler call are written together', $publishing['hint']);
+        self::assertStringContainsString('notifications: the messages sent in one handler call are written together, in one batch per channel (one multi-row insert for a database channel)', $publishing['hint']);
         self::assertSame("->withHighThroughputPublishing() on the channel's builder", $publishing['configuration']);
     }
 

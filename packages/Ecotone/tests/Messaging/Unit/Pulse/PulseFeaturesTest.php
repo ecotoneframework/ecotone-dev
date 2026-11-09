@@ -235,6 +235,7 @@ final class PulseFeaturesTest extends TestCase
         self::assertTrue($sending['enabled']);
         self::assertSame(['Message collector' => 'on', 'Sending retries' => '2 retries: after 1 ms and 20 ms', 'Error channel for failed sends' => 'none'], $sending['settings']);
         self::assertStringContainsString('collected and sent only once the handler that produced them has finished', $sending['hint']);
+        self::assertStringContainsString('a broker channel receives them just before the commit', $sending['hint']);
         self::assertSame('GlobalPollableChannelConfiguration::createWithDefaults()->withCollector(true)', $sending['configuration']);
     }
 
@@ -487,6 +488,7 @@ final class PulseFeaturesTest extends TestCase
         self::assertSame(['Filter-only tags' => 'tenant', 'Snapshotted decision models' => 'PulseCourseSeats every 50 events', 'Aggregates without a counter tag' => 'none'], $boundary['settings']);
         self::assertSame(['decision model PulseCourseSeats', 'decision boundary class@anonymous::boundary'], $boundary['handlers']);
         self::assertStringContainsString('appended with the tags of their #[EventTag] properties', $boundary['hint']);
+        self::assertStringContainsString('its append is refused with DecisionModelConcurrencyException', $boundary['hint']);
     }
 
     public function test_each_consumer_lists_its_features_tagged_as_its_own_configuration_or_the_global_one(): void

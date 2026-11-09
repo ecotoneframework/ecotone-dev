@@ -69,7 +69,8 @@ final class ChannelPulseFeatures
             hint: match (true) {
                 $settings === [] => 'This service sends to no broker or database channel, so there is nothing to publish in batches.',
                 $batched === [] => 'Each message sent to a broker or database channel is a round trip of its own, and the sender waits for it to be confirmed before sending the next.',
-                default => sprintf('On %s: the messages sent in one handler call are written together, in one batch per channel, and the broker confirms them before the transaction commits, instead of one blocking round trip per message. The other channels send one message at a time.', implode(', ', $batched)),
+                default => sprintf('On %s: the messages sent in one handler call are written together, in one batch per channel (one multi-row insert for a database channel), and a broker\'s confirmations are awaited before the transaction commits, instead of one blocking round trip per message. The other channels send one message at a time.', implode(', ', $batched))
+                    . (ExtensionObjectResolver::resolveUnique(GlobalPollableChannelConfiguration::class, $serviceExtensions, GlobalPollableChannelConfiguration::createWithDefaults())->isCollectorEnabled() ? '' : ' The message collector is off, so messages are sent as they are produced and no batch is formed.'),
             },
             configuration: "->withHighThroughputPublishing() on the channel's builder",
         );
@@ -97,7 +98,7 @@ final class ChannelPulseFeatures
             settings: $settings,
             handlers: [],
             hint: ($global->isCollectorEnabled()
-                ? 'Messages for asynchronous channels are collected and sent only once the handler that produced them has finished, just before its transaction commits, so a failed handler sends none of them and a consumer never reads a message whose data is not committed yet.'
+                ? 'Messages for asynchronous channels are collected and sent only once the handler that produced them has finished, just before its transaction commits, so a failed handler sends none of them. On a database channel in the same transaction they become visible only when it commits; a broker channel receives them just before the commit, so its consumer may read one before the data is committed.'
                 : 'Messages for asynchronous channels are sent at once, while the handler is still running, so a handler that fails afterwards has already sent them.')
                 . sprintf(' A send that fails is retried: %s%s.', $global->getRetryTemplate()->describe(), $global->getErrorChannelName() === null ? ', then the failure reaches the sender' : ", then the message goes to error channel '" . $global->getErrorChannelName() . "'")
                 . ' A channel listed here has its own configuration instead.',

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -14,6 +15,7 @@ const DETERMINISTIC_CHECKS = [
     'agent-skills' => '.github/workflows/agent-skills.yml: php bin/check-agent-skills.php',
     'licence-header' => '.github/workflows/file-licence.yml: php bin/check-licence.php',
     'suite-parity' => '.github/workflows/test-monorepo.yml: php bin/check-suite-parity.php',
+    'monorepo-shards' => '.github/workflows/test-monorepo.yml: php bin/check-monorepo-shards.php',
     'phpstan' => 'composer tests:phpstan in every package CI run',
     'contribution-terms' => '.github/workflows/contribution-check.yml',
 ];
@@ -72,7 +74,7 @@ function checkAgentsMd(string $root, array &$violations): void
         );
     }
     if (! str_contains($content, AGENTS_MD_POINTER)) {
-        $violations[] = "AGENTS.md does not point to " . AGENTS_MD_POINTER . ".\nIt is the only instruction every agent loads, and its one job is to send the agent to the skill that maps work to rules. Add the path back.";
+        $violations[] = 'AGENTS.md does not point to ' . AGENTS_MD_POINTER . ".\nIt is the only instruction every agent loads, and its one job is to send the agent to the skill that maps work to rules. Add the path back.";
     }
 }
 
@@ -84,7 +86,12 @@ function checkSymlinks(string $root, array &$violations): void
         if (! is_link($path) || readlink($path) !== $target || ! file_exists($path)) {
             $violations[] = sprintf(
                 "%s must be a symlink to an existing %s.\nClaude Code reads %s while other agents read the target; a copy drifts from it, and a dangling link loads nothing.\nRecreate it: rm -rf %s && ln -s %s %s",
-                $link, $target, $link, $link, $target, $link,
+                $link,
+                $target,
+                $link,
+                $link,
+                $target,
+                $link,
             );
         }
     }
@@ -189,7 +196,9 @@ function checkRules(string $root, string $relative, string $skillName, string $b
                 if (! array_key_exists($target, DETERMINISTIC_CHECKS)) {
                     $violations[] = sprintf(
                         "%s names unknown check `check:%s`.\nKnown checks: %s. Register a new deterministic check in DETERMINISTIC_CHECKS in bin/check-agent-skills.php together with the CI step that runs it.",
-                        $where, $target, implode(', ', array_keys(DETERMINISTIC_CHECKS)),
+                        $where,
+                        $target,
+                        implode(', ', array_keys(DETERMINISTIC_CHECKS)),
                     );
                 }
                 continue;
@@ -204,7 +213,9 @@ function checkRules(string $root, string $relative, string $skillName, string $b
             if (! is_file($grader)) {
                 $violations[] = sprintf(
                     "%s names `eval:%s`, but %s does not exist.\nEach rule an eval case verifies has its own grader named after the rule, so a failing score points at one rule. Create the grader, or point 'Verified by' at the case that has it.",
-                    $where, $target, relativePath($root, $grader),
+                    $where,
+                    $target,
+                    relativePath($root, $grader),
                 );
             }
         }
@@ -351,7 +362,8 @@ function checkPublicSkillImports(string $root, array &$violations): void
             if (! classResolves($class, $namespaces)) {
                 $violations[] = sprintf(
                     "%s references %s, which does not exist in packages/.\nA user who pastes the sample gets a class-not-found error. Verify the name against the tree; upgrade/namespace-map-2.0.csv maps 1.x names to 2.0.",
-                    relativePath($root, $file->getPathname()), $class,
+                    relativePath($root, $file->getPathname()),
+                    $class,
                 );
             }
         }

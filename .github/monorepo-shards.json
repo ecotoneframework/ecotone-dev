@@ -1,0 +1,10 @@
+[
+    {
+        "name": "dbal-core-amqp",
+        "suites": "Dbal tests,Core tests,Amqp tests,Laravel tests,Symfony tests,Jms Converter tests"
+    },
+    {
+        "name": "kafka-monorepo-event-sourcing",
+        "suites": "Kafka tests,Monorepo tests,Event Sourcing tests,SQS tests,Tempest tests,Redis tests,DataProtection,OpenTelemetry tests,Enqueue tests"
+    }
+]

@@ -14,8 +14,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  shards:
+    name: "Shards"
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.shards.outputs.matrix }}
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Check every test suite of phpunit.xml.dist belongs to exactly one shard
+      id: shards
+      run: |
+        matrix=$(php bin/check-monorepo-shards.php)
+        echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
   run:
-    name: "Monorepo"
+    name: "Monorepo (${{ matrix.shard.name }})"
+    needs: shards
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: true # Fail the entire workflow if any job fails
@@ -23,6 +38,9 @@ jobs:
         operating-system: [ ubuntu-latest ]
         php-versions: [ '8.5' ]
         stability: [prefer-stable]
+        # The root suite runs in one process, so .github/monorepo-shards.json splits it into shards of about the
+        # same measured duration to keep each job under fifteen minutes.
+        shard: ${{ fromJSON(needs.shards.outputs.matrix) }}
     services:
       kafka:
         image: apache/kafka:3.9.0
@@ -154,7 +172,7 @@ jobs:
       run: (cd packages/DataProtection && tests/before-tests.sh)
 
     - name: Test PHPUnit on Postgres
-      run: vendor/bin/phpunit --no-coverage
+      run: vendor/bin/phpunit --no-coverage --testsuite "${{ matrix.shard.suites }}"
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
         SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0

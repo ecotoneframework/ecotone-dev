@@ -16,6 +16,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class CarServiceTest extends KernelTestCase
 {
+    use RestoresGlobalHandlers;
+
     private CarService $carService;
 
     protected function setUp(): void
@@ -24,11 +26,6 @@ final class CarServiceTest extends KernelTestCase
             'environment' => 'test',
         ]);
         $this->carService = self::getContainer()->get(CarService::class);
-    }
-
-    protected function tearDown(): void
-    {
-        restore_exception_handler();
     }
 
     public function test_as_a_driver_i_drive_car(): void

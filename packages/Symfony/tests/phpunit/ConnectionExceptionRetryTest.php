@@ -15,6 +15,8 @@ use Symfony\Component\Console\Output\BufferedOutput;
  */
 final class ConnectionExceptionRetryTest extends KernelTestCase
 {
+    use RestoresGlobalHandlers;
+
     protected function setUp(): void
     {
         self::bootKernel([
@@ -24,7 +26,6 @@ final class ConnectionExceptionRetryTest extends KernelTestCase
 
     protected function tearDown(): void
     {
-        restore_exception_handler();
 
         parent::tearDown();
     }

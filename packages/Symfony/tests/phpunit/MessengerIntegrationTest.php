@@ -29,10 +29,7 @@ use Symfony\Component\Uid\Uuid;
  */
 final class MessengerIntegrationTest extends WebTestCase
 {
-    protected function tearDown(): void
-    {
-        restore_exception_handler();
-    }
+    use RestoresGlobalHandlers;
 
     public function setUp(): void
     {

@@ -11,6 +11,7 @@ use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Symfony\App\EnvPlaceholderEndpoint\Configuration\Kernel;
+use Test\RestoresGlobalHandlers;
 
 /**
  * Reproduces https://github.com/ecotoneframework/ecotone-dev/issues/669
@@ -36,6 +37,8 @@ use Symfony\App\EnvPlaceholderEndpoint\Configuration\Kernel;
  */
 final class EnvPlaceholderEndpointTest extends TestCase
 {
+    use RestoresGlobalHandlers;
+
     protected function setUp(): void
     {
         putenv('SYMFONY_LICENCE_KEY=' . LicenceTesting::VALID_LICENCE);
@@ -46,8 +49,6 @@ final class EnvPlaceholderEndpointTest extends TestCase
     {
         putenv('SYMFONY_LICENCE_KEY');
         putenv('ECOTONE_ERROR_CHANNEL');
-
-        restore_exception_handler();
     }
 
     public function test_consuming_async_handler_whose_endpoint_annotation_uses_env_placeholder(): void

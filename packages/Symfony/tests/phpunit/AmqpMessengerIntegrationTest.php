@@ -21,13 +21,10 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class AmqpMessengerIntegrationTest extends WebTestCase
 {
+    use RestoresGlobalHandlers;
+
     private string $channelName = 'amqp_async';
     private FlowTestSupport $messaging;
-
-    protected function tearDown(): void
-    {
-        restore_exception_handler();
-    }
 
     protected function setUp(): void
     {

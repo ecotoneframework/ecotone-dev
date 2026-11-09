@@ -24,9 +24,10 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class SymfonyMessengerFinalFailureStrategyTest extends WebTestCase
 {
+    use RestoresGlobalHandlers;
+
     protected function tearDown(): void
     {
-        restore_exception_handler();
         // Ensure kernel is shut down after each test to prevent cache conflicts
         static::ensureKernelShutdown();
     }

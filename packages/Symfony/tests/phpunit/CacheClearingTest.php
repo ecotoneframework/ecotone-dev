@@ -17,6 +17,8 @@ use Symfony\Component\Filesystem\Filesystem;
  */
 class CacheClearingTest extends KernelTestCase
 {
+    use RestoresGlobalHandlers;
+
     private string $symfonyEcotoneCacheDir;
     private string $ecotoneLiteCacheDir;
     private Filesystem $filesystem;
@@ -36,11 +38,6 @@ class CacheClearingTest extends KernelTestCase
         $cacheConfig = self::getContainer()->get(ServiceCacheConfiguration::REFERENCE_NAME);
         $this->symfonyEcotoneCacheDir = $cacheConfig->getPath();
         $this->ecotoneLiteCacheDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone';
-    }
-
-    protected function tearDown(): void
-    {
-        restore_exception_handler();
     }
 
     public function test_cache_clear_command_triggers_ecotone_cache_clearing(): void

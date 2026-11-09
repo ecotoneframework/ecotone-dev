@@ -205,6 +205,38 @@
         </section>
 
         {% if focus is not null %}
+        <section class="card" id="consumers" data-hub-consumers>
+            <h2>Consumers</h2>
+            {% if focusConsumers is empty %}
+                <p class="muted">{{ service.service }} reports no consumers. A service on an Ecotone version before Pulse listed consumers does not report them.</p>
+            {% else %}
+                <p class="muted">Every consumer {{ service.service }} can run, with the features that apply to the messages it handles. <span class="pill scope-consumer">consumer-level config</span> is set for that consumer or one of its handlers; <span class="pill scope-global">global</span> follows the service-wide configuration.</p>
+                {% for consumer in focusConsumers %}
+                    <article class="consumer" data-consumer="{{ consumer.name }}">
+                        <h3><code>{{ consumer.name }}</code> <span class="pill muted-pill" data-consumer-kind>{{ consumer.kind }}</span></h3>
+                        <p class="muted">Run it with <code>ecotone:run {{ consumer.name }}</code>.</p>
+                        {% if consumer.handlers %}
+                            <ul class="feature-handlers" data-consumer-handlers>{% for handler in consumer.handlers %}<li><code>{{ handler }}</code></li>{% endfor %}</ul>
+                        {% endif %}
+                        {% if consumer.features %}
+                            <table class="consumer-features">
+                                <thead><tr><th>Feature</th><th>Value</th><th>Configured</th></tr></thead>
+                                <tbody>
+                                {% for feature in consumer.features %}
+                                    <tr data-consumer-feature="{{ feature.name }}">
+                                        <td>{{ feature.name }}{% if feature.handler %} <span class="muted">for</span> <code data-consumer-feature-handler>{{ feature.handler }}</code>{% endif %}</td>
+                                        <td data-consumer-feature-value>{{ feature.value }}</td>
+                                        <td><span class="pill {{ feature.scope == 'global' ? 'scope-global' : 'scope-consumer' }}" data-consumer-feature-scope>{{ feature.scope }}</span></td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            {% endif %}
+        </section>
+
         <section class="card" data-hub-dead-letters>
             <h2>Dead letters</h2>
             {% if focus.deadLetterTotal is not null and deadLetterEnabled is not same as(false) %}

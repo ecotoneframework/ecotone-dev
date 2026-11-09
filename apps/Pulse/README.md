@@ -107,11 +107,21 @@ Every service has a page, `/services/{name}`, with breadcrumbs: its health and l
 Its **Packages and setup** section lists every Ecotone package the service has installed, from the snapshot's `packages`, also one
 that needs no table. Under each package are the tables it owns, set up or missing with the command that creates them, and the
 features it reports: database transactions, instant retries, deduplication, dead letter, the error channel and its delayed
-retries, flow tracking, publishers and the rest. Each feature says whether it is on, its settings (for instant retries the number
-of extra attempts and the exceptions retried), the handlers that use its attribute (`#[Deduplicated]`,
+retries, the final failure strategy of each channel, high-throughput publishing, resilient sending, combined channels and
+outbox forwarding, scheduled endpoints, the dynamic consistency boundary, event-store snapshots, the service configuration,
+flow tracking, publishers and the rest. Each feature says whether it is on, its settings (for instant retries the retry times
+and the exceptions retried), the handlers that use its attribute (`#[Deduplicated]`,
 `#[WithoutDatabaseTransaction]`, `#[DelayedRetry]`, `#[Distributed]`), and a hint box that explains what it does with those values
 and names the call that changes it. The text comes from the module that owns the feature, so it describes the version of Ecotone
-the service runs. A service older than this list shows its tables without packages. A snapshot carries `deadLetter.enabled` (`true` or `false`, from the
+the service runs. A service older than this list shows its tables without packages.
+
+The **Consumers** section lists every consumer the service can run: a polling consumer per asynchronous channel, with the
+handler endpoints it serves, and every inbound consumer (`#[Scheduled]`, `#[RabbitConsumer]`, `#[KafkaConsumer]`). Each one
+lists the features that apply to the messages it handles: database transaction, deduplication, instant retries, error channel,
+delayed retries, final failure strategy, poller and RabbitMQ transaction. Every value is tagged **consumer-level config** when it
+is set for that consumer or one of its handlers (`withoutTransactionOnAsynchronousEndpoints`, `asynchronousExecution`,
+`#[InstantRetry]`, `#[Poller]`, `#[Deduplicated]`, the consumer's own failure strategy), or **global** when it follows the
+service-wide configuration. A snapshot carries `deadLetter.enabled` (`true` or `false`, from the
 service's `DbalConfiguration`), so Pulse says "dead letter storage is enabled, none stored" for an empty store and "not configured" for a
 service that does not store dead letters; a service older than this field is told apart by whether its snapshot has the `deadLetters` section.
 

@@ -23,6 +23,7 @@ use Ecotone\Messaging\Channel\DeliveryConfirmation\Config\DeferredPublishingGate
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ScheduledPulseFeatures;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -230,7 +231,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
             static fn (KafkaConsumer $kafkaConsumer): PulseConsumerFeature => $kafkaConsumer->getFinalFailureStrategy() === FinalFailureStrategy::STOP
                 ? PulseConsumerFeature::defaultFor($kafkaConsumer->getEndpointId(), 'Final failure strategy', FinalFailureStrategy::STOP->value)
                 : PulseConsumerFeature::forConsumer($kafkaConsumer->getEndpointId(), 'Final failure strategy', $kafkaConsumer->getFinalFailureStrategy()->value),
-            array_values($this->kafkaConsumers),
+            array_values(array_filter($this->kafkaConsumers, static fn (KafkaConsumer $kafkaConsumer): bool => ! ScheduledPulseFeatures::stopsOnError($serviceExtensions, $kafkaConsumer->getEndpointId()))),
         ), PulseFeature::messagePublishers(
             package: ModulePackageList::KAFKA_PACKAGE,
             broker: 'Kafka',

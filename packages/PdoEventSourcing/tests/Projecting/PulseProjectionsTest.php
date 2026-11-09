@@ -172,7 +172,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
 
         $consumer = array_column($this->requestSnapshot()['consumers'], 'features', 'name')['tickets_async_channel'];
 
-        self::assertContains(['name' => 'Instant retries', 'value' => '3 retries on any exception, as the projection manages its own transaction', 'scope' => 'consumer-level config', 'handler' => null], $consumer);
+        self::assertContains(['name' => 'Instant retries', 'value' => '3 retries on any exception, as the projection manages its own transaction', 'scope' => 'global', 'handler' => null], $consumer);
     }
 
     #[DataProvider('storages')]

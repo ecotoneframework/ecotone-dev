@@ -16,6 +16,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\MessagePublisher;
@@ -99,6 +100,20 @@ final class PulseFeaturesTest extends AmqpMessagingTestCase
         self::assertContains(['name' => 'Final failure strategy', 'value' => 'stop', 'scope' => 'global', 'handler' => null], $consumers['rabbit.orders']['features']);
         self::assertContains(['name' => 'Final failure strategy', 'value' => 'resend', 'scope' => 'consumer-level config', 'handler' => null], $consumers['rabbit.payments']['features']);
         self::assertContains(['name' => 'RabbitMQ transaction', 'value' => 'off', 'scope' => 'global', 'handler' => null], $consumers['rabbit.orders']['features']);
+    }
+
+    public function test_a_rabbitmq_consumer_that_stops_on_error_shows_stop_as_its_own_configuration(): void
+    {
+        $handlers = new class () {
+            #[RabbitConsumer('rabbit.orders', 'orders_queue', FinalFailureStrategy::RESEND)]
+            public function orders(string $orderId): void
+            {
+            }
+        };
+
+        $consumers = array_column($this->snapshot([PollingMetadata::create('rabbit.orders')->withStopOnError(true)], handlers: $handlers)['consumers'], 'features', 'name');
+
+        self::assertContains(['name' => 'Final failure strategy', 'value' => 'stop, as the consumer stops on error', 'scope' => 'consumer-level config', 'handler' => null], $consumers['rabbit.orders']);
     }
 
     public function test_rabbitmq_channels_report_their_failure_strategy_default_and_batch_publishing(): void

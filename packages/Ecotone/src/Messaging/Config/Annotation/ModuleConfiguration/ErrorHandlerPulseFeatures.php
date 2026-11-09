@@ -111,7 +111,7 @@ final class ErrorHandlerPulseFeatures
             handlers: [],
             hint: $strategies === []
                 ? 'This service consumes no pollable channel. A #[RabbitConsumer] or #[KafkaConsumer] carries its own final failure strategy, stop unless it names another, shown with the consumer under Consumers.'
-                : 'The final failure strategy is the last decision for a message that still fails after its retries, when no error channel is set or the error channel fails too. On this service: ' . implode('; ', array_map(static fn (string $strategy): string => $explained[$strategy], $used)) . '. A queue or Kafka channel defaults to resend and an in-memory or RabbitMQ streaming channel to release; a #[RabbitConsumer] or #[KafkaConsumer] carries its own strategy, stop unless it names another, shown with the consumer under Consumers.',
+                : 'The final failure strategy is the last decision for a message that still fails after its retries, when no error channel is set or the error channel fails too. On this service: ' . implode('; ', array_map(static fn (string $strategy): string => $explained[$strategy], $used)) . '. A queue or Kafka channel defaults to resend and an in-memory streaming or RabbitMQ stream channel to release; a #[RabbitConsumer] or #[KafkaConsumer] carries its own strategy, stop unless it names another, shown with the consumer under Consumers.',
             configuration: "->withFinalFailureStrategy(FinalFailureStrategy::STOP) on the channel's builder",
         )];
     }
@@ -140,7 +140,7 @@ final class ErrorHandlerPulseFeatures
             $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Delayed retries', self::scheduleOf($configuration->delayedRetryTemplate, $configuration->deadLetterChannel));
         }
         foreach (ExtensionObjectResolver::resolve(FinalFailureStrategyChannelBuilder::class, $serviceExtensions) as $channel) {
-            if ($channel->isPollable()) {
+            if ($channel->isPollable() && ! ScheduledPulseFeatures::stopsOnError($serviceExtensions, $channel->getMessageChannelName())) {
                 $features[] = $channel->getFinalFailureStrategy() === $channel->getDefaultFinalFailureStrategy()
                     ? PulseConsumerFeature::defaultFor($channel->getMessageChannelName(), 'Final failure strategy', $channel->getFinalFailureStrategy()->value)
                     : PulseConsumerFeature::forConsumer($channel->getMessageChannelName(), 'Final failure strategy', $channel->getFinalFailureStrategy()->value);

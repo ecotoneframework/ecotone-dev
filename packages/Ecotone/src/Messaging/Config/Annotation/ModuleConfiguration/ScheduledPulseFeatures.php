@@ -82,7 +82,9 @@ final class ScheduledPulseFeatures
         }
         $features = [];
         foreach ($byEndpoint as $endpointId => $metadata) {
-            $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Poller', self::scheduleOf($metadata));
+            if ($metadata->cron !== '' || $metadata->cronExpression !== null || $metadata->fixedRateExpression !== null || $metadata->fixedRateInMilliseconds !== PollingMetadata::DEFAULT_FIXED_RATE) {
+                $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Poller', self::scheduleOf($metadata));
+            }
             if ($metadata->stopOnError) {
                 $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Error channel', 'off, the consumer stops on the first error');
                 $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Delayed retries', 'none');
@@ -97,6 +99,20 @@ final class ScheduledPulseFeatures
         }
 
         return $features;
+    }
+
+    /**
+     * @param object[] $serviceExtensions
+     */
+    public static function stopsOnError(array $serviceExtensions, string $endpointId): bool
+    {
+        foreach (ExtensionObjectResolver::resolve(PollingMetadata::class, $serviceExtensions) as $metadata) {
+            if ($metadata->getEndpointId() === $endpointId && $metadata->stopOnError) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static function scheduleOf(PollingMetadata|Poller|null $schedule): string

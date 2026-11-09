@@ -14,6 +14,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ScheduledPulseFeatures;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -95,13 +96,17 @@ final class RabbitConsumerModule extends NoExternalConfigurationModule implement
             return [];
         }
 
-        return array_map(static function (AnnotatedMethod $annotatedMethod): PulseConsumerFeature {
-            $rabbitConsumer = $annotatedMethod->getAnnotationForMethod();
+        $rabbitConsumers = array_filter(
+            array_map(static fn (AnnotatedMethod $annotatedMethod): RabbitConsumer => $annotatedMethod->getAnnotationForMethod(), $this->amqpConsumersAnnotatedMethods),
+            static fn (RabbitConsumer $rabbitConsumer): bool => ! ScheduledPulseFeatures::stopsOnError($serviceExtensions, $rabbitConsumer->getEndpointId()),
+        );
+
+        return array_values(array_map(static function (RabbitConsumer $rabbitConsumer): PulseConsumerFeature {
 
             return $rabbitConsumer->getFinalFailureStrategy() === FinalFailureStrategy::STOP
                 ? PulseConsumerFeature::defaultFor($rabbitConsumer->getEndpointId(), 'Final failure strategy', FinalFailureStrategy::STOP->value)
                 : PulseConsumerFeature::forConsumer($rabbitConsumer->getEndpointId(), 'Final failure strategy', $rabbitConsumer->getFinalFailureStrategy()->value);
-        }, $this->amqpConsumersAnnotatedMethods);
+        }, $rabbitConsumers));
     }
 
     public function getModulePackageName(): string

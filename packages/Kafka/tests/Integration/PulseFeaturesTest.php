@@ -13,6 +13,7 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaConsumer;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
@@ -20,7 +21,6 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
-use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Test\Ecotone\Kafka\ConnectionTestCase;
 
 /**

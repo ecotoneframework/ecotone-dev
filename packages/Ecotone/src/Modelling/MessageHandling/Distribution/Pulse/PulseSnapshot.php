@@ -256,9 +256,9 @@ final class PulseSnapshot
         foreach ($this->messagingSystem->list() as $consumerName) {
             $handlers = $this->endpointsByChannel[$consumerName] ?? [];
             $features = [];
-            foreach ([null, $consumerName] as $target) {
+            foreach ([[null, PulseConsumerFeature::GLOBAL], [$consumerName, PulseConsumerFeature::GLOBAL], [$consumerName, PulseConsumerFeature::CONSUMER_LEVEL]] as [$target, $scope]) {
                 foreach ($this->consumerFeatures as $feature) {
-                    if ($feature['target'] === $target) {
+                    if ($feature['target'] === $target && ($target === null || $feature['scope'] === $scope)) {
                         $features[$feature['name']] = ['name' => $feature['name'], 'value' => $feature['value'], 'scope' => $feature['scope'], 'handler' => null];
                     }
                 }

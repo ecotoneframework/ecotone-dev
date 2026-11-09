@@ -222,7 +222,7 @@ final class PulseFeaturesTest extends TestCase
         self::assertTrue($failure['enabled']);
         self::assertSame('resend', $failure['settings']['Channel orders']);
         self::assertSame('stop', $failure['settings']['Channel payments']);
-        self::assertStringContainsString('an in-memory or RabbitMQ streaming channel to release', $failure['hint']);
+        self::assertStringContainsString('an in-memory streaming or RabbitMQ stream channel to release', $failure['hint']);
         self::assertStringContainsString('resend: the message is sent back to its channel, so the consumer goes on with the next messages', $failure['hint']);
         self::assertStringContainsString('stop: the consumer stops and the message stays in the channel', $failure['hint']);
         self::assertSame("->withFinalFailureStrategy(FinalFailureStrategy::STOP) on the channel's builder", $failure['configuration']);

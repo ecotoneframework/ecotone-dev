@@ -92,7 +92,7 @@ final class InstantRetryPulseFeatures
             PulseConsumerFeature::global('Instant retries', $global),
             ...array_map(static fn (string $consumerOrEndpointId): PulseConsumerFeature => PulseConsumerFeature::forConsumer($consumerOrEndpointId, 'Instant retries', 'off, runs without a database transaction'), $withoutTransaction),
             ...array_map(static fn (array $override): PulseConsumerFeature => PulseConsumerFeature::forConsumer($override[0], 'Instant retries', sprintf('%s on %s', PulseFeature::retriesOf($override[1]->retryTimes), PulseFeature::exceptionsOf($override[1]->exceptions))), $this->endpointOverrides),
-            ...($byDefault && $defaults->apply ? array_map(fn (string $channel): PulseConsumerFeature => PulseConsumerFeature::forConsumer($channel, 'Instant retries', sprintf('%s on %s, as the projection manages its own transaction', PulseFeature::retriesOf($this->configuration->asynchronousRetryTimes), PulseFeature::exceptionsOf($this->configuration->asynchronousExceptions))), $projectionChannels) : []),
+            ...($byDefault && $defaults->apply ? array_map(fn (string $channel): PulseConsumerFeature => PulseConsumerFeature::defaultFor($channel, 'Instant retries', sprintf('%s on %s, as the projection manages its own transaction', PulseFeature::retriesOf($this->configuration->asynchronousRetryTimes), PulseFeature::exceptionsOf($this->configuration->asynchronousExceptions))), $projectionChannels) : []),
         ];
     }
 

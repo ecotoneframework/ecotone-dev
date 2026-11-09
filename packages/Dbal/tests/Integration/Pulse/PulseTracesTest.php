@@ -20,6 +20,7 @@ use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
@@ -33,6 +34,8 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Tracing\SpanContext;
@@ -213,6 +216,112 @@ final class PulseTracesTest extends DbalMessagingTestCase
         self::assertSame(['error', 'ok'], [$statusByTrace[self::FIRST_TRACE], $statusByTrace[self::SECOND_TRACE]]);
     }
 
+    #[DataProvider('implementations')]
+    public function test_two_messages_sent_within_one_caller_trace_are_two_flows_and_a_failed_step_counts_only_against_its_own(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
+        $this->orderService->advanceTimeBy(Duration::seconds(10));
+        $this->sendWithTrace('refund.ticket', 'ticket-1', self::FIRST_TRACE);
+
+        self::assertSame(
+            [
+                ['flowType' => 'create.ticket', 'runs' => 1, 'runsWithErrors' => 0],
+                ['flowType' => 'refund.ticket', 'runs' => 1, 'runsWithErrors' => 1],
+            ],
+            $this->flowTypeRuns(),
+        );
+        self::assertSame(
+            [['traceId' => self::FIRST_TRACE, 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'durationMs' => 100, 'status' => 'ok', 'rootEndpoint' => 'ticket.create']],
+            $this->listTraces(['flowType' => 'create.ticket'])['traces'],
+        );
+        self::assertSame(
+            [['traceId' => self::FIRST_TRACE, 'startedAt' => '2026-10-20T12:00:10.100000+00:00', 'durationMs' => 0, 'status' => 'error', 'rootEndpoint' => 'ticket.refund']],
+            $this->listTraces(['flowType' => 'refund.ticket'])['traces'],
+        );
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_dead_lettered_asynchronous_failure_counts_only_against_the_message_that_led_to_it_within_a_shared_caller_trace(string $implementation): void
+    {
+        $this->bootstrap($implementation, deadLetter: true);
+        $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
+        $this->sendWithTrace('ticket.close', 'ticket-1', self::FIRST_TRACE);
+        $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        self::assertSame(1, $this->orderService->getGateway(DeadLetterGateway::class)->count());
+        self::assertSame(
+            [
+                ['flowType' => 'create.ticket', 'runs' => 1, 'runsWithErrors' => 0],
+                ['flowType' => 'ticket.close', 'runs' => 1, 'runsWithErrors' => 1],
+            ],
+            $this->flowTypeRuns(),
+        );
+        self::assertSame(['ok'], array_column($this->listTraces(['flowType' => 'create.ticket'])['traces'], 'status'));
+        self::assertSame(['error'], array_column($this->listTraces(['flowType' => 'ticket.close'])['traces'], 'status'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_a_dead_lettered_message_adds_no_run_to_any_flow_type(string $implementation): void
+    {
+        $this->bootstrap($implementation, deadLetter: true);
+        $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
+        $this->sendWithTrace('ticket.close', 'ticket-1', self::FIRST_TRACE);
+        $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $this->orderService->getGateway(DeadLetterGateway::class)->replayAll();
+        $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        self::assertSame(1, $this->orderService->getGateway(DeadLetterGateway::class)->count());
+        self::assertSame(
+            [
+                ['flowType' => 'create.ticket', 'runs' => 1, 'runsWithErrors' => 0],
+                ['flowType' => 'ticket.close', 'runs' => 1, 'runsWithErrors' => 1],
+            ],
+            $this->flowTypeRuns(),
+        );
+    }
+
+    #[DataProvider('implementations')]
+    public function test_the_same_message_sent_twice_within_one_caller_trace_is_two_runs_of_its_flow_type(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
+        $this->orderService->advanceTimeBy(Duration::seconds(10));
+        $this->sendWithTrace('create.ticket', '300', self::FIRST_TRACE);
+
+        self::assertSame([['flowType' => 'create.ticket', 'runs' => 2, 'runsWithErrors' => 0]], $this->flowTypeRuns());
+        self::assertSame(
+            [[self::FIRST_TRACE, 300], [self::FIRST_TRACE, 100]],
+            array_map(fn (array $trace): array => [$trace['traceId'], $trace['durationMs']], $this->listTraces(['flowType' => 'create.ticket'])['traces']),
+        );
+    }
+
+    #[DataProvider('implementations')]
+    public function test_an_asynchronous_projection_run_within_a_flow_adds_no_run_to_that_trace(string $implementation): void
+    {
+        $projection = new #[Projection('tickets_list'), FromStream('tickets_stream'), Asynchronous('async_channel')] class () {
+            #[EventHandler('ticket.registered')]
+            public function whenRegistered(array $event): void
+            {
+            }
+        };
+        $this->bootstrap($implementation, services: [$projection]);
+        $this->orderService->withEvents([Event::createWithType('ticket.registered', ['ticketId' => '1'])]);
+        $this->orderService->publishEventWithRouting('ticket.registered', [], metadata: [MessageHeaders::TRACEPARENT => (new SpanContext(self::FIRST_TRACE, self::CALLER_SPAN))->toTraceparent()]);
+        $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(
+            [
+                ['flowType' => 'ticket.registered', 'runs' => 1, 'runsWithErrors' => 0],
+                ['flowType' => 'tickets_list', 'runs' => 1, 'runsWithErrors' => 0],
+            ],
+            $this->flowTypeRuns(),
+        );
+        self::assertSame([self::FIRST_TRACE], array_column($this->listTraces(['flowType' => 'ticket.registered'])['traces'], 'traceId'));
+        self::assertNotContains(self::FIRST_TRACE, array_column($this->listTraces(['flowType' => 'tickets_list'])['traces'], 'traceId'));
+    }
+
     public function test_a_spans_table_from_an_earlier_beta_is_refused_on_the_write_naming_how_to_upgrade_it(): void
     {
         $this->bootstrap('dbal', connectionFactory: $this->connectionOfABetaSpansTable());
@@ -271,6 +380,24 @@ final class PulseTracesTest extends DbalMessagingTestCase
 
         self::assertSame([self::FIRST_TRACE], array_column($recent, 'traceId'));
         self::assertNotSame([], $this->traceOf($recent[0]['traceId'])['spans']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_dead_lettered_asynchronous_failure_marks_its_flow_failed_with_the_failed_step(string $implementation): void
+    {
+        $this->bootstrap($implementation, deadLetter: true);
+        $this->sendWithTrace('ticket.close', 'ticket-1', self::FIRST_TRACE);
+        $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        self::assertSame(1, $this->orderService->getGateway(DeadLetterGateway::class)->count());
+        self::assertSame(
+            [['flowType' => 'ticket.close', 'runs' => 1, 'runsWithErrors' => 1]],
+            array_map(fn (array $flowType): array => array_intersect_key($flowType, array_flip(['flowType', 'runs', 'runsWithErrors'])), $this->requestSnapshot()['tracing']['flowTypes']),
+        );
+        self::assertSame(['error'], array_column($this->listTraces(['flowType' => 'ticket.close'])['traces'], 'status'));
+        $failed = array_column($this->traceOf(self::FIRST_TRACE)['spans'], null, 'name')['process class@anonymous::close'];
+        self::assertSame('error', $failed['status']);
+        self::assertSame('Ticket ticket-1 could not be closed', $failed['statusDescription']);
     }
 
     #[DataProvider('implementations')]
@@ -720,7 +847,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
         self::assertSame('Service order_service was asked by Pulse for traces, but flow tracking is not configured there, so it recorded none. Enable it with FlowTrackingConfiguration::createWithDefaults() in a #[ServiceContext] of order_service, or stop sending trace queries to this service.', $reply['message']);
     }
 
-    private function bootstrap(string $implementation, bool $flowTracking = true, bool $deadLetter = false, ?ConnectionFactory $connectionFactory = null): void
+    private function bootstrap(string $implementation, bool $flowTracking = true, bool $deadLetter = false, ?ConnectionFactory $connectionFactory = null, array $services = []): void
     {
         $this->orders = new class () {
             #[CommandHandler('create.ticket', endpointId: 'ticket.create')]
@@ -845,8 +972,8 @@ final class PulseTracesTest extends DbalMessagingTestCase
             SimpleMessageChannelBuilder::createQueueChannel('ticket_async'),
         ];
         $this->orderService = $this->bootstrapFlowTesting(
-            classesToResolve: [$this->orders::class],
-            containerOrAvailableServices: [$this->orders, DbalConnectionFactory::class => $connectionFactory ?? $this->getConnectionFactory()],
+            classesToResolve: [$this->orders::class, ...array_map(fn (object $service): string => $service::class, $services)],
+            containerOrAvailableServices: [$this->orders, ...$services, DbalConnectionFactory::class => $connectionFactory ?? $this->getConnectionFactory()],
             extensionObjects: [
                 ...$channels,
                 ...($flowTracking ? [FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($implementation === 'in-memory')] : []),
@@ -1011,6 +1138,11 @@ final class PulseTracesTest extends DbalMessagingTestCase
         BetaSpansTableConnection::$onlyInserts = false;
 
         return new DbalConnectionFactory(['dsn' => getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone', 'connection' => ['wrapperClass' => BetaSpansTableConnection::class]]);
+    }
+
+    private function flowTypeRuns(): array
+    {
+        return array_map(fn (array $flowType): array => array_intersect_key($flowType, array_flip(['flowType', 'runs', 'runsWithErrors'])), $this->requestSnapshot()['tracing']['flowTypes']);
     }
 
     private function requestSnapshot(): array

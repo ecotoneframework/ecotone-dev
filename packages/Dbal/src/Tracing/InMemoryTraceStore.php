@@ -31,42 +31,45 @@ final class InMemoryTraceStore implements TraceStore
 {
     /** @var array<string, array<string, Span>> */
     private array $spansByTrace = [];
-    /** @var array<string, array{span: Span, flowType: string, status: string}> */
+    /** @var array<string, array<string, array{span: Span, flowType: string, status: string}>> */
     private array $entriesByTrace = [];
 
-    public function append(array $spans): void
+    public function append(array $spans, ?string $onlyPossibleEntrySpanId): void
     {
-        $plan = FlowEntries::plan($spans, $this->storedTracesOf($spans));
+        $plan = FlowEntries::plan($spans, $this->storedTracesOf($spans), $onlyPossibleEntrySpanId);
         foreach ($spans as $span) {
             if (isset($this->spansByTrace[$span->traceId][$span->spanId])) {
                 continue;
             }
             $this->spansByTrace[$span->traceId][$span->spanId] = $span;
             if (isset($plan->entriesBySpanId[$span->spanId])) {
-                $this->entriesByTrace[$span->traceId] = ['span' => $span, ...$plan->entriesBySpanId[$span->spanId]];
+                $this->entriesByTrace[$span->traceId][$span->spanId] = ['span' => $span, ...$plan->entriesBySpanId[$span->spanId]];
             }
         }
-        foreach ($plan->traceIdsToMarkFailed as $traceId) {
-            $this->entriesByTrace[$traceId]['status'] = FlowEntries::STATUS_ERROR;
+        foreach ($plan->entrySpanIdsToMarkFailedByTrace as $traceId => $spanIds) {
+            foreach ($spanIds as $spanId) {
+                $this->entriesByTrace[$traceId][$spanId]['status'] = FlowEntries::STATUS_ERROR;
+            }
         }
     }
 
     public function flowTypeStatistics(int $limit, int $window): array
     {
         $entriesByFlowType = [];
-        foreach ($this->entriesByTrace as $entry) {
+        foreach ($this->entries() as $entry) {
             $startedAt = $entry['span']->startedAt->unixTime()->inMicroseconds();
             $entriesByFlowType[$entry['flowType']][] = [
                 'startedAt' => $startedAt,
                 'durationInMicroseconds' => $entry['span']->endedAt->unixTime()->inMicroseconds() - $startedAt,
                 'status' => $entry['status'],
                 'traceId' => $entry['span']->traceId,
+                'spanId' => $entry['span']->spanId,
             ];
         }
 
         $statistics = [];
         foreach ($entriesByFlowType as $flowType => $entries) {
-            usort($entries, fn (array $first, array $second): int => [$second['startedAt'], $second['traceId']] <=> [$first['startedAt'], $first['traceId']]);
+            usort($entries, fn (array $first, array $second): int => [$second['startedAt'], $second['traceId'], $second['spanId']] <=> [$first['startedAt'], $first['traceId'], $first['spanId']]);
             $statistics[] = FlowTypeStatistics::overWindow((string) $flowType, count($entries), array_slice($entries, 0, $window));
 
         }
@@ -78,8 +81,9 @@ final class InMemoryTraceStore implements TraceStore
 
     public function tracesOf(string $flowType, int $page, int $perPage): TracePage
     {
-        $entries = array_filter($this->entriesByTrace, fn (array $entry): bool => $entry['flowType'] === $flowType);
-        uasort($entries, fn (array $first, array $second): int => [$second['span']->startedAt->unixTime()->inMicroseconds(), $second['span']->traceId] <=> [$first['span']->startedAt->unixTime()->inMicroseconds(), $first['span']->traceId]);
+        $entries = array_filter($this->entries(), fn (array $entry): bool => $entry['flowType'] === $flowType);
+        $order = fn (array $entry): array => [$entry['span']->startedAt->unixTime()->inMicroseconds(), $entry['span']->traceId, $entry['span']->spanId];
+        usort($entries, fn (array $first, array $second): int => $order($second) <=> $order($first));
 
         return new TracePage(
             count($entries),
@@ -115,19 +119,26 @@ final class InMemoryTraceStore implements TraceStore
     }
 
     /**
+     * @return array<int, array{span: Span, flowType: string, status: string}>
+     */
+    private function entries(): array
+    {
+        return array_merge(...array_values(array_map(array_values(...), $this->entriesByTrace)));
+    }
+
+    /**
      * @param Span[] $spans
-     * @return array<string, array{spanIds: array<string, true>, hasEntry: bool, hasError: bool}>
+     * @return array<string, array<string, array{parentSpanId: ?string, failed: bool, entryStatus: ?string}>>
      */
     private function storedTracesOf(array $spans): array
     {
         $stored = [];
         foreach ($spans as $span) {
-            $storedSpans = $this->spansByTrace[$span->traceId] ?? [];
-            $stored[$span->traceId] = [
-                'spanIds' => array_fill_keys(array_keys($storedSpans), true),
-                'hasEntry' => isset($this->entriesByTrace[$span->traceId]),
-                'hasError' => array_filter($storedSpans, fn (Span $storedSpan): bool => $storedSpan->status === SpanStatus::Error) !== [],
-            ];
+            $stored[$span->traceId] ??= array_map(fn (Span $storedSpan): array => [
+                'parentSpanId' => $storedSpan->parentSpanId,
+                'failed' => $storedSpan->status === SpanStatus::Error,
+                'entryStatus' => $this->entriesByTrace[$span->traceId][$storedSpan->spanId]['status'] ?? null,
+            ], $this->spansByTrace[$span->traceId] ?? []);
         }
 
         return $stored;

@@ -37,9 +37,9 @@ final class FlowEntries
 
     /**
      * @param Span[] $spans
-     * @param array<string, array{spanIds: array<string, true>, hasEntry: bool, hasError: bool}> $storedTraces
+     * @param array<string, array<string, array{parentSpanId: ?string, failed: bool, entryStatus: ?string}>> $storedTraces
      */
-    public static function plan(array $spans, array $storedTraces): FlowEntryPlan
+    public static function plan(array $spans, array $storedTraces, ?string $onlyPossibleEntrySpanId): FlowEntryPlan
     {
         $spansByTrace = [];
         foreach ($spans as $span) {
@@ -47,23 +47,40 @@ final class FlowEntries
         }
 
         $entries = [];
-        $traceIdsToMarkFailed = [];
+        $entriesToMarkFailed = [];
         foreach ($spansByTrace as $traceId => $batch) {
-            $stored = $storedTraces[$traceId] ?? ['spanIds' => [], 'hasEntry' => false, 'hasError' => false];
-            $batchHasError = self::anyFailed($batch);
-            $entry = $stored['hasEntry'] ? null : self::entryOf($batch, $stored['spanIds']);
+            $stored = $storedTraces[$traceId] ?? [];
+            $parentOf = array_map(fn (array $storedSpan): ?string => $storedSpan['parentSpanId'], $stored);
+            $failed = array_filter(array_map(fn (array $storedSpan): bool => $storedSpan['failed'], $stored));
+            foreach ($batch as $span) {
+                $parentOf[$span->spanId] ??= $span->parentSpanId;
+                if ($span->status === SpanStatus::Error) {
+                    $failed[$span->spanId] = true;
+                }
+            }
 
-            if ($entry !== null) {
-                $entries[$entry->spanId] = [
-                    'flowType' => self::flowTypeOf($entry, $batch),
-                    'status' => $stored['hasError'] || $batchHasError ? self::STATUS_ERROR : self::STATUS_OK,
+            $failedEntries = [];
+            foreach (array_keys($failed) as $failedSpanId) {
+                $failedEntries[self::topmostRecordedAncestorOf((string) $failedSpanId, $parentOf)] = true;
+            }
+
+            foreach ($batch as $span) {
+                if (isset($stored[$span->spanId]) || isset($entries[$span->spanId]) || ! self::isEntry($span, $parentOf, $onlyPossibleEntrySpanId)) {
+                    continue;
+                }
+                $entries[$span->spanId] = [
+                    'flowType' => self::flowTypeOf($span, $batch),
+                    'status' => isset($failedEntries[$span->spanId]) ? self::STATUS_ERROR : self::STATUS_OK,
                 ];
-            } elseif ($stored['hasEntry'] && $batchHasError && ! $stored['hasError']) {
-                $traceIdsToMarkFailed[] = (string) $traceId;
+            }
+            foreach ($stored as $spanId => $storedSpan) {
+                if ($storedSpan['entryStatus'] === self::STATUS_OK && isset($failedEntries[$spanId])) {
+                    $entriesToMarkFailed[(string) $traceId][] = (string) $spanId;
+                }
             }
         }
 
-        return new FlowEntryPlan($entries, $traceIdsToMarkFailed);
+        return new FlowEntryPlan($entries, $entriesToMarkFailed);
     }
 
     public static function durationInMilliseconds(int $durationInMicroseconds): int
@@ -72,28 +89,29 @@ final class FlowEntries
     }
 
     /**
-     * @param Span[] $batch
-     * @param array<string, true> $storedSpanIds
+     * @param array<string, ?string> $parentOf
      */
-    private static function entryOf(array $batch, array $storedSpanIds): ?Span
+    private static function isEntry(Span $span, array $parentOf, ?string $onlyPossibleEntrySpanId): bool
     {
-        $batchSpanIds = [];
-        foreach ($batch as $span) {
-            $batchSpanIds[$span->spanId] = true;
+        if ($onlyPossibleEntrySpanId !== null && $span->spanId !== $onlyPossibleEntrySpanId) {
+            return false;
         }
 
-        $entry = null;
-        foreach ($batch as $span) {
-            $parentIsLocal = $span->parentSpanId !== null && (isset($batchSpanIds[$span->parentSpanId]) || isset($storedSpanIds[$span->parentSpanId]));
-            if ($parentIsLocal || isset($storedSpanIds[$span->spanId])) {
-                continue;
-            }
-            if ($entry === null || [$span->startedAt->unixTime()->inMicroseconds(), $span->spanId] < [$entry->startedAt->unixTime()->inMicroseconds(), $entry->spanId]) {
-                $entry = $span;
-            }
+        return $span->parentSpanId === null || ! array_key_exists($span->parentSpanId, $parentOf);
+    }
+
+    /**
+     * @param array<string, ?string> $parentOf
+     */
+    private static function topmostRecordedAncestorOf(string $spanId, array $parentOf): string
+    {
+        $visited = [$spanId => true];
+        while (($parentSpanId = $parentOf[$spanId] ?? null) !== null && array_key_exists($parentSpanId, $parentOf) && ! isset($visited[$parentSpanId])) {
+            $spanId = $parentSpanId;
+            $visited[$spanId] = true;
         }
 
-        return $entry;
+        return $spanId;
     }
 
     /**
@@ -135,19 +153,5 @@ final class FlowEntries
         $parts = explode(' ', $spanName, 2);
 
         return $parts[1] ?? $parts[0];
-    }
-
-    /**
-     * @param Span[] $spans
-     */
-    private static function anyFailed(array $spans): bool
-    {
-        foreach ($spans as $span) {
-            if ($span->status === SpanStatus::Error) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

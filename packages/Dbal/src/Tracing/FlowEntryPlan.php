@@ -28,9 +28,9 @@ final class FlowEntryPlan
 {
     /**
      * @param array<string, array{flowType: string, status: string}> $entriesBySpanId
-     * @param string[] $traceIdsToMarkFailed
+     * @param array<string, string[]> $entrySpanIdsToMarkFailedByTrace
      */
-    public function __construct(public readonly array $entriesBySpanId, public readonly array $traceIdsToMarkFailed)
+    public function __construct(public readonly array $entriesBySpanId, public readonly array $entrySpanIdsToMarkFailedByTrace)
     {
     }
 }

@@ -9,7 +9,9 @@ use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanRecorder;
+use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Tracing\ActiveSpan;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -42,6 +44,8 @@ final class StoringSpanRecorder implements SpanRecorder
     private bool $unitOfWorkActive = false;
     /** @var Span[] */
     private array $committedSpans = [];
+    /** @var Span[] */
+    private array $failedAttempt = [];
 
     public function __construct(
         private TraceStore $traceStore,
@@ -122,12 +126,26 @@ final class StoringSpanRecorder implements SpanRecorder
         return $this->traceStore->withinTransaction($work);
     }
 
-    public function flushBuffered(): void
+    public function flushBufferedWithinOpenScope(): void
     {
-        $this->store([]);
+        $this->store([], $this->wrappingSpan?->context()->spanId);
     }
 
-    public function flushWithOpenSpans(?ActiveSpan ...$innerOpenSpans): void
+    public function flushWithOpenSpansWithinOpenScope(?ActiveSpan ...$innerOpenSpans): void
+    {
+        $this->store($this->openSpansSoFar($innerOpenSpans), $this->wrappingSpan?->context()->spanId);
+    }
+
+    public function flushWithOpenSpans(): void
+    {
+        $this->store($this->openSpansSoFar([]), null);
+    }
+
+    /**
+     * @param array<?ActiveSpan> $innerOpenSpans
+     * @return Span[]
+     */
+    private function openSpansSoFar(array $innerOpenSpans): array
     {
         $openSpans = [];
         foreach ([$this->wrappingSpan, ...$innerOpenSpans] as $openSpan) {
@@ -135,13 +153,14 @@ final class StoringSpanRecorder implements SpanRecorder
                 $openSpans[$openSpan->context()->spanId] = $openSpan->endedSoFar();
             }
         }
-        $this->store(array_values($openSpans));
+
+        return array_values($openSpans);
     }
 
     /**
      * @param Span[] $openSpansSoFar
      */
-    private function store(array $openSpansSoFar): void
+    private function store(array $openSpansSoFar, ?string $onlyPossibleEntrySpanId): void
     {
         if ($this->scopeExcludedFromTracking) {
             $this->buffer = [];
@@ -161,7 +180,7 @@ final class StoringSpanRecorder implements SpanRecorder
         }
 
         $spans = array_values($spans);
-        $this->traceStore->append($spans);
+        $this->traceStore->append($spans, $onlyPossibleEntrySpanId);
         foreach ($spans as $span) {
             $this->storedSpanIds[$span->spanId] = true;
         }
@@ -171,6 +190,38 @@ final class StoringSpanRecorder implements SpanRecorder
     public function discard(): void
     {
         $this->buffer = [];
+    }
+
+    public function holdFailedAttempt(Throwable $failure): void
+    {
+        $failedSteps = array_filter($this->buffer, fn (Span $span): bool => $span->status === SpanStatus::Error);
+        $this->buffer = [];
+        $this->failedAttempt = [];
+        if ($this->scopeExcludedFromTracking || $this->wrappingSpan === null) {
+            return;
+        }
+        $wrapping = $this->wrappingSpan->endedSoFar();
+        if (! $this->isStored($wrapping)) {
+            return;
+        }
+        $wrapping = new Span($wrapping->traceId, $wrapping->spanId, $wrapping->parentSpanId, $wrapping->name, $wrapping->kind, $wrapping->attributes, SpanStatus::Error, $failure->getMessage(), $wrapping->events, $wrapping->startedAt, $wrapping->endedAt);
+        foreach ([$wrapping, ...$failedSteps] as $span) {
+            $this->failedAttempt[$span->spanId] = new Span($span->traceId, $span->spanId, $span->parentSpanId, $span->name, $span->kind, [...$span->attributes, TraceLedger::FAILED_ATTEMPT => true], $span->status, $span->statusDescription, $span->events, $span->startedAt, $span->endedAt);
+        }
+    }
+
+    public function forgetFailedAttempt(): void
+    {
+        $this->failedAttempt = [];
+    }
+
+    public function storeFailedAttempt(): void
+    {
+        $spans = array_values($this->failedAttempt);
+        $this->failedAttempt = [];
+        if ($spans !== []) {
+            $this->traceStore->append($spans, $spans[0]->spanId);
+        }
     }
 
     /**

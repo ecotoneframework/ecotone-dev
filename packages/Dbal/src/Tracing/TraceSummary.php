@@ -48,7 +48,7 @@ final class TraceSummary
         foreach ($traceSpans as $span) {
             $parentOf[$span->spanId] = $span->parentSpanId;
         }
-        $candidates = array_filter($traceSpans, fn (Span $span): bool => isset($span->attributes[SpanAttribute::ENDPOINT_ID]) && $span->startedAt->unixTime()->inMicroseconds() >= $startedAt);
+        $candidates = array_filter($traceSpans, fn (Span $span): bool => isset($span->attributes[SpanAttribute::ENDPOINT_ID]) && self::descendsFrom($span->spanId, $entry->spanId, $parentOf));
         $order = fn (Span $span): array => [self::depthOf($span->spanId, $parentOf), $span->startedAt->unixTime()->inMicroseconds(), $span->spanId];
         usort($candidates, fn (Span $first, Span $second): int => $order($first) <=> $order($second));
 
@@ -59,6 +59,23 @@ final class TraceSummary
             $status,
             $candidates === [] ? $entry->name : (string) $candidates[0]->attributes[SpanAttribute::ENDPOINT_ID],
         );
+    }
+
+    /**
+     * @param array<string, string|null> $parentOf
+     */
+    private static function descendsFrom(string $spanId, string $ancestorSpanId, array $parentOf): bool
+    {
+        $visited = [];
+        while ($spanId !== $ancestorSpanId) {
+            if (! isset($parentOf[$spanId]) || isset($visited[$spanId])) {
+                return false;
+            }
+            $visited[$spanId] = true;
+            $spanId = $parentOf[$spanId];
+        }
+
+        return true;
     }
 
     /**

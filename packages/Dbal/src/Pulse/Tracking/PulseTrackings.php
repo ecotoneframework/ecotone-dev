@@ -96,7 +96,11 @@ final class PulseTrackings
         $finishedAt = null;
         $failed = false;
         foreach ($spans as $span) {
-            $failed = $failed || $span->status === SpanStatus::Error;
+            if ($span->status === SpanStatus::Error) {
+                $failed = true;
+
+                continue;
+            }
             if (! isset($span->attributes[ProjectingHeaders::REBUILD_BATCH_NUMBER]) || ($span->attributes[SpanAttribute::MESSAGING_OPERATION_TYPE] ?? null) !== SpanAttribute::OPERATION_PROCESS) {
                 continue;
             }

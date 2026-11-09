@@ -327,6 +327,45 @@ final class PulseFeaturesTest extends TestCase
         self::assertContains(['name' => 'Final failure strategy', 'value' => 'stop, as the consumer stops on error', 'scope' => 'consumer-level config', 'handler' => null], $consumers['reports']);
         self::assertContains(['name' => 'Error channel', 'value' => 'off', 'scope' => 'consumer-level config', 'handler' => null], $consumers['stock']);
         self::assertContains(['name' => 'Delayed retries', 'value' => 'none', 'scope' => 'consumer-level config', 'handler' => null], $consumers['stock']);
+        self::assertNotContains('Poller', array_column($consumers['reports'], 'name'));
+        self::assertNotContains('Poller', array_column($consumers['stock'], 'name'));
+    }
+
+    public function test_a_channel_consumer_that_stops_on_error_shows_stop_instead_of_its_channel_strategy(): void
+    {
+        $handlers = new class () {
+            #[Asynchronous('payments')]
+            #[CommandHandler('order.pay', endpointId: 'order.pay.endpoint')]
+            public function pay(string $orderId): void
+            {
+            }
+        };
+
+        $features = array_column($this->snapshotOf($handlers, [
+            SimpleMessageChannelBuilder::createQueueChannel('payments', finalFailureStrategy: FinalFailureStrategy::IGNORE),
+            PollingMetadata::create('payments')->withStopOnError(true),
+        ])['consumers'], 'features', 'name')['payments'];
+
+        self::assertSame(['stop, as the consumer stops on error'], array_values(array_map(static fn (array $feature): string => $feature['value'], array_filter($features, static fn (array $feature): bool => $feature['name'] === 'Final failure strategy'))));
+    }
+
+    public function test_a_value_set_for_a_consumer_replaces_the_global_one(): void
+    {
+        $handlers = new class () {
+            #[Asynchronous('payments')]
+            #[CommandHandler('order.pay', endpointId: 'order.pay.endpoint')]
+            public function pay(string $orderId): void
+            {
+            }
+        };
+
+        $features = array_column($this->snapshotOf($handlers, [
+            SimpleMessageChannelBuilder::createQueueChannel('payments'),
+            PollingMetadata::create('payments')->withErrorChannelName('payment_errors'),
+            SimpleMessageChannelBuilder::createQueueChannel('payment_errors'),
+        ], serviceConfiguration: ServiceConfiguration::createWithDefaults()->withServiceName('order_service')->withDefaultErrorChannel('order_errors'))['consumers'], 'features', 'name')['payments'];
+
+        self::assertSame([['name' => 'Error channel', 'value' => 'payment_errors', 'scope' => 'consumer-level config', 'handler' => null]], array_values(array_filter($features, static fn (array $feature): bool => $feature['name'] === 'Error channel')));
     }
 
     public function test_a_streaming_channel_left_at_its_release_default_is_tagged_global_and_a_queue_set_to_stop_is_its_own(): void

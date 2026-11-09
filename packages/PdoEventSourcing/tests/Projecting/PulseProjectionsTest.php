@@ -168,7 +168,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
 
     public function test_an_asynchronous_projection_consumer_is_instantly_retried_as_it_manages_its_own_transaction(): void
     {
-        $this->bootstrap('dbal', [$this->asynchronousProjection()]);
+        $this->bootstrap('dbal', [$this->asynchronousProjection()], extensionObjects: [DbalConfiguration::createWithDefaults()->withoutTransactionOnAsynchronousEndpoints(['tickets_async_channel'])]);
 
         $consumer = array_column($this->requestSnapshot()['consumers'], 'features', 'name')['tickets_async_channel'];
 

@@ -11,6 +11,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
@@ -81,6 +82,20 @@ final class PulseFeaturesTest extends TestCase
         self::assertSame('inbound', $consumers['kafka.orders']['kind']);
         self::assertContains(['name' => 'Final failure strategy', 'value' => 'stop', 'scope' => 'global', 'handler' => null], $consumers['kafka.orders']['features']);
         self::assertContains(['name' => 'Final failure strategy', 'value' => 'resend', 'scope' => 'consumer-level config', 'handler' => null], $consumers['kafka.payments']['features']);
+    }
+
+    public function test_a_kafka_consumer_that_stops_on_error_shows_stop_as_its_own_configuration(): void
+    {
+        $handlers = new class () {
+            #[KafkaConsumer('kafka.payments', 'payments', finalFailureStrategy: FinalFailureStrategy::RESEND)]
+            public function payments(string $orderId): void
+            {
+            }
+        };
+
+        $consumers = array_column($this->snapshot([PollingMetadata::create('kafka.payments')->withStopOnError(true)], handlers: $handlers)['consumers'], 'features', 'name');
+
+        self::assertContains(['name' => 'Final failure strategy', 'value' => 'stop, as the consumer stops on error', 'scope' => 'consumer-level config', 'handler' => null], $consumers['kafka.payments']);
     }
 
     public function test_a_kafka_channel_reports_its_failure_strategy_and_batch_publishing(): void

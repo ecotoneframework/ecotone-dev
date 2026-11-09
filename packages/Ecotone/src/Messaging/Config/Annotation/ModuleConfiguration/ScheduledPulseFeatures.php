@@ -82,7 +82,7 @@ final class ScheduledPulseFeatures
         }
         $features = [];
         foreach ($byEndpoint as $endpointId => $metadata) {
-            if ($metadata->cron !== '' || $metadata->cronExpression !== null || $metadata->fixedRateExpression !== null || $metadata->fixedRateInMilliseconds !== PollingMetadata::DEFAULT_FIXED_RATE) {
+            if (self::setsASchedule($metadata)) {
                 $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Poller', self::scheduleOf($metadata));
             }
             if ($metadata->stopOnError) {
@@ -113,6 +113,11 @@ final class ScheduledPulseFeatures
         }
 
         return false;
+    }
+
+    private static function setsASchedule(PollingMetadata $metadata): bool
+    {
+        return $metadata->cron !== '' || $metadata->cronExpression !== null || $metadata->fixedRateExpression !== null || $metadata->fixedRateInMilliseconds !== PollingMetadata::DEFAULT_FIXED_RATE;
     }
 
     public static function scheduleOf(PollingMetadata|Poller|null $schedule): string

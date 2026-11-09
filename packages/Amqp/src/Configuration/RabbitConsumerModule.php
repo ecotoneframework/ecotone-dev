@@ -101,12 +101,12 @@ final class RabbitConsumerModule extends NoExternalConfigurationModule implement
             static fn (RabbitConsumer $rabbitConsumer): bool => ! ScheduledPulseFeatures::stopsOnError($serviceExtensions, $rabbitConsumer->getEndpointId()),
         );
 
-        return array_values(array_map(static function (RabbitConsumer $rabbitConsumer): PulseConsumerFeature {
-
-            return $rabbitConsumer->getFinalFailureStrategy() === FinalFailureStrategy::STOP
+        return array_values(array_map(
+            static fn (RabbitConsumer $rabbitConsumer): PulseConsumerFeature => $rabbitConsumer->getFinalFailureStrategy() === FinalFailureStrategy::STOP
                 ? PulseConsumerFeature::defaultFor($rabbitConsumer->getEndpointId(), 'Final failure strategy', FinalFailureStrategy::STOP->value)
-                : PulseConsumerFeature::forConsumer($rabbitConsumer->getEndpointId(), 'Final failure strategy', $rabbitConsumer->getFinalFailureStrategy()->value);
-        }, $rabbitConsumers));
+                : PulseConsumerFeature::forConsumer($rabbitConsumer->getEndpointId(), 'Final failure strategy', $rabbitConsumer->getFinalFailureStrategy()->value),
+            $rabbitConsumers,
+        ));
     }
 
     public function getModulePackageName(): string

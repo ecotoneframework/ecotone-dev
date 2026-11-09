@@ -86,7 +86,7 @@ final class InstantRetryPulseFeatures
         $global = $isEnabled
             ? sprintf('%s on %s', PulseFeature::retriesOf($this->configuration->asynchronousRetryTimes), PulseFeature::exceptionsOf($this->configuration->asynchronousExceptions)) . ($byDefault ? ', in a database transaction' : '')
             : 'off';
-        $withoutTransaction = $byDefault && $isEnabled ? [...$defaults->databaseTransactions->asynchronousEndpointsWithoutTransaction, ...$this->handlersWithoutTransaction] : [];
+        $withoutTransaction = $byDefault && $isEnabled ? array_diff([...$defaults->databaseTransactions->asynchronousEndpointsWithoutTransaction, ...$this->handlersWithoutTransaction], $projectionChannels) : [];
 
         return [
             PulseConsumerFeature::global('Instant retries', $global),

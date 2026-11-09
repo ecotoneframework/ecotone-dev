@@ -76,6 +76,7 @@ if [ "$DEMO_APP" = ticketing ]; then
         "${console[@]}" doctrine:migrations:migrate --no-interaction --allow-no-migration
         "${console[@]}" messenger:setup-transports
         "${console[@]}" ecotone:migration:database:setup --initialize
+        "${console[@]}" ecotone:projection:init --all
     }
 else
     console=(php artisan)
@@ -84,6 +85,7 @@ else
         "${console[@]}" package:discover
         "${console[@]}" migrate --force
         "${console[@]}" ecotone:migration:database:setup --initialize
+        "${console[@]}" ecotone:projection:init --all
     }
 fi
 

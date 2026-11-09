@@ -14,6 +14,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Tracing\TracingId;
+use Stringable;
 
 /**
  * licence Enterprise
@@ -38,6 +39,7 @@ use Ecotone\Tracing\TracingId;
 final class PulseDeadLetterEntry
 {
     private const TRUNCATION_LIMIT_IN_BYTES = 4096;
+    private const HEADER_TRUNCATION_LIMIT_IN_BYTES = 1024;
     private const BUILT_IN_TYPES = ['array', 'string', 'int', 'float', 'bool', 'null', 'mixed', 'object', 'iterable', 'callable'];
     private const TRUNCATION_MARKER = "\n... [truncated]";
 
@@ -102,7 +104,7 @@ final class PulseDeadLetterEntry
     }
 
     /**
-     * @return array{messageId: string, failureId: string, messageName: string, failedAt: string, exceptionClass: string, exceptionFile: string, exceptionLine: int, exceptionMessage: string, stackTrace: string, payload: string, contentType: string|null, channel: string|null, traceId: string|null}
+     * @return array{messageId: string, failureId: string, messageName: string, failedAt: string, exceptionClass: string, exceptionFile: string, exceptionLine: int, exceptionMessage: string, stackTrace: string, payload: string, contentType: string|null, channel: string|null, traceId: string|null, headers: array<string, string>}
      */
     public function toArray(): array
     {
@@ -120,7 +122,44 @@ final class PulseDeadLetterEntry
             'contentType' => $this->header(MessageHeaders::CONTENT_TYPE),
             'channel' => $this->header(MessageHeaders::POLLED_CHANNEL_NAME) ?? $this->header(MessageHeaders::INBOUND_REQUEST_CHANNEL),
             'traceId' => $this->traceId(),
+            'headers' => $this->headersWithoutStackTrace(),
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function headersWithoutStackTrace(): array
+    {
+        $headers = [];
+        foreach ($this->message->getHeaders()->headers() as $name => $value) {
+            if ($name === ErrorContext::EXCEPTION_STACKTRACE) {
+                continue;
+            }
+            $headers[(string) $name] = self::truncated(self::headerAsText($value), self::HEADER_TRUNCATION_LIMIT_IN_BYTES);
+        }
+
+        return $headers;
+    }
+
+    private static function headerAsText(mixed $value): string
+    {
+        if (is_string($value)) {
+            return $value;
+        }
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        if (is_scalar($value) || $value === null) {
+            return (string) $value;
+        }
+        if ($value instanceof Stringable) {
+            return (string) $value;
+        }
+
+        $encoded = json_encode($value, JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        return $encoded === false ? get_debug_type($value) : $encoded;
     }
 
     private function traceId(): ?string
@@ -153,13 +192,13 @@ final class PulseDeadLetterEntry
         return $encoded === false ? get_debug_type($payload) : $encoded;
     }
 
-    private static function truncated(string $text): string
+    private static function truncated(string $text, int $limitInBytes = self::TRUNCATION_LIMIT_IN_BYTES): string
     {
         $text = mb_scrub($text, 'UTF-8');
-        if (strlen($text) <= self::TRUNCATION_LIMIT_IN_BYTES) {
+        if (strlen($text) <= $limitInBytes) {
             return $text;
         }
 
-        return mb_strcut($text, 0, self::TRUNCATION_LIMIT_IN_BYTES - strlen(self::TRUNCATION_MARKER), 'UTF-8') . self::TRUNCATION_MARKER;
+        return mb_strcut($text, 0, $limitInBytes - strlen(self::TRUNCATION_MARKER), 'UTF-8') . self::TRUNCATION_MARKER;
     }
 }

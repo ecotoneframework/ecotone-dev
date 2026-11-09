@@ -134,6 +134,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
                     'contentType' => 'text/plain',
                     'channel' => 'order.replayed',
                     'traceId' => null,
+                    'headers' => $recent[0]['headers'],
                 ],
                 [
                     'messageId' => 'm-1',
@@ -149,10 +150,38 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
                     'contentType' => 'text/plain',
                     'channel' => 'order.replayed',
                     'traceId' => null,
+                    'headers' => $recent[1]['headers'],
                 ],
             ],
             $recent,
         );
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_recent_dead_letter_carries_its_headers_as_stored_without_the_stack_trace_reported_beside_them(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, headers: ['tenant' => 'acme', 'attempt' => 3]);
+
+        $headers = $this->requestSnapshot()['deadLetters']['recent'][0]['headers'];
+
+        self::assertSame('m-1', $headers[MessageHeaders::MESSAGE_ID]);
+        self::assertSame('acme', $headers['tenant']);
+        self::assertSame('3', $headers['attempt']);
+        self::assertSame('boom', $headers[ErrorContext::EXCEPTION_MESSAGE]);
+        self::assertArrayNotHasKey(ErrorContext::EXCEPTION_STACKTRACE, $headers);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_long_header_value_is_truncated_with_a_marker(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, headers: ['note' => str_repeat('n', 5000)]);
+
+        $note = $this->requestSnapshot()['deadLetters']['recent'][0]['headers']['note'];
+
+        self::assertLessThanOrEqual(1024, strlen($note));
+        self::assertStringEndsWith('... [truncated]', $note);
     }
 
     #[DataProvider('implementations')]

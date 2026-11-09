@@ -120,6 +120,11 @@ final class PulseFeature
         return $milliseconds . ' ms';
     }
 
+    public static function retriesOf(int $retryTimes): string
+    {
+        return $retryTimes . ($retryTimes === 1 ? ' retry' : ' retries');
+    }
+
     public static function onOff(bool $isOn): string
     {
         return $isOn ? 'on' : 'off';

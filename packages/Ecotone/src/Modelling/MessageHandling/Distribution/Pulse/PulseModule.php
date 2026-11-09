@@ -208,9 +208,7 @@ final class PulseModule implements AnnotationModule
         $endpointsByChannel = [];
         foreach (ExtensionObjectResolver::resolve(AsynchronousModule::class, $extensionObjects) as $asynchronousModule) {
             foreach ($asynchronousModule->resolveChannels($extensionObjects) as $endpointId => $channels) {
-                foreach ($channels as $channel) {
-                    $endpointsByChannel[$channel][] = $endpointId;
-                }
+                $endpointsByChannel[$channels[array_key_last($channels)]][] = $endpointId;
             }
         }
 

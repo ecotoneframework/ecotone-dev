@@ -210,7 +210,7 @@
             {% if focusConsumers is empty %}
                 <p class="muted">{{ service.service }} reports no consumers. A service on an Ecotone version before Pulse listed consumers does not report them.</p>
             {% else %}
-                <p class="muted">Every consumer {{ service.service }} can run, with the features that apply to the messages it handles. <span class="pill scope-consumer">consumer-level config</span> is set for that consumer or one of its handlers; <span class="pill scope-global">global</span> follows the service-wide configuration.</p>
+                <p class="muted">Every consumer {{ service.service }} can run, with the features that apply to the messages it handles. <span class="pill scope-consumer">consumer-level config</span> is set for that consumer or one of its handlers; <span class="pill scope-global">global</span> is not set for it: the value comes from the service-wide configuration or Ecotone's default.</p>
                 {% for consumer in focusConsumers %}
                     <article class="consumer" data-consumer="{{ consumer.name }}">
                         <h3><code>{{ consumer.name }}</code> <span class="pill muted-pill" data-consumer-kind>{{ consumer.kind }}</span></h3>

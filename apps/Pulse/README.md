@@ -120,8 +120,8 @@ handler endpoints it serves, and every inbound consumer (`#[Scheduled]`, `#[Rabb
 lists the features that apply to the messages it handles: database transaction, deduplication, instant retries, error channel,
 delayed retries, final failure strategy, poller and RabbitMQ transaction. Every value is tagged **consumer-level config** when it
 is set for that consumer or one of its handlers (`withoutTransactionOnAsynchronousEndpoints`, `asynchronousExecution`,
-`#[InstantRetry]`, `#[Poller]`, `#[Deduplicated]`, the consumer's own failure strategy), or **global** when it follows the
-service-wide configuration. A snapshot carries `deadLetter.enabled` (`true` or `false`, from the
+`#[InstantRetry]`, `#[Poller]`, `#[Deduplicated]`, the consumer's own failure strategy), or **global** when it is not set for it and comes from the
+service-wide configuration or Ecotone's default. A snapshot carries `deadLetter.enabled` (`true` or `false`, from the
 service's `DbalConfiguration`), so Pulse says "dead letter storage is enabled, none stored" for an empty store and "not configured" for a
 service that does not store dead letters; a service older than this field is told apart by whether its snapshot has the `deadLetters` section.
 

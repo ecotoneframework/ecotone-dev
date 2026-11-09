@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Attribute\ErrorChannel;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\InstantRetry;
@@ -27,6 +28,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -248,6 +250,53 @@ final class PulseFeaturesTest extends TestCase
         self::assertSame('off', $sending['settings']['Message collector']);
         self::assertSame('collector on, no retry, failed sends to notification_errors', $sending['settings']['Channel notifications']);
         self::assertStringContainsString('sent at once', $sending['hint']);
+    }
+
+    public function test_a_consumer_lists_only_the_handlers_it_executes_and_their_error_channel_and_the_global_delayed_retries(): void
+    {
+        $handlers = new class () {
+            #[Asynchronous(['outbox', 'payments'], asynchronousExecution: [new ErrorChannel('payment_errors')])]
+            #[CommandHandler('order.pay', endpointId: 'order.pay.endpoint')]
+            public function pay(string $orderId): void
+            {
+            }
+        };
+
+        $consumers = array_column($this->snapshotOf($handlers, [
+            SimpleMessageChannelBuilder::createQueueChannel('outbox'),
+            SimpleMessageChannelBuilder::createQueueChannel('payments'),
+            SimpleMessageChannelBuilder::createQueueChannel('payment_errors'),
+            SimpleMessageChannelBuilder::createQueueChannel('order_errors'),
+            ErrorHandlerConfiguration::create('order_errors', RetryTemplateBuilder::fixedBackOff(200)->maxRetries(2)),
+        ], serviceConfiguration: ServiceConfiguration::createWithDefaults()->withServiceName('order_service')->withDefaultErrorChannel('order_errors'))['consumers'], null, 'name');
+
+        self::assertSame([], $consumers['outbox']['handlers']);
+        self::assertSame(['order.pay.endpoint'], $consumers['payments']['handlers']);
+        self::assertContains(['name' => 'Error channel', 'value' => 'payment_errors', 'scope' => 'consumer-level config', 'handler' => 'order.pay.endpoint'], $consumers['payments']['features']);
+        self::assertContains(['name' => 'Error channel', 'value' => 'order_errors', 'scope' => 'global', 'handler' => null], $consumers['payments']['features']);
+        self::assertContains(['name' => 'Delayed retries', 'value' => '2 retries: after 200 ms and 200 ms, then no further retry', 'scope' => 'global', 'handler' => null], $consumers['payments']['features']);
+    }
+
+    public function test_a_scheduled_consumer_follows_its_poller_over_a_service_context_polling_metadata_and_reports_its_error_channel(): void
+    {
+        $handlers = new class () {
+            #[Scheduled('report.send', 'reports')]
+            #[Poller(errorChannelName: 'report_errors', fixedRateExpression: "'5000'")]
+            public function report(): ?string
+            {
+                return null;
+            }
+        };
+
+        $snapshot = $this->snapshotOf($handlers, [
+            SimpleMessageChannelBuilder::createQueueChannel('report_errors'),
+            PollingMetadata::create('reports')->withFixedRateInMilliseconds(60000),
+        ]);
+        $reports = array_column($snapshot['consumers'], null, 'name')['reports']['features'];
+
+        self::assertContains(['name' => 'Poller', 'value' => "rate expression '5000'", 'scope' => 'consumer-level config', 'handler' => null], $reports);
+        self::assertContains(['name' => 'Error channel', 'value' => 'report_errors', 'scope' => 'consumer-level config', 'handler' => null], $reports);
+        self::assertSame(["reports: rate expression '5000'"], array_column(array_column($snapshot['packages'], 'features', 'name')['core'], 'handlers', 'name')['Scheduled endpoints']);
     }
 
     public function test_a_streaming_channel_left_at_its_release_default_is_tagged_global_and_a_queue_set_to_stop_is_its_own(): void
@@ -472,13 +521,13 @@ final class PulseFeaturesTest extends TestCase
         self::assertSame('polling', $consumers['orders']['kind']);
         self::assertSame(['order.place.endpoint', 'order.cancel.endpoint'], $consumers['orders']['handlers']);
         $orders = array_column($consumers['orders']['features'], null, 'name');
-        self::assertSame(['name' => 'Instant retries', 'value' => '1 retry times on any exception', 'scope' => 'global', 'handler' => null], $orders['Instant retries']);
+        self::assertSame(['name' => 'Instant retries', 'value' => '1 retry on any exception', 'scope' => 'global', 'handler' => null], $orders['Instant retries']);
         self::assertSame(['name' => 'Error channel', 'value' => 'none', 'scope' => 'global', 'handler' => null], $orders['Error channel']);
         self::assertSame(['name' => 'Final failure strategy', 'value' => 'resend', 'scope' => 'global', 'handler' => null], $orders['Final failure strategy']);
         self::assertSame(['name' => 'Delayed retries', 'value' => '2 retries: after 500 ms and 1000 ms, then no further retry', 'scope' => 'consumer-level config', 'handler' => 'order.place.endpoint'], $orders['Delayed retries']);
         self::assertSame('inbound', $consumers['reports']['kind']);
         $reports = array_column($consumers['reports']['features'], null, 'name');
-        self::assertSame(['name' => 'Instant retries', 'value' => '2 retry times on any exception', 'scope' => 'consumer-level config', 'handler' => null], $reports['Instant retries']);
+        self::assertSame(['name' => 'Instant retries', 'value' => '2 retries on any exception', 'scope' => 'consumer-level config', 'handler' => null], $reports['Instant retries']);
         self::assertSame(['name' => 'Poller', 'value' => 'every 1 minute', 'scope' => 'consumer-level config', 'handler' => null], $reports['Poller']);
     }
 
@@ -496,9 +545,9 @@ final class PulseFeaturesTest extends TestCase
      * @param object[] $extensionObjects
      * @return array<string, mixed>
      */
-    private function snapshotOf(object $handlers, array $extensionObjects = []): array
+    private function snapshotOf(object $handlers, array $extensionObjects = [], ?ServiceConfiguration $serviceConfiguration = null): array
     {
-        return $this->reportedBy($handlers, $extensionObjects)[2];
+        return $this->reportedBy($handlers, $extensionObjects, serviceConfiguration: $serviceConfiguration)[2];
     }
 
     /**

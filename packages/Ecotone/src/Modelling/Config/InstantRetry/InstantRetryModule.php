@@ -3,14 +3,17 @@
 namespace Ecotone\Modelling\Config\InstantRetry;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -33,8 +36,9 @@ final class InstantRetryModule implements AnnotationModule
     /**
      * @param array<string, InstantRetry> $commandBusOverrides
      * @param list<array{string, InstantRetry}> $endpointOverrides
+     * @param list<string> $handlersWithoutTransaction
      */
-    private function __construct(private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction, private array $commandBusOverrides, private array $endpointOverrides)
+    private function __construct(private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction, private array $commandBusOverrides, private array $endpointOverrides, private array $handlersWithoutTransaction)
     {
     }
 
@@ -54,7 +58,17 @@ final class InstantRetryModule implements AnnotationModule
             }
         }
 
+        $handlersWithoutTransaction = [];
+        foreach ($annotationRegistrationService->findAnnotatedMethods(Asynchronous::class) as $annotatedMethod) {
+            foreach ($annotatedMethod->getMethodAnnotationsWithType(Asynchronous::class) as $asynchronous) {
+                if (array_filter($asynchronous->asynchronousExecution, static fn (object $attribute): bool => $attribute instanceof WithoutDatabaseTransaction) !== [] && $annotatedMethod->hasMethodAnnotation(IdentifiedAnnotation::class)) {
+                    $handlersWithoutTransaction[] = $annotatedMethod->getMethodAnnotationsWithType(IdentifiedAnnotation::class)[0]->getEndpointId();
+                }
+            }
+        }
+
         return new self(
+            handlersWithoutTransaction: $handlersWithoutTransaction,
             commandsWithoutDatabaseTransaction: CommandsWithoutDatabaseTransaction::find($annotationRegistrationService, $interfaceToCallRegistry),
             commandBusOverrides: $commandBusOverrides,
             endpointOverrides: $endpointOverrides,
@@ -103,7 +117,7 @@ final class InstantRetryModule implements AnnotationModule
      */
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return InstantRetryPulseFeatures::reportedFor(serviceExtensions: $serviceExtensions, commandBusOverrides: $this->commandBusOverrides, endpointOverrides: $this->endpointOverrides);
+        return InstantRetryPulseFeatures::reportedFor(serviceExtensions: $serviceExtensions, commandBusOverrides: $this->commandBusOverrides, endpointOverrides: $this->endpointOverrides, handlersWithoutTransaction: $this->handlersWithoutTransaction);
     }
 
     public function getModulePackageName(): string

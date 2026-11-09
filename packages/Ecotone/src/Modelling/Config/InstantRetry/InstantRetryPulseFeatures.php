@@ -36,11 +36,13 @@ final class InstantRetryPulseFeatures
     /**
      * @param array<string, InstantRetry> $commandBusOverrides
      * @param list<array{string, InstantRetry}> $endpointOverrides
+     * @param list<string> $handlersWithoutTransaction
      */
     private function __construct(
         private InstantRetryConfiguration $configuration,
         private array $commandBusOverrides,
         private array $endpointOverrides,
+        private array $handlersWithoutTransaction,
     ) {
     }
 
@@ -48,9 +50,10 @@ final class InstantRetryPulseFeatures
      * @param object[] $serviceExtensions
      * @param array<string, InstantRetry> $commandBusOverrides
      * @param list<array{string, InstantRetry}> $endpointOverrides
+     * @param list<string> $handlersWithoutTransaction
      * @return self[]
      */
-    public static function reportedFor(array $serviceExtensions, array $commandBusOverrides, array $endpointOverrides): array
+    public static function reportedFor(array $serviceExtensions, array $commandBusOverrides, array $endpointOverrides, array $handlersWithoutTransaction): array
     {
         if (! PulseFeature::isReportedFor($serviceExtensions)) {
             return [];
@@ -60,6 +63,7 @@ final class InstantRetryPulseFeatures
             configuration: ExtensionObjectResolver::resolveUnique(InstantRetryConfiguration::class, $serviceExtensions, InstantRetryConfiguration::createWithDefaults()),
             commandBusOverrides: $commandBusOverrides,
             endpointOverrides: $endpointOverrides,
+            handlersWithoutTransaction: $handlersWithoutTransaction,
         )];
     }
 
@@ -77,13 +81,16 @@ final class InstantRetryPulseFeatures
     public function consumerFeaturesUnder(InstantRetryDefaults $defaults): array
     {
         $isEnabled = $this->configuration->isEnabledForAsynchronousEndpoints ?? $defaults->forAsynchronousEndpoints();
+        $byDefault = $this->configuration->isEnabledForAsynchronousEndpoints === null;
         $global = $isEnabled
-            ? sprintf('%d retry times on %s', $this->configuration->asynchronousRetryTimes, PulseFeature::exceptionsOf($this->configuration->asynchronousExceptions)) . ($this->configuration->isEnabledForAsynchronousEndpoints === null ? ', in a database transaction' : '')
+            ? sprintf('%s on %s', PulseFeature::retriesOf($this->configuration->asynchronousRetryTimes), PulseFeature::exceptionsOf($this->configuration->asynchronousExceptions)) . ($byDefault ? ', in a database transaction' : '')
             : 'off';
+        $withoutTransaction = $byDefault && $isEnabled ? [...$defaults->databaseTransactions->asynchronousEndpointsWithoutTransaction, ...$this->handlersWithoutTransaction] : [];
 
         return [
             PulseConsumerFeature::global('Instant retries', $global),
-            ...array_map(static fn (array $override): PulseConsumerFeature => PulseConsumerFeature::forConsumer($override[0], 'Instant retries', sprintf('%d retry times on %s', $override[1]->retryTimes, PulseFeature::exceptionsOf($override[1]->exceptions))), $this->endpointOverrides),
+            ...array_map(static fn (string $consumerOrEndpointId): PulseConsumerFeature => PulseConsumerFeature::forConsumer($consumerOrEndpointId, 'Instant retries', 'off, runs without a database transaction'), $withoutTransaction),
+            ...array_map(static fn (array $override): PulseConsumerFeature => PulseConsumerFeature::forConsumer($override[0], 'Instant retries', sprintf('%s on %s', PulseFeature::retriesOf($override[1]->retryTimes), PulseFeature::exceptionsOf($override[1]->exceptions))), $this->endpointOverrides),
         ];
     }
 

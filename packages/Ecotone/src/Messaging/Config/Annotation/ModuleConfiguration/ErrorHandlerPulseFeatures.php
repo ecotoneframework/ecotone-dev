@@ -7,7 +7,6 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
@@ -120,14 +119,26 @@ final class ErrorHandlerPulseFeatures
     /**
      * @param object[] $serviceExtensions
      * @param list<array{string, ErrorHandlerConfiguration}> $endpointDelayedRetries
+     * @param list<array{string, string}> $endpointErrorChannels
      * @return PulseConsumerFeature[]
      */
-    public static function consumerFeaturesFor(array $serviceExtensions, ServiceConfiguration $serviceConfiguration, array $endpointDelayedRetries): array
+    public static function consumerFeaturesFor(array $serviceExtensions, ServiceConfiguration $serviceConfiguration, array $endpointDelayedRetries, array $endpointErrorChannels): array
     {
         if (! PulseFeature::isReportedFor($serviceExtensions)) {
             return [];
         }
-        $features = [PulseConsumerFeature::global('Error channel', ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $serviceExtensions, $serviceConfiguration)->defaultErrorChannel ?? 'none')];
+        $defaultErrorChannel = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $serviceExtensions, $serviceConfiguration)->defaultErrorChannel;
+        $retriedChannels = [];
+        foreach (ExtensionObjectResolver::resolve(ErrorHandlerConfiguration::class, $serviceExtensions) ?: [ErrorHandlerConfiguration::createDefault()] as $configuration) {
+            $retriedChannels[$configuration->getErrorChannelName()] = self::scheduleOf($configuration->delayedRetryTemplate, $configuration->deadLetterChannel);
+        }
+        $features = [
+            PulseConsumerFeature::global('Error channel', $defaultErrorChannel ?? 'none'),
+            PulseConsumerFeature::global('Delayed retries', $defaultErrorChannel !== null && isset($retriedChannels[$defaultErrorChannel]) ? $retriedChannels[$defaultErrorChannel] : 'none'),
+        ];
+        foreach ($endpointErrorChannels as [$endpointId, $errorChannelName]) {
+            $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Error channel', $errorChannelName);
+        }
         foreach ($endpointDelayedRetries as [$endpointId, $configuration]) {
             $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Delayed retries', self::scheduleOf($configuration->delayedRetryTemplate, $configuration->deadLetterChannel));
         }
@@ -136,11 +147,6 @@ final class ErrorHandlerPulseFeatures
                 $features[] = $channel->getFinalFailureStrategy() === $channel->getDefaultFinalFailureStrategy()
                     ? PulseConsumerFeature::defaultFor($channel->getMessageChannelName(), 'Final failure strategy', $channel->getFinalFailureStrategy()->value)
                     : PulseConsumerFeature::forConsumer($channel->getMessageChannelName(), 'Final failure strategy', $channel->getFinalFailureStrategy()->value);
-            }
-        }
-        foreach (ExtensionObjectResolver::resolve(PollingMetadata::class, $serviceExtensions) as $pollingMetadata) {
-            if ($pollingMetadata->getErrorChannelName() !== '') {
-                $features[] = PulseConsumerFeature::forConsumer($pollingMetadata->getEndpointId(), 'Error channel', $pollingMetadata->getErrorChannelName());
             }
         }
 

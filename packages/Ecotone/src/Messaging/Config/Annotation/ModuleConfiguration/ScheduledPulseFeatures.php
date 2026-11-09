@@ -50,7 +50,7 @@ final class ScheduledPulseFeatures
         $handlers = [];
         foreach ($scheduledRegistrations as $registration) {
             $endpointId = $registration->getAnnotationForMethod()->getEndpointId();
-            $handlers[] = $endpointId . ': ' . self::scheduleOf($pollingMetadata[$endpointId] ?? ($registration->hasMethodAnnotation(Poller::class) ? $registration->getMethodAnnotationsWithType(Poller::class)[0] : null));
+            $handlers[] = $endpointId . ': ' . self::scheduleOf($registration->hasMethodAnnotation(Poller::class) ? $registration->getMethodAnnotationsWithType(Poller::class)[0] : ($pollingMetadata[$endpointId] ?? null));
         }
 
         return [new PulseFeature(
@@ -77,24 +77,31 @@ final class ScheduledPulseFeatures
             return [];
         }
         $byEndpoint = [];
-        foreach ([...$pollerMetadata, ...ExtensionObjectResolver::resolve(PollingMetadata::class, $serviceExtensions)] as $metadata) {
-            $byEndpoint[$metadata->getEndpointId()] = PulseConsumerFeature::forConsumer($metadata->getEndpointId(), 'Poller', self::scheduleOf($metadata));
+        foreach ([...ExtensionObjectResolver::resolve(PollingMetadata::class, $serviceExtensions), ...$pollerMetadata] as $metadata) {
+            $byEndpoint[$metadata->getEndpointId()] = $metadata;
+        }
+        $features = [];
+        foreach ($byEndpoint as $endpointId => $metadata) {
+            $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Poller', self::scheduleOf($metadata));
+            if ($metadata->getErrorChannelName() !== '') {
+                $features[] = PulseConsumerFeature::forConsumer($endpointId, 'Error channel', $metadata->getErrorChannelName());
+            }
         }
 
-        return array_values($byEndpoint);
+        return $features;
     }
 
     public static function scheduleOf(PollingMetadata|Poller|null $schedule): string
     {
         return match (true) {
             $schedule === null => 'every ' . PulseFeature::durationOf(PollingMetadata::DEFAULT_FIXED_RATE),
-            $schedule instanceof Poller && $schedule->getCron() !== '' => 'cron ' . $schedule->getCron(),
             $schedule instanceof Poller && $schedule->getCronExpression() !== null => 'cron expression ' . $schedule->getCronExpression(),
             $schedule instanceof Poller && $schedule->getFixedRateExpression() !== null => 'rate expression ' . $schedule->getFixedRateExpression(),
+            $schedule instanceof Poller && $schedule->getCron() !== '' => 'cron ' . $schedule->getCron(),
             $schedule instanceof Poller => 'every ' . PulseFeature::durationOf($schedule->getFixedRateInMilliseconds()),
-            $schedule->cron !== '' => 'cron ' . $schedule->cron,
             $schedule->cronExpression !== null => 'cron expression ' . $schedule->cronExpression,
             $schedule->fixedRateExpression !== null => 'rate expression ' . $schedule->fixedRateExpression,
+            $schedule->cron !== '' => 'cron ' . $schedule->cron,
             default => 'every ' . PulseFeature::durationOf($schedule->fixedRateInMilliseconds),
         };
     }

@@ -17,6 +17,7 @@ use Ecotone\Api\Dbal\ExtensionObject\TransactionReconnectProtection;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -27,7 +28,6 @@ use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
-use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 
 /**
  * licence Enterprise
@@ -215,6 +215,9 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
         self::assertContains(['name' => 'Deduplication', 'value' => 'by message id', 'scope' => 'global', 'handler' => null], $orders);
         self::assertContains(['name' => 'Deduplication', 'value' => 'by header orderId', 'scope' => 'consumer-level config', 'handler' => 'order.place.endpoint'], $orders);
         self::assertContains(['name' => 'Database transaction', 'value' => 'off', 'scope' => 'consumer-level config', 'handler' => null], $consumers['audit']['features']);
+        self::assertContains(['name' => 'Instant retries', 'value' => '3 retries on any exception, in a database transaction', 'scope' => 'global', 'handler' => null], $orders);
+        self::assertContains(['name' => 'Instant retries', 'value' => 'off, runs without a database transaction', 'scope' => 'consumer-level config', 'handler' => 'order.notify.endpoint'], $orders);
+        self::assertContains(['name' => 'Instant retries', 'value' => 'off, runs without a database transaction', 'scope' => 'consumer-level config', 'handler' => null], $consumers['audit']['features']);
     }
 
     public function test_a_database_channel_reports_the_final_failure_strategy_it_was_given(): void

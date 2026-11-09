@@ -23,6 +23,30 @@ final class HomePageTest extends WebTestCase
         self::assertSame('http://localhost:16686/search?service=ticketing', $crawler->selectLink('Jaeger')->attr('href'));
     }
 
+    public function test_the_home_page_opens_the_database_browser_and_the_storefront(): void
+    {
+        $client = static::createClient();
+
+        $crawler = $client->request('GET', '/');
+
+        self::assertSame('http://localhost:8081', $crawler->selectLink('Browse the databases')->attr('href'));
+        self::assertSame('http://localhost:8000', $crawler->selectLink('Open the storefront')->attr('href'));
+    }
+
+    public function test_every_back_office_page_links_to_the_storefront_pulse_jaeger_and_the_database_browser(): void
+    {
+        $client = static::createClient();
+
+        foreach (['/', '/admin/concerts', '/admin/venues'] as $page) {
+            $links = $client->request('GET', $page)->filter('nav.app-nav--demo a');
+
+            self::assertSame(
+                ['Storefront' => 'http://localhost:8000', 'Ecotone Pulse' => 'http://localhost:8080', 'Jaeger' => 'http://localhost:16686/search?service=ticketing', 'Database' => 'http://localhost:8081'],
+                array_combine($links->each(static fn ($link): string => trim($link->text())), $links->each(static fn ($link): string => $link->attr('href'))),
+            );
+        }
+    }
+
     public function test_the_home_page_opens_the_back_office(): void
     {
         $client = static::createClient();

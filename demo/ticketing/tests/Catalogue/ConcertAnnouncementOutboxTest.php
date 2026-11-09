@@ -76,7 +76,7 @@ final class ConcertAnnouncementOutboxTest extends KernelTestCase
         self::assertSame('concert.scheduled', $received[0]['routingKey']);
         self::assertSame($concertId, $received[0]['concertIdHeader']);
         $event = $received[0]['event'];
-        self::assertSame(['concertId', 'version', 'venueName', 'artist', 'startsAt', 'currency', 'tiers', 'seats'], array_keys($event));
+        self::assertSame(['concertId', 'version', 'venueName', 'artist', 'startsAt', 'currency', 'tiers', 'seats', 'seeded'], array_keys($event));
         self::assertSame(1, $event['version']);
         self::assertSame($concertId, $event['concertId']);
         self::assertSame('Riverside Hall', $event['venueName']);

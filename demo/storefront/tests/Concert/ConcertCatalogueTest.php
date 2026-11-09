@@ -63,6 +63,7 @@ final class ConcertCatalogueTest extends TestCase
                 'standardPriceCents' => 4500,
                 'vipPriceCents' => 12000,
                 'status' => 'scheduled',
+                'seeded' => false,
             ]],
             $storefront->sendQueryWithRouting('concerts.list'),
         );
@@ -301,6 +302,7 @@ final class ConcertCatalogueTest extends TestCase
                 'standardPriceCents' => 5000,
                 'vipPriceCents' => 15000,
                 'status' => 'scheduled',
+                'seeded' => false,
             ]],
             $storefront->sendQueryWithRouting('concerts.list'),
         );

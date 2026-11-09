@@ -44,6 +44,7 @@ final class DemoSeed
                 standardPriceCents: 4500,
                 vipPriceCents: 9500,
                 currency: 'EUR',
+                seeded: true,
             ));
             if ($concert['onSale'] && ($seeded['status'] ?? ConcertStatus::SCHEDULED->value) === ConcertStatus::SCHEDULED->value) {
                 $commandBus->send(new OpenSales($concertId));

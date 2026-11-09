@@ -83,5 +83,9 @@
         <server name="DEMO_PULSE_URL" value="http://localhost:8080" force="true"/>
         <env name="DEMO_JAEGER_URL" value="http://localhost:16686" force="true"/>
         <server name="DEMO_JAEGER_URL" value="http://localhost:16686" force="true"/>
+        <env name="DEMO_DATABASE_URL" value="http://localhost:8081" force="true"/>
+        <server name="DEMO_DATABASE_URL" value="http://localhost:8081" force="true"/>
+        <env name="DEMO_TICKETING_URL" value="http://localhost:8001" force="true"/>
+        <server name="DEMO_TICKETING_URL" value="http://localhost:8001" force="true"/>
     </php>
 </phpunit>

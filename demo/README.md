@@ -86,7 +86,23 @@ The rest are in [`docs/screenshots`](docs/screenshots).
 | Ticketing (admin, seat maps, ticket pages) | http://localhost:8001 |
 | Ecotone Pulse | http://localhost:8080 |
 | Jaeger | http://localhost:16686 |
+| Database browser (pgweb, read-only) | http://localhost:8081 |
 | RabbitMQ management (guest / guest) | http://localhost:15672 |
+
+Every page of the storefront links to the ticketing back office, and every back-office page links to the storefront,
+Ecotone Pulse, Jaeger and the database browser.
+
+### Look into the databases
+
+The database browser opens on ticketing's database; pick `storefront` from its database list to switch. It is
+read-only, so nothing you click changes the demo. Worth a look:
+
+- `ticketing` → `ecotone_event_stream`: every seat held, released and sold, as the events the Dynamic Consistency
+  Boundary appended, with `ecotone_tagged_events` holding the `seat` and `customerConcert` tags they are decided by.
+- `ticketing` → `concert_seat_map` and `concert_sales_ledger`: the projections built from that stream.
+- `storefront` → `orders` and `customers`: the Eloquent aggregates, with the `version` their optimistic locking checks.
+- `ecotone_error_messages` in either database: the dead letters Pulse lists.
+- `ecotone_tracing` in either database: the flows Pulse draws its traces from.
 
 ## Buy a seat
 
@@ -119,8 +135,10 @@ every three seconds.
 
 ## Run a rush
 
-A concert's page on the storefront has a **Simulate a rush** panel: it sends a crowd of synthetic buyers after the seats
-while you pick yours. Start one with the defaults (30 buyers: 30% whose card is declined, 10% hitting a payment provider
+A concert you schedule and put on sale in ticketing has a **Simulate a rush** panel on its storefront page, below
+**Contend for one seat**: it sends a crowd of synthetic buyers after the seats while you pick yours. The concerts
+`demo:seed` creates do not offer it, so create one first: on ticketing's `/admin/concerts`, fill in an artist, tick
+**Put on sale right away** and leave **Starts at** empty, and the concert starts in 30 days with its sales already open. Start a rush with the defaults (30 buyers: 30% whose card is declined, 10% hitting a payment provider
 outage, 10% whose confirmation email bounces), or from the console:
 
 ```bash
@@ -141,9 +159,10 @@ The status line under the panel counts the buyers as they hold, pay, get their t
   Distributed Bus.
 - **Pulse → Services → ticketing → Projections** shows the seat map and the sales ledger with their positions, and
   **Rebuild** and **Backfill** for each.
-- **Pulse → Flow** draws the graph of the messages each service handles and sends. The storefront sends its
-  `tickets.*` commands through one helper with the routing key in a variable, which static inference cannot see, so
-  the graph draws no storefront → ticketing command arrows.
+- **Pulse → Flow** draws the graph of the messages each service handles and sends, with the commands, events and
+  replies crossing the Distributed Bus between the storefront and ticketing. A message no watched service is seen
+  sending, such as the `demo.ping` the storefront sends from a console command, is listed as a finding that says why
+  its arrow is missing.
 - **Jaeger**: a trace follows a flow across both services, because the Distributed Bus carries its context. In a
   hold, `process SeatSalesOverDistributedBus::hold` decides in `Decision Models: App\Sales\SeatSales::hold` and appends
   in `Conditional Append: ecotone_event_stream`: that is the Dynamic Consistency Boundary. A conflict shows as that
@@ -232,7 +251,7 @@ The storefront talks to no real payment provider or mail server. The checkout as
 | Projections | The seat map and the sales ledger of each concert, on `ticketing_async` | `ticketing/src/Sales/ConcertSeatMap.php`, `ConcertSalesLedger.php` |
 | Orchestrator | Ticket issuance as a routing slip built from the order, with an asynchronous hop before the render | `ticketing/src/Issuance/TicketIssuance.php` |
 | Flow tracking and Pulse | Each service records its flows and answers Pulse over the Distributed Bus | both apps' `Infrastructure/EcotoneConfiguration.php`, Pulse in `apps/Pulse` |
-| OpenTelemetry | Every handler, bus and channel traced to Jaeger over OTLP | both apps' `Infrastructure/EcotoneConfiguration.php` and `OtlpTracerProviderFactory.php` |
+| OpenTelemetry | Every handler, bus and channel traced to Jaeger over OTLP, inside the HTTP request (Laravel and Symfony auto-instrumentation) and with every database call beside it (PDO auto-instrumentation); a database call made outside any trace, such as a worker polling its queue, is dropped by Ecotone's `DropDatabaseCallsOutsideAnyTrace` sampler | both apps' `Infrastructure/EcotoneConfiguration.php` and `OtlpTracerProviderFactory.php`, the `OTEL_*` variables in `docker-compose.yml` |
 | Dead letters and retries | Failures dead-lettered to the database and replayed from Pulse or the console; the storefront retries transient database errors and an order saved by another writer first on the spot, ticketing retries a DCB conflict on a command-bus send three times | both apps' `Infrastructure/EcotoneConfiguration.php` |
 
 ## How it works
@@ -358,7 +377,8 @@ order page, which is where the customer gets them, and the dead letter is delete
 
 ### The rush
 
-The page of a concert on sale, and the page of an order for it, has a "Simulate a rush" panel: it sends a crowd of
+The page of a concert on sale, and the page of an order for it, has a "Simulate a rush" panel, unless `demo:seed`
+created the concert (ticketing announces those with `seeded: true` in `concert.scheduled`): it sends a crowd of
 synthetic buyers after the seats while you pick yours (the same from the console: `docker compose -f
 demo/docker-compose.yml exec storefront php artisan demo:rush <concertId> --buyers=30 --declinedShare=30
 --outageShare=10 --bounceShare=10 --seatsPerBuyer=2`). The whole rush is one `AdvanceRush` message on
@@ -401,7 +421,7 @@ Every host port is an environment variable, and so is the stack's name:
 
 ```bash
 COMPOSE_PROJECT_NAME=demo-two DEMO_STOREFRONT_PORT=9000 DEMO_TICKETING_PORT=9001 DEMO_PULSE_PORT=9080 \
-DEMO_JAEGER_PORT=26686 DEMO_RABBITMQ_MANAGEMENT_PORT=25672 docker compose -f demo/docker-compose.yml up -d --build
+DEMO_JAEGER_PORT=26686 DEMO_DATABASE_PORT=9081 DEMO_RABBITMQ_MANAGEMENT_PORT=25672 docker compose -f demo/docker-compose.yml up -d --build
 ```
 
 The containers run as uid and gid 1000 so that `vendor/` stays owned by you; set `DEMO_UID` and `DEMO_GID` when your

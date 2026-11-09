@@ -18,6 +18,13 @@
                 <a href="{{ path('admin_concerts') }}"{% if section == 'concerts' %} aria-current="page"{% endif %}>{{ icons.icon('calendar') }}<span>Concerts</span></a>
                 <a href="{{ path('admin_venues') }}"{% if section == 'venues' %} aria-current="page"{% endif %}>{{ icons.icon('building') }}<span>Venues</span></a>
             </nav>
+            <nav class="app-nav app-nav--demo" aria-labelledby="demo-services-title">
+                <p class="app-nav-title" id="demo-services-title">Demo services</p>
+                <a href="{{ demo_storefront_url }}">{{ icons.icon('logo') }}<span>Storefront</span></a>
+                <a href="{{ demo_pulse_url }}">{{ icons.icon('pulse') }}<span>Ecotone Pulse</span></a>
+                <a href="{{ demo_jaeger_url }}/search?service=ticketing">{{ icons.icon('trace') }}<span>Jaeger</span></a>
+                <a href="{{ demo_database_url }}">{{ icons.icon('database') }}<span>Database</span></a>
+            </nav>
             <p class="app-sidebar-foot">Ecotone demo · Symfony</p>
         </header>
         <main class="app-main{% block main_class %}{% endblock %}" id="content" tabindex="-1">

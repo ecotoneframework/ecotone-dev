@@ -15,6 +15,7 @@ final readonly class ScheduleConcert
         public int $standardPriceCents,
         public int $vipPriceCents,
         public string $currency,
+        public bool $seeded = false,
     ) {
     }
 }

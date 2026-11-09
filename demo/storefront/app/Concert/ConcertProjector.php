@@ -39,6 +39,7 @@ final class ConcertProjector
             standardPriceCents: $event['tiers']['standard'],
             vipPriceCents: $event['tiers']['vip'],
             seats: json_encode($event['seats'], JSON_THROW_ON_ERROR),
+            seeded: $event['seeded'] ?? false,
         );
     }
 
@@ -98,6 +99,7 @@ final class ConcertProjector
             'standardPriceCents' => (int) $row['standard_price_cents'],
             'vipPriceCents' => (int) $row['vip_price_cents'],
             'status' => $row['status'],
+            'seeded' => (bool) $row['seeded'],
         ];
     }
 

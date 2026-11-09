@@ -6,6 +6,9 @@ namespace App\Tests\Web;
 
 use App\Sales\ConfirmSeats;
 use App\Sales\HoldSeat;
+use DateTimeImmutable;
+use DateTimeInterface;
+use DateTimeZone;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
@@ -114,6 +117,64 @@ final class AdminPagesTest extends WebTestCase
         self::assertSelectorCount(4, 'table.concerts tbody tr');
         self::assertSelectorTextContains('table.concerts tbody tr:nth-child(4)', 'Velvet Static');
         self::assertSelectorTextContains('table.concerts tbody tr:nth-child(4)', '39.00 EUR');
+    }
+
+    public function test_the_schedule_form_puts_a_concert_on_sale_right_away_without_a_start_time(): void
+    {
+        $client = $this->seededClient();
+        $client->request('GET', '/admin/concerts');
+
+        $client->submitForm('Schedule concert', [
+            'artist' => 'Velvet Static',
+            'startsAt' => '',
+            'onSaleRightAway' => true,
+            'standardPriceCents' => '3900',
+            'vipPriceCents' => '7900',
+            'currency' => 'EUR',
+        ]);
+        $client->followRedirect();
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.notice', 'Velvet Static is on sale.');
+        $concert = array_column($this->queryBus()->sendWithRouting('concerts.list'), null, 'artist')['Velvet Static'];
+        self::assertSame('on_sale', $concert['status']);
+        self::assertSame((new DateTimeImmutable('today 20:00', new DateTimeZone('UTC')))->modify('+30 days')->format(DateTimeInterface::ATOM), $concert['startsAt']);
+    }
+
+    public function test_the_schedule_form_puts_a_concert_on_sale_right_away_at_the_start_time_given(): void
+    {
+        $client = $this->seededClient();
+        $client->request('GET', '/admin/concerts');
+
+        $client->submitForm('Schedule concert', [
+            'artist' => 'Velvet Static',
+            'startsAt' => '2030-06-01T20:00',
+            'onSaleRightAway' => true,
+            'standardPriceCents' => '3900',
+            'vipPriceCents' => '7900',
+            'currency' => 'EUR',
+        ]);
+        $client->followRedirect();
+
+        $concert = array_column($this->queryBus()->sendWithRouting('concerts.list'), null, 'artist')['Velvet Static'];
+        self::assertSame(['on_sale', '2030-06-01T20:00:00+00:00'], [$concert['status'], $concert['startsAt']]);
+    }
+
+    public function test_scheduling_without_a_start_time_and_not_on_sale_right_away_shows_the_refusal_on_the_page(): void
+    {
+        $client = $this->seededClient();
+        $client->request('GET', '/admin/concerts');
+
+        $client->submitForm('Schedule concert', [
+            'artist' => 'Velvet Static',
+            'startsAt' => '',
+            'standardPriceCents' => '3900',
+            'vipPriceCents' => '7900',
+            'currency' => 'EUR',
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('.refusal', 'The concert of Velvet Static needs a start time, as a date and a time. Pick both in the "Starts at" field, or tick "Put on sale right away" to start it in 30 days, and schedule it again.');
     }
 
     public function test_scheduling_in_the_past_shows_the_refusal_on_the_page(): void
@@ -381,6 +442,11 @@ final class AdminPagesTest extends WebTestCase
     private function hold(string $orderId, string $concertId, string $seatCode, string $customerId): void
     {
         $this->commandBus()->send(new HoldSeat(orderId: $orderId, concertId: $concertId, seatId: $concertId . '/' . $seatCode, customerId: $customerId, holdId: 'hold-1'), metadata: ['concertId' => $concertId]);
+    }
+
+    private function queryBus(): QueryBus
+    {
+        return static::getContainer()->get(QueryBus::class);
     }
 
     private function commandBus(): CommandBus

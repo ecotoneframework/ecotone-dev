@@ -74,7 +74,8 @@
                     </select>
                 </label>
                 <label>Artist <input name="artist" required></label>
-                <label>Starts at (UTC) <input name="startsAt" type="datetime-local" required></label>
+                <label>Starts at (UTC) <input name="startsAt" type="datetime-local"></label>
+                <label class="checkbox"><input name="onSaleRightAway" type="checkbox" value="1"> Put on sale right away <small>Opens its sales as soon as it is scheduled; leave "Starts at" empty to start it in 30 days.</small></label>
                 <label>Standard price, in cents <input name="standardPriceCents" type="number" min="1" value="4500" required></label>
                 <label>VIP price, in cents <input name="vipPriceCents" type="number" min="1" value="9500" required></label>
                 <label>Currency <input name="currency" value="EUR" maxlength="3" required></label>

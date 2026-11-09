@@ -19,8 +19,7 @@ services:
         arguments: ['%env(AMQP_DSN)%']
 
     OpenTelemetry\API\Trace\TracerProviderInterface:
-        factory: ['App\Infrastructure\OtlpTracerProviderFactory', 'create']
-        arguments: ['%env(OTEL_EXPORTER_OTLP_ENDPOINT)%', 'ticketing']
+        factory: ['OpenTelemetry\API\Globals', 'tracerProvider']
 
 when@test:
     parameters:

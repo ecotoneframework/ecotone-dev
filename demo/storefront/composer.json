@@ -25,6 +25,8 @@
         "laravel/framework": "^12.0",
         "nyholm/psr7": "^1.8",
         "open-telemetry/exporter-otlp": "^1.0",
+        "open-telemetry/opentelemetry-auto-laravel": "^1.10",
+        "open-telemetry/opentelemetry-auto-pdo": "^0.6",
         "open-telemetry/sdk": "^1.0",
         "symfony/http-client": "^7.4",
         "symfony/uid": "^7.4"
@@ -36,7 +38,10 @@
     "autoload": {
         "psr-4": {
             "App\\": "app/"
-        }
+        },
+        "files": [
+            "app/Infrastructure/register-tracing.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
@@ -56,6 +61,7 @@
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
         ],
         "tests:ci": [
+            "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
             "vendor/bin/phpstan analyse --no-progress",
             "vendor/bin/phpunit --no-coverage"
         ]
@@ -70,7 +76,8 @@
         "preferred-install": "dist",
         "sort-packages": true,
         "allow-plugins": {
-            "php-http/discovery": true
+            "php-http/discovery": true,
+            "tbachert/spi": true
         }
     }
 }

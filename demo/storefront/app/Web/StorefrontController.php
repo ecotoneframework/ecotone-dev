@@ -27,6 +27,7 @@ final class StorefrontController
             'concerts' => $this->queryBus->sendWithRouting('concerts.list'),
             'pulseUrl' => config('demo.pulse_url'),
             'jaegerUrl' => config('demo.jaeger_url') . '/search?service=storefront',
+            'databaseUrl' => config('demo.database_url'),
         ]);
     }
 

@@ -40,6 +40,7 @@
         <ul>
             <li><x-icon name="pulse"/><span><a href="{{ $pulseUrl }}">Ecotone Pulse</a> monitors this service and ticketing.</span></li>
             <li><x-icon name="trace"/><span><a href="{{ $jaegerUrl }}">Jaeger</a> shows the traces of every message.</span></li>
+            <li><x-icon name="database"/><span>The <a href="{{ $databaseUrl }}">Database browser</a> opens the tables of both services, read-only: the orders here, ticketing's event stream and its projections.</span></li>
         </ul>
     </section>
 @endsection

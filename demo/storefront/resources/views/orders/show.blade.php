@@ -109,7 +109,7 @@
             @break
     @endswitch
 
-    @if (($concert['status'] ?? null) === 'on_sale')
+    @if (($concert['status'] ?? null) === 'on_sale' && ! $concert['seeded'])
         @include('rushes.panel', ['concertId' => $order['concertId']])
     @endif
     <script src="{{ asset('js/countdown.js') }}"></script>

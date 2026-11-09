@@ -71,8 +71,10 @@
                 <p class="muted">Send synthetic buyers after these seats and watch Ecotone decide.</p>
             </div>
             <div class="simulations">
-                @include('rushes.panel', ['concertId' => $concert['concertId']])
                 @include('contentions.panel', ['concert' => $concert, 'seatStateOf' => $seatStateOf])
+                @unless ($concert['seeded'])
+                    @include('rushes.panel', ['concertId' => $concert['concertId']])
+                @endunless
             </div>
         </section>
     @endif

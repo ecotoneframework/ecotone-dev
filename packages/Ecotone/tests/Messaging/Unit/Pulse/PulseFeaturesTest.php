@@ -383,13 +383,20 @@ final class PulseFeaturesTest extends TestCase
             {
                 return null;
             }
+
+            #[Scheduled('stock.sync', 'stock.sync.endpoint')]
+            #[Poller(cronExpression: "'*/5 * * * *'")]
+            public function sync(): ?string
+            {
+                return null;
+            }
         };
 
         $scheduled = $this->coreFeatures($handlers)['Scheduled endpoints'];
 
         self::assertTrue($scheduled['enabled']);
-        self::assertSame(['Scheduled endpoints' => '3'], $scheduled['settings']);
-        self::assertSame(['order.expire.endpoint: every 1 minute', 'reports: cron 0 6 * * *', 'cache.warm.endpoint: every 1 second'], $scheduled['handlers']);
+        self::assertSame(['Scheduled endpoints' => '4'], $scheduled['settings']);
+        self::assertSame(['order.expire.endpoint: every 1 minute', 'reports: cron 0 6 * * *', 'cache.warm.endpoint: every 1 second', "stock.sync.endpoint: cron expression '*/5 * * * *'"], $scheduled['handlers']);
         self::assertStringContainsString('runs on its own schedule', $scheduled['hint']);
     }
 

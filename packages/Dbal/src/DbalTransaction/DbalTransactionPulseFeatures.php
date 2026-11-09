@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\DbalTransaction;
 
+use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -72,12 +73,8 @@ final class DbalTransactionPulseFeatures
             }
         }
         if ($dbalConfiguration->transactionOnAsynchronousEndpoints) {
-            foreach ($annotationFinder->findAnnotatedMethods(Asynchronous::class) as $annotatedMethod) {
-                foreach ($annotatedMethod->getMethodAnnotationsWithType(Asynchronous::class) as $asynchronous) {
-                    if (array_filter($asynchronous->asynchronousExecution, static fn (object $attribute): bool => $attribute instanceof WithoutDatabaseTransaction) !== []) {
-                        $handlersWithout[] = PulseFeature::handlerOf($annotatedMethod);
-                    }
-                }
+            foreach (self::asynchronousHandlersWithoutTransaction($annotationFinder) as $annotatedMethod) {
+                $handlersWithout[] = PulseFeature::handlerOf($annotatedMethod);
             }
         }
         $entryPoints = array_filter([
@@ -131,14 +128,26 @@ final class DbalTransactionPulseFeatures
         foreach ($dbalConfiguration->disableTransactionsOnAsynchronousEndpointNames as $consumerName) {
             $features[] = PulseConsumerFeature::forConsumer($consumerName, 'Database transaction', 'off');
         }
-        foreach ($annotationFinder->findAnnotatedMethods(Asynchronous::class) as $annotatedMethod) {
-            foreach ($annotatedMethod->getMethodAnnotationsWithType(Asynchronous::class) as $asynchronous) {
-                if (array_filter($asynchronous->asynchronousExecution, static fn (object $attribute): bool => $attribute instanceof WithoutDatabaseTransaction) !== [] && $annotatedMethod->hasMethodAnnotation(IdentifiedAnnotation::class)) {
-                    $features[] = PulseConsumerFeature::forConsumer($annotatedMethod->getMethodAnnotationsWithType(IdentifiedAnnotation::class)[0]->getEndpointId(), 'Database transaction', 'off');
-                }
+        foreach (self::asynchronousHandlersWithoutTransaction($annotationFinder) as $annotatedMethod) {
+            if ($annotatedMethod->hasMethodAnnotation(IdentifiedAnnotation::class)) {
+                $features[] = PulseConsumerFeature::forConsumer($annotatedMethod->getMethodAnnotationsWithType(IdentifiedAnnotation::class)[0]->getEndpointId(), 'Database transaction', 'off');
             }
         }
 
         return $features;
+    }
+
+    /**
+     * @return AnnotatedFinding[]
+     */
+    private static function asynchronousHandlersWithoutTransaction(AnnotationFinder $annotationFinder): array
+    {
+        return array_values(array_filter(
+            $annotationFinder->findAnnotatedMethods(Asynchronous::class),
+            static fn (AnnotatedFinding $annotatedMethod): bool => array_filter(
+                $annotatedMethod->getMethodAnnotationsWithType(Asynchronous::class),
+                static fn (Asynchronous $asynchronous): bool => array_filter($asynchronous->asynchronousExecution, static fn (object $attribute): bool => $attribute instanceof WithoutDatabaseTransaction) !== [],
+            ) !== [],
+        ));
     }
 }

@@ -228,6 +228,22 @@ final class PulseFeaturesTest extends DbalMessagingTestCase
         self::assertSame('resend', $failure['settings']['Channel orders']);
     }
 
+    public function test_a_handler_deduplicated_by_expression_is_listed_as_such(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('orders')]
+            #[Deduplicated(expression: "headers['orderId']")]
+            #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
+            public function place(string $order): void
+            {
+            }
+        };
+        [, $packages, $snapshot] = $this->reportedBy($orders, []);
+
+        self::assertSame(['order.place → place (by expression)'], $packages['dbal']['Deduplication']['handlers']);
+        self::assertContains(['name' => 'Deduplication', 'value' => 'by expression', 'scope' => 'consumer-level config', 'handler' => 'order.place.endpoint'], array_column($snapshot['consumers'], 'features', 'name')['orders']);
+    }
+
     public function test_transactions_turned_off_on_an_entry_point_or_an_endpoint_are_reported_where_they_are_off(): void
     {
         $features = $this->dbalFeatures([

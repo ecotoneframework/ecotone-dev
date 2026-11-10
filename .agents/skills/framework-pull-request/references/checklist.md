@@ -3,7 +3,7 @@
 1. The new or changed test passes: `docker compose exec -T app vendor/bin/phpunit --no-coverage --filter test_name`
 2. The changed package's full CI passes: `docker compose exec app bash -lc "cd packages/<PackageName> && composer install && composer tests:ci"`
 3. A Core change also runs the packages downstream of it — everything depends on `packages/Ecotone`
-4. `php bin/check-licence.php`, `php bin/check-suite-parity.php` and `php bin/check-agent-skills.php` are clean; a changed skill also ran `bin/test-agent-skills`
+4. `php bin/check-licence.php`, `php bin/check-suite-parity.php`, `php bin/check-monorepo-shards.php` and `php bin/check-agent-skills.php` are clean; a changed skill also ran `bin/test-agent-skills`
 5. `vendor/bin/php-cs-fixer fix` on the host, with nothing outside your change rewritten
 6. `vendor/bin/phpstan` is clean
 7. Anything touching event sourcing, the event store, DBAL, transaction wrapping or DDL ran on **MySQL and

@@ -228,7 +228,7 @@ final class FinalFailureStrategyTest extends TestCase
 
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
             handledMessageLimit: 2,
-            executionTimeLimitInMilliseconds: 20000,
+            executionTimeLimitInMilliseconds: 5000,
             stopOnError: false
         ));
 

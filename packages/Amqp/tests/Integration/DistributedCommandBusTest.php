@@ -69,7 +69,7 @@ final class DistributedCommandBusTest extends AmqpMessagingTestCase
         $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver', 'Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler'], [new TicketServiceReceiver([0, 6, 0]), new TicketNotificationEventHandler([0, 6, 0]),
         ], amqpConfig: ['heartbeat' => 3]);
 
-        $ticketService->run('ticket_service', $executionPollingMetadata);
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
         $distributedBus = $userService->getGateway(DistributedBus::class);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Monorepo\CrossModuleTests\Tests\Kafka;
 
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
@@ -17,7 +18,6 @@ use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaConsumer;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Test\LicenceTesting;
@@ -87,13 +87,13 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
             ],
             extensionObjects: [
                 KafkaPublisherConfiguration::createWithDefaults($topicName)->withHeaderMapper('*'),
-                TopicConfiguration::createWithReferenceName('testTopicDeadLetter',$topicName),
+                TopicConfiguration::createWithReferenceName('testTopicDeadLetter', $topicName),
                 KafkaConsumerConfiguration::createWithDefaults($consumerReferenceName),
                 DbalConfiguration::createWithDefaults(),
                 InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
             ],
-            enabledModules: [ModulePackageList::KAFKA_PACKAGE,ModulePackageList::DBAL_PACKAGE],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -103,7 +103,7 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
 
         $ecotoneLite->run($consumerReferenceName, ExecutionPollingMetadata::createWithTestingSetup(
             handledMessageLimit: 1,
-            executionTimeLimitInMilliseconds: 30000,
+            executionTimeLimitInMilliseconds: 5000,
             stopOnError: false,
         ));
 
@@ -115,7 +115,7 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
         $this->assertEquals(0, $deadLetter->count());
 
         $ecotoneLite->run($consumerReferenceName, ExecutionPollingMetadata::createWithTestingSetup(
-            executionTimeLimitInMilliseconds: 30000,
+            executionTimeLimitInMilliseconds: 5000,
             stopOnError: false,
         ));
 
@@ -160,13 +160,13 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
             ],
             extensionObjects: [
                 KafkaPublisherConfiguration::createWithDefaults($topicName)->withHeaderMapper('*'),
-                TopicConfiguration::createWithReferenceName('replayableKafkaTopic',$topicName),
+                TopicConfiguration::createWithReferenceName('replayableKafkaTopic', $topicName),
                 KafkaConsumerConfiguration::createWithDefaults('replayable_kafka_consumer'),
                 DbalConfiguration::createWithDefaults(),
                 InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
             ],
-            enabledModules: [ModulePackageList::KAFKA_PACKAGE,ModulePackageList::DBAL_PACKAGE],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -176,7 +176,7 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
 
         $ecotoneLite->run('replayable_kafka_consumer', ExecutionPollingMetadata::createWithTestingSetup(
             handledMessageLimit: 1,
-            executionTimeLimitInMilliseconds: 30000,
+            executionTimeLimitInMilliseconds: 5000,
             stopOnError: false,
         ));
 
@@ -194,7 +194,7 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
         $this->assertSame([$payload], $handler->processedPayloads, 'Replayed Message must carry the original payload back to the handler');
 
         $ecotoneLite->run('replayable_kafka_consumer', ExecutionPollingMetadata::createWithTestingSetup(
-            executionTimeLimitInMilliseconds: 30000,
+            executionTimeLimitInMilliseconds: 5000,
             stopOnError: false,
         ));
 

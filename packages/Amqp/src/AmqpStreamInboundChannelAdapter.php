@@ -13,6 +13,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
+use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
@@ -57,6 +58,7 @@ use Throwable;
 class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
 {
     public const X_STREAM_OFFSET_HEADER = 'x-stream-offset';
+    private const FINISH_WHEN_NO_MESSAGES_RECEIVE_TIMEOUT_IN_MILLISECONDS = 1000;
     private bool $initialized = false;
     private QueueChannel $queueChannel;
     private ?string $consumerTag = null;
@@ -164,6 +166,9 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $timeout = $pollingMetadata->executionTimeLimitInMilliseconds > 0
                 ? min($pollingMetadata->executionTimeLimitInMilliseconds, $this->receiveTimeoutInMilliseconds)
                 : $this->receiveTimeoutInMilliseconds;
+            if ($pollingMetadata->finishWhenNoMessages && $this->receiveTimeoutInMilliseconds === EnqueueInboundChannelAdapterBuilder::DEFAULT_RECEIVE_TIMEOUT) {
+                $timeout = min($timeout, self::FINISH_WHEN_NO_MESSAGES_RECEIVE_TIMEOUT_IN_MILLISECONDS);
+            }
             $timeoutInSeconds = $timeout > 0 ? $timeout / 1000.0 : 10.0;
 
             // Keep calling wait() in a loop while the consumer is active

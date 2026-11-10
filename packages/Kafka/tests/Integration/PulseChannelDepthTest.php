@@ -67,7 +67,7 @@ final class PulseChannelDepthTest extends ConnectionTestCase
         $this->bootstrap();
         $this->orderService->getGateway(CommandBus::class)->sendWithRouting('order.place', 'coffee');
         $this->orderService->getGateway(CommandBus::class)->sendWithRouting('order.place', 'tea');
-        $this->orderService->run('kafka_orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
+        $this->orderService->run('kafka_orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
 
         $orders = $this->channelsByName($this->requestSnapshot())['kafka_orders'];
 

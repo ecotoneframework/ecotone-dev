@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -26,7 +27,7 @@ final class DistributedDeadLetterTest extends AmqpMessagingTestCase
         $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Publisher'], [new UserService()]);
         $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Receiver'], [new TicketServiceReceiver()]);
 
-        $ticketService->run('ticket_service');
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_ERROR_TICKETS_COUNT));
 
         $userService->sendCommandWithRouting(UserService::CHANGE_BILLING_DETAILS, 'user_service');

@@ -75,6 +75,7 @@ service"), never by naming the rule, so the case also proves the skill is found 
 | `agent-skills` | `php bin/check-agent-skills.php` (its own tests: `php bin/test-check-agent-skills.php`) | AGENTS.md size and pointer, symlinks, skill format, rule headings, graders per rule, links and anchors, backticked paths, marketplace list, public skill class references resolve |
 | `licence-header` | `php bin/check-licence.php` | licence header on every `src` file |
 | `suite-parity` | `php bin/check-suite-parity.php` | root and per-package phpunit configs agree |
+| `monorepo-shards` | `php bin/check-monorepo-shards.php` | every test suite of `phpunit.xml.dist` belongs to exactly one shard of `.github/monorepo-shards.json` |
 | `phpstan` | `vendor/bin/phpstan` | level 3 over `src` and `Api/` |
 | `contribution-terms` | `.github/workflows/contribution-check.yml` | the PR body's contribution checkbox |
 

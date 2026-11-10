@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Laravel\Application\Execution;
 
 use Closure;
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
@@ -340,6 +341,7 @@ final class ConnectionTerminatedByServerTest extends TestCase
             ],
             enabledModules: [ModulePackageList::LARAVEL_PACKAGE, ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../../',
+            initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
         );
     }
 

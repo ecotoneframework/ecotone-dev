@@ -724,7 +724,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $message = $amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1000));
         $this->acceptMessage($message);
 
-        $this->assertNull($amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1)));
+        $this->assertNull($amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->withExecutionTimeLimitInMilliseconds(500)));
     }
 
     /**
@@ -744,7 +744,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);
         $acknowledgeCallback->reject();
 
-        $this->assertNull($amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1)));
+        $this->assertNull($amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->withExecutionTimeLimitInMilliseconds(500)));
     }
 
     /**

@@ -31,8 +31,6 @@ use Ecotone\Tracing\TracingInterceptor;
  */
 final class TraceLedger
 {
-    public const FAILED_ATTEMPT = 'ecotone.trace.failed_attempt';
-
     /**
      * @param Span[] $spans
      */
@@ -50,7 +48,7 @@ final class TraceLedger
         $sentDeliveries = [];
         $processedDeliveries = [];
         foreach ($spans as $span) {
-            if ($span->attributes[self::FAILED_ATTEMPT] ?? false) {
+            if ($span->attributes[SpanAttribute::TRACE_FAILED_ATTEMPT] ?? false) {
                 continue;
             }
             if (isset($span->attributes[MessageHeaders::MESSAGE_ID], $span->attributes[MessageHeaders::PARENT_MESSAGE_ID])) {

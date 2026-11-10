@@ -33,6 +33,11 @@ interface TraceStore
      */
     public function append(array $spans, ?string $onlyPossibleEntrySpanId): void;
 
+    /**
+     * @return Closure(Span[], ?string): void
+     */
+    public function appendingOnCurrentConnection(): Closure;
+
     public function progressOf(string $traceId): TraceProgress;
 
     /**

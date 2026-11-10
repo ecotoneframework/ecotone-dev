@@ -571,6 +571,24 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         self::assertNull($this->completion($ecotone)->fetchFlow($trace->traceId, metadata: ['tenant' => 'tenant_b']));
     }
 
+    public function test_a_dead_lettered_consumer_failure_is_recorded_in_the_database_of_its_tenant(): void
+    {
+        $ecotone = $this->bootstrapMultiTenant([$this->users(), $this->failingNotifier()], $this->connectionForTenantA(), [ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL)]);
+        $ofTenantA = SpanContext::newTrace();
+        $ofTenantB = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $ofTenantA->toTraceparent(), 'tenant' => 'tenant_a']);
+        $ecotone->sendCommandWithRouting('user.register', '2', metadata: [MessageHeaders::TRACEPARENT => $ofTenantB->toTraceparent(), 'tenant' => 'tenant_b']);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        foreach (['tenant_a' => $ofTenantA, 'tenant_b' => $ofTenantB] as $tenant => $trace) {
+            $flow = $this->completion($ecotone)->fetchFlow($trace->traceId, metadata: ['tenant' => $tenant]);
+            self::assertSame(['Notification failed'], array_values(array_map(fn ($step) => $step->statusDescription, array_filter($flow->steps, fn ($step) => $step->status === SpanStatus::Error && str_starts_with($step->name, 'process ')))));
+            self::assertFalse($flow->isCompleted);
+        }
+        self::assertNull($this->completion($ecotone)->fetchFlow($ofTenantA->traceId, metadata: ['tenant' => 'tenant_b']));
+    }
+
     public function test_a_tenant_flow_is_written_inside_the_tenant_transaction_and_rolls_back_with_it(): void
     {
         $tenantA = new DbalConnectionFactory([
@@ -784,8 +802,9 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
 
     /**
      * @param object[] $services
+     * @param object[] $extensionObjects
      */
-    private function bootstrapMultiTenant(array $services, DbalConnectionFactory $tenantAConnection): FlowTestSupport
+    private function bootstrapMultiTenant(array $services, DbalConnectionFactory $tenantAConnection, array $extensionObjects = []): FlowTestSupport
     {
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: array_map(fn (object $service): string => $service::class, $services),
@@ -794,6 +813,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
                 FlowTrackingConfiguration::createWithDefaults(),
                 MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection']),
                 SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+                ...$extensionObjects,
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)->withDefaultInstantRetries(false),

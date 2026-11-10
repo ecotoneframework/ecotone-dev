@@ -3560,8 +3560,15 @@ batch's transaction, and is marked processed in the batch that finds it caught u
 all, an event bus call from a controller or a command bus with `withTransactionOnCommandBus(false)`, has none to be
 inside and writes when its work ends. Nothing is written after the commit or after a rollback, so a database that goes down
 right after a commit cannot fail a consumer or a command whose work already committed, and an outage inside the
-transaction rolls back with the work and leaves the message to be retried. A unit of work that fails stores nothing;
-its failure is visible in OpenTelemetry. Notifications are published from memory once the transaction committed, at
+transaction rolls back with the work and leaves the message to be retried. A unit of work whose failure propagates
+to its caller stores nothing; its failure is visible in OpenTelemetry. A consumed message whose failure is handed to
+the error channel (a delayed retry, the dead letter, a custom error handler) is recorded as failed steps once the
+error channel took it: the receive span, every failed step and the steps above them, with their exception, visible in
+`TracingGateway::fetchFlow()->steps`, together with what the error channel sent, such as the delayed retry. They are
+written in a short transaction of their own, on the connection and tenant the attempt ran on, like the dead letter
+itself, and a failure of that write is logged, never thrown, because the message is already taken care of. The flow
+stays pending, so a retry or a replay that succeeds can still complete it. An instant retry that succeeds records no
+failed step. Notifications are published from memory once the transaction committed, at
 most once: a subscriber that throws does not fail the work that committed, is logged, and is not called again. Each
 notification is delivered in a trace of its own, marked `ecotone=untracked` in the W3C `tracestate`, so whatever a
 subscriber sends, synchronously or through an asynchronous channel, is neither stored nor notified and can never reopen
@@ -3608,7 +3615,11 @@ final class OrdersWebsocket
 ```
 
 **How to adapt:** nothing is required. To use it, register `FlowTrackingConfiguration`, run the setup command for its
-table, and give each handler you want to ask about an explicit `endpointId`.
+table, and give each handler you want to ask about an explicit `endpointId`. Coming from an earlier 2.0 beta, upgrade every process that
+reads or writes the same flow tracking table together: a process of the earlier beta does not know the steps of a
+failed attempt (marked `ecotone.trace.failed_attempt`, `SpanAttribute::TRACE_FAILED_ATTEMPT`) and counts the failed
+receive and process as a delivery that was handled, so it can answer `isCompletedFor()` with `true` for a flow whose
+message is still waiting in the dead letter.
 
 ### A service answers Ecotone Pulse over the Distributed Bus (Enterprise)
 
@@ -3654,7 +3665,10 @@ and its licence expiry as unknown.
 With the DBAL dead letter enabled, the snapshot gains a `deadLetters` section: the `total`, the `groups` by message name
 and exception class, and the 100 `recent` dead letters newest first. Each recent dead letter has its message id, name,
 `failedAt`, exception class and message, stack trace and payload (both cut at 4096 bytes with a `... [truncated]`
-marker), content type and original channel.
+marker), content type, original channel and `headers`: every header of the message except the stored stack trace,
+each as text cut at 1 KB (`true`/`false` for a boolean); a header the dead letter could not store, such as an array or
+an object, is not there to show. The
+headers include the application's own metadata, so whatever an application puts in a header is shown to Pulse users.
 
 The name is the distributed routing key; else the routing key the message was sent with (see §1); else the
 `__TypeId__`, when it is a class or a type alias, for messages that never went through a bus.
@@ -3683,19 +3697,27 @@ another service, the name of the first message its handling sent (bus sends befo
 then alphabetical), else the channel name. The same business flow therefore has a different flow type in each
 service; it is joined across services by its trace id.
 
+Every span whose parent this service did not record is an entry of its own, with its own flow type and status: two
+commands an HTTP request traced by OpenTelemetry sends are two runs, each of its flow type, and a failure counts only
+against the entry its chain of parents leads to. Traces stored before this change keep one entry per trace.
+
 `runsWithErrors` counts the runs in which an error was recorded in this service's part of the flow: a step that failed
-inside a unit of work that still completed, for instance an exception a handler caught, or one recorded by a later
-step. A step whose unit of work failed is rolled back with everything it recorded, so it leaves no span and is never
-counted: it is found among the dead letters, where every `recent` entry now carries its `traceId` (the trace id of the
-message's `traceparent`, else its `tracingId`; `null` for a message that carried none), the id the trace query takes.
+inside a unit of work that still completed, for instance an exception a handler caught, one recorded by a later step,
+or the failed attempt of a consumed message the error channel took. A message that failed and then succeeded on a
+delayed retry or a replay ends with its flow completed and still counted in `runsWithErrors`: the errors of its failed
+attempts stay recorded. A unit of work whose failure propagated to its caller is rolled back with everything it
+recorded, so it leaves no span and is never counted. Every `recent` dead letter carries its `traceId` (the trace id of
+the message's `traceparent`, else its `tracingId`; `null` for a message that carried none), the id the trace query
+takes.
 
 Pulse reads the traces on demand, with `DistributedBus::sendMessage($service, $routingKey, $payload,
 MediaType::APPLICATION_JSON, metadata: ['ecotone_pulse_query_id' => $queryId], replyRoutingKey:
 'ecotone.pulse.query_result_received')`. The query id must be sent, and is returned in the payload and, as a user
 header, with the reply. `ecotone.pulse.traces.list` takes `{"flowType": "create.ticket", "page": 1, "perPage": 25}`
 (`page` from 1, `perPage` from 1 to 25) and replies `queryId`, `flowType`, `page`, `perPage`, `total` and `traces`,
-newest first, each with `traceId`, `startedAt`, `durationMs`, `status` (`ok` or `error`, as `runsWithErrors` counts)
-and `rootEndpoint`; a flow type nobody ran is an empty list. `ecotone.pulse.traces.trace` takes `{"traceId": "..."}`
+newest first, each with `traceId`, `entrySpanId` (the span the entry starts at, which tells two entries of one trace
+apart), `startedAt`, `durationMs`, `status` (`ok` or `error`, as `runsWithErrors` counts) and `rootEndpoint`; a flow
+type nobody ran is an empty list. `entrySpanId` is additive: a reply from an older service has none. `ecotone.pulse.traces.trace` takes `{"traceId": "..."}`
 and replies `queryId`, `traceId`, `totalSpans`, `truncated` and the first 1000 `spans` this service kept, each parent
 before its children, with `spanId`, `parentSpanId`, `name`, `kind`, `status`, `statusDescription`, `startedAt`,
 `endedAt`, `attributes` and `events`; text is cut at 4096 bytes. Both queries are served to the Pulse service only,

@@ -54,12 +54,50 @@ final class DbalTraceStore implements TraceStore
 
     public function append(array $spans, ?string $onlyPossibleEntrySpanId): void
     {
+        $this->appendOn($this->connection(), $spans, $onlyPossibleEntrySpanId);
+    }
+
+    public function appendingOnCurrentConnection(): Closure
+    {
         $connection = $this->connection();
+
+        return fn (array $spans, ?string $onlyPossibleEntrySpanId) => $connection->transactional(fn () => $this->appendOn($connection, $spans, $onlyPossibleEntrySpanId));
+    }
+
+    /**
+     * @param Span[] $spans
+     */
+    private function appendOn(Connection $connection, array $spans, ?string $onlyPossibleEntrySpanId): void
+    {
         $this->onTables(function () use ($connection, $spans, $onlyPossibleEntrySpanId): void {
-            $plan = FlowEntries::plan($spans, $this->storedTracesOf($connection, $spans), $onlyPossibleEntrySpanId);
+            $storedTraces = $this->storedTracesOf($connection, $spans);
+            $plan = FlowEntries::plan(spans: $spans, storedTraces: $storedTraces, onlyPossibleEntrySpanId: $onlyPossibleEntrySpanId);
             $this->insertSpans($connection, $spans, $plan);
+            $this->markStoredStepsFailed($connection, array_filter($spans, fn (Span $span): bool => $span->status === SpanStatus::Error && isset($storedTraces[$span->traceId][$span->spanId]) && ! $storedTraces[$span->traceId][$span->spanId]['failed']));
             $this->markFailed($connection, $plan->entrySpanIdsToMarkFailedByTrace);
         });
+    }
+
+    /**
+     * @param Span[] $failedSpans
+     */
+    private function markStoredStepsFailed(Connection $connection, array $failedSpans): void
+    {
+        foreach ($failedSpans as $span) {
+            $connection->createQueryBuilder()
+                ->update($this->spansTableManager->getTableName())
+                ->set('status', ':status')
+                ->set('status_description', ':statusDescription')
+                ->set('attributes', ':attributes')
+                ->where('trace_id = :traceId')
+                ->andWhere('span_id = :spanId')
+                ->setParameter('status', $span->status->value)
+                ->setParameter('statusDescription', $span->statusDescription)
+                ->setParameter('attributes', json_encode($span->attributes, JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT))
+                ->setParameter('traceId', $span->traceId)
+                ->setParameter('spanId', $span->spanId)
+                ->executeStatement();
+        }
     }
 
     public function flowTypeStatistics(int $limit, int $window): array

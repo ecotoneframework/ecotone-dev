@@ -35,6 +35,7 @@ final class TraceSummary
         public readonly int $durationMs,
         public readonly string $status,
         public readonly string $rootEndpoint,
+        public readonly string $entrySpanId,
     ) {
     }
 
@@ -53,11 +54,12 @@ final class TraceSummary
         usort($candidates, fn (Span $first, Span $second): int => $order($first) <=> $order($second));
 
         return new self(
-            $entry->traceId,
-            $startedAt,
-            FlowEntries::durationInMilliseconds($entry->endedAt->unixTime()->inMicroseconds() - $startedAt),
-            $status,
-            $candidates === [] ? $entry->name : (string) $candidates[0]->attributes[SpanAttribute::ENDPOINT_ID],
+            traceId: $entry->traceId,
+            startedAtInMicroseconds: $startedAt,
+            durationMs: FlowEntries::durationInMilliseconds($entry->endedAt->unixTime()->inMicroseconds() - $startedAt),
+            status: $status,
+            rootEndpoint: $candidates === [] ? $entry->name : (string) $candidates[0]->attributes[SpanAttribute::ENDPOINT_ID],
+            entrySpanId: $entry->spanId,
         );
     }
 

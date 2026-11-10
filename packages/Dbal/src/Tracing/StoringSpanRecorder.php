@@ -44,8 +44,9 @@ final class StoringSpanRecorder implements SpanRecorder
     private bool $unitOfWorkActive = false;
     /** @var Span[] */
     private array $committedSpans = [];
-    /** @var Span[] */
-    private array $failedAttempt = [];
+    private ?string $consumedMessageSpanId = null;
+    /** @var array{wrappingSpanId: string, spans: Span[], append: Closure(Span[], ?string): void}|null */
+    private ?array $failedAttempt = null;
 
     public function __construct(
         private TraceStore $traceStore,
@@ -58,6 +59,8 @@ final class StoringSpanRecorder implements SpanRecorder
     {
         if ($this->scopeActive && ! $this->scopeExcludedFromTracking && $this->isStored($span)) {
             $this->buffer[] = $span;
+        } elseif (! $this->scopeActive && $this->failedAttempt !== null && $span->traceId === $this->failedAttempt['spans'][0]->traceId && $this->isStored($span)) {
+            $this->failedAttempt['spans'][] = $span;
         }
     }
 
@@ -192,36 +195,74 @@ final class StoringSpanRecorder implements SpanRecorder
         $this->buffer = [];
     }
 
+    public function beginConsumedMessage(?ActiveSpan $consumedMessageSpan): void
+    {
+        $this->consumedMessageSpanId = $consumedMessageSpan?->context()->spanId;
+        $this->failedAttempt = null;
+    }
+
+    public function endConsumedMessage(): void
+    {
+        $this->consumedMessageSpanId = null;
+        $this->failedAttempt = null;
+    }
+
     public function holdFailedAttempt(Throwable $failure): void
     {
-        $failedSteps = array_filter($this->buffer, fn (Span $span): bool => $span->status === SpanStatus::Error);
+        $buffered = $this->buffer;
         $this->buffer = [];
-        $this->failedAttempt = [];
-        if ($this->scopeExcludedFromTracking || $this->wrappingSpan === null) {
+        if ($this->scopeExcludedFromTracking || $this->wrappingSpan === null || $this->wrappingSpan->context()->spanId !== $this->consumedMessageSpanId) {
             return;
         }
         $wrapping = $this->wrappingSpan->endedSoFar();
         if (! $this->isStored($wrapping)) {
             return;
         }
-        $wrapping = new Span($wrapping->traceId, $wrapping->spanId, $wrapping->parentSpanId, $wrapping->name, $wrapping->kind, $wrapping->attributes, SpanStatus::Error, $failure->getMessage(), $wrapping->events, $wrapping->startedAt, $wrapping->endedAt);
-        foreach ([$wrapping, ...$failedSteps] as $span) {
-            $this->failedAttempt[$span->spanId] = new Span($span->traceId, $span->spanId, $span->parentSpanId, $span->name, $span->kind, [...$span->attributes, TraceLedger::FAILED_ATTEMPT => true], $span->status, $span->statusDescription, $span->events, $span->startedAt, $span->endedAt);
+        $wrapping = new Span(...[...get_object_vars($wrapping), 'status' => SpanStatus::Error, 'statusDescription' => $failure->getMessage()]);
+        $spans = [];
+        foreach ([$wrapping, ...self::failedStepsWithTheirAncestors($buffered)] as $span) {
+            $spans[$span->spanId] = new Span(...[...get_object_vars($span), 'attributes' => [...$span->attributes, SpanAttribute::TRACE_FAILED_ATTEMPT => true]]);
         }
+        $this->failedAttempt = ['wrappingSpanId' => $wrapping->spanId, 'spans' => array_values($spans), 'append' => $this->traceStore->appendingOnCurrentConnection()];
     }
 
-    public function forgetFailedAttempt(): void
+    public function forgetFailedAttemptOfOpenScope(): void
     {
-        $this->failedAttempt = [];
+        if ($this->failedAttempt !== null && $this->failedAttempt['wrappingSpanId'] === $this->wrappingSpan?->context()->spanId) {
+            $this->failedAttempt = null;
+        }
     }
 
     public function storeFailedAttempt(): void
     {
-        $spans = array_values($this->failedAttempt);
-        $this->failedAttempt = [];
-        if ($spans !== []) {
-            $this->traceStore->append($spans, $spans[0]->spanId);
+        $failedAttempt = $this->failedAttempt;
+        $this->failedAttempt = null;
+        if ($failedAttempt !== null && $failedAttempt['wrappingSpanId'] === $this->consumedMessageSpanId) {
+            ($failedAttempt['append'])($failedAttempt['spans'], $failedAttempt['wrappingSpanId']);
         }
+    }
+
+    /**
+     * @param Span[] $buffered
+     * @return Span[]
+     */
+    private static function failedStepsWithTheirAncestors(array $buffered): array
+    {
+        $byId = [];
+        foreach ($buffered as $span) {
+            $byId[$span->spanId] = $span;
+        }
+        $kept = [];
+        foreach ($buffered as $span) {
+            if ($span->status !== SpanStatus::Error) {
+                continue;
+            }
+            for ($step = $span; $step !== null && ! isset($kept[$step->spanId]); $step = $byId[$step->parentSpanId ?? ''] ?? null) {
+                $kept[$step->spanId] = $step;
+            }
+        }
+
+        return array_values(array_filter($byId, fn (Span $span): bool => isset($kept[$span->spanId])));
     }
 
     /**

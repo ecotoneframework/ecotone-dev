@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Tracing;
 
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Headers;
@@ -25,6 +27,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -579,6 +582,137 @@ final class FlowTrackingTest extends TestCase
         $this->assertSame('Placing failed', $failedSteps[1]->statusDescription);
         $this->assertFalse($flow->isCompleted);
         $this->assertSame(['order.placing', 'async_channel'], $flow->pending);
+    }
+
+    public function test_a_consumer_failure_handed_to_an_error_channel_handler_that_sends_a_command_is_still_recorded_as_a_failed_step(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+                throw new RuntimeException('Placing failed');
+            }
+        };
+        $errorHandler = new class () {
+            public array $audited = [];
+
+            #[InternalHandler('customErrorChannel')]
+            public function handle(string $orderId, CommandBus $commandBus): void
+            {
+                $commandBus->sendWithRouting('order.audit_failure', $orderId);
+            }
+
+            #[CommandHandler('order.audit_failure')]
+            public function audit(string $orderId): void
+            {
+                $this->audited[] = $orderId;
+            }
+        };
+        $ecotone = $this->bootstrap([$orders, $errorHandler], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('customErrorChannel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $this->assertSame(['1'], $errorHandler->audited);
+        $failedSteps = array_values(array_filter($this->completion($ecotone)->fetchFlow($trace->traceId)->steps, fn (Span $step): bool => $step->status === SpanStatus::Error));
+        $this->assertSame(['receive async_channel', 'process class@anonymous::place'], array_map(fn (Span $step): string => $step->name, $failedSteps));
+        $this->assertSame('Placing failed', $failedSteps[1]->statusDescription);
+    }
+
+    public function test_a_failed_attempt_of_one_consumed_message_is_not_recorded_for_the_next_one(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+                if ($orderId === 'failing') {
+                    throw new RuntimeException('Placing failed');
+                }
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]);
+        $failing = SpanContext::newTrace();
+        $succeeding = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('order.place', 'failing', metadata: [MessageHeaders::TRACEPARENT => $failing->toTraceparent()]);
+        $ecotone->sendCommandWithRouting('order.place', 'succeeding', metadata: [MessageHeaders::TRACEPARENT => $succeeding->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $this->assertSame(['receive async_channel', 'process class@anonymous::place'], array_map(fn (Span $step): string => $step->name, array_values(array_filter($this->completion($ecotone)->fetchFlow($failing->traceId)->steps, fn (Span $step): bool => $step->status === SpanStatus::Error))));
+        $this->assertSame([], array_values(array_filter($this->completion($ecotone)->fetchFlow($succeeding->traceId)->steps, fn (Span $step): bool => $step->status === SpanStatus::Error)));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($succeeding->traceId));
+    }
+
+    public function test_a_failed_step_below_a_step_that_swallowed_its_failure_is_recorded_with_every_step_above_it(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId, CommandBus $commandBus): void
+            {
+                $commandBus->sendWithRouting('order.check', $orderId);
+
+                throw new RuntimeException('Placing failed');
+            }
+
+            #[CommandHandler('order.check', endpointId: 'order.checking')]
+            public function check(string $orderId, CommandBus $commandBus): void
+            {
+                try {
+                    $commandBus->sendWithRouting('order.verify', $orderId);
+                } catch (RuntimeException) {
+                }
+            }
+
+            #[CommandHandler('order.verify', endpointId: 'order.verifying')]
+            public function verify(string $orderId): void
+            {
+                throw new RuntimeException('Verification failed');
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $steps = $this->completion($ecotone)->fetchFlow($trace->traceId)->steps;
+        $stepIds = array_map(fn (Span $step): string => $step->spanId, $steps);
+        $this->assertContains('process class@anonymous::check', array_map(fn (Span $step): string => $step->name, $steps));
+        foreach (array_filter($steps, fn (Span $step): bool => $step->status === SpanStatus::Error && $step->name !== 'receive async_channel') as $failedStep) {
+            $this->assertContains($failedStep->parentSpanId, $stepIds);
+        }
+    }
+
+    public function test_a_consumer_step_stored_before_its_attempt_failed_is_recorded_as_failed(): void
+    {
+        $projection = new #[Projection('orders_list'), FromStream('orders_stream'), Asynchronous('async_channel')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+        $failingAfterTheProjection = new class () {
+            #[Around(pointcut: AsynchronousRunningEndpoint::class)]
+            public function failAfterwards(MethodInvocation $methodInvocation): mixed
+            {
+                $methodInvocation->proceed();
+
+                throw new RuntimeException('Failed after projecting');
+            }
+        };
+        $ecotone = $this->bootstrap([$projection, $failingAfterTheProjection], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->publishEventWithRouting('order.placed', [], metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $receive = array_values(array_filter($this->completion($ecotone)->fetchFlow($trace->traceId)->steps, fn (Span $step): bool => $step->name === 'receive async_channel'));
+        $this->assertSame([SpanStatus::Error], array_map(fn (Span $step): SpanStatus => $step->status, $receive));
+        $this->assertSame('Failed after projecting', $receive[0]->statusDescription);
     }
 
     public function test_a_consumer_whose_handler_failed_once_and_succeeded_on_the_instant_retry_records_no_failed_step(): void

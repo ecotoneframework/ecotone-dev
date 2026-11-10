@@ -44,8 +44,10 @@ by the failing statement (`MissingTableFailure`), never by asking the schema fir
 
 ### 16a. No database write after the transaction
 Whatever a feature stores about a message is written inside that message's transaction, or not at all. Telemetry
-to an external collector is exempt.
-- **Expected:** the feature's write happens inside the message's transaction, never after commit or rollback.
+to an external collector is exempt, and so is the failure of a consumed message stored once the error channel took
+it, in its own short transaction like the dead letter.
+- **Expected:** the feature's write happens inside the message's transaction, never after commit or rollback; the
+  one database write outside it records a failure the error channel already took, in its own transaction.
 - **Verified by:** `eval:store-feature-state`
 
 ### 16b. No DDL in a command, event or asynchronous flow

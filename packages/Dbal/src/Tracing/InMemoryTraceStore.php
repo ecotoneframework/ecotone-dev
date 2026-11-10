@@ -36,9 +36,14 @@ final class InMemoryTraceStore implements TraceStore
 
     public function append(array $spans, ?string $onlyPossibleEntrySpanId): void
     {
-        $plan = FlowEntries::plan($spans, $this->storedTracesOf($spans), $onlyPossibleEntrySpanId);
+        $plan = FlowEntries::plan(spans: $spans, storedTraces: $this->storedTracesOf($spans), onlyPossibleEntrySpanId: $onlyPossibleEntrySpanId);
         foreach ($spans as $span) {
-            if (isset($this->spansByTrace[$span->traceId][$span->spanId])) {
+            $stored = $this->spansByTrace[$span->traceId][$span->spanId] ?? null;
+            if ($stored !== null) {
+                if ($span->status === SpanStatus::Error && $stored->status !== SpanStatus::Error) {
+                    $this->spansByTrace[$span->traceId][$span->spanId] = new Span(...[...get_object_vars($stored), 'status' => $span->status, 'statusDescription' => $span->statusDescription, 'attributes' => $span->attributes]);
+                }
+
                 continue;
             }
             $this->spansByTrace[$span->traceId][$span->spanId] = $span;
@@ -51,6 +56,11 @@ final class InMemoryTraceStore implements TraceStore
                 $this->entriesByTrace[$traceId][$spanId]['status'] = FlowEntries::STATUS_ERROR;
             }
         }
+    }
+
+    public function appendingOnCurrentConnection(): Closure
+    {
+        return $this->append(...);
     }
 
     public function flowTypeStatistics(int $limit, int $window): array

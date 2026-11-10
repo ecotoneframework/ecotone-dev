@@ -9,7 +9,9 @@ use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanRecorder;
+use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Tracing\ActiveSpan;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -42,6 +44,9 @@ final class StoringSpanRecorder implements SpanRecorder
     private bool $unitOfWorkActive = false;
     /** @var Span[] */
     private array $committedSpans = [];
+    private ?string $consumedMessageSpanId = null;
+    /** @var array{wrappingSpanId: string, spans: Span[], append: Closure(Span[], ?string): void}|null */
+    private ?array $failedAttempt = null;
 
     public function __construct(
         private TraceStore $traceStore,
@@ -54,6 +59,8 @@ final class StoringSpanRecorder implements SpanRecorder
     {
         if ($this->scopeActive && ! $this->scopeExcludedFromTracking && $this->isStored($span)) {
             $this->buffer[] = $span;
+        } elseif (! $this->scopeActive && $this->failedAttempt !== null && $span->traceId === $this->failedAttempt['spans'][0]->traceId && $this->isStored($span)) {
+            $this->failedAttempt['spans'][] = $span;
         }
     }
 
@@ -122,12 +129,26 @@ final class StoringSpanRecorder implements SpanRecorder
         return $this->traceStore->withinTransaction($work);
     }
 
-    public function flushBuffered(): void
+    public function flushBufferedWithinOpenScope(): void
     {
-        $this->store([]);
+        $this->store([], $this->wrappingSpan?->context()->spanId);
     }
 
-    public function flushWithOpenSpans(?ActiveSpan ...$innerOpenSpans): void
+    public function flushWithOpenSpansWithinOpenScope(?ActiveSpan ...$innerOpenSpans): void
+    {
+        $this->store($this->openSpansSoFar($innerOpenSpans), $this->wrappingSpan?->context()->spanId);
+    }
+
+    public function flushWithOpenSpans(): void
+    {
+        $this->store($this->openSpansSoFar([]), null);
+    }
+
+    /**
+     * @param array<?ActiveSpan> $innerOpenSpans
+     * @return Span[]
+     */
+    private function openSpansSoFar(array $innerOpenSpans): array
     {
         $openSpans = [];
         foreach ([$this->wrappingSpan, ...$innerOpenSpans] as $openSpan) {
@@ -135,13 +156,14 @@ final class StoringSpanRecorder implements SpanRecorder
                 $openSpans[$openSpan->context()->spanId] = $openSpan->endedSoFar();
             }
         }
-        $this->store(array_values($openSpans));
+
+        return array_values($openSpans);
     }
 
     /**
      * @param Span[] $openSpansSoFar
      */
-    private function store(array $openSpansSoFar): void
+    private function store(array $openSpansSoFar, ?string $onlyPossibleEntrySpanId): void
     {
         if ($this->scopeExcludedFromTracking) {
             $this->buffer = [];
@@ -161,7 +183,7 @@ final class StoringSpanRecorder implements SpanRecorder
         }
 
         $spans = array_values($spans);
-        $this->traceStore->append($spans);
+        $this->traceStore->append($spans, $onlyPossibleEntrySpanId);
         foreach ($spans as $span) {
             $this->storedSpanIds[$span->spanId] = true;
         }
@@ -171,6 +193,76 @@ final class StoringSpanRecorder implements SpanRecorder
     public function discard(): void
     {
         $this->buffer = [];
+    }
+
+    public function beginConsumedMessage(?ActiveSpan $consumedMessageSpan): void
+    {
+        $this->consumedMessageSpanId = $consumedMessageSpan?->context()->spanId;
+        $this->failedAttempt = null;
+    }
+
+    public function endConsumedMessage(): void
+    {
+        $this->consumedMessageSpanId = null;
+        $this->failedAttempt = null;
+    }
+
+    public function holdFailedAttempt(Throwable $failure): void
+    {
+        $buffered = $this->buffer;
+        $this->buffer = [];
+        if ($this->scopeExcludedFromTracking || $this->wrappingSpan === null || $this->wrappingSpan->context()->spanId !== $this->consumedMessageSpanId) {
+            return;
+        }
+        $wrapping = $this->wrappingSpan->endedSoFar();
+        if (! $this->isStored($wrapping)) {
+            return;
+        }
+        $wrapping = new Span(...[...get_object_vars($wrapping), 'status' => SpanStatus::Error, 'statusDescription' => $failure->getMessage()]);
+        $spans = [];
+        foreach ([$wrapping, ...self::failedStepsWithTheirAncestors($buffered)] as $span) {
+            $spans[$span->spanId] = new Span(...[...get_object_vars($span), 'attributes' => [...$span->attributes, SpanAttribute::TRACE_FAILED_ATTEMPT => true]]);
+        }
+        $this->failedAttempt = ['wrappingSpanId' => $wrapping->spanId, 'spans' => array_values($spans), 'append' => $this->traceStore->appendingOnCurrentConnection()];
+    }
+
+    public function forgetFailedAttemptOfOpenScope(): void
+    {
+        if ($this->failedAttempt !== null && $this->failedAttempt['wrappingSpanId'] === $this->wrappingSpan?->context()->spanId) {
+            $this->failedAttempt = null;
+        }
+    }
+
+    public function storeFailedAttempt(): void
+    {
+        $failedAttempt = $this->failedAttempt;
+        $this->failedAttempt = null;
+        if ($failedAttempt !== null && $failedAttempt['wrappingSpanId'] === $this->consumedMessageSpanId) {
+            ($failedAttempt['append'])($failedAttempt['spans'], $failedAttempt['wrappingSpanId']);
+        }
+    }
+
+    /**
+     * @param Span[] $buffered
+     * @return Span[]
+     */
+    private static function failedStepsWithTheirAncestors(array $buffered): array
+    {
+        $byId = [];
+        foreach ($buffered as $span) {
+            $byId[$span->spanId] = $span;
+        }
+        $kept = [];
+        foreach ($buffered as $span) {
+            if ($span->status !== SpanStatus::Error) {
+                continue;
+            }
+            for ($step = $span; $step !== null && ! isset($kept[$step->spanId]); $step = $byId[$step->parentSpanId ?? ''] ?? null) {
+                $kept[$step->spanId] = $step;
+            }
+        }
+
+        return array_values(array_filter($byId, fn (Span $span): bool => isset($kept[$span->spanId])));
     }
 
     /**

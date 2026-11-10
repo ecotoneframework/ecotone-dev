@@ -9,57 +9,106 @@
 {% block importmap %}{{ importmap(['app', 'flame']) }}{% endblock %}
 
 {% block body %}
-    <h1>Trace <code data-trace-id>{{ traceId }}</code></h1>
-    <p><a href="{{ path('traces') }}">← Traces</a> · <a href="{{ path('flow_graph', {trace: traceId}) }}" data-show-on-flow-graph>Show on flow graph</a></p>
+    {% set traceLabel = 'Trace ' ~ (traceId|length > 8 ? traceId|slice(0, 8) ~ '…' : traceId) %}
+    {% set root = detail.root %}
+    {% set externalTrace = pulse.traceUrl.of(traceId) %}
+    {% if root %}
+        {% set trail = [{label: 'Traces', href: path('traces', {service: root.key})}] %}
+        {% if detail.flowType %}{% set trail = trail|merge([{label: detail.flowType, href: path('trace_list', {service: root.key, flowType: detail.flowType})}]) %}{% endif %}
+        {% include '_breadcrumbs.html.twig' with {service: root.service, tenant: root.tenant, trail: trail|merge([{label: traceLabel}])} only %}
+    {% else %}
+        {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Home', href: path('home')}, {label: 'Traces', href: path('traces')}, {label: traceLabel}]} only %}
+    {% endif %}
+    <h1>{% include '_concept.html.twig' with {term: 'trace', text: 'Trace'} only %} <code data-trace-id>{{ traceId }}</code></h1>
 
-    <ul class="service-states">
-        {% for state in states %}
-            <li data-service-state="{{ state.service }}{{ state.tenant ? '@' ~ state.tenant : '' }}" data-state="{{ state.state }}">
-                <strong>{{ state.service }}</strong>{% if state.tenant %} <span class="chip" data-tenant="{{ state.tenant }}">tenant {{ state.tenant }}</span>{% endif %}:
-                {% if state.state == 'answered' %}answered{% if state.totalSpans %} ({{ state.totalSpans }} spans){% endif %}
-                {% elseif state.state == 'waiting' %}pending, waiting for the answer…
-                {% elseif state.state == 'refused' %}refused this query: {{ state.failure }}
-                {% elseif state.state == 'not_answering' %}not answering for this query.{% if state.failure %} {{ state.failure }}{% endif %}
-                {% elseif state.state == 'tracing_disabled' %}flow tracking not enabled, not asked
-                {% else %}not asked, service is {{ state.status|lower }}
-                {% endif %}
-                {% if state.truncated %}<span class="drift" data-reply-truncated>only the first spans of {{ state.totalSpans }} were sent by {{ state.service }}.</span>{% endif %}
-            </li>
-        {% endfor %}
-    </ul>
+    {% embed '_verdict.html.twig' with {status: detail.status, reason: detail.reason, sentence: detail.sentence, detail: detail, trace: trace, traceId: traceId} only %}
+        {% block meta %}
+            {% if not trace.isEmpty %}
+                <p class="verdict-meta" data-verdict-meta>
+                    status <span class="pill {{ trace.status == 'failed' ? 'bad' : (trace.status == 'pending' ? 'wait' : 'ok') }}" data-trace-status="{{ trace.status }}">{{ trace.status }}</span>
+                    {% if detail.flowType %} · {% include '_concept.html.twig' with {term: 'flow-type', text: 'flow type'} only %} <code>{{ detail.flowType }}</code>{% endif %}
+                    · started <span data-started-at>{{ trace.startedAt }}</span> UTC · took <span data-total-duration>{{ trace.durationLabel }}</span>
+                </p>
+            {% endif %}
+            {% if detail.waitingFor %}<p class="verdict-meta" data-still-waiting>Still waiting for {{ detail.waitingFor|join(', ') }} to answer; the page refreshes every 3 seconds.</p>{% endif %}
+            {% if detail.failure %}
+                {% set failure = detail.failure %}
+                {% set row = failure.row %}
+                <div class="trace-failure" data-failure-banner>
+                    <ol class="where" aria-label="Where it failed" data-problem-where>
+                        {% for place in failure.where %}<li><code{% if place.title is defined %} title="{{ place.title }}"{% endif %}>{{ place.label }}</code></li>{% endfor %}
+                    </ol>
+                    {% if row.error %}<p class="verdict-exception" data-failure-error>{{ row.error }}</p>{% endif %}
+                    <p class="problem-evidence">{{ failure.explanation }}</p>
+                    <p class="problem-actions">
+                        {% if row.deadLetter %}
+                            {% set deadLetterPath = path('dead_letter', {service: row.deadLetter.service, messageId: row.deadLetter.messageId}) %}
+                            <a class="btn pri" data-dead-letter-link href="{{ deadLetterPath }}">Open the failed message</a>
+                            <a data-replay-dead-letter href="{{ deadLetterPath }}" title="Replay sends the message back to its channel to be handled again; fix the cause first">Replay the failed message</a>
+                        {% endif %}
+                        {% if failure.index is not null %}<a{% if not row.deadLetter %} class="btn pri"{% endif %} data-failing-step href="#span-{{ failure.index }}">Look at the failing step</a>{% endif %}
+                        <a data-banner-graph href="{{ path('flow_graph', {trace: traceId}) }}">Show on flow graph</a>
+                        {% include '_concept.html.twig' with {term: 'dead-letter'} only %}
+                    </p>
+                </div>
+            {% endif %}
+        {% endblock %}
+    {% endembed %}
 
     {% if trace.isEmpty %}
-        {% if not waiting %}<p class="muted" data-no-spans>No service stored a span of this trace id. It may be older than the retention, or from a service that does not track flows.</p>{% endif %}
+        {% if not waiting %}
+            {% include '_empty.html.twig' with {cause: 'nothing-yet', hook: 'no-spans', sentence: 'No service stored a step of this trace id. It may be older than the retention of the services, mistyped, or from a service that does not track flows.', action: {label: 'Search another trace id', href: path('traces')}} only %}
+        {% endif %}
     {% else %}
-        <div class="strip" data-summary-strip>
-            <div class="card stat" data-summary="total"><span>Total</span><b>{{ trace.durationLabel }}</b></div>
-            <div class="card stat" data-summary="services"><span>Services</span><b>{{ trace.services|length }}</b></div>
-            <div class="card stat" data-summary="queueWait"><span>Queue wait</span>{% if trace.longestQueueWait %}<b>{{ trace.longestQueueWait.label }}</b><span>{{ trace.longestQueueWait.channel }}</span>{% else %}<b>none</b>{% endif %}</div>
-            <div class="card stat{% if trace.failedCount %} bad{% endif %}" data-summary="failed"><span>Failed</span><b>{{ trace.failedCount }}</b></div>
+        {% set wait = detail.longestWait %}
+        {% set own = detail.ownTime %}
+        {% set failedIndex = detail.failure ? detail.failure.index : null %}
+        <div class="strip summary-tiles" data-summary-strip>
+            {% include '_tile.html.twig' with {kind: 'total', summary: 'total', label: 'Total time', count: trace.durationLabel, noun: 'from the first step to the last', href: '#flame-graph'} only %}
+            {% include '_tile.html.twig' with {kind: 'queue-wait', summary: 'queueWait', label: 'Waiting in queues', count: wait ? wait.label : 'none', noun: wait ? 'the longest wait' : 'no queue wait recorded', detail: wait and wait.channel ? 'on ' ~ wait.channel : null, href: wait ? '#span-' ~ wait.index : '#flame-graph', concept: 'queue-wait'} only %}
+            {% if own %}{% include '_tile.html.twig' with {kind: 'own-time', summary: 'ownTime', label: 'Handling', count: own.label, noun: (own.failed ? 'in the failing handler ' : 'most time in ') ~ own.name, detail: own.failed ? own.service ~ ', until it threw' : own.service ~ ', not counting the steps it started', status: own.failed ? 'warning' : null, href: '#span-' ~ own.index} only %}{% endif %}
+            {% include '_tile.html.twig' with {kind: 'services', summary: 'services', label: 'Services in this trace', count: trace.services|length, noun: (trace.services|length == 1 ? 'service' : 'services') ~ ' ran a step · ' ~ trace.totalRows ~ (trace.totalRows == 1 ? ' step' : ' steps'), detail: detail.asked ? 'of ' ~ detail.asked ~ ' asked' : null, href: '#trace-answers'} only %}
+            {% include '_tile.html.twig' with {kind: 'failed', summary: 'failed', label: 'Failed', count: trace.failedCount, noun: trace.failedCount == 1 ? 'step failed' : 'steps failed', status: trace.failedCount ? 'warning' : 'ok', href: failedIndex is not null ? '#span-' ~ failedIndex : '#step-list'} only %}
         </div>
-        <p class="muted">Status <span class="pill {{ trace.status == 'failed' ? 'bad' : (trace.status == 'pending' ? 'wait' : 'ok') }}" data-trace-status="{{ trace.status }}">{{ trace.status }}</span> · started at (UTC) <span data-started-at>{{ trace.startedAt }}</span> · total duration <span data-total-duration>{{ trace.durationLabel }}</span></p>
-        {% if trace.firstFailure %}
-            {% set failure = trace.firstFailure %}
-            <div class="notice failure" data-failure-banner>
-                <b>{{ failure.service }} · {{ failure.name }}</b> failed{% if failure.error %}: {{ failure.error }}{% endif %}
-                —
-                {% if failure.deadLetter %}
-                    {% set deadLetterPath = path('dead_letter', {service: failure.deadLetter.service, messageId: failure.deadLetter.messageId}) %}
-                    <a data-dead-letter-link href="{{ deadLetterPath }}">open dead letter</a> · <a data-replay-dead-letter href="{{ deadLetterPath }}">replay</a> ·
-                {% endif %}
-                <a data-banner-graph href="{{ path('flow_graph', {trace: traceId}) }}">show on flow graph</a>
-            </div>
-        {% endif %}
-        {% if trace.pendingChannels %}
-            <div class="notice" data-pending-explainer>
-                <b>Pending is not the same as stuck.</b> {{ trace.pendingChannels|join(', ') }}: the step was sent to a queue and is not consumed yet. That is normal while a consumer is catching up.
-                If it stays pending, no consumer is running for the channel — start one with <code>ecotone:run {{ trace.pendingChannels|first }}</code>. A step that failed on its way shows as failed with its dead letter instead.
-            </div>
-        {% endif %}
+    {% endif %}
+
+    <p class="trace-related" data-trace-related>
+        <a href="{{ path('flow_graph', {trace: traceId}) }}" data-show-on-flow-graph>Show on flow graph</a>
+        {% if externalTrace %} · <a data-external-trace href="{{ externalTrace }}" target="_blank" rel="noopener">Open in tracing UI</a>{% endif %}
+        {% if root and detail.flowType %} · <a data-flow-type-traces href="{{ path('trace_list', {service: root.key, flowType: detail.flowType}) }}">Other traces of {{ detail.flowType }} in {{ root.service }}</a>{% endif %}
+    </p>
+
+    {% if trace.pendingChannels %}
+        <div class="notice" data-pending-explainer>
+            <b>Pending is not the same as stuck.</b> {{ trace.pendingChannels|join(', ') }}: the step was sent to a queue and is not consumed yet. That is normal while a consumer is catching up.
+            If it stays pending, no consumer is running for the channel — start one with <code>ecotone:run {{ trace.pendingChannels|first }}</code>. A step that failed on its way shows as failed with its failed message instead.
+        </div>
+    {% endif %}
+
+    {% embed '_section.html.twig' with {key: 'trace.answers', id: 'trace-answers', title: 'Services asked for this trace', summary: detail.answersSummary, status: detail.answersStatus, open: detail.answersOpen, states: states} only %}
+        {% block body %}
+            <ul class="service-states">
+                {% for state in states %}
+                    <li data-service-state="{{ state.service }}{{ state.tenant ? '@' ~ state.tenant : '' }}" data-state="{{ state.state }}">
+                        <strong>{{ state.service }}</strong>{% if state.tenant %} <span class="chip" data-tenant="{{ state.tenant }}">tenant {{ state.tenant }}</span>{% endif %}:
+                        {% if state.state == 'answered' %}answered{% if state.totalSpans %} ({{ state.totalSpans }} spans){% endif %}
+                        {% elseif state.state == 'waiting' %}pending, waiting for the answer…
+                        {% elseif state.state == 'refused' %}refused this query: {{ state.failure }}
+                        {% elseif state.state == 'not_answering' %}not answering for this query.{% if state.failure %} {{ state.failure }}{% endif %}
+                        {% elseif state.state == 'tracing_disabled' %}flow tracking not enabled, not asked
+                        {% else %}not asked, service is {{ state.status|lower }}
+                        {% endif %}
+                        {% if state.truncated %}<span class="drift" data-reply-truncated>only the first spans of {{ state.totalSpans }} were sent by {{ state.service }}.</span>{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endblock %}
+    {% endembed %}
+
+    {% if not trace.isEmpty %}
         {% if trace.omittedRows > 0 %}
             <p class="drift" data-rows-capped>Showing the first {{ trace.rows|length }} of {{ trace.totalRows }} steps; the rest are left out.</p>
         {% endif %}
-        {% set total = max(1, trace.totalMicro) %}
         <section class="card flame-card" id="flame-graph" data-flame data-timeline-total="{{ trace.totalMicro }}" aria-labelledby="flame-heading">
             <div class="flame-head">
                 <h2 id="flame-heading">Flame graph</h2>
@@ -71,24 +120,26 @@
                     <span class="muted" data-flame-range>Showing 0 – {{ trace.durationLabel }}. Drag across the graph to zoom to a range.</span>
                 </div>
             </div>
+            <p class="muted flame-intro">Each bar is one {% include '_concept.html.twig' with {term: 'span', text: 'step'} only %}, placed by when it started and how long it took; the steps it started are drawn below it.</p>
             <ul class="legend-items" data-flame-legend>
                 {% for item in flame.legend %}<li data-legend-service="{{ item.service }}"><span class="chip svc-{{ item.serviceIndex }}">{{ item.service }}</span></li>{% endfor %}
                 <li><span class="flame-swatch flame-wait-swatch"></span> queue wait</li>
                 <li><span class="flame-swatch flame-failed-swatch"></span> failed</li>
                 <li><span class="flame-swatch flame-pending-swatch"></span> pending</li>
+                {% if detail.firstHopIndex is not null %}<li>{% include '_concept.html.twig' with {term: 'hop', text: '⇢ hop'} only %}: a step in another service than the step that sent it</li>{% endif %}
             </ul>
-            {% if flame.skipped > 0 %}<p class="drift" data-flame-skipped>{{ flame.skipped }} step{{ flame.skipped == 1 ? ' has' : 's have' }} no valid time and appear only in the list view.</p>{% endif %}
+            {% if flame.skipped > 0 %}<p class="drift" data-flame-skipped>{{ flame.skipped }} step{{ flame.skipped == 1 ? ' has' : 's have' }} no valid time and appear only in the step list.</p>{% endif %}
             <div class="flame-layout">
                 <div class="flame-scroll">
                     <div class="flame-canvas">
                         <div class="flame-plot" data-flame-plot style="--lanes: {{ flame.laneCount }}">
                             <div class="flame-axis" aria-hidden="true">{% for tick in flame.ticks %}<span class="flame-tick" data-flame-tick style="left: {{ tick.left }}%">{{ tick.label }}</span>{% endfor %}</div>
-                            <div class="flame-lanes" role="group" aria-label="Spans of the trace by time and nesting">
+                            <div class="flame-lanes" role="group" aria-label="Steps of the trace by time and nesting">
                                 {% for bar in flame.bars %}
                                     {% set row = bar.row %}
                                     {% set label = row.service ~ ': ' ~ row.name ~ ', ' ~ row.offsetLabel ~ ', ' ~ row.durationLabel ~ ', ' ~ row.status %}
                                     {% if row.waitMicro > 0 %}<span class="flame-wait" data-flame-wait data-for="{{ bar.index }}" data-lane="{{ bar.lane }}" data-offset="{{ row.offsetMicro - row.waitMicro }}" data-duration="{{ row.waitMicro }}" title="queue wait {{ row.queueWaitLabel }}" style="--lane: {{ bar.lane }}; left: {{ bar.waitLeft }}%; width: {{ bar.waitWidth }}%"></span>{% endif %}
-                                    <a class="flame-bar svc-{{ row.serviceIndex % 8 }}{{ row.failed ? ' failed' : (row.pending ? ' pending' : '') }}" href="#span-{{ bar.index }}" data-flame-span data-index="{{ bar.index }}" data-lane="{{ bar.lane }}" data-service="{{ row.service }}" data-name="{{ row.name }}" data-service-colour="svc-{{ row.serviceIndex % 8 }}" data-offset="{{ row.offsetMicro }}" data-duration="{{ row.durationMicro }}"{% if row.hop %} data-hop{% endif %}{% if row.failed %} data-failed{% endif %}{% if row.pending %} data-pending{% endif %} title="{{ label }}" aria-label="{{ label }}" style="--lane: {{ bar.lane }}; left: {{ bar.left }}%; width: {{ bar.width }}%"><span>{{ row.name }}</span></a>
+                                    <a class="flame-bar svc-{{ row.serviceIndex % 8 }}{{ row.failed or row.failedWithin ? ' failed' : (row.pending ? ' pending' : '') }}" href="#span-{{ bar.index }}" data-flame-span data-index="{{ bar.index }}" data-lane="{{ bar.lane }}" data-service="{{ row.service }}" data-name="{{ row.name }}" data-service-colour="svc-{{ row.serviceIndex % 8 }}" data-offset="{{ row.offsetMicro }}" data-duration="{{ row.durationMicro }}"{% if row.hop %} data-hop{% endif %}{% if row.failed %} data-failed{% endif %}{% if row.failedWithin %} data-failed-within{% endif %}{% if row.pending %} data-pending{% endif %} title="{{ label }}" aria-label="{{ label }}" style="--lane: {{ bar.lane }}; left: {{ bar.left }}%; width: {{ bar.width }}%"><span>{{ row.name }}</span></a>
                                 {% endfor %}
                             </div>
                         </div>
@@ -96,92 +147,89 @@
                 </div>
                 <div class="flame-panels" data-flame-panels aria-live="polite">
                     <p class="muted flame-hint">Select a step in the graph to see its details here.</p>
-                    {% for bar in flame.bars %}
-                        {% set row = bar.row %}
-                        <section class="span-panel" id="span-{{ bar.index }}" data-span-panel="{{ bar.index }}" aria-label="Details of {{ row.name }}">
+                    {% for index, row in trace.rows %}
+                        <section class="span-panel" id="span-{{ index }}" data-span-panel="{{ index }}" aria-label="Details of {{ row.name }}">
                             <h3>{{ row.name }}</h3>
-                            <dl>
+                            <dl data-panel-facts>
                                 <dt>Service</dt><dd data-panel="service">{{ row.service|breakable }}</dd>
-                                <dt>Name</dt><dd data-panel="name">{{ row.name|breakable }}</dd>
-                                <dt>Kind</dt><dd data-panel="kind">{{ row.kind }}</dd>
-                                {% if row.endpoint %}<dt>Endpoint</dt><dd data-panel="endpoint">{{ row.endpoint|breakable }}</dd>{% endif %}
-                                {% if row.channel %}<dt>Channel</dt><dd data-panel="channel">{{ row.channel|breakable }}</dd>{% endif %}
-                                <dt>Started (UTC)</dt><dd data-panel="startedAt">{{ row.startedAt }}</dd>
-                                <dt>Offset</dt><dd data-panel="offset">{{ row.offsetLabel }}</dd>
-                                <dt>Duration</dt><dd data-panel="duration">{{ row.durationLabel }}</dd>
-                                {% if row.queueWaitLabel %}<dt>Queue wait</dt><dd data-panel="queueWait">{{ row.queueWaitLabel }}</dd>{% endif %}
                                 <dt>Status</dt><dd data-panel="status">{{ row.status }}</dd>
+                                <dt>Duration</dt><dd data-panel="duration">{{ row.durationLabel }}</dd>
+                                <dt>Into the flow</dt><dd data-panel="offset">{{ row.offsetLabel }}</dd>
+                                {% if row.queueWaitLabel %}<dt>Queue wait</dt><dd data-panel="queueWait">{{ row.queueWaitLabel }}</dd>{% endif %}
+                                {% if row.channel %}<dt>Channel</dt><dd data-panel="channel">{{ row.channel|breakable }}</dd>{% endif %}
+                                {% if row.endpoint %}<dt>Endpoint</dt><dd data-panel="endpoint">{{ row.endpoint|breakable }}</dd>{% endif %}
                                 {% if row.error %}<dt>Error</dt><dd data-panel="error">{{ row.error|breakable }}</dd>{% endif %}
-                                {% if row.messageId %}<dt>Message id</dt><dd data-panel="messageId">{{ row.messageId|breakable }}</dd>{% endif %}
+                                {% if row.failedWithin %}<dt>Failed</dt><dd data-panel="failedWithin">because a step it started failed</dd>{% endif %}
+                                {% if row.failedAttempt %}<dt>Attempt</dt><dd data-panel="failedAttempt">failed attempt, handed to the error channel</dd>{% endif %}
                             </dl>
                             <p class="flame-links">
-                                {% if row.deadLetter %}<a data-panel-dead-letter href="{{ path('dead_letter', {service: row.deadLetter.service, messageId: row.deadLetter.messageId}) }}">Dead letter</a> · {% endif %}
+                                {% if row.deadLetter %}<a data-panel-dead-letter href="{{ path('dead_letter', {service: row.deadLetter.service, messageId: row.deadLetter.messageId}) }}">Open the failed message</a> · {% endif %}
                                 <a data-panel-flow-graph href="{{ path('flow_graph', {trace: traceId}) }}">Flow graph</a> ·
-                                <a data-panel-service-traces href="{{ path('traces') }}">Traces of {{ row.service }}</a> ·
+                                <a data-panel-service-traces href="{{ path('traces', {service: row.service}) }}">Traces of {{ row.service }}</a> ·
                                 <a href="#flame-graph">Back to the graph</a>
                             </p>
-                            {% if row.attributes %}
-                                <h4>Attributes</h4>
-                                <table data-panel-attributes>{% for name, value in row.attributes %}<tr><th scope="row">{{ name|breakable }}</th><td>{{ (value is iterable ? value|json_encode : value)|breakable }}</td></tr>{% endfor %}</table>
-                            {% endif %}
-                            {% if row.events %}
-                                <h4>Events</h4>
-                                <div data-panel-events>
-                                {% for event in row.events %}
-                                    <p><strong>{{ event.name }}</strong> {{ event.at ?? '' }}</p>
-                                    <table>{% for name, value in event.attributes ?? [] %}<tr><th scope="row">{{ name|breakable }}</th><td>{{ (value is iterable ? value|json_encode : value)|breakable }}</td></tr>{% endfor %}</table>
-                                {% endfor %}
-                                </div>
-                            {% endif %}
+                            <details class="span-more" data-panel-more data-disclosure="trace.step-more">
+                                <summary>More about this step <span class="summary-state" data-summary-state>{{ row.attributes|length }} {{ row.attributes|length == 1 ? 'attribute' : 'attributes' }} · {{ row.events|length }} {{ row.events|length == 1 ? 'event' : 'events' }}</span></summary>
+                                <dl>
+                                    <dt>Name</dt><dd data-panel="name">{{ row.name|breakable }}</dd>
+                                    <dt>Kind</dt><dd data-panel="kind">{{ row.kind }}</dd>
+                                    <dt>Started (UTC)</dt><dd data-panel="startedAt">{{ row.startedAt }}</dd>
+                                    {% if row.messageId %}<dt>Message id</dt><dd data-panel="messageId">{{ row.messageId|breakable }}</dd>{% endif %}
+                                </dl>
+                                {% if row.attributes %}
+                                    <h4>Attributes</h4>
+                                    <table data-panel-attributes>{% for name, value in row.attributes %}<tr><th scope="row">{{ name|breakable }}</th><td>{{ (value is iterable ? value|json_encode : value)|breakable }}</td></tr>{% endfor %}</table>
+                                {% endif %}
+                                {% if row.events %}
+                                    <h4>Events</h4>
+                                    <div data-panel-events>
+                                    {% for event in row.events %}
+                                        <p><strong>{{ event.name }}</strong> {{ event.at ?? '' }}</p>
+                                        <table>{% for name, value in event.attributes ?? [] %}<tr><th scope="row">{{ name|breakable }}</th><td>{{ (value is iterable ? value|json_encode : value)|breakable }}</td></tr>{% endfor %}</table>
+                                    {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </details>
                         </section>
                     {% endfor %}
                 </div>
             </div>
         </section>
-        <section data-list-view aria-labelledby="list-heading">
-        <h2 id="list-heading">List view</h2>
-        <div class="card flush waterfall-card" data-waterfall>
-        <table class="waterfall" data-timeline-total="{{ trace.totalMicro }}">
-            <thead><tr><th>Service</th><th>Step</th><th class="hide-narrow">Endpoint</th><th class="detail-col">Kind</th><th class="detail-col">Started (UTC)</th><th class="num">Offset</th><th class="num">Queue wait</th><th class="num">Duration</th><th class="timeline-head">Timeline (0 – {{ trace.durationLabel }})</th><th>Status</th><th>Error</th></tr></thead>
-            <tbody>
-            {% for row in trace.rows %}
-                {% if row.runSize %}
-                <tr data-collapsed-summary="{{ row.run }}" class="collapsed-summary"><td colspan="11"><button type="button" class="link" data-toggle-run="{{ row.run }}" aria-expanded="false">{{ row.service }} · {{ row.runSize }} send/receive step{{ row.runSize == 1 ? '' : 's' }}</button></td></tr>
-                {% endif %}
-                <tr data-span data-service="{{ row.service }}" data-depth="{{ row.depth }}"{% if row.hop %} data-hop{% endif %}{% if row.pending %} data-pending{% endif %}{% if row.failed %} data-failed{% endif %}{% if row.boilerplate %} data-boilerplate data-run="{{ row.run }}"{% endif %} class="status-{{ row.status }}">
-                    <td data-column="service"><span class="chip svc-{{ row.serviceIndex % 8 }}">{{ row.service }}</span>{% if row.hop %} <span class="muted">⇢ hop</span>{% endif %}</td>
-                    <td data-column="name" style="padding-left: {{ 0.5 + row.depth * 1.2 }}em">{{ row.name|breakable }}{% if row.timeInvalid %} <span class="drift" data-time-invalid>time is missing or invalid, shown at the start of the trace</span>{% endif %}</td>
-                    <td data-column="endpoint" class="hide-narrow">{{ row.endpoint|breakable }}</td>
-                    <td data-column="kind" class="detail-col">{{ row.kind }}</td>
-                    <td data-column="startedAt" class="detail-col">{{ row.startedAt }}</td>
-                    <td data-column="offset" class="num">{{ row.offsetLabel }}</td>
-                    <td data-column="queueWait" class="num{% if row.clockSkew %} drift{% endif %}"{% if row.clockSkew %} data-clock-skew{% endif %}>{{ row.queueWaitLabel }}</td>
-                    <td data-column="duration" class="num">{{ row.durationLabel }}</td>
-                    <td data-column="timeline" class="timeline"><div class="track">
-                        {% if row.waitMicro > 0 %}<span class="wait-bar" data-wait-bar title="queue wait {{ row.queueWaitLabel }}" style="left: {{ ((row.offsetMicro - row.waitMicro) / total * 100)|round(3) }}%; width: {{ (row.waitMicro / total * 100)|round(3) }}%"></span>{% endif %}
-                        {% set barWidth = max(0.8, (row.durationMicro / total * 100)|round(3)) %}{% set barLeft = min((row.offsetMicro / total * 100)|round(3), 100 - barWidth) %}
-                        {% if not row.timeInvalid %}<span class="bar {{ row.failed ? 'failed' : (row.pending ? 'pending' : 'svc-' ~ (row.serviceIndex % 8)) }}" data-bar data-offset="{{ row.offsetMicro }}" data-duration="{{ row.durationMicro }}" data-service-colour="svc-{{ row.serviceIndex % 8 }}" style="left: {{ barLeft }}%; width: {{ barWidth }}%"></span>{% endif %}
-                    </div></td>
-                    <td data-column="status">{{ row.status }}</td>
-                    <td data-column="error">{{ row.error|breakable }}{% if row.deadLetter %} <a data-dead-letter-link href="{{ path('dead_letter', {service: row.deadLetter.service, messageId: row.deadLetter.messageId}) }}">dead letter</a>{% endif %}</td>
-                </tr>
-                {% if row.attributes or row.events %}
-                <tr data-span-details{% if row.boilerplate %} data-boilerplate data-run="{{ row.run }}"{% endif %}><td colspan="11">
-                    <details><summary>Attributes and events</summary>
-                        <table>
-                            {% for name, value in row.attributes %}<tr><th>{{ name }}</th><td>{{ value is iterable ? value|json_encode : value }}</td></tr>{% endfor %}
-                        </table>
-                        {% for event in row.events %}
-                            <p><strong>{{ event.name }}</strong> {{ event.at }}</p>
-                            <table>{% for name, value in event.attributes %}<tr><th>{{ name }}</th><td>{{ value is iterable ? value|json_encode : value }}</td></tr>{% endfor %}</table>
-                        {% endfor %}
-                    </details>
-                </td></tr>
-                {% endif %}
-            {% endfor %}
-            </tbody>
-        </table>
-        </div>
-        </section>
+
+        {% embed '_section.html.twig' with {key: 'trace.step-list', id: 'step-list', hook: 'list-view', title: 'Step list', summary: trace.totalRows ~ (trace.totalRows == 1 ? ' step' : ' steps') ~ ' · ' ~ trace.failedCount ~ ' failed', status: trace.failedCount ? 'warning' : 'ok', open: false, trace: trace} only %}
+            {% block body %}
+                {% set total = max(1, trace.totalMicro) %}
+                <p class="step-list-tools"><label><input type="checkbox" data-more-columns> Show kind and start time (UTC)</label></p>
+                <div class="card flush waterfall-card" data-waterfall>
+                <table class="waterfall" data-timeline-total="{{ trace.totalMicro }}">
+                    <thead><tr><th>Service</th><th>Step</th><th class="hide-narrow">Endpoint</th><th class="detail-col">Kind</th><th class="detail-col">Started (UTC)</th><th class="num">Offset</th><th class="num">Queue wait</th><th class="num">Duration</th><th class="timeline-head">Timeline (0 – {{ trace.durationLabel }})</th><th>Status</th><th>Error</th></tr></thead>
+                    <tbody>
+                    {% for index, row in trace.rows %}
+                        {% if row.runSize %}
+                        <tr data-collapsed-summary="{{ row.run }}" class="collapsed-summary"><td colspan="11"><button type="button" class="link" data-toggle-run="{{ row.run }}" aria-expanded="false">{{ row.service }} · {{ row.runSize }} send/receive step{{ row.runSize == 1 ? '' : 's' }}</button></td></tr>
+                        {% endif %}
+                        <tr data-span data-service="{{ row.service }}" data-depth="{{ row.depth }}"{% if row.hop %} data-hop{% endif %}{% if row.pending %} data-pending{% endif %}{% if row.failed %} data-failed{% endif %}{% if row.failedWithin %} data-failed-within{% endif %}{% if row.boilerplate %} data-boilerplate data-run="{{ row.run }}"{% endif %} class="status-{{ row.status }}">
+                            <td data-column="service"><span class="chip svc-{{ row.serviceIndex % 8 }}">{{ row.service }}</span>{% if row.hop %} <span class="muted">⇢ hop</span>{% endif %}</td>
+                            <td data-column="name" style="padding-left: {{ 0.5 + row.depth * 1.2 }}em"><a href="#span-{{ index }}" data-step-link>{{ row.name|breakable }}</a>{% if row.timeInvalid %} <span class="drift" data-time-invalid>time is missing or invalid, shown at the start of the trace</span>{% endif %}</td>
+                            <td data-column="endpoint" class="hide-narrow">{{ row.endpoint|breakable }}</td>
+                            <td data-column="kind" class="detail-col">{{ row.kind }}</td>
+                            <td data-column="startedAt" class="detail-col">{{ row.startedAt }}</td>
+                            <td data-column="offset" class="num">{{ row.offsetLabel }}</td>
+                            <td data-column="queueWait" class="num{% if row.clockSkew %} drift{% endif %}"{% if row.clockSkew %} data-clock-skew{% endif %}>{{ row.queueWaitLabel }}</td>
+                            <td data-column="duration" class="num">{{ row.durationLabel }}</td>
+                            <td data-column="timeline" class="timeline"><div class="track">
+                                {% if row.waitMicro > 0 %}<span class="wait-bar" data-wait-bar title="queue wait {{ row.queueWaitLabel }}" style="left: {{ ((row.offsetMicro - row.waitMicro) / total * 100)|round(3) }}%; width: {{ (row.waitMicro / total * 100)|round(3) }}%"></span>{% endif %}
+                                {% set barWidth = max(0.8, (row.durationMicro / total * 100)|round(3)) %}{% set barLeft = min((row.offsetMicro / total * 100)|round(3), 100 - barWidth) %}
+                                {% if not row.timeInvalid %}<span class="bar {{ row.failed or row.failedWithin ? 'failed' : (row.pending ? 'pending' : 'svc-' ~ (row.serviceIndex % 8)) }}" data-bar data-offset="{{ row.offsetMicro }}" data-duration="{{ row.durationMicro }}" data-service-colour="svc-{{ row.serviceIndex % 8 }}" style="left: {{ barLeft }}%; width: {{ barWidth }}%"></span>{% endif %}
+                            </div></td>
+                            <td data-column="status">{{ row.status }}</td>
+                            <td data-column="error">{{ row.error|breakable }}{% if row.failedWithin %}<span class="muted">a step it started failed</span>{% endif %}{% if row.deadLetter %} <a data-dead-letter-link href="{{ path('dead_letter', {service: row.deadLetter.service, messageId: row.deadLetter.messageId}) }}">failed message</a>{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            {% endblock %}
+        {% endembed %}
     {% endif %}
 {% endblock %}

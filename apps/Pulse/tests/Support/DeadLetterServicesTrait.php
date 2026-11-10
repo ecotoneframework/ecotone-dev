@@ -17,7 +17,9 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Test\LicenceTesting;
 use LogicException;
 use RuntimeException;
@@ -139,6 +141,12 @@ trait DeadLetterServicesTrait
     private function failOrder(FlowTestSupport $service, string $routingKey, int $orderId): void
     {
         $service->sendCommandWithRouting($routingKey, ['orderId' => $orderId]);
+        $service->run(self::WORK_CHANNEL, ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+    }
+
+    private function failOrderInTrace(FlowTestSupport $service, string $routingKey, int $orderId, string $traceId): void
+    {
+        $service->sendCommandWithRouting($routingKey, ['orderId' => $orderId], metadata: [MessageHeaders::TRACEPARENT => (new SpanContext($traceId, 'aaaaaaaaaaaaaaaa'))->toTraceparent()]);
         $service->run(self::WORK_CHANNEL, ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
     }
 

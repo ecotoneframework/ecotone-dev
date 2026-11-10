@@ -79,7 +79,7 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         self::assertStringContainsString('Click a node to follow it: only what led to it and everything it causes stays drawn.', $client->request('GET', '/flow?view=detail')->filter('.graph-view')->text());
         $focused = $this->follow($client, $client->request('GET', '/flow'), 'billing', '::create');
         self::assertStringContainsString('Only what led to it and what it causes, as far as the services report it, is drawn: a send whose routing key is computed at runtime reaches the service it is sent to, but not the message there.', $focused->filter('[data-focus]')->text());
-        self::assertSame('What led here starts at the step farthest from class@anonymous::create; what happens next starts at the step right after it. Both are ordered by distance, so steps of different branches at the same distance sit next to each other rather than in the order they run.', $focused->filter('[data-focus-steps] [data-focus-order]')->text());
+        self::assertSame('Both lists are ordered by distance from class@anonymous::create, nearest last before it and nearest first after it; parallel branches at the same distance sit together, not in the order they run.', $focused->filter('[data-focus-steps] [data-focus-order]')->text());
     }
 
     public function test_only_the_followed_node_is_marked_as_the_current_one_for_assistive_technology(): void

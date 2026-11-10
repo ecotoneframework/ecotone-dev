@@ -30,5 +30,17 @@
             <p>Follow every message of a flow across both services, over the Distributed Bus.</p>
             <a class="button button-secondary" href="{{ jaegerUrl }}">Jaeger {{ icons.icon('arrow') }}</a>
         </section>
+        <section class="card link-card">
+            <span class="link-card-icon">{{ icons.icon('database') }}</span>
+            <h2>Database</h2>
+            <p>Look under the hood, read-only: the event stream with every seat held and sold, the projections built from it, the dead letters and the outbox. Switch to the storefront database from the database list.</p>
+            <a class="button button-secondary" href="{{ demo_database_url }}">Browse the databases {{ icons.icon('arrow') }}</a>
+        </section>
+        <section class="card link-card">
+            <span class="link-card-icon">{{ icons.icon('logo') }}</span>
+            <h2>Storefront</h2>
+            <p>The Laravel shop where customers pick seats and pay, asking this service over the Distributed Bus.</p>
+            <a class="button button-secondary" href="{{ demo_storefront_url }}">Open the storefront {{ icons.icon('arrow') }}</a>
+        </section>
     </div>
 {% endblock %}

@@ -48,6 +48,9 @@ final class TraceLedger
         $sentDeliveries = [];
         $processedDeliveries = [];
         foreach ($spans as $span) {
+            if ($span->attributes[SpanAttribute::TRACE_FAILED_ATTEMPT] ?? false) {
+                continue;
+            }
             if (isset($span->attributes[MessageHeaders::MESSAGE_ID], $span->attributes[MessageHeaders::PARENT_MESSAGE_ID])) {
                 $causedBy[(string) $span->attributes[MessageHeaders::MESSAGE_ID]] = (string) $span->attributes[MessageHeaders::PARENT_MESSAGE_ID];
             }

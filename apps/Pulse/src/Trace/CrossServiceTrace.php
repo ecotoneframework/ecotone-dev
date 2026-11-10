@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Trace;
 
 use DateTimeImmutable;
+use Ecotone\Api\Tracing\SpanAttribute;
 use Exception;
 
 final readonly class CrossServiceTrace
@@ -106,7 +107,7 @@ final readonly class CrossServiceTrace
         };
 
         $services = array_values(array_unique(array_column($rows, 'service')));
-        $rows = self::collapsible($rows, $services);
+        $rows = self::collapsible(self::withFailuresAtTheirDeepestStep($rows), $services);
         $failures = array_values(array_filter($rows, fn (array $row): bool => $row['failed']));
         $waits = array_filter($rows, fn (array $row): bool => $row['waitMicro'] > 0);
         usort($waits, fn (array $first, array $second): int => $second['waitMicro'] <=> $first['waitMicro']);
@@ -125,6 +126,47 @@ final readonly class CrossServiceTrace
             $failures[0] ?? null,
             $pendingChannels,
         );
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private static function withFailuresAtTheirDeepestStep(array $rows): array
+    {
+        $failedAncestorsOf = [];
+        $path = [];
+        foreach ($rows as $index => $row) {
+            $path = array_slice($path, 0, $row['depth']);
+            $failedAncestorsOf[$index] = array_values(array_filter($path, static fn (int $ancestor): bool => $rows[$ancestor]['failed']));
+            $path[] = $index;
+        }
+        foreach ($rows as $index => $row) {
+            if (! $row['failed'] || $failedAncestorsOf[$index] === []) {
+                continue;
+            }
+            foreach (array_reverse($failedAncestorsOf[$index]) as $ancestor) {
+                $rows[$index]['deadLetter'] ??= $rows[$ancestor]['deadLetter'];
+                $rows[$index]['takenFrom'] ??= $rows[$ancestor]['takenFrom'];
+            }
+            $rows[$index]['error'] = self::errorOf($row['span'], $rows[$index]['deadLetter']);
+        }
+        $enclosingFailures = [];
+        foreach ($rows as $index => $row) {
+            if ($row['failed']) {
+                array_push($enclosingFailures, ...$failedAncestorsOf[$index]);
+            }
+        }
+        $enclosingFailures = array_unique($enclosingFailures);
+        foreach ($enclosingFailures as $ancestor) {
+            $rows[$ancestor] = [...$rows[$ancestor], 'failed' => false, 'failedWithin' => true, 'deadLetter' => null, 'error' => ''];
+        }
+
+        return array_map(static function (array $row): array {
+            unset($row['span']);
+
+            return $row;
+        }, $rows);
     }
 
     /**
@@ -236,7 +278,8 @@ final readonly class CrossServiceTrace
      */
     private static function rowOf(array $span, int $depth, ?array $parent, array $children, int $flowStart, array $deadLettersByService): array
     {
-        $attributes = $span['attributes'];
+        $failedAttempt = ($span['attributes'][SpanAttribute::TRACE_FAILED_ATTEMPT] ?? false) === true;
+        $attributes = array_diff_key($span['attributes'], [SpanAttribute::TRACE_FAILED_ATTEMPT => true]);
         $messageId = is_scalar($attributes[self::MESSAGE_ID] ?? null) ? (string) $attributes[self::MESSAGE_ID] : null;
         $isChannelSend = $span['kind'] === 'producer' && isset($attributes[self::CHANNEL]);
         $consumed = $isChannelSend && array_filter($children, fn (array $child): bool => $child['kind'] === 'consumer') !== [];
@@ -280,6 +323,10 @@ final readonly class CrossServiceTrace
             'messageId' => $messageId,
             'attributes' => $attributes,
             'events' => $span['events'],
+            'failedAttempt' => $failedAttempt,
+            'failedWithin' => false,
+            'takenFrom' => $span['kind'] === 'consumer' && is_scalar($attributes[self::CHANNEL] ?? null) ? (string) $attributes[self::CHANNEL] : null,
+            'span' => $span,
         ];
     }
 

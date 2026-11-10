@@ -38,12 +38,12 @@ final class CatalogueAggregatesTest extends ReleasingWebTestCase
         $group = $crawler->filter('[data-group="aggregate"][data-service="orders"][data-aggregate="CatalogueBasket"]');
         self::assertCount(1, $group);
         self::assertCount(1, $group->filter('[data-message="basket.add"]'));
-        self::assertStringContainsString('command', $group->filter('[data-message="basket.add"]')->text());
+        self::assertSame('command', $group->filter('[data-message="basket.add"]')->attr('data-kind'));
         self::assertStringContainsString('async on basket_work', $group->filter('[data-message="basket.add"]')->text());
         self::assertCount(1, self::message($group, CatalogueItemAdded::class));
-        self::assertStringContainsString('event', self::message($group, CatalogueItemAdded::class)->text());
+        self::assertSame('event', self::message($group, CatalogueItemAdded::class)->attr('data-kind'));
         self::assertCount(1, $group->filter('[data-message="basket.items"]'));
-        self::assertStringContainsString('query', $group->filter('[data-message="basket.items"]')->text());
+        self::assertSame('query', $group->filter('[data-message="basket.items"]')->attr('data-kind'));
     }
 
     public function test_event_sourced_aggregate_groups_its_commands_returned_and_applied_events(): void

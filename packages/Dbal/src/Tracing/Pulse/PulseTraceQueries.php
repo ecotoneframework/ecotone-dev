@@ -81,6 +81,7 @@ final class PulseTraceQueries
             'total' => $tracePage->total,
             'traces' => array_map(fn (TraceSummary $trace): array => [
                 'traceId' => $trace->traceId,
+                'entrySpanId' => $trace->entrySpanId,
                 'startedAt' => PulseTime::format($trace->startedAtInMicroseconds),
                 'durationMs' => $trace->durationMs,
                 'status' => $trace->status,

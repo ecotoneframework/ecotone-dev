@@ -17,7 +17,7 @@ final class ChannelDepthTest extends ReleasingWebTestCase
 {
     use PulseServicesTrait;
 
-    public function test_the_hub_lists_every_channel_with_its_depth_and_a_level_against_the_thresholds(): void
+    public function test_the_channels_view_lists_every_channel_with_its_depth_and_a_level_against_the_thresholds(): void
     {
         $this->configurePulseWithServices('orders');
         $this->configurePulse([
@@ -27,7 +27,7 @@ final class ChannelDepthTest extends ReleasingWebTestCase
         ]);
         $client = $this->clientAnswering($this->channels());
 
-        $crawler = $client->request('GET', '/services/orders');
+        $crawler = $client->request('GET', '/services/orders/channels');
 
         $rows = [];
         foreach (['invoices', 'emails', 'bulk', 'small'] as $channel) {
@@ -42,7 +42,7 @@ final class ChannelDepthTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders');
         $client = $this->clientAnswering($this->channels());
 
-        $crawler = $client->request('GET', '/services/orders');
+        $crawler = $client->request('GET', '/services/orders/channels');
 
         self::assertSame('2', $crawler->filter('tr[data-channel="invoices"] [data-consumers]')->text());
         self::assertSame('7 in flight', $crawler->filter('tr[data-channel="emails"] [data-consumers]')->text());
@@ -55,7 +55,7 @@ final class ChannelDepthTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders');
         $client = $this->clientAnswering($this->channels());
 
-        $crawler = $client->request('GET', '/services/orders');
+        $crawler = $client->request('GET', '/services/orders/channels');
 
         $row = $crawler->filter('tr[data-channel="ghost"]');
         self::assertStringContainsString("queue 'ghost' does not exist", $row->filter('[data-probe-error]')->text());
@@ -71,7 +71,7 @@ final class ChannelDepthTest extends ReleasingWebTestCase
 
         $badge = $crawler->filter('tr[data-service="orders"] [data-channels-over]');
         self::assertSame('2', $badge->text());
-        self::assertSame('/services/orders#channels', $badge->filter('a')->attr('href'));
+        self::assertSame('/services/orders/channels', $badge->filter('a')->attr('href'));
     }
 
     public function test_a_service_with_no_channel_over_a_threshold_shows_none_over(): void
@@ -81,7 +81,8 @@ final class ChannelDepthTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/services');
 
-        self::assertSame('0', $crawler->filter('tr[data-service="orders"] [data-channels-over]')->text());
+        self::assertCount(0, $crawler->filter('tr[data-service="orders"] [data-channels-over]'));
+        self::assertSame('1 channel · none stuck', trim((string) preg_replace('/\s+/', ' ', $crawler->filter('tr[data-service="orders"] td[data-column="channels"]')->text())));
     }
 
     public function test_the_doctor_lists_the_effective_thresholds(): void

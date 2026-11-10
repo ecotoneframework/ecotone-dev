@@ -3,7 +3,7 @@
 
 FROM dunglas/frankenphp:1-php8.5-bookworm
 
-RUN install-php-extensions amqp pdo_pgsql pdo_sqlite sockets intl zip pcntl opcache rdkafka redis
+RUN install-php-extensions amqp pdo_pgsql pdo_sqlite sockets intl zip pcntl opcache rdkafka redis opentelemetry
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 

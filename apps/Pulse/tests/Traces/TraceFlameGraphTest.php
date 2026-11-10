@@ -97,6 +97,8 @@ final class TraceFlameGraphTest extends ReleasingWebTestCase
         $pending = $this->traceView($client, self::PENDING);
 
         self::assertCount(1, $failed->filter('[data-flame-span][data-failed]'));
+        self::assertStringContainsString('process class@anonymous::explode', $failed->filter('[data-flame-span][data-failed]')->attr('data-name'));
+        self::assertCount(1, $failed->filter('[data-flame-span][data-failed-within]'));
         self::assertCount(0, $failed->filter('[data-flame-span][data-pending]'));
         self::assertCount(1, $pending->filter('[data-flame-span][data-pending]'));
     }
@@ -121,7 +123,7 @@ final class TraceFlameGraphTest extends ReleasingWebTestCase
         self::assertSame('ok', $panel->filter('[data-panel="status"]')->text());
         self::assertGreaterThan(0, $panel->filter('[data-panel-attributes] tr')->count());
         self::assertStringContainsString('ecotone.endpoint.id', $panel->filter('[data-panel-attributes]')->text());
-        self::assertSame('/traces', $panel->filter('a[data-panel-service-traces]')->attr('href'));
+        self::assertSame('/traces?service=orders', $panel->filter('a[data-panel-service-traces]')->attr('href'));
         self::assertStringStartsWith('/flow?trace=' . self::INVOICED, $panel->filter('a[data-panel-flow-graph]')->attr('href'));
     }
 
@@ -138,6 +140,17 @@ final class TraceFlameGraphTest extends ReleasingWebTestCase
         $detail = $client->click($panel->filter('a[data-panel-dead-letter]')->link());
         self::assertResponseIsSuccessful();
         self::assertSame('order.explode', $detail->filter('[data-detail="messageName"]')->text());
+    }
+
+    public function test_the_steps_of_a_failed_attempt_are_marked_as_such_without_listing_an_internal_attribute(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $crawler = $this->traceView($client, self::EXPLODED);
+
+        $panel = $crawler->filter($crawler->filter('[data-flame-span][data-failed]')->attr('href'));
+        self::assertSame('failed attempt, handed to the error channel', $panel->filter('[data-panel="failedAttempt"]')->text());
+        self::assertStringNotContainsString('ecotone.trace.failed_attempt', $client->getResponse()->getContent());
     }
 
     public function test_span_data_is_escaped_in_bars_tooltips_and_panels(): void

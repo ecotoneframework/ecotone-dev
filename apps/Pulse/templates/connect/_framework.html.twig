@@ -1,0 +1,15 @@
+{% macro code(framework, hook, label, content) %}
+    <div class="snippet-code">
+        <pre class="mono" id="snippet-{{ framework }}-{{ hook }}" data-{{ hook }}>{{ content }}</pre>
+        <button type="button" class="copy" data-copy="#snippet-{{ framework }}-{{ hook }}" hidden>Copy {{ label }}</button>
+    </div>
+{% endmacro %}
+{% set parts = ['the class']|merge(snippet.bootstrap ? ['the bootstrap'] : [])|merge(snippet.wiring ? ['the licence key'] : [])|merge(['the consumer']) %}
+<details class="card snippet" data-snippet="{{ framework }}"{% if open %} open{% endif %}>
+    <summary><b>{{ snippet.title }}</b> <span class="summary-state">{{ parts|length }} snippets: {{ parts|slice(0, -1)|join(', ') }} and {{ parts|last }}</span></summary>
+    <p class="muted" data-location>Put the class in {{ snippet.location }}.</p>
+    {{ _self.code(framework, 'php', 'the class', snippet.php) }}
+    {% if snippet.bootstrap %}<p class="muted">Boot it with the licence key:</p>{{ _self.code(framework, 'bootstrap', 'the bootstrap', snippet.bootstrap) }}{% endif %}
+    {% if snippet.wiring %}<p class="muted">Licence key:</p>{{ _self.code(framework, 'wiring', 'the licence key', snippet.wiring) }}{% endif %}
+    <p class="muted">Consume the request channel, in a process that keeps running:</p>{{ _self.code(framework, 'consumer', 'the command', snippet.consumer) }}
+</details>

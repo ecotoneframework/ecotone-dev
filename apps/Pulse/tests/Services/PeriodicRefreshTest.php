@@ -46,7 +46,7 @@ final class PeriodicRefreshTest extends ReleasingWebTestCase
         $this->runService($orders, 'orders');
 
         self::assertSame('connected', $this->serviceStatusOf($crawler, 'orders'));
-        self::assertSame('15s', $crawler->filter('[data-service="orders"] [data-age]')->text());
+        self::assertSame('15 s', $crawler->filter('[data-service="orders"] [data-age]')->text());
         self::assertSame(1, $handler->requests);
     }
 
@@ -93,7 +93,7 @@ final class PeriodicRefreshTest extends ReleasingWebTestCase
         $this->runPulseWorker($client->getKernel());
 
         self::assertSame(2, $handler->requests);
-        self::assertSame('0s', $client->request('GET', '/services')->filter('[data-service="orders"] [data-age]')->text());
+        self::assertSame('0 s', $client->request('GET', '/services')->filter('[data-service="orders"] [data-age]')->text());
     }
 
     public function test_a_service_that_never_answers_a_tick_becomes_unreachable_after_the_reply_timeout(): void
@@ -129,7 +129,7 @@ final class PeriodicRefreshTest extends ReleasingWebTestCase
 
         self::assertSame('unreachable', $this->serviceStatusOf($crawler, 'orders'));
         self::assertStringContainsString('Unreachable — retrying', $crawler->filter('[data-service="orders"] [data-status]')->text());
-        self::assertSame('45s', $crawler->filter('[data-service="orders"] [data-age]')->text());
+        self::assertSame('45 s', $crawler->filter('[data-service="orders"] [data-age]')->text());
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
         self::assertSame('connected', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));

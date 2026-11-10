@@ -13,6 +13,7 @@ use App\Catalogue\Tier;
 use DateTimeImmutable;
 use DateTimeZone;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Modelling\AggregateNotFoundException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -26,6 +27,7 @@ final class ConcertsController extends AbstractController
     public function __construct(
         private readonly CommandBus $commandBus,
         private readonly QueryBus $queryBus,
+        private readonly EcotoneClockInterface $clock,
     ) {
     }
 
@@ -45,9 +47,13 @@ final class ConcertsController extends AbstractController
     public function schedule(Request $request): Response
     {
         $artist = trim($request->request->getString('artist'));
+        $onSaleRightAway = $request->request->getBoolean('onSaleRightAway');
         $startsAt = DateTimeImmutable::createFromFormat('!Y-m-d\TH:i', $request->request->getString('startsAt'), new DateTimeZone('UTC'));
+        if ($startsAt === false && $onSaleRightAway && $request->request->getString('startsAt') === '') {
+            $startsAt = DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone(new DateTimeZone('UTC'))->setTime(20, 0)->modify('+30 days');
+        }
         if ($startsAt === false) {
-            return $this->concertsPage(sprintf('The concert of %s needs a start time, as a date and a time. Pick both in the "Starts at" field and schedule it again.', $artist));
+            return $this->concertsPage(sprintf('The concert of %s needs a start time, as a date and a time. Pick both in the "Starts at" field, or tick "Put on sale right away" to start it in 30 days, and schedule it again.', $artist));
         }
 
         try {
@@ -59,11 +65,14 @@ final class ConcertsController extends AbstractController
                 vipPriceCents: $request->request->getInt('vipPriceCents'),
                 currency: $request->request->getString('currency'),
             ));
+            if ($onSaleRightAway) {
+                $this->commandBus->send(new OpenSales($concertId));
+            }
         } catch (CatalogueRefusal $refusal) {
             return $this->concertsPage($refusal->getMessage());
         }
 
-        $this->addFlash('notice', sprintf('%s is scheduled.', $artist));
+        $this->addFlash('notice', sprintf($onSaleRightAway ? '%s is on sale.' : '%s is scheduled.', $artist));
 
         return $this->redirectToRoute('admin_concerts', ['_fragment' => $concertId]);
     }

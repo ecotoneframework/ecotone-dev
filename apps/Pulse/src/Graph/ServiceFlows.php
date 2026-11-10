@@ -43,7 +43,7 @@ final readonly class ServiceFlows
             }
             $flows[] = $flow;
             if ($flow->isStale()) {
-                $notices[] = ['kind' => 'stale', 'message' => "{$snapshot->service}: stale, showing the last snapshot from {$snapshot->ageSeconds}s ago because the service is {$snapshot->status->value}."];
+                $notices[] = ['kind' => 'stale', 'message' => "{$snapshot->service}: stale, showing the last snapshot from {$snapshot->ageSeconds} s ago because the service is {$snapshot->status->value}."];
             }
         }
 

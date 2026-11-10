@@ -81,6 +81,34 @@ final class TraceRobustnessTest extends ReleasingWebTestCase
         self::assertCount(1, $crawler->filter('[data-clock-skew]'));
     }
 
+    public function test_a_failed_message_of_a_service_that_stored_no_step_of_the_failed_attempt_marks_its_send_failed(): void
+    {
+        $send = ['spanId' => 'abababababab0001', 'parentSpanId' => null, 'name' => 'send q', 'kind' => 'producer', 'status' => 'ok', 'statusDescription' => null, 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'endedAt' => '2026-10-20T12:00:00.010000+00:00', 'attributes' => ['ecotone.channel.name' => 'q', 'id' => 'message-1'], 'events' => []];
+        $deadLetter = ['messageId' => 'message-1', 'messageName' => 'order.place', 'exceptionClass' => 'App\\PaymentFailed', 'exceptionMessage' => 'card declined', 'failedAt' => '2026-10-20T12:00:01+00:00'];
+        $client = $this->pulseWithFakeService([$send], truncated: false, deadLetters: [$deadLetter]);
+
+        $crawler = $this->traceView($client);
+
+        $failed = $crawler->filter('[data-span][data-failed]');
+        self::assertCount(1, $failed);
+        self::assertSame('send q', trim($failed->filter('[data-column="name"]')->text()));
+        self::assertStringContainsString('PaymentFailed: card declined', $failed->filter('[data-column="error"]')->text());
+        self::assertStringStartsWith('Failed in orders at step send q', $crawler->filter('[data-verdict-sentence]')->text());
+    }
+
+    public function test_a_failure_that_passed_through_enclosing_steps_counts_once_at_the_step_that_threw(): void
+    {
+        $root = ['spanId' => 'acacacacacac0001', 'parentSpanId' => null, 'name' => 'command order.place', 'kind' => 'server', 'status' => 'error', 'statusDescription' => 'boom', 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'endedAt' => '2026-10-20T12:00:00.100000+00:00', 'attributes' => [], 'events' => []];
+        $handler = ['spanId' => 'acacacacacac0002', 'parentSpanId' => 'acacacacacac0001', 'name' => 'process Orders::place', 'kind' => 'internal', 'status' => 'error', 'statusDescription' => 'boom', 'startedAt' => '2026-10-20T12:00:00.010000+00:00', 'endedAt' => '2026-10-20T12:00:00.090000+00:00', 'attributes' => [], 'events' => [['name' => 'exception', 'at' => '2026-10-20T12:00:00.090000+00:00', 'attributes' => ['exception.type' => 'RuntimeException', 'exception.message' => 'boom']]]];
+        $client = $this->pulseWithFakeService([$root, $handler], truncated: false);
+
+        $crawler = $this->traceView($client);
+
+        self::assertSame('1', $crawler->filter('[data-summary="failed"] b')->text());
+        self::assertSame('process Orders::place', trim($crawler->filter('[data-span][data-failed] [data-column="name"]')->text()));
+        self::assertStringStartsWith('Failed in orders at handler Orders::place, 10 ms into the flow: RuntimeException.', $crawler->filter('[data-verdict-sentence]')->text());
+    }
+
     public function test_a_span_with_a_malformed_time_is_shown_with_a_notice_and_does_not_break_the_page(): void
     {
         $root = ['spanId' => 'eeeeeeeeeeeeee01', 'parentSpanId' => null, 'name' => 'root', 'kind' => 'server', 'status' => 'ok', 'statusDescription' => null, 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'endedAt' => '2026-10-20T12:00:00.100000+00:00', 'attributes' => [], 'events' => []];
@@ -145,12 +173,13 @@ final class TraceRobustnessTest extends ReleasingWebTestCase
 
     /**
      * @param list<array<string, mixed>> $spans
+     * @param list<array<string, mixed>> $deadLetters
      */
-    private function pulseWithFakeService(array $spans, bool $truncated, ?int $totalSpans = null): KernelBrowser
+    private function pulseWithFakeService(array $spans, bool $truncated, ?int $totalSpans = null, array $deadLetters = []): KernelBrowser
     {
         $this->configurePulseWithServices('orders', 'billing', 'shipping');
         $client = $this->pulseWebClient();
-        $snapshot = json_encode(['schemaVersion' => 1, 'serviceName' => 'orders', 'overview' => [], 'tracing' => ['storage' => 'dbal', 'retention' => 604800, 'statsWindow' => 1000, 'flowTypes' => []]], JSON_THROW_ON_ERROR);
+        $snapshot = json_encode(['schemaVersion' => 1, 'serviceName' => 'orders', 'overview' => [], 'tracing' => ['storage' => 'dbal', 'retention' => 604800, 'statsWindow' => 1000, 'flowTypes' => []], ...($deadLetters === [] ? [] : ['deadLetters' => ['total' => count($deadLetters), 'groups' => [], 'recent' => $deadLetters]])], JSON_THROW_ON_ERROR);
         $trace = json_encode(['queryId' => 'QUERY_ID', 'traceId' => self::TRACE, 'totalSpans' => $totalSpans ?? count($spans), 'truncated' => $truncated, 'spans' => $spans], JSON_THROW_ON_ERROR);
         $handler = new class ($snapshot, $trace) {
             public function __construct(private string $snapshot, private string $trace)

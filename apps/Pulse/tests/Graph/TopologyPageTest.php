@@ -29,6 +29,17 @@ final class TopologyPageTest extends ReleasingWebTestCase
         self::assertStringContainsString('invoice.*', $crawler->filter('[data-event-subscription="orders"]')->text());
     }
 
+    public function test_a_command_route_on_the_diagram_is_labelled_with_what_travels_and_over_which_channel(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing');
+        $client = $this->pulseWebClient();
+        $this->pulseHavingHeardFrom($client, ['orders' => $this->ordersSendingInvoiceCommandToBilling(), 'billing' => $this->billingCreatingInvoices()]);
+
+        $crawler = $client->request('GET', '/topology');
+
+        self::assertStringContainsString('-->|"commands via ' . $this->serviceChannels['billing'] . '"|', $crawler->filter('pre.mermaid')->getNode(0)->textContent);
+    }
+
     public function test_a_consistent_topology_has_no_mismatches(): void
     {
         $this->configurePulseWithServices('orders', 'billing');
@@ -48,11 +59,11 @@ final class TopologyPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/topology');
 
-        $mismatches = $crawler->filter('[data-mismatch]')->each(fn ($mismatch) => $mismatch->attr('data-mismatch') . ': ' . $mismatch->text());
-        self::assertContains('unconfigured-command-target: orders maps commands for shipping, which is not configured in Pulse. Add shipping to PULSE_SERVICES, or remove the command mapping from the Service Map of orders.', $mismatches);
-        self::assertContains('unmapped-command-target: orders sends commands to billing, but its Service Map has no command mapping for billing. Add DistributedServiceMap::initialize()->withCommandMapping(\'billing\', <channel>) to a #[ServiceContext] of orders.', $mismatches);
-        self::assertContains('unsubscribed-event: orders publishes order.placed, but no service subscribes to it. Add a #[Distributed] #[EventHandler(\'order.placed\')] to a service and a withEventMapping() entry whose keys match order.placed.', $mismatches);
-        self::assertContains('unpublished-subscription: orders subscribes to refund.*, but no service publishes an event matching it. Publish it with DistributedBus::publishEvent(), or remove refund.* from withEventMapping().', $mismatches);
+        $mismatches = $crawler->filter('[data-mismatch]')->each(fn ($mismatch) => $mismatch->attr('data-mismatch') . ': ' . $mismatch->filter('[data-problem-text]')->text() . ' | ' . $mismatch->filter('[data-problem-fix]')->text());
+        self::assertContains('unconfigured-command-target: orders maps commands for shipping, which is not configured in Pulse. | What to change: Add shipping to PULSE_SERVICES, or remove the command mapping from the Service Map of orders.', $mismatches);
+        self::assertContains('unmapped-command-target: orders sends commands to billing, but its Service Map has no command mapping for billing. | What to change: Add DistributedServiceMap::initialize()->withCommandMapping(\'billing\', <channel>) to a #[ServiceContext] of orders.', $mismatches);
+        self::assertContains('unsubscribed-event: orders publishes order.placed, but no service subscribes to it. | What to change: Add a #[Distributed] #[EventHandler(\'order.placed\')] to a service and a withEventMapping() entry whose keys match order.placed.', $mismatches);
+        self::assertContains('unpublished-subscription: orders subscribes to refund.*, but no service publishes an event matching it. | What to change: Publish it with DistributedBus::publishEvent(), or remove refund.* from withEventMapping().', $mismatches);
     }
 
     public function test_topology_diagram_keeps_services_with_similar_or_reserved_names_apart(): void

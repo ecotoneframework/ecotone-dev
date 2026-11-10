@@ -52,14 +52,52 @@ final class DbalTraceStore implements TraceStore
     ) {
     }
 
-    public function append(array $spans): void
+    public function append(array $spans, ?string $onlyPossibleEntrySpanId): void
+    {
+        $this->appendOn($this->connection(), $spans, $onlyPossibleEntrySpanId);
+    }
+
+    public function appendingOnCurrentConnection(): Closure
     {
         $connection = $this->connection();
-        $this->onTables(function () use ($connection, $spans): void {
-            $plan = FlowEntries::plan($spans, $this->storedTracesOf($connection, $spans));
+
+        return fn (array $spans, ?string $onlyPossibleEntrySpanId) => $connection->transactional(fn () => $this->appendOn($connection, $spans, $onlyPossibleEntrySpanId));
+    }
+
+    /**
+     * @param Span[] $spans
+     */
+    private function appendOn(Connection $connection, array $spans, ?string $onlyPossibleEntrySpanId): void
+    {
+        $this->onTables(function () use ($connection, $spans, $onlyPossibleEntrySpanId): void {
+            $storedTraces = $this->storedTracesOf($connection, $spans);
+            $plan = FlowEntries::plan(spans: $spans, storedTraces: $storedTraces, onlyPossibleEntrySpanId: $onlyPossibleEntrySpanId);
             $this->insertSpans($connection, $spans, $plan);
-            $this->markFailed($connection, $plan->traceIdsToMarkFailed);
+            $this->markStoredStepsFailed($connection, array_filter($spans, fn (Span $span): bool => $span->status === SpanStatus::Error && isset($storedTraces[$span->traceId][$span->spanId]) && ! $storedTraces[$span->traceId][$span->spanId]['failed']));
+            $this->markFailed($connection, $plan->entrySpanIdsToMarkFailedByTrace);
         });
+    }
+
+    /**
+     * @param Span[] $failedSpans
+     */
+    private function markStoredStepsFailed(Connection $connection, array $failedSpans): void
+    {
+        foreach ($failedSpans as $span) {
+            $connection->createQueryBuilder()
+                ->update($this->spansTableManager->getTableName())
+                ->set('status', ':status')
+                ->set('status_description', ':statusDescription')
+                ->set('attributes', ':attributes')
+                ->where('trace_id = :traceId')
+                ->andWhere('span_id = :spanId')
+                ->setParameter('status', $span->status->value)
+                ->setParameter('statusDescription', $span->statusDescription)
+                ->setParameter('attributes', json_encode($span->attributes, JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT))
+                ->setParameter('traceId', $span->traceId)
+                ->setParameter('spanId', $span->spanId)
+                ->executeStatement();
+        }
     }
 
     public function flowTypeStatistics(int $limit, int $window): array
@@ -85,6 +123,7 @@ final class DbalTraceStore implements TraceStore
                     ->setParameter('flowType', $group['flow_type'])
                     ->orderBy('started_at', 'DESC')
                     ->addOrderBy('trace_id', 'DESC')
+                    ->addOrderBy('span_id', 'DESC')
                     ->setMaxResults($window)
                     ->executeQuery()
                     ->fetchAllAssociative()),
@@ -105,6 +144,7 @@ final class DbalTraceStore implements TraceStore
                 ->setParameter('flowType', $flowType)
                 ->orderBy('started_at', 'DESC')
                 ->addOrderBy('trace_id', 'DESC')
+                ->addOrderBy('span_id', 'DESC')
                 ->setFirstResult(($page - 1) * $perPage)
                 ->setMaxResults($perPage)
                 ->executeQuery()
@@ -169,46 +209,46 @@ final class DbalTraceStore implements TraceStore
 
     /**
      * @param Span[] $spans
-     * @return array<string, array{spanIds: array<string, true>, hasEntry: bool, hasError: bool}>
+     * @return array<string, array<string, array{parentSpanId: ?string, failed: bool, entryStatus: ?string}>>
      */
     private function storedTracesOf(Connection $connection, array $spans): array
     {
         $stored = [];
         $rows = $connection->createQueryBuilder()
-            ->select('trace_id', 'span_id', 'flow_type', 'status')
+            ->select('trace_id', 'span_id', 'parent_span_id', 'status', 'flow_status')
             ->from($this->spansTableManager->getTableName())
             ->where('trace_id IN (:traceIds)')
             ->setParameter('traceIds', array_values(array_unique(array_map(fn (Span $span): string => $span->traceId, $spans))), ArrayParameterType::STRING)
             ->executeQuery()
             ->fetchAllAssociative();
         foreach ($rows as $row) {
-            $trace = $stored[$row['trace_id']] ?? ['spanIds' => [], 'hasEntry' => false, 'hasError' => false];
-            $trace['spanIds'][$row['span_id']] = true;
-            $trace['hasEntry'] = $trace['hasEntry'] || $row['flow_type'] !== null;
-            $trace['hasError'] = $trace['hasError'] || $row['status'] === SpanStatus::Error->value;
-            $stored[$row['trace_id']] = $trace;
+            $stored[$row['trace_id']][$row['span_id']] = [
+                'parentSpanId' => $row['parent_span_id'],
+                'failed' => $row['status'] === SpanStatus::Error->value,
+                'entryStatus' => $row['flow_status'],
+            ];
         }
 
         return $stored;
     }
 
     /**
-     * @param string[] $traceIds
+     * @param array<string, string[]> $entrySpanIdsByTrace
      */
-    private function markFailed(Connection $connection, array $traceIds): void
+    private function markFailed(Connection $connection, array $entrySpanIdsByTrace): void
     {
-        if ($traceIds === []) {
-            return;
+        foreach ($entrySpanIdsByTrace as $traceId => $spanIds) {
+            $connection->createQueryBuilder()
+                ->update($this->spansTableManager->getTableName())
+                ->set('flow_status', ':status')
+                ->where('trace_id = :traceId')
+                ->andWhere('span_id IN (:spanIds)')
+                ->andWhere('flow_type IS NOT NULL')
+                ->setParameter('status', FlowEntries::STATUS_ERROR)
+                ->setParameter('traceId', (string) $traceId)
+                ->setParameter('spanIds', $spanIds, ArrayParameterType::STRING)
+                ->executeStatement();
         }
-
-        $connection->createQueryBuilder()
-            ->update($this->spansTableManager->getTableName())
-            ->set('flow_status', ':status')
-            ->where('flow_type IS NOT NULL')
-            ->andWhere('trace_id IN (:traceIds)')
-            ->setParameter('status', FlowEntries::STATUS_ERROR)
-            ->setParameter('traceIds', $traceIds, ArrayParameterType::STRING)
-            ->executeStatement();
     }
 
     /**

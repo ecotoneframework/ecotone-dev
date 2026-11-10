@@ -62,6 +62,36 @@ final class RushPagesTest extends TestCase
         $response->assertSee('<script src="http://localhost/js/rush.js"></script>', escape: false);
     }
 
+    public function test_a_concert_on_sale_offers_to_contend_for_one_seat_before_simulating_a_rush(): void
+    {
+        $this->scheduleOnSale();
+
+        $this->get('/concerts/' . self::CONCERT_ID)->assertSeeInOrder(['<h2>Contend for one seat</h2>', '<h2>Simulate a rush</h2>'], escape: false);
+    }
+
+    public function test_a_seeded_concert_on_sale_offers_no_rush_but_still_offers_to_contend_for_one_seat(): void
+    {
+        $this->scheduleOnSale(seeded: true);
+
+        $response = $this->get('/concerts/' . self::CONCERT_ID);
+
+        $response->assertOk();
+        $response->assertDontSee('Simulate a rush');
+        $response->assertSee('<h2>Contend for one seat</h2>', escape: false);
+    }
+
+    public function test_the_order_page_of_a_seeded_concert_offers_no_rush(): void
+    {
+        $this->scheduleOnSale(seeded: true);
+        $customerId = $this->app->make(CommandBus::class)->send(new RegisterCustomer(name: 'Ada Lovelace', email: 'ada@example.com'));
+        $orderId = $this->app->make(CommandBus::class)->send(new StartOrder(customerId: $customerId, concertId: self::CONCERT_ID));
+
+        $response = $this->withCookie(self::CUSTOMER_COOKIE, $customerId)->get('/orders/' . $orderId);
+
+        $response->assertOk();
+        $response->assertDontSee('Simulate a rush');
+    }
+
     public function test_a_concert_not_on_sale_offers_no_rush(): void
     {
         $this->schedule();
@@ -198,13 +228,13 @@ final class RushPagesTest extends TestCase
         Artisan::call('demo:rush', ['concertId' => self::CONCERT_ID]);
     }
 
-    private function scheduleOnSale(): void
+    private function scheduleOnSale(bool $seeded = false): void
     {
-        $this->schedule();
+        $this->schedule($seeded);
         $this->app->make(EventBus::class)->publishWithRouting('concert.sales_opened', ['concertId' => self::CONCERT_ID], metadata: ['concertId' => self::CONCERT_ID]);
     }
 
-    private function schedule(): void
+    private function schedule(bool $seeded = false): void
     {
         $this->app->make(EventBus::class)->publishWithRouting('concert.scheduled', [
             'concertId' => self::CONCERT_ID,
@@ -219,6 +249,7 @@ final class RushPagesTest extends TestCase
                 ['seatId' => self::CONCERT_ID . '/B-1', 'seatCode' => 'B-1', 'tier' => 'standard'],
                 ['seatId' => self::CONCERT_ID . '/B-2', 'seatCode' => 'B-2', 'tier' => 'standard'],
             ],
+            'seeded' => $seeded,
         ], metadata: ['concertId' => self::CONCERT_ID]);
     }
 }

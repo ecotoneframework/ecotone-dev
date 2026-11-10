@@ -27,6 +27,7 @@ final class ConcertAnnouncements
                 'currency' => $event->currency,
                 'tiers' => [Tier::STANDARD->value => $event->standardPriceCents, Tier::VIP->value => $event->vipPriceCents],
                 'seats' => array_map(static fn (Seat $seat): array => ['seatId' => $seat->seatId, 'seatCode' => $seat->seatCode, 'tier' => $seat->tier->value], $event->seats),
+                'seeded' => $event->seeded,
             ],
             metadata: ['concertId' => $event->concertId],
         );

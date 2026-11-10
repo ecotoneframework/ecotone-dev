@@ -65,7 +65,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: amqp, pdo_pgsql, sockets, intl, zip, pcntl
+          extensions: amqp, pdo_pgsql, sockets, intl, zip, pcntl, opentelemetry
           coverage: none
 
       - name: Reach the service database by the name the test configuration pins

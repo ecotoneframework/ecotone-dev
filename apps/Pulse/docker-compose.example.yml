@@ -35,6 +35,7 @@ services:
       <<: *pulse-environment
       PULSE_TRANSPORT_DSN: amqp://guest:guest@rabbitmq:5672
       PULSE_SERVICES: orders,billing
+      # PULSE_TRACE_URL: http://localhost:16686/trace/{traceId}
     ports:
       - "8080:8080"
     restart: unless-stopped

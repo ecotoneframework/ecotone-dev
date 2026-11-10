@@ -1,5 +1,10 @@
 twig:
     file_name_pattern: '*.twig'
+    globals:
+        demo_storefront_url: '%env(DEMO_STOREFRONT_URL)%'
+        demo_pulse_url: '%env(DEMO_PULSE_URL)%'
+        demo_jaeger_url: '%env(DEMO_JAEGER_URL)%'
+        demo_database_url: '%env(DEMO_DATABASE_URL)%'
 
 when@test:
     twig:

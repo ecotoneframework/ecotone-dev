@@ -113,6 +113,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
 {
     private const REMOVE_EXPIRED_TRACES_CHANNEL = 'ecotone.tracing.removeExpiredTraces';
     private const USER_MESSAGE_GATEWAYS_POINTCUT = MessageGateway::class . '&&not(' . CommandBus::class . ')&&not(' . EventBus::class . ')&&not(' . QueryBus::class . ')';
+    private const FAILED_ATTEMPT_RECORDING_PRECEDENCE = Precedence::ERROR_CHANNEL_PRECEDENCE - 1;
 
     /**
      * @param string[] $flowStepCompletedSubscribers
@@ -198,6 +199,14 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
                 )
             );
         }
+        $messagingConfiguration->registerAroundMethodInterceptor(
+            AroundInterceptorBuilder::create(
+                TraceRecordingInterceptor::class,
+                $interfaceToCallRegistry->getFor(TraceRecordingInterceptor::class, 'recordFailedAttemptHandedToErrorChannel'),
+                self::FAILED_ATTEMPT_RECORDING_PRECEDENCE,
+                AsynchronousRunningEndpoint::class
+            )
+        );
         $messagingConfiguration->registerAroundMethodInterceptor(
             AroundInterceptorBuilder::create(
                 TraceRecordingInterceptor::class,

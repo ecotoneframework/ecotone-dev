@@ -57,6 +57,8 @@ final class DeadLetterActionController extends AbstractController
                 'selection' => $byFilter || $byFailure ? [] : $this->selectedIds($request->request->all('selected')),
                 'deleteFailure' => $byFailure ? $deleteFailure : '',
                 'failure' => $byFailure ? $this->failureOf($deleteFailure) : null,
+                'matchingCount' => $byFilter ? DeadLetterOverview::matchingCount($this->snapshots->scopes(), $filter) : null,
+                'scopeService' => $this->scopeServiceOf($filter, $byFailure ? $deleteFailure : ''),
             ]);
         }
 
@@ -97,6 +99,14 @@ final class DeadLetterActionController extends AbstractController
         }
 
         return [$service => $replay ? DeadLetterAction::replayMatching(['failureId' => $failureId], $targetChannel) : DeadLetterAction::deleteMatching(['failureId' => $failureId])];
+    }
+
+    private function scopeServiceOf(DeadLetterFilter $filter, string $failure): ?string
+    {
+        $decoded = json_decode($failure, true);
+        $service = is_array($decoded) && is_string($decoded[0] ?? null) ? $decoded[0] : $filter->service;
+
+        return $service === '' ? null : $service;
     }
 
     /**

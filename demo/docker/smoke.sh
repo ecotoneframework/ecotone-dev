@@ -50,7 +50,7 @@ step "every container is healthy"
 
 service_connected() {
     curl -s "$pulse/services" | awk -v service="$1" '
-        $0 ~ "<tr data-service=\"" service "\"" { row = 1 }
+        $0 ~ "<tr[^>]* data-service=\"" service "\"" { row = 1 }
         row && /data-status="connected"/ { found = 1 }
         row && /<\/tr>/ { row = 0 }
         END { exit found ? 0 : 1 }'
@@ -84,7 +84,7 @@ step "$(jq -r '.issued' <<<"$rush_state") orders of the rush have their tickets 
 
 outages=0
 pulse_lists_the_provider_outages_of_the_rush() {
-    outages="$(curl -s "$pulse/dead-letters" | grep -oF '<td>App\Payment\PaymentProviderUnavailable: ' | wc -l)"
+    outages="$(curl -s "$pulse/dead-letters" | grep -oF 'data-failure-class title="App\Payment\PaymentProviderUnavailable"' | wc -l)"
     [ "$outages" -ge 1 ]
 }
 wait_until 30 pulse_lists_the_provider_outages_of_the_rush || fail "Pulse lists no PaymentProviderUnavailable dead letter of the rush's outage buyers ($pulse/dead-letters)$(budget_note)"

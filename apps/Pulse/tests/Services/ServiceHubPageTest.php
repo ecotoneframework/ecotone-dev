@@ -16,7 +16,7 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
 {
     use DeadLetterServicesTrait;
 
-    public function test_the_hub_connects_health_versions_dead_letters_flow_types_and_the_graph(): void
+    public function test_the_overview_sums_up_health_versions_failed_messages_and_flow_types_and_links_the_graph(): void
     {
         $client = $this->pulseWithServices();
 
@@ -26,11 +26,10 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
         self::assertSame('connected', $crawler->filter('[data-hub-status]')->attr('data-hub-status'));
         self::assertStringContainsString(PHP_VERSION, $crawler->filter('[data-hub-versions]')->text());
         self::assertSame('/dead-letters?service=orders', $crawler->filter('[data-hub-dead-letters] a')->attr('href'));
-        self::assertSame('1', $crawler->filter('[data-hub-dead-letters] [data-total]')->text());
-        self::assertStringContainsString('1 failure (2 stored)', preg_replace('/\s+/', ' ', $crawler->filter('[data-hub-dead-letters]')->text()));
-        $flowType = $crawler->filter('[data-hub-flow-types] a')->first();
-        self::assertSame('order.place', $flowType->text());
-        self::assertSame('/traces/orders/order.place', $flowType->attr('href'));
+        self::assertSame('2', $crawler->filter('[data-hub-dead-letters] a.tile-link b')->text());
+        self::assertStringContainsString('2 failed messages in 1 failure group', preg_replace('/\s+/', ' ', $crawler->filter('[data-hub-dead-letters] a.tile-link')->text()));
+        self::assertSame('/traces?service=orders', $crawler->filter('[data-hub-flow-types] a')->attr('href'));
+        self::assertSame('slowest: order.place, 95% within 9 ms', $crawler->filter('[data-hub-flow-types] [data-tile-detail]')->text());
         self::assertSame('/flow?services%5B0%5D=orders', $crawler->filter('[data-hub-graph] a')->attr('href'));
     }
 
@@ -41,7 +40,7 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
         $crawler = $this->freshView($client, '/services/orders');
 
         $crumbs = $crawler->filter('nav[aria-label="Breadcrumb"] li');
-        self::assertSame(['Home', 'orders'], $crumbs->each(static fn (Crawler $crumb) => trim($crumb->text())));
+        self::assertSame(['Home', 'Services', 'orders'], $crumbs->each(static fn (Crawler $crumb) => trim($crumb->text())));
         self::assertSame('/', $crumbs->first()->filter('a')->attr('href'));
     }
 

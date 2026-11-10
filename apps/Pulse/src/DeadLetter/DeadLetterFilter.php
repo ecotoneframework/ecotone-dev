@@ -32,7 +32,13 @@ final readonly class DeadLetterFilter
      */
     public static function fromInput(InputBag $input): self
     {
-        return new self(...array_map(static fn (string $field) => trim((string) $input->get($field, '')), array_combine(self::FIELDS, self::FIELDS)));
+        $fields = array_map(static fn (string $field) => trim((string) $input->get($field, '')), array_combine(self::FIELDS, self::FIELDS));
+        $tenant = trim((string) $input->get('tenant', ''));
+        if ($tenant !== '' && $fields['service'] !== '' && ! str_contains($fields['service'], '@')) {
+            $fields['service'] = ServiceScope::ofTenant($fields['service'], $tenant)->key();
+        }
+
+        return new self(...$fields);
     }
 
     /**

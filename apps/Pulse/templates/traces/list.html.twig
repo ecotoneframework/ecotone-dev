@@ -7,15 +7,33 @@
 {% endblock %}
 
 {% block body %}
+    {% include '_breadcrumbs.html.twig' with {service: scope.service, tenant: scope.tenant, trail: [{label: 'Traces', href: path('traces', {service: scope.key})}, {label: flowType}]} %}
     <h1>Traces of {{ flowType }}</h1>
-    <p><a href="{{ path('traces') }}">← Flow types</a> · service <strong data-detail="service">{{ scope.service }}</strong>{% if scope.tenant %} · tenant <strong data-detail="tenant">{{ scope.tenant }}</strong>{% endif %}</p>
-
-    {% if statistics %}
-        <p class="muted" data-statistics>{{ statistics.runs }} runs · {{ statistics.runsWithErrors }} with errors recorded ({{ statistics.errorRate }}) · p50 {{ statistics.p50Ms }} ms · p95 {{ statistics.p95Ms }} ms · max {{ statistics.maxMs }} ms</p>
-    {% endif %}
+    <p class="muted">{% include '_concept.html.twig' with {term: 'flow-type', text: 'flow type'} only %} <strong>{{ flowType }}</strong> · service <strong data-detail="service">{{ scope.service }}</strong>{% if scope.tenant %} · tenant <strong data-detail="tenant">{{ scope.tenant }}</strong>{% endif %}</p>
 
     {% if not tracing %}
-        <p class="muted" data-tracing-disabled="{{ service }}">flow tracking not enabled in {{ service }}. Enable it with <code>FlowTrackingConfiguration::createWithDefaults()</code> returned from a <code>#[ServiceContext]</code> method of the service.</p>
+        {% set verdictStatus = 'unknown' %}
+        {% set verdictReason = 'flow tracking is not enabled in ' ~ service %}
+        {% set verdictSentence = 'Pulse has no traces of ' ~ flowType ~ ' from ' ~ service ~ '.' %}
+    {% elseif not statistics %}
+        {% set verdictStatus = 'info' %}
+        {% set verdictReason = null %}
+        {% set verdictSentence = service ~ ' reports no finished run of ' ~ flowType ~ ' yet.' %}
+    {% elseif statistics.runsWithErrors > 0 %}
+        {% set verdictStatus = 'warning' %}
+        {% set verdictReason = null %}
+        {% set verdictSentence = statistics.runs ~ ' ' ~ (statistics.runs == 1 ? 'run' : 'runs') ~ ', ' ~ statistics.runsWithErrors ~ ' with errors recorded (' ~ statistics.errorRate ~ '); 95% finished within ' ~ statistics.p95Ms ~ ' ms.' %}
+    {% else %}
+        {% set verdictStatus = 'ok' %}
+        {% set verdictReason = null %}
+        {% set verdictSentence = statistics.runs ~ ' ' ~ (statistics.runs == 1 ? 'run' : 'runs') ~ ', none failed; 95% finished within ' ~ statistics.p95Ms ~ ' ms.' %}
+    {% endif %}
+    {% embed '_verdict.html.twig' with {status: verdictStatus, reason: verdictReason, sentence: verdictSentence} %}
+        {% block meta %}{% if statistics %}<p class="verdict-meta" data-verdict-meta data-statistics>typical {{ statistics.p50Ms }} ms (p50) · {{ statistics.p95Ms }} ms (p95) {% include '_concept.html.twig' with {term: 'p95'} only %} · slowest {{ statistics.maxMs }} ms · {{ statistics.runsWithErrors }} of {{ statistics.runs }} with errors recorded ({{ statistics.errorRate }})</p>{% endif %}{% endblock %}
+    {% endembed %}
+
+    {% if not tracing %}
+        {% include '_empty.html.twig' with {cause: 'not-enabled', hook: 'tracing-disabled', hook_value: service, sentence: service ~ ' does not record traces, so Pulse cannot list the runs of ' ~ flowType ~ '. Enable flow tracking in the service to record them.', snippet: {label: 'Show how to enable flow tracking', code: "#[ServiceContext]\npublic function flowTracking(): FlowTrackingConfiguration\n{\n    return FlowTrackingConfiguration::createWithDefaults();\n}"}} only %}
     {% else %}
         {% if answer.state.value == 'waiting' and not answer.hasResult %}
             <p class="muted" data-waiting="{{ service }}">Waiting for {{ service }} to answer…</p>
@@ -29,7 +47,7 @@
                 <thead><tr><th>Trace id</th><th>Started at (UTC)</th><th>Duration</th><th>Status</th></tr></thead>
                 <tbody>
                 {% for trace in traces %}
-                    <tr data-trace data-trace-id="{{ trace.traceId }}">
+                    <tr data-trace data-trace-id="{{ trace.traceId }}"{% if trace.entrySpanId is defined %} data-entry-span-id="{{ trace.entrySpanId }}"{% endif %}>
                         <td data-column="traceId"><a href="{{ path('trace_detail', {traceId: trace.traceId}) }}">{{ trace.traceId }}</a></td>
                         <td data-column="startedAt">{{ trace.startedAt|date('Y-m-d H:i:s.v', 'UTC') }}</td>
                         <td data-column="duration">{{ trace.durationMs }} ms</td>

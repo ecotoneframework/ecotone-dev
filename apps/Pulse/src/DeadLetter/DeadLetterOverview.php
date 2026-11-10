@@ -38,6 +38,30 @@ final class DeadLetterOverview
     }
 
     /**
+     * @param list<ServiceSnapshot> $snapshots
+     */
+    public static function matchingCount(array $snapshots, DeadLetterFilter $filter): ?int
+    {
+        if ($filter->narrowsEntries()) {
+            return null;
+        }
+        $services = self::withoutServicesSharingAnEarlierStore($snapshots, array_map(static fn (ServiceSnapshot $snapshot) => $snapshot->scope(), $snapshots));
+        $count = 0;
+        foreach ($snapshots as $snapshot) {
+            if (! in_array($snapshot->scope(), $services, true) || ! $filter->selectsService($snapshot->scope()) || ! is_array($snapshot->snapshot['deadLetters'] ?? null)) {
+                continue;
+            }
+            foreach ($snapshot->snapshot['deadLetters']['groups'] ?? [] as $group) {
+                if (is_array($group) && $filter->selectsFailure($group)) {
+                    $count += (int) ($group['count'] ?? 0);
+                }
+            }
+        }
+
+        return $count;
+    }
+
+    /**
      * @param array<string, mixed> $group
      * @param list<array<string, mixed>> $entries
      * @return list<array<string, mixed>>
@@ -137,6 +161,21 @@ final class DeadLetterOverview
         }
 
         return null;
+    }
+
+    /**
+     * @param list<ServiceSnapshot> $snapshots
+     * @return list<array<string, mixed>>
+     */
+    public static function entriesOfFailure(array $snapshots, string $service, string $failureId): array
+    {
+        foreach ($snapshots as $snapshot) {
+            if ($snapshot->scope() === $service) {
+                return array_values(array_filter($snapshot->snapshot['deadLetters']['recent'] ?? [], static fn (mixed $entry): bool => is_array($entry) && ($entry['failureId'] ?? null) === $failureId));
+            }
+        }
+
+        return [];
     }
 
     /**

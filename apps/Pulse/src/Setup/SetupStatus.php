@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Setup;
 
 use App\Snapshot\ServiceSnapshot;
+use App\Ui\Status;
 
 final readonly class SetupStatus
 {
@@ -96,6 +97,45 @@ final readonly class SetupStatus
     public function isAllClear(): bool
     {
         return $this->missing() === [] && $this->unknown() === [] && $this->sectionErrors === [];
+    }
+
+    public function status(): Status
+    {
+        return match (true) {
+            $this->missing() !== [] => Status::Critical,
+            $this->unknown() !== [] || $this->sectionErrors !== [] => Status::Warning,
+            default => Status::Ok,
+        };
+    }
+
+    public function state(): string
+    {
+        $parts = array_filter([
+            $this->missing() === [] ? null : sprintf('%d missing', count($this->missing())),
+            $this->unknown() === [] ? null : sprintf('%d could not be checked', count($this->unknown())),
+            $this->sectionErrors === [] ? null : sprintf('%d %s could not be read', count($this->sectionErrors), count($this->sectionErrors) === 1 ? 'section' : 'sections'),
+        ]);
+
+        return $parts === [] ? 'all set up' : implode(', ', $parts);
+    }
+
+    public function sentence(): string
+    {
+        $features = array_merge(...array_map(static fn (PackageSetup $package): array => $package->features, $this->packages));
+        $on = count(array_filter($features, static fn (Feature $feature): bool => $feature->enabled));
+        $tables = count(array_filter($this->items, static fn (SetupItem $item): bool => $item->kind === 'table'));
+        $channels = count($this->items) - $tables;
+        $items = implode(' and ', array_filter([
+            $tables === 0 ? null : sprintf('%d %s', $tables, $tables === 1 ? 'table' : 'tables'),
+            $channels === 0 ? null : sprintf('%d %s', $channels, $channels === 1 ? 'channel' : 'channels'),
+        ]));
+        $setup = match (true) {
+            $this->items === [] && $this->sectionErrors === [] => 'no table or channel to check',
+            $this->isAllClear() => $items . ' set up',
+            default => ($items === '' ? 'setup' : $items) . ': ' . $this->state(),
+        };
+
+        return sprintf('%d %s on · %d not in use · %s', $on, $on === 1 ? 'feature' : 'features', count($features) - $on, $setup);
     }
 
     public static function projectionInit(string $framework, string $projection): string

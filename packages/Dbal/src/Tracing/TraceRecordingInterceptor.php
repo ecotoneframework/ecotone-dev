@@ -57,6 +57,19 @@ final class TraceRecordingInterceptor implements FlowTrackingScope
         return $this->storingSpansOf(fn (): mixed => $methodInvocation->proceed());
     }
 
+    public function recordFailedAttemptHandedToErrorChannel(MethodInvocation $methodInvocation): mixed
+    {
+        $this->recorder->beginConsumedMessage($this->tracer->currentSpan());
+        try {
+            $result = $methodInvocation->proceed();
+            $this->storeFailedAttempt();
+
+            return $result;
+        } finally {
+            $this->recorder->endConsumedMessage();
+        }
+    }
+
     public function keepPulseRequestOutOfFlowTracking(MethodInvocation $methodInvocation, Message $message): mixed
     {
         $headers = $message->getHeaders();
@@ -98,10 +111,11 @@ final class TraceRecordingInterceptor implements FlowTrackingScope
         try {
             $result = $work();
             $this->recorder->flushWithOpenSpans();
+            $this->recorder->forgetFailedAttemptOfOpenScope();
 
             return $result;
         } catch (Throwable $failure) {
-            $this->recorder->discard();
+            $this->recorder->holdFailedAttempt($failure);
 
             throw $failure;
         } finally {
@@ -120,9 +134,9 @@ final class TraceRecordingInterceptor implements FlowTrackingScope
             return $this->recorder->withinTransaction(function () use ($methodInvocation): mixed {
                 $processedEvents = $methodInvocation->proceed();
                 if ($processedEvents === 0) {
-                    $this->recorder->flushWithOpenSpans($this->tracer->currentSpan());
+                    $this->recorder->flushWithOpenSpansWithinOpenScope($this->tracer->currentSpan());
                 } else {
-                    $this->recorder->flushBuffered();
+                    $this->recorder->flushBufferedWithinOpenScope();
                 }
 
                 return $processedEvents;
@@ -133,6 +147,15 @@ final class TraceRecordingInterceptor implements FlowTrackingScope
             throw $failure;
         } finally {
             $this->recorder->endProjectionBatch();
+        }
+    }
+
+    private function storeFailedAttempt(): void
+    {
+        try {
+            $this->recorder->storeFailedAttempt();
+        } catch (Throwable $failure) {
+            $this->logger->error(sprintf('The failed step of a consumed message was not recorded in flow tracking, because storing it failed: %s. The message itself was already handed to the error channel, so only its trace misses the failure; check the connection flow tracking stores spans on.', $failure->getMessage()), [], ['exception' => $failure]);
         }
     }
 

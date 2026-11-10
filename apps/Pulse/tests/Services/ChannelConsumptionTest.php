@@ -36,7 +36,7 @@ final class ChannelConsumptionTest extends ReleasingWebTestCase
         $pastLimit = $this->observeBoard($client);
 
         self::assertSame([], $this->notDrainingOf($atLimit));
-        self::assertSame([['text' => 'invoices: 50 ready, count not falling for 5 min. Start `ecotone:run invoices` (handles OrderPlaced → notifyCustomer)', 'href' => '/services/orders#channels', 'severity' => 'warning', 'kind' => 'channel-not-draining']], $this->notDrainingOf($pastLimit));
+        self::assertSame([['text' => 'invoices: 50 ready, count not falling for 5 min. Start `ecotone:run invoices` (handles OrderPlaced → notifyCustomer)', 'href' => '/services/orders/channels', 'severity' => 'warning', 'kind' => 'channel-not-draining']], $this->notDrainingOf($pastLimit));
     }
 
     public function test_a_ready_count_that_goes_down_resets_the_clock(): void
@@ -130,7 +130,7 @@ final class ChannelConsumptionTest extends ReleasingWebTestCase
         $this->advanceTimeBy(301);
         $this->observeBoard($client);
 
-        $crawler = $client->request('GET', '/services/orders');
+        $crawler = $client->request('GET', '/services/orders/channels');
 
         self::assertSame('ecotone:run invoices', $crawler->filter('tr[data-channel="invoices"] [data-run-command]')->text());
         self::assertSame(['OrderPlaced → notifyCustomer'], $crawler->filter('tr[data-channel="invoices"] [data-channel-handlers] li')->extract(['_text']));
@@ -147,7 +147,7 @@ final class ChannelConsumptionTest extends ReleasingWebTestCase
         $crawler = $this->observeBoard($client);
 
         self::assertSame([], array_values(array_filter($this->problemsOf($crawler, 'orders'), static fn (array $problem): bool => $problem['kind'] === 'channel-not-set-up')));
-        self::assertCount(0, $client->request('GET', '/services/orders')->filter('[data-channel-not-set-up]'));
+        self::assertCount(0, $client->request('GET', '/services/orders/channels')->filter('[data-channel-not-set-up]'));
     }
 
     public function test_a_channel_the_broker_does_not_have_is_marked_not_set_up_on_its_row_and_on_the_board(): void
@@ -158,7 +158,7 @@ final class ChannelConsumptionTest extends ReleasingWebTestCase
         $crawler = $this->observeBoard($client);
 
         self::assertSame(['Channel invoices not set up'], array_column(array_filter($this->problemsOf($crawler, 'orders'), static fn (array $problem): bool => $problem['kind'] === 'channel-not-set-up'), 'text'));
-        self::assertCount(1, $client->request('GET', '/services/orders')->filter('tr[data-channel="invoices"] [data-channel-not-set-up]'));
+        self::assertCount(1, $client->request('GET', '/services/orders/channels')->filter('tr[data-channel="invoices"] [data-channel-not-set-up]'));
     }
 
     /**

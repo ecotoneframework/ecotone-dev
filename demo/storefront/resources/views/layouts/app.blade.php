@@ -17,6 +17,7 @@
                     <a href="{{ url('/concerts') }}"><x-icon name="music"/>Concerts</a>
                     <a href="{{ url('/account') }}"><x-icon name="logo"/>My tickets</a>
                 </nav>
+                <nav class="site-nav site-nav--demo" aria-label="Demo services"><a href="{{ config('demo.ticketing_url') }}/admin"><x-icon name="building"/>Ticketing back office</a></nav>
                 <div class="customer-switcher customer-chip">
                     @if ($currentCustomer)
                         <x-icon name="user"/><span>Shopping as <strong>{{ $currentCustomer['name'] }}</strong></span> <a href="{{ url('/whoami') }}">Switch</a>
@@ -36,6 +37,8 @@
                 <ul>
                     <li><a href="{{ config('demo.pulse_url') }}">Ecotone Pulse</a></li>
                     <li><a href="{{ config('demo.jaeger_url') }}/search?service=storefront">Jaeger traces</a></li>
+                    <li><a href="{{ config('demo.database_url') }}">Database</a></li>
+                    <li><a href="{{ config('demo.ticketing_url') }}/admin">Ticketing back office</a></li>
                 </ul>
             </div>
         </footer>

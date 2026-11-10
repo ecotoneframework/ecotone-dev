@@ -2,6 +2,78 @@ import './styles/app.css';
 
 const ready = (fn) => (document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fn) : fn());
 
+const stored = (storage, key) => { try { return JSON.parse(storage.getItem(key)); } catch (error) { return null; } };
+const store = (storage, key, value) => { try { storage.setItem(key, JSON.stringify(value)); } catch (error) {} };
+const forget = (storage, key) => { try { storage.removeItem(key); } catch (error) {} };
+const storageOf = (name) => { try { return window[name]; } catch (error) { return null; } };
+
+const disclosureKey = (details, index) => details.dataset.disclosure || 'position.' + index;
+
+const rememberDisclosures = () => {
+    const local = storageOf('localStorage');
+    const session = storageOf('sessionStorage');
+    const all = [...document.querySelectorAll('main details')];
+    all.forEach((details, index) => {
+        details.dataset.openByDefault = details.open ? 'true' : 'false';
+        const key = disclosureKey(details, index);
+        if (local && !key.startsWith('position.')) {
+            const preference = stored(local, 'pulse-disclosure.' + key);
+            if (preference && preference.openByDefault === details.open) {
+                details.open = preference.open;
+            }
+            details.addEventListener('toggle', () => {
+                store(local, 'pulse-disclosure.' + key, {openByDefault: details.dataset.openByDefault === 'true', open: details.open});
+            });
+        }
+    });
+
+    const refreshing = document.querySelector('meta[http-equiv="refresh"]');
+    if (!session) {
+        return;
+    }
+    const before = stored(session, 'pulse-refresh-state');
+    forget(session, 'pulse-refresh-state');
+    if (before && before.url === location.href && Date.now() - before.savedAt < 15000) {
+        all.forEach((details, index) => {
+            const state = before.disclosures[disclosureKey(details, index)];
+            if (state && state.openByDefault === details.open) {
+                details.open = state.open;
+            }
+        });
+        requestAnimationFrame(() => window.scrollTo(0, before.scrollY));
+    }
+    if (refreshing) {
+        addEventListener('pagehide', () => {
+            const disclosures = {};
+            all.forEach((details, index) => {
+                disclosures[disclosureKey(details, index)] = {openByDefault: details.dataset.openByDefault === 'true', open: details.open};
+            });
+            store(session, 'pulse-refresh-state', {url: location.href, savedAt: Date.now(), scrollY: window.scrollY, disclosures});
+        });
+    }
+};
+
+const explainConcepts = () => {
+    const toggle = document.querySelector('[data-concepts-toggle]');
+    if (!toggle) {
+        return;
+    }
+    const root = document.documentElement;
+    const label = () => { toggle.setAttribute('aria-pressed', root.dataset.concepts === 'off' ? 'false' : 'true'); };
+    label();
+    toggle.addEventListener('click', () => {
+        const next = root.dataset.concepts === 'off' ? 'on' : 'off';
+        if (next === 'off') {
+            root.dataset.concepts = 'off';
+            document.querySelectorAll('.concept-body:popover-open').forEach((body) => body.hidePopover());
+        } else {
+            delete root.dataset.concepts;
+        }
+        try { localStorage.setItem('pulse-concepts', next); } catch (error) {}
+        label();
+    });
+};
+
 const showIntro = () => {
     const root = document.documentElement;
     const intro = document.querySelector('[data-intro]');
@@ -36,6 +108,8 @@ const showIntro = () => {
 ready(() => {
     document.documentElement.classList.add('js');
     showIntro();
+    rememberDisclosures();
+    explainConcepts();
     const themeToggle = document.querySelector('[data-theme-toggle]');
     if (themeToggle) {
         const current = () => document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
@@ -74,11 +148,14 @@ ready(() => {
     const bar = document.querySelector('[data-selection-bar]');
     if (bar) {
         const boxes = [...document.querySelectorAll('[data-dead-letter] input[type="checkbox"]')];
-        const count = bar.querySelector('[data-selected-count]');
+        const counts = [...bar.querySelectorAll('[data-selected-count]')];
+        const nouns = [...bar.querySelectorAll('[data-selected-noun]')];
         const update = () => {
             const selected = boxes.filter((box) => box.checked).length;
-            count.textContent = selected;
+            counts.forEach((count) => { count.textContent = selected; });
+            nouns.forEach((noun) => { noun.textContent = selected === 1 ? noun.dataset.one : noun.dataset.many; });
             bar.querySelectorAll('button').forEach((button) => { button.disabled = selected === 0; });
+            bar.hidden = selected === 0;
         };
         boxes.forEach((box) => box.addEventListener('change', update));
         update();

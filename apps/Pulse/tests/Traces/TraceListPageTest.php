@@ -7,7 +7,9 @@ namespace App\Tests\Traces;
 use App\Tests\Support\ReleasingWebTestCase;
 use App\Tests\Support\TracedServicesTrait;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Api\Tracing\SpanContext;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -46,6 +48,26 @@ final class TraceListPageTest extends ReleasingWebTestCase
         $sorted = $started;
         rsort($sorted);
         self::assertSame($sorted, $started);
+    }
+
+    public function test_two_runs_within_one_trace_are_listed_as_two_rows_told_apart_by_the_span_each_starts_at(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing', 'shipping');
+        $client = $this->pulseWebClient();
+        $orders = $this->tracedOrders();
+        $traceparent = (new SpanContext('0af7651916cd43dd8448eb211c80319c', 'b7ad6b7169203331'))->toTraceparent();
+        $orders->sendCommandWithRouting('order.place', ['orderId' => 1], metadata: [MessageHeaders::TRACEPARENT => $traceparent]);
+        $orders->advanceTimeBy(Duration::milliseconds(2));
+        $orders->sendCommandWithRouting('order.place', ['orderId' => 2], metadata: [MessageHeaders::TRACEPARENT => $traceparent]);
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
+        $this->advanceTimeBy(0);
+
+        $rows = $this->answered($client, $orders, '/traces/orders/order.place')->filter('[data-trace]');
+
+        self::assertSame(['0af7651916cd43dd8448eb211c80319c', '0af7651916cd43dd8448eb211c80319c'], $rows->each(fn (Crawler $row) => $row->attr('data-trace-id')));
+        $entrySpanIds = $rows->each(fn (Crawler $row) => $row->attr('data-entry-span-id'));
+        self::assertCount(2, array_unique($entrySpanIds));
+        self::assertNotContains(null, $entrySpanIds);
     }
 
     public function test_traces_are_paged_by_twenty_five_with_controls_to_move_between_pages(): void
@@ -103,6 +125,82 @@ final class TraceListPageTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/traces/orders/order.place');
 
         self::assertCount(1, $crawler->filter('[data-tracing-disabled="orders"]'));
+    }
+
+    public function test_the_trace_list_leads_with_a_verdict_written_from_the_statistics_of_its_flow_type(): void
+    {
+        [$client, $orders] = $this->pulseWithOrders(3);
+
+        $crawler = $this->answered($client, $orders, '/traces/orders/order.place');
+
+        $verdict = $crawler->filter('[data-verdict]');
+        self::assertSame('ok', $verdict->attr('data-verdict'));
+        self::assertMatchesRegularExpression('/^3 runs, none failed; 95% finished within \d+ ms\.$/', $verdict->filter('[data-verdict-sentence]')->text());
+        self::assertMatchesRegularExpression('/^typical \d+ ms \(p50\) · \d+ ms \(p95\) .* · slowest \d+ ms · 0 of 3 with errors recorded \(0%\)$/', $verdict->filter('[data-statistics]')->text());
+        self::assertCount(1, $verdict->filter('[data-statistics] [data-concept="p95"]'));
+        self::assertCount(1, $crawler->filter('main > [data-verdict]'));
+        self::assertCount(0, $crawler->filterXPath('//main/*[following-sibling::*[@data-verdict]][self::section or self::table or self::details]'));
+    }
+
+    public function test_a_flow_type_with_failed_runs_is_a_warning(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseWebClient();
+        [$orders] = $this->countingService('orders', json_encode([
+            'schemaVersion' => 1,
+            'serviceName' => 'orders',
+            'takenAt' => '2026-10-20T12:00:00+00:00',
+            'overview' => ['ecotoneVersion' => '2.0.0', 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]],
+            'flowGraph' => ['nodes' => [], 'edges' => []],
+            'topology' => ['serviceMaps' => []],
+            'tracing' => ['statsWindow' => 1000, 'flowTypes' => [['flowType' => 'order.place', 'runs' => 4, 'windowRuns' => 4, 'runsWithErrors' => 1, 'p50Ms' => 5, 'p95Ms' => 9, 'maxMs' => 12]]],
+        ], JSON_THROW_ON_ERROR));
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
+
+        $crawler = $client->request('GET', '/traces/orders/order.place');
+
+        self::assertSame('warning', $crawler->filter('[data-verdict]')->attr('data-verdict'));
+        self::assertSame('4 runs, 1 with errors recorded (25%); 95% finished within 9 ms.', $crawler->filter('[data-verdict-sentence]')->text());
+        self::assertStringEndsWith('· slowest 12 ms · 1 of 4 with errors recorded (25%)', $crawler->filter('[data-statistics]')->text());
+    }
+
+    public function test_the_trace_list_has_breadcrumbs_back_to_the_service_and_its_traces(): void
+    {
+        [$client, $orders] = $this->pulseWithOrders(1);
+
+        $crawler = $this->answered($client, $orders, '/traces/orders/order.place');
+
+        $crumbs = $crawler->filter('nav[aria-label="Breadcrumb"] li');
+        self::assertSame(['Home', 'Services', 'orders', 'Traces', 'order.place'], $crumbs->each(static fn (Crawler $crumb): string => trim($crumb->text())));
+        self::assertSame(['/', '/services', '/services/orders', '/traces?service=orders'], $crumbs->filter('a')->each(static fn (Crawler $link): string => $link->attr('href')));
+        self::assertSame('page', $crumbs->last()->filter('span')->attr('aria-current'));
+    }
+
+    public function test_the_trace_list_explains_what_a_flow_type_is_from_the_shared_glossary(): void
+    {
+        [$client, $orders] = $this->pulseWithOrders(1);
+
+        $crawler = $this->answered($client, $orders, '/traces/orders/order.place');
+
+        $concept = $crawler->filter('[data-concept="flow-type"]');
+        self::assertCount(1, $concept);
+        self::assertSame('What is a flow type?', $concept->filter('button.concept-toggle')->attr('aria-label'));
+        self::assertSame('What it is: Traces grouped by how the flow entered the service: the name of the first message, such as order.place. Each service a flow reaches names it by the message that arrived there, so one business flow has a flow type in every service it crosses.', $concept->filter('[data-concept-what]')->text());
+    }
+
+    public function test_a_service_without_flow_tracking_says_why_and_how_to_enable_it(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing', 'shipping');
+        $client = $this->pulseWebClient();
+        $orders = $this->tracedOrders(tracing: false);
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
+
+        $crawler = $client->request('GET', '/traces/orders/order.place');
+
+        self::assertSame('unknown', $crawler->filter('[data-verdict]')->attr('data-verdict'));
+        self::assertSame('flow tracking is not enabled in orders', $crawler->filter('[data-verdict] [data-status-reason]')->text());
+        $empty = $crawler->filter('[data-empty="not-enabled"][data-tracing-disabled="orders"]');
+        self::assertStringContainsString('FlowTrackingConfiguration::createWithDefaults()', $empty->filter('[data-empty-snippet] code')->text());
     }
 
     public function test_an_unknown_service_is_not_found(): void

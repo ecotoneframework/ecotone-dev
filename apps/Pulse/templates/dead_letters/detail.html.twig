@@ -1,63 +1,120 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Dead letter · Ecotone Pulse{% endblock %}
+{% block title %}{{ service }} · Failed message {{ entry.messageId|slice(0, 8) }}… · Ecotone Pulse{% endblock %}
 
-{% macro text(name, text) %}
-    {% set value = text ?? '' %}
-    {% set marker = "\n... [truncated]" %}
-    <pre data-detail="{{ name }}" id="detail-{{ name }}">{% if value ends with marker %}{{ value|slice(0, value|length - marker|length) }}<span data-truncated class="muted">{{ marker }}</span>{% else %}{{ value }}{% endif %}</pre>
+{% macro frame(frame, first) %}
+    <li class="frame{{ frame.application ? ' frame-app' : '' }}{{ first ? ' frame-first' : '' }}" data-frame="{{ frame.application ? 'application' : 'framework' }}" title="{{ frame.file ?: frame.call }}">
+        {% if frame.thrownHere %}<span class="frame-label">thrown here</span>{% elseif frame.number is not null %}<span class="frame-number muted">#{{ frame.number }}</span>{% endif %}
+        <code data-frame-location>{{ frame.location }}</code>
+        {% if frame.call and frame.file %}<span class="frame-call muted">{{ frame.call }}</span>{% endif %}
+    </li>
 {% endmacro %}
 
 {% block body %}
-    {% set tenantCrumb = scope.tenant ? [{label: scope.tenant, href: path('service_hub', {service: scope.service, tenant: scope.tenant})}] : [] %}
-    {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Home', href: path('home')}, {label: scope.service, href: path('service_hub', {service: scope.service})}]|merge(tenantCrumb)|merge([{label: 'Dead letters', href: path('dead_letters', {service: service})}, {label: entry.messageId}])} %}
-    <h1>Dead letter</h1>
+    {% import _self as page %}
+    {% set listHref = detail.listQuery is null ? path('dead_letters', {service: service}) : path('dead_letters', detail.listQuery) %}
+    {% set siblingQuery = detail.listQuery is null ? {} : {listFilter: detail.listQuery|url_encode} %}
+    {% if header %}
+        {% include 'services/_header.html.twig' with {service: header.service, tenant: header.tenant, trail: [{label: 'Failed messages', href: path('dead_letters', {service: service})}, {label: 'Message ' ~ entry.messageId|slice(0, 8) ~ '…', title: entry.messageId}], route: 'dead_letters', tabs: header.tabs, current: 'failures', failureCount: header.failureCount, heading: 'Failed message'} only %}
+    {% else %}
+        {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Home', href: path('home')}, {label: 'Failed messages', href: path('dead_letters', {service: service})}, {label: 'Message ' ~ entry.messageId|slice(0, 8) ~ '…', title: entry.messageId}]} only %}
+        <h1>Failed message</h1>
+    {% endif %}
 
-    <div class="actions">
-        <form method="post" action="{{ path('dead_letter_actions') }}" data-detail-actions>
+    {% embed '_verdict.html.twig' with {status: detail.status, sentence: detail.sentence, entry: entry} only %}
+        {% block meta %}<p class="verdict-exception" data-detail="exception"><code title="{{ entry.exceptionClass }}">{{ entry.exceptionClass ?: '(unknown exception)' }}</code>: {{ entry.exceptionMessage }}</p>{% endblock %}
+    {% endembed %}
+
+    <nav class="dl-siblings" aria-label="Failed messages with this failure" data-siblings>
+        <a href="{{ listHref }}" data-back-to-list>‹ Back to the {{ detail.listQuery ? 'filtered ' : '' }}failed messages</a>
+        <span class="dl-sibling-steps">
+            {% if detail.previousMessageId %}<a href="{{ path('dead_letter', {service: service, messageId: detail.previousMessageId}|merge(siblingQuery)) }}" data-sibling="previous" rel="prev">‹ Newer</a>{% endif %}
+            <span data-sibling-position>{{ detail.position }} of {{ detail.listedWithFailure }} with this failure</span>
+            {% if detail.storedWithFailure > detail.listedWithFailure %}<span class="muted" data-sibling-stored>({{ detail.storedWithFailure }} stored; Pulse lists the latest 100{{ detail.listQuery ? ' that match the filter' : '' }})</span>{% endif %}
+            {% if detail.nextMessageId %}<a href="{{ path('dead_letter', {service: service, messageId: detail.nextMessageId}|merge(siblingQuery)) }}" data-sibling="next" rel="next">Older ›</a>{% endif %}
+        </span>
+    </nav>
+
+    <section class="card" aria-labelledby="dl-facts" data-detail-facts>
+        <h2 id="dl-facts" class="visually-hidden">Key facts</h2>
+        <dl>
+            <dt>Service</dt><dd><a href="{{ path('service_hub', {service: scope.service}|merge(scope.tenant ? {tenant: scope.tenant} : {})) }}" data-detail="service">{{ service }}</a></dd>
+            <dt>{% include '_concept.html.twig' with {term: 'channel', text: 'Channel'} only %}</dt><dd>{% if entry.channel ?? false %}<a href="{{ path('service_channels', {service: scope.service}|merge(scope.tenant ? {tenant: scope.tenant} : {})) }}" data-detail="channel" title="The channel the message was consumed from">{{ entry.channel }}</a>{% else %}<span data-detail="channel">not reported</span> <span class="status-reason">the message carries no polled or inbound channel header</span>{% endif %}</dd>
+            <dt>Message name</dt><dd>{% if entry.messageName %}<a href="{{ path('catalogue', {q: entry.messageName, service: scope.service}) }}" data-detail="messageName" title="Find {{ entry.messageName }} in the catalogue">{{ entry.messageName }}</a>{% else %}<span data-detail="messageName"></span><span class="muted">unnamed: the message carries no routing key or type</span>{% endif %}</dd>
+            <dt>Message id</dt><dd><span class="mono" data-detail="messageId" id="detail-messageId">{{ entry.messageId }}</span> <button type="button" class="copy" data-copy="#detail-messageId" hidden>Copy</button></dd>
+            <dt>Failed at</dt><dd data-detail="failedAt">{{ detail.failedAt }}</dd>
+            {% if detail.handler or detail.endpoint %}<dt>{% include '_concept.html.twig' with {term: 'handler', text: 'Handler'} only %}</dt><dd>{% if detail.handler %}<span class="mono" data-detail="handler" title="{{ detail.handler }}">{{ detail.handler|split('\\')|last }}</span>{% endif %}{% if detail.endpoint %}{% if detail.handler %} <span class="muted">endpoint</span> {% endif %}<span class="mono" data-detail="endpoint" title="Endpoint id of the handler">{{ detail.endpoint }}</span>{% endif %}</dd>{% endif %}
+            <dt>Thrown</dt><dd data-detail="failure"><span class="mono" data-detail="failureClass" title="{{ entry.exceptionClass }}">{{ entry.exceptionClass }}</span>{% if detail.location %} at <span class="mono" data-detail="failureLocation" title="{{ detail.locationTitle }}">{{ detail.location }}</span>{% endif %}</dd>
+            <dt>Content type</dt><dd data-detail="contentType">{{ entry.contentType ?? 'not reported' }}</dd>
+        </dl>
+    </section>
+
+    <section class="dl-actions" aria-labelledby="dl-actions-title">
+        <h2 id="dl-actions-title">What you can do</h2>
+        <form method="post" action="{{ path('dead_letter_actions') }}" class="actions" data-detail-actions>
             <input type="hidden" name="scope" value="ids">
             <input type="hidden" name="service" value="{{ service }}">
             <input type="hidden" name="selected[{{ service }}][]" value="{{ entry.messageId }}">
-            <button type="submit" name="action" value="replay" class="pri" data-await>Replay</button>
-            <button type="submit" name="action" value="delete" class="danger">Delete</button>
+            <button type="submit" name="action" value="replay" class="pri" data-await>Replay this message</button>
+            <button type="submit" name="action" value="delete" class="danger">Delete 1 failed message</button>
         </form>
-        {% if entry.traceId is defined and entry.traceId %}
-            <a class="btn" data-view-trace href="{{ path('trace_detail', {traceId: entry.traceId}) }}">View trace</a>
-            <a class="btn" data-view-graph href="{{ path('flow_graph', {trace: entry.traceId}) }}">View on flow graph</a>
+        <p class="muted" data-action-consequences>
+            {% include '_concept.html.twig' with {term: 'replay', text: 'Replay'} only %} sends it back to {% if entry.channel ?? false %}<code>{{ entry.channel }}</code>, the channel it was consumed from,{% else %}the channel it failed on{% endif %} to be handled again, and removes it from the failed messages. Fix the cause first, or it fails again.
+            {% include '_concept.html.twig' with {term: 'delete', text: 'Delete'} only %} removes it without handling it; that cannot be undone.
+        </p>
+        {% if similar > 0 %}
+            <form method="post" action="{{ path('dead_letter_actions') }}" class="actions" data-failure-actions>
+                <button type="submit" name="failure" value="{{ [service, entry.failureId]|json_encode }}" data-await>Replay all {{ failure.count ?? (similar + 1) }} with this failure</button>
+                <button type="submit" name="deleteFailure" value="{{ [service, entry.failureId]|json_encode }}" class="danger">Delete all {{ failure.count ?? (similar + 1) }} with this failure</button>
+            </form>
         {% endif %}
-        <a class="btn" data-similar href="{{ path('dead_letters', {service: service, failureId: entry.failureId}) }}">{{ similar }} more with this failure</a>
-    </div>
-    {% if similar > 0 %}
-        <form method="post" action="{{ path('dead_letter_actions') }}" class="actions" data-failure-actions>
-            <button type="submit" name="failure" value="{{ [service, entry.failureId]|json_encode }}" class="pri" data-await>Replay all {{ failure.count ?? (similar + 1) }} with this failure</button>
-            <button type="submit" name="deleteFailure" value="{{ [service, entry.failureId]|json_encode }}" class="danger">Delete all {{ failure.count ?? (similar + 1) }} with this failure</button>
-        </form>
+    </section>
+
+    <section class="dl-related" aria-labelledby="dl-before" data-before-failure>
+        <h2 id="dl-before">What happened before it failed</h2>
+        {% if entry.traceId is defined and entry.traceId %}
+            <p>The {% include '_concept.html.twig' with {term: 'trace', text: 'trace'} only %} of this message records every message its flow sent and handled before the failure, across services, with timing. Start there to see what led to it.</p>
+            <p class="actions">
+                <a class="btn" data-view-trace href="{{ path('trace_detail', {traceId: entry.traceId}) }}">View trace</a>
+                <a class="btn" data-view-graph href="{{ path('flow_graph', {trace: entry.traceId}) }}">View on flow graph</a>
+                {% set externalTrace = pulse.traceUrl.of(entry.traceId) %}
+                {% if externalTrace %}<a class="btn" data-external-trace href="{{ externalTrace }}" target="_blank" rel="noopener">Open in tracing UI</a>{% endif %}
+            </p>
+        {% else %}
+            <p data-no-trace>This message carries no trace id, so Pulse holds no trace of what happened before it failed. Ecotone records traces when flow tracking (<code>FlowTrackingConfiguration</code>) is on in the service.</p>
+        {% endif %}
+        <p class="dl-related-links">
+            {% if similar > 0 %}<a data-similar href="{{ path('dead_letters', {service: service, failureId: entry.failureId}) }}">{{ similar }} more with this failure</a> · {% endif %}
+            <a href="{{ path('dead_letters', {service: service}) }}" data-other-failures>All failed messages in {{ service }}</a>
+        </p>
+    </section>
+
+    {% set stack = detail.stackTrace %}
+    {% if not stack.isEmpty %}
+        <section class="dl-stack" aria-labelledby="dl-stack-title" data-stack-frames>
+            <h2 id="dl-stack-title">Where it failed <span class="summary-state">{{ stack.applicationFrames|length }} {{ stack.applicationFrames|length == 1 ? 'place' : 'places' }} in your code · {{ stack.frameworkFrames|length }} framework {{ stack.frameworkFrames|length == 1 ? 'frame' : 'frames' }}</span></h2>
+            {% if stack.applicationFrames %}
+                <ol class="frames">{% for frame in stack.applicationFrames %}{{ page.frame(frame, loop.first) }}{% endfor %}</ol>
+            {% else %}
+                <p class="muted" data-no-application-frames>Every frame is framework code (vendor or Ecotone), so the failure started in a library or in configuration rather than in your code.</p>
+            {% endif %}
+            {% if stack.frameworkFrames %}
+                <details class="framework-frames" data-framework-frames data-disclosure="dead-letter.framework-frames">
+                    <summary>Show the framework frames <span class="summary-state" data-summary-state>{{ stack.frameworkFrames|length }} framework {{ stack.frameworkFrames|length == 1 ? 'frame' : 'frames' }}</span></summary>
+                    <ol class="frames">{% for frame in stack.frameworkFrames %}{{ page.frame(frame, false) }}{% endfor %}</ol>
+                </details>
+            {% endif %}
+            {% if stack.truncated %}
+                <p class="muted" data-stack-truncated>The service reports at most 4 KB of the stack trace, so the frames after the cut are not shown. <a href="#raw-dead-letter-stack-item">The stored stack trace (cut at 4 KB)</a> is in the raw data below.</p>
+            {% else %}
+                <p class="muted"><a href="#raw-dead-letter-stack-item">The full stack trace, as stored</a> is in the raw data below.</p>
+            {% endif %}
+        </section>
     {% endif %}
 
-    <div class="card">
-    <dl>
-        <dt>Service</dt><dd data-detail="service">{{ service }}</dd>
-        <dt>Message id</dt><dd><span class="mono" data-detail="messageId" id="detail-messageId">{{ entry.messageId }}</span> <button type="button" class="copy" data-copy="#detail-messageId" hidden>Copy</button></dd>
-        <dt>Message name</dt><dd data-detail="messageName">{{ entry.messageName }}</dd>
-        <dt>Failed at</dt><dd data-detail="failedAt">{{ entry.failedAt|date('Y-m-d H:i:s T', 'UTC') }}</dd>
-        <dt>Failure</dt><dd data-detail="failure"><span class="mono" data-detail="failureClass">{{ entry.exceptionClass }}</span>{% if entry.exceptionFile %} at <span class="mono" data-detail="failureLocation" title="{{ entry.exceptionFile }}:{{ entry.exceptionLine }}">{{ entry.exceptionFile|split('/')|last }}:{{ entry.exceptionLine }}</span>{% endif %}</dd>
-        <dt>Exception</dt><dd data-detail="exception">{{ entry.exceptionClass }}: {{ entry.exceptionMessage }}</dd>
-        <dt>Content type</dt><dd data-detail="contentType">{{ entry.contentType ?? 'unknown' }}</dd>
-        <dt>Channel</dt><dd data-detail="channel">{{ entry.channel ?? 'unknown' }}</dd>
-    </dl>
-    </div>
-
-    <details open data-stack-trace>
-        <summary><h2 style="display:inline">Stack trace</h2></summary>
-        <button type="button" class="copy" data-copy="#detail-stackTrace" hidden>Copy stack trace</button>
-        <div class="stack" tabindex="0" role="region" aria-label="Stack trace">{{ _self.text('stackTrace', entry.stackTrace) }}</div>
-    </details>
-
-    <h2>Payload</h2>
-    <button type="button" class="copy" data-copy="#detail-payload" hidden>Copy payload</button>
-    {% if payloadJson %}
-        <pre data-detail="payload" id="detail-payload">{{ payloadJson }}</pre>
-    {% else %}
-        {{ _self.text('payload', entry.payload) }}
-    {% endif %}
+    {% set rawItems = [{name: 'payload', label: 'Payload', content: entry.payload ?? '', contentType: entry.contentType ?? null, detail: 'payload', truncationMarker: constant('App\\Ui\\StackTrace::TRUNCATION_MARKER')}] %}
+    {% if detail.headers is not null %}{% set rawItems = rawItems|merge([{name: 'headers', label: 'Headers', content: detail.headers, open: false}]) %}{% endif %}
+    {% set rawItems = rawItems|merge([{name: 'stack', label: 'Stack trace', content: entry.stackTrace ?? '', open: false, detail: 'stackTrace', hook: 'stack-trace', truncationMarker: constant('App\\Ui\\StackTrace::TRUNCATION_MARKER')}]) %}
+    {% include '_raw.html.twig' with {key: 'dead-letter', items: rawItems} only %}
+    {% if detail.headers is null %}<p class="muted" data-headers-missing>The message headers are not in this snapshot: the service runs an Ecotone version that does not report them.</p>{% endif %}
 {% endblock %}

@@ -122,6 +122,18 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_a_rebuild_batch_that_failed_is_not_counted_as_done(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $this->rebuild('failing_orders', self::FIRST_TRACE);
+        $this->orderService->run('failing_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $tracking = $this->trackings()['trackings'][0];
+        self::assertSame(['state' => 'failed', 'batchesDone' => 0], ['state' => $tracking['state'], 'batchesDone' => $tracking['batchesDone']]);
+    }
+
+    #[DataProvider('implementations')]
     public function test_a_rebuild_of_an_unknown_projection_is_refused_with_the_known_projections(string $implementation): void
     {
         $this->bootstrap($implementation);

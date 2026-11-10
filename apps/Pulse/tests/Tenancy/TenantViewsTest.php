@@ -33,7 +33,7 @@ final class TenantViewsTest extends ReleasingWebTestCase
         $this->queueOrders('tenant_a', 3);
         $this->queueOrders('tenant_b', 1);
 
-        $hub = $this->refreshedView($client, '/services/orders');
+        $hub = $this->refreshedView($client, '/services/orders/channels');
 
         self::assertSame('3', $hub->filter('[data-hub-tenants] tr[data-channel="' . self::QUEUE . '"][data-tenant="tenant_a"] [data-ready]')->text());
         self::assertSame('1', $hub->filter('[data-hub-tenants] tr[data-channel="' . self::QUEUE . '"][data-tenant="tenant_b"] [data-ready]')->text());
@@ -53,7 +53,7 @@ final class TenantViewsTest extends ReleasingWebTestCase
 
         $home = $this->refreshedView($client, '/');
 
-        self::assertSame(['/services/orders?tenant=' . $idle . '#channels'], $this->problemsOf($home, 'orders@' . $idle, 'channel-not-draining', self::QUEUE));
+        self::assertSame(['/services/orders/channels?tenant=' . $idle], $this->problemsOf($home, 'orders@' . $idle, 'channel-not-draining', self::QUEUE));
         self::assertSame([], $this->problemsOf($home, 'orders@' . $consumed, 'channel-not-draining', self::QUEUE));
     }
 
@@ -62,8 +62,8 @@ final class TenantViewsTest extends ReleasingWebTestCase
         $client = $this->pulseWithUnpreparedTenantB();
 
         $home = $this->refreshedView($client, '/');
-        $hubOfTenantA = $client->request('GET', '/services/orders?tenant=tenant_a');
-        $hubOfTenantB = $client->request('GET', '/services/orders?tenant=tenant_b');
+        $hubOfTenantA = $client->request('GET', '/services/orders/configuration?tenant=tenant_a');
+        $hubOfTenantB = $client->request('GET', '/services/orders/configuration?tenant=tenant_b');
 
         self::assertSame([], $this->problemsOf($home, 'orders@tenant_a', 'table-missing'));
         self::assertNotSame([], $this->problemsOf($home, 'orders@tenant_b', 'table-missing'));
@@ -116,8 +116,8 @@ final class TenantViewsTest extends ReleasingWebTestCase
 
         self::assertCount(1, $this->problemsOf($home, 'orders@tenant_a', 'dead-letters'));
         self::assertSame([], $this->problemsOf($home, 'orders@tenant_b', 'dead-letters'));
-        self::assertStringContainsString('2 failures in order.place', $hubOfTenantA->filter('[data-hub-dead-letters] [data-failure]')->text());
-        self::assertCount(0, $hubOfTenantB->filter('[data-hub-dead-letters] [data-failure]'));
+        self::assertStringContainsString('2 order.place messages failed', $hubOfTenantA->filter('[data-hub-problems] [data-failure] [data-problem-text]')->text());
+        self::assertCount(0, $hubOfTenantB->filter('[data-hub-problems] [data-failure]'));
     }
 
     private function pulseWithUnpreparedTenantB(): KernelBrowser

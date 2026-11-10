@@ -170,6 +170,14 @@ memory, and sending telemetry to an external collector such as OpenTelemetry, wh
 fails the message. A test proves the rule by making the database unavailable right after the commit, with an
 `#[Around]` interceptor just outside the transaction, and asserting that the command or consumer still succeeds.
 
+One database write is allowed outside the message's transaction: the failure of a consumed message, stored once
+the error channel (a retry, a dead letter, a custom error handler) has taken it. The failed attempt's transaction
+rolled back, so its steps cannot be inside it; the message is already handled by the error channel, so a failing
+write cannot cause a retry, and the error channel's own write - the dead letter - runs the same way. Flow tracking
+stores the failed attempt in its own short transaction on the connection (and tenant) the attempt ran on, and a
+failure of that write is logged, never thrown, because the message itself is already taken care of. A failure that
+propagates to the consumer still stores nothing.
+
 Evidence: stored traces wrote the root span and claimed completion after the commit, and an outage at that moment
 threw the missing-table refusal out of the consumer (`FlowTrackingConformanceTest`, the outage tests); an asynchronous
 projection wrote its spans after its own batch committed (`FlowTrackingProjectionTest`).

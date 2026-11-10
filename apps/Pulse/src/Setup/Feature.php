@@ -20,6 +20,17 @@ final readonly class Feature
     ) {
     }
 
+    public function headline(): ?string
+    {
+        $label = array_key_first($this->settings);
+        if ($label === null) {
+            return null;
+        }
+        $headline = (string) $label . ': ' . $this->settings[$label];
+
+        return mb_strlen($headline) > 48 ? null : $headline;
+    }
+
     /**
      * @param array<mixed> $feature
      */

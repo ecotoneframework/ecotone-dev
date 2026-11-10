@@ -1,0 +1,15 @@
+<section class="raw" data-raw-data aria-labelledby="raw-{{ key }}">
+    <h2 id="raw-{{ key }}">{{ title ?? 'Raw data' }}</h2>
+    {% for item in items %}
+        {% set shown = item.content|pretty_json %}
+        {% set marker = item.truncationMarker ?? '' %}
+        {% set truncated = marker != '' and shown ends with marker %}
+        {% set lines = shown|split("\n")|length %}
+        {% set anchor = 'raw-' ~ key ~ '-' ~ item.name %}
+        <details class="raw-item" id="{{ anchor }}-item" data-raw="{{ item.name }}"{% if item.hook ?? false %} data-{{ item.hook }}{% endif %} data-disclosure="raw.{{ key }}.{{ item.name }}"{% if item.open ?? (lines <= 20) %} open{% endif %}>
+            <summary>{{ item.label }} <span class="summary-state" data-summary-state>{{ lines }} {{ lines == 1 ? 'line' : 'lines' }}{% if item.contentType ?? false %} · {{ item.contentType }}{% endif %}{% if truncated %} · cut at the size the service reports{% endif %}</span></summary>
+            <div class="raw-tools"><button type="button" class="copy" data-copy="#{{ anchor }}" hidden>Copy {{ item.label|lower }}</button></div>
+            <pre class="raw-content" id="{{ anchor }}" data-raw-content{% if item.detail ?? false %} data-detail="{{ item.detail }}"{% endif %}>{% if truncated %}{{ shown|slice(0, shown|length - marker|length) }}<span data-truncated class="muted">{{ marker }}</span>{% else %}{{ shown }}{% endif %}</pre>
+        </details>
+    {% endfor %}
+</section>

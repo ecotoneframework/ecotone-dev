@@ -12,7 +12,7 @@ final class MessageCatalogue
 {
     /**
      * @param list<ServiceFlow> $flows
-     * @return list<array{service: string, kind: string, aggregate: ?string, greyed: bool, entries: list<array{service: string, kind: string, name: string, routingKey: string, aggregate: ?string, handlers: list<array{label: string, endpointId: ?string, channel: ?string, owner: ?string}>, subscribers: list<array{service: string, label: ?string, endpointId: ?string, channel: ?string, owner: ?string}>, emittedBy: list<string>}>}>
+     * @return list<array{service: string, kind: string, aggregate: ?string, greyed: bool, entries: list<array{service: string, kind: string, name: string, routingKey: string, nodeId: string, inferred: bool, aggregate: ?string, handlers: list<array{label: string, endpointId: ?string, channel: ?string, owner: ?string}>, subscribers: list<array{service: string, label: ?string, endpointId: ?string, channel: ?string, owner: ?string}>, emittedBy: list<string>}>}>
      */
     public static function groups(array $flows, string $query, ?ServiceScopeFilter $scope = null): array
     {
@@ -97,12 +97,17 @@ final class MessageCatalogue
                 }
             }
             $subscribers = $message->kind === FlowNodeKind::EVENT ? self::subscribersOf($flow, $message, $handlers, $flows, $links) : [];
+            $reachedBy = $graph->edgesTo($message->id);
+            $deliveredElsewhere = array_filter($links, static fn (DistributedLink $link): bool => $link->fromService === $flow->name && $link->fromNodeId === $message->id) !== [];
+            $inferred = $handlers === [] && $subscribers === [] && ! $deliveredElsewhere && $reachedBy !== [] && array_filter($reachedBy, static fn ($edge): bool => ! $edge->isInferred()) === [];
             foreach ($owners === [] ? [null] : array_keys($owners) as $aggregate) {
                 $entries[] = [
                     'service' => $flow->name,
                     'kind' => $message->kind->value,
                     'name' => $message->label,
                     'routingKey' => ServiceFlow::routingKeyOf($message),
+                    'nodeId' => $message->id,
+                    'inferred' => $inferred,
                     'aggregate' => $aggregate === null ? null : (string) $aggregate,
                     'handlers' => $handlers,
                     'subscribers' => $subscribers,

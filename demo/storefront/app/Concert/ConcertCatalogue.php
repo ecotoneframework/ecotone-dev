@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Concert;
 
+use Doctrine\DBAL\ParameterType;
+use Ecotone\Api\Dbal\Attribute\DbalParameter;
 use Ecotone\Api\Dbal\Attribute\DbalQuery;
 use Ecotone\Api\Dbal\Attribute\DbalWrite;
 use Ecotone\Api\Dbal\FetchMode;
@@ -11,15 +13,15 @@ use Ecotone\Api\Dbal\FetchMode;
 interface ConcertCatalogue
 {
     #[DbalWrite(<<<'SQL'
-        INSERT INTO concerts (concert_id, artist, venue_name, starts_at, currency, standard_price_cents, vip_price_cents, prices_version, status, seats)
-        VALUES (:concertId, :artist, :venueName, :startsAt, :currency, :standardPriceCents, :vipPriceCents, :version, 'scheduled', CAST(:seats AS json))
+        INSERT INTO concerts (concert_id, artist, venue_name, starts_at, currency, standard_price_cents, vip_price_cents, prices_version, status, seats, seeded)
+        VALUES (:concertId, :artist, :venueName, :startsAt, :currency, :standardPriceCents, :vipPriceCents, :version, 'scheduled', CAST(:seats AS json), :seeded)
         ON CONFLICT (concert_id) DO UPDATE SET artist = EXCLUDED.artist, venue_name = EXCLUDED.venue_name, starts_at = EXCLUDED.starts_at,
-            currency = EXCLUDED.currency, seats = EXCLUDED.seats,
+            currency = EXCLUDED.currency, seats = EXCLUDED.seats, seeded = EXCLUDED.seeded,
             standard_price_cents = CASE WHEN EXCLUDED.prices_version >= concerts.prices_version THEN EXCLUDED.standard_price_cents ELSE concerts.standard_price_cents END,
             vip_price_cents = CASE WHEN EXCLUDED.prices_version >= concerts.prices_version THEN EXCLUDED.vip_price_cents ELSE concerts.vip_price_cents END,
             prices_version = GREATEST(EXCLUDED.prices_version, concerts.prices_version)
         SQL)]
-    public function schedule(string $concertId, int $version, string $artist, string $venueName, string $startsAt, string $currency, int $standardPriceCents, int $vipPriceCents, string $seats): void;
+    public function schedule(string $concertId, int $version, string $artist, string $venueName, string $startsAt, string $currency, int $standardPriceCents, int $vipPriceCents, string $seats, #[DbalParameter(type: ParameterType::BOOLEAN)] bool $seeded): void;
 
     #[DbalWrite(<<<'SQL'
         INSERT INTO concerts (concert_id, status) VALUES (:concertId, :status)
@@ -39,13 +41,13 @@ interface ConcertCatalogue
     public function changePrices(string $concertId, int $version, int $standardPriceCents, int $vipPriceCents): void;
 
     #[DbalQuery(<<<'SQL'
-        SELECT concert_id, artist, venue_name, starts_at, currency, standard_price_cents, vip_price_cents, status
+        SELECT concert_id, artist, venue_name, starts_at, currency, standard_price_cents, vip_price_cents, status, seeded
         FROM concerts WHERE seats IS NOT NULL ORDER BY status = 'on_sale' DESC, starts_at, artist
         SQL)]
     public function all(): array;
 
     #[DbalQuery(<<<'SQL'
-        SELECT concert_id, artist, venue_name, starts_at, currency, standard_price_cents, vip_price_cents, status, seats
+        SELECT concert_id, artist, venue_name, starts_at, currency, standard_price_cents, vip_price_cents, status, seeded, seats
         FROM concerts WHERE concert_id = :concertId AND seats IS NOT NULL
         SQL, fetchMode: FetchMode::FIRST_ROW)]
     public function find(string $concertId): array|false;

@@ -35,6 +35,8 @@ final class TraceWaterfallTest extends ReleasingWebTestCase
         self::assertMatchesRegularExpression('/^\d+(\.\d+)? ms$/', $invoiced->filter('[data-summary="queueWait"] b')->text());
         self::assertStringContainsString($this->serviceChannels['billing'], $invoiced->filter('[data-summary="queueWait"]')->text());
         self::assertSame('1', $exploded->filter('[data-summary="failed"] b')->text());
+        self::assertMatchesRegularExpression('/^\d+(\.\d+)? ms$/', $exploded->filter('[data-summary="queueWait"] b')->text());
+        self::assertStringContainsString('orders_async', $exploded->filter('[data-summary="queueWait"]')->text());
     }
 
     public function test_every_step_has_a_bar_positioned_from_its_offset_and_duration_over_the_whole_trace(): void

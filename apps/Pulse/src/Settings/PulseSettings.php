@@ -34,6 +34,7 @@ final readonly class PulseSettings
         public int $trackingDays,
         public string $internalDatabasePath,
         public QueueThresholds $queueThresholds,
+        public TraceUrl $traceUrl,
     ) {
     }
 
@@ -96,7 +97,7 @@ final readonly class PulseSettings
         $routes = self::routes($read('PULSE_SERVICES'), $serviceName, $channel, $connections);
         $serviceChannels = array_map(static fn (ServiceRoute $route) => $route->channel, $routes);
 
-        return new self($version, $licenceKey === LicenceTesting::VALID_LICENCE, $serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $doctorBudget, $projectionStalledAfter, $channelStalledAfter, $trackingDays, $internalDatabasePath, QueueThresholds::fromEnvironment($read('PULSE_QUEUE_WARNING'), $read('PULSE_QUEUE_CRITICAL')));
+        return new self($version, $licenceKey === LicenceTesting::VALID_LICENCE, $serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $doctorBudget, $projectionStalledAfter, $channelStalledAfter, $trackingDays, $internalDatabasePath, QueueThresholds::fromEnvironment($read('PULSE_QUEUE_WARNING'), $read('PULSE_QUEUE_CRITICAL')), TraceUrl::fromEnvironment($read('PULSE_TRACE_URL')));
     }
 
     public function transportConnectionReference(): string

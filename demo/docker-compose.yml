@@ -12,6 +12,7 @@
 #   DEMO_TICKETING_PORT            host port of the Symfony ticketing service, default 8001
 #   DEMO_PULSE_PORT                host port of Ecotone Pulse, default 8080
 #   DEMO_JAEGER_PORT               host port of the Jaeger UI, default 16686
+#   DEMO_DATABASE_PORT             host port of the database browser (pgweb, read-only), default 8081
 #   DEMO_RABBITMQ_MANAGEMENT_PORT  host port of the RabbitMQ management UI, default 15672
 #   TICKETING_HOLD_SECONDS         how long ticketing holds a seat before it expires, default 120
 #   TICKETING_RENDER_FAILS_FOR_SEAT  a seat code, like C-7, whose ticket render fails on ticketing-worker; empty by default
@@ -43,13 +44,23 @@ x-environment: &environment
   ECOTONE_LICENCE_KEY:
   COMPOSER_AUTH:
   AMQP_DSN: amqp://guest:guest@rabbitmq:5672
+  OTEL_PHP_AUTOLOAD_ENABLED: "true"
+  OTEL_TRACES_EXPORTER: none
+  OTEL_METRICS_EXPORTER: none
+  OTEL_LOGS_EXPORTER: none
   OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+  OTEL_PHP_EXCLUDED_REQUEST_HEADERS: X-Demo-Healthcheck
+  OTEL_PROPAGATORS: tracecontext,baggage
   DEMO_PULSE_URL: http://localhost:${DEMO_PULSE_PORT:-8080}
   DEMO_JAEGER_URL: http://localhost:${DEMO_JAEGER_PORT:-16686}
+  DEMO_DATABASE_URL: http://localhost:${DEMO_DATABASE_PORT:-8081}
+  DEMO_STOREFRONT_URL: http://localhost:${DEMO_STOREFRONT_PORT:-8000}
+  DEMO_TICKETING_URL: http://localhost:${DEMO_TICKETING_PORT:-8001}
 
 x-ticketing-environment: &ticketing-environment
   <<: *environment
   DEMO_APP: ticketing
+  OTEL_SERVICE_NAME: ticketing
   APP_ENV: dev
   APP_SECRET: ecotone-demo-ticketing
   DATABASE_URL: postgresql://ecotone:secret@postgres:5432/ticketing?serverVersion=16&charset=utf8
@@ -58,6 +69,7 @@ x-ticketing-environment: &ticketing-environment
 x-storefront-environment: &storefront-environment
   <<: *environment
   DEMO_APP: storefront
+  OTEL_SERVICE_NAME: storefront
   APP_ENV: local
   APP_DEBUG: "true"
   APP_KEY: base64:ZWNvdG9uZS1kZW1vLXN0b3JlZnJvbnQta2V5LTMyYnk=
@@ -76,7 +88,7 @@ x-storefront-environment: &storefront-environment
   LOG_LEVEL: notice
 
 x-web-healthcheck: &web-healthcheck
-  test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/') === false ? 1 : 0);"]
+  test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/', false, stream_context_create(['http' => ['header' => 'X-Demo-Healthcheck: 1']])) === false ? 1 : 0);"]
   interval: 5s
   timeout: 5s
   start_period: 300s
@@ -132,6 +144,16 @@ services:
       timeout: 5s
       retries: 30
 
+  database-browser:
+    image: sosedoff/pgweb:0.16.2
+    command: ["pgweb", "--bind=0.0.0.0", "--listen=8081", "--readonly", "--skip-open", "--open-retry=20", "--url=postgres://ecotone:secret@postgres:5432/ticketing?sslmode=disable"]
+    ports:
+      - "${DEMO_DATABASE_PORT:-8081}:8081"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   pulse:
     <<: *app
     working_dir: /repo/apps/Pulse
@@ -145,6 +167,7 @@ services:
       PULSE_SERVICES: ticketing,storefront
       PULSE_VERSION: dev
       PULSE_REFRESH_INTERVAL: "10"
+      PULSE_TRACE_URL: http://localhost:${DEMO_JAEGER_PORT:-16686}/trace/{traceId}
       PULSE_HTTP_PORT: "8080"
     ports:
       - "${DEMO_PULSE_PORT:-8080}:8080"
@@ -192,7 +215,9 @@ services:
     <<: *app
     working_dir: /repo/demo/storefront
     command: ["worker", "storefront", "storefront_async"]
-    environment: *storefront-environment
+    environment:
+      <<: *storefront-environment
+      OTEL_PHP_DISABLED_INSTRUMENTATIONS: laravel
     deploy:
       replicas: 2
     healthcheck: *worker-healthcheck

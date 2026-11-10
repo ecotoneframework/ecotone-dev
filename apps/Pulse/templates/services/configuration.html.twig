@@ -1,0 +1,97 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Configuration · {{ service.service }} · Ecotone Pulse{% endblock %}
+
+{% block head %}
+    {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+
+{% macro setupItem(item) %}
+    <li data-setup-item="{{ item.id }}"{% if item.package %} data-setup-package="{{ item.package }}"{% endif %}{% if item.missing %} data-setup-missing{% endif %}>
+        <span class="pill {{ item.missing ? 'bad sq' : (item.initialized ? 'ok' : 'off') }}" data-setup-status{% if item.initialized is null %} title="Pulse could not check it: {{ item.error ?? 'the service did not say why' }}"{% endif %}>{{ item.initialized is null ? 'Unknown' : (item.initialized ? 'Set up' : 'Missing') }}</span>
+        {{ item.kind == 'table' ? 'Table for ' ~ item.key ~ ' on ' ~ item.connection : 'Channel ' ~ item.key }}
+        {% if item.error %}<br><span class="drift" data-setup-error>{{ item.error }}</span>{% endif %}
+        {% if item.fix and not item.initialized %}<br><code data-fix>{{ item.fix }}</code>{% endif %}
+    </li>
+{% endmacro %}
+
+{% macro featureBody(feature, service) %}
+    {% if feature.settings %}
+        <dl class="feature-settings">{% for label, value in feature.settings %}<dt>{{ label }}</dt><dd data-feature-setting="{{ label }}">{{ value }}</dd>{% endfor %}</dl>
+    {% endif %}
+    {% if feature.handlers %}
+        <p class="muted">{{ feature.handlers|length }} {{ feature.handlers|length == 1 ? 'handler uses' : 'handlers use' }} it:</p>
+        <ul class="feature-handlers" data-feature-handlers>{% for handler in feature.handlers %}<li><code>{{ handler }}</code></li>{% endfor %}</ul>
+    {% endif %}
+    <div class="hint-body" data-hint="feature">
+        <p>{{ feature.hint }}</p>
+        {% if feature.configuration %}<p class="muted">{{ feature.enabled ? 'Change it' : 'Turn it on' }} in a <code>#[ServiceContext]</code> of {{ service }}:</p><pre class="mono" data-feature-configuration>{{ feature.configuration }}</pre>{% endif %}
+    </div>
+{% endmacro %}
+
+{% block body %}
+    {% include 'services/_header.html.twig' with {service: service, tenant: tenant, trail: [{label: 'Configuration'}], route: 'service_configuration', tabs: tabs, current: 'configuration', failureCount: failureCount} only %}
+
+    {% if setup is null %}
+        {% include '_empty.html.twig' with {cause: 'nothing-yet', sentence: 'Tables, packages and features of ' ~ service.service ~ ' are read per tenant. Pick a tenant above to see them.'} only %}
+    {% else %}
+        {% include '_verdict.html.twig' with {status: setup.status, sentence: setup.sentence} only %}
+
+        <div data-hub-setup>
+            <div id="setup">
+                {% embed '_section.html.twig' with {key: 'config.' ~ service.service ~ '.setup', title: 'Tables and channels', summary: setup.items|length ~ ' · ' ~ setup.state, status: setup.status, setup: setup, service: service.service} only %}
+                    {% block body %}
+                        {% import 'services/configuration.html.twig' as page %}
+                        {% if setup.allClear and setup.items is not empty %}<p data-setup-ok><span class="pill ok">All set up</span> Every table and channel {{ service }} uses exists.</p>{% endif %}
+                        {% if setup.items is empty and setup.sectionErrors is empty %}
+                            <p class="muted">{{ service }} reports no database table or broker channel to check.</p>
+                        {% endif %}
+                        {% if setup.items %}<ul data-setup-items>{% for item in setup.items %}{{ page.setupItem(item) }}{% endfor %}</ul>{% endif %}
+                        {% for section, reason in setup.sectionErrors %}
+                            <p data-section-error="{{ section }}"><span class="pill wait">Unavailable</span> {{ section }} could not be read: <span class="drift">{{ reason }}</span></p>
+                        {% endfor %}
+                    {% endblock %}
+                {% endembed %}
+            </div>
+
+            {% if setup.packages %}
+                <section class="card">
+                    <h2>Packages · {{ setup.packages|length }}</h2>
+                    <p class="muted">Each installed Ecotone package with the features it offers. Open a feature for its settings and the call that changes it.</p>
+                    {% for package in setup.packages %}
+                        {% set on = package.features|filter(feature => feature.enabled) %}
+                        {% set off = package.features|filter(feature => not feature.enabled) %}
+                        <article class="package" data-package="{{ package.name }}">
+                            <h3><span data-package-name>{{ package.composerPackage }}</span>{% if package.version %} <span class="muted" data-package-version>{{ package.version }}</span>{% endif %}</h3>
+                            {% if on %}
+                                <ul class="features" data-features>
+                                    {% for feature in on %}
+                                        <li class="feature" data-feature="{{ feature.name }}" data-feature-enabled="true">
+                                            <details data-disclosure="config.{{ service.service }}.{{ package.name }}.{{ feature.name }}">
+                                                <summary><span class="pill ok" data-feature-status>On</span> <b>{{ feature.name }}</b>{% if feature.headline %} <span class="muted">· {{ feature.headline }}</span>{% endif %}</summary>
+                                                {{ _self.featureBody(feature, service.service) }}
+                                            </details>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                            {% if off %}
+                                <details class="features-off" data-features-off="{{ package.name }}" data-disclosure="config.{{ service.service }}.{{ package.name }}.off">
+                                    <summary>Not in use · {{ off|length }}: {{ off|map(feature => feature.name)|join(', ') }}</summary>
+                                    <ul class="features">
+                                        {% for feature in off %}
+                                            <li class="feature" data-feature="{{ feature.name }}" data-feature-enabled="false">
+                                                <p class="feature-title"><span class="pill off" data-feature-status>Off</span> <b>{{ feature.name }}</b></p>
+                                                {{ _self.featureBody(feature, service.service) }}
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </details>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
+                </section>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}

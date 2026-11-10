@@ -23,6 +23,7 @@ final class PulseEnvironment
         'PULSE_INTERNAL_DATABASE_PATH',
         'PULSE_QUEUE_WARNING',
         'PULSE_QUEUE_CRITICAL',
+        'PULSE_TRACE_URL',
     ];
 
     private const CONNECTION_VARIABLE = '/^PULSE_CONNECTION_[A-Z0-9]+(?:_[A-Z0-9]+)*_(?:DSN|REPLY_CHANNEL)(?:_FILE)?$/';

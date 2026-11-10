@@ -242,8 +242,9 @@ final class ConcertCatalogueTest extends KernelTestCase
         self::assertSame('concert.scheduled', $received[0]['routingKey']);
         self::assertSame($concertId, $received[0]['concertIdHeader']);
         $event = $received[0]['event'];
-        self::assertSame(['concertId', 'version', 'venueName', 'artist', 'startsAt', 'currency', 'tiers', 'seats'], array_keys($event));
+        self::assertSame(['concertId', 'version', 'venueName', 'artist', 'startsAt', 'currency', 'tiers', 'seats', 'seeded'], array_keys($event));
         self::assertSame($concertId, $event['concertId']);
+        self::assertFalse($event['seeded']);
         self::assertSame('Riverside Hall', $event['venueName']);
         self::assertSame('The Midnight Owls', $event['artist']);
         self::assertSame('2026-11-20T20:00:00+00:00', $event['startsAt']);
@@ -308,6 +309,21 @@ final class ConcertCatalogueTest extends KernelTestCase
                 static fn (array $concert): array => ['artist' => $concert['artist'], 'startsAt' => $concert['startsAt'], 'status' => $concert['status']],
                 $ticketing->sendQueryWithRouting('concerts.list'),
             ),
+        );
+    }
+
+    public function test_seeding_the_demo_announces_its_concerts_to_the_storefront_as_seeded(): void
+    {
+        $storefront = $this->storefrontListening();
+        $ticketing = $this->ticketing();
+
+        $ticketing->runConsoleCommand('demo:seed', ['catalogueOnly' => true]);
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $scheduled = array_values(array_filter($this->receivedByStorefront($storefront), static fn (array $received): bool => $received['routingKey'] === 'concert.scheduled'));
+        self::assertSame(
+            ['The Midnight Owls' => true, 'Aurora Strings' => true, 'Neon Harbour' => true],
+            array_column(array_column($scheduled, 'event'), 'seeded', 'artist'),
         );
     }
 

@@ -1,0 +1,25 @@
+{% include '_breadcrumbs.html.twig' with {service: service.service, tenant: tenant, trail: trail} only %}
+<h1>{{ service.service }}{% if tenant %} <span class="muted">› {{ tenant }}</span>{% endif %}{% if heading ?? false %} <span class="muted">· {{ heading }}</span>{% endif %}</h1>
+
+{% if service.isMultiTenant %}
+    <nav aria-label="Tenant" class="tenant-switcher" data-tenant-switcher>
+        <a href="{{ path(route, {service: service.service}) }}" data-tenant-choice="all"{% if not tenant %} aria-current="page"{% endif %}>All tenants</a>
+        {% for choice in service.tenants %}
+            <a href="{{ path(route, {service: service.service, tenant: choice}) }}" data-tenant-choice="{{ choice }}"{% if choice == tenant %} aria-current="page"{% endif %}>{{ choice }}</a>
+        {% endfor %}
+    </nav>
+{% endif %}
+
+{% set serviceTabs = [
+    {key: 'overview', label: 'Overview'},
+    {key: 'channels', label: 'Channels & consumers'},
+    {key: 'failures', label: 'Failed messages'},
+    {key: 'projections', label: 'Projections'},
+    {key: 'traces', label: 'Traces'},
+    {key: 'configuration', label: 'Configuration'},
+] %}
+<nav aria-label="Views of {{ service.service }}" class="subnav" data-service-tabs>
+    {% for tab in serviceTabs %}
+        <a href="{{ tabs[tab.key] }}" data-service-tab="{{ tab.key }}"{% if tab.key == current %} aria-current="page"{% endif %}>{{ tab.label }}{% if tab.key == 'failures' and failureCount %} <span class="badge" title="{{ failureCount }} failed {{ failureCount == 1 ? 'message' : 'messages' }} stored">{{ failureCount }}</span>{% endif %}</a>
+    {% endfor %}
+</nav>

@@ -14,6 +14,7 @@ use App\Snapshot\ChannelDepth;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\ServiceStatus;
 use App\Snapshot\SnapshotRequester;
+use App\Ui\ProjectionList;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class ScopeProblems
@@ -80,7 +81,7 @@ final readonly class ScopeProblems
      */
     private function setup(ServiceSnapshot $scope): array
     {
-        $href = $this->hub($scope) . '#setup';
+        $href = $this->urls->generate('service_configuration', array_filter(['service' => $scope->service, 'tenant' => $scope->tenant])) . '#setup';
         $status = SetupStatus::of($scope);
         $problems = [];
         foreach ($status->missing() as $item) {
@@ -108,7 +109,8 @@ final readonly class ScopeProblems
                     Severity::Warning,
                     'channel-not-draining',
                     sprintf('%s: %s ready, count not falling for %d min. %s%s', $depth->name, self::number((int) $depth->ready), intdiv($depth->notDrainingSeconds, 60), $depth->runCommand() === null ? 'No polling consumer runs this channel' : sprintf('Start `%s`', $depth->runCommand()), $depth->handlers === [] ? '' : sprintf(' (handles %s)', implode(', ', $depth->handlers))),
-                    $this->hub($scope) . '#channels',
+                    $this->channelsOf($scope),
+                    $depth->name,
                 );
             }
             if (! in_array($depth->level, ['warning', 'critical'], true)) {
@@ -118,7 +120,8 @@ final readonly class ScopeProblems
                 $depth->level === 'critical' ? Severity::Critical : Severity::Warning,
                 'queue-' . $depth->level,
                 sprintf('%s: %s ready (%s)', $depth->name, self::number((int) $depth->ready), $depth->level),
-                $this->hub($scope) . '#channels',
+                $this->channelsOf($scope),
+                $depth->name,
             );
         }
 
@@ -132,11 +135,11 @@ final readonly class ScopeProblems
     {
         $problems = [];
         foreach (ProjectionOverview::of($scope, $this->settings->projectionStalledAfterSeconds, $rebuilds) as $projection) {
-            $href = $this->urls->generate('service_projections', ['service' => $scope->scope()]);
+            $href = $this->projectionHref($scope, $projection->name);
             $problem = match ($projection->state) {
-                ProjectionState::Failed => new Problem(Severity::Critical, 'projection-failed', sprintf('%s failed: its channel has dead letters', $projection->name), $href),
-                ProjectionState::Stalled => new Problem(Severity::Warning, 'projection-stalled', sprintf('%s stalled %d min', $projection->name, intdiv((int) $projection->changedSecondsAgo, 60)), $href),
-                ProjectionState::CatchingUp => new Problem(Severity::Warning, 'projection-behind', sprintf('%s behind: %s', $projection->name, $projection->gap), $href),
+                ProjectionState::Failed => new Problem(Severity::Critical, 'projection-failed', sprintf('%s failed: its channel has dead letters', $projection->name), $href, $projection->name),
+                ProjectionState::Stalled => new Problem(Severity::Warning, 'projection-stalled', sprintf('%s stalled %d min', $projection->name, intdiv((int) $projection->changedSecondsAgo, 60)), $href, $projection->name),
+                ProjectionState::CatchingUp => new Problem(Severity::Warning, 'projection-behind', sprintf('%s behind: %s', $projection->name, $projection->gap), $href, $projection->name),
                 default => null,
             };
             if ($problem !== null) {
@@ -153,13 +156,13 @@ final readonly class ScopeProblems
     private function rebuilds(ServiceSnapshot $scope, RebuildReport $report): array
     {
         $problems = [];
-        $href = $this->urls->generate('service_projections', ['service' => $scope->scope()]);
         $seen = [];
         foreach ($report->rebuilds as $rebuild) {
             if (isset($seen[$rebuild->projection])) {
                 continue;
             }
             $seen[$rebuild->projection] = true;
+            $href = $this->projectionHref($scope, $rebuild->projection);
             if ($rebuild->isRunning()) {
                 $problems[] = new Problem(Severity::Info, $rebuild->kind . '-running', sprintf('%s %s%s', $rebuild->projection, $rebuild->gerund(), $rebuild->elapsed() === null ? '' : ' for ' . $rebuild->elapsed()), $href);
             } elseif ($rebuild->state === 'failed') {
@@ -190,6 +193,7 @@ final readonly class ScopeProblems
                 'dead-letters',
                 sprintf('%d %s in %s', $count, $count === 1 ? 'failure' : 'failures', $name),
                 $this->urls->generate('dead_letters', ['service' => $scope->scope(), 'failureId' => (string) ($group['failureId'] ?? '')]),
+                (string) ($group['failureId'] ?? ''),
             );
         }
 
@@ -199,6 +203,16 @@ final readonly class ScopeProblems
     private function hasProjections(ServiceSnapshot $scope): bool
     {
         return is_array($scope->snapshot['projections'] ?? null) && $scope->snapshot['projections'] !== [];
+    }
+
+    private function projectionHref(ServiceSnapshot $scope, string $projection): string
+    {
+        return $this->urls->generate('service_projections', ['service' => $scope->scope()]) . '#' . ProjectionList::anchorFor($scope, $projection);
+    }
+
+    private function channelsOf(ServiceSnapshot $scope): string
+    {
+        return $this->urls->generate('service_channels', array_filter(['service' => $scope->service, 'tenant' => $scope->tenant]));
     }
 
     private function hub(ServiceSnapshot $scope): string

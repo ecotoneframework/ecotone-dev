@@ -39,6 +39,18 @@ final class TenantSectionsTest extends ReleasingWebTestCase
         self::assertSame('12 events behind', $crawler->filter('[data-projections-section="orders@tenant_a"] [data-gap]')->text());
     }
 
+    public function test_the_projections_tab_of_one_tenant_shows_only_that_tenant(): void
+    {
+        $client = $this->pulseWithMultiTenantOrders();
+        $this->orders->projections = ['tenant_a' => [$this->projection('tickets', events: 12)], 'tenant_b' => [$this->projection('tickets', events: 0)]];
+
+        $crawler = $this->observe($client, '/services/orders/projections?tenant=tenant_b');
+
+        self::assertSame(['orders@tenant_b'], $crawler->filter('[data-projections-section]')->each(static fn (Crawler $section): string => (string) $section->attr('data-projections-section')));
+        self::assertSame('page', $crawler->filter('[data-tenant-choice="tenant_b"]')->attr('aria-current'));
+        self::assertSame('page', $crawler->filter('[data-service-tab="projections"]')->attr('aria-current'));
+    }
+
     public function test_a_backfill_is_sent_for_the_tenant_whose_section_it_was_confirmed_in(): void
     {
         $client = $this->pulseWithMultiTenantOrders();
@@ -73,12 +85,12 @@ final class TenantSectionsTest extends ReleasingWebTestCase
         self::assertSame('catching_up', $this->statusOf($crawler, 'orders@tenant_b', 'tickets'));
     }
 
-    public function test_the_hub_measures_the_channels_on_the_tenant_connection_per_tenant(): void
+    public function test_the_channels_view_measures_the_channels_on_the_tenant_connection_per_tenant(): void
     {
         $client = $this->pulseWithMultiTenantOrders();
         $this->orders->depths = ['tenant_a' => 5, 'tenant_b' => 0];
 
-        $crawler = $this->observe($client, '/services/orders');
+        $crawler = $this->observe($client, '/services/orders/channels');
 
         self::assertSame('5', $crawler->filter('[data-hub-tenants] tr[data-channel="tenant_queue"][data-tenant="tenant_a"] [data-ready]')->text());
         self::assertSame('0', $crawler->filter('[data-hub-tenants] tr[data-channel="tenant_queue"][data-tenant="tenant_b"] [data-ready]')->text());

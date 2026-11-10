@@ -15,7 +15,7 @@ final class ServiceConsumersTest extends ReleasingWebTestCase
 {
     use DeadLetterServicesTrait;
 
-    public function test_each_consumer_lists_its_handlers_and_features_tagged_as_its_own_configuration_or_global(): void
+    public function test_each_consumer_lists_its_handlers_and_its_own_configuration_below_the_global_settings_shared_by_every_consumer(): void
     {
         $crawler = $this->pageOfSnapshot(['consumers' => [
             ['name' => 'orders', 'kind' => 'polling', 'handlers' => ['order.place.endpoint'], 'features' => [
@@ -30,13 +30,30 @@ final class ServiceConsumersTest extends ReleasingWebTestCase
         $orders = $crawler->filter('[data-hub-consumers] [data-consumer="orders"]');
         self::assertSame('polling', trim($orders->filter('[data-consumer-kind]')->text()));
         self::assertSame(['order.place.endpoint'], $orders->filter('[data-consumer-handlers] li')->each(static fn (Crawler $handler): string => trim($handler->text())));
-        $transaction = $orders->filter('[data-consumer-feature="Database transaction"]');
+        $transaction = $crawler->filter('[data-hub-consumers] [data-consumer-shared] [data-consumer-feature="Database transaction"]');
         self::assertSame('on', trim($transaction->filter('[data-consumer-feature-value]')->text()));
         self::assertSame('global', trim($transaction->filter('[data-consumer-feature-scope]')->text()));
         $delayed = $orders->filter('[data-consumer-feature="Delayed retries"]');
         self::assertSame('consumer-level config', trim($delayed->filter('[data-consumer-feature-scope]')->text()));
         self::assertSame('order.place.endpoint', trim($delayed->filter('[data-consumer-feature-handler]')->text()));
         self::assertSame('inbound', trim($crawler->filter('[data-consumer="reports"] [data-consumer-kind]')->text()));
+    }
+
+    public function test_a_channel_whose_broker_does_not_count_consumers_shows_the_consumer_the_service_declares_for_it(): void
+    {
+        $crawler = $this->pageOfSnapshot([
+            'channels' => [['name' => 'orders_async', 'kind' => 'async', 'ready' => null, 'delayed' => null, 'inFlight' => null, 'consumers' => null, 'probeError' => null, 'handlers' => ['OrderPlaced → place', 'OrderPaid → ship']]],
+            'consumers' => [
+                ['name' => 'orders_async', 'kind' => 'polling', 'handlers' => ['order.place.endpoint', 'order.ship.endpoint'], 'features' => []],
+                ['name' => 'reports', 'kind' => 'inbound', 'handlers' => [], 'features' => []],
+            ],
+        ]);
+
+        $row = $crawler->filter('[data-hub-channels] tr[data-channel="orders_async"]');
+        self::assertSame('1 declared · running count not reported', $row->filter('[data-consumers]')->text());
+        self::assertSame('2 handlers on this channel', $row->filter('details summary')->text());
+        self::assertSame('2 · 1 polling, 1 inbound', $crawler->filter('[data-hub-consumers] h2 [data-summary-state]')->text());
+        self::assertSame('2 handlers it runs', $crawler->filter('[data-consumer="orders_async"] details summary')->text());
     }
 
     public function test_a_service_that_reports_no_consumers_says_so(): void
@@ -66,6 +83,6 @@ final class ServiceConsumersTest extends ReleasingWebTestCase
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
 
-        return $client->request('GET', '/services/orders');
+        return $client->request('GET', '/services/orders/channels');
     }
 }

@@ -213,17 +213,17 @@ final class DeadLetterActionsTest extends ReleasingWebTestCase
         $this->advanceTimeBy(4);
         $client->request('GET', '/dead-letters');
         $this->deliver($client);
-        self::assertSame('4s', $this->ageOnServicesPage($client, 'orders'));
+        self::assertSame('4 s', $this->ageOnServicesPage($client, 'orders'));
 
         $this->advanceTimeBy(1);
         $client->request('GET', '/dead-letters');
         $this->deliver($client);
-        self::assertSame('0s', $this->ageOnServicesPage($client, 'orders'));
+        self::assertSame('0 s', $this->ageOnServicesPage($client, 'orders'));
 
         $this->advanceTimeBy(6);
         $client->request('GET', '/dead-letters');
         $this->deliver($client);
-        self::assertSame('6s', $this->ageOnServicesPage($client, 'orders'));
+        self::assertSame('6 s', $this->ageOnServicesPage($client, 'orders'));
     }
 
     public function test_the_page_keeps_refreshing_until_the_follow_up_snapshot_is_answered(): void
@@ -253,7 +253,7 @@ final class DeadLetterActionsTest extends ReleasingWebTestCase
         $client->request('GET', '/dead-letters');
         $this->deliver($client);
 
-        self::assertSame('5s', $this->ageOnServicesPage($client, 'orders'));
+        self::assertSame('5 s', $this->ageOnServicesPage($client, 'orders'));
         self::assertCount(0, $client->request('GET', '/dead-letters')->filter('meta[http-equiv="refresh"]'));
     }
 
@@ -308,7 +308,7 @@ final class DeadLetterActionsTest extends ReleasingWebTestCase
         $this->deliver($client);
 
         self::assertCount(1, $confirmation->filter('[data-confirm-delete]'));
-        self::assertStringContainsString('2 dead letters', $confirmation->filter('[data-confirm-delete]')->text());
+        self::assertStringContainsString('2 failed messages', $confirmation->filter('[data-confirm-delete]')->text());
         self::assertSame(['order.cancel', 'order.place', 'order.place'], $this->remainingNames($client));
 
         $client->submit($confirmation->filter('[data-confirm-delete] button')->form());
@@ -327,6 +327,29 @@ final class DeadLetterActionsTest extends ReleasingWebTestCase
         $this->deliver($client);
 
         self::assertSame(['order.cancel', 'order.place', 'order.place'], $this->remainingNames($client));
+    }
+
+    public function test_the_delete_confirmation_of_a_selection_names_the_count_on_its_button_and_shows_where_it_is(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+
+        $confirmation = $client->request('POST', '/dead-letters/actions', ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.place')]]);
+
+        self::assertSame('Delete 2 failed messages', trim($confirmation->filter('[data-confirm-delete] button.danger')->text()));
+        self::assertSame(['Home', 'Failed messages', 'Confirm delete'], $confirmation->filter('[data-crumbs] li')->each(static fn (Crawler $crumb) => $crumb->text()));
+    }
+
+    public function test_the_delete_confirmation_of_a_filter_shows_the_filter_as_readable_chips_and_counts_what_it_deletes(): void
+    {
+        $client = $this->pulseWithFailures();
+        $this->freshView($client, '/dead-letters');
+
+        $confirmation = $client->request('POST', '/dead-letters/actions', ['action' => 'delete', 'scope' => 'filter', 'service' => 'orders', 'exceptionClass' => 'RuntimeException']);
+
+        self::assertSame(['Exception class: RuntimeException'], $confirmation->filter('[data-filter-chip]')->each(static fn (Crawler $chip) => trim($chip->text())));
+        self::assertSame('Delete 2 failed messages', trim($confirmation->filter('[data-confirm-delete] button.danger')->text()));
+        self::assertSame(['Home', 'Services', 'orders', 'Failed messages', 'Confirm delete'], $confirmation->filter('[data-crumbs] li')->each(static fn (Crawler $crumb) => $crumb->text()));
     }
 
     public function test_a_sent_action_shows_a_notice_and_the_service_as_waiting_until_its_snapshot_arrives(): void

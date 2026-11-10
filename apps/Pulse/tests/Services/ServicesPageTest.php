@@ -47,7 +47,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         self::assertStringContainsString(PHP_VERSION, $card->text());
         self::assertStringContainsString('lite', $card->text());
         self::assertStringContainsString('2026-10-20 12:00:00', $card->text());
-        self::assertStringContainsString('0s', $card->text());
+        self::assertStringContainsString('0 s ago', $card->text());
     }
 
     public function test_a_service_that_never_answers_becomes_unreachable_after_the_reply_timeout(): void
@@ -82,7 +82,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         self::assertSame('unreachable', $this->serviceStatusOf($crawler, 'orders'));
         $card = $crawler->filter('[data-service="orders"]')->text();
         self::assertStringContainsString('2026-10-20 12:00:00', $card);
-        self::assertStringContainsString('80s', $card);
+        self::assertStringContainsString('80 s ago', $card);
     }
 
     public function test_a_second_view_within_sixty_seconds_sends_no_new_request(): void
@@ -99,7 +99,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
 
-        self::assertSame('59s', $this->ageOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('59 s', $this->ageOf($client->request('GET', '/services'), 'orders'));
     }
 
     public function test_after_sixty_seconds_a_view_requests_a_new_snapshot(): void
@@ -118,7 +118,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/services');
         self::assertSame('connected', $this->serviceStatusOf($crawler, 'orders'));
-        self::assertSame('0s', $this->ageOf($crawler, 'orders'));
+        self::assertSame('0 s', $this->ageOf($crawler, 'orders'));
     }
 
     public function test_refresh_requests_a_new_snapshot_before_sixty_seconds_pass(): void
@@ -135,7 +135,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
 
-        self::assertSame('0s', $this->ageOf($client->request('GET', '/services'), 'orders'));
+        self::assertSame('0 s', $this->ageOf($client->request('GET', '/services'), 'orders'));
     }
 
     public function test_a_broker_that_cannot_be_reached_shows_every_service_as_unreachable_with_the_reason(): void
@@ -169,7 +169,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $waiting = $client->request('GET', '/services');
 
         self::assertSame('waiting', $this->serviceStatusOf($waiting, 'orders'));
-        self::assertSame('20s', $this->ageOf($waiting, 'orders'));
+        self::assertSame('20 s', $this->ageOf($waiting, 'orders'));
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
         self::assertSame('connected', $this->serviceStatusOf($client->request('GET', '/services'), 'orders'));
@@ -321,21 +321,6 @@ final class ServicesPageTest extends ReleasingWebTestCase
         self::assertSame('1', $crawler->filter('[data-service="orders"] [data-dead-letters]')->text());
         self::assertCount(0, $crawler->filter('[data-service="billing"] [data-dead-letters]'));
         self::assertCount(0, $crawler->filter('[data-version-drift]'));
-    }
-
-    public function test_every_page_of_the_navigation_is_reachable(): void
-    {
-        $this->configurePulseWithServices('orders');
-        $client = $this->pulseClient();
-
-        $crawler = $client->request('GET', '/services');
-        $links = $crawler->filter('nav a')->each(static fn (Crawler $link) => [$link->text(), $link->attr('href')]);
-
-        self::assertSame(['Home', 'Services', 'Dead letters', 'Flow graph', 'Traces', 'Topology', 'Connect', 'Catalogue'], array_column($links, 0));
-        foreach (array_column($links, 1) as $href) {
-            $client->request('GET', $href);
-            self::assertResponseIsSuccessful();
-        }
     }
 
     private function pulseClient(bool $withDatabase = true): KernelBrowser

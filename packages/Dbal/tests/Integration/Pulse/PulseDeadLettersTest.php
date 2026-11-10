@@ -29,6 +29,7 @@ use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
+use Stringable;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
@@ -134,7 +135,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
                     'contentType' => 'text/plain',
                     'channel' => 'order.replayed',
                     'traceId' => null,
-                    'headers' => $recent[0]['headers'],
+                    'headers' => $this->storedHeaders('m-2', self::FAILED_AT + 60, 'order.cancel', 'LogicException', 'boom 2'),
                 ],
                 [
                     'messageId' => 'm-1',
@@ -150,7 +151,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
                     'contentType' => 'text/plain',
                     'channel' => 'order.replayed',
                     'traceId' => null,
-                    'headers' => $recent[1]['headers'],
+                    'headers' => $this->storedHeaders('m-1', self::FAILED_AT, 'order.place', 'RuntimeException', 'boom 1'),
                 ],
             ],
             $recent,
@@ -170,6 +171,27 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         self::assertSame('3', $headers['attempt']);
         self::assertSame('boom', $headers[ErrorContext::EXCEPTION_MESSAGE]);
         self::assertArrayNotHasKey(ErrorContext::EXCEPTION_STACKTRACE, $headers);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_recent_dead_letter_shows_boolean_and_number_headers_as_text_and_leaves_out_headers_the_store_did_not_keep(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, headers: [
+            'retried' => true,
+            'skipped' => false,
+            'ratio' => 1.5,
+            'tags' => ['vip', 'priority' => 2],
+            'customer' => (object) ['id' => 'c-1'],
+            'reference' => new DeadLetterReference('ref-1'),
+        ]);
+
+        $headers = $this->requestSnapshot()['deadLetters']['recent'][0]['headers'];
+
+        self::assertSame(
+            ['retried' => 'true', 'skipped' => 'false', 'ratio' => '1.5'],
+            array_intersect_key($headers, array_flip(['retried', 'skipped', 'ratio', 'tags', 'customer', 'reference'])),
+        );
     }
 
     #[DataProvider('implementations')]
@@ -939,6 +961,23 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         );
     }
 
+    private function storedHeaders(string $messageId, int $failedAt, string $messageName, string $exceptionClass, string $exceptionMessage): array
+    {
+        return [
+            MessageHeaders::MESSAGE_ID => $messageId,
+            MessageHeaders::TIMESTAMP => (string) $failedAt,
+            DistributedBusHeader::DISTRIBUTED_ROUTING_KEY => $messageName,
+            MessageHeaders::CONTENT_TYPE => MediaType::TEXT_PLAIN,
+            MessageHeaders::POLLED_CHANNEL_NAME => 'order.replayed',
+            ErrorContext::EXCEPTION_CLASS => $exceptionClass,
+            ErrorContext::EXCEPTION_MESSAGE => $exceptionMessage,
+            ErrorContext::EXCEPTION_FILE => 'handler.php',
+            ErrorContext::EXCEPTION_LINE => '1',
+            ErrorContext::EXCEPTION_CODE => '0',
+            MessageHeaders::MESSAGE_CORRELATION_ID => $messageId,
+        ];
+    }
+
     private function thrownAt(string $file, int $line): array
     {
         return [ErrorContext::EXCEPTION_FILE => $file, ErrorContext::EXCEPTION_LINE => $line];
@@ -998,5 +1037,17 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         if ($this->deadLetterIsConfigured) {
             $this->orderService->getGateway(DeadLetterGateway::class)->deleteAll();
         }
+    }
+}
+
+final class DeadLetterReference implements Stringable
+{
+    public function __construct(private string $reference)
+    {
+    }
+
+    public function __toString(): string
+    {
+        return $this->reference;
     }
 }

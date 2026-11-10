@@ -7,7 +7,9 @@ namespace App\Tests\Traces;
 use App\Tests\Support\ReleasingWebTestCase;
 use App\Tests\Support\TracedServicesTrait;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Api\Tracing\SpanContext;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -46,6 +48,26 @@ final class TraceListPageTest extends ReleasingWebTestCase
         $sorted = $started;
         rsort($sorted);
         self::assertSame($sorted, $started);
+    }
+
+    public function test_two_runs_within_one_trace_are_listed_as_two_rows_told_apart_by_the_span_each_starts_at(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing', 'shipping');
+        $client = $this->pulseWebClient();
+        $orders = $this->tracedOrders();
+        $traceparent = (new SpanContext('0af7651916cd43dd8448eb211c80319c', 'b7ad6b7169203331'))->toTraceparent();
+        $orders->sendCommandWithRouting('order.place', ['orderId' => 1], metadata: [MessageHeaders::TRACEPARENT => $traceparent]);
+        $orders->advanceTimeBy(Duration::milliseconds(2));
+        $orders->sendCommandWithRouting('order.place', ['orderId' => 2], metadata: [MessageHeaders::TRACEPARENT => $traceparent]);
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
+        $this->advanceTimeBy(0);
+
+        $rows = $this->answered($client, $orders, '/traces/orders/order.place')->filter('[data-trace]');
+
+        self::assertSame(['0af7651916cd43dd8448eb211c80319c', '0af7651916cd43dd8448eb211c80319c'], $rows->each(fn (Crawler $row) => $row->attr('data-trace-id')));
+        $entrySpanIds = $rows->each(fn (Crawler $row) => $row->attr('data-entry-span-id'));
+        self::assertCount(2, array_unique($entrySpanIds));
+        self::assertNotContains(null, $entrySpanIds);
     }
 
     public function test_traces_are_paged_by_twenty_five_with_controls_to_move_between_pages(): void

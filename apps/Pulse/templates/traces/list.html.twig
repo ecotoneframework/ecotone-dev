@@ -47,7 +47,7 @@
                 <thead><tr><th>Trace id</th><th>Started at (UTC)</th><th>Duration</th><th>Status</th></tr></thead>
                 <tbody>
                 {% for trace in traces %}
-                    <tr data-trace data-trace-id="{{ trace.traceId }}">
+                    <tr data-trace data-trace-id="{{ trace.traceId }}"{% if trace.entrySpanId is defined %} data-entry-span-id="{{ trace.entrySpanId }}"{% endif %}>
                         <td data-column="traceId"><a href="{{ path('trace_detail', {traceId: trace.traceId}) }}">{{ trace.traceId }}</a></td>
                         <td data-column="startedAt">{{ trace.startedAt|date('Y-m-d H:i:s.v', 'UTC') }}</td>
                         <td data-column="duration">{{ trace.durationMs }} ms</td>

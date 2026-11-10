@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Trace;
 
 use DateTimeImmutable;
+use Ecotone\Api\Tracing\SpanAttribute;
 use Exception;
 
 final readonly class CrossServiceTrace
@@ -13,7 +14,6 @@ final readonly class CrossServiceTrace
     private const ENDPOINT = 'ecotone.endpoint.id';
     private const CHANNEL = 'ecotone.channel.name';
     private const MESSAGE_ID = 'id';
-    private const FAILED_ATTEMPT = 'ecotone.trace.failed_attempt';
 
     /**
      * @param list<array<string, mixed>> $rows
@@ -278,8 +278,8 @@ final readonly class CrossServiceTrace
      */
     private static function rowOf(array $span, int $depth, ?array $parent, array $children, int $flowStart, array $deadLettersByService): array
     {
-        $failedAttempt = ($span['attributes'][self::FAILED_ATTEMPT] ?? false) === true;
-        $attributes = array_diff_key($span['attributes'], [self::FAILED_ATTEMPT => true]);
+        $failedAttempt = ($span['attributes'][SpanAttribute::TRACE_FAILED_ATTEMPT] ?? false) === true;
+        $attributes = array_diff_key($span['attributes'], [SpanAttribute::TRACE_FAILED_ATTEMPT => true]);
         $messageId = is_scalar($attributes[self::MESSAGE_ID] ?? null) ? (string) $attributes[self::MESSAGE_ID] : null;
         $isChannelSend = $span['kind'] === 'producer' && isset($attributes[self::CHANNEL]);
         $consumed = $isChannelSend && array_filter($children, fn (array $child): bool => $child['kind'] === 'consumer') !== [];

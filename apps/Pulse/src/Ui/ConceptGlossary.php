@@ -255,7 +255,7 @@ final class ConceptGlossary
             'name' => 'Errors recorded',
             'question' => 'What does errors recorded mean?',
             'what' => 'How many of the newest runs of a flow type had a step that ended with an exception in this service.',
-            'why' => 'It shows which kind of work fails. A message that still failed after all its retries is kept as a failed message, and its work has not happened until it is replayed.',
+            'why' => 'It shows which kind of work fails. A message that still failed after all its retries is kept as a failed message, and its work has not happened until it is replayed. A failed attempt stays recorded, so a flow can complete, after a retry or a replay succeeded, and still have errors recorded.',
             'todo' => 'Open the traces of the flow type and select the failed step; replay a stored failure from Failures once the cause is fixed.',
         ],
         'p95' => [

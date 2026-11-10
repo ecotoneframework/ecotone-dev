@@ -3,6 +3,19 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0-beta.9] - 2026-11-10
+
+## What's Changed
+* feat(demo): a runnable showcase of two services on the local packages: concert ticketing with the Distributed Bus, DCB, partitioned projections, Doctrine and Eloquent aggregates, Pulse and Jaeger by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/742
+* test: CI prints no log lines, and a test that prints anything fails the run by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/759
+* docs: agents load only the rules their task needs, and every rule is checked by CI or an eval by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/758
+* feat(pulse): show each service's packages and features, report the licence expiry, and mark a demo Pulse by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/760
+* perf: a finish-when-no-messages run stops on the first empty poll, and the Monorepo CI job runs as two shards under ten minutes by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/761
+* feat(pulse): diagnose a failing service from one verdict, follow a failed message to its trace, and trace the demo end to end by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/762
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/2.0.0-beta.8...2.0.0-beta.9
+
 ## [2.0.0-beta.8] - 2026-11-08
 
 ## What's Changed

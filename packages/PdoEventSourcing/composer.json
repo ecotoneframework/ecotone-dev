@@ -52,7 +52,7 @@
         }
     },
     "require": {
-        "ecotone/dbal": "~2.0.0-beta.8",
+        "ecotone/dbal": "~2.0.0-beta.9",
         "ramsey/uuid": "^4.0"
     },
     "require-dev": {
@@ -91,6 +91,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-11-08 11:07:02"
+        "release-time": "2026-11-10 18:38:44"
     }
 }

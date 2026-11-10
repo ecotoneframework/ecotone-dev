@@ -19,6 +19,7 @@ use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Modelling\WithEvents;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
+use SensitiveParameter;
 
 /**
  * licence Apache-2.0
@@ -382,6 +383,21 @@ final class MessageFlowEmissionTest extends TestCase
             public function handle(EventBus $bus): void
             {
                 $bus->publish(new EmissionEvent(), ['code' => EmissionCode::of('A-1')->value]);
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . EmissionEvent::class));
+        self::assertFalse($graph->hasNode('message:' . EmissionCode::class));
+    }
+
+    public function test_metadata_values_after_an_attributed_closure_are_not_shown_as_events(): void
+    {
+        $service = new class () {
+            #[CommandHandler('outbound.metadata.attributed')]
+            public function handle(EventBus $bus): void
+            {
+                $bus->publish(new EmissionEvent(), ['reference' => (fn (#[SensitiveParameter] string $value) => $value)('A-1'), 'code' => EmissionCode::of('A-1')->value]);
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();

@@ -40,6 +40,9 @@ final class HandlerSourceScanner
     private const MEMBER_ACCESS_TOKENS = [T_OBJECT_OPERATOR => true, T_NULLSAFE_OBJECT_OPERATOR => true, T_DOUBLE_COLON => true];
     private const EVERY_VARIABLE = '*';
     private const NAME_TOKENS = [T_STRING => true, T_NAME_QUALIFIED => true, T_NAME_FULLY_QUALIFIED => true, T_NAME_RELATIVE => true, T_STATIC => true];
+    private const OPENS_METHOD_CALL = 'methodCall';
+    private const OPENS_PLAIN_CALL = 'plainCall';
+    private const OPENS_VALUE = 'value';
 
     /**
      * @param array<string, array{string, string}> $targets facts key => [class name, method name]
@@ -377,8 +380,7 @@ final class HandlerSourceScanner
         $calls = [];
         $literals = [];
         $enclosingCalls = [];
-        $bracketDepthOfCalls = [];
-        $bracketDepth = 0;
+        $openings = [];
         $variables = [];
         $unresolvable = $this->unresolvableVariablesOf($tokens, $className);
         $returning = false;
@@ -395,7 +397,7 @@ final class HandlerSourceScanner
                     $variables[$token->text] = $this->resolve($tokens[$index + 3], $className, $namespace, $imports);
                 }
             }
-            $insideAnotherArgument = $this->isInsideAnotherArgument($enclosingCalls, $bracketDepthOfCalls, $bracketDepth);
+            $insideAnotherArgument = $this->isInsideAnotherArgument($openings);
             if ($id === T_NEW && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
                 $resolved = $this->resolve($tokens[$index + 1], $className, $namespace, $imports);
                 if ($resolved !== null && ! $insideAnotherArgument && ! ($tokens[$index - 1] ?? null)?->is(T_THROW)) {
@@ -416,14 +418,14 @@ final class HandlerSourceScanner
                     $calls[] = $call + ['enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null, 'insideAnotherArgument' => $insideAnotherArgument] + $this->argumentsAt($tokens, $index + 1, $unresolvable, $className, $namespace, $imports, $typedReceivers);
                 }
                 $enclosingCalls[] = $call;
-                $bracketDepthOfCalls[] = $bracketDepth;
+                $openings[] = $this->openingKindOf($tokens, $index, $call);
             } elseif ($id === 41) {
                 array_pop($enclosingCalls);
-                array_pop($bracketDepthOfCalls);
-            } elseif ($id === 91) {
-                $bracketDepth++;
+                array_pop($openings);
+            } elseif ($id === 91 || $id === T_ATTRIBUTE) {
+                $openings[] = self::OPENS_VALUE;
             } elseif ($id === 93) {
-                $bracketDepth--;
+                array_pop($openings);
             } elseif ($id === T_CONSTANT_ENCAPSED_STRING) {
                 $literals[] = $this->literal($token);
             }
@@ -909,22 +911,45 @@ final class HandlerSourceScanner
     }
 
     /**
+     * @param list<self::OPENS_*> $openings
+     */
+    private function isInsideAnotherArgument(array $openings): bool
+    {
+        $buildsValue = false;
+        for ($i = count($openings) - 1; $i >= 0; $i--) {
+            if ($openings[$i] === self::OPENS_METHOD_CALL) {
+                return $buildsValue;
+            }
+            $buildsValue = $buildsValue || $openings[$i] === self::OPENS_VALUE;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @param array{receiver: string|null, method: string}|null $call
+     * @return self::OPENS_*
+     */
+    private function openingKindOf(array $tokens, int $parenthesisIndex, ?array $call): string
+    {
+        if (($tokens[$parenthesisIndex - 2] ?? null)?->is(T_NEW)) {
+            return self::OPENS_VALUE;
+        }
+        if ($call === null) {
+            return self::OPENS_PLAIN_CALL;
+        }
+        if (($tokens[$parenthesisIndex - 2] ?? null)?->is(T_DOUBLE_COLON) && $call['receiver'] === null) {
+            return self::OPENS_VALUE;
+        }
+
+        return self::OPENS_METHOD_CALL;
+    }
+
+    /**
      * @param list<array{receiver: string|null, method: string}|null> $enclosingCalls
      * @return array{receiver: string|null, method: string}|null
      */
-    /**
-     * @param list<array{receiver: string|null, method: string}|null> $enclosingCalls
-     * @param list<int> $bracketDepthOfCalls
-     */
-    private function isInsideAnotherArgument(array $enclosingCalls, array $bracketDepthOfCalls, int $bracketDepth): bool
-    {
-        if ($enclosingCalls === []) {
-            return false;
-        }
-
-        return $enclosingCalls[count($enclosingCalls) - 1] === null || $bracketDepth > $bracketDepthOfCalls[count($bracketDepthOfCalls) - 1];
-    }
-
     private function innermostCall(array $enclosingCalls): ?array
     {
         for ($i = count($enclosingCalls) - 1; $i >= 0; $i--) {

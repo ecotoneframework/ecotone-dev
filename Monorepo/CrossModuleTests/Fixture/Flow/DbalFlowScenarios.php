@@ -65,7 +65,7 @@ final class DbalFlowScenarios
                 ->expect(ExpectedSpan::named('send command')->containing(ExpectedSpan::named('send orders')->ofKind(SpanKind::Producer)))
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('send orders')->containing(
                         ExpectedSpan::named('receive orders')->ofKind(SpanKind::Consumer)->containing(
@@ -122,7 +122,7 @@ final class DbalFlowScenarios
                     ),
                 )
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('send orders')->withStatus(SpanStatus::Ok)->containing(
                         ExpectedSpan::named('receive orders')->withStatus(SpanStatus::Ok)->containing(
@@ -151,14 +151,14 @@ final class DbalFlowScenarios
                 ->expect(ExpectedSpan::named('send command')->containing(ExpectedSpan::named('send outbox')->ofKind(SpanKind::Producer)))
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('send command')->asRoot()->containing(
                         ExpectedSpan::named('send outbox')->containing(ExpectedSpan::named('send order_processing')->ofKind(SpanKind::Producer)),
                     ),
                 )
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('order_processing', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('order_processing', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('send order_processing')->containing(
                         ExpectedSpan::named('receive order_processing')->ofKind(SpanKind::Consumer)->containing(
@@ -187,13 +187,13 @@ final class DbalFlowScenarios
             FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.cancel', '1', metadata: $metadata))
                 ->expect($sent('order.cancel', [])->withoutAttributes(SpanAttribute::TRACE_CARRIED))
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     $forwarded('order.place', ExpectedSpan::named('send order_processing')->ofKind(SpanKind::Producer)->withAttributes([SpanAttribute::TRACE_CARRIED => true])),
                     $forwarded('order.cancel', ExpectedSpan::named('send order_processing')->ofKind(SpanKind::Producer)->withoutAttributes(SpanAttribute::TRACE_CARRIED)),
                 )
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('order_processing', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('order_processing', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     $forwarded('order.place', ExpectedSpan::named('send order_processing')->containing($handled('place'))),
                     $forwarded('order.cancel', ExpectedSpan::named('send order_processing')->containing($handled('cancel'))),
@@ -226,7 +226,7 @@ final class DbalFlowScenarios
             FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.replace', '1', metadata: $metadata))
                 ->expect(ExpectedSpan::named('send command')->asRoot()->containing(ExpectedSpan::named('send replacements')))
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('replacements', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('replacements', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('receive replacements')->containing(
                         ExpectedSpan::named('process class@anonymous::replace')->containing(
@@ -236,10 +236,10 @@ final class DbalFlowScenarios
                     ),
                 )
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(ExpectedSpan::named('send order_processing')->ofKind(SpanKind::Producer))
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('order_processing', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('order_processing', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('process class@anonymous::replace')->containing(
                         $handledAfter('order.cancel', 'cancel'),

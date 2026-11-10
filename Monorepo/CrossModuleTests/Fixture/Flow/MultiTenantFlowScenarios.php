@@ -67,7 +67,7 @@ final class MultiTenantFlowScenarios
             FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.place', '2', metadata: [...$metadata, 'tenant' => 'tenant_b']))
                 ->expect($sentFor('tenant_b'))
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect($handledFor('tenant_a'), $handledFor('tenant_b')),
         ]);
     }

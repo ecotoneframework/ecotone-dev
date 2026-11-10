@@ -68,7 +68,7 @@ final class EventSourcingFlowScenarios
                 ->expect(self::operation('rebuild')->containing(ExpectedSpan::named('send order_list_rebuild')->ofKind(SpanKind::Producer)))
                 ->expectNoSpanNamed('receive order_list_rebuild')
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('order_list_rebuild', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('order_list_rebuild', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     self::operation('rebuild')->containing(
                         ExpectedSpan::named('send order_list_rebuild')->containing(

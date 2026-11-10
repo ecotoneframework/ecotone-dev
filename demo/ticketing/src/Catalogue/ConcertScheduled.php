@@ -21,7 +21,7 @@ final readonly class ConcertScheduled
         public int $standardPriceCents,
         public int $vipPriceCents,
         public array $seats,
-        public bool $seeded,
+        public bool $seeded = false,
     ) {
     }
 }

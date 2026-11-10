@@ -40,7 +40,7 @@ final class DropDatabaseCallsOutsideAnyTrace implements SamplerInterface
     {
         $parent = Span::fromContext($parentContext)->getContext();
         if ($parent->isValid()) {
-            return new SamplingResult($parent->isSampled() ? SamplingResult::RECORD_AND_SAMPLE : SamplingResult::DROP, [], $parent->getTraceState());
+            return new SamplingResult(decision: $parent->isSampled() ? SamplingResult::RECORD_AND_SAMPLE : SamplingResult::DROP, traceState: $parent->getTraceState());
         }
 
         foreach ($this->spanNamePrefixes as $spanNamePrefix) {

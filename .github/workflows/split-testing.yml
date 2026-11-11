@@ -118,7 +118,15 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client
 
       - name: Install DB clients
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client mysql-client
+        run: |
+          # Only a client the runner image lacks is installed. Asking apt for a client the image
+          # already has upgrades the image's MySQL server with it, and that upgrade fails the step.
+          missing=()
+          command -v psql > /dev/null || missing+=(postgresql-client)
+          command -v mysql > /dev/null || missing+=(mysql-client)
+          if [ ${#missing[@]} -gt 0 ]; then
+            sudo apt-get update && sudo apt-get install -y --no-install-recommends "${missing[@]}"
+          fi
 
       - name: Skip disk syncs on the test databases
         run: |

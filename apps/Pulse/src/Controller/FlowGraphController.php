@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Graph\DiagramNode;
 use App\Graph\FlowFocus;
 use App\Graph\MalformedFlowParameter;
 use App\Graph\ServiceFlow;
@@ -104,6 +105,11 @@ final class FlowGraphController extends AbstractController
 
         $doubts = array_values(array_filter($findings, static fn (array $finding): bool => $finding['status'] === Status::Info));
 
+        $diagram = ($overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::diagram($flows, $shown, $highlight, $scope, $focus, $collapsed, $foldChannels))->linked($nodes);
+        $drawnSteps = array_filter(array_map(static fn (DiagramNode $node): ?int => $node->step, $diagram->nodes));
+        $traceRows = $highlight === null || $traceView === null ? [] : $traceView->trace->rows;
+        $waitedMicro = $traceRows === [] ? 0 : max(array_column($traceRows, 'waitMicro'));
+
         return $this->render('graph/flow.html.twig', [
             'summary' => $summary,
             'findings' => array_values(array_filter($findings, static fn (array $finding): bool => $finding['status'] !== Status::Info)),
@@ -117,6 +123,7 @@ final class FlowGraphController extends AbstractController
                 'label' => ShortLabel::of($focus->node->label),
                 'parameter' => $focus->service . ':' . $focus->node->id,
                 'service' => $focus->service,
+                'node' => $focus->node->id,
                 'clearUrl' => $this->generateUrl('flow_graph', $carried),
                 'upstream' => $this->stepsOf($focus->upstream, $carried),
                 'downstream' => $this->stepsOf($focus->downstream, $carried),
@@ -132,8 +139,32 @@ final class FlowGraphController extends AbstractController
             'foldUrl' => $this->generateUrl('flow_graph', array_filter([...$request->query->all(), 'fold' => $foldChannels ? '' : 'channels'])),
             'collapseUrls' => array_combine($shown, array_map(fn (string $service): string => $this->collapseUrl($request, $collapsed, $service), $shown)),
             'notices' => $serviceFlows->notices,
-            'diagram' => $overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::toMermaid($flows, $shown, $highlight, $scope, $focus, $collapsed, $foldChannels),
+            'diagram' => $diagram,
             'trace' => $highlight,
+            'traceSteps' => array_values(array_filter(array_map(static function (array $row, int $index) use ($highlight, $drawnSteps): array {
+                $step = $highlight?->stepOfRow($index);
+
+                return [
+                    'step' => in_array($step, $drawnSteps, true) ? $step : null,
+                    'service' => $row['service'],
+                    'hopFrom' => $row['hop'] ? $row['parentService'] : null,
+                    'name' => $row['name'],
+                    'depth' => $row['depth'],
+                    'status' => $row['status'],
+                    'failed' => $row['failed'],
+                    'pending' => $row['pending'],
+                    'durationLabel' => $row['durationLabel'],
+                    'offsetMicro' => $row['offsetMicro'],
+                    'durationMicro' => $row['durationMicro'],
+                    'waitMicro' => $row['waitMicro'],
+                    'waitLabel' => $row['waitMicro'] > 0 ? $row['queueWaitLabel'] : '',
+                    'error' => $row['error'],
+                    'boilerplate' => $row['boilerplate'],
+                ];
+            }, $traceRows, array_keys($traceRows)), static fn (array $step): bool => ! $step['boilerplate'])),
+            'traceDuration' => $traceView?->trace->durationLabel,
+            'traceWaited' => $waitedMicro > 0 ? rtrim(rtrim(number_format($waitedMicro / 1000, 1, '.', ''), '0'), '.') . ' ms' : null,
+            'traceTotalMicro' => $traceView?->trace->totalMicro ?? 0,
             'traceStates' => $traceView?->states ?? [],
             'traceEmpty' => $traceView !== null && $traceView->trace->isEmpty(),
             'waiting' => $traceView?->waiting ?? false,

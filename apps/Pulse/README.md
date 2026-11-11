@@ -141,6 +141,17 @@ The **Refresh** button on the Services page requests new snapshots regardless of
 services, or above 150 nodes, it opens as the service overview, one node per service; a click on a service shows its flow.
 Drag to pan, and zoom with the buttons, Ctrl and the mouse wheel, or `+` and `-` once the graph has keyboard focus.
 
+Every node is a card with its kind (command, event, query, handler, channel, projection) and its name, laid out in the
+browser; without JavaScript the same nodes are listed per service, and **arrows as a list** under the graph names every
+arrow in words. Above 40 nodes a channel or Distributed Bus with more than four arrows is placed beside the flows instead of
+inside them, with its arrows drawn faint until the node is hovered or focused, so one shared channel does not stretch every
+flow into a single line.
+
+`/flow?trace={traceId}` draws a trace on the graph: the nodes it passed are numbered in the order of the **Trace step by
+step** list under the graph, green arrows show the way it went, and above 40 nodes only the nodes the trace passed are
+drawn until **show all** is pressed. The list gives each step's service, queue wait and duration; pressing a step's number
+brings its node into view.
+
 To read one path rather than the whole system, click any node, or type its name into **Find a node** (it suggests every node
 name) and press Enter: `/flow?focus={service}:{node}` draws only what led to that node and what it causes, as far as the services report it, across
 services, with the node outlined, and lists the steps before and after it under the graph, closed until opened, as links
@@ -158,6 +169,19 @@ services and changing the scope all keep the highlighted trace, the service scop
 A parameter Pulse cannot read, such as `collapse=ticketing` for `collapse[]=ticketing` or a `focus` without a colon, is
 refused with the shape it takes; an empty single value counts as absent. `focus` decides the services itself, so it is
 refused together with `services[]` or `view`.
+
+## Catalogue pages and search
+
+Every node of the flow graph has its own page, `/catalogue/{service}/node?id={node id}`, linked from the message
+catalogue, from search and from the node followed on the flow graph. It says in one sentence who handles the message and
+how the handler runs (synchronously, asynchronously on a channel, or on arrival over the Distributed Bus), draws the node
+with what is two steps before and after it across services, and lists what it comes from and leads to, each linking to its
+own page. A message a stored flow starts with shows that flow type's runs and timings; a channel shows its depth and the
+consumer command. Handler file paths, payload properties and numbers per message are not reported by services, so the page
+does not show them.
+
+The search box in the top bar (`/search?q=`) looks for every word, ignoring case, in the names, classes, methods, routing
+keys, endpoint ids and channel names of every node of every service; one match opens its page.
 
 ## Traces
 
@@ -373,17 +397,13 @@ composer tests:ci        # phpstan + phpunit
 The tests boot Pulse as a Symfony application next to real Ecotone services, over a shared database channel, and read the
 pages Pulse renders. Inside the repository's `app` container the `DATABASE_DSN` of the compose file is used. The tests need PostgreSQL: they reset a dedicated database per test, so `DATABASE_DSN` must be a `pgsql://` DSN such as `pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16`.
 
-The Mermaid library for the diagram views is installed with `bin/console importmap:install` (the Docker build does it), so
+The graph layout library ([dagre](https://github.com/dagrejs/dagre)) for the diagram views is installed with `bin/console importmap:install` (the Docker build does it), so
 the running application never reaches out to a CDN.
 
-### Diagram and accessibility checks
+### Accessibility checks
 
-Two checks need a browser engine, so they run on the host (Node 22 in CI; 20 or newer works), not in the PHP container.
+One check needs a browser engine, so it runs on the host (Node 22; 20 or newer works), not in the PHP container.
 
-* `tests/Mermaid` parses with the real Mermaid parser every diagram the test suite renders (`/flow`, `/flow?trace=…`, `/flow?focus=…`, `/topology`).
-  The PHP tests write the diagrams to `var/mermaid`; then `cd tests/Mermaid && npm ci && node parse.mjs ../../var/mermaid`.
-  CI runs it after `composer tests:ci`. A diagram whose `subgraph` is not closed passes every text assertion and still renders as
-  "Syntax error in text", which is why it is parsed rather than matched.
 * `tests/Accessibility` crawls a running Pulse from its navigation, then runs axe-core on every page (two per page kind, plus a followed node, folded channels and a Find result on `/flow`), in light
   and dark, at 1440px and 390px, and fails on a serious or critical violation or a horizontal page scroll:
   `cd tests/Accessibility && npm ci && node axe.mjs http://localhost:8080` (`CHROME_PATH` selects the Chrome binary). It also audits the

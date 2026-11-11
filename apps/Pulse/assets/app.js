@@ -119,9 +119,6 @@ ready(() => {
             const next = current() === 'dark' ? 'light' : 'dark';
             document.documentElement.dataset.theme = next;
             try { localStorage.setItem('pulse-theme', next); } catch (error) {}
-            if (document.querySelector('pre.mermaid.graph-ready')) {
-                location.reload();
-            }
             label();
         });
     }

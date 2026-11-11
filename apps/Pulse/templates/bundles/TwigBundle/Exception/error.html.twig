@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ status_code }} {{ status_text }} · Ecotone Pulse{% endblock %}
+
+{% block body %}
+    <h1>{{ status_code < 500 ? 'Pulse cannot show this page' : 'Pulse failed to build this page' }}</h1>
+    <div class="notice failure" data-error-page="{{ status_code }}">
+        {% if status_code < 500 %}
+            <p data-error-message>{{ exception.message }}</p>
+        {% else %}
+            <p data-error-message>Something went wrong inside Pulse ({{ status_code }} {{ status_text }}). The container log has the exception; reload the page to try again.</p>
+        {% endif %}
+    </div>
+    <p>From here you can <a href="{{ path('search') }}">search for a message, handler or channel by name</a>, <a href="{{ path('catalogue') }}">browse the catalogue</a> or go back to the <a href="{{ path('home') }}">overview</a>.</p>
+{% endblock %}

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Graph;
 
+use App\Tests\Support\Diagram;
 use App\Tests\Support\DistributedServicesTrait;
-use App\Tests\Support\MermaidDiagram;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
@@ -33,7 +33,7 @@ final class FannedOutEventsTest extends ReleasingWebTestCase
         $diagram = $this->diagramWithFanOut('/topology');
 
         foreach (['billing', 'shipping', 'audit'] as $subscriber) {
-            self::assertStringContainsString($subscriber, $diagram->source);
+            self::assertContains($subscriber, array_column($diagram->nodes, 'name'));
         }
     }
 
@@ -48,8 +48,9 @@ final class FannedOutEventsTest extends ReleasingWebTestCase
         $this->pulseHavingHeardFrom($client, $services);
         $crawler = $client->request('GET', '/topology');
 
-        self::assertStringContainsString('t0 -.->|"events order.*"| t1', MermaidDiagram::fromPage($crawler)->source);
-        self::assertStringContainsString('["shipping"]', MermaidDiagram::fromPage($crawler)->source);
+        $diagram = Diagram::fromPage($crawler);
+        self::assertSame(['orders', 'shipping'], array_column($diagram->nodes, 'name'));
+        self::assertSame([['from' => 't0', 'to' => 't1', 'arrow' => Diagram::DASHED, 'label' => 'events order.*', 'highlighted' => false]], $diagram->edges);
     }
 
     public function test_an_event_mapping_excluding_the_publisher_draws_no_edge_and_is_reported_in_both_rules(): void
@@ -105,7 +106,7 @@ final class FannedOutEventsTest extends ReleasingWebTestCase
         return $this->distributedService('orders', $orders, $map);
     }
 
-    private function diagramWithFanOut(string $uri): MermaidDiagram
+    private function diagramWithFanOut(string $uri): Diagram
     {
         $this->configurePulseWithServices('orders', 'billing', 'shipping', 'audit');
         $client = $this->pulseWebClient();
@@ -131,7 +132,7 @@ final class FannedOutEventsTest extends ReleasingWebTestCase
         $this->pulseHavingHeardFrom($client, $services);
         $crawler = $client->request('GET', $uri);
 
-        return MermaidDiagram::fromPage($crawler);
+        return Diagram::fromPage($crawler);
     }
 
     private function subscriber(string $service): FlowTestSupport

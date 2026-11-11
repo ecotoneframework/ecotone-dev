@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Search · Ecotone Pulse{% endblock %}
+
+{% block crumbs %}
+    {% include '_breadcrumbs.html.twig' with {trail: [{label: 'Search'}]} only %}
+{% endblock %}
+
+{% block body %}
+    <h1>Search</h1>
+    {% if query == '' %}
+        {% include '_empty.html.twig' with {cause: 'nothing-yet', sentence: 'Type part of a class name, routing key, handler method, endpoint id or channel. One match opens its page straight away.', action: {label: 'Browse the message catalogue instead', href: path('catalogue')}} only %}
+    {% elseif not answered %}
+        {% include '_empty.html.twig' with {cause: 'waiting', sentence: 'No service has answered Pulse yet, so there is nothing to search. Names appear after the first answer.', action: {label: 'See which services Pulse is waiting for', href: path('services')}} only %}
+    {% elseif results is empty %}
+        {% include '_empty.html.twig' with {cause: 'nothing-yet', sentence: 'Nothing is named like "' ~ query ~ '". The search looks for every word inside class names, routing keys, handler methods, endpoint ids and channel names, ignoring case.', action: {label: 'Browse the message catalogue', href: path('catalogue')}} only %}
+    {% else %}
+        <p data-search-count>{{ total }} {{ total == 1 ? 'result matches' : 'results match' }} "{{ query }}"{% if total > limit %}; the first {{ limit }} are listed, so add more of the name to narrow it down{% endif %}.</p>
+        <div class="card flush">
+            <table data-search-results>
+                <thead><tr><th scope="col">Kind</th><th scope="col">Name</th><th scope="col">Service</th><th scope="col">Go to</th></tr></thead>
+                <tbody>
+                {% for result in results %}
+                    {% set family = result.kind in ['command', 'event', 'query', 'channel', 'projection'] ? result.kind : (result.kind in ['aggregate', 'saga'] ? 'owner' : (result.kind == 'distributedBus' ? 'channel' : 'handler')) %}
+                    <tr data-search-result="{{ result.nodeId }}" data-service="{{ result.service }}">
+                        <td>{% include 'graph/_kind.html.twig' with {family: family, kind: result.kind, label: result.kind|replace({'Handler': ' handler', 'distributedBus': 'distributed bus'})|capitalize} only %}</td>
+                        <th scope="row"><a class="mono" href="{{ path('catalogue_node', {service: result.service, id: result.nodeId}) }}">{{ result.label }}</a>{% if result.fullLabel != result.label %}<br><code class="muted">{{ result.fullLabel }}</code>{% endif %}</th>
+                        <td>{{ result.service }}</td>
+                        <td><a href="{{ path('flow_graph', {focus: result.service ~ ':' ~ result.nodeId}) }}">Flow graph</a></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

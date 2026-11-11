@@ -29,6 +29,22 @@ final readonly class FlowFocus
      */
     public static function of(array $flows, string $service, string $nodeId): self
     {
+        return self::reaching($flows, $service, $nodeId, null);
+    }
+
+    /**
+     * @param list<ServiceFlow> $flows
+     */
+    public static function neighbourhood(array $flows, string $service, string $nodeId, int $hops): self
+    {
+        return self::reaching($flows, $service, $nodeId, $hops);
+    }
+
+    /**
+     * @param list<ServiceFlow> $flows
+     */
+    private static function reaching(array $flows, string $service, string $nodeId, ?int $hops): self
+    {
         $byName = [];
         foreach ($flows as $flow) {
             $byName[$flow->name] = $flow;
@@ -42,8 +58,8 @@ final readonly class FlowFocus
         $node = $byName[$service]->graph->node($nodeId);
         $links = DistributedLinks::between($flows);
         $isHub = in_array($node->kind, [FlowNodeKind::CHANNEL, FlowNodeKind::DISTRIBUTED_BUS], true);
-        $upstream = self::walk($byName, $links, $service, $nodeId, downstream: false, oneStep: $isHub);
-        $downstream = self::walk($byName, $links, $service, $nodeId, downstream: true, oneStep: $isHub);
+        $upstream = self::walk($byName, $links, $service, $nodeId, downstream: false, oneStep: $isHub, hops: $hops);
+        $downstream = self::walk($byName, $links, $service, $nodeId, downstream: true, oneStep: $isHub, hops: $hops);
         $members = [$service => [$nodeId => true]];
         foreach ([...$upstream, ...$downstream] as $step) {
             $members[$step['service']][$step['node']->id] = true;
@@ -70,21 +86,21 @@ final readonly class FlowFocus
      * @param list<DistributedLink> $links
      * @return list<array{service: string, node: FlowNode}>
      */
-    private static function walk(array $flows, array $links, string $service, string $nodeId, bool $downstream, bool $oneStep): array
+    private static function walk(array $flows, array $links, string $service, string $nodeId, bool $downstream, bool $oneStep, ?int $hops): array
     {
         $seen = [$service => [$nodeId => true]];
-        $queue = [[$service, $nodeId]];
+        $queue = [[$service, $nodeId, 0]];
         $steps = [];
         while ($queue !== []) {
-            [$currentService, $currentId] = array_shift($queue);
+            [$currentService, $currentId, $distance] = array_shift($queue);
             foreach (self::neighbours($flows[$currentService], $links, $currentService, $currentId, $downstream, isStart: [$currentService, $currentId] === [$service, $nodeId]) as [$nextService, $nextId, $continues]) {
                 if (isset($seen[$nextService][$nextId])) {
                     continue;
                 }
                 $seen[$nextService][$nextId] = true;
                 $steps[] = ['service' => $nextService, 'node' => $flows[$nextService]->graph->node($nextId)];
-                if ($continues && ! $oneStep) {
-                    $queue[] = [$nextService, $nextId];
+                if ($continues && ! $oneStep && ($hops === null || $distance + 1 < $hops)) {
+                    $queue[] = [$nextService, $nextId, $distance + 1];
                 }
             }
         }

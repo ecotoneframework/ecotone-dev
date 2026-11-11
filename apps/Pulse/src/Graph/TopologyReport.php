@@ -134,7 +134,7 @@ final readonly class TopologyReport
 
     public function hasConnections(): bool
     {
-        return count(explode("\n", trim($this->toMermaid()))) > 1;
+        return ! $this->toDiagram()->isEmpty();
     }
 
     public function isIncomplete(): bool
@@ -142,22 +142,26 @@ final readonly class TopologyReport
         return $this->incompleteBecause !== [];
     }
 
-    public function toMermaid(): string
+    public function toDiagram(): Diagram
     {
-        $lines = ['graph LR'];
         $ids = [];
+        $nodes = [];
+        $edges = [];
         $stale = [];
         foreach ($this->commandRoutes as $route) {
             $stale[$route['from']] = $route['stale'];
         }
-        foreach ($this->commandRoutes as $route) {
-            foreach ([$route['from'], $route['to']] as $service) {
-                if (! isset($ids[$service])) {
-                    $ids[$service] = 't' . count($ids);
-                    $lines[] = sprintf('    %s["%s"]', $ids[$service], MermaidText::escape($service . (($stale[$service] ?? false) ? ' (stale)' : '')));
-                }
+        $nodeOf = function (string $service) use (&$ids, &$nodes, $stale): string {
+            if (! isset($ids[$service])) {
+                $ids[$service] = 't' . count($ids);
+                $nodes[] = new DiagramNode($ids[$service], null, 'service', $service, ($stale[$service] ?? false) ? 'stale' : null, null, $this->scope?->isGreyed($service) === true);
             }
-            $lines[] = sprintf('    %s -->|"%s"| %s', $ids[$route['from']], MermaidText::escape('commands via ' . $route['channel']), $ids[$route['to']]);
+
+            return $ids[$service];
+        };
+        foreach ($this->commandRoutes as $route) {
+            $edge = new DiagramEdge($nodeOf($route['from']), $nodeOf($route['to']), DiagramEdge::SOLID, 'commands via ' . $route['channel']);
+            $edges[$edge->key()] = $edge;
         }
 
         foreach ($this->eventSubscriptions as $subscription) {
@@ -166,22 +170,10 @@ final readonly class TopologyReport
             if ($subscriber === null || $subscriber === $subscription['service'] || ! $publisherPermitted) {
                 continue;
             }
-            foreach ([$subscription['service'], $subscriber] as $service) {
-                if (! isset($ids[$service])) {
-                    $ids[$service] = 't' . count($ids);
-                    $lines[] = sprintf('    %s["%s"]', $ids[$service], MermaidText::escape($service));
-                }
-            }
-            $lines[] = sprintf('    %s -.->|"%s"| %s', $ids[$subscription['service']], MermaidText::escape('events ' . implode(', ', $subscription['keys'])), $ids[$subscriber]);
+            $edge = new DiagramEdge($nodeOf($subscription['service']), $nodeOf($subscriber), DiagramEdge::DASHED, 'events ' . implode(', ', $subscription['keys']));
+            $edges[$edge->key()] = $edge;
         }
 
-        $lines = array_values(array_unique($lines));
-        $greyed = array_keys(array_filter($ids, fn (string $id, string $service): bool => $this->scope?->isGreyed($service) === true, ARRAY_FILTER_USE_BOTH));
-        if ($greyed !== []) {
-            $lines[] = '    classDef greyed opacity:0.45';
-            $lines[] = sprintf('    class %s greyed', implode(',', array_map(static fn (string $service): string => $ids[$service], $greyed)));
-        }
-
-        return implode("\n", $lines) . "\n";
+        return new Diagram([], $nodes, array_values($edges));
     }
 }

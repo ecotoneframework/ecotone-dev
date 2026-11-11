@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Graph;
 
+use App\Tests\Support\Diagram;
 use App\Tests\Support\DistributedServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 
@@ -37,7 +38,7 @@ final class TopologyPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/topology');
 
-        self::assertStringContainsString('-->|"commands via ' . $this->serviceChannels['billing'] . '"|', $crawler->filter('pre.mermaid')->getNode(0)->textContent);
+        self::assertTrue(Diagram::fromPage($crawler)->hasEdge('', 'orders', 'commands via ' . $this->serviceChannels['billing'], '', 'billing', Diagram::SOLID));
     }
 
     public function test_a_consistent_topology_has_no_mismatches(): void
@@ -74,11 +75,15 @@ final class TopologyPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/topology');
 
-        $lines = explode("\n", rtrim($crawler->filter('pre.mermaid')->getNode(0)->textContent));
-        $declared = array_values(array_filter($lines, fn (string $line) => preg_match('/^    \w+\["/', $line) === 1));
-        self::assertCount(4, array_unique($declared));
-        self::assertCount(4, array_unique(array_map(fn (string $line) => explode('[', trim($line))[0], $declared)));
-        self::assertSame([], array_filter($lines, fn (string $line) => preg_match('/^    (end|graph|subgraph)\b/', $line) === 1));
+        $diagram = Diagram::fromPage($crawler);
+        self::assertCount(4, $crawler->filter('[data-topology] [data-diagram-node]'));
+        self::assertCount(4, $diagram->nodes);
+        self::assertEqualsCanonicalizing(['orders', 'a-b', 'a_b', 'end'], array_column($diagram->nodes, 'name'));
+        self::assertSame(array_keys($diagram->nodes), preg_grep('/^t\d+$/', array_keys($diagram->nodes)));
+        self::assertSame([], $diagram->services);
+        foreach (['a-b', 'a_b', 'end'] as $target) {
+            self::assertTrue($diagram->hasEdge('', 'orders', 'commands via ' . $this->serviceChannels[$target], '', $target, Diagram::SOLID));
+        }
     }
 
     public function test_event_mismatches_are_withheld_while_a_configured_service_is_not_answering(): void

@@ -25,8 +25,8 @@ final class TopologyReadingTest extends ReleasingWebTestCase
         self::assertSame('ok', $verdict->attr('data-verdict'));
         self::assertSame('No mismatches in 1 command route and 2 event routes.', $verdict->filter('[data-verdict-sentence]')->text());
         self::assertStringContainsString('every command sent over the Distributed Bus has a route to a service that answers Pulse', $verdict->filter('[data-topology-checked]')->text());
-        self::assertLessThan(strpos($html, '<pre class="mermaid"'), strpos($html, 'data-verdict='));
-        self::assertLessThan(strpos($html, 'data-section='), strpos($html, '<pre class="mermaid"'));
+        self::assertLessThan(strpos($html, 'data-diagram'), strpos($html, 'data-verdict='));
+        self::assertLessThan(strpos($html, 'data-section='), strpos($html, 'data-diagram'));
     }
 
     public function test_the_page_has_breadcrumbs_that_keep_the_service_scope(): void
@@ -78,7 +78,7 @@ final class TopologyReadingTest extends ReleasingWebTestCase
 
         self::assertSame('critical', $crawler->filter('main [data-verdict]')->attr('data-verdict'));
         self::assertSame('4 mismatches between what the services send and where their Service Maps route it.', $crawler->filter('[data-verdict-sentence]')->text());
-        self::assertLessThan(strpos($html, '<pre class="mermaid"'), strpos($html, 'data-mismatch='));
+        self::assertLessThan(strpos($html, 'data-diagram'), strpos($html, 'data-mismatch='));
         self::assertCount(3, $crawler->filter('[data-topology-mismatches] > [data-mismatch]'));
         self::assertCount(1, $crawler->filter('details[data-topology-more-mismatches] [data-mismatch]'));
         self::assertSame('1 more mismatch', $crawler->filter('details[data-topology-more-mismatches] > summary')->text());
@@ -134,7 +134,7 @@ final class TopologyReadingTest extends ReleasingWebTestCase
         $empty = $crawler->filter('[data-empty="nothing-yet"]');
         self::assertStringContainsString('DistributedServiceMap', $empty->text());
         self::assertStringContainsString("->withCommandMapping('billing', 'billing')", $empty->filter('[data-empty-snippet] code')->text());
-        self::assertCount(0, $crawler->filter('pre.mermaid'));
+        self::assertCount(0, $crawler->filter('[data-diagram]'));
         self::assertCount(0, $crawler->filter('details[data-section]'));
     }
 

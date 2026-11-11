@@ -50,7 +50,7 @@ final class TopologyController extends AbstractController
             'summary' => $summary,
             'problems' => $problems,
             'notices' => $serviceFlows->notices,
-            'diagram' => $report->toMermaid(),
+            'diagram' => $report->toDiagram(),
         ]);
     }
 

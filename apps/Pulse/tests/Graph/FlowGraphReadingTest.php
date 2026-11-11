@@ -35,7 +35,7 @@ final class FlowGraphReadingTest extends ReleasingWebTestCase
         $sentence = $verdict->filter('[data-verdict-sentence]')->text();
         self::assertMatchesRegularExpression('/^(orders and billing|billing and orders) know \d+ message types \(\d+ commands?, \d+ events?, \d+ quer(y|ies)\); 1 command and 1 event cross the Distributed Bus\.$/', $sentence);
         $html = (string) $client->getResponse()->getContent();
-        self::assertLessThan(strpos($html, '<pre class="mermaid"'), strpos($html, 'data-verdict='));
+        self::assertLessThan(strpos($html, 'data-diagram'), strpos($html, 'data-verdict='));
         self::assertCount(0, $crawler->filter('[data-problem]'));
         self::assertStringContainsString('every command and query sent has a handler', $crawler->filter('[data-flow-checked]')->text());
     }

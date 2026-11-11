@@ -51,7 +51,7 @@ const discover = async () => {
     }
 
     await page.goto(base + '/flow?view=detail', {waitUntil: 'networkidle'});
-    const followed = await page.$$eval('pre.mermaid a[href*="focus="]', (links) => links.map((link) => link.getAttribute('href')).slice(0, 1));
+    const followed = await page.$$eval('[data-diagram] a[href*="focus="]', (links) => links.map((link) => link.getAttribute('href')).slice(0, 1));
     const scoped = ['/services/orders', '/flow?service=orders', '/topology?service=orders', '/catalogue?service=orders', ...followed, '/flow?view=detail&fold=channels', '/flow?find=e', ...(process.env.PULSE_AXE_EXTRA ?? '').split(',').filter((path) => path !== '')];
     for (const path of scoped) {
         if (!pages.includes(path)) {

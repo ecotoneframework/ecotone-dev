@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Graph;
 
+use App\Tests\Support\Diagram;
 use App\Tests\Support\DistributedServicesTrait;
-use App\Tests\Support\MermaidDiagram;
 use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
@@ -25,11 +24,14 @@ final class FlowGraphNavigationTest extends ReleasingWebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('[data-flow-overview]'));
-        $source = MermaidDiagram::fromPage($crawler)->source;
-        self::assertStringNotContainsString('subgraph', $source);
-        self::assertSame(15, preg_match_all('/^    s\d+\["[^"]*"\]$/m', $source));
-        self::assertMatchesRegularExpression('/^    s\d+ ==>\|"\d+ commands?"\| s\d+$/m', $source);
-        self::assertMatchesRegularExpression('/^    s\d+ ==>\|"\d+ events?"\| s\d+$/m', $source);
+        $diagram = Diagram::fromPage($crawler);
+        self::assertSame([], $diagram->services);
+        self::assertCount(15, $diagram->nodes);
+        self::assertSame(['service'], array_values(array_unique(array_column($diagram->nodes, 'kind'))));
+        self::assertCount(15, array_filter(array_keys($diagram->nodes), fn (string $id) => preg_match('/^s\d+$/', $id) === 1));
+        $thick = array_column(array_filter($diagram->edges, fn (array $edge) => $edge['arrow'] === Diagram::THICK), 'label');
+        self::assertNotEmpty(preg_grep('/^\d+ commands?$/', $thick));
+        self::assertNotEmpty(preg_grep('/^\d+ events?$/', $thick));
     }
 
     public function test_an_overview_node_drills_down_to_that_service_alone(): void
@@ -38,11 +40,10 @@ final class FlowGraphNavigationTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow');
 
-        $nodes = $this->graphNodes($crawler);
-        $hrefs = array_column($nodes, 'href');
+        $hrefs = array_column(Diagram::fromPage($crawler)->nodes, 'href');
         self::assertContains('/flow?services%5B0%5D=orders', $hrefs);
         $drilled = $client->request('GET', '/flow?services[]=orders');
-        $diagram = MermaidDiagram::fromPage($drilled);
+        $diagram = Diagram::fromPage($drilled);
         self::assertCount(0, $drilled->filter('[data-flow-overview]'));
         self::assertSame(['orders'], array_values(array_unique(array_column($diagram->nodes, 'service'))));
         self::assertLessThanOrEqual(static::getContainer()->getParameter('pulse.graph_default_node_limit'), count($diagram->nodes));
@@ -58,9 +59,9 @@ final class FlowGraphNavigationTest extends ReleasingWebTestCase
         $detail = $client->request('GET', '/flow');
 
         self::assertCount(1, $overview->filter('[data-flow-overview]'));
-        self::assertStringNotContainsString('subgraph', MermaidDiagram::fromPage($overview)->source);
+        self::assertSame([], Diagram::fromPage($overview)->services);
         self::assertCount(0, $detail->filter('[data-flow-overview]'));
-        self::assertStringContainsString('subgraph', MermaidDiagram::fromPage($detail)->source);
+        self::assertEqualsCanonicalizing(['orders', 'billing'], Diagram::fromPage($detail)->services);
     }
 
     public function test_node_labels_are_short_and_the_full_text_travels_with_the_graph_as_the_title(): void
@@ -71,16 +72,15 @@ final class FlowGraphNavigationTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow');
 
-        $nodes = $this->graphNodes($crawler);
-        $diagram = MermaidDiagram::fromPage($crawler);
-        self::assertNotEmpty($nodes);
-        foreach ($diagram->nodes as $id => $node) {
-            self::assertArrayHasKey($id, $nodes);
-            self::assertDoesNotMatchRegularExpression('#[/\\\\]#', str_replace('<br/>', '', $node['label']));
+        $diagram = Diagram::fromPage($crawler);
+        self::assertNotEmpty($diagram->nodes);
+        foreach ($diagram->nodes as $node) {
+            self::assertNotNull($node['title']);
+            self::assertDoesNotMatchRegularExpression('#[/\\\\]#', $node['label']);
         }
-        $handler = array_values(array_filter($nodes, fn (array $node) => str_contains($node['title'], '::')));
+        $handler = array_values(array_filter($diagram->nodes, fn (array $node) => str_contains((string) $node['title'], '::')));
         self::assertNotEmpty($handler);
-        self::assertStringContainsString('class@anonymous', $handler[0]['title']);
+        self::assertStringContainsString('class@anonymous', (string) $handler[0]['title']);
     }
 
     public function test_nodes_link_to_their_focus_and_the_legend_lists_each_service_with_its_dead_letters_and_traces(): void
@@ -91,10 +91,9 @@ final class FlowGraphNavigationTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow');
 
-        $diagram = MermaidDiagram::fromPage($crawler);
-        $nodes = $this->graphNodes($crawler);
-        foreach ($diagram->nodes as $id => $node) {
-            self::assertStringStartsWith('/flow?focus=' . $node['service'] . ':', $nodes[$id]['href']);
+        $diagram = Diagram::fromPage($crawler);
+        foreach ($diagram->nodes as $node) {
+            self::assertStringStartsWith('/flow?focus=' . $node['service'] . ':', (string) $node['href']);
         }
         self::assertSame('/dead-letters?service=billing', $crawler->filter('[data-service-link="billing"] a[data-dead-letters]')->attr('href'));
         self::assertSame('/traces?service=billing', $crawler->filter('[data-service-link="billing"] a[data-traces]')->attr('href'));
@@ -128,13 +127,5 @@ final class FlowGraphNavigationTest extends ReleasingWebTestCase
         $this->pulseHavingHeardFrom($client, $services);
 
         return $client;
-    }
-
-    /**
-     * @return array<string, array{title: string, href: string}>
-     */
-    private function graphNodes(Crawler $crawler): array
-    {
-        return json_decode($crawler->filter('pre.mermaid')->attr('data-graph-nodes'), true, flags: JSON_THROW_ON_ERROR);
     }
 }

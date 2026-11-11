@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Graph;
 
+use App\Tests\Support\Diagram;
 use App\Tests\Support\DistributedServicesTrait;
-use App\Tests\Support\MermaidDiagram;
 use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
@@ -22,11 +22,11 @@ final class ServiceScopeFilterTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow?service=orders');
 
-        $diagram = MermaidDiagram::fromPage($crawler);
+        $diagram = Diagram::fromPage($crawler);
         self::assertGreaterThan(0, $diagram->nodesOf('orders'));
         self::assertGreaterThan(0, $diagram->nodesOf('billing'));
         self::assertSame(0, $diagram->nodesOf('shipping'));
-        self::assertStringContainsString('classDef greyed', $diagram->source);
+        self::assertSame(['billing'], array_values(array_unique(array_map(fn (string $id) => $diagram->nodes[$id]['service'], $diagram->greyed()))));
         self::assertStringContainsString('greyed: billing', $crawler->filter('[data-scope-note]')->text());
         self::assertSame('orders', $crawler->filter('[data-scope-filter] option[selected]')->attr('value'));
     }
@@ -39,7 +39,7 @@ final class ServiceScopeFilterTest extends ReleasingWebTestCase
         $full = $client->click($crawler->filter('[data-show-all-services]')->link());
 
         self::assertSame('/flow', parse_url($client->getRequest()->getUri(), PHP_URL_PATH));
-        self::assertGreaterThan(0, MermaidDiagram::fromPage($full)->nodesOf('shipping'));
+        self::assertGreaterThan(0, Diagram::fromPage($full)->nodesOf('shipping'));
         self::assertCount(0, $full->filter('[data-scope-note]'));
     }
 
@@ -47,17 +47,14 @@ final class ServiceScopeFilterTest extends ReleasingWebTestCase
     {
         $client = $this->pulseWithOrdersBillingAndShipping();
         $page = $client->request('GET', '/flow?service=billing');
-        $nodes = json_decode($page->filter('pre.mermaid')->attr('data-graph-nodes'), true, flags: JSON_THROW_ON_ERROR);
-        $create = array_values(array_filter($nodes, fn (array $node) => $node['service'] === 'billing' && str_ends_with($node['title'], '::create')));
+        $create = array_values(array_filter(Diagram::fromPage($page)->nodes, fn (array $node) => $node['service'] === 'billing' && str_ends_with((string) $node['title'], '::create')));
 
-        $focused = $client->request('GET', $create[0]['href']);
+        $focused = $client->request('GET', (string) $create[0]['href']);
 
         self::assertCount(1, $focused->filter('[data-focus]'));
         self::assertCount(1, $focused->filter('[data-scope-note]'));
-        $diagram = MermaidDiagram::fromPage($focused);
-        $greyed = array_values(array_filter($diagram->lines, fn (string $line) => str_ends_with($line, ' greyed') && str_starts_with($line, '    class ')));
-        self::assertCount(1, $greyed);
-        $greyedServices = array_unique(array_map(fn (string $id) => $diagram->nodes[$id]['service'], explode(',', explode(' ', $greyed[0])[5])));
+        $diagram = Diagram::fromPage($focused);
+        $greyedServices = array_unique(array_map(fn (string $id) => $diagram->nodes[$id]['service'], $diagram->greyed()));
         self::assertSame(['orders'], array_values($greyedServices));
         self::assertGreaterThan(0, $diagram->nodesOf('billing'));
     }
@@ -68,7 +65,7 @@ final class ServiceScopeFilterTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow?service=shipping');
 
-        $diagram = MermaidDiagram::fromPage($crawler);
+        $diagram = Diagram::fromPage($crawler);
         self::assertGreaterThan(0, $diagram->nodesOf('shipping'));
         self::assertSame(0, $diagram->nodesOf('orders'));
         self::assertStringContainsString('talks to no other service', $crawler->filter('[data-scope-note]')->text());
@@ -97,7 +94,9 @@ final class ServiceScopeFilterTest extends ReleasingWebTestCase
         self::assertCount(1, $all->filter('[data-command-route="orders>billing"]'));
         self::assertCount(1, $orders->filter('[data-command-route="orders>billing"]'));
         self::assertCount(0, $shipping->filter('[data-command-route]'));
-        self::assertStringContainsString('class', $orders->filter('[data-topology]')->text());
+        $scoped = Diagram::fromPage($orders);
+        self::assertSame(['billing'], array_map(fn (string $id) => $scoped->nodes[$id]['name'], $scoped->greyed()));
+        self::assertSame([], Diagram::fromPage($all)->greyed());
         self::assertSame('/topology', $orders->filter('[data-show-all-services]')->attr('href'));
     }
 

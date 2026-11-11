@@ -67,7 +67,7 @@
                                         {% for entry in list.entries %}
                                             <tr id="message-{{ (entry.service ~ "-" ~ entry.routingKey)|replace({" ": "-", "\n": "-", "\t": "-"}) }}" data-service="{{ entry.service }}" data-message="{{ entry.routingKey }}" data-kind="{{ entry.kind }}"{% if entry.inferred %} data-inferred="true"{% endif %}>
                                                 <th scope="row">
-                                                    <span title="{{ entry.routingKey }}">{{ entry.name }}</span>{% if entry.name != entry.routingKey %} <code class="muted">{{ entry.routingKey }}</code>{% endif %}
+                                                    <a href="{{ path('catalogue_node', {service: entry.service, id: entry.nodeId}) }}" title="Open the page of {{ entry.routingKey }} in {{ entry.service }}" data-message-page>{{ entry.name }}</a>{% if entry.name != entry.routingKey %} <code class="muted">{{ entry.routingKey }}</code>{% endif %}
                                                     {% if entry.inferred %}<span class="chip" data-inferred-mark title="Known only from handler source code">inferred</span>{% if entry.explainInferred %} {% include '_concept.html.twig' with {term: 'inferred-message'} only %}{% endif %}{% endif %}
                                                 </th>
                                                 <td>

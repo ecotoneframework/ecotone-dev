@@ -20,37 +20,69 @@
     <a class="brand" href="{{ path('home') }}">{% include '_logo.html.twig' with {class: 'brand-logo', id: 'brand', decorative: true} %}<span class="brand-title">Ecotone Pulse</span></a>
     {% if pulse.runsOnTestingLicence %}<span class="demo-version" data-demo-version title="Pulse runs on Ecotone's testing licence. Your own services need your Ecotone Enterprise licence key.">Demo Version</span>{% endif %}
     {% set current = app.request.attributes.get('_route') %}
-    {% set deadLetterFailures = dead_letter_failures() %}
-    {% set navArchitecture = [{label: 'Flow graph', route: 'flow_graph'}, {label: 'Topology', route: 'topology'}, {label: 'Catalogue', route: 'catalogue'}] %}
-    {% set navSections = [
-        {label: 'Overview', route: 'home', routes: ['home']},
-        {label: 'Services', route: 'services', routes: ['services', 'service_hub', 'service_channels', 'service_configuration', 'service_projections']},
-        {label: 'Failed messages', key: 'failures', route: 'dead_letters', routes: ['dead_letters', 'dead_letter', 'dead_letter_actions'], badge: deadLetterFailures},
-        {label: 'Traces', route: 'traces', routes: ['traces', 'trace_list', 'trace_detail']},
-        {label: 'Architecture', route: 'flow_graph', routes: navArchitecture|map(tab => tab.route)},
-    ] %}
-    <nav aria-label="Main" data-main-nav>
-        {% for navSection in navSections %}
-            <a href="{{ path(navSection.route) }}" data-nav-section="{{ navSection.key ?? navSection.label|lower }}"{% if current in navSection.routes %} class="active" aria-current="{{ current == navSection.route ? 'page' : 'true' }}"{% endif %}>{{ navSection.label }}{% if navSection.badge is defined and navSection.badge > 0 %}<span class="badge" data-nav-dead-letters title="{{ navSection.badge }} {{ navSection.badge == 1 ? 'failure group' : 'failure groups' }} of failed messages">{{ navSection.badge }}<span class="visually-hidden"> {{ navSection.badge == 1 ? 'failure group' : 'failure groups' }}</span></span>{% endif %}</a>
-        {% endfor %}
-    </nav>
+    <form method="get" action="{{ path('search') }}" role="search" aria-label="Search Pulse" class="topbar-search" data-global-search>
+        <input type="search" name="q" id="global-search" aria-label="Search every command, event, query, handler and channel" placeholder="Search messages, handlers, channels…"{% if current == 'search' %} value="{{ app.request.query.get('q') }}"{% endif %}>
+        <button type="submit">Search</button>
+    </form>
     <div class="topbar-tools">
         <a class="btn connect-link" href="{{ path('connect') }}" data-nav-connect{% if current == 'connect' %} aria-current="page"{% endif %}>+ Connect a service</a>
         <button type="button" class="concepts-toggle" data-concepts-toggle aria-pressed="true">Explain concepts</button>
         <button type="button" class="theme-toggle" data-theme-toggle>Theme</button>
     </div>
 </header>
+{% set deadLetterFailures = dead_letter_failures() %}
+{% set navServices = nav_services() %}
+{% set navScoped = ['flow_graph', 'topology', 'catalogue'] %}
+{% set navScopedService = current in navScoped ? app.request.query.get('service') : null %}
+{% set navScope = navScopedService ? {service: navScopedService} : {} %}
+{% set navCurrentService = app.request.attributes.get('service') %}
+{% set navKind = current == 'catalogue' ? app.request.query.get('kind') : null %}
+{% set navGroups = [
+    {title: 'Operate', sections: [
+        {label: 'Overview', key: 'overview', href: path('home'), routes: ['home']},
+        {label: 'Services', key: 'services', href: path('services'), routes: ['services', 'service_hub', 'service_channels', 'service_configuration', 'service_projections'], services: true},
+        {label: 'Failed messages', key: 'failures', href: path('dead_letters'), routes: ['dead_letters', 'dead_letter', 'dead_letter_actions'], badge: deadLetterFailures},
+        {label: 'Traces', key: 'traces', href: path('traces'), routes: ['traces', 'trace_list', 'trace_detail']},
+    ]},
+    {title: 'Understand', sections: [
+        {label: 'Catalogue', key: 'catalogue', href: path('catalogue', navScope), routes: ['catalogue', 'catalogue_node', 'search'], kinds: true},
+        {label: 'Flow graph', key: 'flow', href: path('flow_graph', navScope), routes: ['flow_graph']},
+        {label: 'Topology', key: 'topology', href: path('topology', navScope), routes: ['topology']},
+    ]},
+] %}
+<div class="shell">
+<nav aria-label="Main" class="sidebar" data-main-nav>
+    {% for group in navGroups %}
+        <p class="sidebar-title">{{ group.title }}</p>
+        <ul>
+            {% for section in group.sections %}
+                <li>
+                    <a href="{{ section.href }}" data-nav-section="{{ section.key }}"{% if current in section.routes %} class="active" aria-current="{{ current == section.routes[0] and not navKind and not (section.services ?? false and navCurrentService) ? 'page' : 'true' }}"{% endif %}>{{ section.label }}{% if section.badge is defined and section.badge > 0 %}<span class="badge" data-nav-dead-letters title="{{ section.badge }} {{ section.badge == 1 ? 'failure group' : 'failure groups' }} of failed messages">{{ section.badge }}<span class="visually-hidden"> {{ section.badge == 1 ? 'failure group' : 'failure groups' }}</span></span>{% endif %}</a>
+                    {% if section.services ?? false %}
+                        {% if navServices is not empty %}
+                            <ul class="sidebar-sub" data-nav-services>
+                                {% for service in navServices %}
+                                    <li><a href="{{ path('service_hub', {service: service.name}) }}" data-nav-service="{{ service.name }}"{% if navCurrentService == service.name and current in section.routes %} aria-current="page"{% endif %}><span class="nav-dot nav-{{ service.status }}" aria-hidden="true"></span><span class="nav-name">{{ service.name }}</span><span class="visually-hidden"> ({{ service.status|replace({'_': ' '}) }})</span>{% if service.failures > 0 %}<span class="badge" title="{{ service.failures }} {{ service.failures == 1 ? 'failure group' : 'failure groups' }} of failed messages in {{ service.name }}">{{ service.failures }}<span class="visually-hidden"> {{ service.failures == 1 ? 'failure group' : 'failure groups' }}</span></span>{% endif %}</a></li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    {% endif %}
+                    {% if section.kinds ?? false %}
+                        <ul class="sidebar-sub" data-nav-kinds>
+                            {% for kind in [{kind: 'command', label: 'Commands'}, {kind: 'event', label: 'Events'}, {kind: 'query', label: 'Queries'}] %}
+                                <li><a href="{{ path('catalogue', navScope|merge({kind: kind.kind})) }}" data-nav-kind="{{ kind.kind }}"{% if navKind == kind.kind %} aria-current="page"{% endif %}><span class="nav-dot kind-dot-{{ kind.kind }}" aria-hidden="true"></span>{{ kind.label }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+</nav>
 <main id="content">
 {% block crumbs %}{% endblock %}
-{% if current in navArchitecture|map(tab => tab.route) %}
-    {% set navScopedService = app.request.query.get('service') %}
-    <nav aria-label="Architecture" class="subnav" data-architecture-tabs>
-        {% for tab in navArchitecture %}
-            <a href="{{ path(tab.route, navScopedService ? {service: navScopedService} : {}) }}" data-architecture-tab="{{ tab.route }}"{% if current == tab.route %} aria-current="page"{% endif %}>{{ tab.label }}</a>
-        {% endfor %}
-    </nav>
-{% endif %}
 {% block body %}{% endblock %}
 </main>
+</div>
 </body>
 </html>

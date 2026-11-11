@@ -1,4 +1,4 @@
 ---
 type: llm
 ---
-PASS if the report flags that the common case cannot be used without setting options (maxAtt, initMs and mult are all required) and proposes defaults so the feature works with none set. FAIL if required options are not questioned.
+PASS if the report flags that the feature cannot be used without setting options (the required maxAtt, initMs and mult, in whatever words) and proposes that they get defaults, anywhere in the report, including inside a combined finding or a proposed replacement usage. FAIL only if required options are never questioned.

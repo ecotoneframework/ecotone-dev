@@ -4,7 +4,7 @@ tags: [framework-review-behaviour]
 max_turns: 20
 allowed_tools: [Read, Glob, Grep, Skill]
 ---
-You're the feature/behaviour reviewer for a change in the Ecotone framework monorepo (ecotone-dev). Problem reported: 'Two consumers of one channel handle messages of the same order out of order.' The change adds an `#[OrderedDelivery(key: "payload.orderId")]` attribute. Diff summary: `packages/Ecotone/Api/Attribute/OrderedDelivery.php` is the new attribute; `packages/Ecotone/src/Messaging/Endpoint/OrderedDeliveryInterceptor.php` is registered around the polling consumer of an asynchronous endpoint and takes a lock per key before the handler runs, releasing it after. The module reads the attribute from every `#[CommandHandler]` and `#[EventHandler]`; on a handler that is not asynchronous there is no polling consumer, so no interceptor is registered and the attribute has no effect. Test added:
+You're the feature/behaviour reviewer for a change in the Ecotone framework monorepo (ecotone-dev). Problem reported: 'Two consumers of one channel handle messages of the same order out of order.' The change adds an `#[OrderedDelivery(key: "payload.orderId")]` attribute. Diff summary: `packages/Ecotone/Api/Attribute/OrderedDelivery.php` is the new attribute; `packages/Ecotone/src/Messaging/Endpoint/OrderedDeliveryInterceptor.php` is registered around the polling consumer of an asynchronous endpoint and takes a lock per key before the handler runs, releasing it after. The module reads the attribute from every `#[CommandHandler]` and `#[EventHandler]` and registers the interceptor on the polling consumer of that handler's endpoint. Test added:
 
 ```php
 public function test_messages_of_one_order_are_handled_in_order(): void

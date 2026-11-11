@@ -1,4 +1,4 @@
 ---
 type: llm
 ---
-PASS if the report shows, near its start, the code an application developer must write to use the retry feature (registering the registry service, calling register(...) with class, method, endpoint id and a configuration object) and what that demands of them. FAIL if it judges the change without spelling out the end user's usage.
+PASS if the report shows, before its findings, what an application developer has to write to use the retry feature today — as code or as prose — covering the registry service they must provide and the register(...) call, and says what that demands of them. FAIL only if it judges the change without first spelling out the end user's usage.

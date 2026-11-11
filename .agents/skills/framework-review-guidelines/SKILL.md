@@ -45,7 +45,7 @@ relates to `framework-storage-and-transactions` although no table manager change
 check each of its rules against the change.
 - **Expected:** the report names every skill related to the change and why each applies, including skills whose
   own files the diff does not touch.
-- **Verified by:** `eval:review-diff-guidelines`
+- **Verified by:** `eval:review-diff-guidelines`, `eval:review-related-skills`
 
 ### G3. Each finding cites the rule it breaks
 Format: `[BLOCKING|SHOULD-FIX|NIT] <skill> rule <id> — <file>:<line> — what is wrong — the fix`. BLOCKING is a

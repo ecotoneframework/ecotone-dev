@@ -30,6 +30,8 @@
         <button type="button" class="theme-toggle" data-theme-toggle>Theme</button>
     </div>
 </header>
+<div class="shell">
+{% block sidebar %}
 {% set deadLetterFailures = dead_letter_failures() %}
 {% set navServices = nav_services() %}
 {% set navScoped = ['flow_graph', 'topology', 'catalogue'] %}
@@ -50,7 +52,6 @@
         {label: 'Topology', key: 'topology', href: path('topology', navScope), routes: ['topology']},
     ]},
 ] %}
-<div class="shell">
 <nav aria-label="Main" class="sidebar" data-main-nav>
     {% for group in navGroups %}
         <p class="sidebar-title">{{ group.title }}</p>
@@ -79,6 +80,7 @@
         </ul>
     {% endfor %}
 </nav>
+{% endblock %}
 <main id="content">
 {% block crumbs %}{% endblock %}
 {% block body %}{% endblock %}

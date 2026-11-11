@@ -2,6 +2,20 @@
 
 {% block title %}{{ status_code }} {{ status_text }} · Ecotone Pulse{% endblock %}
 
+{% block sidebar %}
+<nav aria-label="Main" class="sidebar" data-main-nav>
+    <ul>
+        <li><a href="{{ path('home') }}">Overview</a></li>
+        <li><a href="{{ path('services') }}">Services</a></li>
+        <li><a href="{{ path('dead_letters') }}">Failed messages</a></li>
+        <li><a href="{{ path('traces') }}">Traces</a></li>
+        <li><a href="{{ path('catalogue') }}">Catalogue</a></li>
+        <li><a href="{{ path('flow_graph') }}">Flow graph</a></li>
+        <li><a href="{{ path('topology') }}">Topology</a></li>
+    </ul>
+</nav>
+{% endblock %}
+
 {% block body %}
     <h1>{{ status_code < 500 ? 'Pulse cannot show this page' : 'Pulse failed to build this page' }}</h1>
     <div class="notice failure" data-error-page="{{ status_code }}">

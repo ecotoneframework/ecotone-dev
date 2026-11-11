@@ -95,8 +95,8 @@ final class NavigationTest extends ReleasingWebTestCase
         foreach (['/', '/services', '/dead-letters', '/flow', '/topology', '/traces', '/catalogue'] as $path) {
             $search = $client->request('GET', $path)->filter('header.topbar form[data-global-search]');
 
-            self::assertSame('/search', $search->attr('action'), $path);
-            self::assertNotSame('', trim((string) $search->filter('input[name="q"]')->attr('aria-label')), $path);
+            self::assertSame('/search', $search->attr('action'));
+            self::assertNotSame('', trim((string) $search->filter('input[name="q"]')->attr('aria-label')));
         }
     }
 

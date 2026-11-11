@@ -127,16 +127,16 @@
             {% if not overview %}{% if services|length > 1 %} · {% endif %}{% if not focus %}Click a node to follow it: only what led to it and everything it causes stays drawn. {% endif %}{% if foldChannels %}<a href="{{ foldUrl }}" data-unfold-channels>Show channels</a>{% else %}<a href="{{ foldUrl }}" data-fold-channels>Fold asynchronous channels into arrows</a>{% endif %}{% endif %}
         </p>
         {% include 'graph/_diagram.html.twig' with {diagram: diagram, hook: 'flow-graph', label: 'Flow graph'} only %}
-        {% if traceSteps is not empty %}
+        {% if traceSteps and traceSteps.steps is not empty %}
             <details class="card flush trace-drawer" data-trace-drawer data-disclosure="flow.trace-drawer" open>
-                <summary><b>Trace step by step</b> <span class="summary-state">{{ traceSteps|length }} steps{% if traceDuration %} · {{ traceDuration }} from first to last{% endif %}{% if traceWaited %} · longest wait before a step {{ traceWaited }}{% endif %}</span></summary>
+                <summary><b>Trace step by step</b> <span class="summary-state">{{ traceSteps.steps|length }} steps · {{ traceSteps.duration }} from first to last{% if traceSteps.longestWait %} · longest wait before a step {{ traceSteps.longestWait }}{% endif %}</span></summary>
                 <p class="trace-drawer-note" data-trace-drawer-note>{% if overview %}The graph above is the service overview, so the steps have no numbers here: <a href="{{ detailUrl }}" data-trace-drawer-detail>draw every node</a> to see each step on its node. {% else %}A number is the node the step passed on the graph: press it to bring that node into view. A node the trace visits again keeps its number, and a dot means no node drawn above matches the step. {% endif %}"Waited" is the time before the step ran, in a queue or because the message was sent with a delay. "Took" includes the steps a step started, indented under it. <a href="{{ path('trace_detail', {traceId: trace.traceId}) }}" data-trace-drawer-full>Open the full trace</a> for attributes, errors and the flame graph.</p>
                 <div class="trace-drawer-body" tabindex="0" role="region" aria-label="Steps of the trace">
                     <table class="trace-steps">
                         <thead><tr><th scope="col">On graph</th><th scope="col">Service</th><th scope="col">Step</th><th scope="col" class="num">Waited</th><th scope="col" class="num">Took</th><th scope="col" class="timeline">Timeline</th></tr></thead>
                         <tbody>
-                        {% set total = max(1, traceTotalMicro) %}
-                        {% for step in traceSteps %}
+                        {% set total = max(1, traceSteps.totalMicro) %}
+                        {% for step in traceSteps.steps %}
                             <tr{% if step.step %} data-trace-step="{{ step.step }}"{% endif %} data-trace-step-status="{{ step.status }}"{% if step.hopFrom %} data-trace-step-hop{% endif %} class="status-{{ step.status }}">
                                 <td>{% if step.step %}<button type="button" class="dn-step-ref{{ step.failed ? ' failed' : (step.pending ? ' pending' : '') }}" data-trace-step-button aria-label="Show step {{ step.step }} on the graph">{{ step.step }}</button>{% else %}<span class="muted" aria-label="not on the graph">·</span>{% endif %}</td>
                                 <td>{{ step.service }}{% if step.hopFrom %} <span class="chip" title="This step crossed from {{ step.hopFrom }} to {{ step.service }}">⇢ from {{ step.hopFrom }}</span>{% endif %}</td>

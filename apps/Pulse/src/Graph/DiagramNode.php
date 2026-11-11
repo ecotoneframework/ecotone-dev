@@ -27,20 +27,43 @@ final readonly class DiagramNode
      */
     public function linked(array $link): self
     {
-        return new self($this->id, $this->group, $this->kind, $this->label, $this->note, $this->state, $this->greyed, $this->focused, $this->step, $link['href'] ?? null, $link['title'] ?? null, $link['current'] ?? false);
+        return new self(
+            id: $this->id,
+            group: $this->group,
+            kind: $this->kind,
+            label: $this->label,
+            note: $this->note,
+            state: $this->state,
+            greyed: $this->greyed,
+            focused: $this->focused,
+            step: $this->step,
+            href: $link['href'] ?? null,
+            title: $link['title'] ?? null,
+            current: $link['current'] ?? false,
+        );
     }
 
     public function kindLabel(): string
     {
-        return ucfirst(trim((string) preg_replace('/(?<!^)[A-Z]/', ' $0', $this->kind)));
+        return self::kindLabelOf($this->kind);
     }
 
     public function family(): string
     {
+        return self::familyOf($this->kind);
+    }
+
+    public static function kindLabelOf(string $kind): string
+    {
+        return ucfirst(strtolower(trim((string) preg_replace('/(?<!^)[A-Z]/', ' $0', $kind))));
+    }
+
+    public static function familyOf(string $kind): string
+    {
         return match (true) {
-            in_array($this->kind, ['command', 'event', 'query', 'channel', 'projection', 'service'], true) => $this->kind,
-            in_array($this->kind, ['aggregate', 'saga'], true) => 'owner',
-            $this->kind === 'distributedBus' => 'channel',
+            in_array($kind, ['command', 'event', 'query', 'channel', 'projection', 'service'], true) => $kind,
+            in_array($kind, ['aggregate', 'saga'], true) => 'owner',
+            $kind === 'distributedBus' => 'channel',
             default => 'handler',
         };
     }

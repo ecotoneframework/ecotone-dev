@@ -21,9 +21,8 @@
                 <thead><tr><th scope="col">Kind</th><th scope="col">Name</th><th scope="col">Service</th><th scope="col">Go to</th></tr></thead>
                 <tbody>
                 {% for result in results %}
-                    {% set family = result.kind in ['command', 'event', 'query', 'channel', 'projection'] ? result.kind : (result.kind in ['aggregate', 'saga'] ? 'owner' : (result.kind == 'distributedBus' ? 'channel' : 'handler')) %}
                     <tr data-search-result="{{ result.nodeId }}" data-service="{{ result.service }}">
-                        <td>{% include 'graph/_kind.html.twig' with {family: family, kind: result.kind, label: result.kind|replace({'Handler': ' handler', 'distributedBus': 'distributed bus'})|capitalize} only %}</td>
+                        <td>{% include 'graph/_kind.html.twig' with {family: result.family, kind: result.kind, label: result.kindLabel} only %}</td>
                         <th scope="row"><a class="mono" href="{{ path('catalogue_node', {service: result.service, id: result.nodeId}) }}">{{ result.label }}</a>{% if result.fullLabel != result.label %}<br><code class="muted">{{ result.fullLabel }}</code>{% endif %}</th>
                         <td>{{ result.service }}</td>
                         <td><a href="{{ path('flow_graph', {focus: result.service ~ ':' ~ result.nodeId}) }}">Flow graph</a></td>

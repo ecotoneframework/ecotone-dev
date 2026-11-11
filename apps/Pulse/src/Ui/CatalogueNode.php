@@ -69,7 +69,6 @@ final readonly class CatalogueNode
      */
     public static function of(array $flows, ServiceFlow $flow, FlowNode $node, array $snapshots, array $depths): self
     {
-        $shape = new DiagramNode('', null, $node->kind->value, ShortLabel::of($node->label));
         $incoming = [];
         $outgoing = [];
         foreach ($flow->graph->edgesTo($node->id) as $edge) {
@@ -108,8 +107,8 @@ final readonly class CatalogueNode
             $flow->name,
             $node->id,
             $node->kind->value,
-            $shape->kindLabel(),
-            $shape->family(),
+            DiagramNode::kindLabelOf($node->kind->value),
+            DiagramNode::familyOf($node->kind->value),
             ShortLabel::of($node->label),
             $node->label,
             self::sentenceOf($flow, $node, $incoming, $outgoing),
@@ -127,9 +126,7 @@ final readonly class CatalogueNode
      */
     private static function related(ServiceFlow $flow, FlowNode $node, string $relation): array
     {
-        $shape = new DiagramNode('', null, $node->kind->value, ShortLabel::of($node->label));
-
-        return ['service' => $flow->name, 'nodeId' => $node->id, 'kind' => $node->kind->value, 'kindLabel' => $shape->kindLabel(), 'family' => $shape->family(), 'label' => $shape->label, 'relation' => $relation, 'runs' => $node->kind->isHandler() ? self::runsOf($flow, $node) : null];
+        return ['service' => $flow->name, 'nodeId' => $node->id, 'kind' => $node->kind->value, 'kindLabel' => DiagramNode::kindLabelOf($node->kind->value), 'family' => DiagramNode::familyOf($node->kind->value), 'label' => ShortLabel::of($node->label), 'relation' => $relation, 'runs' => $node->kind->isHandler() ? self::runsOf($flow, $node) : null];
     }
 
     private static function runsOf(ServiceFlow $flow, FlowNode $handler): string
@@ -209,7 +206,7 @@ final readonly class CatalogueNode
         $senders = array_values(array_unique(array_map(static fn (array $one): string => $one['service'], array_filter($incoming, static fn (array $one): bool => $one['service'] !== $flow->name))));
         $received = $node->kind->isMessage() && $senders !== [] ? sprintf(' %s receives it from %s over the Distributed Bus.', ucfirst($flow->name), implode(' and ', $senders)) : '';
         $named = static fn (array $one): string => sprintf('%s in %s, which %s', $one['label'], $one['service'], $runs($one));
-        $kind = strtolower((new DiagramNode('', null, $node->kind->value, ''))->kindLabel());
+        $kind = strtolower(DiagramNode::kindLabelOf($node->kind->value));
 
         return match (true) {
             $node->kind === FlowNodeKind::EVENT => ($handlers === []
@@ -254,7 +251,7 @@ final readonly class CatalogueNode
     private static function deadLettersOf(array $snapshots, string $service, FlowNode $message): ?array
     {
         $counts = [];
-        foreach (DeadLetterOverview::of($snapshots, new DeadLetterFilter('', '', '', '', '', '', '')) as $stored) {
+        foreach (DeadLetterOverview::of($snapshots, new DeadLetterFilter(service: '', messageName: '', exceptionClass: '', failureId: '', failedFrom: '', failedTo: '', search: '')) as $stored) {
             if ($stored['name'] !== $service) {
                 continue;
             }

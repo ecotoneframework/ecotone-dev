@@ -154,7 +154,7 @@ final readonly class TopologyReport
         $nodeOf = function (string $service) use (&$ids, &$nodes, $stale): string {
             if (! isset($ids[$service])) {
                 $ids[$service] = 't' . count($ids);
-                $nodes[] = new DiagramNode($ids[$service], null, 'service', $service, ($stale[$service] ?? false) ? 'stale' : null, null, $this->scope?->isGreyed($service) === true);
+                $nodes[] = new DiagramNode(id: $ids[$service], group: null, kind: 'service', label: $service, note: ($stale[$service] ?? false) ? 'stale' : null, greyed: $this->scope?->isGreyed($service) === true);
             }
 
             return $ids[$service];

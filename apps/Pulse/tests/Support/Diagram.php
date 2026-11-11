@@ -51,8 +51,8 @@ final class Diagram
             $step = $crawler->filter('[data-diagram-step]');
             $this->nodes[$node->getAttribute('data-diagram-node')] = [
                 'service' => $group === null ? '' : (string) $group->attr('data-service'),
-                'name' => $crawler->filter('.dn-label')->text(),
-                'label' => $prefix . $crawler->filter('.dn-label')->text() . ($note->count() === 0 ? '' : ' ' . $note->text()),
+                'name' => $crawler->filter('[data-diagram-label]')->text(),
+                'label' => $prefix . $crawler->filter('[data-diagram-label]')->text() . ($note->count() === 0 ? '' : ' ' . $note->text()),
                 'kind' => $kind,
                 'state' => $node->hasAttribute('data-trace-state') ? $node->getAttribute('data-trace-state') : null,
                 'greyed' => $node->hasAttribute('data-greyed'),

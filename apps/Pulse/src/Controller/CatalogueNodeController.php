@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Graph\FlowFocus;
+use App\Graph\NodeSearch;
 use App\Graph\ServiceFlow;
 use App\Graph\ServiceFlows;
-use App\Graph\ShortLabel;
 use App\Graph\StitchedFlowGraph;
 use App\Graph\UnknownCatalogueNode;
 use App\Settings\PulseSettings;
@@ -53,7 +53,7 @@ final class CatalogueNodeController extends AbstractController
             ...$detail,
             'href' => isset($detail['node']) ? $this->generateUrl('catalogue_node', ['service' => $detail['service'], 'id' => $detail['node']]) : $this->generateUrl('service_hub', ['service' => $detail['service']]),
             'title' => 'Open the page of ' . $detail['title'],
-        ], StitchedFlowGraph::nodeDetails($flows, $shown, $neighbourhood));
+        ], StitchedFlowGraph::nodeDetails($flows, $shown, focus: $neighbourhood));
         $depths = [];
         foreach ($snapshots as $snapshot) {
             if ($snapshot->service === $service) {
@@ -63,7 +63,7 @@ final class CatalogueNodeController extends AbstractController
 
         return $this->render('graph/node.html.twig', [
             'node' => CatalogueNode::of($flows, $flow, $flow->graph->node($nodeId), $snapshots, $depths),
-            'diagram' => StitchedFlowGraph::diagram($flows, $shown, null, null, $neighbourhood)->linked($links),
+            'diagram' => StitchedFlowGraph::diagram($flows, $shown, focus: $neighbourhood)->linked($links),
             'hops' => self::NEIGHBOURHOOD_HOPS,
             'notices' => $serviceFlows->notices,
         ]);
@@ -75,33 +75,16 @@ final class CatalogueNodeController extends AbstractController
         $query = trim($request->query->getString('q'));
         $snapshots = $this->snapshots->viewAndRequestStale();
         $flows = ServiceFlows::of($snapshots)->flows;
-        $results = [];
-        $words = array_values(array_filter(preg_split('/\s+/', $query) ?: []));
-        if ($query !== '') {
-            foreach ($flows as $flow) {
-                foreach ($flow->graph->nodes() as $node) {
-                    $exact = mb_strtolower(ShortLabel::of($node->label)) === mb_strtolower($query) || mb_strtolower($node->label) === mb_strtolower($query);
-                    $named = [$node->label, $node->id];
-                    foreach (['class', 'method', 'endpointId', 'routingKey', 'routingKeys', 'name', 'interface'] as $attribute) {
-                        array_push($named, ...array_filter((array) ($node->attributes[$attribute] ?? []), is_string(...)));
-                    }
-                    $haystack = implode("\n", $named);
-                    if ($exact || array_all($words, static fn (string $word): bool => mb_stripos($haystack, $word) !== false)) {
-                        $results[] = ['service' => $flow->name, 'nodeId' => $node->id, 'kind' => $node->kind->value, 'label' => ShortLabel::of($node->label), 'fullLabel' => $node->label, 'exact' => $exact, 'named' => array_all($words, static fn (string $word): bool => mb_stripos(ShortLabel::of($node->label), $word) !== false)];
-                    }
-                }
-            }
-        }
-        usort($results, static fn (array $one, array $other): int => [$other['exact'], $other['named'], $one['label'], $one['service']] <=> [$one['exact'], $one['named'], $other['label'], $other['service']]);
-        $exactMatches = array_values(array_filter($results, static fn (array $result): bool => $result['exact']));
-        if (count($results) === 1 || count($exactMatches) === 1) {
-            return $this->redirectToRoute('catalogue_node', ['service' => $results[0]['service'], 'id' => $results[0]['nodeId']]);
+        $search = NodeSearch::of($flows, $query);
+        $only = $search->onlyMatch();
+        if ($only !== null) {
+            return $this->redirectToRoute('catalogue_node', ['service' => $only['service'], 'id' => $only['nodeId']]);
         }
 
         return $this->render('graph/search.html.twig', [
             'query' => $query,
-            'total' => count($results),
-            'results' => array_slice($results, 0, self::RESULTS_LIMIT),
+            'total' => count($search->results),
+            'results' => array_slice($search->results, 0, self::RESULTS_LIMIT),
             'limit' => self::RESULTS_LIMIT,
             'answered' => $flows !== [],
         ]);

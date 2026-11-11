@@ -56,10 +56,13 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
         $page = $this->traceView($client, '/flow?trace=' . self::INVOICED);
         $graph = Diagram::fromPage($page);
 
-        $numbered = array_values(array_unique($page->filter('[data-trace-drawer] tr[data-trace-step]')->each(static fn (Crawler $row): string => $row->attr('data-trace-step'))));
-        self::assertNotSame([], $numbered);
-        $onGraph = array_map('strval', array_values(array_filter(array_column($graph->nodes, 'step'))));
-        self::assertSame([], array_diff($numbered, $onGraph));
+        $listed = array_map('intval', $page->filter('[data-trace-drawer] tr[data-trace-step]')->each(static fn (Crawler $row): string => $row->attr('data-trace-step')));
+        $firstVisits = array_values(array_unique($listed));
+        self::assertNotSame([], $firstVisits);
+        self::assertSame(range(1, count($firstVisits)), $firstVisits);
+        $onGraph = array_values(array_unique(array_filter(array_column($graph->nodes, 'step'))));
+        sort($onGraph);
+        self::assertSame($firstVisits, $onGraph);
         self::assertSame('/traces/trace/' . self::INVOICED, $page->filter('[data-trace-drawer] a[data-trace-drawer-full]')->attr('href'));
     }
 
@@ -70,6 +73,17 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
         $page = $this->traceView($client, '/flow?trace=' . self::EXPLODED);
 
         self::assertGreaterThan(0, $page->filter('[data-trace-drawer] tr[data-trace-step-status="failed"]')->count());
+    }
+
+    public function test_the_step_list_under_the_service_overview_has_no_numbers_and_links_to_every_node(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $page = $this->traceView($client, '/flow?view=overview&trace=' . self::INVOICED);
+
+        self::assertGreaterThan(0, $page->filter('[data-trace-drawer] tbody tr')->count());
+        self::assertCount(0, $page->filter('[data-trace-drawer] tr[data-trace-step]'));
+        self::assertStringContainsString('view=detail', (string) $page->filter('[data-trace-drawer] a[data-trace-drawer-detail]')->attr('href'));
     }
 
     public function test_the_flow_graph_without_a_trace_lists_no_steps(): void

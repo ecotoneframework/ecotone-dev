@@ -59,7 +59,7 @@ final class StitchedFlowGraph
         $indexes = array_flip(array_map(fn (ServiceFlow $flow) => $flow->name, $flows));
         $nodes = [];
         foreach ($flows as $index => $flow) {
-            $nodes[] = new DiagramNode(sprintf('s%d', $index), null, 'service', ShortLabel::of($flow->name), sprintf('%d nodes', count($flow->graph->nodes())), $highlight?->stateOfService($flow->name));
+            $nodes[] = new DiagramNode(id: sprintf('s%d', $index), group: null, kind: 'service', label: ShortLabel::of($flow->name), note: sprintf('%d nodes', count($flow->graph->nodes())), state: $highlight?->stateOfService($flow->name));
         }
         $counts = [];
         $traversed = [];
@@ -104,7 +104,7 @@ final class StitchedFlowGraph
             $groups[] = ['id' => $group, 'title' => $flow->name];
             $greyed = $scope?->isGreyed($flow->name) === true;
             if (in_array($flow->name, $collapsed, true)) {
-                $nodes[] = new DiagramNode($group . 'c', $group, 'service', ShortLabel::of($flow->name), sprintf('%d nodes, collapsed', self::countShown($flow, $focus)), $highlight?->stateOfService($flow->name), $greyed, $focus?->service === $flow->name);
+                $nodes[] = new DiagramNode(id: $group . 'c', group: $group, kind: 'service', label: ShortLabel::of($flow->name), note: sprintf('%d nodes, collapsed', self::countShown($flow, $focus)), state: $highlight?->stateOfService($flow->name), greyed: $greyed, focused: $focus?->service === $flow->name);
                 foreach ($flow->graph->nodes() as $node) {
                     if ($focus?->includes($flow->name, $node->id) !== false) {
                         $ids[$flow->name][$node->id] = $group . 'c';
@@ -126,15 +126,15 @@ final class StitchedFlowGraph
                 $ids[$flow->name][$node->id] = $id;
                 $state = $highlight?->stateOf($flow->name, $node->id);
                 $nodes[] = new DiagramNode(
-                    $id,
-                    $group,
-                    $node->kind->value,
-                    ShortLabel::of($node->label),
-                    $state === null ? null : $highlight->durationLabelOf($flow->name, $node->id),
-                    $state,
-                    $greyed,
-                    $focus?->service === $flow->name && $focus->node->id === $node->id,
-                    $state === null ? null : $highlight->stepOf($flow->name, $node->id),
+                    id: $id,
+                    group: $group,
+                    kind: $node->kind->value,
+                    label: ShortLabel::of($node->label),
+                    note: $state === null ? null : $highlight->durationLabelOf($flow->name, $node->id),
+                    state: $state,
+                    greyed: $greyed,
+                    focused: $focus?->service === $flow->name && $focus->node->id === $node->id,
+                    step: $state === null ? null : $highlight->stepOf($flow->name, $node->id),
                 );
             }
             foreach ($flow->graph->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS) as $edge) {

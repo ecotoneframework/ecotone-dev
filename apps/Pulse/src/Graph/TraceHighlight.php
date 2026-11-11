@@ -30,8 +30,8 @@ final readonly class TraceHighlight
         private array $durationsInMicroseconds,
         private array $traversedLinks,
         public array $services,
-        private array $steps = [],
-        private array $rowSteps = [],
+        private array $steps,
+        private array $rowSteps,
     ) {
     }
 
@@ -70,19 +70,17 @@ final readonly class TraceHighlight
             }
         }
 
-        foreach ([false, true] as $boilerplate) {
-            foreach ($matched as $rowIndex => $nodes) {
-                if ($trace->rows[$rowIndex]['boilerplate'] !== $boilerplate) {
-                    continue;
-                }
-                foreach ($nodes as [$service, $nodeId]) {
-                    $steps[$service][$nodeId] ??= $nextStep;
-                    $rowSteps[$rowIndex] = min($rowSteps[$rowIndex] ?? $nextStep, $steps[$service][$nodeId]);
-                }
-                if ($rowSteps[$rowIndex] === $nextStep) {
-                    $nextStep++;
-                }
+        foreach ($matched as $rowIndex => $nodes) {
+            if ($trace->rows[$rowIndex]['boilerplate']) {
+                continue;
             }
+            $known = array_filter(array_map(static fn (array $node): ?int => $steps[$node[0]][$node[1]] ?? null, $nodes));
+            $new = array_filter($nodes, static fn (array $node): bool => ! isset($steps[$node[0]][$node[1]]));
+            foreach ($new as [$service, $nodeId]) {
+                $steps[$service][$nodeId] = $nextStep;
+            }
+            $rowSteps[$rowIndex] = $new === [] ? min($known) : $nextStep;
+            $nextStep += $new === [] ? 0 : 1;
         }
 
         $traversed = [];
@@ -170,7 +168,12 @@ final readonly class TraceHighlight
     {
         $microseconds = $this->durationsInMicroseconds[$service][$nodeId] ?? null;
 
-        return $microseconds === null ? null : rtrim(rtrim(number_format($microseconds / 1000, 1, '.', ''), '0'), '.') . ' ms';
+        return $microseconds === null ? null : self::milliseconds($microseconds);
+    }
+
+    public static function milliseconds(int $microseconds): string
+    {
+        return rtrim(rtrim(number_format($microseconds / 1000, 1, '.', ''), '0'), '.') . ' ms';
     }
 
     public function stepOf(string $service, string $nodeId): ?int

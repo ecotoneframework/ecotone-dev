@@ -187,6 +187,45 @@ final class CatalogueNodePageTest extends ReleasingWebTestCase
         self::assertStringContainsString('handles it in orders', $page->filter('[data-node-outgoing]')->text());
     }
 
+    public function test_search_without_a_text_says_what_to_type(): void
+    {
+        $client = $this->pulseWithOrdersAndBilling();
+
+        $page = $client->request('GET', '/search');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('routing key', $page->filter('[data-empty]')->text());
+        self::assertCount(0, $page->filter('[data-search-result]'));
+    }
+
+    public function test_search_before_any_service_answered_says_names_appear_after_the_first_answer(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseWebClient();
+
+        $page = $client->request('GET', '/search?q=order');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('waiting', $page->filter('[data-empty]')->attr('data-empty'));
+    }
+
+    public function test_a_handler_on_an_asynchronous_channel_says_which_channel_it_runs_on_and_the_channel_page_lists_it(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseWebClient();
+        $this->pulseHavingHeardFrom($client, ['orders' => $this->serviceHandlingAsynchronousCommand('orders')]);
+        $client->request('GET', '/search?q=work.do.handler');
+
+        $page = $client->followRedirect();
+        $channel = $page->filter('[data-node-incoming] a')->reduce(static fn (Crawler $link): bool => str_contains((string) $link->attr('href'), 'id=channel'))->first();
+
+        self::assertStringContainsString('asynchronously, on channel', $page->filter('[data-node-fact="Runs"]')->text());
+        $channelPage = $client->request('GET', $channel->attr('href'));
+        self::assertSame('channel', $channelPage->filter('[data-node-page]')->attr('data-node-kind'));
+        self::assertStringContainsString('1 handler runs from it', $channelPage->filter('[data-node-sentence]')->text());
+        self::assertStringContainsString('::handle', $channelPage->filter('[data-node-outgoing]')->text());
+    }
+
     public function test_search_without_a_match_says_how_it_matches(): void
     {
         $client = $this->pulseWithOrdersAndBilling();

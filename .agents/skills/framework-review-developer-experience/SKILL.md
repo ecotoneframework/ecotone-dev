@@ -34,7 +34,7 @@ change with no end-user surface (an internal refactor) gets the one-line verdict
 further findings.
 - **Expected:** the report opens with the end user's usage code for the most common case and what it requires of
   them, or states that the change has no user-facing surface.
-- **Verified by:** `eval:review-diff-developer-experience`
+- **Verified by:** `eval:review-diff-developer-experience`, `eval:review-internal-refactor`
 
 ### X2. The feature is declared, not wired
 Ecotone is configured declaratively: an attribute on the class or method the behaviour belongs to, or a
@@ -45,7 +45,7 @@ is a finding, with the declarative form it should take. Find the nearest existin
 attribute under a package's `Api/Attribute`, a configuration object returned from a `#[ServiceContext]` method)
 and follow the shape it is switched on with.
 - **Expected:** imperative or duplicated set-up an end user must write is flagged with the attribute or
-  `#[ServiceContext]` form that replaces it, and the nearest existing Ecotone feature is named as the model.
+  `#[ServiceContext]` form that replaces it.
 - **Verified by:** `eval:review-diff-developer-experience`
 
 ### X3. It works with no options set
@@ -53,8 +53,7 @@ The most common case needs no configuration beyond naming the feature: every opt
 is what most applications want. A required option is justified only when the framework cannot know the value (a
 channel name, an identifier). An option nobody would change is not an option. Check that the defaults agree with
 the defaults of the features around it.
-- **Expected:** each required option is either justified as unknowable or flagged with the default it should have;
-  an option without a plausible second value is flagged for removal.
+- **Expected:** each required option is either justified as unknowable or flagged with the default it should have.
 - **Verified by:** `eval:review-diff-developer-experience`
 
 ### X4. The default is the resilient choice
@@ -74,13 +73,14 @@ boolean. A reader of the user's code understands the behaviour from the names al
 the naming rules for `Api/`). The same concept keeps the name Ecotone already uses for it elsewhere: search the
 existing attributes and the public `ecotone-*` skills before accepting a new word for an old idea.
 - **Expected:** each unclear, abbreviated, implementation-flavoured or inconsistent name is flagged with the
-  replacement, and a new term for a concept Ecotone already names is flagged with the existing term.
+  replacement.
 - **Verified by:** `eval:review-diff-developer-experience`
 
 ### X6. The verdict is explicit and findings are actionable
-End with `SIMPLE TO USE`, `USABLE WITH CHANGES` or `HARD TO USE`, followed by findings as
+Close the report with `SIMPLE TO USE`, `USABLE WITH CHANGES` or `HARD TO USE` (or, for a change rule X1 found to have no
+end-user surface, `NO USER-FACING SURFACE` alone), followed by findings as
 `[BLOCKING|SHOULD-FIX|NIT] <rule id> — <file>:<line> — what the end user has to do or misunderstands — the simpler
 form`. Show the improved usage code when a finding changes it.
-- **Expected:** the report ends with one of the three verdicts and each finding carries a severity, a rule id, a
-  location, the cost to the end user and the simpler alternative.
+- **Expected:** the report states one of the three verdicts, or `NO USER-FACING SURFACE`, and each finding
+  carries a severity, a rule id, a location, the cost to the end user and the simpler alternative.
 - **Verified by:** `eval:review-diff-developer-experience`

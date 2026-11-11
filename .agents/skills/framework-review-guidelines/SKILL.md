@@ -2,8 +2,9 @@
 name: framework-review-guidelines
 description: >-
   Review session that checks a change in the Ecotone framework repository against the
-  project rules: reads every changed file and the reasoning behind the change, loads each
-  framework skill relevant to what the diff touches, and reports every rule the change
+  project rules: reads every changed file and the reasoning behind the change, loads every
+  framework skill whose subject relates to the change (whether or not the diff edits that
+  skill), and reports every rule the change
   breaks with the rule id, file and line. Use when running the guidelines review before a
   push or PR, or when asked to review a diff or branch for conventions and project rules
   in the ecotone-dev repository.
@@ -43,7 +44,7 @@ also applies through what the change means, not only through a file path: a hand
 relates to `framework-storage-and-transactions` although no table manager changed. Load every related skill and
 check each of its rules against the change.
 - **Expected:** the report names every skill related to the change and why each applies, including skills whose
-  own files the diff does not touch, and names the skills it considered and left out.
+  own files the diff does not touch.
 - **Verified by:** `eval:review-diff-guidelines`
 
 ### G3. Each finding cites the rule it breaks

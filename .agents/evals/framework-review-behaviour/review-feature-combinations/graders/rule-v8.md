@@ -1,0 +1,4 @@
+---
+type: llm
+---
+PASS if the report does both of these. (a) It lists Ecotone features an application could combine the new attribute with, beyond the single asynchronous command handler the test uses, naming at least three of: event handlers with several subscribers, sagas, aggregates or event-sourced aggregates, projections, retries or the dead letter, the outbox or transactions, delayed or prioritised messages, dynamic channels, the distributed bus, multi-tenancy, other interceptors; and for each says whether a test proves the combination, or files the missing test as a finding, or calls it unrelated. (b) It flags that the attribute on a handler that is not asynchronous silently does nothing, and says that this combination must be refused at bootstrap with a clear message and a test asserting it. FAIL if the report judges the attribute only as tested, or does not ask for the synchronous usage to be refused.

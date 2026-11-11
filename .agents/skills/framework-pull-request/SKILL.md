@@ -3,10 +3,10 @@ name: framework-pull-request
 description: >-
   Finishing a unit of work in the Ecotone framework repository: conventional commits, the
   pre-PR check list, four independent review sessions (guidelines, breaking changes,
-  behaviour, developer experience) that must report back before anything is pushed, and drafting the PR body
-  from the template for the maintainer's approval. Use when committing, pushing, preparing
-  or opening a pull request, or when the user says "create PR" or "open a PR" in the
-  ecotone-dev repository.
+  behaviour, developer experience) that must report back before anything is pushed, and
+  drafting the PR body from the template for the maintainer's approval. Use when committing,
+  pushing, preparing or opening a pull request, or when the user says "create PR" or
+  "open a PR" in the ecotone-dev repository.
 ---
 
 # Committing and opening a pull request
@@ -50,12 +50,12 @@ diff range (`git diff main...HEAD`), the problem the change solves in the report
 | Behaviour | `framework-review-behaviour` | the feature solves the problem, tests cover it, its edge cases and its combinations with existing features |
 | Developer experience | `framework-review-developer-experience` | the change is simple for an end user: declarative configuration, sensible and resilient defaults, names that explain the feature |
 
-Each session reports findings ranked BLOCKING / SHOULD-FIX / NIT with file and line. Run them in parallel: the
-guidelines, breaking-changes and developer-experience sessions only read, and the behaviour session runs anything it executes in its own
-worktree (`git worktree add`), so no session changes the tree another is reading and no two test suites share the
-compose services. Fix every
-BLOCKING finding (or get the maintainer's explicit decision on it), re-run the session that raised it, and only
-then push.
+Each session reports findings ranked BLOCKING / SHOULD-FIX / NIT with file and line. The developer-experience
+session may instead return `NO USER-FACING SURFACE` with no findings, which is a complete report. Run them in
+parallel: the guidelines, breaking-changes and developer-experience sessions only read, and the behaviour session
+runs anything it executes in its own worktree (`git worktree add`), so no session changes the tree another is
+reading and no two test suites share the compose services. Fix every BLOCKING finding (or get the maintainer's
+explicit decision on it), re-run the session that raised it, and only then push.
 - **Expected:** the agent launches four separate, fresh-context reviews (one per review skill) on its own, without
   asking, and waits for all four reports before pushing or opening the PR, also when the PR is already open or the
   user asks for it "now"; it does not review the change itself in place of them.

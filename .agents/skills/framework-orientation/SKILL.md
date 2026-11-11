@@ -37,7 +37,7 @@ canonical code shapes.
 | A new module or package | `framework-module-scaffolding` |
 | A design, a task brief, a numbered review | `framework-design-and-briefs` |
 | Committing, pushing, opening a pull request | `framework-pull-request` |
-| Reviewing a change in a review session | `framework-review-guidelines`, `framework-review-breaking-changes`, `framework-review-behaviour` |
+| Reviewing a change in a review session | `framework-review-guidelines`, `framework-review-breaking-changes`, `framework-review-behaviour`, `framework-review-developer-experience` |
 | Adding or changing a rule, a skill, a check, `AGENTS.md` | `framework-agent-tooling` |
 
 The five mistakes that cost the most, because each means throwing work away: tests that reach past the userland

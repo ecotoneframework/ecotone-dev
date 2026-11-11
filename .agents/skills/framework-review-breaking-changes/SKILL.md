@@ -11,7 +11,7 @@ description: >-
 
 # Breaking-changes review
 
-You are one of three independent reviews (see `framework-pull-request` rule P3). You judge only whether users can
+You are one of four independent reviews (see `framework-pull-request` rule P3). You judge only whether users can
 upgrade to a release containing this change without breaking their application or their stored data.
 
 ## Applies when

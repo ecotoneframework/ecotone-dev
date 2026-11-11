@@ -3,15 +3,16 @@ name: framework-review-behaviour
 description: >-
   Review session that checks a change to the Ecotone framework actually works: the feature
   or fix solves the stated problem, the tests prove it at the userland level on every path
-  and engine it must hold on, and edge cases (failure, retry, concurrency, empty, async,
-  misconfiguration) are covered. Use when running the feature and behaviour review before
+  and engine it must hold on, edge cases (failure, retry, concurrency, empty, async,
+  misconfiguration) are covered, and it is tested combined with the existing Ecotone features
+  it works with and refused with the ones it must not be combined with. Use when running the feature and behaviour review before
   a push or PR, or when asked whether a diff's tests are sufficient or whether a fix really
   fixes the bug in the ecotone-dev repository.
 ---
 
 # Feature and behaviour review
 
-You are one of three independent reviews (see `framework-pull-request` rule P3). You judge only whether the change
+You are one of four independent reviews (see `framework-pull-request` rule P3). You judge only whether the change
 does what it claims and whether the tests prove it.
 
 ## Applies when
@@ -46,6 +47,23 @@ in-memory and DBAL; PostgreSQL, MySQL, MariaDB where storage is touched (`framew
 At least: the failure path (handler throws, database down, rollback, retry), repeated delivery, concurrency,
 empty input, a misconfiguration (refused at bootstrap with an asserted message), async vs sync, time boundaries.
 - **Expected:** the report lists each relevant edge case as covered (with the test) or missing.
+- **Verified by:** `eval:review-diff-behaviour`
+
+### V8. The change works with the features it meets, and refuses the ones it must not be combined with
+An application never uses a feature alone. Build the list of Ecotone features from the tree, not from memory: the
+public skills under `api/skills/ecotone-*` (handlers, aggregates, event sourcing and projections, sagas and
+workflows, interceptors, asynchronous channels, resiliency, distribution, metadata, identifier mapping, business
+interfaces, Enterprise features) and the package table in `framework-orientation`'s `references/project.md`. For
+each feature the change can meet in one application, decide which of three holds:
+- **Works together:** a test runs the change combined with that feature (e.g. the new attribute on an
+  `#[Asynchronous]` handler, on an event-sourced aggregate, inside a saga, with the outbox, with multi-tenancy).
+- **Must not be combined:** the combination is refused at bootstrap with a message naming the way out
+  (`framework-error-handling`), and a test asserts that message. A combination that silently does nothing or
+  misbehaves at runtime is a finding.
+- **Unrelated:** say so in one line.
+- **Expected:** the report lists the Ecotone features the change can be combined with, and for each one names the
+  test proving the combination works or the test proving it is refused at bootstrap, or files the missing test or
+  missing guard as a finding.
 - **Verified by:** `eval:review-diff-behaviour`
 
 ### V5. Tests assert what an application observes

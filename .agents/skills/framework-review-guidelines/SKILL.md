@@ -11,8 +11,9 @@ description: >-
 
 # Guidelines review
 
-You are one of three independent reviews (see `framework-pull-request` rule P3). You judge only whether the change
-follows the project's rules. Breaking changes and feature correctness are the other two sessions' job.
+You are one of four independent reviews (see `framework-pull-request` rule P3). You judge only whether the change
+follows the project's rules. Breaking changes, feature correctness and developer experience are the other three
+sessions' job.
 
 ## Applies when
 
@@ -27,15 +28,22 @@ commit messages, PR draft). A finding on a file you did not read is not allowed.
 - **Expected:** the report lists every changed file and the purpose of the change before any finding.
 - **Verified by:** `eval:review-diff-guidelines`
 
-### G2. Load every skill whose *Applies when* matches the diff
-Map the diff to skills with the `framework-orientation` task map: a test file → `framework-testing`; a constructor
-→ `framework-service-design`; `Api/` → `framework-public-api`; a table or transaction →
+### G2. Load every skill the change relates to, not only the skills it edits
+A skill applies when its subject matches what the change does. Whether the diff edits that skill's own files is
+irrelevant: a diff that adds a constructor parameter touches no skill file and is still judged against
+`framework-service-design`. List every `.agents/skills/framework-*` skill, read each *description* and *Applies
+when*, and match them against the purpose of the change and each changed file. The `framework-orientation` task map
+is the starting point, not the limit: a test file → `framework-testing`; a constructor →
+`framework-service-design`; `Api/` → `framework-public-api`; a table or transaction →
 `framework-storage-and-transactions`; an exception → `framework-error-handling`; a `licence Enterprise` file →
-`framework-enterprise-licensing`; a skill or `AGENTS.md` → `framework-agent-tooling`; a workflow or `bin/` script → `framework-dev-environment`;
-`upgrade-2.0.md` or a spec → `framework-design-and-briefs`; a module or `ModuleClassList` →
-`framework-module-scaffolding`; commits and the PR body → `framework-pull-request`. Load those skills and check
-each of their rules.
-- **Expected:** the report names the skills it loaded and why each applies.
+`framework-enterprise-licensing`; a skill or `AGENTS.md` → `framework-agent-tooling`; a workflow or `bin/` script →
+`framework-dev-environment`; `upgrade-2.0.md` or a spec → `framework-design-and-briefs`; a module or
+`ModuleClassList` → `framework-module-scaffolding`; commits and the PR body → `framework-pull-request`. A skill
+also applies through what the change means, not only through a file path: a handler that starts writing to a table
+relates to `framework-storage-and-transactions` although no table manager changed. Load every related skill and
+check each of its rules against the change.
+- **Expected:** the report names every skill related to the change and why each applies, including skills whose
+  own files the diff does not touch, and names the skills it considered and left out.
 - **Verified by:** `eval:review-diff-guidelines`
 
 ### G3. Each finding cites the rule it breaks

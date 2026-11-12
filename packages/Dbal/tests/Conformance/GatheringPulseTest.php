@@ -21,6 +21,7 @@ use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
+use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -75,6 +76,28 @@ final class GatheringPulseTest extends TestCase
         self::assertSame(1, $closed[0]['latePartCount']);
         self::assertSame([1], $closed[0]['accountedPartNumbers']);
         self::assertSame([2], $closed[0]['missingPartNumbers']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_pulse_release_reports_requested_until_handler_consumes_trigger(bool $durable): void
+    {
+        $this->bootstrap($durable);
+        $groups = $this->service->getGateway(GatheredGroups::class);
+        $before = $groups->listOpenGroups('pulse.summary');
+        $this->service->sendCommandWithRouting('split', [10, 20]);
+        $opened = array_values(array_filter($groups->listOpenGroups('pulse.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $groupId = $opened[0]['groupId'];
+
+        $reply = $this->request('ecotone.pulse.gathering.release', ['groupId' => $groupId]);
+        self::assertSame(['groupId' => $groupId, 'status' => 'release requested'], $reply['gatheringAction']);
+        self::assertSame([], $this->handler->gathered);
+        self::assertContains($groupId, array_column($groups->listOpenGroups('pulse.summary'), 'groupId'));
+        $this->request('ecotone.pulse.gathering.release', ['groupId' => $groupId]);
+        $this->service->run('summaries');
+
+        self::assertCount(1, $this->handler->gathered);
+        self::assertSame([1, 2], $this->handler->gathered[0]->missingPartNumbers);
+        self::assertSame(GatheredReleaseReason::RELEASED_BY_HAND, $this->handler->gathered[0]->releaseReason);
     }
 
     private function bootstrap(bool $durable): void

@@ -17,6 +17,13 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Messaging\Handler\Gathering\PulseGathering;
+use Ecotone\Messaging\Handler\Gathering\PulseGatheringActions;
+use Ecotone\Api\Gateway\DistributedBusHeader;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseRequestBodyBuilder;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\GatheredGroups;
@@ -92,7 +99,7 @@ final class GatheringModule extends NoExternalConfigurationModule
         $this->refuseStaticallyUngatheredSplitters();
         $this->registerPartCompletion($messagingConfiguration);
         $this->registerStore($messagingConfiguration, $extensionObjects, $interfaceToCallRegistry);
-        $this->registerPulse($messagingConfiguration, $extensionObjects);
+        $this->registerPulse($messagingConfiguration, $extensionObjects, $interfaceToCallRegistry);
     }
 
     private function assertLicence(Configuration $messagingConfiguration): void
@@ -177,12 +184,23 @@ final class GatheringModule extends NoExternalConfigurationModule
             : [];
     }
 
-    private function registerPulse(Configuration $configuration, array $extensionObjects): void
+    private function registerPulse(Configuration $configuration, array $extensionObjects, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         if ($this->gatherChannelNames === [] || ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) === []) {
             return;
         }
         $configuration->registerServiceDefinition(PulseGathering::class, new Definition(PulseGathering::class, [new Reference(GatheredGroups::class), $this->gatherChannelNames]));
+        $configuration->registerServiceDefinition(PulseGatheringActions::class, new Definition(PulseGatheringActions::class, [new Reference(GatheredGroups::class)]));
+        $configuration->registerMessageHandler(
+            MessageProcessorActivatorBuilder::createForMethod(PulseGatheringActions::class, $interfaceToCallRegistry->getFor(PulseGatheringActions::class, 'releaseNow'))
+                ->withInputChannelName('ecotone.pulse.gathering.release')
+                ->withMethodParameterConverters([
+                    PulseRequestBodyBuilder::create('payload'),
+                    HeaderBuilder::createOptional('sourceService', DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME),
+                    AllHeadersBuilder::createWith('headers'),
+                    ReferenceBuilder::create('snapshot', PulseSnapshot::class),
+                ])
+        );
     }
 
     private function registerConsoleCommands(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry): void

@@ -39,19 +39,19 @@ final class GatheringActionController extends AbstractController
     #[Route('/services/{service}/gathering/{groupId}/release', name: 'service_gathering_release', methods: ['POST'], requirements: ['service' => '[^/]+', 'groupId' => '[^/]+'])]
     public function release(string $service, string $groupId): RedirectResponse
     {
-        return $this->act('release', $service, $groupId);
+        return $this->act(action: 'release', service: $service, groupId: $groupId);
     }
 
     #[Route('/services/{service}/gathering/{groupId}/discard', name: 'service_gathering_discard', methods: ['POST'], requirements: ['service' => '[^/]+', 'groupId' => '[^/]+'])]
     public function discard(string $service, string $groupId): RedirectResponse
     {
-        return $this->act('discard', $service, $groupId);
+        return $this->act(action: 'discard', service: $service, groupId: $groupId);
     }
 
     private function act(string $action, string $service, string $groupId): RedirectResponse
     {
         $scope = ServiceScope::fromKey($service);
-        $result = $this->requester->send($scope, $action, $groupId);
+        $result = $this->requester->send(scope: $scope, action: $action, groupId: $groupId);
         $this->awaiter->await([$result]);
 
         return $this->redirectToRoute('service_gathering', ['service' => $scope->key(), 'action' => $action, 'status' => $result->failed ? 'send_failed' : 'requested', 'groupId' => $groupId]);

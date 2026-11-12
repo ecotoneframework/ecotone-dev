@@ -145,9 +145,9 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
             ]);
         $builder->register($enterpriseProcessorReference, $enterpriseProcessor);
         $processor = $builder->register($processorReference, LicenceDecider::prepareDefinition(
-            MessageProcessor::class,
-            $coreProcessorReference,
-            $enterpriseProcessorReference,
+            className: MessageProcessor::class,
+            openCoreServiceReference: $coreProcessorReference,
+            enterpriseServiceReference: $enterpriseProcessorReference,
         ));
 
         return new Definition(SplitterHandler::class, [

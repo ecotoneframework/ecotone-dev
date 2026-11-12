@@ -61,7 +61,7 @@ final readonly class GatheringActionRequester
 
         $tracingId = ReplyAwaiter::newTracingId();
         try {
-            $this->distributedBus->sendMessage($service, self::ROUTING_KEYS[$action], json_encode(['groupId' => $groupId], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId, ...$this->tenantMetadata->of($scope)], replyRoutingKey: SnapshotReceiver::ROUTING_KEY);
+            $this->distributedBus->sendMessage(targetServiceName: $service, routingKey: self::ROUTING_KEYS[$action], payload: json_encode(['groupId' => $groupId], JSON_THROW_ON_ERROR), sourceMediaType: MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId, ...$this->tenantMetadata->of($scope)], replyRoutingKey: SnapshotReceiver::ROUTING_KEY);
         } catch (Throwable $exception) {
             $this->logger->error('Pulse could not send the gathering {action} to service "{service}": {message}', ['action' => $action, 'service' => $service, 'message' => $exception->getMessage(), 'exception' => $exception]);
             $failure = sprintf('%s: the gathering %s could not be sent. The full error is in the Pulse web log.', substr(strrchr('\\' . $exception::class, '\\'), 1), $action);

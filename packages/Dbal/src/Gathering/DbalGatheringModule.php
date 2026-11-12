@@ -72,19 +72,19 @@ final class DbalGatheringModule extends NoExternalConfigurationModule
         if (! $this->hasGatheringSplitters) {
             return;
         }
-        $bootstrap = ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults());
+        $bootstrap = ExtensionObjectResolver::resolveUnique(className: BootstrapConfiguration::class, extensionObjects: $extensionObjects, default: BootstrapConfiguration::createWithDefaults());
         $messagingConfiguration->registerServiceDefinition(GatheringTableManager::class, new Definition(GatheringTableManager::class, [
             ConsoleInvocationResolver::resolveConsolePrefix($bootstrap),
             DbalConnectionReference::DEFAULT,
         ]));
-        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(className: ServiceConfiguration::class, extensionObjects: $extensionObjects, default: ServiceConfiguration::createWithDefaults());
         $messagingConfiguration->registerServiceDefinition(StoredGatheringMessages::class, new Definition(StoredGatheringMessages::class, [
             new Definition(OutboundMessageConverter::class, [DefaultHeaderMapper::createAllHeadersMapping()->getDefinition(), new Reference(MessageBuilder::class), MediaType::parseMediaType($serviceConfiguration->defaultSerializationMediaType)]),
             new Reference(ConversionService::class),
             new Reference(MessageBuilder::class),
         ]));
         $messagingConfiguration->registerServiceDefinition(DbalGatheredGroupStore::class, new Definition(DbalGatheredGroupStore::class, [
-            CachedConnectionFactory::registerIn($messagingConfiguration, DbalConnectionReference::DEFAULT, DbalReconnectableConnectionFactory::definitionFor(DbalConnectionReference::DEFAULT)),
+            CachedConnectionFactory::registerIn(configuration: $messagingConfiguration, connectionKey: DbalConnectionReference::DEFAULT, reconnectableConnectionFactory: DbalReconnectableConnectionFactory::definitionFor(DbalConnectionReference::DEFAULT)),
             new Reference(GatheringTableManager::class),
             new Reference(StoredGatheringMessages::class),
             new Reference(EcotoneClockInterface::class),

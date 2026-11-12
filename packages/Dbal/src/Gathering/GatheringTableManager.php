@@ -96,7 +96,7 @@ final class GatheringTableManager implements DbalTableManager
 
     public function getMissingTableInstructions(): string
     {
-        return MissingTableInstructions::build('gathering', DbalGatheredGroupStore::GROUP_TABLE . ', ' . DbalGatheredGroupStore::PART_TABLE, $this->consoleInvocationPrefix, $this->connectionReferenceName);
+        return MissingTableInstructions::build(featureName: 'gathering', tableName: DbalGatheredGroupStore::GROUP_TABLE . ', ' . DbalGatheredGroupStore::PART_TABLE, consoleInvocationPrefix: $this->consoleInvocationPrefix, connectionReferenceName: $this->connectionReferenceName);
     }
 
     public function getDefinition(): Definition
@@ -107,20 +107,20 @@ final class GatheringTableManager implements DbalTableManager
     private function schemas(): array
     {
         $group = new Table(DbalGatheredGroupStore::GROUP_TABLE);
-        $group->addColumn('group_id', Types::STRING, ['length' => 64]);
-        $group->addColumn('gather_channel_name', Types::STRING, ['length' => 255]);
+        $group->addColumn(name: 'group_id', typeName: Types::STRING, options: ['length' => 64]);
+        $group->addColumn(name: 'gather_channel_name', typeName: Types::STRING, options: ['length' => 255]);
         $group->addColumn('size', Types::INTEGER);
         $group->addColumn('arrived', Types::INTEGER);
         $group->addColumn('version', Types::INTEGER);
-        $group->addColumn('late_part_count', Types::INTEGER, ['default' => 0]);
-        $group->addColumn('deadline', Types::BIGINT, ['notnull' => false]);
-        $group->addColumn('closed_at', Types::BIGINT, ['notnull' => false]);
-        $group->addColumn('state', Types::STRING, ['length' => 16]);
+        $group->addColumn(name: 'late_part_count', typeName: Types::INTEGER, options: ['default' => 0]);
+        $group->addColumn(name: 'deadline', typeName: Types::BIGINT, options: ['notnull' => false]);
+        $group->addColumn(name: 'closed_at', typeName: Types::BIGINT, options: ['notnull' => false]);
+        $group->addColumn(name: 'state', typeName: Types::STRING, options: ['length' => 16]);
         $group->addColumn('original_message', Types::TEXT);
         $group->setPrimaryKey(['group_id']);
         $group->addIndex(['gather_channel_name', 'state']);
         $part = new Table(DbalGatheredGroupStore::PART_TABLE);
-        $part->addColumn('group_id', Types::STRING, ['length' => 64]);
+        $part->addColumn(name: 'group_id', typeName: Types::STRING, options: ['length' => 64]);
         $part->addColumn('part_number', Types::INTEGER);
         $part->addColumn('report', Types::TEXT);
         $part->setPrimaryKey(['group_id', 'part_number']);

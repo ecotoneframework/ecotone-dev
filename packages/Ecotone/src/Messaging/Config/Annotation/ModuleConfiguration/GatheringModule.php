@@ -102,8 +102,8 @@ final class GatheringModule extends NoExternalConfigurationModule
         $this->validateTimeouts($extensionObjects, $interfaceToCallRegistry);
         $this->refuseStaticallyUngatheredSplitters();
         $this->registerPartCompletion($messagingConfiguration);
-        $this->registerStore($messagingConfiguration, $extensionObjects, $interfaceToCallRegistry);
-        $this->registerPulse($messagingConfiguration, $extensionObjects, $interfaceToCallRegistry);
+        $this->registerStore(messagingConfiguration: $messagingConfiguration, extensionObjects: $extensionObjects, interfaceToCallRegistry: $interfaceToCallRegistry);
+        $this->registerPulse(configuration: $messagingConfiguration, extensionObjects: $extensionObjects, interfaceToCallRegistry: $interfaceToCallRegistry);
     }
 
     private function assertLicence(Configuration $messagingConfiguration): void
@@ -196,13 +196,13 @@ final class GatheringModule extends NoExternalConfigurationModule
     {
         $messagingConfiguration->registerServiceDefinition(NullPartCompletion::class, new Definition(NullPartCompletion::class));
         $messagingConfiguration->registerServiceDefinition(GatheringPartCompletion::class, new Definition(GatheringPartCompletion::class, [new Reference(ChannelResolver::class), new Reference(MessageBuilder::class)]));
-        $messagingConfiguration->registerServiceDefinition(PartCompletion::class, LicenceDecider::prepareDefinition(PartCompletion::class, NullPartCompletion::class, GatheringPartCompletion::class));
+        $messagingConfiguration->registerServiceDefinition(PartCompletion::class, LicenceDecider::prepareDefinition(className: PartCompletion::class, openCoreServiceReference: NullPartCompletion::class, enterpriseServiceReference: GatheringPartCompletion::class));
     }
 
     private function registerStore(Configuration $messagingConfiguration, array $extensionObjects, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         if ($this->gatherChannelNames !== []) {
-            $configuration = ExtensionObjectResolver::resolveUnique(GatheringConfiguration::class, $extensionObjects, GatheringConfiguration::createWithDefaults());
+            $configuration = ExtensionObjectResolver::resolveUnique(className: GatheringConfiguration::class, extensionObjects: $extensionObjects, default: GatheringConfiguration::createWithDefaults());
             $timeouts = [];
             foreach ($this->annotationFinder->findAnnotatedMethods(Gathered::class) as $registration) {
                 $gathered = $registration->getAnnotationForMethod();
@@ -214,13 +214,13 @@ final class GatheringModule extends NoExternalConfigurationModule
                 }
             }
             $messagingConfiguration->registerServiceDefinition(GatheringTimeouts::class, new Definition(GatheringTimeouts::class, [$timeouts]));
-            $store = ExtensionObjectResolver::resolveUnique(GatheredGroupStoreRegistration::class, $extensionObjects, new GatheredGroupStoreRegistration(InMemoryGatheredGroupStore::class));
+            $store = ExtensionObjectResolver::resolveUnique(className: GatheredGroupStoreRegistration::class, extensionObjects: $extensionObjects, default: new GatheredGroupStoreRegistration(InMemoryGatheredGroupStore::class));
             $messagingConfiguration->registerServiceDefinition(InMemoryGatheredGroupStore::class, new Definition(InMemoryGatheredGroupStore::class, [new Reference(EcotoneClockInterface::class), new Reference(MessageBuilder::class)]));
             $messagingConfiguration->registerServiceDefinition(GatheredGroupStore::class, new Reference($store->serviceReference));
             $messagingConfiguration->registerServiceDefinition(GatheredGroups::class, new Definition(GatheredGroupOperations::class, [new Reference(GatheredGroupStore::class), new Reference(EcotoneClockInterface::class), $configuration->retention->toMilliseconds(), new Reference(ChannelResolver::class), new Reference(MessageBuilder::class)]));
             $messagingConfiguration
                 ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(GatheredGroups::class, 'cleanupClosedGroups')->withInputChannelName('ecotone.gathering.cleanup'))
-                ->registerConsoleCommand(ConsoleCommandConfiguration::create('ecotone.gathering.cleanup', 'ecotone:gathering:cleanup', [], 'Removes closed gathering groups after their retention period'));
+                ->registerConsoleCommand(ConsoleCommandConfiguration::create(channelName: 'ecotone.gathering.cleanup', name: 'ecotone:gathering:cleanup', parameterNames: [], description: 'Removes closed gathering groups after their retention period'));
             $this->registerConsoleCommands($messagingConfiguration, $interfaceToCallRegistry);
         }
     }

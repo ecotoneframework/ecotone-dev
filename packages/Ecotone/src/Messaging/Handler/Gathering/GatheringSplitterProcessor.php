@@ -63,13 +63,13 @@ final class GatheringSplitterProcessor implements MessageProcessor
             deadline: $deadline,
             whenOpened: function () use ($size, $message, $groupId, $timeout): void {
                 if ($size === 0) {
-                    $trigger = $this->messageBuilder->fromMessage($this->stamp($message, $groupId, 0, 0))
+                    $trigger = $this->messageBuilder->fromMessage($this->stamp(message: $message, groupId: $groupId, partNumber: 0, size: 0))
                         ->removeHeader(MessageHeaders::TIME_TO_LIVE)
                         ->removeHeader(MessageHeaders::DELIVERY_DELAY)
                         ->build();
                     $this->channelResolver->resolve($this->gatherChannelName)->send($trigger);
                 } elseif ($timeout !== null) {
-                    $trigger = $this->messageBuilder->fromMessage($this->stamp($message, $groupId, 0, $size))
+                    $trigger = $this->messageBuilder->fromMessage($this->stamp(message: $message, groupId: $groupId, partNumber: 0, size: $size))
                         ->removeHeader(MessageHeaders::TIME_TO_LIVE)
                         ->setHeader(GatheringHeaders::TIMEOUT, true)
                         ->setHeader(MessageHeaders::DELIVERY_DELAY, $timeout)
@@ -84,7 +84,7 @@ final class GatheringSplitterProcessor implements MessageProcessor
         $parts = [];
         foreach ($reply->getPayload() as $number => $payload) {
             $part = $payload instanceof Message ? $payload : $this->messageBuilder->fromParentMessage($reply)->setPayload($payload)->setContentType(MediaType::createApplicationXPHP())->build();
-            $parts[] = $this->stamp($part, $groupId, $number + 1, $size);
+            $parts[] = $this->stamp(message: $part, groupId: $groupId, partNumber: $number + 1, size: $size);
         }
 
         return $this->messageBuilder->fromMessage($reply)->setPayload($parts)->build();

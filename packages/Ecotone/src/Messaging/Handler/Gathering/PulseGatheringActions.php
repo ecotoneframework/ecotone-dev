@@ -37,12 +37,12 @@ final class PulseGatheringActions
 
     public function releaseNow(string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot): string
     {
-        return $this->act('release', $payload, $sourceService, $headers, $snapshot);
+        return $this->act(action: 'release', payload: $payload, sourceService: $sourceService, headers: $headers, snapshot: $snapshot);
     }
 
     public function discard(string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot): string
     {
-        return $this->act('discard', $payload, $sourceService, $headers, $snapshot);
+        return $this->act(action: 'discard', payload: $payload, sourceService: $sourceService, headers: $headers, snapshot: $snapshot);
     }
 
     private function act(string $action, string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot): string

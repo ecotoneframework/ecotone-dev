@@ -34,10 +34,25 @@ final class PulseGatheringActions
 
     public function releaseNow(string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot): string
     {
+        return $this->act('release', $payload, $sourceService, $headers, $snapshot);
+    }
+
+    public function discard(string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot): string
+    {
+        return $this->act('discard', $payload, $sourceService, $headers, $snapshot);
+    }
+
+    private function act(string $action, string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot): string
+    {
         $snapshot->authorizeRequestFrom($sourceService);
         $snapshot->tenantOfScopedRequest($headers);
         $groupId = json_decode($payload, true, flags: JSON_THROW_ON_ERROR)['groupId'];
-        $status = $this->groups->releaseNow($groupId);
+        if ($action === 'release') {
+            $status = $this->groups->releaseNow($groupId);
+        } else {
+            $this->groups->discard($groupId);
+            $status = 'discarded';
+        }
 
         return json_encode([
             ...json_decode($snapshot->snapshotJson($sourceService, $headers), true, flags: JSON_THROW_ON_ERROR),

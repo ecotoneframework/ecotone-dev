@@ -191,16 +191,18 @@ final class GatheringModule extends NoExternalConfigurationModule
         }
         $configuration->registerServiceDefinition(PulseGathering::class, new Definition(PulseGathering::class, [new Reference(GatheredGroups::class), $this->gatherChannelNames]));
         $configuration->registerServiceDefinition(PulseGatheringActions::class, new Definition(PulseGatheringActions::class, [new Reference(GatheredGroups::class)]));
-        $configuration->registerMessageHandler(
-            MessageProcessorActivatorBuilder::createForMethod(PulseGatheringActions::class, $interfaceToCallRegistry->getFor(PulseGatheringActions::class, 'releaseNow'))
-                ->withInputChannelName('ecotone.pulse.gathering.release')
-                ->withMethodParameterConverters([
-                    PulseRequestBodyBuilder::create('payload'),
-                    HeaderBuilder::createOptional('sourceService', DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME),
-                    AllHeadersBuilder::createWith('headers'),
-                    ReferenceBuilder::create('snapshot', PulseSnapshot::class),
-                ])
-        );
+        foreach (['releaseNow' => 'release', 'discard' => 'discard'] as $method => $action) {
+            $configuration->registerMessageHandler(
+                MessageProcessorActivatorBuilder::createForMethod(PulseGatheringActions::class, $interfaceToCallRegistry->getFor(PulseGatheringActions::class, $method))
+                    ->withInputChannelName('ecotone.pulse.gathering.' . $action)
+                    ->withMethodParameterConverters([
+                        PulseRequestBodyBuilder::create('payload'),
+                        HeaderBuilder::createOptional('sourceService', DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME),
+                        AllHeadersBuilder::createWith('headers'),
+                        ReferenceBuilder::create('snapshot', PulseSnapshot::class),
+                    ])
+            );
+        }
     }
 
     private function registerConsoleCommands(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry): void

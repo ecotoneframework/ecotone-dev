@@ -100,6 +100,28 @@ final class GatheringPulseTest extends TestCase
         self::assertSame(GatheredReleaseReason::RELEASED_BY_HAND, $this->handler->gathered[0]->releaseReason);
     }
 
+    #[DataProvider('implementations')]
+    public function test_pulse_discard_closes_the_group_without_invoking_handler(bool $durable): void
+    {
+        $this->bootstrap($durable);
+        $groups = $this->service->getGateway(GatheredGroups::class);
+        $before = $groups->listOpenGroups('pulse.summary');
+        $this->service->sendCommandWithRouting('split', [10, 20]);
+        $opened = array_values(array_filter($groups->listOpenGroups('pulse.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $groupId = $opened[0]['groupId'];
+
+        $reply = $this->request('ecotone.pulse.gathering.discard', ['groupId' => $groupId]);
+        self::assertSame(['groupId' => $groupId, 'status' => 'discarded'], $reply['gatheringAction']);
+        self::assertNotContains($groupId, array_column($groups->listOpenGroups('pulse.summary'), 'groupId'));
+        $this->service->run('workers');
+        $this->service->run('summaries');
+        $closed = array_values(array_filter($groups->listClosedGroups('pulse.summary'), static fn (array $group): bool => $group['groupId'] === $groupId));
+
+        self::assertSame([], $this->handler->gathered);
+        self::assertSame('discarded', $closed[0]['state']);
+        self::assertSame(2, $closed[0]['latePartCount']);
+    }
+
     private function bootstrap(bool $durable): void
     {
         $this->handler = $handler = new class () {

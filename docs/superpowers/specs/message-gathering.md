@@ -58,7 +58,8 @@ request and no synchronous answer to its original caller.
 
 The header rule is covered by
 `released_message_carries_application_headers_but_not_the_split_requests_routing`; the atomic completion tests
-include independent consumers and a deterministic transaction-snapshot interleaving.
+include independent consumers and a deterministic transaction-snapshot interleaving. The independent consumers
+announce readiness inside their consumption transactions before either is allowed to record its part.
 
 ## Bootstrap validation and nesting
 

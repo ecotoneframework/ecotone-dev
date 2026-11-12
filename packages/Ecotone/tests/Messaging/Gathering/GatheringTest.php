@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Gathering;
 
+use DateTimeImmutable;
+
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
@@ -65,6 +67,7 @@ final class GatheringTest extends TestCase
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }
 
@@ -98,6 +101,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }
 
@@ -132,6 +136,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }
 
@@ -164,6 +169,7 @@ final class GatheringTest extends TestCase
             containerOrAvailableServices: [$handler],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }
 
@@ -186,6 +192,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }
 
@@ -231,6 +238,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
 
@@ -282,6 +290,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
         $this->expectExceptionMessage("Splitter 'inner.split.endpoint' has no gatherChannelName inside a gathered flow, so its sub-parts cannot be accounted for as one outer part. Set gatherChannelName on this #[Splitter], or send the sub-work through CommandBus::send() or EventBus::publish() to leave the gathered flow.");
 
@@ -339,6 +348,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [[10, 20], [30]])->run('summaries');
@@ -363,6 +373,7 @@ final class GatheringTest extends TestCase
             containerOrAvailableServices: [$handler],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }
 
@@ -405,6 +416,7 @@ final class GatheringTest extends TestCase
             ],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -453,6 +465,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -512,6 +525,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -571,6 +585,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -622,6 +637,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -674,6 +690,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -741,6 +758,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries'), SimpleMessageChannelBuilder::createQueueChannel('workers')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -793,6 +811,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -844,6 +863,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -906,6 +926,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [], metadata: ['importId' => 'import-1'])->run('summaries');
@@ -952,6 +973,7 @@ final class GatheringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', []);

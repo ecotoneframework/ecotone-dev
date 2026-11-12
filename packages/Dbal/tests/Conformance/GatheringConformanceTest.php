@@ -92,6 +92,7 @@ final class GatheringConformanceTest extends TestCase
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $previousGroups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary');
@@ -106,6 +107,7 @@ final class GatheringConformanceTest extends TestCase
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
 
@@ -1179,6 +1181,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('typed.summaries')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
         $command = new GatheringImport('import-1', [10, 20]);
         $ecotone->sendCommandWithRouting('typed.split', $command);
@@ -1227,6 +1230,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('typed.summaries')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
         $command = new GatheringImport('import-1', [10, 20]);
         $ecotone->sendCommandWithRouting('typed.split', $command);
@@ -1284,6 +1288,7 @@ final class GatheringConformanceTest extends TestCase
             ],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $previousGroups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary');
@@ -1336,6 +1341,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
@@ -1395,6 +1401,7 @@ final class GatheringConformanceTest extends TestCase
             testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
@@ -1458,6 +1465,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -1526,6 +1534,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [...($durable ? [DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false)] : []), SimpleMessageChannelBuilder::createQueueChannel('summaries'), SimpleMessageChannelBuilder::createQueueChannel('workers')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -1578,6 +1587,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -1643,6 +1653,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [[10, 20], [30]])->run('summaries');
@@ -1691,6 +1702,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', []);
@@ -1754,6 +1766,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [], metadata: ['importId' => 'import-1'])->run('summaries');
@@ -1809,6 +1822,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -1869,6 +1883,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -1921,6 +1936,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -1973,6 +1989,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -2026,6 +2043,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
@@ -2051,15 +2069,39 @@ final class GatheringConformanceTest extends TestCase
         for ($part = 0; $part < 2; $part++) {
             $process = proc_open([PHP_BINARY, '-r', $code], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
             self::assertIsResource($process);
-            fclose($pipes[0]);
             $children[] = [$process, $pipes];
         }
-        foreach ($children as [$process, $pipes]) {
-            self::assertSame('', stream_get_contents($pipes[1]));
-            self::assertSame('', stream_get_contents($pipes[2]));
-            fclose($pipes[1]);
-            fclose($pipes[2]);
-            self::assertSame(0, proc_close($process));
+        try {
+            $ready = [];
+            foreach ($children as [$process, $pipes]) {
+                $ready[] = fgets($pipes[1]);
+            }
+            foreach ($children as $number => [$process, $pipes]) {
+                if ($ready[$number] === "ready\n") {
+                    fwrite($pipes[0], "consume\n");
+                }
+                fclose($pipes[0]);
+            }
+            self::assertSame(["ready\n", "ready\n"], $ready);
+            foreach ($children as [$process, $pipes]) {
+                self::assertSame('', stream_get_contents($pipes[1]));
+                self::assertSame('', stream_get_contents($pipes[2]));
+                fclose($pipes[1]);
+                fclose($pipes[2]);
+                self::assertSame(0, proc_close($process));
+            }
+        } finally {
+            foreach ($children as [$process, $pipes]) {
+                foreach ($pipes as $pipe) {
+                    if (is_resource($pipe)) {
+                        fclose($pipe);
+                    }
+                }
+                if (is_resource($process)) {
+                    proc_terminate($process);
+                    proc_close($process);
+                }
+            }
         }
 
         self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20}}', self::concurrentApplication()->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
@@ -2098,7 +2140,19 @@ final class GatheringConformanceTest extends TestCase
 
     public static function consumeConcurrentPart(): void
     {
-        self::concurrentApplication()->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $barrier = new class () {
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
+            public function awaitOtherConsumer(MethodInvocation $invocation): mixed
+            {
+                fwrite(STDOUT, "ready\n");
+                if (fgets(STDIN) !== "consume\n") {
+                    throw new RuntimeException('Concurrent consumer start was not released.');
+                }
+
+                return $invocation->proceed();
+            }
+        };
+        self::concurrentApplication([$barrier])->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
     }
 
     private static function concurrentApplication(array $additionalServices = []): FlowTestSupport
@@ -2136,6 +2190,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: [DbalBackedMessageChannelBuilder::create('gathering_concurrency')],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }
 }

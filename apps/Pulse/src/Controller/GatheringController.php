@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Snapshot\ServiceScope;
+use App\Snapshot\Refusals;
+use App\Gathering\GatheringActionRequester;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
 use App\Ui\ServiceOverview;
@@ -49,6 +51,8 @@ final class GatheringController extends AbstractController
             throw $this->createNotFoundException('No gathering view exists for this service or tenant. Choose a configured service and one of its advertised tenants.');
         }
 
+        $action = $request->query->getString('action');
+
         return $this->render('services/gathering.html.twig', [
             'service' => $main[0],
             'tenant' => $tenant,
@@ -56,7 +60,8 @@ final class GatheringController extends AbstractController
             'tabs' => $this->overview->tabRoutes($main[0], $tenant),
             'failureCount' => null,
             'waiting' => Snapshots::needsAutoRefresh($rows),
-            'action' => $request->query->getString('action'),
+            'action' => $action,
+            'refusals' => isset(GatheringActionRequester::ROUTING_KEYS[$action]) ? Refusals::of($rows, GatheringActionRequester::ROUTING_KEYS[$action]) : [],
             'actionStatus' => $request->query->getString('status'),
             'groupId' => $request->query->getString('groupId'),
         ]);

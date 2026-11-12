@@ -23,6 +23,8 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Api\Scheduling\TimeSpan;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -108,6 +110,35 @@ final class GatheringPageTest extends ReleasingWebTestCase
         self::assertSame('discarded', $row->filter('[data-group-state]')->text());
         self::assertSame('2', $row->filter('[data-late-parts]')->text());
         self::assertCount(0, $row->filter('button'));
+    }
+
+    public static function actions(): iterable
+    {
+        yield 'release' => ['Request release'];
+        yield 'discard' => ['Discard'];
+    }
+
+    #[DataProvider('actions')]
+    public function test_page_displays_service_refusal_for_a_cleaned_up_group(string $button): void
+    {
+        $client = $this->pulseWithGathering();
+        $this->orders->sendCommandWithRouting('split', [10]);
+        $groups = $this->orders->getGateway(GatheredGroups::class);
+        $groupId = $groups->listOpenGroups('summary')[0]['groupId'];
+        $crawler = $this->observe($client);
+        $groups->discard($groupId);
+        $this->orders->advanceTimeBy(new TimeSpan(days: 7));
+        $groups->cleanupClosedGroups();
+
+        $client->submit($crawler->filter('[data-gathering-group="' . $groupId . '"]')->selectButton($button)->form());
+        self::assertResponseRedirects();
+        $this->runService($this->orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+        $crawler = $client->followRedirect();
+
+        self::assertCount(1, $crawler->filter('[data-gathering-error]'));
+        self::assertStringContainsString('GatheringConfiguration::withRetention(...)', $crawler->filter('[data-gathering-error]')->text());
+        self::assertSame([], $this->handler->gathered);
     }
 
     private function pulseWithGathering(): KernelBrowser

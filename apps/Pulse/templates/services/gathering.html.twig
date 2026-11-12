@@ -6,7 +6,9 @@
 
 {% block body %}
     {% include 'services/_header.html.twig' with {route: 'service_gathering', current: 'gathering', heading: 'Gathering', trail: [{label: 'Gathering'}]} %}
-    {% if action in ['release', 'discard'] and actionStatus == 'requested' %}
+    {% if refusals %}
+        {% for refusal in refusals %}<p class="notice toast drift" role="alert" data-gathering-error>{{ refusal.scope }} refused the gathering action: {{ refusal.message }}</p>{% endfor %}
+    {% elseif action in ['release', 'discard'] and actionStatus == 'requested' %}
         <p class="notice toast" role="status" data-gathering-notice>{{ action == 'release' ? 'Release' : 'Discard' }} requested for group {{ groupId }}. {% if action == 'release' %}The handler runs when its consumer handles the release trigger.{% else %}The service closes the group without invoking its handler.{% endif %}</p>
     {% endif %}
     <p>A group waits for its split parts. Requesting release queues a trigger; the gathered handler runs when its consumer handles that trigger. Discard closes the group without running the handler.</p>

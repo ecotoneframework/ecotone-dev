@@ -27,13 +27,13 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
  */
 final class GatheredGroupOperations implements \Ecotone\Api\Gateway\GatheredGroups
 {
-    public function __construct(private GatheredGroupStore $store, private EcotoneClockInterface $clock)
+    public function __construct(private GatheredGroupStore $store, private EcotoneClockInterface $clock, private int $retention)
     {
     }
 
     public function cleanupClosedGroups(): void
     {
-        $this->store->cleanupClosedGroups($this->clock->now()->unixTime()->inMilliseconds() - 7 * 24 * 60 * 60 * 1000);
+        $this->store->cleanupClosedGroups($this->clock->now()->unixTime()->inMilliseconds() - $this->retention);
     }
 
     public function listClosedGroups(string $gatherChannelName): array

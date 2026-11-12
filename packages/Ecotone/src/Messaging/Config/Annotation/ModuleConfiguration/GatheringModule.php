@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Attribute\Transformer;
+use Ecotone\Api\ExtensionObject\GatheringConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\GatheredGroups;
@@ -139,6 +140,7 @@ final class GatheringModule extends NoExternalConfigurationModule
     private function registerStore(Configuration $messagingConfiguration, array $extensionObjects, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         if ($this->gatherChannelNames !== []) {
+            $configuration = ExtensionObjectResolver::resolveUnique(GatheringConfiguration::class, $extensionObjects, GatheringConfiguration::createWithDefaults());
             $timeouts = [];
             foreach ($this->annotationFinder->findAnnotatedMethods(Gathered::class) as $registration) {
                 $gathered = $registration->getAnnotationForMethod();
@@ -153,7 +155,7 @@ final class GatheringModule extends NoExternalConfigurationModule
             $store = ExtensionObjectResolver::resolveUnique(GatheredGroupStoreRegistration::class, $extensionObjects, new GatheredGroupStoreRegistration(InMemoryGatheredGroupStore::class));
             $messagingConfiguration->registerServiceDefinition(InMemoryGatheredGroupStore::class, new Definition(InMemoryGatheredGroupStore::class, [new Reference(EcotoneClockInterface::class)]));
             $messagingConfiguration->registerServiceDefinition(GatheredGroupStore::class, new Reference($store->serviceReference));
-            $messagingConfiguration->registerServiceDefinition(GatheredGroups::class, new Definition(GatheredGroupOperations::class, [new Reference(GatheredGroupStore::class), new Reference(EcotoneClockInterface::class)]));
+            $messagingConfiguration->registerServiceDefinition(GatheredGroups::class, new Definition(GatheredGroupOperations::class, [new Reference(GatheredGroupStore::class), new Reference(EcotoneClockInterface::class), $configuration->retention->toMilliseconds()]));
             $messagingConfiguration
                 ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(GatheredGroups::class, 'cleanupClosedGroups')->withInputChannelName('ecotone.gathering.cleanup'))
                 ->registerConsoleCommand(ConsoleCommandConfiguration::create('ecotone.gathering.cleanup', 'ecotone:gathering:cleanup', [], 'Removes closed gathering groups after their retention period'));

@@ -2120,6 +2120,59 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(0, $handler->gathered[0]->size);
         self::assertSame([], $handler->gathered[0]->originalPayload);
     }
+    public function test_missing_gathering_tables_name_setup_and_migration_instructions(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory('sqlite:///:memory:')],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        try {
+            $ecotone->sendCommandWithRouting('split', []);
+            self::fail();
+        } catch (\Throwable $failure) {
+            self::assertStringContainsString("'gathering' feature", $failure->getMessage());
+            self::assertStringContainsString("initialize('gathering')", $failure->getMessage());
+            self::assertStringContainsString("getCreateSqlStatementsForFeatures(['gathering'])", $failure->getMessage());
+            self::assertStringContainsString('Ecotone never creates a table while it handles a message', $failure->getMessage());
+        }
+    }
+
     #[DataProvider('implementations')]
     public function test_empty_split_runs_gathered_handler_with_zero_parts(bool $durable): void
     {

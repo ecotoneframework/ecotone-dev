@@ -203,6 +203,7 @@ boot Pulse beside a real split/gather application.
 | Gateway operations | `manual_release_is_requested_until_its_trigger_is_consumed`, `discard_closes_the_group_without_invoking_its_handler` |
 | Console operations | `console_lists_open_group_progress`, `console_release_reports_requested_before_handler_consumption`, `console_discards_a_group_without_invoking_its_handler` |
 | Pulse snapshot and actions | `pulse_snapshot_lists_open_and_closed_groups_with_late_arrivals`, `pulse_release_reports_requested_until_handler_consumes_trigger`, `pulse_discard_closes_the_group_without_invoking_handler` |
+| Missing storage setup instructions | `missing_gathering_tables_name_setup_and_migration_instructions` |
 | Pulse request guards | `pulse_action_refuses_invalid_group_selection`, `unconfigured_pulse_service_cannot_change_a_group` |
 | Dashboard operations and failures | `page_shows_open_group_progress_and_operations`, `release_control_requests_release_before_handler_consumption`, `discard_control_closes_group_without_running_handler`, `page_displays_service_refusal_for_a_cleaned_up_group` |
 

@@ -171,6 +171,7 @@ final class GatheringModule extends NoExternalConfigurationModule
         foreach ([
             'listGroups' => ['list', 'Lists gathering group progress and late arrivals'],
             'releaseNow' => ['release', 'Requests release on the gathered handler asynchronous channel'],
+            'discard' => ['discard', 'Discards a group without invoking its gathered handler'],
         ] as $method => [$commandName, $description]) {
             [$handler, $command] = ConsoleCommandModule::prepareConsoleCommandForReference(
                 reference: new Reference(GatheringConsoleCommands::class),

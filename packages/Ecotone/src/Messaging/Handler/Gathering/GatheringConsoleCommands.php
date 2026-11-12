@@ -38,6 +38,13 @@ final class GatheringConsoleCommands
         return ConsoleCommandResultSet::create(['Group id', 'Status'], [[$groupId, $this->groups->releaseNow($groupId)]]);
     }
 
+    public function discard(string $groupId): ConsoleCommandResultSet
+    {
+        $this->groups->discard($groupId);
+
+        return ConsoleCommandResultSet::create(['Group id', 'Status'], [[$groupId, 'discarded']]);
+    }
+
     public function listGroups(string $gatherChannelName, bool $closed = false): ConsoleCommandResultSet
     {
         $groups = $closed ? $this->groups->listClosedGroups($gatherChannelName) : $this->groups->listOpenGroups($gatherChannelName);

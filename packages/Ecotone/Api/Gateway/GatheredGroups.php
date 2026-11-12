@@ -17,7 +17,9 @@ interface GatheredGroups
 
     public function cleanupClosedGroups(): void;
 
+    /** @return array<array{groupId: string, gatherChannelName: string, size: int, state: string, deadline: ?int, closedAt: ?int, latePartCount: int, accountedPartNumbers: array<int>, missingPartNumbers: array<int>}> */
     public function listClosedGroups(string $gatherChannelName): array;
 
+    /** @return array<array{groupId: string, gatherChannelName: string, size: int, state: string, deadline: ?int, closedAt: ?int, latePartCount: int, accountedPartNumbers: array<int>, missingPartNumbers: array<int>}> */
     public function listOpenGroups(string $gatherChannelName): array;
 }

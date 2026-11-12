@@ -37,7 +37,7 @@ final class PulseGathering implements PulseSnapshotSection
         $groups = [];
         foreach (array_unique($this->gatherChannelNames) as $gatherChannelName) {
             foreach ($this->groups->listOpenGroups($gatherChannelName) as $group) {
-                $groups[] = ['state' => 'open', ...$group];
+                $groups[] = $group;
             }
             $groups = [...$groups, ...$this->groups->listClosedGroups($gatherChannelName)];
         }

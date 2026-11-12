@@ -760,6 +760,7 @@ final class GatheringConformanceTest extends TestCase
         $before = $groups->listOpenGroups('timeout.summary');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        self::assertSame('open', $opened[0]['state']);
         $groupId = $opened[0]['groupId'];
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $ecotone->run('summaries');

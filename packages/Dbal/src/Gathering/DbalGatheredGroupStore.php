@@ -235,7 +235,8 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             $accounted = array_map('intval', $this->connection()->fetchFirstColumn('SELECT part_number FROM ' . self::PART_TABLE . ' WHERE group_id = ? ORDER BY part_number', [$row['group_id']]));
             $size = (int) $row['size'];
 
-            return ($closed ? ['state' => $row['state']] : []) + [
+            return [
+                'state' => $row['state'],
                 'deadline' => $row['deadline'] === null ? null : (int) $row['deadline'],
                 'closedAt' => $row['closed_at'] === null ? null : (int) $row['closed_at'],
                 'latePartCount' => (int) $row['late_part_count'],

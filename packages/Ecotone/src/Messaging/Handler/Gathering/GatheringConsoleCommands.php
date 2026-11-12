@@ -55,7 +55,7 @@ final class GatheringConsoleCommands
             columnHeaders: ['Group id', 'State', 'Size', 'Accounted parts', 'Missing parts', 'Deadline', 'Late parts'],
             rows: array_map(static fn (array $group): array => [
                 $group['groupId'],
-                $group['state'] ?? 'open',
+                $group['state'],
                 $group['size'],
                 implode(', ', $group['accountedPartNumbers']),
                 implode(', ', $group['missingPartNumbers']),

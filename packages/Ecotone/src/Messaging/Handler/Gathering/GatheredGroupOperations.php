@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gathering;
 
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Enterprise
@@ -27,8 +29,20 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
  */
 final class GatheredGroupOperations implements \Ecotone\Api\Gateway\GatheredGroups
 {
-    public function __construct(private GatheredGroupStore $store, private EcotoneClockInterface $clock, private int $retention)
+    public function __construct(private GatheredGroupStore $store, private EcotoneClockInterface $clock, private int $retention, private ChannelResolver $channelResolver, private MessageBuilder $messageBuilder)
     {
+    }
+
+    public function releaseNow(string $groupId): string
+    {
+        $gatherChannelName = $this->store->gatherChannelNameFor($groupId);
+        $trigger = $this->messageBuilder->withPayload($groupId)
+            ->setHeader(GatheringHeaders::GROUP_ID, $groupId)
+            ->setHeader(GatheringHeaders::MANUAL_RELEASE, true)
+            ->build();
+        $this->channelResolver->resolve($gatherChannelName)->send($trigger);
+
+        return 'release requested';
     }
 
     public function cleanupClosedGroups(): void

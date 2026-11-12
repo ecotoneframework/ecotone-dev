@@ -125,6 +125,20 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         }
     }
 
+    public function gatherChannelNameFor(string $groupId): string
+    {
+        try {
+            $channel = $this->connection()->fetchOne('SELECT gather_channel_name FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
+            if ($channel === false) {
+                throw GatheredGroupNotFound::forId($groupId);
+            }
+
+            return $channel;
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
+        }
+    }
+
     public function releaseGroup(string $groupId, callable $whenReleased): void
     {
         $connection = $this->connection();

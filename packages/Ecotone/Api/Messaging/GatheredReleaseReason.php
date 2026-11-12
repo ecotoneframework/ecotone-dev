@@ -11,6 +11,8 @@ namespace Ecotone\Api\Messaging;
  */
 enum GatheredReleaseReason: string
 {
+    case RELEASED_BY_HAND = 'released_by_hand';
+
     case TIMEOUT = 'timeout';
 
     case ALL_PARTS_ACCOUNTED_FOR = 'all_parts_accounted_for';

@@ -48,7 +48,13 @@ final class GatheringMessageHandler implements MessageHandler
     public function handle(Message $message): void
     {
         $timeout = $message->getHeaders()->containsKey(GatheringHeaders::TIMEOUT);
-        $whenReleased = function (Message $original, array $parts, int $size) use ($timeout): void {
+        $manualRelease = $message->getHeaders()->containsKey(GatheringHeaders::MANUAL_RELEASE);
+        $releaseReason = match (true) {
+            $manualRelease => GatheredReleaseReason::RELEASED_BY_HAND,
+            $timeout => GatheredReleaseReason::TIMEOUT,
+            default => GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR,
+        };
+        $whenReleased = function (Message $original, array $parts, int $size) use ($releaseReason): void {
             ksort($parts);
             $results = [];
             foreach ($parts as $number => $part) {
@@ -65,11 +71,11 @@ final class GatheringMessageHandler implements MessageHandler
                 missingPartNumbers: array_values(array_diff($size === 0 ? [] : range(1, $size), array_keys($parts))),
                 size: $size,
                 originalPayload: $this->resultOf($original),
-                releaseReason: $timeout ? GatheredReleaseReason::TIMEOUT : GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR,
+                releaseReason: $releaseReason,
             ))->setMultipleHeaders($headers)->setContentType(MediaType::createApplicationXPHPWithTypeParameter(GatheredParts::class))->build());
         };
         $groupId = $message->getHeaders()->get(GatheringHeaders::GROUP_ID);
-        if ($timeout) {
+        if ($timeout || $manualRelease) {
             $this->store->releaseGroup($groupId, $whenReleased);
 
             return;

@@ -31,6 +31,8 @@ interface GatheredGroupStore
 
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void;
 
+    public function gatherChannelNameFor(string $groupId): string;
+
     public function releaseGroup(string $groupId, callable $whenReleased): void;
 
     public function cleanupClosedGroups(int $closedAtOrBefore): void;

@@ -90,6 +90,13 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         }
     }
 
+    public function gatherChannelNameFor(string $groupId): string
+    {
+        $group = $this->groups[$groupId] ?? throw GatheredGroupNotFound::forId($groupId);
+
+        return $group['gatherChannelName'];
+    }
+
     public function releaseGroup(string $groupId, callable $whenReleased): void
     {
         $previous = $this->groups[$groupId] ?? null;

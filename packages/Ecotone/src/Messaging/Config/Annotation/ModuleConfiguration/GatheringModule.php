@@ -112,6 +112,13 @@ final class GatheringModule extends NoExternalConfigurationModule
 
     private function validateWiring(InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        foreach ($this->annotationFinder->findAnnotatedMethods(Splitter::class) as $registration) {
+            $splitter = $registration->getAnnotationForMethod();
+            if ($splitter->gatherChannelName !== '' && $splitter->isEndpointIdGenerated()) {
+                $channel = $splitter->getInputChannelName();
+                throw ConfigurationException::create("Splitter '{$channel}' names gather channel '{$splitter->gatherChannelName}' but has no explicit endpointId. Gathering needs a stable splitter identity across retries and restarts. Add endpointId: '{$channel}.split' to #[Splitter], or remove gatherChannelName.");
+            }
+        }
         $gatheredChannels = [];
         foreach ($this->annotationFinder->findAnnotatedMethods(Gathered::class) as $registration) {
             $interface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());

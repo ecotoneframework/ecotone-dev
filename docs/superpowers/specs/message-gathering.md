@@ -25,7 +25,7 @@ The in-memory store and DBAL store are exercised through the same split/handler/
 `GatheringConformanceTest`. `DbalGatheringModule` supplies a store registration to the core module and registers
 `GatheringTableManager` with the existing database setup commands. Message handling performs no schema work.
 
-A group id is derived from the split message id and splitter endpoint id. The group retains the original message;
+A group id is derived from the split message id and splitter endpoint id. A splitter naming a gather channel must supply an explicit `endpointId`; bootstrap refuses a generated identity because replay and restart must address the same group. The group retains the original message;
 part reports retain the payload representation and content/type metadata delivered by the asynchronous channel.
 `StoredGatheringMessages` uses the existing outbound converter and conversion service. The gathered handler's
 wrapper reconstructs results with those existing converters, preserving part numbers and split order.
@@ -175,10 +175,10 @@ boot Pulse beside a real split/gather application.
 
 ## Maintainer decisions still required before publication
 
-Four decisions remain outside this implementation's authority: the channel delay-capability seam and broker
-limits, multi-destination routers in a gathered flow, stable splitter endpoint identity when `endpointId` is
-omitted, and the provisional database current-read exception. No channel-capability guard, router policy or
-new endpoint-id default/requirement has been added while these decisions are pending.
+Three decisions remain outside this implementation's authority: the channel delay-capability seam and broker
+limits, multi-destination routers in a gathered flow, and the provisional database current-read exception. The maintainer approved requiring an explicit
+`endpointId` for a splitter naming a gather channel; that bootstrap refusal is implemented. No channel-capability guard, router policy or
+unapproved endpoint-id default has been added while these decisions are pending.
 
 The provisional `loadPartsForRelease()` current read is confined to the completing transaction. The deterministic
 `releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established` test reproduces a MySQL/MariaDB

@@ -16,6 +16,7 @@ final class GatheredParts
         public readonly array $missingPartNumbers,
         public readonly int $size,
         public readonly mixed $originalPayload,
+        public readonly GatheredReleaseReason $releaseReason,
     ) {
     }
 }

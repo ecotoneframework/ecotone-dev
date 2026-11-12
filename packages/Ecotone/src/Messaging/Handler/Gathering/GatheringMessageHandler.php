@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Handler\Gathering;
 
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Messaging\GatheredParts;
+use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -67,6 +68,7 @@ final class GatheringMessageHandler implements MessageHandler
                     missingPartNumbers: [],
                     size: $size,
                     originalPayload: $this->resultOf($original),
+                    releaseReason: GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR,
                 ))->setMultipleHeaders($headers)->setContentType(MediaType::createApplicationXPHPWithTypeParameter(GatheredParts::class))->build());
             },
         );

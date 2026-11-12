@@ -49,3 +49,9 @@ request and no synchronous answer to its original caller.
 The header rule is covered by
 `released_message_carries_application_headers_but_not_the_split_requests_routing`; the atomic completion tests
 include independent consumers and a deterministic transaction-snapshot interleaving.
+
+## Release reason
+
+`GatheredParts::releaseReason` is a typed `GatheredReleaseReason`; ordinary completion is
+`ALL_PARTS_ACCOUNTED_FOR`. Results remain keyed by their split part numbers, including `null` for a part that
+completed without returning a result.

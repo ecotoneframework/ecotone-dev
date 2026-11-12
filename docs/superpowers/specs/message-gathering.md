@@ -186,6 +186,7 @@ boot Pulse beside a real split/gather application.
 |---|---|
 | Durable opening | `open_group_survives_application_restart` |
 | Bootstraps without test configuration require durable storage | `gathered_flow_without_durable_storage_is_refused_outside_flow_testing` |
+| DBAL gathering boots without test configuration | `gathered_flow_with_dbal_is_accepted_without_test_configuration` |
 | Split progress | `split_opens_a_group_until_all_parts_are_accounted_for`, `open_group_lists_accounted_and_missing_parts`, `progress_lists_accounted_parts_in_split_order` |
 | Ordered results and no-result completion | `gathered_handler_receives_all_part_results_in_split_order`, `part_returning_nothing_counts_as_done` |
 | Typed payload conversion and snapshot | `gathered_parts_restore_typed_results_and_original_payload`, `original_payload_is_a_snapshot_of_the_message_at_the_split` |

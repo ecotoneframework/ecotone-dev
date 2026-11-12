@@ -1685,11 +1685,14 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
+        $before = array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary'), 'groupId');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         self::assertSame([], $handler->gathered);
 
         $ecotone->run('workers')->run('summaries');
         self::assertSame(4, $handler->workCalls);
+        $closed = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $before, true)));
+        self::assertSame(0, $closed[0]['latePartCount']);
 
         self::assertCount(1, $handler->gathered);
         self::assertSame([1 => 10, 2 => 20], $handler->gathered[0]->results);
@@ -1811,6 +1814,74 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame([[10, 20], [30]], $handler->gathered[0]->originalPayload);
     }
 
+    #[DataProvider('implementations')]
+    public function test_redelivered_empty_split_trigger_is_not_counted_as_a_late_part(bool $durable): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE - 1, pointcut: AsynchronousRunningEndpoint::class)]
+            public function duplicateWorkerDelivery(MethodInvocation $invocation, AsynchronousRunningEndpoint $endpoint): mixed
+            {
+                $again = $invocation->cloneCurrentState();
+                $result = $invocation->proceed();
+                if ($endpoint->getEndpointId() === 'summaries') {
+                    $again->proceed();
+                }
+
+                return $result;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [...($durable ? [DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false)] : []), SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $before = array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary'), 'groupId');
+        $ecotone->sendCommandWithRouting('split', []);
+        self::assertSame([], $handler->gathered);
+
+        $ecotone->run('summaries');
+
+        $closed = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $before, true)));
+        self::assertSame(0, $closed[0]['latePartCount']);
+        self::assertCount(1, $handler->gathered);
+        self::assertSame([], $handler->gathered[0]->results);
+        self::assertSame([], $handler->gathered[0]->missingPartNumbers);
+        self::assertSame(0, $handler->gathered[0]->size);
+        self::assertSame([], $handler->gathered[0]->originalPayload);
+    }
     #[DataProvider('implementations')]
     public function test_empty_split_runs_gathered_handler_with_zero_parts(bool $durable): void
     {

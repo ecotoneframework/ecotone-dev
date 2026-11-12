@@ -67,8 +67,10 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
     {
         $previous = $this->groups[$groupId] ?? throw GatheredGroupNotFound::forId($groupId);
         if ($previous['state'] !== 'open') {
-            $this->groups[$groupId]['latePartCount']++;
-            $this->groups[$groupId]['version']++;
+            if ($previous['size'] > 0 && ! isset($previous['parts'][$partNumber])) {
+                $this->groups[$groupId]['latePartCount']++;
+                $this->groups[$groupId]['version']++;
+            }
 
             return true;
         }

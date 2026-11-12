@@ -90,7 +90,9 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                     throw GatheredGroupNotFound::forId($groupId);
                 }
                 if ($group['state'] !== 'open') {
-                    $this->noteLatePart($groupId);
+                    if ((int) $group['size'] > 0 && $connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE group_id = ? AND part_number = ?', [$groupId, $partNumber]) === false) {
+                        $this->noteLatePart($groupId);
+                    }
 
                     return true;
                 }

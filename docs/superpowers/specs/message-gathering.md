@@ -261,3 +261,8 @@ and `dbal_report_channel_redelivers_the_completing_part_with_its_group_transacti
 The `conflicting_group_operation_is_redelivered_before_observing_a_fresh_snapshot` provider covers manual and timeout
 release, report conflicts on a non-transactional channel, and discard interleaved with either a part or a release.
 These cases remain within the four server-engine race methods excluded on SQLite.
+
+Gathering storage and table setup follow the first connection in
+`DbalConfiguration::withDefaultConnectionReferenceNames([...])`, falling back to the default reference, like
+tracing storage. `gathering_store_and_setup_follow_the_configured_default_connection` proves this with only a
+named application connection provided.

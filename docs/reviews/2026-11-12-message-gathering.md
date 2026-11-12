@@ -72,6 +72,6 @@ the test cannot reproduce it, report that instead of changing code.
 - M15: retain the core tests. The shared suite belongs to the separate DBAL package and is absent from a
   standalone Ecotone installation; deleting the overlap would remove that package's in-memory coverage.
   The maintainer agreed on 2026-11-12.
-- M19: document the default-connection limitation. The table manager and store share the default cached DBAL
-  connection; selecting another requires a new configuration API and transaction wiring, rather than a small
-  table-manager alignment. The adoption guide states the supported scope.
+- M19: align storage and table setup with tracing's existing selection of the first configured default
+  connection. A focused test with only a named `reporting` connection reproduced the missing-reference failure
+  and passes after the alignment; no new configuration API is needed.

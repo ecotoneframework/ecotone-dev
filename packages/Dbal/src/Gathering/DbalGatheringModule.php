@@ -7,6 +7,7 @@ namespace Ecotone\Dbal\Gathering;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -72,10 +73,11 @@ final class DbalGatheringModule extends NoExternalConfigurationModule
         if (! $this->hasGatheringSplitters) {
             return;
         }
+        $connectionReference = self::connectionReferenceOf($extensionObjects);
         $bootstrap = ExtensionObjectResolver::resolveUnique(className: BootstrapConfiguration::class, extensionObjects: $extensionObjects, default: BootstrapConfiguration::createWithDefaults());
         $messagingConfiguration->registerServiceDefinition(GatheringTableManager::class, new Definition(GatheringTableManager::class, [
             ConsoleInvocationResolver::resolveConsolePrefix($bootstrap),
-            DbalConnectionReference::DEFAULT,
+            $connectionReference,
         ]));
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(className: ServiceConfiguration::class, extensionObjects: $extensionObjects, default: ServiceConfiguration::createWithDefaults());
         $messagingConfiguration->registerServiceDefinition(StoredGatheringMessages::class, new Definition(StoredGatheringMessages::class, [
@@ -84,7 +86,7 @@ final class DbalGatheringModule extends NoExternalConfigurationModule
             new Reference(MessageBuilder::class),
         ]));
         $messagingConfiguration->registerServiceDefinition(DbalGatheredGroupStore::class, new Definition(DbalGatheredGroupStore::class, [
-            CachedConnectionFactory::registerIn(configuration: $messagingConfiguration, connectionKey: DbalConnectionReference::DEFAULT, reconnectableConnectionFactory: DbalReconnectableConnectionFactory::definitionFor(DbalConnectionReference::DEFAULT)),
+            CachedConnectionFactory::registerIn(configuration: $messagingConfiguration, connectionKey: $connectionReference, reconnectableConnectionFactory: DbalReconnectableConnectionFactory::definitionFor($connectionReference)),
             new Reference(GatheringTableManager::class),
             new Reference(StoredGatheringMessages::class),
             new Reference(EcotoneClockInterface::class),
@@ -93,7 +95,14 @@ final class DbalGatheringModule extends NoExternalConfigurationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return $this->hasGatheringSplitters ? [new DbalTableManagerReference(GatheringTableManager::class), new GatheredGroupStoreRegistration(DbalGatheredGroupStore::class)] : [];
+        return $this->hasGatheringSplitters ? [new DbalTableManagerReference(GatheringTableManager::class, self::connectionReferenceOf($serviceExtensions)), new GatheredGroupStoreRegistration(DbalGatheredGroupStore::class)] : [];
+    }
+
+    private static function connectionReferenceOf(array $extensionObjects): string
+    {
+        $configuration = ExtensionObjectResolver::resolveUnique(className: DbalConfiguration::class, extensionObjects: $extensionObjects, default: DbalConfiguration::createWithDefaults());
+
+        return $configuration->defaultConnectionReferenceNames[0] ?? DbalConnectionReference::DEFAULT;
     }
 
     public function getModulePackageName(): string

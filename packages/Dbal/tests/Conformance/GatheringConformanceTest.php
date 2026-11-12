@@ -1902,6 +1902,60 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame([1 => 10, 2 => 20], $handler->gathered[0]->results);
     }
 
+    public function test_gathering_store_and_setup_follow_the_configured_default_connection(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, 'reporting' => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDefaultConnectionReferenceNames(['reporting']), SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        self::assertSame([], $handler->gathered);
+
+        $ecotone->run('summaries');
+
+        self::assertCount(1, $handler->gathered);
+        self::assertSame([1 => 10, 2 => 20], $handler->gathered[0]->results);
+        self::assertSame([], $handler->gathered[0]->missingPartNumbers);
+        self::assertSame(2, $handler->gathered[0]->size);
+        self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
+    }
+
     #[DataProvider('implementations')]
     public function test_gathered_handler_receives_all_part_results_in_split_order(bool $durable): void
     {

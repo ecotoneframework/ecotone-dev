@@ -152,10 +152,10 @@ unique group-id/part-number identity keep completion safe.
 Upgrade every participating consumer before enabling a gathered flow. Older workers acknowledge parts without
 reporting their completion, leaving those groups incomplete.
 
-Gathering uses the default DBAL connection, including its configured tenant routing. There is no separate
-connection-reference option for gathering storage or its table setup. Keep the gathering tables and report
-channel on that connection when they must share a message transaction; moving gathering to a separately named
-connection is not supported by this version.
+Gathering storage and table setup use the first connection named by
+`DbalConfiguration::withDefaultConnectionReferenceNames([...])`, falling back to the default DBAL connection.
+This follows tracing storage's connection selection and includes configured tenant routing. Keep the gathering
+tables and report channel on that connection when they must share a message transaction.
 
 A report may arrive before the split's transaction commits when work is published through a non-transactional
 channel such as AMQP, SQS or Redis. A consumer cannot see the uncommitted group and refuses that report through

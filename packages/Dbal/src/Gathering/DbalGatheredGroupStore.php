@@ -13,6 +13,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Handler\Gathering\GatheredGroupNotFound;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Throwable;
 
@@ -71,7 +72,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             $connection->transactional(function () use ($connection, $groupId, $partNumber, $report, $whenComplete): void {
                 $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
                 if (! $group) {
-                    return;
+                    throw GatheredGroupNotFound::forId($groupId);
                 }
                 if ($group['state'] !== 'open') {
                     $this->noteLatePart($groupId);

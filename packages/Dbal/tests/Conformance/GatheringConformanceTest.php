@@ -372,6 +372,69 @@ final class GatheringConformanceTest extends TestCase
         self::assertNotContains($groupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary'), 'groupId'));
     }
 
+    #[DataProvider('implementations')]
+    public function test_part_for_cleaned_up_group_is_refused_with_the_retention_setting(bool $durable): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'timeout.split', outputChannelName: 'work', gatherChannelName: 'timeout.summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Asynchronous('workers')]
+            #[InternalHandler('work', endpointId: 'timeout.work')]
+            public function work(int $part): int
+            {
+                return $part * 2;
+            }
+
+            #[Gathered(timeout: new TimeSpan(minutes: 30))]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('workers'),
+                SimpleMessageChannelBuilder::createQueueChannel('summaries'),
+            ],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $groupId = array_values(array_diff(array_column($groups, 'groupId'), array_column($before, 'groupId')))[0];
+        $ecotone->advanceTimeBy(new TimeSpan(minutes: 30));
+        $ecotone->run('summaries');
+        self::assertCount(1, $handler->gathered);
+        self::assertSame([1, 2], $handler->gathered[0]->missingPartNumbers);
+        $ecotone->advanceTimeBy(new TimeSpan(days: 7));
+        $ecotone->getGateway(GatheredGroups::class)->cleanupClosedGroups();
+        $ecotone->run('workers');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage("Gathering group '{$groupId}' was not found. Its closed-group retention may have expired. Increase GatheringConfiguration::withRetention(...), or replay failed parts before running ecotone:gathering:cleanup.");
+        $ecotone->run('summaries');
+    }
+
     public static function implementations(): iterable
     {
         yield 'in-memory' => [false];

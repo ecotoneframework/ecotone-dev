@@ -53,7 +53,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
 
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void
     {
-        $previous = $this->groups[$groupId];
+        $previous = $this->groups[$groupId] ?? throw GatheredGroupNotFound::forId($groupId);
         if ($previous['state'] !== 'open') {
             $this->groups[$groupId]['latePartCount']++;
 

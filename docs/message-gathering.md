@@ -125,3 +125,7 @@ channels without declared delay support and durations exceeding the declared max
 at most 15 minutes; SQS FIFO queues and Kafka cannot hold a per-message timeout. Omit `timeout` to wait for every
 part, including successful replay of failed parts. Custom builders can implement the optional public interface;
 `maximumDelay()` returns `null` when there is no fixed broker maximum.
+
+For an asynchronous channel chain or `CombinedMessageChannel`, the first physical channel holds the timeout.
+Only that first channel needs delay support. A later non-delayable channel is supported after the timeout has
+waited until its deadline on the first channel.

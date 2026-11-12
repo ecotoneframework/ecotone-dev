@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Attribute\Transformer;
+use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\GatheringConfiguration;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
@@ -157,9 +158,13 @@ final class GatheringModule extends NoExternalConfigurationModule
     private function validateTimeouts(array $extensionObjects, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $channels = [];
+        $combinedChannels = [];
         foreach ($extensionObjects as $extension) {
             if ($extension instanceof MessageChannelBuilder) {
                 $channels[$extension->getMessageChannelName()] = $extension;
+            }
+            if ($extension instanceof CombinedMessageChannel) {
+                $combinedChannels[$extension->getReferenceName()] = $extension->combinedChannels;
             }
         }
         foreach ($this->annotationFinder->findAnnotatedMethods(Gathered::class) as $registration) {
@@ -170,19 +175,19 @@ final class GatheringModule extends NoExternalConfigurationModule
             $interface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
             $asynchronous = $interface->getSingleAnnotation(Type::create(Asynchronous::class));
             $handler = array_values(array_filter($interface->getMethodAnnotations(), static fn (object $annotation): bool => $annotation instanceof InternalHandler || $annotation instanceof CommandHandler))[0];
-            foreach ($asynchronous->getChannelName() as $channelName) {
-                $builder = $channels[$channelName] ?? null;
-                if (! $builder instanceof DelayedMessageChannelBuilder || ! $builder->supportsDelayedMessages()) {
-                    $handlerChannel = $handler->getInputChannelName();
-                    throw ConfigurationException::create("Gathered handler '{$handlerChannel}' has a timeout but asynchronous channel '{$channelName}' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove timeout from #[Gathered].");
-                }
-                $maximumDelay = $builder->maximumDelay();
-                if ($maximumDelay !== null && $timeout->toMilliseconds() > $maximumDelay->toMilliseconds()) {
-                    $handlerChannel = $handler->getInputChannelName();
-                    $timeoutMilliseconds = $timeout->toMilliseconds();
-                    $maximumMilliseconds = $maximumDelay->toMilliseconds();
-                    throw ConfigurationException::create("Gathered handler '{$handlerChannel}' timeout of {$timeoutMilliseconds} milliseconds exceeds asynchronous channel '{$channelName}' maximum delay of {$maximumMilliseconds} milliseconds. Reduce timeout in #[Gathered], use a channel with a longer maximum delay, or remove timeout.");
-                }
+            $channelName = $asynchronous->getChannelName()[0];
+            $channelName = $combinedChannels[$channelName][0] ?? $channelName;
+            $builder = $channels[$channelName] ?? null;
+            if (! $builder instanceof DelayedMessageChannelBuilder || ! $builder->supportsDelayedMessages()) {
+                $handlerChannel = $handler->getInputChannelName();
+                throw ConfigurationException::create("Gathered handler '{$handlerChannel}' has a timeout but asynchronous channel '{$channelName}' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove timeout from #[Gathered].");
+            }
+            $maximumDelay = $builder->maximumDelay();
+            if ($maximumDelay !== null && $timeout->toMilliseconds() > $maximumDelay->toMilliseconds()) {
+                $handlerChannel = $handler->getInputChannelName();
+                $timeoutMilliseconds = $timeout->toMilliseconds();
+                $maximumMilliseconds = $maximumDelay->toMilliseconds();
+                throw ConfigurationException::create("Gathered handler '{$handlerChannel}' timeout of {$timeoutMilliseconds} milliseconds exceeds asynchronous channel '{$channelName}' maximum delay of {$maximumMilliseconds} milliseconds. Reduce timeout in #[Gathered], use a channel with a longer maximum delay, or remove timeout.");
             }
         }
     }

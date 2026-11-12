@@ -166,6 +166,11 @@ boot Pulse beside a real split/gather application.
 | Ungathered nested splitter refusal | `splitter_without_gather_channel_inside_static_gathered_flow_is_refused_at_bootstrap`, `splitter_without_gather_channel_inside_dynamic_gathered_flow_is_refused` |
 | Handler wiring and licence | `gather_channel_without_gathered_handler_is_refused_at_bootstrap`, `gathered_handler_without_a_splitter_is_refused_at_bootstrap`, `gathered_handler_without_asynchronous_is_refused_at_bootstrap`, `gathered_handler_with_plain_array_payload_is_refused_at_bootstrap`, `gathered_marker_without_an_ordinary_handler_is_refused_at_bootstrap`, `splitter_with_gather_channel_requires_enterprise_licence_at_bootstrap` |
 | Ordinary handler attributes | `gathered_command_handler_receives_all_part_results` |
+| Stable splitter identity | `gathered_splitter_without_explicit_endpoint_id_is_refused_at_bootstrap` |
+| Router fan-out refusal | `router_resolving_multiple_destinations_in_a_gathered_flow_is_refused` |
+| Timeout channel capability | `gathered_timeout_is_refused_when_its_channel_cannot_hold_delayed_messages`, `gathered_timeout_is_refused_when_channel_builder_does_not_declare_delay_capability` |
+| Sequential and combined timeout holding | `gathered_timeout_waits_on_first_delayable_channel_before_non_delayable_sequential_hop`, `gathered_timeout_resolves_combined_channel_to_its_first_delayable_hop`, `gathered_timeout_is_refused_when_first_sequential_channel_is_not_delayable`, `gathered_timeout_is_refused_when_combined_channels_first_physical_hop_is_not_delayable` |
+| Broker timeout boundaries | `gathered_timeout_at_sqs_fifteen_minute_limit_is_accepted_at_bootstrap`, `gathered_timeout_exceeding_sqs_fifteen_minute_limit_is_refused_at_bootstrap`, `gathered_timeout_on_sqs_fifo_queue_is_refused_at_bootstrap`, `kafka_declares_no_delay_support_and_refuses_gathered_timeout`, `gathered_timeout_is_accepted_on_amqp_delayed_channel`, `gathered_timeout_is_accepted_on_redis_delayed_channel` |
 | Optional no-match router | `optional_router_with_no_match_counts_as_done_without_result` |
 | Gateway operations | `manual_release_is_requested_until_its_trigger_is_consumed`, `discard_closes_the_group_without_invoking_its_handler` |
 | Console operations | `console_lists_open_group_progress`, `console_release_reports_requested_before_handler_consumption`, `console_discards_a_group_without_invoking_its_handler` |
@@ -201,5 +206,9 @@ No timeout means no new capability requirement for the channel.
 - Kafka declares no delay support.
 
 Symfony Messenger and Laravel Queue capability declarations remain pending the maintainer's transport policy;
-neither builder has been changed. Custom AMQP delay-strategy limits and combined asynchronous channel validation
-are under review before the capability increment is finalized.
+neither builder has been changed. Custom AMQP delay-strategy limits remain provisional under the same unknown-maximum policy question.
+
+The timeout guard resolves a `CombinedMessageChannel` alias exactly as asynchronous wiring does, then validates
+only the first physical channel in the sequential chain. That channel holds the delayed trigger; later hops do
+not need delay support. A delayable first channel followed by a non-delayable channel runs at the deadline; the
+reverse is refused at bootstrap. The same guarantees cover an explicit asynchronous array and a combined alias.

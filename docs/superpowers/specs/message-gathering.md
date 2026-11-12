@@ -243,3 +243,10 @@ The timeout guard resolves a `CombinedMessageChannel` alias exactly as asynchron
 only the first physical channel in the sequential chain. That channel holds the delayed trigger; later hops do
 not need delay support. A delayable first channel followed by a non-delayable channel runs at the deadline; the
 reverse is refused at bootstrap. The same guarantees cover an explicit asynchronous array and a combined alias.
+
+## Database coverage
+
+The shared functional gathering contracts run on SQLite as well as PostgreSQL, MySQL and MariaDB.
+The four two-connection race tests run on PostgreSQL, MySQL and MariaDB only. SQLite serialises writers
+with a database-wide lock, so their overlapping writer transactions cannot exercise the server-engine race.
+These methods are explicitly skipped on SQLite; ordinary functional contracts remain enabled.

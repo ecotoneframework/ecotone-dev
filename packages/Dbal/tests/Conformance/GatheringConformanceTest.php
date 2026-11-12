@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Conformance;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
@@ -2137,6 +2138,10 @@ final class GatheringConformanceTest extends TestCase
     }
     public function test_gathered_handler_runs_once_when_last_two_parts_are_recorded_concurrently(): void
     {
+        if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
+        }
+
         self::concurrentApplication()->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $testId = bin2hex(random_bytes(16));
         self::concurrentApplication()->sendCommandWithRouting('split', [10, 20], metadata: ['testId' => $testId]);
@@ -2148,6 +2153,10 @@ final class GatheringConformanceTest extends TestCase
 
     public function test_concurrent_part_reports_conflict_and_are_retried_without_reaching_the_dead_letter(): void
     {
+        if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
+        }
+
         $application = self::concurrentApplication();
         $application->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
         $deadLetters = $application->getGateway(DeadLetterGateway::class);
@@ -2223,6 +2232,10 @@ final class GatheringConformanceTest extends TestCase
 
     public function test_releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established(): void
     {
+        if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
+        }
+
         $other = self::concurrentApplication();
         $other->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $testId = bin2hex(random_bytes(16));
@@ -2266,6 +2279,10 @@ final class GatheringConformanceTest extends TestCase
     #[DataProvider('conflictingReleaseTriggers')]
     public function test_conflicting_release_trigger_is_redelivered_before_releasing_a_fresh_snapshot(string $trigger): void
     {
+        if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
+        }
+
         $channels = [SimpleMessageChannelBuilder::createQueueChannel('gathering_release'), SimpleMessageChannelBuilder::createQueueChannel('gathering_release_workers')];
         $other = self::releaseApplication([], $channels);
         $testId = bin2hex(random_bytes(16));

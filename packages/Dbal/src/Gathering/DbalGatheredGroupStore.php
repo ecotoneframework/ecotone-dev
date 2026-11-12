@@ -160,6 +160,19 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         }
     }
 
+    public function discard(string $groupId): void
+    {
+        $connection = $this->connection();
+        try {
+            $connection->transactional(function () use ($connection, $groupId): void {
+                $this->gatherChannelNameFor($groupId);
+                $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'discarded', closed_at = ? WHERE group_id = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $groupId]);
+            });
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
+        }
+    }
+
     public function cleanupClosedGroups(int $closedAtOrBefore): void
     {
         $connection = $this->connection();

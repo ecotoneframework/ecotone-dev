@@ -113,6 +113,16 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         }
     }
 
+    public function discard(string $groupId): void
+    {
+        $group = $this->groups[$groupId] ?? throw GatheredGroupNotFound::forId($groupId);
+        if ($group['state'] !== 'open') {
+            return;
+        }
+        $this->groups[$groupId]['state'] = 'discarded';
+        $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
+    }
+
     public function cleanupClosedGroups(int $closedAtOrBefore): void
     {
         $this->groups = array_filter($this->groups, static fn (array $group): bool => $group['state'] === 'open' || $group['closedAt'] > $closedAtOrBefore);

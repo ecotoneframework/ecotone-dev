@@ -13,6 +13,8 @@ interface GatheredGroups
 {
     public function releaseNow(string $groupId): string;
 
+    public function discard(string $groupId): void;
+
     public function cleanupClosedGroups(): void;
 
     public function listClosedGroups(string $gatherChannelName): array;

@@ -45,6 +45,11 @@ final class GatheredGroupOperations implements \Ecotone\Api\Gateway\GatheredGrou
         return 'release requested';
     }
 
+    public function discard(string $groupId): void
+    {
+        $this->store->discard($groupId);
+    }
+
     public function cleanupClosedGroups(): void
     {
         $this->store->cleanupClosedGroups($this->clock->now()->unixTime()->inMilliseconds() - $this->retention);

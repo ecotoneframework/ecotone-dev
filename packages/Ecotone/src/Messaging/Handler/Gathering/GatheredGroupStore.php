@@ -35,6 +35,8 @@ interface GatheredGroupStore
 
     public function releaseGroup(string $groupId, callable $whenReleased): void;
 
+    public function discard(string $groupId): void;
+
     public function cleanupClosedGroups(int $closedAtOrBefore): void;
 
     public function listClosedGroups(string $gatherChannelName): array;

@@ -26,6 +26,8 @@ use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupOperations;
+use Ecotone\Messaging\Handler\Gathering\GatheringConsoleCommands;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStoreRegistration;
 use Ecotone\Messaging\Handler\Gathering\GatheringPartCompletion;
@@ -159,7 +161,22 @@ final class GatheringModule extends NoExternalConfigurationModule
             $messagingConfiguration
                 ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(GatheredGroups::class, 'cleanupClosedGroups')->withInputChannelName('ecotone.gathering.cleanup'))
                 ->registerConsoleCommand(ConsoleCommandConfiguration::create('ecotone.gathering.cleanup', 'ecotone:gathering:cleanup', [], 'Removes closed gathering groups after their retention period'));
+            $this->registerConsoleCommands($messagingConfiguration, $interfaceToCallRegistry);
         }
+    }
+
+    private function registerConsoleCommands(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    {
+        $configuration->registerServiceDefinition(GatheringConsoleCommands::class, new Definition(GatheringConsoleCommands::class, [new Reference(GatheredGroups::class)]));
+        [$handler, $command] = ConsoleCommandModule::prepareConsoleCommandForReference(
+            reference: new Reference(GatheringConsoleCommands::class),
+            interfaceToCallReference: new InterfaceToCallReference(GatheringConsoleCommands::class, 'listGroups'),
+            commandName: 'ecotone:gathering:list',
+            discoverableByConsoleCommandAttribute: false,
+            interfaceToCallRegistry: $interfaceToCallRegistry,
+            description: 'Lists gathering group progress and late arrivals',
+        );
+        $configuration->registerMessageHandler($handler)->registerConsoleCommand($command);
     }
 
     private function refuseStaticallyUngatheredSplitters(): void

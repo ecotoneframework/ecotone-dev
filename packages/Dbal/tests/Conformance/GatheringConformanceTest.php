@@ -38,6 +38,7 @@ use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Api\Scheduling\TimeSpan;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -842,6 +843,67 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame([], $handler->gathered);
         self::assertSame($closed[0]['closedAt'], $after[0]['closedAt']);
         self::assertSame(1, $after[0]['latePartCount']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_console_lists_open_group_progress(bool $durable): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'timeout.split', outputChannelName: 'work', gatherChannelName: 'timeout.summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Asynchronous('workers')]
+            #[InternalHandler('work', endpointId: 'timeout.work')]
+            public function work(int $part): int
+            {
+                return $part * 2;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('workers'),
+                SimpleMessageChannelBuilder::createQueueChannel('summaries'),
+            ],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $groups = $ecotone->getGateway(GatheredGroups::class);
+        $before = $groups->listOpenGroups('timeout.summary');
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $groupId = $opened[0]['groupId'];
+        $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotone->run('summaries');
+
+        $listing = $ecotone->getServiceFromContainer(ConfiguredMessagingSystem::class)->runConsoleCommand('ecotone:gathering:list', ['gatherChannelName' => 'timeout.summary']);
+        $row = array_values(array_filter($listing->rows, static fn (array $row): bool => $row[0] === $groupId));
+
+        self::assertSame(['Group id', 'State', 'Size', 'Accounted parts', 'Missing parts', 'Deadline', 'Late parts'], $listing->columnHeaders);
+        self::assertSame([[$groupId, 'open', 2, '1', '2', '', 0]], $row);
     }
 
     public static function implementations(): iterable

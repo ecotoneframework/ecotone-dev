@@ -70,7 +70,7 @@ final class ServiceOverviewTest extends ReleasingWebTestCase
 
         $tiles = $crawler->filter('[data-tile-kind]');
         self::assertSame(['channels', 'dead-letters', 'projections', 'traces'], $tiles->each(static fn (Crawler $tile): string => (string) $tile->attr('data-tile-kind')));
-        self::assertSame(['/services/orders/channels', '/dead-letters?service=orders', '/services/orders/projections', '/services/orders/gathering', '/traces?service=orders'], $tiles->each(static fn (Crawler $tile): string => (string) $tile->filter('a.tile-link')->attr('href')));
+        self::assertSame(['/services/orders/channels', '/dead-letters?service=orders', '/services/orders/projections', '/traces?service=orders'], $tiles->each(static fn (Crawler $tile): string => (string) $tile->filter('a.tile-link')->attr('href')));
         $deadLetters = $crawler->filter('[data-hub-dead-letters]');
         self::assertSame('2', $deadLetters->filter('a.tile-link b')->text());
         self::assertSame('in 1 failure group', $deadLetters->filter('[data-tile-state]')->text());

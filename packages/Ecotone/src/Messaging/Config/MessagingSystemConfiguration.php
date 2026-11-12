@@ -51,6 +51,8 @@ use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncEndpointAnnotationContext;
 use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncHandlerAnnotationRegistry;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
+use Ecotone\Messaging\Handler\Gathering\PartCompletion;
+use Ecotone\Messaging\Handler\Gathering\NullPartCompletion;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
@@ -1092,6 +1094,8 @@ final class MessagingSystemConfiguration implements Configuration
                 }
             }
         }
+
+        $this->registerServiceDefinition(PartCompletion::class, new Definition(NullPartCompletion::class));
 
         foreach ($this->serviceDefinitions as $id => $definition) {
             $messagingBuilder->register($id, $definition);

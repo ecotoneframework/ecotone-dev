@@ -6,10 +6,20 @@ the ordinary handler that receives the combined `GatheredParts` payload.
 
 ## Storage and completion
 
-The feature owns `ecotone_gathering_groups` and `ecotone_gathering_parts`. The document store was considered, but
-rewriting a whole document for every arrival creates contention and its existing read path cannot list open
-groups. Saga storage has the same rewrite problem and sagas are not addressed by channel messages. Deduplication
-records message identities, without the payloads and group progress that gathering requires.
+The feature owns `ecotone_gathering_groups` and `ecotone_gathering_parts`. Existing storage read paths were checked:
+
+- `DocumentStore::findDocument(collectionName, documentId)` uses the document table's `(collection, document_id)`
+  primary key. `getAllDocuments(collectionName)` could scan a collection and filter groups in application code,
+  but has no indexed channel/state lookup. Recording each arrival would rewrite the entire group document.
+- `StateStoredRepository::findBy(aggregateClassName, identifiers)` addresses one aggregate or saga; it has no read
+  path for open groups by gather channel and requires the same whole-state rewrite.
+- `DbalHandledMessages::wasHandled()` uses the deduplication primary key `(message_id, consumer_endpoint_id,
+  routing_slip)`. Its `handled_at` index supports expiry cleanup. Neither read path carries group progress, part
+  payloads, the original split message or a group state.
+
+The gathering group table therefore has its own group-id primary key and `(gather_channel_name, state)` listing
+index. The parts table's `(group_id, part_number)` primary key both deduplicates arrivals and reads a group's
+results in split order.
 
 The in-memory store and DBAL store are exercised through the same split/handler/gateway contract in
 `GatheringConformanceTest`. `DbalGatheringModule` supplies a store registration to the core module and registers
@@ -100,3 +110,76 @@ removed group is refused with a message naming that retention setting and the cl
 Parts reported after release are acknowledged without invoking the handler again. The retained closed row's
 `latePartCount` records these arrivals, visible through `GatheredGroups::listClosedGroups()`. Ordinary progress
 and missing-part numbers stay unchanged by a late arrival.
+
+## Operations and Pulse
+
+`GatheredGroups` lists open groups with accounted and missing part numbers, lists retained closed groups with late
+arrival counts, requests release, discards and cleans up. `releaseNow(groupId)` returns `release requested` after
+queuing a distinct manual trigger on the gathered handler's own asynchronous channel. The group remains open
+until consumption closes it and invokes the handler in that consumption's transaction. Its result carries
+`GatheredReleaseReason::RELEASED_BY_HAND`. Duplicate requests invoke the handler once. A trigger for an already
+closed group does nothing. Handler failure rolls closure back and uses ordinary retry/dead-letter handling.
+
+Discard closes the group transactionally without invoking the handler. Repeating discard does not move the
+closure time or extend retention. `ecotone:gathering:list`, `ecotone:gathering:release`,
+`ecotone:gathering:discard` and `ecotone:gathering:cleanup` expose the same operations. Listing with `--closed`
+shows retained groups and late-arrival counts. Release output says `release requested`, since the handler has
+not run when the command returns.
+
+Pulse adds a tenant-scoped `gathering.groups` snapshot section through the existing snapshot-section extension.
+Release and discard use authorized Distributed Bus requests, accepting only a JSON object with one non-empty
+string `groupId`. A service other than the configured Pulse service cannot mutate a group. The service's
+ordinary failure reply carries malformed-selection and unknown-group errors back to Pulse.
+
+The dashboard's Gathering tab displays group progress, missing parts, deadline, state and late arrivals. Open
+groups have release/discard controls; closed groups have none. The page says `Release requested` before trigger
+consumption and displays service refusals, including a group removed by retention cleanup after the page was
+loaded. Ordinary bus hops still do not carry gathering context.
+
+The in-memory store retains a payload snapshot at split time, using the existing in-memory document store's
+copy approach. A caller mutating its command after sending it cannot change the group's original payload.
+
+## Named acceptance coverage
+
+The shared `GatheringConformanceTest` runs through `EcotoneLite::bootstrapFlowTesting()` against core in-memory
+and DBAL storage. `GatheringPulseTest` drives two applications through their Distributed Buses. Dashboard tests
+boot Pulse beside a real split/gather application.
+
+| Guarantee | Named test (without the `test_` prefix) |
+|---|---|
+| Durable opening | `open_group_survives_application_restart` |
+| Split progress | `split_opens_a_group_until_all_parts_are_accounted_for`, `open_group_lists_accounted_and_missing_parts` |
+| Ordered results and no-result completion | `gathered_handler_receives_all_part_results_in_split_order`, `part_returning_nothing_counts_as_done` |
+| Typed payload conversion and snapshot | `gathered_parts_restore_typed_results_and_original_payload`, `original_payload_is_a_snapshot_of_the_message_at_the_split` |
+| Duplicate parts and concurrent completion | `duplicate_part_is_not_counted_twice`, `gathered_handler_runs_once_when_last_two_parts_are_recorded_concurrently` |
+| Transaction rollback | `gathered_handler_failure_rolls_back_the_completing_part`, `failed_release_handler_keeps_group_open_until_normal_retry` |
+| Original application headers | `released_message_carries_application_headers_but_not_the_split_requests_routing` |
+| Bus boundary | `group_headers_do_not_cross_a_command_bus_hop`, `group_headers_do_not_cross_an_event_bus_hop` |
+| Empty split | `empty_split_runs_gathered_handler_with_zero_parts` |
+| Failed-part replay | `replayed_failed_part_completes_group_without_timeout` |
+| Timeout and original deadline | `timeout_releases_group_with_missing_parts_reported`, `timeout_deadline_is_measured_from_the_split` |
+| Split replay and overdue timeout | `replayed_split_schedules_only_one_timeout`, `timeout_after_retention_cleanup_does_not_recreate_the_group` |
+| Late arrivals | `late_part_is_dropped_and_noted_on_closed_group` |
+| Retention and unknown groups | `cleanup_retains_closed_groups_for_seven_days_from_release_and_never_removes_open_groups`, `configured_retention_applies_to_gateway_cleanup`, `part_for_cleaned_up_group_is_refused_with_the_retention_setting` |
+| Nested groups | `inner_gathered_result_becomes_outer_part_result` |
+| Ungathered nested splitter refusal | `splitter_without_gather_channel_inside_static_gathered_flow_is_refused_at_bootstrap`, `splitter_without_gather_channel_inside_dynamic_gathered_flow_is_refused` |
+| Handler wiring and licence | `gather_channel_without_gathered_handler_is_refused_at_bootstrap`, `gathered_handler_without_a_splitter_is_refused_at_bootstrap`, `gathered_handler_without_asynchronous_is_refused_at_bootstrap`, `gathered_handler_with_plain_array_payload_is_refused_at_bootstrap`, `gathered_marker_without_an_ordinary_handler_is_refused_at_bootstrap`, `splitter_with_gather_channel_requires_enterprise_licence_at_bootstrap` |
+| Ordinary handler attributes | `gathered_command_handler_receives_all_part_results` |
+| Optional no-match router | `optional_router_with_no_match_counts_as_done_without_result` |
+| Gateway operations | `manual_release_is_requested_until_its_trigger_is_consumed`, `discard_closes_the_group_without_invoking_its_handler` |
+| Console operations | `console_lists_open_group_progress`, `console_release_reports_requested_before_handler_consumption`, `console_discards_a_group_without_invoking_its_handler` |
+| Pulse snapshot and actions | `pulse_snapshot_lists_open_and_closed_groups_with_late_arrivals`, `pulse_release_reports_requested_until_handler_consumes_trigger`, `pulse_discard_closes_the_group_without_invoking_handler` |
+| Pulse request guards | `pulse_action_refuses_invalid_group_selection`, `unconfigured_pulse_service_cannot_change_a_group` |
+| Dashboard operations and failures | `page_shows_open_group_progress_and_operations`, `release_control_requests_release_before_handler_consumption`, `discard_control_closes_group_without_running_handler`, `page_displays_service_refusal_for_a_cleaned_up_group` |
+
+## Maintainer decisions still required before publication
+
+Four decisions remain outside this implementation's authority: the channel delay-capability seam and broker
+limits, multi-destination routers in a gathered flow, stable splitter endpoint identity when `endpointId` is
+omitted, and the provisional database current-read exception. No channel-capability guard, router policy or
+new endpoint-id default/requirement has been added while these decisions are pending.
+
+The provisional `loadPartsForRelease()` current read is confined to the completing transaction. The deterministic
+`releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established` test reproduces a MySQL/MariaDB
+repeatable-read snapshot that otherwise misses a committed part. This mechanism is not recorded here as an
+approved departure from storage rule 8; publication remains gated on the maintainer's decision.

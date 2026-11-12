@@ -3869,6 +3869,23 @@ Unreachable, and is asked again once the 60 seconds after which a snapshot stops
 **How to adapt:** nothing is required. A service that replies to Pulse over AMQP or SQS needs Pulse to have started
 consuming its reply channel first; until then the reply fails with the exception above, goes through the service's instant retries and error handling like any failure of a handler, and the request is processed again once Pulse's queue exists.
 
+### Split, work, gather (Enterprise)
+
+**Before:** Split parts could be processed independently, but coordinating their results required application
+storage and completion logic.
+
+**Now:** A splitter may name `gatherChannelName` and target an ordinary asynchronous handler marked
+`#[Gathered]`. The handler receives typed `GatheredParts` once the parts are accounted for, or when an optional
+timeout/manual-release trigger is consumed. Failed parts remain missing until successful replay. DBAL groups
+are durable; closed groups retain late-arrival notes until cleanup. Pulse adds a Gathering view and release /
+discard operations. Existing splitters without a gather channel retain their behaviour.
+
+**How to adapt:** No change is needed for existing split flows. To adopt gathering, add the gather channel,
+`#[Gathered]` and `#[Asynchronous]`, receive `Ecotone\Api\Messaging\GatheredParts`, configure its asynchronous
+channel and run the normal database setup command with `--feature=gathering` before the first message when
+using DBAL. Run the gathered handler's consumer to process empty splits and release requests too. See
+[Message gathering](docs/message-gathering.md) for timeout, replay, nesting, retention and operations.
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them

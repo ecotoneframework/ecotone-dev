@@ -29,6 +29,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
+ * licence Apache-2.0
  * @internal
  */
 final class GatheringPageTest extends ReleasingWebTestCase

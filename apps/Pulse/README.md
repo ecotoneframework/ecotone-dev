@@ -386,6 +386,15 @@ docker run --env-file pulse.env -p 8080:8080 ecotone-pulse
 * Run it behind your own authentication and with `restart: unless-stopped`. The internal database is gone when the container is replaced; that is intended.
 * The published image `ecotoneframework/ecotone-pulse:<release>` is built after each Ecotone release has been split and Packagist serves it (`.github/workflows/pulse-publish.yml`), tagged with the release version (`2.0.0-beta.6`); a stable release also moves `<major>.<minor>` and `latest`. It runs the released Ecotone packages from Packagist (`--build-arg PULSE_DEPENDENCIES=released --build-arg ECOTONE_VERSION=<tag>`), which verify licences against the release public key, and `apps/Pulse/docker/verify-production-licence.sh` refuses to publish an image that does not carry that key or accepts Ecotone's testing licence. An image built from this repository without those arguments runs the packages here, as the tests do.
 
+## Gathering groups
+
+The **Gathering** tab of a service shows the split groups reported by its Ecotone Enterprise gathering feature:
+accounted and missing part numbers, the deadline, state and retained late-arrival count. Open groups offer
+**Request release** and **Discard**. Release queues a trigger on the gathered handler's asynchronous channel,
+so Pulse says **Release requested** and shows the group state from the service snapshots; discard closes it without invoking
+that handler. Closed groups have no action controls. If the service refuses an action, for example because
+retention cleanup removed a group after the page loaded, the page shows the service's explanation.
+
 ## Development
 
 ```bash

@@ -35,7 +35,9 @@ final class GatheringConsoleCommands
 
     public function releaseNow(string $groupId): ConsoleCommandResultSet
     {
-        return ConsoleCommandResultSet::create(['Group id', 'Status'], [[$groupId, $this->groups->releaseNow($groupId)]]);
+        $this->groups->releaseNow($groupId);
+
+        return ConsoleCommandResultSet::create(['Group id', 'Status'], [[$groupId, 'release requested']]);
     }
 
     public function discard(string $groupId): ConsoleCommandResultSet

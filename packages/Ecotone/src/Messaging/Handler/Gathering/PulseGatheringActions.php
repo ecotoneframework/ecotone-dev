@@ -51,7 +51,8 @@ final class PulseGatheringActions
         $snapshot->tenantOfScopedRequest($headers);
         $groupId = $this->groupIdFrom($payload);
         if ($action === 'release') {
-            $status = $this->groups->releaseNow($groupId);
+            $this->groups->releaseNow($groupId);
+            $status = 'release requested';
         } else {
             $this->groups->discard($groupId);
             $status = 'discarded';

@@ -764,7 +764,7 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $ecotone->run('summaries');
 
-        self::assertSame('release requested', $groups->releaseNow($groupId));
+        self::assertNull($groups->releaseNow($groupId));
         self::assertSame([], $handler->gathered);
         self::assertContains($groupId, array_column($groups->listOpenGroups('timeout.summary'), 'groupId'));
         $ecotone->run('summaries');

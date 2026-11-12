@@ -33,7 +33,7 @@ final class GatheredGroupOperations implements \Ecotone\Api\Gateway\GatheredGrou
     {
     }
 
-    public function releaseNow(string $groupId): string
+    public function releaseNow(string $groupId): void
     {
         $gatherChannelName = $this->store->gatherChannelNameFor($groupId);
         $trigger = $this->messageBuilder->withPayload($groupId)
@@ -43,7 +43,6 @@ final class GatheredGroupOperations implements \Ecotone\Api\Gateway\GatheredGrou
             ->build();
         $this->channelResolver->resolve($gatherChannelName)->send($trigger);
 
-        return 'release requested';
     }
 
     public function discard(string $groupId): void

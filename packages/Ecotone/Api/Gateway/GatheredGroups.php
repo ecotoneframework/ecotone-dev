@@ -11,7 +11,7 @@ namespace Ecotone\Api\Gateway;
  */
 interface GatheredGroups
 {
-    public function releaseNow(string $groupId): string;
+    public function releaseNow(string $groupId): void;
 
     public function discard(string $groupId): void;
 

@@ -125,12 +125,14 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
             ))
             ->compileProcessor($builder, $interceptorsConfiguration);
 
-        $processorReference = 'ecotone.gathering.splitter.' . $this->getEndpointId();
-        $builder->register($processorReference . '.core', $processor);
+        $processorReference = 'ecotone.gathering.splitter.processor.' . $this->getEndpointId();
+        $coreProcessorReference = 'ecotone.gathering.splitter.core.' . $this->getEndpointId();
+        $enterpriseProcessorReference = 'ecotone.gathering.splitter.enterprise.' . $this->getEndpointId();
+        $builder->register($coreProcessorReference, $processor);
         $enterpriseProcessor = $this->gatherChannelName === ''
-            ? new Definition(UngatheredSplitterProcessor::class, [new Reference($processorReference . '.core'), $this->getEndpointId()])
+            ? new Definition(UngatheredSplitterProcessor::class, [new Reference($coreProcessorReference), $this->getEndpointId()])
             : new Definition(GatheringSplitterProcessor::class, [
-                new Reference($processorReference . '.core'),
+                new Reference($coreProcessorReference),
                 new Reference(ChannelResolver::class),
                 new Reference(MessageBuilder::class),
                 $this->gatherChannelName,
@@ -139,11 +141,11 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
                 new Reference(\Ecotone\Messaging\Handler\Gathering\GatheringTimeouts::class),
                 new Reference(\Ecotone\Api\Gateway\EcotoneClockInterface::class),
             ]);
-        $builder->register($processorReference . '.enterprise', $enterpriseProcessor);
+        $builder->register($enterpriseProcessorReference, $enterpriseProcessor);
         $processor = $builder->register($processorReference, LicenceDecider::prepareDefinition(
             MessageProcessor::class,
-            $processorReference . '.core',
-            $processorReference . '.enterprise',
+            $coreProcessorReference,
+            $enterpriseProcessorReference,
         ));
 
         return new Definition(SplitterHandler::class, [

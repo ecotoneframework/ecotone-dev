@@ -1754,6 +1754,68 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
     }
     #[DataProvider('implementations')]
+    public function test_splitter_endpoint_ids_can_contain_another_endpoint_id_followed_by_core(bool $durable): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', outputChannelName: 'outer.parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('outer.parts', endpointId: 'outer.split.endpoint', outputChannelName: 'inner.parts', gatherChannelName: 'outer.summary')]
+            public function outer(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('inner.parts', endpointId: 'outer.split.endpoint.core', outputChannelName: 'work', gatherChannelName: 'inner.summary')]
+            public function inner(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('inner.summary', endpointId: 'inner.summary.handler')]
+            public function summarizeInner(GatheredParts $parts): int
+            {
+                return array_sum($parts->results);
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('outer.summary', endpointId: 'outer.summary.handler')]
+            public function summarizeOuter(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $ecotone->sendCommandWithRouting('split', [[10, 20], [30]])->run('summaries');
+
+        self::assertCount(1, $handler->gathered);
+        self::assertSame([1 => 30, 2 => 30], $handler->gathered[0]->results);
+        self::assertSame([[10, 20], [30]], $handler->gathered[0]->originalPayload);
+    }
+
+    #[DataProvider('implementations')]
     public function test_inner_gathered_result_becomes_outer_part_result(bool $durable): void
     {
         $handler = new class () {

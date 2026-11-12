@@ -92,8 +92,8 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
 
     public function releaseGroup(string $groupId, callable $whenReleased): void
     {
-        $previous = $this->groups[$groupId];
-        if ($previous['state'] !== 'open') {
+        $previous = $this->groups[$groupId] ?? null;
+        if ($previous === null || $previous['state'] !== 'open') {
             return;
         }
         $this->groups[$groupId]['state'] = 'released';

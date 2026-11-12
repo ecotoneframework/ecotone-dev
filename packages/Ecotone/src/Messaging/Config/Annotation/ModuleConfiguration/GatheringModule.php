@@ -5,11 +5,18 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Gathered;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\GatheredGroups;
+use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\LicenceDecider;
@@ -22,7 +29,9 @@ use Ecotone\Messaging\Handler\Gathering\GatheringPartCompletion;
 use Ecotone\Messaging\Handler\Gathering\InMemoryGatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\NullPartCompletion;
 use Ecotone\Messaging\Handler\Gathering\PartCompletion;
+use Ecotone\Messaging\Handler\Gathering\UngatheredSplitterProcessor;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -48,7 +57,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 final class GatheringModule extends NoExternalConfigurationModule
 {
-    public function __construct(private array $gatherChannelNames)
+    public function __construct(private array $gatherChannelNames, private AnnotationFinder $annotationFinder)
     {
     }
 
@@ -62,23 +71,113 @@ final class GatheringModule extends NoExternalConfigurationModule
             }
         }
 
-        return new self($gatherChannelNames);
+        return new self($gatherChannelNames, $annotationRegistrationService);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    {
+        $this->assertLicence($messagingConfiguration);
+        $this->validateWiring($interfaceToCallRegistry);
+        $this->refuseStaticallyUngatheredSplitters();
+        $this->registerPartCompletion($messagingConfiguration);
+        $this->registerStore($messagingConfiguration, $extensionObjects);
+    }
+
+    private function assertLicence(Configuration $messagingConfiguration): void
     {
         if ($this->gatherChannelNames !== [] && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             $gatherChannelName = $this->gatherChannelNames[0];
             throw LicensingException::create("Splitter gather channel '{$gatherChannelName}' requires an Ecotone Enterprise licence. Provide a licence key through EcotoneLite::bootstrapFlowTesting(licenceKey: ...), or remove gatherChannelName from #[Splitter].");
         }
+    }
+
+    private function validateWiring(InterfaceToCallRegistry $interfaceToCallRegistry): void
+    {
+        $gatheredChannels = [];
+        foreach ($this->annotationFinder->findAnnotatedMethods(Gathered::class) as $registration) {
+            $interface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
+            if (array_filter($interface->getMethodAnnotations(), static fn (object $annotation): bool => $annotation instanceof InternalHandler || $annotation instanceof CommandHandler) === []) {
+                $method = $registration->getMethodName();
+                throw ConfigurationException::create("Method '{$method}' is marked #[Gathered] but has no ordinary message handler attribute. Stack it on #[InternalHandler] or #[CommandHandler], or remove #[Gathered].");
+            }
+            foreach ($interface->getMethodAnnotations() as $annotation) {
+                if ($annotation instanceof InternalHandler || $annotation instanceof CommandHandler) {
+                    $gatheredChannels[] = $annotation->getInputChannelName();
+                    if (! $interface->hasFirstParameter() || ! $interface->getFirstParameter()->getTypeDescriptor()->equals(Type::create(GatheredParts::class))) {
+                        $channel = $annotation->getInputChannelName();
+                        throw ConfigurationException::create("Gathered handler '{$channel}' must receive Ecotone\\Api\\Messaging\\GatheredParts as its first payload parameter. Change that parameter type to GatheredParts, or remove #[Gathered] and the splitter's gatherChannelName.");
+                    }
+                }
+                if (($annotation instanceof InternalHandler || $annotation instanceof CommandHandler) && ! in_array($annotation->getInputChannelName(), $this->gatherChannelNames, true)) {
+                    $channel = $annotation->getInputChannelName();
+                    throw ConfigurationException::create("Gathered handler '{$channel}' has no splitter pointing to it. Set gatherChannelName: '{$channel}' on a #[Splitter], or remove #[Gathered] from this handler.");
+                }
+                if (($annotation instanceof InternalHandler || $annotation instanceof CommandHandler) && ! $interface->hasAnnotation(Asynchronous::class)) {
+                    $channel = $annotation->getInputChannelName();
+                    throw ConfigurationException::create("Gathered handler '{$channel}' requires an asynchronous channel. Add #[Asynchronous('channelName')] to the handler, or remove #[Gathered] and the splitter's gatherChannelName.");
+                }
+            }
+        }
+        foreach ($this->gatherChannelNames as $channel) {
+            if (! in_array($channel, $gatheredChannels, true)) {
+                throw ConfigurationException::create("Splitter gather channel '{$channel}' must target a gathered handler. Define an #[InternalHandler] or #[CommandHandler] on '{$channel}' with #[Gathered] and #[Asynchronous], or remove gatherChannelName from #[Splitter].");
+            }
+        }
+    }
+
+    private function registerPartCompletion(Configuration $messagingConfiguration): void
+    {
         $messagingConfiguration->registerServiceDefinition(NullPartCompletion::class, new Definition(NullPartCompletion::class));
         $messagingConfiguration->registerServiceDefinition(GatheringPartCompletion::class, new Definition(GatheringPartCompletion::class, [new Reference(ChannelResolver::class), new Reference(MessageBuilder::class)]));
         $messagingConfiguration->registerServiceDefinition(PartCompletion::class, LicenceDecider::prepareDefinition(PartCompletion::class, NullPartCompletion::class, GatheringPartCompletion::class));
+    }
+
+    private function registerStore(Configuration $messagingConfiguration, array $extensionObjects): void
+    {
         if ($this->gatherChannelNames !== []) {
             $store = ExtensionObjectResolver::resolveUnique(GatheredGroupStoreRegistration::class, $extensionObjects, new GatheredGroupStoreRegistration(InMemoryGatheredGroupStore::class));
             $messagingConfiguration->registerServiceDefinition(InMemoryGatheredGroupStore::class, new Definition(InMemoryGatheredGroupStore::class));
             $messagingConfiguration->registerServiceDefinition(GatheredGroupStore::class, new Reference($store->serviceReference));
             $messagingConfiguration->registerServiceDefinition(GatheredGroups::class, new Definition(GatheredGroupOperations::class, [new Reference(GatheredGroupStore::class)]));
+        }
+    }
+
+    private function refuseStaticallyUngatheredSplitters(): void
+    {
+        if ($this->gatherChannelNames === []) {
+            return;
+        }
+        $outputs = [];
+        $splitters = [];
+        foreach ([Splitter::class, InternalHandler::class, CommandHandler::class, Transformer::class] as $attribute) {
+            foreach ($this->annotationFinder->findAnnotatedMethods($attribute) as $registration) {
+                $endpoint = $registration->getAnnotationForMethod();
+                $outputs[$endpoint->getInputChannelName()][] = $endpoint->getOutputChannelName();
+                if ($endpoint instanceof Splitter) {
+                    $splitters[$endpoint->getInputChannelName()][] = $endpoint;
+                }
+            }
+        }
+        foreach ($this->annotationFinder->findAnnotatedMethods(Splitter::class) as $registration) {
+            $splitter = $registration->getAnnotationForMethod();
+            if ($splitter->gatherChannelName === '') {
+                continue;
+            }
+            $pending = [$splitter->getOutputChannelName()];
+            $visited = [];
+            while ($pending !== []) {
+                $channel = array_pop($pending);
+                if ($channel === '' || isset($visited[$channel])) {
+                    continue;
+                }
+                $visited[$channel] = true;
+                foreach ($splitters[$channel] ?? [] as $nestedSplitter) {
+                    if ($nestedSplitter->gatherChannelName === '') {
+                        throw UngatheredSplitterProcessor::refusal($nestedSplitter->getEndpointId());
+                    }
+                }
+                $pending = [...$pending, ...($outputs[$channel] ?? [])];
+            }
         }
     }
 

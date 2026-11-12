@@ -14,6 +14,7 @@ use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheringSplitterProcessor;
+use Ecotone\Messaging\Handler\Gathering\UngatheredSplitterProcessor;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -124,23 +125,24 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
             ))
             ->compileProcessor($builder, $interceptorsConfiguration);
 
-        if ($this->gatherChannelName !== '') {
-            $processorReference = 'ecotone.gathering.splitter.' . $this->getEndpointId();
-            $builder->register($processorReference . '.core', $processor);
-            $builder->register($processorReference . '.enterprise', new Definition(GatheringSplitterProcessor::class, [
+        $processorReference = 'ecotone.gathering.splitter.' . $this->getEndpointId();
+        $builder->register($processorReference . '.core', $processor);
+        $enterpriseProcessor = $this->gatherChannelName === ''
+            ? new Definition(UngatheredSplitterProcessor::class, [new Reference($processorReference . '.core'), $this->getEndpointId()])
+            : new Definition(GatheringSplitterProcessor::class, [
                 new Reference($processorReference . '.core'),
                 new Reference(ChannelResolver::class),
                 new Reference(MessageBuilder::class),
                 $this->gatherChannelName,
                 $this->getEndpointId(),
                 new Reference(GatheredGroupStore::class),
-            ]));
-            $processor = $builder->register($processorReference, LicenceDecider::prepareDefinition(
-                MessageProcessor::class,
-                $processorReference . '.core',
-                $processorReference . '.enterprise',
-            ));
-        }
+            ]);
+        $builder->register($processorReference . '.enterprise', $enterpriseProcessor);
+        $processor = $builder->register($processorReference, LicenceDecider::prepareDefinition(
+            MessageProcessor::class,
+            $processorReference . '.core',
+            $processorReference . '.enterprise',
+        ));
 
         return new Definition(SplitterHandler::class, [
             $this->outputMessageChannelName ? new ChannelReference($this->outputMessageChannelName) : null,

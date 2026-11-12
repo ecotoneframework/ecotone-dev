@@ -50,7 +50,22 @@ The header rule is covered by
 `released_message_carries_application_headers_but_not_the_split_requests_routing`; the atomic completion tests
 include independent consumers and a deterministic transaction-snapshot interleaving.
 
-## Release reason
+## Bootstrap validation and nesting
+
+A gathered handler must be an ordinary `#[InternalHandler]` or `#[CommandHandler]`, must be asynchronous, and
+must receive `GatheredParts` as its first payload parameter. A splitter's gather channel must target such a
+handler; a gathered handler must have a splitter pointing at it. Invalid wiring is refused during module
+preparation with the supported alternatives in the exception message.
+
+A splitter without its own gather channel cannot split a tracked part. Attribute-defined static output chains
+are checked at bootstrap; the Enterprise splitter processor checks dynamic routing slips when the part arrives.
+Both refusals name the choices: give that splitter its own gather channel, or send the sub-work through a bus so
+it leaves the gathered flow.
+
+An inner splitter with its own gather channel opens an inner group. Its original message retains the outer
+part's headers; its sub-parts carry the inner headers. Restoring the original application and parent-group
+headers at inner release lets the inner gathered handler's result become the outer part's result. The shared
+suite covers this through `inner_gathered_result_becomes_outer_part_result`.
 
 `GatheredParts::releaseReason` is a typed `GatheredReleaseReason`; ordinary completion is
 `ALL_PARTS_ACCOUNTED_FOR`. Results remain keyed by their split part numbers, including `null` for a part that

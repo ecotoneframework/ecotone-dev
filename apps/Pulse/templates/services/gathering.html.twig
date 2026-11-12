@@ -6,6 +6,9 @@
 
 {% block body %}
     {% include 'services/_header.html.twig' with {route: 'service_gathering', current: 'gathering', heading: 'Gathering', trail: [{label: 'Gathering'}]} %}
+    {% if action == 'release' and actionStatus == 'requested' %}
+        <p class="notice toast" role="status" data-gathering-notice>Release requested for group {{ groupId }}. The handler runs when its consumer handles the release trigger.</p>
+    {% endif %}
     <p>A group waits for its split parts. Requesting release queues a trigger; the gathered handler runs when its consumer handles that trigger. Discard closes the group without running the handler.</p>
     {% for scope in scopes %}
         <section aria-label="Gathering groups{% if scope.tenant %} of {{ scope.tenant }}{% endif %}">

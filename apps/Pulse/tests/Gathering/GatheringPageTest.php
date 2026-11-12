@@ -57,6 +57,34 @@ final class GatheringPageTest extends ReleasingWebTestCase
         self::assertSame('page', $crawler->filter('[data-service-tab="gathering"]')->attr('aria-current'));
     }
 
+    public function test_release_control_requests_release_before_handler_consumption(): void
+    {
+        $client = $this->pulseWithGathering();
+        $this->orders->sendCommandWithRouting('split', [10, 20]);
+        $groupId = $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('summary')[0]['groupId'];
+        $crawler = $this->observe($client);
+
+        $client->submit($crawler->filter('[data-gathering-group="' . $groupId . '"]')->selectButton('Request release')->form());
+        self::assertResponseRedirects();
+        $crawler = $client->followRedirect();
+        self::assertStringContainsString('Release requested', $crawler->filter('[data-gathering-notice]')->text());
+        self::assertSame([], $this->handler->gathered);
+        $this->runService($this->orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+        self::assertSame([], $this->handler->gathered);
+        $this->orders->run('summaries');
+        self::assertCount(1, $this->handler->gathered);
+        self::assertSame([1, 2], $this->handler->gathered[0]->missingPartNumbers);
+        $this->orders->run('workers');
+        $this->orders->run('summaries');
+        $crawler = $this->observe($client);
+        $row = $crawler->filter('[data-gathering-group="' . $groupId . '"]');
+
+        self::assertSame('released', $row->filter('[data-group-state]')->text());
+        self::assertSame('2', $row->filter('[data-late-parts]')->text());
+        self::assertCount(0, $row->filter('button'));
+    }
+
     private function pulseWithGathering(): KernelBrowser
     {
         $this->configurePulseWithServices('orders');

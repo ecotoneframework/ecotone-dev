@@ -56,6 +56,9 @@ final class GatheringController extends AbstractController
             'tabs' => $this->overview->tabRoutes($main[0], $tenant),
             'failureCount' => null,
             'waiting' => Snapshots::needsAutoRefresh($rows),
+            'action' => $request->query->getString('action'),
+            'actionStatus' => $request->query->getString('status'),
+            'groupId' => $request->query->getString('groupId'),
         ]);
     }
 }

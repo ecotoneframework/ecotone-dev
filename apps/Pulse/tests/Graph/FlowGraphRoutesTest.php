@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Graph;
 
+use App\Tests\Support\Diagram;
 use App\Tests\Support\DistributedServicesTrait;
-use App\Tests\Support\MermaidDiagram;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
@@ -33,13 +33,13 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         $client = $this->pulseWebClient();
         $this->pulseHavingHeardFrom($client, ['storefront' => $this->storefrontSendingThroughAHelper(), 'ticketing' => $this->ticketingAnsweringHolds()]);
 
-        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow'));
+        $diagram = Diagram::fromPage($client->request('GET', '/flow'));
 
-        self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', 'tickets.hold', '==>'));
-        self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', 'Channel<br/>tickets.hold.result', '-.->'));
-        self::assertTrue($diagram->hasEdge('storefront', 'Channel<br/>tickets.hold.result', '', 'storefront', '::whenHoldAnswered', '-->'));
-        self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'replies', 'ticketing', 'Distributed Bus', '-->'));
-        self::assertTrue($diagram->hasEdge('storefront', '::releaseSeat', 'distributed message', 'ticketing', 'tickets.release', '==>'));
+        self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', 'tickets.hold', Diagram::THICK));
+        self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', 'Channel tickets.hold.result', Diagram::DASHED));
+        self::assertTrue($diagram->hasEdge('storefront', 'Channel tickets.hold.result', '', 'storefront', '::whenHoldAnswered', Diagram::SOLID));
+        self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'replies', 'ticketing', 'Distributed Bus', Diagram::SOLID));
+        self::assertTrue($diagram->hasEdge('storefront', '::releaseSeat', 'distributed message', 'ticketing', 'tickets.release', Diagram::THICK));
         self::assertFalse($diagram->hasEdge('ticketing', '::release', 'reply', 'storefront', ''));
         self::assertFalse($diagram->hasEdge('ticketing', '::release', 'replies', 'ticketing', ''));
     }
@@ -58,9 +58,9 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         };
         $this->pulseHavingHeardFrom($client, ['storefront' => $this->storefrontSendingThroughAHelper(), 'ticketing' => $this->distributedService('ticketing', $ticketing, DistributedServiceMap::initialize())]);
 
-        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow'));
+        $diagram = Diagram::fromPage($client->request('GET', '/flow'));
 
-        self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', 'Channel<br/>tickets.hold.result', '-.->'));
+        self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', 'Channel tickets.hold.result', Diagram::DASHED));
         self::assertFalse($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', '::holdRequestedSeat'));
     }
 
@@ -82,9 +82,9 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         };
         $this->pulseHavingHeardFrom($client, ['storefront' => $this->distributedService('storefront', $storefront, DistributedServiceMap::initialize()->withCommandMapping('ticketing', $this->serviceChannels['ticketing'])), 'ticketing' => $this->ticketingAnsweringHolds()]);
 
-        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow'));
+        $diagram = Diagram::fromPage($client->request('GET', '/flow'));
 
-        self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', 'tickets.hold.result', '-.->'));
+        self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', 'tickets.hold.result', Diagram::DASHED));
         self::assertFalse($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', '::holdRequestedSeat'));
     }
 
@@ -101,13 +101,13 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         };
         $this->pulseHavingHeardFrom($client, ['storefront' => $this->distributedService('storefront', $storefront, DistributedServiceMap::initialize()->withCommandMapping('ticketing', $this->serviceChannels['ticketing'])), 'ticketing' => $this->ticketingAnsweringHolds()]);
 
-        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow?view=detail'));
-        $focused = $this->labelsByService(MermaidDiagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('storefront:handler:' . $storefront::class . '::holdRequestedSeat'))));
+        $diagram = Diagram::fromPage($client->request('GET', '/flow?view=detail'));
+        $focused = $this->labelsByService(Diagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('storefront:handler:' . $storefront::class . '::holdRequestedSeat'))));
 
-        self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'sends to ticketing', 'storefront', 'Distributed Bus', '-.->'));
+        self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'sends to ticketing', 'storefront', 'Distributed Bus', Diagram::DASHED));
         self::assertFalse($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', ''));
         self::assertFalse($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', ''));
-        self::assertSame(['Distributed Bus', 'EventHandler<br/>class@anonymous::holdRequestedSeat', 'seat.requested'], $focused['storefront']);
+        self::assertSame(['Distributed Bus', 'EventHandler class@anonymous::holdRequestedSeat', 'seat.requested'], $focused['storefront']);
         self::assertArrayNotHasKey('ticketing', $focused);
     }
 
@@ -117,14 +117,14 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         $client = $this->pulseWebClient();
         $this->pulseHavingHeardFrom($client, ['storefront' => $this->storefrontSendingThroughAHelper(), 'ticketing' => $this->ticketingAnsweringHolds()]);
 
-        $labels = $this->labelsByService(MermaidDiagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('ticketing:message:tickets.hold'))));
+        $labels = $this->labelsByService(Diagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('ticketing:message:tickets.hold'))));
 
-        self::assertContains('EventHandler<br/>class@anonymous::holdRequestedSeat', $labels['storefront']);
-        self::assertContains('Channel<br/>tickets.hold.result', $labels['storefront']);
-        self::assertContains('InternalHandler<br/>class@anonymous::whenHoldAnswered', $labels['storefront']);
-        self::assertContains('CommandHandler<br/>class@anonymous::hold', $labels['ticketing']);
-        self::assertNotContains('EventHandler<br/>class@anonymous::releaseSeat', $labels['storefront']);
-        self::assertNotContains('CommandHandler<br/>class@anonymous::release', $labels['ticketing']);
+        self::assertContains('EventHandler class@anonymous::holdRequestedSeat', $labels['storefront']);
+        self::assertContains('Channel tickets.hold.result', $labels['storefront']);
+        self::assertContains('InternalHandler class@anonymous::whenHoldAnswered', $labels['storefront']);
+        self::assertContains('CommandHandler class@anonymous::hold', $labels['ticketing']);
+        self::assertNotContains('EventHandler class@anonymous::releaseSeat', $labels['storefront']);
+        self::assertNotContains('CommandHandler class@anonymous::release', $labels['ticketing']);
     }
 
     public function test_a_report_without_the_reply_channel_draws_the_reply_back_to_the_sending_handler(): void
@@ -139,11 +139,11 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         }, $graph['edges']);
         $this->pulseHavingHeardFrom($client, ['storefront' => $this->serviceAnsweringWith('storefront', $this->snapshotOf('storefront', $graph)), 'ticketing' => $this->ticketingAnsweringHolds()]);
 
-        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow'));
+        $diagram = Diagram::fromPage($client->request('GET', '/flow'));
 
-        self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', 'tickets.hold', '==>'));
-        self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', '::holdRequestedSeat', '-.->'));
-        self::assertFalse($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', 'Channel<br/>tickets.hold.result'));
+        self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', 'tickets.hold', Diagram::THICK));
+        self::assertTrue($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', '::holdRequestedSeat', Diagram::DASHED));
+        self::assertFalse($diagram->hasEdge('ticketing', '::hold', 'reply', 'storefront', 'Channel tickets.hold.result'));
     }
 
     public function test_a_report_carrying_an_edge_kind_this_pulse_does_not_know_keeps_the_rest_of_that_service_graph(): void
@@ -154,10 +154,11 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         $graph['edges'][] = ['from' => $graph['nodes'][0]['id'], 'to' => $graph['nodes'][1]['id'], 'kind' => 'teleportsTo', 'attributes' => []];
         $this->pulseHavingHeardFrom($client, ['storefront' => $this->serviceAnsweringWith('storefront', $this->snapshotOf('storefront', $graph)), 'ticketing' => $this->ticketingAnsweringHolds()]);
 
-        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow'));
+        $diagram = Diagram::fromPage($client->request('GET', '/flow'));
 
-        self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', 'tickets.hold', '==>'));
-        self::assertStringNotContainsString('teleportsTo', $diagram->source);
+        self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', 'tickets.hold', Diagram::THICK));
+        self::assertStringNotContainsString('teleportsTo', $diagram->text);
+        self::assertNotContains('teleportsTo', array_column($diagram->edges, 'label'));
     }
 
     public function test_a_report_carrying_a_node_kind_this_pulse_does_not_know_keeps_the_rest_of_that_service_graph(): void
@@ -170,10 +171,10 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         $graph['edges'][] = ['from' => $graph['nodes'][0]['id'], 'to' => 'wormhole:seats', 'kind' => 'output', 'attributes' => []];
         $this->pulseHavingHeardFrom($client, ['storefront' => $this->serviceAnsweringWith('storefront', $this->snapshotOf('storefront', $graph)), 'ticketing' => $this->ticketingAnsweringHolds()]);
 
-        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow'));
+        $diagram = Diagram::fromPage($client->request('GET', '/flow'));
 
-        self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', 'tickets.hold', '==>'));
-        self::assertStringNotContainsString('Seat Wormhole', $diagram->source);
+        self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', 'tickets.hold', Diagram::THICK));
+        self::assertStringNotContainsString('Seat Wormhole', $diagram->text);
     }
 
     public function test_following_an_event_reaches_the_projection_that_reads_it(): void
@@ -195,9 +196,9 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         };
         $this->pulseHavingHeardFrom($client, ['ticketing' => $this->distributedService('ticketing', $handlers, DistributedServiceMap::initialize(), [], [$projection])]);
 
-        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('ticketing:message:seat.held')));
+        $diagram = Diagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('ticketing:message:seat.held')));
 
-        self::assertTrue($diagram->hasEdge('ticketing', '::seatHeld', 'projects into', 'ticketing', 'concert_seat_map', '-->'));
+        self::assertTrue($diagram->hasEdge('ticketing', '::seatHeld', 'projects into', 'ticketing', 'concert_seat_map', Diagram::SOLID));
         self::assertContains('concert_seat_map', $this->labelsByService($diagram)['ticketing']);
     }
 
@@ -227,11 +228,11 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         $this->pulseHavingHeardFrom($client, ['ticketing' => $this->distributedService('ticketing', $handlers, DistributedServiceMap::initialize(), [], [$seatMap, $otherMap])]);
 
         foreach (['ticketing:message:seat.held', 'ticketing:projection:concert_seat_map'] as $focus) {
-            $labels = $this->labelsByService(MermaidDiagram::fromPage($client->request('GET', '/flow?focus=' . urlencode($focus))))['ticketing'];
+            $labels = $this->labelsByService(Diagram::fromPage($client->request('GET', '/flow?focus=' . urlencode($focus))))['ticketing'];
 
             self::assertContains('concert_seat_map', $labels);
             self::assertNotContains('other_map', $labels);
-            self::assertNotContains('EventHandler<br/>class@anonymous::seatCancelled', $labels);
+            self::assertNotContains('EventHandler class@anonymous::seatCancelled', $labels);
         }
     }
 
@@ -308,7 +309,7 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
     /**
      * @return array<string, list<string>>
      */
-    private function labelsByService(MermaidDiagram $diagram): array
+    private function labelsByService(Diagram $diagram): array
     {
         $labels = [];
         foreach ($diagram->nodes as $node) {

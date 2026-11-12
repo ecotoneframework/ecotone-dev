@@ -21,5 +21,4 @@
 /config/reference.php
 /composer.pinned.json
 /composer.pinned.lock
-/tests/Mermaid/node_modules/
 /tests/Accessibility/node_modules/

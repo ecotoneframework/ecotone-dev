@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Graph;
 
+use App\Tests\Support\Diagram;
 use App\Tests\Support\DistributedServicesTrait;
-use App\Tests\Support\MermaidDiagram;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
@@ -36,9 +36,9 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         $focused = $this->follow($client, $client->request('GET', '/flow'), 'billing', '::create');
 
         self::assertSame([
-            'billing' => ['CommandHandler<br/>class@anonymous::create', 'Distributed Bus', 'invoice.create', 'invoice.created'],
-            'orders' => ['CommandHandler<br/>class@anonymous::place', 'EventHandler<br/>class@anonymous::whenInvoiceCreated', 'invoice.create', 'invoice.created', 'order.place'],
-        ], $this->labelsByService(MermaidDiagram::fromPage($focused)));
+            'billing' => ['CommandHandler class@anonymous::create', 'Distributed Bus', 'invoice.create', 'invoice.created'],
+            'orders' => ['CommandHandler class@anonymous::place', 'EventHandler class@anonymous::whenInvoiceCreated', 'invoice.create', 'invoice.created', 'order.place'],
+        ], $this->labelsByService(Diagram::fromPage($focused)));
     }
 
     public function test_the_followed_node_is_marked_and_the_steps_before_and_after_it_are_listed_as_links_to_follow(): void
@@ -48,11 +48,8 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         $focused = $this->follow($client, $client->request('GET', '/flow'), 'billing', '::create');
 
         self::assertStringContainsString('class@anonymous::create', $focused->filter('[data-focus] h2')->text());
-        $diagram = MermaidDiagram::fromPage($focused);
-        $marked = array_values(array_filter($diagram->lines, fn (string $line) => str_starts_with($line, '    class ') && str_ends_with($line, ' focused')));
-        self::assertCount(1, $marked);
-        self::assertSame('CommandHandler<br/>class@anonymous::create', $diagram->nodes[explode(' ', $marked[0])[5]]['label']);
-        self::assertContains('    classDef focused stroke-width:4px', $diagram->lines);
+        $diagram = Diagram::fromPage($focused);
+        self::assertSame(['CommandHandler class@anonymous::create'], array_map(fn (string $id) => $diagram->nodes[$id]['label'], $diagram->focused()));
         self::assertSame(['order.place', 'class@anonymous::place', 'invoice.create', 'Distributed Bus', 'invoice.create'], $focused->filter('[data-focus-upstream] a')->each(fn (Crawler $link) => $link->text()));
         self::assertSame(['invoice.created', 'Distributed Bus', 'invoice.created', 'class@anonymous::whenInvoiceCreated'], $focused->filter('[data-focus-downstream] a')->each(fn (Crawler $link) => $link->text()));
         $refocused = $client->request('GET', $focused->filter('[data-focus-upstream] a')->first()->attr('href'));
@@ -65,7 +62,7 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
 
         $focused = $this->follow($client, $client->request('GET', '/flow'), 'billing', '::create');
 
-        $steps = $focused->filter('pre.mermaid ~ details[data-focus-steps]');
+        $steps = $focused->filter('[data-diagram] ~ details[data-focus-steps]');
         self::assertCount(1, $steps);
         self::assertNull($steps->attr('open'));
         self::assertSame('Steps: 5 before, 4 after', $steps->filter('summary')->text());
@@ -88,11 +85,11 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
 
         $focused = $this->follow($client, $client->request('GET', '/flow'), 'billing', '::create');
 
-        $nodes = json_decode($focused->filter('pre.mermaid')->attr('data-graph-nodes'), true, flags: JSON_THROW_ON_ERROR);
-        $current = array_values(array_filter($nodes, fn (array $node) => ($node['current'] ?? false) === true));
+        $current = array_values(array_filter(Diagram::fromPage($focused)->nodes, fn (array $node) => $node['current']));
         self::assertCount(1, $current);
         self::assertSame('billing', $current[0]['service']);
-        self::assertStringEndsWith('::create', $current[0]['title']);
+        self::assertStringEndsWith('::create', (string) $current[0]['title']);
+        self::assertCount(1, $focused->filter('[aria-current="true"][data-diagram-node]'));
     }
 
     public function test_handlers_sharing_an_asynchronous_channel_or_an_interceptor_are_not_part_of_each_others_flow(): void
@@ -123,7 +120,7 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
 
         $focused = $this->follow($client, $client->request('GET', '/flow'), 'shipping', '::pack');
 
-        self::assertSame(['shipping' => ['Channel<br/>shipping_work', 'CommandHandler<br/>class@anonymous::pack', 'shipping.pack']], $this->labelsByService(MermaidDiagram::fromPage($focused)));
+        self::assertSame(['shipping' => ['Channel shipping_work', 'CommandHandler class@anonymous::pack', 'shipping.pack']], $this->labelsByService(Diagram::fromPage($focused)));
     }
 
     public function test_a_followed_path_marks_each_step_that_runs_on_an_asynchronous_channel_with_and_without_folding(): void
@@ -131,11 +128,11 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         $client = $this->ticketingHoldingSeatsAsynchronously();
 
         foreach (['', '&fold=channels'] as $fold) {
-            $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('ticketing:' . $this->nodeIdOf($client, 'ticketing', 'tickets.hold')) . $fold));
+            $diagram = Diagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('ticketing:' . $this->nodeIdOf($client, 'ticketing', 'tickets.hold')) . $fold));
 
-            self::assertTrue($diagram->hasEdge('ticketing', 'tickets.hold', 'async: ticketing_async', 'ticketing', '::hold', '==>'));
-            self::assertTrue($diagram->hasEdge('ticketing', 'seat.held', 'async: ticketing_async', 'ticketing', '::whenSeatHeld', '==>'));
-            self::assertSame([], array_values(array_filter($diagram->nodes, fn (array $node) => $node['label'] === 'Channel<br/>ticketing_async')));
+            self::assertTrue($diagram->hasEdge('ticketing', 'tickets.hold', 'async: ticketing_async', 'ticketing', '::hold', Diagram::THICK));
+            self::assertTrue($diagram->hasEdge('ticketing', 'seat.held', 'async: ticketing_async', 'ticketing', '::whenSeatHeld', Diagram::THICK));
+            self::assertSame([], array_values(array_filter($diagram->nodes, fn (array $node) => $node['label'] === 'Channel ticketing_async')));
         }
     }
 
@@ -158,11 +155,11 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
         };
         $this->pulseHavingHeardFrom($client, ['ticketing' => $this->distributedService('ticketing', $handlers, DistributedServiceMap::initialize(), [SimpleMessageChannelBuilder::createQueueChannel('ticketing_async')], [$projection])]);
 
-        $projectionFlow = $this->labelsByService(MermaidDiagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('ticketing:' . $this->nodeIdOf($client, 'ticketing', 'seat_map')))))['ticketing'];
-        $holdFlow = $this->labelsByService(MermaidDiagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('ticketing:' . $this->nodeIdOf($client, 'ticketing', 'tickets.hold')))))['ticketing'];
+        $projectionFlow = $this->labelsByService(Diagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('ticketing:' . $this->nodeIdOf($client, 'ticketing', 'seat_map')))))['ticketing'];
+        $holdFlow = $this->labelsByService(Diagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('ticketing:' . $this->nodeIdOf($client, 'ticketing', 'tickets.hold')))))['ticketing'];
 
-        self::assertContains('Channel<br/>ticketing_async', $projectionFlow);
-        self::assertNotContains('CommandHandler<br/>class@anonymous::hold', $projectionFlow);
+        self::assertContains('Channel ticketing_async', $projectionFlow);
+        self::assertNotContains('CommandHandler class@anonymous::hold', $projectionFlow);
         self::assertNotContains('seat_map', $holdFlow);
     }
 
@@ -172,7 +169,7 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
 
         $focused = $this->follow($client, $client->request('GET', '/flow'), 'billing', 'Distributed Bus');
 
-        self::assertSame(['billing' => ['Channel<br/>orders', 'Channel<br/>pulse', 'Distributed Bus', 'invoice.create', 'invoice.created']], $this->labelsByService(MermaidDiagram::fromPage($focused)));
+        self::assertSame(['billing' => ['Channel orders', 'Channel pulse', 'Distributed Bus', 'invoice.create', 'invoice.created']], $this->labelsByService(Diagram::fromPage($focused)));
     }
 
     public function test_following_a_channel_shows_only_the_handlers_it_feeds(): void
@@ -196,7 +193,7 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
 
         $focused = $this->follow($client, $client->request('GET', '/flow'), 'shipping', 'shipping_work');
 
-        self::assertSame(['shipping' => ['Channel<br/>shipping_work', 'CommandHandler<br/>class@anonymous::pack']], $this->labelsByService(MermaidDiagram::fromPage($focused)));
+        self::assertSame(['shipping' => ['Channel shipping_work', 'CommandHandler class@anonymous::pack']], $this->labelsByService(Diagram::fromPage($focused)));
     }
 
     public function test_following_a_node_of_a_service_that_did_not_answer_is_refused_with_the_services_to_choose_from(): void
@@ -339,20 +336,19 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
 
     private function nodeIdOf(KernelBrowser $client, string $service, string $title): string
     {
-        $nodes = json_decode($client->request('GET', '/flow')->filter('pre.mermaid')->attr('data-graph-nodes'), true, flags: JSON_THROW_ON_ERROR);
-        $matching = array_values(array_filter($nodes, fn (array $node) => $node['service'] === $service && $node['title'] === $title));
+        $matching = array_values(array_filter(Diagram::fromPage($client->request('GET', '/flow'))->nodes, fn (array $node) => $node['service'] === $service && $node['title'] === $title));
         self::assertCount(1, $matching);
+        parse_str((string) parse_url((string) $matching[0]['href'], PHP_URL_QUERY), $query);
 
-        return $matching[0]['node'];
+        return substr((string) $query['focus'], strlen($service) + 1);
     }
 
     private function follow(KernelBrowser $client, Crawler $page, string $service, string $titleEnding): Crawler
     {
-        $nodes = json_decode($page->filter('pre.mermaid')->attr('data-graph-nodes'), true, flags: JSON_THROW_ON_ERROR);
-        $matching = array_values(array_filter($nodes, fn (array $node) => $node['service'] === $service && str_ends_with($node['title'], $titleEnding)));
+        $matching = array_values(array_filter(Diagram::fromPage($page)->nodes, fn (array $node) => $node['service'] === $service && str_ends_with((string) $node['title'], $titleEnding)));
         self::assertCount(1, $matching);
 
-        $focused = $client->request('GET', $matching[0]['href']);
+        $focused = $client->request('GET', (string) $matching[0]['href']);
         self::assertResponseIsSuccessful();
 
         return $focused;
@@ -361,7 +357,7 @@ final class FlowGraphFocusTest extends ReleasingWebTestCase
     /**
      * @return array<string, list<string>>
      */
-    private function labelsByService(MermaidDiagram $diagram): array
+    private function labelsByService(Diagram $diagram): array
     {
         $labels = [];
         foreach ($diagram->nodes as $node) {

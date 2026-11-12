@@ -136,7 +136,7 @@ final readonly class FlowGraphSummary
             return [Status::Info, null, sprintf('%s is still running: %s wait to be processed (amber) and %d passed.', $trace, self::counted($counts[TraceHighlight::PENDING], 'node', 'nodes'), $passed)];
         }
 
-        return [Status::Ok, null, sprintf('%s passed through %s in %s; thick arrows show the way it went.', $trace, self::counted($passed, 'node', 'nodes'), self::listed($highlight->services))];
+        return [Status::Ok, null, sprintf('%s passed through %s in %s; green arrows show the way it went.', $trace, self::counted($passed, 'node', 'nodes'), self::listed($highlight->services))];
     }
 
     /**

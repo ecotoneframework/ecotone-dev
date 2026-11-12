@@ -18,6 +18,7 @@ use App\Snapshot\Snapshots;
 use App\Trace\TraceLoader;
 use App\Ui\FlowGraphSummary;
 use App\Ui\Status;
+use App\Ui\TraceSteps;
 use Ecotone\Api\Messaging\Flow\FlowNode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -104,6 +105,8 @@ final class FlowGraphController extends AbstractController
 
         $doubts = array_values(array_filter($findings, static fn (array $finding): bool => $finding['status'] === Status::Info));
 
+        $diagram = ($overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::diagram($flows, $shown, $highlight, $scope, $focus, $collapsed, $foldChannels))->linked($nodes);
+
         return $this->render('graph/flow.html.twig', [
             'summary' => $summary,
             'findings' => array_values(array_filter($findings, static fn (array $finding): bool => $finding['status'] !== Status::Info)),
@@ -117,6 +120,7 @@ final class FlowGraphController extends AbstractController
                 'label' => ShortLabel::of($focus->node->label),
                 'parameter' => $focus->service . ':' . $focus->node->id,
                 'service' => $focus->service,
+                'node' => $focus->node->id,
                 'clearUrl' => $this->generateUrl('flow_graph', $carried),
                 'upstream' => $this->stepsOf($focus->upstream, $carried),
                 'downstream' => $this->stepsOf($focus->downstream, $carried),
@@ -132,8 +136,9 @@ final class FlowGraphController extends AbstractController
             'foldUrl' => $this->generateUrl('flow_graph', array_filter([...$request->query->all(), 'fold' => $foldChannels ? '' : 'channels'])),
             'collapseUrls' => array_combine($shown, array_map(fn (string $service): string => $this->collapseUrl($request, $collapsed, $service), $shown)),
             'notices' => $serviceFlows->notices,
-            'diagram' => $overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::toMermaid($flows, $shown, $highlight, $scope, $focus, $collapsed, $foldChannels),
+            'diagram' => $diagram,
             'trace' => $highlight,
+            'traceSteps' => $highlight === null || $traceView === null || $traceView->trace->isEmpty() ? null : TraceSteps::of($traceView->trace, $highlight, $diagram),
             'traceStates' => $traceView?->states ?? [],
             'traceEmpty' => $traceView !== null && $traceView->trace->isEmpty(),
             'waiting' => $traceView?->waiting ?? false,

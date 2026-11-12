@@ -101,7 +101,8 @@
     {% if focus %}
         <section class="card focus" data-focus aria-labelledby="focus-heading">
             <h2 id="focus-heading">Following {{ focus.label }} <span class="muted">in {{ focus.service }}</span></h2>
-            <p class="muted">Only what led to it and what it causes, as far as the services report it, is drawn: a send whose routing key is computed at runtime reaches the service it is sent to, but not the message there. Click a node, or a step listed under the graph, to re-centre on it, or <a href="{{ focus.clearUrl }}" data-focus-clear>show everything</a>.</p>
+            <p class="muted">Only what led to it and what it causes, as far as the services report it, is drawn: a send whose routing key is computed at runtime reaches the service it is sent to, but not the message there. Click a node, or a step listed under the graph, to re-centre on it, or <a href="{{ focus.clearUrl }}" data-focus-clear>show everything</a>. </p>
+            <p><a class="btn" href="{{ path('catalogue_node', {service: focus.service, id: focus.node}) }}" data-focus-page>Open the page of {{ focus.label }}</a></p>
         </section>
     {% endif %}
 
@@ -125,7 +126,32 @@
             {% elseif services|length > 1 %}<a href="{{ overviewUrl }}">Show the service overview</a>{% endif %}
             {% if not overview %}{% if services|length > 1 %} · {% endif %}{% if not focus %}Click a node to follow it: only what led to it and everything it causes stays drawn. {% endif %}{% if foldChannels %}<a href="{{ foldUrl }}" data-unfold-channels>Show channels</a>{% else %}<a href="{{ foldUrl }}" data-fold-channels>Fold asynchronous channels into arrows</a>{% endif %}{% endif %}
         </p>
-        <pre class="mermaid" data-flow-graph data-graph-nodes="{{ nodes|json_encode }}">{{ diagram }}</pre>
+        {% include 'graph/_diagram.html.twig' with {diagram: diagram, hook: 'flow-graph', label: 'Flow graph'} only %}
+        {% if traceSteps and traceSteps.steps is not empty %}
+            <details class="card flush trace-drawer" data-trace-drawer data-disclosure="flow.trace-drawer" open>
+                <summary><b>Trace step by step</b> <span class="summary-state">{{ traceSteps.steps|length }} steps · {{ traceSteps.duration }} from first to last{% if traceSteps.longestWait %} · longest wait before a step {{ traceSteps.longestWait }}{% endif %}</span></summary>
+                <p class="trace-drawer-note" data-trace-drawer-note>{% if overview %}The graph above is the service overview, so the steps have no numbers here: <a href="{{ detailUrl }}" data-trace-drawer-detail>draw every node</a> to see each step on its node. {% else %}A number is the node the step passed on the graph: press it to bring that node into view. A node the trace visits again keeps its number, and a dot means no node drawn above matches the step. {% endif %}"Waited" is the time before the step ran, in a queue or because the message was sent with a delay. "Took" includes the steps a step started, indented under it. <a href="{{ path('trace_detail', {traceId: trace.traceId}) }}" data-trace-drawer-full>Open the full trace</a> for attributes, errors and the flame graph.</p>
+                <div class="trace-drawer-body" tabindex="0" role="region" aria-label="Steps of the trace">
+                    <table class="trace-steps">
+                        <thead><tr><th scope="col">On graph</th><th scope="col">Service</th><th scope="col">Step</th><th scope="col" class="num">Waited</th><th scope="col" class="num">Took</th><th scope="col" class="timeline">Timeline</th></tr></thead>
+                        <tbody>
+                        {% set total = max(1, traceSteps.totalMicro) %}
+                        {% for step in traceSteps.steps %}
+                            <tr{% if step.step %} data-trace-step="{{ step.step }}"{% endif %} data-trace-step-status="{{ step.status }}"{% if step.hopFrom %} data-trace-step-hop{% endif %} class="status-{{ step.status }}">
+                                <td>{% if step.step %}<button type="button" class="dn-step-ref{{ step.failed ? ' failed' : (step.pending ? ' pending' : '') }}" data-trace-step-button aria-label="Show step {{ step.step }} on the graph">{{ step.step }}</button>{% else %}<span class="muted" aria-label="not on the graph">·</span>{% endif %}</td>
+                                <td>{{ step.service }}{% if step.hopFrom %} <span class="chip" title="This step crossed from {{ step.hopFrom }} to {{ step.service }}">⇢ from {{ step.hopFrom }}</span>{% endif %}</td>
+                                <td style="padding-left: {{ 0.5 + step.depth * 0.9 }}em"><span class="mono">{{ step.name|breakable }}</span>{% if step.failed %} <span class="pill bad">failed</span>{% if step.error %} <span class="drift">{{ step.error|length > 140 ? step.error|slice(0, 140) ~ '…' : step.error }}</span>{% endif %}{% elseif step.pending %} <span class="pill wait">pending</span>{% endif %}</td>
+                                <td class="num">{{ step.waitLabel }}</td>
+                                <td class="num">{{ step.durationLabel }}</td>
+                                {% set barWidth = max(0.8, (step.durationMicro / total * 100)|round(3)) %}{% set barLeft = min((step.offsetMicro / total * 100)|round(3), 100 - barWidth) %}
+                                <td class="timeline"><div class="track">{% if step.waitMicro > 0 %}<span class="wait-bar" title="waited {{ step.waitLabel }} in a queue" style="left: {{ max(0, ((step.offsetMicro - step.waitMicro) / total * 100)|round(3)) }}%; width: {{ (step.waitMicro / total * 100)|round(3) }}%"></span>{% endif %}<span class="bar{{ step.failed ? ' failed' : (step.pending ? ' pending' : ' passed') }}" style="left: {{ barLeft }}%; width: {{ barWidth }}%"></span></div></td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        {% endif %}
         {% if focus %}
             <details class="card focus" data-focus-steps data-disclosure="flow.focus-steps">
                 <summary>Steps: {{ focus.upstream|length }} before, {{ focus.downstream|length }} after</summary>
@@ -151,23 +177,23 @@
                 <li data-service-link="{{ service }}"><b>{{ service }}</b>: <a data-dead-letters href="{{ path('dead_letters', {service: service}) }}">Dead letters of {{ service }}</a> · <a data-traces href="{{ path('traces', {service: service}) }}">Traces of {{ service }}</a></li>
             {% endfor %}
         </ul>
-        {% embed '_section.html.twig' with {key: 'flow.legend', hook: 'graph-legend', title: 'Legend', summary: '5 shapes, 4 kinds of arrow, 4 trace marks', status: 'ok', open: trace is not null} only %}
+        {% embed '_section.html.twig' with {key: 'flow.legend', hook: 'graph-legend', title: 'Legend', summary: '5 kinds of node, 4 kinds of arrow, 4 trace marks', status: 'ok', open: trace is not null} only %}
             {% block body %}
                 <ul class="legend-items">
-                    <li data-legend="command"><span class="legend-shape shape-command" aria-hidden="true"></span> command: asks for one thing to be done</li>
-                    <li data-legend="event"><span class="legend-shape shape-event" aria-hidden="true"></span> event: says something happened</li>
-                    <li data-legend="query"><span class="legend-shape shape-query" aria-hidden="true"></span> query: asks for data</li>
-                    <li data-legend="handler"><span class="legend-shape shape-handler" aria-hidden="true"></span> handler: its kind on the first line, Class::method below</li>
-                    <li data-legend="channel"><span class="legend-shape shape-channel" aria-hidden="true"></span> channel: where an asynchronous message waits</li>
+                    <li data-legend="command">{% include 'graph/_kind.html.twig' with {family: 'command', kind: 'command', label: 'Command'} only %} asks for one thing to be done</li>
+                    <li data-legend="event">{% include 'graph/_kind.html.twig' with {family: 'event', kind: 'event', label: 'Event'} only %} says something happened</li>
+                    <li data-legend="query">{% include 'graph/_kind.html.twig' with {family: 'query', kind: 'query', label: 'Query'} only %} asks for data</li>
+                    <li data-legend="handler">{% include 'graph/_kind.html.twig' with {family: 'handler', kind: 'commandHandler', label: 'Command handler'} only %} the code that takes a message, named Class::method</li>
+                    <li data-legend="channel">{% include 'graph/_kind.html.twig' with {family: 'channel', kind: 'channel', label: 'Channel'} only %} where an asynchronous message waits</li>
                 </ul>
                 <ul class="legend-items">
-                    <li data-legend="declared"><b>→</b> declared by an attribute or the Service Map</li>
-                    <li data-legend="asynchronous"><b>⟹</b> {% include '_concept.html.twig' with {term: 'asynchronous-arrow', text: 'asynchronous or distributed'} only %}</li>
-                    <li data-legend="inferred"><b>⇢</b> {% include '_concept.html.twig' with {term: 'inferred-arrow', text: 'inferred from source code'} only %}</li>
+                    <li data-legend="declared"><b>→</b> thin: declared by an attribute or the Service Map</li>
+                    <li data-legend="asynchronous"><b>⟹</b> thick: {% include '_concept.html.twig' with {term: 'asynchronous-arrow', text: 'asynchronous or distributed'} only %}</li>
+                    <li data-legend="inferred"><b>⇢</b> dashed: {% include '_concept.html.twig' with {term: 'inferred-arrow', text: 'inferred from source code'} only %}</li>
                     <li data-legend="reply"><b>⇢</b> labelled reply: the answer of a distributed message going back</li>
                 </ul>
                 <ul class="legend-items">
-                    <li data-legend="passed"><span class="pill ok sq">passed</span> the trace went through</li>
+                    <li data-legend="passed"><span class="pill ok sq">passed</span> the trace went through, numbered in the order it got there</li>
                     <li data-legend="pending"><span class="pill wait sq">pending</span> sent, not processed yet</li>
                     <li data-legend="failed"><span class="pill bad sq">failed</span> the step failed</li>
                     <li data-legend="crossed"><b class="ok">━</b> arrow the trace crossed</li>

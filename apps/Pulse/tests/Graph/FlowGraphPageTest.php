@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Graph;
 
+use App\Tests\Support\Diagram;
 use App\Tests\Support\DistributedServicesTrait;
-use App\Tests\Support\MermaidDiagram;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\Gateway\DistributedBus;
+use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
@@ -27,8 +28,7 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/flow');
 
         self::assertResponseIsSuccessful();
-        $diagram = MermaidDiagram::fromPage($crawler)->source;
-        self::assertTrue((new MermaidDiagram($diagram))->hasEdge('orders', 'invoice.create', 'distributed command', 'billing', 'invoice.create'));
+        self::assertTrue(Diagram::fromPage($crawler)->hasEdge('orders', 'invoice.create', 'distributed command', 'billing', 'invoice.create'));
     }
 
     public function test_flow_graph_links_a_published_event_to_the_subscribing_service(): void
@@ -39,7 +39,7 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow');
 
-        self::assertTrue((MermaidDiagram::fromPage($crawler))->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
+        self::assertTrue((Diagram::fromPage($crawler))->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
     }
 
     public function test_flow_graph_keeps_inferred_edges_dashed(): void
@@ -50,7 +50,7 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow');
 
-        self::assertTrue((MermaidDiagram::fromPage($crawler))->hasEdge('orders', 'invoice.create', 'sends to billing', 'orders', 'Distributed Bus', '-.->'));
+        self::assertTrue((Diagram::fromPage($crawler))->hasEdge('orders', 'invoice.create', 'sends to billing', 'orders', 'Distributed Bus', Diagram::DASHED));
     }
 
     public function test_flow_graph_hides_services_that_are_toggled_off(): void
@@ -61,12 +61,11 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow?services[]=orders');
 
-        $diagram = MermaidDiagram::fromPage($crawler)->source;
-        self::assertStringContainsString('subgraph', $diagram);
-        self::assertStringContainsString('["orders"]', $diagram);
-        self::assertStringNotContainsString('["billing"]', $diagram);
-        self::assertStringNotContainsString('invoice.create.handler', $diagram);
-        self::assertStringNotContainsString('distributed command', $diagram);
+        $diagram = Diagram::fromPage($crawler);
+        self::assertSame(['orders'], $diagram->services);
+        self::assertStringNotContainsString('invoice.create.handler', $diagram->text);
+        self::assertStringNotContainsString('distributed command', $diagram->text);
+        self::assertNotContains('distributed command', array_column($diagram->edges, 'label'));
         self::assertCount(1, $crawler->filter('input[name="services[]"]:checked'));
     }
 
@@ -79,13 +78,19 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/flow');
 
         self::assertResponseIsSuccessful();
-        $diagram = MermaidDiagram::fromPage($crawler);
-        self::assertStringNotContainsString('<img', $diagram->source);
-        self::assertStringNotContainsString('onerror=alert(1)>', $diagram->source);
-        $hostile = array_values(array_filter($diagram->lines, fn (string $line) => str_contains($line, 'onerror')));
-        self::assertCount(1, array_filter($hostile, fn (string $line) => str_contains($line, '#93;')));
-        foreach ($diagram->lines as $line) {
-            self::assertMatchesRegularExpression('/^(flowchart LR|    subgraph \w+ \["[^"]*"\]|    end|        \w+\S*"[^"]*"\S*|    \w+ (-->|-\.->|==>)(\|"[^"]*"\|)? \w+)$/', $line);
+        $diagram = Diagram::fromPage($crawler);
+        self::assertStringNotContainsString('<img', (string) $client->getResponse()->getContent());
+        self::assertCount(0, $crawler->filter('[data-diagram] img, [data-diagram] [onerror]'));
+        self::assertCount(1, array_filter($diagram->nodes, fn (array $node) => $node['name'] === 'A<img src=x onerror=alert(1)> "B]'));
+        self::assertCount(count($diagram->nodes), $crawler->filter('[data-diagram-node]'));
+        foreach (array_keys($diagram->nodes) as $id) {
+            self::assertMatchesRegularExpression('/^s\d+n\d+$/', $id);
+        }
+        self::assertNotEmpty($diagram->edges);
+        foreach ($diagram->edges as $edge) {
+            self::assertArrayHasKey($edge['from'], $diagram->nodes);
+            self::assertArrayHasKey($edge['to'], $diagram->nodes);
+            self::assertContains($edge['arrow'], [Diagram::SOLID, Diagram::DASHED, Diagram::THICK]);
         }
     }
 
@@ -97,14 +102,14 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow');
 
-        $diagram = MermaidDiagram::fromPage($crawler);
-        $subgraphs = array_values(array_filter($diagram->lines, fn (string $line) => str_contains($line, 'subgraph')));
-        self::assertCount(3, array_unique($subgraphs));
-        self::assertCount(3, array_unique(array_map(fn (string $line) => explode(' ', trim($line))[1], $subgraphs)));
-        self::assertNotContains(true, array_map(fn (string $line) => (bool) preg_match('/^    (end|graph|subgraph|flowchart)\b ?\[/', $line), $diagram->lines));
+        $diagram = Diagram::fromPage($crawler);
+        self::assertEqualsCanonicalizing(['a-b', 'a_b', 'end'], $diagram->services);
+        $groups = $crawler->filter('[data-diagram-group]')->each(fn (Crawler $group) => (string) $group->attr('data-diagram-group'));
+        self::assertCount(3, array_unique($groups));
+        self::assertSame($groups, preg_grep('/^s\d+$/', $groups));
         self::assertSame($diagram->nodesOf('a-b'), $diagram->nodesOf('a_b'));
         self::assertGreaterThan(0, $diagram->nodesOf('end'));
-        self::assertCount(count($diagram->nodes), array_unique(array_keys($diagram->nodes)));
+        self::assertCount(count($diagram->nodes), $crawler->filter('[data-diagram-node]'));
     }
 
     public function test_flow_graph_links_a_sent_message_to_the_channel_handler_and_its_reply_back(): void
@@ -115,9 +120,9 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow');
 
-        $diagram = MermaidDiagram::fromPage($crawler);
-        self::assertTrue($diagram->hasEdge('orders', '::place', 'distributed message', 'billing', '::ping', '==>'));
-        self::assertTrue($diagram->hasEdge('billing', '::ping', 'reply', 'orders', '::place', '-.->'));
+        $diagram = Diagram::fromPage($crawler);
+        self::assertTrue($diagram->hasEdge('orders', '::place', 'distributed message', 'billing', '::ping', Diagram::THICK));
+        self::assertTrue($diagram->hasEdge('billing', '::ping', 'reply', 'orders', '::place', Diagram::DASHED));
     }
 
     public function test_flow_graph_draws_no_reply_for_a_message_sent_without_a_reply_routing_key(): void
@@ -137,9 +142,9 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
         };
         $this->pulseHavingHeardFrom($client, ['orders' => $this->distributedService('orders', $orders, DistributedServiceMap::initialize()->withCommandMapping('billing', $this->serviceChannels['billing'])), 'billing' => $this->billingAnsweringPing()]);
 
-        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow'));
+        $diagram = Diagram::fromPage($client->request('GET', '/flow'));
 
-        self::assertTrue($diagram->hasEdge('orders', '::place', 'distributed message', 'billing', '::ping', '==>'));
+        self::assertTrue($diagram->hasEdge('orders', '::place', 'distributed message', 'billing', '::ping', Diagram::THICK));
         self::assertFalse($diagram->hasEdge('billing', '::ping', 'reply', 'orders', ''));
     }
 
@@ -152,7 +157,7 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow');
 
-        self::assertTrue(MermaidDiagram::fromPage($crawler)->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
+        self::assertTrue(Diagram::fromPage($crawler)->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
     }
 
     public function test_event_subscription_keys_match_published_routing_keys_ignoring_case(): void
@@ -164,7 +169,7 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow');
 
-        self::assertTrue(MermaidDiagram::fromPage($crawler)->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
+        self::assertTrue(Diagram::fromPage($crawler)->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
     }
 
     public function test_event_is_not_linked_when_the_event_mapping_excludes_the_publishing_service(): void
@@ -176,7 +181,7 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow');
 
-        self::assertFalse(MermaidDiagram::fromPage($crawler)->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
+        self::assertFalse(Diagram::fromPage($crawler)->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
     }
 
     public function test_event_is_linked_only_when_the_event_mapping_includes_the_publishing_service(): void
@@ -186,7 +191,7 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
         $orders = $this->ordersSendingInvoiceCommandToBilling();
         $this->pulseHavingHeardFrom($client, ['orders' => $orders, 'billing' => $this->billingCreatingInvoices(DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['orders'], ['invoice.*'], includePublishingServices: ['shipping']))]);
 
-        self::assertFalse(MermaidDiagram::fromPage($client->request('GET', '/flow'))->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
+        self::assertFalse(Diagram::fromPage($client->request('GET', '/flow'))->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
     }
 
     public function test_event_is_linked_when_the_event_mapping_includes_the_publishing_service(): void
@@ -196,7 +201,7 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
         $orders = $this->ordersSendingInvoiceCommandToBilling();
         $this->pulseHavingHeardFrom($client, ['orders' => $orders, 'billing' => $this->billingCreatingInvoices(DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['orders'], ['invoice.*'], includePublishingServices: ['billing']))]);
 
-        self::assertTrue(MermaidDiagram::fromPage($client->request('GET', '/flow'))->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
+        self::assertTrue(Diagram::fromPage($client->request('GET', '/flow'))->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
     }
 
     public function test_services_beyond_the_node_limit_open_as_the_service_overview(): void
@@ -209,8 +214,8 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/flow');
 
         self::assertCount(1, $crawler->filter('[data-flow-overview]'));
-        self::assertSame(0, MermaidDiagram::fromPage($crawler)->nodesOf('s1'));
-        $chosen = MermaidDiagram::fromPage($client->request('GET', '/flow?services[]=s2&services[]=s3'));
+        self::assertSame(0, Diagram::fromPage($crawler)->nodesOf('s1'));
+        $chosen = Diagram::fromPage($client->request('GET', '/flow?services[]=s2&services[]=s3'));
         self::assertGreaterThan(0, $chosen->nodesOf('s2'));
         self::assertGreaterThan(0, $chosen->nodesOf('s3'));
         self::assertSame(0, $chosen->nodesOf('s1'));
@@ -225,7 +230,7 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/flow');
 
         self::assertCount(0, $crawler->filter('[data-notice="narrowed"]'));
-        self::assertGreaterThan(0, MermaidDiagram::fromPage($crawler)->nodesOf('s2'));
+        self::assertGreaterThan(0, Diagram::fromPage($crawler)->nodesOf('s2'));
     }
 
     public function test_a_snapshot_that_cannot_be_read_is_reported_instead_of_vanishing(): void
@@ -238,6 +243,6 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/flow');
 
         self::assertStringContainsString('orders: snapshot could not be read', $crawler->filter('[data-notice="unreadable"]')->text());
-        self::assertGreaterThan(0, MermaidDiagram::fromPage($crawler)->nodesOf('billing'));
+        self::assertGreaterThan(0, Diagram::fromPage($crawler)->nodesOf('billing'));
     }
 }

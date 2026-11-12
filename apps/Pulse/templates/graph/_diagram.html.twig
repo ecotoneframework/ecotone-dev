@@ -1,0 +1,29 @@
+{% macro node(node) %}
+    {% set tag = node.href ? 'a' : 'span' %}
+    <li><{{ tag }} class="dn dn-{{ node.family }}{{ node.state ? ' dn-' ~ node.state : '' }}" data-diagram-node="{{ node.id }}" draggable="false" data-kind="{{ node.kind }}"{% if node.step %} data-step="{{ node.step }}"{% endif %}{% if node.state %} data-trace-state="{{ node.state }}"{% endif %}{% if node.greyed %} data-greyed{% endif %}{% if node.focused %} data-focused{% endif %}{% if node.href %} href="{{ node.href }}"{% endif %}{% if node.title %} title="{{ node.title }}"{% endif %}{% if node.current %} aria-current="true"{% endif %}>{% if node.step %}<span class="dn-step" data-diagram-step>{{ node.step }}<span class="visually-hidden">. step of the trace{{ node.state == 'traceFailed' ? ', failed' : (node.state == 'tracePending' ? ', pending' : ', passed') }}: </span></span>{% endif %}<span class="dn-kind">{{ node.kindLabel }}{% if node.state == 'traceFailed' %} · failed{% elseif node.state == 'tracePending' %} · pending{% endif %}</span><b class="dn-label" data-diagram-label>{{ node.label }}</b>{% if node.note %}<span class="dn-note" data-diagram-note>{{ node.note }}</span>{% endif %}</{{ tag }}></li>
+{% endmacro %}
+<div class="diagram" data-diagram data-{{ hook }}{% if diagram.hasTrace %} data-traced{% endif %}>
+    <div class="diagram-view" data-diagram-view aria-label="{{ label }}">
+        <div class="diagram-stage" data-diagram-stage>
+            {% for group in diagram.groups %}
+                <section class="dg svc-{{ loop.index0 % 8 }}" data-diagram-group="{{ group.id }}" data-service="{{ group.title }}">
+                    <h3>{{ group.title }}</h3>
+                    <ul>{% for node in diagram.nodesIn(group.id) %}{{ _self.node(node) }}{% endfor %}</ul>
+                </section>
+            {% endfor %}
+            {% if diagram.nodesIn(null) is not empty %}
+                <ul class="dg-loose">{% for node in diagram.nodesIn(null) %}{{ _self.node(node) }}{% endfor %}</ul>
+            {% endif %}
+        </div>
+    </div>
+    {% if diagram.edges is not empty %}
+        <details class="diagram-edges" data-diagram-edges data-disclosure="diagram.edges.{{ hook }}">
+            <summary>{{ diagram.edges|length }} {{ diagram.edges|length == 1 ? 'arrow' : 'arrows' }} as a list</summary>
+            <ul>
+                {% for edge in diagram.edges %}
+                    <li data-diagram-edge data-from="{{ edge.from }}" data-to="{{ edge.to }}" data-arrow="{{ edge.arrow }}" data-label="{{ edge.label }}"{% if edge.highlighted %} data-highlighted{% endif %}>{{ diagram.node(edge.from).label }} → {{ diagram.node(edge.to).label }}{% if edge.label != '' %} <span class="muted">({{ edge.label }})</span>{% endif %}</li>
+                {% endfor %}
+            </ul>
+        </details>
+    {% endif %}
+</div>

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Traces;
 
-use App\Tests\Support\HighlightedDiagram;
+use App\Tests\Support\Diagram;
 use App\Tests\Support\ReleasingWebTestCase;
 use App\Tests\Support\TracedServicesTrait;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -39,31 +39,76 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
     {
         $client = $this->pulseWithAllServices();
 
-        $graph = new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::INVOICED));
+        $graph = Diagram::fromPage($this->traceView($client, '/flow?trace=' . self::INVOICED));
 
-        self::assertTrue($graph->hasNode('tracePassed', 'orders', '::invoice'));
-        self::assertTrue($graph->hasNode('tracePassed', 'billing', 'invoice.create'));
-        self::assertFalse($graph->hasNode('tracePassed', 'orders', '::announce'));
-        self::assertFalse($graph->hasNode('tracePassed', 'billing', 'invoice.create.later'));
-        self::assertSame([], $graph->nodesOf('traceFailed'));
-        self::assertSame([], $graph->nodesOf('tracePending'));
+        self::assertTrue($graph->hasNodeInState('tracePassed', 'orders', '::invoice'));
+        self::assertTrue($graph->hasNodeInState('tracePassed', 'billing', 'invoice.create'));
+        self::assertFalse($graph->hasNodeInState('tracePassed', 'orders', '::announce'));
+        self::assertFalse($graph->hasNodeInState('tracePassed', 'billing', 'invoice.create.later'));
+        self::assertSame([], $graph->nodesInState('traceFailed'));
+        self::assertSame([], $graph->nodesInState('tracePending'));
+    }
+
+    public function test_the_steps_of_the_trace_are_listed_under_the_graph_numbered_like_the_nodes_they_passed(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $page = $this->traceView($client, '/flow?trace=' . self::INVOICED);
+        $graph = Diagram::fromPage($page);
+
+        $listed = array_map('intval', $page->filter('[data-trace-drawer] tr[data-trace-step]')->each(static fn (Crawler $row): string => $row->attr('data-trace-step')));
+        $firstVisits = array_values(array_unique($listed));
+        self::assertNotSame([], $firstVisits);
+        self::assertSame(range(1, count($firstVisits)), $firstVisits);
+        $onGraph = array_values(array_unique(array_filter(array_column($graph->nodes, 'step'))));
+        sort($onGraph);
+        self::assertSame($firstVisits, $onGraph);
+        self::assertSame('/traces/trace/' . self::INVOICED, $page->filter('[data-trace-drawer] a[data-trace-drawer-full]')->attr('href'));
+    }
+
+    public function test_the_failed_step_of_a_trace_is_marked_failed_in_the_list_under_the_graph(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $page = $this->traceView($client, '/flow?trace=' . self::EXPLODED);
+
+        self::assertGreaterThan(0, $page->filter('[data-trace-drawer] tr[data-trace-step-status="failed"]')->count());
+    }
+
+    public function test_the_step_list_under_the_service_overview_has_no_numbers_and_links_to_every_node(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $page = $this->traceView($client, '/flow?view=overview&trace=' . self::INVOICED);
+
+        self::assertGreaterThan(0, $page->filter('[data-trace-drawer] tbody tr')->count());
+        self::assertCount(0, $page->filter('[data-trace-drawer] tr[data-trace-step]'));
+        self::assertStringContainsString('view=detail', (string) $page->filter('[data-trace-drawer] a[data-trace-drawer-detail]')->attr('href'));
+    }
+
+    public function test_the_flow_graph_without_a_trace_lists_no_steps(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        self::assertCount(0, $client->request('GET', '/flow')->filter('[data-trace-drawer]'));
     }
 
     public function test_the_distributed_command_edge_between_the_services_is_highlighted(): void
     {
         $client = $this->pulseWithAllServices();
 
-        $graph = new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::INVOICED));
+        $graph = Diagram::fromPage($this->traceView($client, '/flow?trace=' . self::INVOICED));
 
         self::assertTrue($graph->isEdgeHighlighted('orders', 'invoice.create', 'distributed command', 'billing', 'invoice.create'));
-        self::assertCount(count(array_unique($graph->highlightedEdges())), $graph->highlightedEdges());
+        $highlighted = array_map(fn (array $edge) => implode('|', [$edge['from'], $edge['arrow'], $edge['label'], $edge['to']]), array_filter($graph->edges, fn (array $edge) => $edge['highlighted']));
+        self::assertCount(count(array_unique($highlighted)), $highlighted);
     }
 
     public function test_an_event_published_to_several_services_highlights_the_edge_to_each(): void
     {
         $client = $this->pulseWithAllServices();
 
-        $graph = new HighlightedDiagram($this->traceView($client, '/flow?view=detail&trace=' . self::ANNOUNCED));
+        $graph = Diagram::fromPage($this->traceView($client, '/flow?view=detail&trace=' . self::ANNOUNCED));
 
         self::assertTrue($graph->isEdgeHighlighted('orders', 'order.announced', 'distributed event', 'billing', 'order.announced'));
         self::assertTrue($graph->isEdgeHighlighted('orders', 'order.announced', 'distributed event', 'shipping', 'order.announced'));
@@ -74,7 +119,7 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
     {
         $client = $this->pulseWithAllServices();
 
-        $graph = new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::SYNCED_BY_COMMAND));
+        $graph = Diagram::fromPage($this->traceView($client, '/flow?trace=' . self::SYNCED_BY_COMMAND));
 
         self::assertTrue($graph->isEdgeHighlighted('orders', 'invoice.sync', 'distributed command', 'billing', 'invoice.sync'));
         self::assertFalse($graph->isEdgeHighlighted('orders', 'invoice.sync', 'distributed event', 'billing', 'invoice.synced'));
@@ -84,7 +129,7 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
     {
         $client = $this->pulseWithAllServices();
 
-        $graph = new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::SYNCED_BY_EVENT));
+        $graph = Diagram::fromPage($this->traceView($client, '/flow?trace=' . self::SYNCED_BY_EVENT));
 
         self::assertTrue($graph->isEdgeHighlighted('orders', 'invoice.sync', 'distributed event', 'billing', 'invoice.synced'));
         self::assertFalse($graph->isEdgeHighlighted('orders', 'invoice.sync', 'distributed command', 'billing', 'invoice.sync'));
@@ -94,10 +139,10 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
     {
         $client = $this->pulseWithAllServices();
 
-        $graph = new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::EXPLODED));
+        $graph = Diagram::fromPage($this->traceView($client, '/flow?trace=' . self::EXPLODED));
 
-        self::assertTrue($graph->hasNode('traceFailed', 'orders', '::explode'));
-        self::assertFalse($graph->hasNode('tracePassed', 'orders', '::explode'));
+        self::assertTrue($graph->hasNodeInState('traceFailed', 'orders', '::explode'));
+        self::assertFalse($graph->hasNodeInState('tracePassed', 'orders', '::explode'));
     }
 
     public function test_a_highlighted_failed_trace_is_the_verdict_and_names_the_failed_step_with_a_link_that_keeps_the_trace(): void
@@ -125,18 +170,18 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
         $verdict = $this->traceView($client, '/flow?trace=' . self::INVOICED)->filter('[data-trace-banner] [data-verdict]');
 
         self::assertSame('ok', $verdict->attr('data-verdict'));
-        self::assertMatchesRegularExpression('/^Trace 22222222… passed through \d+ nodes in (orders and billing|billing and orders); thick arrows show the way it went\.$/', $verdict->filter('[data-verdict-sentence]')->text());
+        self::assertMatchesRegularExpression('/^Trace 22222222… passed through \d+ nodes in (orders and billing|billing and orders); green arrows show the way it went\.$/', $verdict->filter('[data-verdict-sentence]')->text());
     }
 
     public function test_a_step_sent_but_not_processed_yet_is_marked_pending_on_the_graph(): void
     {
         $client = $this->pulseWithAllServices();
 
-        $graph = new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::NOTIFYING));
+        $graph = Diagram::fromPage($this->traceView($client, '/flow?trace=' . self::NOTIFYING));
 
-        self::assertTrue($graph->hasNode('tracePending', 'orders', '::notify'));
-        self::assertTrue($graph->hasNode('tracePassed', 'orders', '::place'));
-        self::assertSame([], $graph->nodesOf('traceFailed'));
+        self::assertTrue($graph->hasNodeInState('tracePending', 'orders', '::notify'));
+        self::assertTrue($graph->hasNodeInState('tracePassed', 'orders', '::place'));
+        self::assertSame([], $graph->nodesInState('traceFailed'));
     }
 
     public function test_the_service_overview_of_a_trace_highlights_the_services_it_crossed_and_the_distributed_edges_it_took(): void
@@ -147,7 +192,8 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
 
         self::assertCount(1, $crawler->filter('[data-flow-overview]'));
         self::assertCount(1, $crawler->filter('[data-trace-banner]'));
-        $overview = $this->overviewOf($crawler);
+        $overview = Diagram::fromPage($crawler);
+        self::assertSame([], $overview->services);
         self::assertSame(['billing', 'orders'], $this->highlightedServices($overview, 'tracePassed'));
         self::assertTrue($this->highlightedEdge($overview, 'orders', 'billing', 'command'));
         self::assertFalse($this->highlightedEdge($overview, 'orders', 'shipping', 'event'));
@@ -161,9 +207,9 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
         $detail = $this->traceView($client, '/flow?view=detail&trace=' . self::ANNOUNCED);
 
         self::assertCount(1, $overview->filter('[data-flow-overview]'));
-        self::assertSame(['billing', 'orders', 'shipping'], $this->highlightedServices($this->overviewOf($overview), 'tracePassed'));
+        self::assertSame(['billing', 'orders', 'shipping'], $this->highlightedServices(Diagram::fromPage($overview), 'tracePassed'));
         self::assertCount(0, $detail->filter('[data-flow-overview]'));
-        self::assertStringContainsString('subgraph', $detail->filter('pre.mermaid')->text());
+        self::assertNotSame([], Diagram::fromPage($detail)->services);
     }
 
     public function test_a_trace_within_the_node_limit_still_opens_as_the_detailed_graph(): void
@@ -173,17 +219,17 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
         $crawler = $this->traceView($client, '/flow?trace=' . self::INVOICED);
 
         self::assertCount(0, $crawler->filter('[data-flow-overview]'));
-        self::assertStringContainsString('subgraph', $crawler->filter('pre.mermaid')->text());
+        self::assertNotSame([], Diagram::fromPage($crawler)->services);
     }
 
     public function test_a_collapsed_service_takes_the_trace_state_of_the_service_and_the_arrow_the_trace_crossed_stays_highlighted(): void
     {
         $client = $this->pulseWithAllServices();
 
-        $graph = new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::INVOICED . '&collapse[]=billing'));
+        $graph = Diagram::fromPage($this->traceView($client, '/flow?trace=' . self::INVOICED . '&collapse[]=billing'));
 
-        self::assertTrue($graph->hasNode('tracePassed', 'billing', 'collapsed'));
-        self::assertTrue($graph->hasNode('tracePassed', 'orders', '::invoice'));
+        self::assertTrue($graph->hasNodeInState('tracePassed', 'billing', 'collapsed'));
+        self::assertTrue($graph->hasNodeInState('tracePassed', 'orders', '::invoice'));
         self::assertTrue($graph->isEdgeHighlighted('orders', 'invoice.create', 'distributed command', 'billing', 'collapsed'));
     }
 
@@ -191,14 +237,13 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
     {
         $client = $this->pulseWithAllServices();
         $page = $this->traceView($client, '/flow?trace=' . self::INVOICED);
-        $nodes = json_decode($page->filter('pre.mermaid')->attr('data-graph-nodes'), true, flags: JSON_THROW_ON_ERROR);
-        $invoice = array_values(array_filter($nodes, fn (array $node) => $node['service'] === 'billing' && $node['title'] === 'invoice.create'));
+        $invoice = array_values(array_filter(Diagram::fromPage($page)->nodes, fn (array $node) => $node['service'] === 'billing' && $node['title'] === 'invoice.create'));
 
-        $focused = $this->traceView($client, $invoice[0]['href']);
+        $focused = $this->traceView($client, (string) $invoice[0]['href']);
 
         self::assertCount(1, $focused->filter('[data-focus]'));
-        $graph = new HighlightedDiagram($focused);
-        self::assertTrue($graph->hasNode('tracePassed', 'orders', '::invoice'));
+        $graph = Diagram::fromPage($focused);
+        self::assertTrue($graph->hasNodeInState('tracePassed', 'orders', '::invoice'));
         self::assertTrue($graph->isEdgeHighlighted('orders', 'invoice.create', 'distributed command', 'billing', 'invoice.create'));
         foreach ($focused->filter('[data-focus-upstream] a, [data-focus-downstream] a') as $link) {
             self::assertStringContainsString('trace=' . self::INVOICED, (string) $link->getAttribute('href'));
@@ -206,57 +251,21 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
     }
 
     /**
-     * @return array{services: array<string, string>, lines: list<string>}
-     */
-    private function overviewOf(Crawler $crawler): array
-    {
-        $lines = explode("\n", rtrim($crawler->filter('pre.mermaid')->getNode(0)->textContent));
-        $services = [];
-        foreach ($lines as $line) {
-            if (preg_match('/^    (s\d+)\["([^"]*)"\]$/', $line, $match) === 1) {
-                $services[$match[1]] = $match[2];
-            }
-        }
-
-        return ['services' => $services, 'lines' => $lines];
-    }
-
-    /**
-     * @param array{services: array<string, string>, lines: list<string>} $overview
      * @return list<string>
      */
-    private function highlightedServices(array $overview, string $state): array
+    private function highlightedServices(Diagram $overview, string $state): array
     {
-        $names = [];
-        foreach ($overview['lines'] as $line) {
-            if (preg_match('/^    class ([\w,]+) ' . $state . '$/', $line, $match) === 1) {
-                foreach (explode(',', $match[1]) as $id) {
-                    $names[] = $overview['services'][$id];
-                }
-            }
-        }
+        $names = array_values(array_column(array_filter($overview->nodes, fn (array $node) => $node['state'] === $state), 'name'));
         sort($names);
 
         return $names;
     }
 
-    /**
-     * @param array{services: array<string, string>, lines: list<string>} $overview
-     */
-    private function highlightedEdge(array $overview, string $from, string $to, string $kind): bool
+    private function highlightedEdge(Diagram $overview, string $from, string $to, string $kind): bool
     {
-        $edges = [];
-        $highlighted = [];
-        foreach ($overview['lines'] as $line) {
-            if (preg_match('/^    (s\d+) (?:==>|-\.->)\|"\d+ (\w+?)s?"\| (s\d+)$/', $line, $match) === 1) {
-                $edges[] = [$overview['services'][$match[1]], $overview['services'][$match[3]], $match[2]];
-            } elseif (preg_match('/^    linkStyle ([\d,]+) /', $line, $match) === 1) {
-                $highlighted = array_map('intval', explode(',', $match[1]));
-            }
-        }
-        foreach ($edges as $index => $edge) {
-            if ($edge === [$from, $to, $kind]) {
-                return in_array($index, $highlighted, true);
+        foreach ($overview->edges as $edge) {
+            if ($overview->nodes[$edge['from']]['name'] === $from && $overview->nodes[$edge['to']]['name'] === $to && preg_match('/^\d+ ' . $kind . 's?$/', $edge['label']) === 1) {
+                return $edge['highlighted'];
             }
         }
 
@@ -267,20 +276,21 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
     {
         $client = $this->pulseWithAllServices();
 
-        $source = (new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::EXPLODED)))->diagram->source;
+        $crawler = $this->traceView($client, '/flow?trace=' . self::EXPLODED);
 
-        self::assertStringContainsString('classDef traceFailed stroke-width:3px', $source);
-        self::assertDoesNotMatchRegularExpression('/#[0-9a-f]{6}|var\(|fill:|stroke:/i', $source);
+        self::assertNotSame([], Diagram::fromPage($crawler)->nodesInState('traceFailed'));
+        self::assertCount(0, $crawler->filter('[data-diagram] [style], [data-diagram][style]'));
+        self::assertDoesNotMatchRegularExpression('/#[0-9a-f]{6}|var\(|fill:|stroke:/i', $crawler->filter('[data-diagram]')->outerHtml());
     }
 
     public function test_highlighted_nodes_carry_the_duration_of_the_step(): void
     {
         $client = $this->pulseWithAllServices();
 
-        $graph = new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::INVOICED));
+        $graph = Diagram::fromPage($this->traceView($client, '/flow?trace=' . self::INVOICED));
 
-        $labels = array_filter($graph->nodesOf('tracePassed'), fn (string $node) => str_contains($node, '::invoice'));
-        self::assertMatchesRegularExpression('/<br\/>\d+(\.\d+)? ms$/', (string) array_values($labels)[0]);
+        $labels = array_filter($graph->nodesInState('tracePassed'), fn (string $node) => str_contains($node, '::invoice'));
+        self::assertMatchesRegularExpression('/ \d+(\.\d+)? ms$/', (string) array_values($labels)[0]);
     }
 
     public function test_the_graph_only_shows_the_services_the_trace_crossed_unless_others_are_asked_for(): void
@@ -301,7 +311,8 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/flow');
 
         self::assertCount(0, $crawler->filter('[data-trace-banner]'));
-        self::assertStringNotContainsString('tracePassed', $crawler->filter('pre.mermaid')->text());
+        self::assertCount(0, $crawler->filter('[data-diagram][data-traced], [data-diagram] [data-trace-state], [data-diagram] [data-highlighted]'));
+        self::assertStringNotContainsString('tracePassed', $crawler->filter('[data-diagram]')->outerHtml());
     }
 
     private function pulseWithAllServices(): KernelBrowser

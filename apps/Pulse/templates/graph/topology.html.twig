@@ -59,7 +59,8 @@
         {% endif %}
     {% else %}
         {% if report.hasConnections %}
-            <pre class="mermaid" data-topology>{{ diagram }}</pre>
+            {% include 'graph/_diagram.html.twig' with {diagram: diagram, hook: 'topology', label: 'Service map'} only %}
+            <p class="muted" data-topology-legend>A solid arrow is a command route, a dashed arrow an event subscription; each is labelled with the channel or the routing keys.</p>
         {% endif %}
 
         {% set staleCommands = summary.commandRoutes|filter(route => route.stale)|length > 0 %}

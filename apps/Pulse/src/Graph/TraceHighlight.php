@@ -20,6 +20,8 @@ final readonly class TraceHighlight
      * @param array<string, array<string, int>> $durationsInMicroseconds
      * @param array<string, true> $traversedLinks
      * @param list<string> $services
+     * @param array<string, array<string, int>> $steps
+     * @param array<int, int> $rowSteps
      */
     private function __construct(
         public string $traceId,
@@ -28,6 +30,8 @@ final readonly class TraceHighlight
         private array $durationsInMicroseconds,
         private array $traversedLinks,
         public array $services,
+        private array $steps,
+        private array $rowSteps,
     ) {
     }
 
@@ -40,14 +44,18 @@ final readonly class TraceHighlight
         $durations = [];
         $hops = [];
         $services = [];
+        $steps = [];
+        $nextStep = 1;
+        $rowSteps = [];
+        $matched = [];
         foreach ($trace->rows as $index => $row) {
             $services[$row['service']] = true;
             if ($row['hop'] && is_string($row['parentService'])) {
                 $hops[] = ['from' => $row['parentService'], 'to' => $row['service'], 'channel' => $row['channel'], 'entries' => self::entriesOf($trace->rows, $index)];
             }
         }
-        foreach ($flows as $flow) {
-            foreach ($trace->rows as $row) {
+        foreach ($trace->rows as $rowIndex => $row) {
+            foreach ($flows as $flow) {
                 if ($row['service'] !== $flow->name) {
                     continue;
                 }
@@ -56,9 +64,23 @@ final readonly class TraceHighlight
                     if (self::spanPassesThrough($row, $node)) {
                         $states[$flow->name][$node->id] = self::stronger($states[$flow->name][$node->id] ?? null, $state);
                         $durations[$flow->name][$node->id] = max($durations[$flow->name][$node->id] ?? 0, $row['durationMicro']);
+                        $matched[$rowIndex][] = [$flow->name, $node->id];
                     }
                 }
             }
+        }
+
+        foreach ($matched as $rowIndex => $nodes) {
+            if ($trace->rows[$rowIndex]['boilerplate']) {
+                continue;
+            }
+            $known = array_filter(array_map(static fn (array $node): ?int => $steps[$node[0]][$node[1]] ?? null, $nodes));
+            $new = array_filter($nodes, static fn (array $node): bool => ! isset($steps[$node[0]][$node[1]]));
+            foreach ($new as [$service, $nodeId]) {
+                $steps[$service][$nodeId] = $nextStep;
+            }
+            $rowSteps[$rowIndex] = $new === [] ? min($known) : $nextStep;
+            $nextStep += $new === [] ? 0 : 1;
         }
 
         $traversed = [];
@@ -69,7 +91,7 @@ final readonly class TraceHighlight
             }
         }
 
-        return new self($traceId, $trace->status, $states, $durations, $traversed, array_keys($services));
+        return new self($traceId, $trace->status, $states, $durations, $traversed, array_keys($services), $steps, $rowSteps);
     }
 
     /**
@@ -146,7 +168,22 @@ final readonly class TraceHighlight
     {
         $microseconds = $this->durationsInMicroseconds[$service][$nodeId] ?? null;
 
-        return $microseconds === null ? null : rtrim(rtrim(number_format($microseconds / 1000, 1, '.', ''), '0'), '.') . ' ms';
+        return $microseconds === null ? null : self::milliseconds($microseconds);
+    }
+
+    public static function milliseconds(int $microseconds): string
+    {
+        return rtrim(rtrim(number_format($microseconds / 1000, 1, '.', ''), '0'), '.') . ' ms';
+    }
+
+    public function stepOf(string $service, string $nodeId): ?int
+    {
+        return $this->steps[$service][$nodeId] ?? null;
+    }
+
+    public function stepOfRow(int $rowIndex): ?int
+    {
+        return $this->rowSteps[$rowIndex] ?? null;
     }
 
     public function passes(string $service, string $fromNodeId, string $toNodeId): bool

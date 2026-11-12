@@ -1,0 +1,82 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ node.label }} · {{ node.service }} · Ecotone Pulse{% endblock %}
+
+{% block importmap %}{{ importmap(['app', 'graph']) }}{% endblock %}
+
+{% block crumbs %}
+    {% include '_breadcrumbs.html.twig' with {service: node.service, trail: [{label: 'Catalogue', href: path('catalogue', {service: node.service})}, {label: node.label}]} only %}
+{% endblock %}
+
+{% block body %}
+    <h1 class="node-title" data-node-page="{{ node.nodeId }}" data-node-kind="{{ node.kind }}">{% include 'graph/_kind.html.twig' with {family: node.family, kind: node.kind, label: node.kindLabel} only %} <span class="mono">{{ node.label }}</span></h1>
+    <p class="node-lead" data-node-sentence>{{ node.sentence }}</p>
+
+    {% include 'graph/_notices.html.twig' with {notices: notices} only %}
+
+    <div class="actions node-actions" data-node-actions>
+        <a class="btn" href="{{ path('flow_graph', {focus: node.service ~ ':' ~ node.nodeId}) }}" data-node-flow>Follow the whole flow on the flow graph</a>
+        {% if node.flowType %}<a class="btn" href="{{ path('trace_list', {service: node.flowType.service, flowType: node.flowType.flowType}) }}" data-node-traces>{{ node.flowType.runs == 1 ? '1 trace' : node.flowType.runs ~ ' traces' }}</a>{% endif %}
+        {% if node.deadLetters %}<a class="btn danger-link" href="{{ path('dead_letters', {service: node.service, messageName: node.deadLetters.messageName}) }}" data-node-dead-letters>{{ node.deadLetters.count == 1 ? '1 failed message' : node.deadLetters.count ~ ' failed messages' }}</a>{% endif %}
+        {% if node.depth %}<a class="btn" href="{{ path('service_channels', {service: node.service}) }}" data-node-channels>Channels of {{ node.service }}</a>{% endif %}
+        {% if node.kind == 'projection' %}<a class="btn" href="{{ path('service_projections', {service: node.service}) }}" data-node-projections>Projections of {{ node.service }}</a>{% endif %}
+    </div>
+
+    {% if node.flowType or (node.depth and (node.depth.ready is not null or node.depth.consumers is not null or node.depth.delayed is not null)) %}
+        <div class="strip node-numbers" data-node-numbers>
+            {% if node.flowType %}
+                <div class="card stat"><b>{{ node.flowType.runs }}</b><span>runs stored as flow type {{ node.flowType.flowType }}</span></div>
+                <div class="card stat"><b>{{ node.flowType.p95Ms is null ? 'n/a' : node.flowType.p95Ms|round ~ ' ms' }}</b><span>95% finished within{% if node.flowType.p50Ms is not null %} · typical {{ node.flowType.p50Ms|round }} ms{% endif %}</span></div>
+                <div class="card stat{{ node.flowType.runsWithErrors > 0 ? ' bad' : '' }}"><b>{{ node.flowType.runsWithErrors }}</b><span>runs with errors recorded</span></div>
+            {% endif %}
+            {% if node.depth and (node.depth.ready is not null or node.depth.consumers is not null or node.depth.delayed is not null) %}
+                <div class="card stat" data-node-depth><b>{{ node.depth.ready is null ? 'not reported' : node.depth.ready }}</b><span>messages waiting</span></div>
+                <div class="card stat"><b>{{ node.depth.consumers is null ? 'not reported' : node.depth.consumers }}</b><span>consumers running</span></div>
+                <div class="card stat"><b>{{ node.depth.delayed is null ? 'not reported' : node.depth.delayed }}</b><span>delayed</span></div>
+            {% endif %}
+        </div>
+    {% endif %}
+    {% if node.depth %}
+        {% if node.depth.depthReason(false) %}<p class="muted" data-node-depth-reason>{{ node.depth.depthReason(false) }}</p>{% endif %}
+        {% if node.depth.runCommand %}<p data-node-run-command>Messages leave this channel while its consumer runs: <code>bin/console {{ node.depth.runCommand }}</code> (Symfony) or <code>php artisan {{ node.depth.runCommand }}</code> (Laravel).</p>{% endif %}
+    {% endif %}
+    {% if node.family in ['command', 'event', 'query'] and not node.flowType %}
+        <p class="muted" data-node-no-numbers>No traces start with this {{ node.kindLabel|lower }}, and Pulse counts runs per flow type, the message a flow starts with. Its runs are inside the traces of what sends it: see "Comes from".</p>
+    {% endif %}
+
+    <section class="card" aria-labelledby="node-where">
+        <h2 id="node-where">Where it sits <span class="summary-state">{{ hops }} steps before and after · click a node to open its page</span></h2>
+        {% include 'graph/_diagram.html.twig' with {diagram: diagram, hook: 'node-neighbourhood', label: 'Neighbourhood of ' ~ node.label} only %}
+    </section>
+
+    <div class="node-columns">
+        <section class="card" aria-labelledby="node-facts" data-node-facts>
+            <h2 id="node-facts">What Pulse knows</h2>
+            <dl>
+                {% for fact in node.facts %}
+                    <dt>{{ fact.term }}</dt><dd data-node-fact="{{ fact.term }}"><code>{{ fact.value }}</code></dd>
+                {% endfor %}
+            </dl>
+            {% if node.fullLabel != node.label %}<p class="muted">Full name: <code>{{ node.fullLabel }}</code></p>{% endif %}
+        </section>
+        <section class="card" aria-labelledby="node-links">
+            <h2 id="node-links">Connected to</h2>
+            <h3>Comes from</h3>
+            <ul class="node-related" data-node-incoming>
+                {% for related in node.incoming %}
+                    <li>{% include 'graph/_kind.html.twig' with {family: related.family, kind: related.kind, label: related.kindLabel} only %} <a class="mono" href="{{ path('catalogue_node', {service: related.service, id: related.nodeId}) }}">{{ related.label }}</a>{% if related.service != node.service %} <span class="chip">{{ related.service }}</span>{% endif %} <span class="muted">{{ related.relation }}</span></li>
+                {% else %}
+                    <li class="muted">{% if node.kind == 'channel' %}Nothing is drawn into a channel: messages reach it through the handlers that run on it, listed under "Leads to".{% else %}Nothing in what the services report: a flow starts here, or the sender builds the name at runtime.{% endif %}</li>
+                {% endfor %}
+            </ul>
+            <h3>Leads to</h3>
+            <ul class="node-related" data-node-outgoing>
+                {% for related in node.outgoing %}
+                    <li>{% include 'graph/_kind.html.twig' with {family: related.family, kind: related.kind, label: related.kindLabel} only %} <a class="mono" href="{{ path('catalogue_node', {service: related.service, id: related.nodeId}) }}">{{ related.label }}</a>{% if related.service != node.service %} <span class="chip">{{ related.service }}</span>{% endif %} <span class="muted">{{ related.relation }}</span></li>
+                {% else %}
+                    <li class="muted">Nothing: the flow ends here.</li>
+                {% endfor %}
+            </ul>
+        </section>
+    </div>
+{% endblock %}

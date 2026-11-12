@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Graph;
 
+use App\Tests\Support\Diagram;
 use App\Tests\Support\DistributedServicesTrait;
-use App\Tests\Support\MermaidDiagram;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -24,9 +24,9 @@ final class FlowGraphCollapseTest extends ReleasingWebTestCase
     {
         $client = $this->ordersAndBilling();
 
-        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow?collapse[]=billing'));
+        $diagram = Diagram::fromPage($client->request('GET', '/flow?collapse[]=billing'));
 
-        self::assertSame(['billing<br/>6 nodes, collapsed'], array_values(array_column(array_filter($diagram->nodes, fn (array $node) => $node['service'] === 'billing'), 'label')));
+        self::assertSame(['billing 6 nodes, collapsed'], array_values(array_column(array_filter($diagram->nodes, fn (array $node) => $node['service'] === 'billing'), 'label')));
         self::assertGreaterThan(1, $diagram->nodesOf('orders'));
         self::assertTrue($diagram->hasEdge('orders', 'invoice.create', 'distributed command', 'billing', 'collapsed'));
         self::assertTrue($diagram->hasEdge('billing', 'collapsed', 'distributed event', 'orders', 'invoice.created'));
@@ -42,8 +42,7 @@ final class FlowGraphCollapseTest extends ReleasingWebTestCase
         $collapsed = $client->request('GET', '/flow?collapse[]=billing');
         self::assertCount(0, $collapsed->filter('[data-collapse="billing"]'));
         self::assertSame('/flow', $collapsed->filter('[data-expand="billing"]')->attr('href'));
-        $nodes = json_decode($collapsed->filter('pre.mermaid')->attr('data-graph-nodes'), true, flags: JSON_THROW_ON_ERROR);
-        $collapsedNode = array_values(array_filter($nodes, fn (array $node) => $node['service'] === 'billing' && str_contains($node['title'], 'collapsed')));
+        $collapsedNode = array_values(array_filter(Diagram::fromPage($collapsed)->nodes, fn (array $node) => $node['service'] === 'billing' && str_contains((string) $node['title'], 'collapsed')));
         self::assertSame('/flow', $collapsedNode[0]['href']);
     }
 
@@ -62,7 +61,7 @@ final class FlowGraphCollapseTest extends ReleasingWebTestCase
         $page = $client->request('GET', '/flow?' . http_build_query(['collapse' => $others]));
 
         self::assertCount(0, $page->filter('[data-flow-overview]'));
-        $diagram = MermaidDiagram::fromPage($page);
+        $diagram = Diagram::fromPage($page);
         self::assertSame(1, $diagram->nodesOf('svc01'));
         self::assertGreaterThan(1, $diagram->nodesOf('orders'));
     }
@@ -71,11 +70,11 @@ final class FlowGraphCollapseTest extends ReleasingWebTestCase
     {
         $client = $this->shippingWorkingAsynchronously();
 
-        $diagram = MermaidDiagram::fromPage($client->request('GET', '/flow?fold=channels'));
+        $diagram = Diagram::fromPage($client->request('GET', '/flow?fold=channels'));
 
-        self::assertSame([], array_values(array_filter($diagram->nodes, fn (array $node) => $node['label'] === 'Channel<br/>shipping_work')));
-        self::assertTrue($diagram->hasEdge('shipping', 'shipping.pack', 'async: shipping_work', 'shipping', '::pack', '==>'));
-        self::assertTrue($diagram->hasEdge('shipping', 'shipping.label', 'async: shipping_work', 'shipping', '::label', '==>'));
+        self::assertSame([], array_values(array_filter($diagram->nodes, fn (array $node) => $node['label'] === 'Channel shipping_work')));
+        self::assertTrue($diagram->hasEdge('shipping', 'shipping.pack', 'async: shipping_work', 'shipping', '::pack', Diagram::THICK));
+        self::assertTrue($diagram->hasEdge('shipping', 'shipping.label', 'async: shipping_work', 'shipping', '::label', Diagram::THICK));
         self::assertNotEmpty(array_filter($diagram->nodes, fn (array $node) => $node['label'] === 'Distributed Bus'));
     }
 

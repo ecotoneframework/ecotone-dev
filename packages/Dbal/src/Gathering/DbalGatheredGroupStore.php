@@ -50,8 +50,9 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void
     {
         $connection = $this->connection();
+        $callbackFailure = null;
         try {
-            $connection->transactional(function () use ($connection, $groupId, $gatherChannelName, $size, $original, $deadline, $whenOpened): void {
+            $connection->transactional(function () use ($connection, $groupId, $gatherChannelName, $size, $original, $deadline, $whenOpened, &$callbackFailure): void {
                 try {
                     $connection->transactional(fn () => $connection->insert(self::GROUP_TABLE, [
                         'group_id' => $groupId,
@@ -66,18 +67,24 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 } catch (UniqueConstraintViolationException) {
                     return;
                 }
-                $whenOpened();
+                try {
+                    $whenOpened();
+                } catch (Throwable $failure) {
+                    $callbackFailure = $failure;
+                    throw $failure;
+                }
             });
         } catch (Throwable $failure) {
-            throw MissingTableFailure::explained($failure, $this->tableManager);
+            throw $callbackFailure ?? MissingTableFailure::explained($failure, $this->tableManager);
         }
     }
 
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): bool
     {
         $connection = $this->connection();
+        $callbackFailure = null;
         try {
-            return $connection->transactional(function () use ($connection, $groupId, $partNumber, $report, $whenComplete): bool {
+            return $connection->transactional(function () use ($connection, $groupId, $partNumber, $report, $whenComplete, &$callbackFailure): bool {
                 $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
                 if (! $group) {
                     throw GatheredGroupNotFound::forId($groupId);
@@ -113,13 +120,18 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                     foreach ($this->loadPartsForRelease($groupId) as $part) {
                         $parts[(int) $part['part_number']] = $this->messages->decode($part['report']);
                     }
-                    $whenComplete($this->messages->decode($group['original_message']), $parts, $size);
+                    try {
+                        $whenComplete($this->messages->decode($group['original_message']), $parts, $size);
+                    } catch (Throwable $failure) {
+                        $callbackFailure = $failure;
+                        throw $failure;
+                    }
                 }
 
                 return true;
             });
         } catch (Throwable $failure) {
-            throw MissingTableFailure::explained($failure, $this->tableManager);
+            throw $callbackFailure ?? MissingTableFailure::explained($failure, $this->tableManager);
         }
     }
 
@@ -140,8 +152,9 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     public function releaseGroup(string $groupId, callable $whenReleased): bool
     {
         $connection = $this->connection();
+        $callbackFailure = null;
         try {
-            return $connection->transactional(function () use ($connection, $groupId, $whenReleased): bool {
+            return $connection->transactional(function () use ($connection, $groupId, $whenReleased, &$callbackFailure): bool {
                 $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
                 if (! $group || $group['state'] !== 'open') {
                     return true;
@@ -155,12 +168,17 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 foreach ($this->loadPartsForRelease($groupId) as $part) {
                     $parts[(int) $part['part_number']] = $this->messages->decode($part['report']);
                 }
-                $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size']);
+                try {
+                    $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size']);
+                } catch (Throwable $failure) {
+                    $callbackFailure = $failure;
+                    throw $failure;
+                }
 
                 return true;
             });
         } catch (Throwable $failure) {
-            throw MissingTableFailure::explained($failure, $this->tableManager);
+            throw $callbackFailure ?? MissingTableFailure::explained($failure, $this->tableManager);
         }
     }
 

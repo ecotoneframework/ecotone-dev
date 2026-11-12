@@ -46,6 +46,7 @@ use Ecotone\Api\Scheduling\TimeSpan;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -1434,6 +1435,74 @@ final class GatheringConformanceTest extends TestCase
         self::assertCount(1, $groups);
         self::assertSame([1], $groups[0]['accountedPartNumbers']);
         self::assertSame([2], $groups[0]['missingPartNumbers']);
+    }
+
+    public function test_gathered_handler_database_failure_is_not_rewritten_as_missing_gathering_tables(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+            public bool $shouldFail = true;
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                if ($this->shouldFail) {
+                    (new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->executeQuery('SELECT * FROM application_missing_summary_table');
+                }
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries', isAutoAcked: false)],
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        try {
+            $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+            self::fail();
+        } catch (Throwable $failure) {
+            self::assertStringContainsString('application_missing_summary_table', $failure->getMessage());
+        }
+        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroupIds, true)));
+        self::assertCount(1, $groups);
+        self::assertSame([1], $groups[0]['accountedPartNumbers']);
+        self::assertSame([2], $groups[0]['missingPartNumbers']);
+        self::assertSame([], $handler->gathered);
+
+        $handler->shouldFail = false;
+        $ecotone->run('summaries');
+
+        self::assertCount(1, $handler->gathered);
+        self::assertSame([1 => 10, 2 => 20], $handler->gathered[0]->results);
     }
 
     #[DataProvider('implementations')]

@@ -10,6 +10,7 @@ use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\FrameworkHeaders;
@@ -36,7 +37,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 final class GatheringMessageHandler implements MessageHandler
 {
-    public function __construct(private MessageHandler $handler, private GatheredGroupStore $store, private MessageBuilder $messageBuilder, private ConversionService $conversionService)
+    public function __construct(private MessageHandler $handler, private GatheredGroupStore $store, private MessageBuilder $messageBuilder, private ConversionService $conversionService, private ChannelResolver $channelResolver)
     {
     }
 
@@ -76,16 +77,35 @@ final class GatheringMessageHandler implements MessageHandler
         };
         $groupId = $message->getHeaders()->get(GatheringHeaders::GROUP_ID);
         if ($timeout || $manualRelease) {
-            $this->store->releaseGroup($groupId, $whenReleased);
+            if (! $this->store->releaseGroup($groupId, $whenReleased)) {
+                $this->redeliver($message);
+            }
 
             return;
         }
-        $this->store->completePart(
+        $recorded = $this->store->completePart(
             groupId: $groupId,
             partNumber: (int) $message->getHeaders()->get(GatheringHeaders::PART_NUMBER),
             report: $message,
             whenComplete: $whenReleased,
         );
+        if (! $recorded) {
+            $this->redeliver($message);
+        }
+    }
+
+    private function redeliver(Message $message): void
+    {
+        $headers = FrameworkHeaders::unsetNonUserKeys($message->getHeaders()->headers());
+        if ($message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
+            $headers[MessageHeaders::TYPE_ID] = $message->getHeaders()->get(MessageHeaders::TYPE_ID);
+        }
+        $replacement = $this->messageBuilder->withPayload($message->getPayload())
+            ->setMultipleHeaders($headers)
+            ->removeHeaders([MessageHeaders::MESSAGE_ID, MessageHeaders::TIMESTAMP, MessageHeaders::ROUTING_SLIP])
+            ->setContentType($message->getHeaders()->hasContentType() ? $message->getHeaders()->getContentType() : MediaType::createApplicationXPHP())
+            ->build();
+        $this->channelResolver->resolve($message->getHeaders()->get(GatheringHeaders::CHANNEL_NAME))->send($replacement);
     }
 
     private function resultOf(Message $part): mixed

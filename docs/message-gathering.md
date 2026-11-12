@@ -135,3 +135,14 @@ know the underlying transport's maximum. Ecotone trusts an unknown maximum as un
 inspection. On these channels, checking and respecting the underlying transport's delay limit is your
 responsibility. Channel builders that do not implement `DelayedMessageChannelBuilder` are still refused when
 a gathered handler configures a timeout.
+
+Several consumers on the gathered handler's channel can conflict while recording reports for the same group.
+Each conflict sends exactly one replacement report with a new message id and returns normally. The replacement
+is consumed in a new transaction; it does not re-run the part work, consume the failure retry budget or enter
+the dead letter. There is no inline retry loop or backoff. A report can lose only to a committed version-changing
+write of its own group, so retries are bounded by group writes (parts, release or discard), rather than consumer
+count. One consumer on the gathered handler's channel avoids report-to-report conflicts.
+
+On a transactional DBAL channel using the group store's connection, the replacement commits before the original
+is acknowledged. A crash between these steps can leave both deliveries; default message deduplication and the
+unique group-id/part-number identity keep completion safe.

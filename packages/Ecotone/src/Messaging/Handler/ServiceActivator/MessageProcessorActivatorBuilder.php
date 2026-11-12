@@ -158,6 +158,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder 
                 new Reference(GatheredGroupStore::class),
                 new Reference(MessageBuilder::class),
                 new Reference(ConversionService::class),
+                new Reference(ChannelResolver::class),
             ]));
             return $builder->register($reference, LicenceDecider::prepareDefinition(MessageHandler::class, $reference . '.core', $reference . '.enterprise'));
         }

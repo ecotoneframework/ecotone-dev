@@ -40,6 +40,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\GatheredReleaseReason;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Scheduling\TimeSpan;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -2139,11 +2140,48 @@ final class GatheringConformanceTest extends TestCase
         self::concurrentApplication()->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $testId = bin2hex(random_bytes(16));
         self::concurrentApplication()->sendCommandWithRouting('split', [10, 20], metadata: ['testId' => $testId]);
+        $this->runConcurrentConsumers(2);
+        self::concurrentApplication()->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+
+        self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20},"runs":1}', self::concurrentApplication()->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
+    }
+
+    public function test_concurrent_part_reports_conflict_and_are_retried_without_reaching_the_dead_letter(): void
+    {
+        $application = self::concurrentApplication();
+        $application->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+        $deadLetters = $application->getGateway(DeadLetterGateway::class);
+        $previousFailures = array_map(static fn ($failure): string => $failure->getMessageId(), $deadLetters->list(1000, 0));
+        $testId = bin2hex(random_bytes(16));
+        $parts = range(1, 8);
+        $previousGroups = array_column($application->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
+        $application->sendCommandWithRouting('split', $parts, metadata: ['testId' => $testId]);
+
+        $this->runConcurrentConsumers(count($parts));
+
+        $groups = array_values(array_filter($application->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroups, true)));
+        self::assertCount(1, $groups);
+        self::assertLessThan(count($parts), count($groups[0]['accountedPartNumbers']));
+        $originalDeliveries = array_values(array_filter($application->getGateway(DocumentStore::class)->getAllDocuments('gathering_deliveries'), static fn (string $delivery): bool => json_decode($delivery, true, flags: JSON_THROW_ON_ERROR)['testId'] === $testId));
+        self::assertCount(count($parts), $originalDeliveries);
+        $application->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+        $deliveries = array_values(array_filter($application->getGateway(DocumentStore::class)->getAllDocuments('gathering_deliveries'), static fn (string $delivery): bool => json_decode($delivery, true, flags: JSON_THROW_ON_ERROR)['testId'] === $testId));
+        self::assertGreaterThan(count($parts), count($deliveries));
+        self::assertLessThanOrEqual(count($parts) * count($parts), count($deliveries));
+        $result = json_decode($application->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId), true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame(array_combine($parts, $parts), $result['results']);
+        self::assertSame(1, $result['runs']);
+        $failures = array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previousFailures, true)));
+        self::assertSame([], $failures);
+    }
+
+    private function runConcurrentConsumers(int $numberOfConsumers): void
+    {
         $children = [];
         $packageAutoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
         $autoload = is_file($packageAutoload) ? $packageAutoload : dirname(__DIR__, 4) . '/vendor/autoload.php';
         $code = 'require ' . var_export($autoload, true) . '; require ' . var_export(__FILE__, true) . '; ' . self::class . '::consumeConcurrentPart();';
-        for ($part = 0; $part < 2; $part++) {
+        for ($part = 0; $part < $numberOfConsumers; $part++) {
             $process = proc_open([PHP_BINARY, '-r', $code], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
             self::assertIsResource($process);
             $children[] = [$process, $pipes];
@@ -2159,7 +2197,7 @@ final class GatheringConformanceTest extends TestCase
                 }
                 fclose($pipes[0]);
             }
-            self::assertSame(["ready\n", "ready\n"], $ready);
+            self::assertSame(array_fill(0, $numberOfConsumers, "ready\n"), $ready);
             foreach ($children as [$process, $pipes]) {
                 self::assertSame('', stream_get_contents($pipes[1]));
                 self::assertSame('', stream_get_contents($pipes[2]));
@@ -2181,7 +2219,6 @@ final class GatheringConformanceTest extends TestCase
             }
         }
 
-        self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20}}', self::concurrentApplication()->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
     }
 
     public function test_releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established(): void
@@ -2193,43 +2230,119 @@ final class GatheringConformanceTest extends TestCase
         $other->sendCommandWithRouting('split', [10, 20], metadata: ['testId' => $testId]);
         $interceptor = new class ($other, $testId) {
             public bool $interleaved = false;
+            public array $messageIds = [];
 
             public function __construct(private FlowTestSupport $other, private string $testId)
             {
             }
 
             #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
-            public function recordOtherPartAfterSnapshot(MethodInvocation $invocation, #[Reference] DocumentStore $documents): mixed
+            public function recordOtherPartAfterSnapshot(MethodInvocation $invocation, Message $message, #[Reference] DocumentStore $documents): mixed
             {
-                $documents->getDocument('gathering_snapshot', $this->testId);
-                $this->other->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
-                $this->interleaved = true;
-
-                return $invocation->proceed();
-            }
-        };
-
-        self::concurrentApplication([$interceptor])->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
-
-        self::assertTrue($interceptor->interleaved);
-        self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20}}', self::concurrentApplication()->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
-    }
-
-    public static function consumeConcurrentPart(): void
-    {
-        $barrier = new class () {
-            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
-            public function awaitOtherConsumer(MethodInvocation $invocation): mixed
-            {
-                fwrite(STDOUT, "ready\n");
-                if (fgets(STDIN) !== "consume\n") {
-                    throw new RuntimeException('Concurrent consumer start was not released.');
+                $this->messageIds[] = $message->getHeaders()->getMessageId();
+                if (! $this->interleaved) {
+                    $documents->getDocument('gathering_snapshot', $this->testId);
+                    $this->other->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+                    $this->interleaved = true;
                 }
 
                 return $invocation->proceed();
             }
         };
-        self::concurrentApplication([$barrier])->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+
+        $consumer = self::concurrentApplication([$interceptor]);
+        $consumer->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+
+        self::assertTrue($interceptor->interleaved);
+        if (! str_starts_with(getenv('DATABASE_DSN'), 'pgsql:')) {
+            self::assertNull($consumer->getGateway(DocumentStore::class)->findDocument('gathering_concurrency', $testId));
+            $consumer->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+            self::assertCount(2, $interceptor->messageIds);
+            self::assertNotSame($interceptor->messageIds[0], $interceptor->messageIds[1]);
+        }
+        self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20},"runs":1}', self::concurrentApplication()->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
+    }
+
+    #[DataProvider('conflictingReleaseTriggers')]
+    public function test_conflicting_release_trigger_is_redelivered_before_releasing_a_fresh_snapshot(string $trigger): void
+    {
+        $channels = [SimpleMessageChannelBuilder::createQueueChannel('gathering_release'), SimpleMessageChannelBuilder::createQueueChannel('gathering_release_workers')];
+        $other = self::releaseApplication([], $channels);
+        $testId = bin2hex(random_bytes(16));
+        $other->getGateway(DocumentStore::class)->addDocument('gathering_snapshot', $testId, '{"ready":true}');
+        $previousGroups = array_column($other->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
+        $other->sendCommandWithRouting('split', [10, 20], metadata: ['testId' => $testId]);
+        if ($trigger === 'manual') {
+            $groups = array_values(array_filter($other->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroups, true)));
+            $other->getGateway(GatheredGroups::class)->releaseNow($groups[0]['groupId']);
+        }
+        $interceptor = new class ($other, $testId) {
+            public bool $interleaved = false;
+            public array $messageIds = [];
+
+            public function __construct(private FlowTestSupport $other, private string $testId)
+            {
+            }
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
+            public function recordPartAfterSnapshot(MethodInvocation $invocation, Message $message, #[Reference] DocumentStore $documents): mixed
+            {
+                $this->messageIds[] = $message->getHeaders()->getMessageId();
+                if (! $this->interleaved) {
+                    $documents->getDocument('gathering_snapshot', $this->testId);
+                    $this->other->run('gathering_release_workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+                    $this->other->run('gathering_release', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+                    $this->interleaved = true;
+                }
+
+                return $invocation->proceed();
+            }
+        };
+        $consumer = self::releaseApplication([$interceptor], $channels);
+        if ($trigger === 'timeout') {
+            $consumer->advanceTimeBy(new TimeSpan(seconds: 30));
+        }
+        $consumer->run('gathering_release', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+
+        self::assertTrue($interceptor->interleaved);
+        if (! str_starts_with(getenv('DATABASE_DSN'), 'pgsql:')) {
+            self::assertNull($consumer->getGateway(DocumentStore::class)->findDocument('gathering_release', $testId));
+            $consumer->run('gathering_release', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+            self::assertCount(2, $interceptor->messageIds);
+            self::assertNotSame($interceptor->messageIds[0], $interceptor->messageIds[1]);
+        }
+        $result = json_decode($consumer->getGateway(DocumentStore::class)->getDocument('gathering_release', $testId), true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame([1 => 10], $result['results']);
+        self::assertSame([2], $result['missing']);
+        self::assertSame(($trigger === 'manual' ? GatheredReleaseReason::RELEASED_BY_HAND : GatheredReleaseReason::TIMEOUT)->value, $result['reason']);
+    }
+
+    public static function conflictingReleaseTriggers(): iterable
+    {
+        yield 'manual' => ['manual'];
+        yield 'timeout' => ['timeout'];
+    }
+
+    public static function consumeConcurrentPart(): void
+    {
+        $barrier = new class () {
+            private bool $released = false;
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
+            public function awaitOtherConsumer(MethodInvocation $invocation): mixed
+            {
+                if (! $this->released) {
+                    fwrite(STDOUT, "ready\n");
+                    if (fgets(STDIN) !== "consume\n") {
+                        throw new RuntimeException('Concurrent consumer start was not released.');
+                    }
+                    $this->released = true;
+                }
+
+                return $invocation->proceed();
+            }
+        };
+        self::concurrentApplication([$barrier])->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false)->withExecutionAmountLimit(1));
     }
 
     private static function concurrentApplication(array $additionalServices = []): FlowTestSupport
@@ -2258,15 +2371,68 @@ final class GatheringConformanceTest extends TestCase
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts, #[Header('testId')] string $testId, #[Reference] DocumentStore $documents): void
             {
-                $documents->addDocument('gathering_concurrency', $testId, json_encode(['results' => $parts->results], JSON_THROW_ON_ERROR));
+                $previous = $documents->findDocument('gathering_concurrency', $testId);
+                $runs = $previous === null ? 1 : json_decode($previous, true, flags: JSON_THROW_ON_ERROR)['runs'] + 1;
+                $documents->upsertDocument('gathering_concurrency', $testId, json_encode(['results' => $parts->results, 'runs' => $runs], JSON_THROW_ON_ERROR), DocumentStore::LAST_WRITE_WINS);
+            }
+        };
+        $deliveries = new class () {
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 102, pointcut: AsynchronousRunningEndpoint::class)]
+            public function recordDelivery(MethodInvocation $invocation, Message $message, #[Reference] DocumentStore $documents): mixed
+            {
+                $result = $invocation->proceed();
+                $documents->addDocument('gathering_deliveries', $message->getHeaders()->getMessageId(), json_encode(['testId' => $message->getHeaders()->get('testId')], JSON_THROW_ON_ERROR));
+
+                return $result;
+            }
+        };
+        return EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, $deliveries::class, ...array_map(static fn (object $service): string => $service::class, $additionalServices)],
+            containerOrAvailableServices: [$handler, $deliveries, ...$additionalServices, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: [DbalBackedMessageChannelBuilder::create('gathering_concurrency'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter')],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+    }
+    private static function releaseApplication(array $additionalServices, array $channels): FlowTestSupport
+    {
+        $handler = new class () {
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Asynchronous('gathering_release_workers')]
+            #[InternalHandler('work', endpointId: 'release.work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered(timeout: new TimeSpan(seconds: 30))]
+            #[Asynchronous('gathering_release')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts, #[Header('testId')] string $testId, #[Reference] DocumentStore $documents): void
+            {
+                $documents->addDocument('gathering_release', $testId, json_encode(['results' => $parts->results, 'missing' => $parts->missingPartNumbers, 'reason' => $parts->releaseReason->value], JSON_THROW_ON_ERROR));
             }
         };
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, ...array_map(static fn (object $service): string => $service::class, $additionalServices)],
             containerOrAvailableServices: [$handler, ...$additionalServices, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
-            extensionObjects: [DbalBackedMessageChannelBuilder::create('gathering_concurrency')],
+            extensionObjects: $channels,
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: self::ENTERPRISE_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }

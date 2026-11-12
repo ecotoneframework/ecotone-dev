@@ -38,6 +38,7 @@ final class GatheredGroupOperations implements \Ecotone\Api\Gateway\GatheredGrou
         $gatherChannelName = $this->store->gatherChannelNameFor($groupId);
         $trigger = $this->messageBuilder->withPayload($groupId)
             ->setHeader(GatheringHeaders::GROUP_ID, $groupId)
+            ->setHeader(GatheringHeaders::CHANNEL_NAME, $gatherChannelName)
             ->setHeader(GatheringHeaders::MANUAL_RELEASE, true)
             ->build();
         $this->channelResolver->resolve($gatherChannelName)->send($trigger);

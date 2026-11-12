@@ -30,14 +30,40 @@ part reports retain the payload representation and content/type metadata deliver
 `StoredGatheringMessages` uses the existing outbound converter and conversion service. The gathered handler's
 wrapper reconstructs results with those existing converters, preserving part numbers and split order.
 
-Part rows have a unique `(group_id, part_number)` key. Each newly inserted part increments `arrived` with an atomic
-`UPDATE arrived = arrived + 1`. This is the maintainer-approved departure from storage rule 8's version check:
-version conflicts would create retries under concurrent arrivals (the design research records 499 retries for
-500 replies in one NServiceBus report). A sweeper would introduce release latency and another process. Neither is
-the completion mechanism here.
+The group row carries a version. Both stores follow storage rule 8 through optimistic version checks. Recording
+reads the group and checks for an already-visible `(group_id, part_number)` row. A duplicate returns without
+changing the group. A new part conditionally writes the next `arrived` and version values against the version
+read, also closing the group when that arrival completes it. Only a winning writer inserts the part row. The
+unique part key remains a final integrity constraint.
+
+A zero-row version check makes no group or part change. The gathering handler sends exactly one replacement
+report to its own channel with a fresh message id, retaining group/part identity, payload and content/type
+metadata, and returns normally. Default asynchronous deduplication records the original delivery; the new id
+lets the replacement run. Each replacement is a new delivery and transaction, with a fresh snapshot. No conflict
+exception reaches instant retry, failure answers, an error channel or the dead letter, and no user retry
+configuration is required. Timeout and manual-release triggers use the same conditional close and replacement
+path. Synchronous discard is one conditional write against `state = open`, incrementing the version; it depends
+on no previously read version and cannot lose a version check.
+
+A successful version check proves no group write committed after the reader's snapshot. The completing
+transaction therefore sees every committed part through a plain read; no locking read is needed. This avoids
+releasing a MySQL/MariaDB repeatable-read snapshot with a committed result missing. A duplicate committed after
+the snapshot also advanced the group version, so the stale delivery conflicts and its replacement sees that
+part as a duplicate. The in-memory twin keeps the same version transitions and rollback behavior.
+
+There is no inline spin or backoff: one conflicting delivery creates one replacement and finishes. A report can
+lose only to a committed version-changing write of its own group, so retries are bounded by writes to that group
+(parts, release or discard), rather than by consumer count. One consumer on the gathered handler's channel avoids
+report-to-report conflicts. Several consumers can create retried small reports without re-running the part work.
+
+The existing acknowledgement contract remains unchanged. On a DBAL channel using the group store's connection,
+the replacement enqueue commits in the handler transaction before acknowledgement removes the source delivery.
+A crash between commit and acknowledgement leaves both messages. This is safe at least once: the original is
+deduplicated or conflicts again, and part identity is the pair `(group_id, part_number)`. Returning a zero-row
+check normally leaves nested DBAL transactions/savepoints usable; no rollback-only state is introduced.
 
 The completing consumer closes the group and invokes the ordinary handler inside the same transaction. Failure
-rolls back its part, the counter and group closure; retrying that message can complete the group again. The
+rolls back its part, group version and closure; retrying that message can complete the group again. The
 in-memory implementation restores the previous group state when that invocation fails.
 
 An empty split opens a zero-size group and queues a trigger on the gathered handler's asynchronous channel. It
@@ -57,7 +83,7 @@ the gathered handler follows that handler's output or its own flow; there is no 
 request and no synchronous answer to its original caller.
 
 The header rule is covered by
-`released_message_carries_application_headers_but_not_the_split_requests_routing`; the atomic completion tests
+`released_message_carries_application_headers_but_not_the_split_requests_routing`; the transactional completion tests
 include independent consumers and a deterministic transaction-snapshot interleaving. The independent consumers
 announce readiness inside their consumption transactions before either is allowed to record its part.
 
@@ -153,6 +179,7 @@ boot Pulse beside a real split/gather application.
 | Ordered results and no-result completion | `gathered_handler_receives_all_part_results_in_split_order`, `part_returning_nothing_counts_as_done` |
 | Typed payload conversion and snapshot | `gathered_parts_restore_typed_results_and_original_payload`, `original_payload_is_a_snapshot_of_the_message_at_the_split` |
 | Duplicate parts and concurrent completion | `duplicate_part_is_not_counted_twice`, `gathered_handler_runs_once_when_last_two_parts_are_recorded_concurrently` |
+| Conflict redelivery without failure | `concurrent_part_reports_conflict_and_are_retried_without_reaching_the_dead_letter`, `releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established`, `conflicting_release_trigger_is_redelivered_before_releasing_a_fresh_snapshot` |
 | Transaction rollback | `gathered_handler_failure_rolls_back_the_completing_part`, `failed_release_handler_keeps_group_open_until_normal_retry` |
 | Original application headers | `released_message_carries_application_headers_but_not_the_split_requests_routing` |
 | Bus boundary | `group_headers_do_not_cross_a_command_bus_hop`, `group_headers_do_not_cross_an_event_bus_hop` |
@@ -179,11 +206,11 @@ boot Pulse beside a real split/gather application.
 | Pulse request guards | `pulse_action_refuses_invalid_group_selection`, `unconfigured_pulse_service_cannot_change_a_group` |
 | Dashboard operations and failures | `page_shows_open_group_progress_and_operations`, `release_control_requests_release_before_handler_consumption`, `discard_control_closes_group_without_running_handler`, `page_displays_service_refusal_for_a_cleaned_up_group` |
 
-## Maintainer decisions still required before publication
+## Configuration decisions
 
 The maintainer approved three follow-ups: explicit gathered splitter endpoint ids, refusal of multi-destination
 routers in gathered flows, and an optional channel-builder delay capability with bootstrap timeout validation.
-The explicit-id guard and runtime router guard are implemented. The public `#[Router]` path resolves through application code, so its fan-out guard runs when the message arrives; the maintainer confirmed that no new static-routing API or testing exception is needed. The provisional database current-read exception remains unrecorded as approved. The maintainer approved trusting an unknown delay maximum as unbounded; Symfony Messenger, Laravel Queue and custom AMQP delay strategies use that policy without driver inspection.
+The explicit-id guard and runtime router guard are implemented. The public `#[Router]` path resolves through application code, so its fan-out guard runs when the message arrives; the maintainer confirmed that no new static-routing API or testing exception is needed. The maintainer approved trusting an unknown delay maximum as unbounded; Symfony Messenger, Laravel Queue and custom AMQP delay strategies use that policy without driver inspection.
 
 ## Delayed-channel capability
 

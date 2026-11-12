@@ -29,11 +29,11 @@ interface GatheredGroupStore
 {
     public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void;
 
-    public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void;
+    public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): bool;
 
     public function gatherChannelNameFor(string $groupId): string;
 
-    public function releaseGroup(string $groupId, callable $whenReleased): void;
+    public function releaseGroup(string $groupId, callable $whenReleased): bool;
 
     public function discard(string $groupId): void;
 

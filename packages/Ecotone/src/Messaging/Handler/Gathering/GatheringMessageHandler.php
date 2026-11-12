@@ -12,9 +12,9 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\FrameworkHeaders;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**

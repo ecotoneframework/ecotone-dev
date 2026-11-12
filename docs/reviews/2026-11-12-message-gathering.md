@@ -62,3 +62,16 @@ the test cannot reproduce it, report that instead of changing code.
 - M19 (minor). The gathering table manager is fixed to the default DBAL connection while other optional tables take
   a configurable connection. Align it if the existing configuration pattern makes that small; otherwise state the
   limitation in the adoption guide and report it.
+
+## Maintainer decisions during fixes
+
+- M13: retain the literal module class string. Referencing the optional DBAL module with `::class` adds a
+  `class.notFound` error to the standalone Ecotone package analysis. Neighbouring optional modules have existing
+  baseline entries; adding another would grow the baseline, contrary to framework-dev-environment E4.
+  The maintainer approved keeping the string on 2026-11-12.
+- M15: retain the core tests. The shared suite belongs to the separate DBAL package and is absent from a
+  standalone Ecotone installation; deleting the overlap would remove that package's in-memory coverage.
+  The maintainer agreed on 2026-11-12.
+- M19: document the default-connection limitation. The table manager and store share the default cached DBAL
+  connection; selecting another requires a new configuration API and transaction wiring, rather than a small
+  table-manager alignment. The adoption guide states the supported scope.

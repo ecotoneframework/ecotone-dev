@@ -84,7 +84,7 @@ final class GatheringConformanceTest extends TestCase
                 if ($part === 20) {
                     try {
                         $this->other->getGateway(GatheredGroups::class)->releaseNow($groupId);
-                    } catch (\Throwable $failure) {
+                    } catch (Throwable $failure) {
                         $this->failure = $failure->getMessage();
                     }
                 }
@@ -573,7 +573,7 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->run('workers');
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage("Gathering group '{$groupId}' was not found. Its closed-group retention may have expired. Increase GatheringConfiguration::withRetention(...), or replay failed parts before running ecotone:gathering:cleanup.");
+        $this->expectExceptionMessage("Gathering group '{$groupId}' was not found. Its closed-group retention may have expired, or the split's transaction has not committed yet. Increase GatheringConfiguration::withRetention(...) or replay failed parts before running ecotone:gathering:cleanup. For non-transactional part/report channels, send the split through an outbox / combined channel so parts are published with the commit, then replay the report.");
         $ecotone->run('summaries');
     }
 
@@ -2532,7 +2532,7 @@ final class GatheringConformanceTest extends TestCase
         try {
             $ecotone->run('summaries');
             self::fail();
-        } catch (\Throwable $failure) {
+        } catch (Throwable $failure) {
             self::assertStringContainsString('Send a message to the splitter', $failure->getMessage());
             self::assertStringContainsString('remove #[Gathered]', $failure->getMessage());
         }
@@ -2637,7 +2637,7 @@ final class GatheringConformanceTest extends TestCase
         try {
             $ecotone->sendCommandWithRouting('split', []);
             self::fail();
-        } catch (\Throwable $failure) {
+        } catch (Throwable $failure) {
             self::assertStringContainsString("'gathering' feature", $failure->getMessage());
             self::assertStringContainsString("initialize('gathering')", $failure->getMessage());
             self::assertStringContainsString("getCreateSqlStatementsForFeatures(['gathering'])", $failure->getMessage());
@@ -3185,8 +3185,8 @@ final class GatheringConformanceTest extends TestCase
         self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20},"runs":1}', self::concurrentApplication()->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
     }
 
-    #[DataProvider('conflictingReleaseTriggers')]
-    public function test_conflicting_release_trigger_is_redelivered_before_releasing_a_fresh_snapshot(string $trigger): void
+    #[DataProvider('conflictingGroupOperations')]
+    public function test_conflicting_group_operation_is_redelivered_before_observing_a_fresh_snapshot(string $trigger): void
     {
         if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
@@ -3198,15 +3198,18 @@ final class GatheringConformanceTest extends TestCase
         $other->getGateway(DocumentStore::class)->addDocument('gathering_snapshot', $testId, '{"ready":true}');
         $previousGroups = array_column($other->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
         $other->sendCommandWithRouting('split', [10, 20], metadata: ['testId' => $testId]);
-        if ($trigger === 'manual') {
-            $groups = array_values(array_filter($other->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroups, true)));
-            $other->getGateway(GatheredGroups::class)->releaseNow($groups[0]['groupId']);
+        $groups = array_values(array_filter($other->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroups, true)));
+        $groupId = $groups[0]['groupId'];
+        if (in_array($trigger, ['manual', 'discard_release'], true)) {
+            $other->getGateway(GatheredGroups::class)->releaseNow($groupId);
+        } elseif (in_array($trigger, ['report', 'discard_part'], true)) {
+            $other->run('gathering_release_workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
         }
-        $interceptor = new class ($other, $testId) {
+        $interceptor = new class ($other, $testId, $groupId, $trigger) {
             public bool $interleaved = false;
             public array $messageIds = [];
 
-            public function __construct(private FlowTestSupport $other, private string $testId)
+            public function __construct(private FlowTestSupport $other, private string $testId, private string $groupId, private string $trigger)
             {
             }
 
@@ -3216,8 +3219,12 @@ final class GatheringConformanceTest extends TestCase
                 $this->messageIds[] = $message->getHeaders()->getMessageId();
                 if (! $this->interleaved) {
                     $documents->getDocument('gathering_snapshot', $this->testId);
-                    $this->other->run('gathering_release_workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
-                    $this->other->run('gathering_release', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+                    if (str_starts_with($this->trigger, 'discard_')) {
+                        $this->other->getGateway(GatheredGroups::class)->discard($this->groupId);
+                    } else {
+                        $this->other->run('gathering_release_workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+                        $this->other->run('gathering_release', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+                    }
                     $this->interleaved = true;
                 }
 
@@ -3237,16 +3244,29 @@ final class GatheringConformanceTest extends TestCase
             self::assertCount(2, $interceptor->messageIds);
             self::assertNotSame($interceptor->messageIds[0], $interceptor->messageIds[1]);
         }
+        if (str_starts_with($trigger, 'discard_')) {
+            self::assertNull($consumer->getGateway(DocumentStore::class)->findDocument('gathering_release', $testId));
+            $closed = array_values(array_filter($consumer->getGateway(GatheredGroups::class)->listClosedGroups('summary'), static fn (array $group): bool => $group['groupId'] === $groupId));
+            self::assertSame('discarded', $closed[0]['state']);
+            self::assertSame([], $closed[0]['accountedPartNumbers']);
+
+            return;
+        }
         $result = json_decode($consumer->getGateway(DocumentStore::class)->getDocument('gathering_release', $testId), true, flags: JSON_THROW_ON_ERROR);
-        self::assertSame([1 => 10], $result['results']);
-        self::assertSame([2], $result['missing']);
-        self::assertSame(($trigger === 'manual' ? GatheredReleaseReason::MANUAL_RELEASE : GatheredReleaseReason::TIMEOUT)->value, $result['reason']);
+        self::assertSame($trigger === 'report' ? [1 => 10, 2 => 20] : [1 => 10], $result['results']);
+        self::assertSame($trigger === 'report' ? [] : [2], $result['missing']);
+        self::assertSame((match ($trigger) {
+            'manual' => GatheredReleaseReason::MANUAL_RELEASE, 'timeout' => GatheredReleaseReason::TIMEOUT, default => GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR
+        })->value, $result['reason']);
     }
 
-    public static function conflictingReleaseTriggers(): iterable
+    public static function conflictingGroupOperations(): iterable
     {
         yield 'manual' => ['manual'];
         yield 'timeout' => ['timeout'];
+        yield 'report_conflict_on_non_transactional_channel' => ['report'];
+        yield 'discard_racing_a_part' => ['discard_part'];
+        yield 'discard_racing_a_release' => ['discard_release'];
     }
 
     public static function consumeConcurrentPart(): void

@@ -179,7 +179,7 @@ boot Pulse beside a real split/gather application.
 | Ordered results and no-result completion | `gathered_handler_receives_all_part_results_in_split_order`, `part_returning_nothing_counts_as_done` |
 | Typed payload conversion and snapshot | `gathered_parts_restore_typed_results_and_original_payload`, `original_payload_is_a_snapshot_of_the_message_at_the_split` |
 | Duplicate parts and concurrent completion | `duplicate_part_is_not_counted_twice`, `gathered_handler_runs_once_when_last_two_parts_are_recorded_concurrently` |
-| Conflict redelivery without failure | `concurrent_part_reports_conflict_and_are_retried_without_reaching_the_dead_letter`, `releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established`, `conflicting_release_trigger_is_redelivered_before_releasing_a_fresh_snapshot` |
+| Conflict redelivery without failure | `concurrent_part_reports_conflict_and_are_retried_without_reaching_the_dead_letter`, `releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established`, `conflicting_group_operation_is_redelivered_before_observing_a_fresh_snapshot` |
 | Transaction rollback | `gathered_handler_failure_rolls_back_the_completing_part`, `failed_release_handler_keeps_group_open_until_normal_retry` |
 | Original application headers | `released_message_carries_application_headers_but_not_the_split_requests_routing` |
 | Bus boundary | `group_headers_do_not_cross_a_command_bus_hop`, `group_headers_do_not_cross_an_event_bus_hop` |
@@ -251,3 +251,13 @@ The shared functional gathering contracts run on SQLite as well as PostgreSQL, M
 The four two-connection race tests run on PostgreSQL, MySQL and MariaDB only. SQLite serialises writers
 with a database-wide lock, so their overlapping writer transactions cannot exercise the server-engine race.
 These methods are explicitly skipped on SQLite; ordinary functional contracts remain enabled.
+
+Review coverage also proves duplicate manual requests run once, retained timeout triggers do not invoke a completed
+group again, empty and timed-out inner groups become accounted outer parts, and a failed inner summary can be
+replayed before the outer group completes. Named contracts are `two_manual_release_requests_invoke_the_gathered_handler_once`,
+`timeout_after_completion_does_not_invoke_a_retained_group_again`, `empty_inner_split_becomes_an_accounted_outer_part`,
+`inner_timeout_result_becomes_an_accounted_outer_part`, `inner_gathered_handler_failure_replays_before_completing_the_outer_group`
+and `dbal_report_channel_redelivers_the_completing_part_with_its_group_transaction`.
+The `conflicting_group_operation_is_redelivered_before_observing_a_fresh_snapshot` provider covers manual and timeout
+release, report conflicts on a non-transactional channel, and discard interleaved with either a part or a release.
+These cases remain within the four server-engine race methods excluded on SQLite.

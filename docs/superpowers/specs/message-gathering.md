@@ -79,10 +79,24 @@ completed without returning a result.
 `#[Gathered(timeout: new TimeSpan(minutes: 30))]` schedules a delayed trigger at the split on the gathered
 handler's own asynchronous channel. Consuming that trigger closes the group and invokes the ordinary handler in
 that consumption's transaction. The payload includes only accounted results, the missing part numbers, the
-original split payload and `GatheredReleaseReason::TIMEOUT`.
+original split payload and `GatheredReleaseReason::TIMEOUT`. The deadline is stored when the group opens;
+replaying the same split does not open another group or schedule another timeout. A timeout trigger that arrives
+after ordinary completion, including after closed-group cleanup, has no effect.
+
+A failed part does not count as an arrival. Error-channel and dead-letter handlers receive the original group
+headers for replay, but their successful handling of an error message does not report completion. The test
+`replayed_failed_part_completes_group_without_timeout` leaves the group missing for 30 pinned days, repairs the
+worker and replays the failed message through `DeadLetterGateway` before asserting complete results.
 
 Closed groups are retained for seven days from release or discard by default. This matches
 [`DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS`](../../../packages/Dbal/src/Deduplication/DeduplicationModule.php)
 and its default use in
 [`DbalConfiguration`](../../../packages/Dbal/Api/ExtensionObject/DbalConfiguration.php).
-The gathering configuration may set another retention period; cleanup never removes an open group.
+An application may return `GatheringConfiguration::createWithDefaults()->withRetention(new TimeSpan(days: 14))`
+from a `#[ServiceContext]` method. `GatheredGroups::cleanupClosedGroups()` and `ecotone:gathering:cleanup` remove
+expired closed groups together with their parts; cleanup never removes an open group. A part referencing a
+removed group is refused with a message naming that retention setting and the cleanup command.
+
+Parts reported after release are acknowledged without invoking the handler again. The retained closed row's
+`latePartCount` records these arrivals, visible through `GatheredGroups::listClosedGroups()`. Ordinary progress
+and missing-part numbers stay unchanged by a late arrival.

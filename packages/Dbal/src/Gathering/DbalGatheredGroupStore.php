@@ -50,41 +50,33 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void
     {
         $connection = $this->connection();
-        $callbackFailure = null;
-        try {
-            $connection->transactional(function () use ($connection, $groupId, $gatherChannelName, $size, $original, $deadline, $whenOpened, &$callbackFailure): void {
-                try {
-                    $connection->transactional(fn () => $connection->insert(self::GROUP_TABLE, [
-                        'group_id' => $groupId,
-                        'gather_channel_name' => $gatherChannelName,
-                        'size' => $size,
-                        'arrived' => 0,
-                        'version' => 0,
-                        'state' => 'open',
-                        'original_message' => $this->messages->encode($original),
-                        'deadline' => $deadline,
-                    ]));
-                } catch (UniqueConstraintViolationException) {
-                    return;
-                }
-                try {
-                    $whenOpened();
-                } catch (Throwable $failure) {
-                    $callbackFailure = $failure;
-                    throw $failure;
-                }
-            });
-        } catch (Throwable $failure) {
-            throw $callbackFailure ?? MissingTableFailure::explained($failure, $this->tableManager);
-        }
+        $connection->transactional(function () use ($connection, $groupId, $gatherChannelName, $size, $original, $deadline, $whenOpened): void {
+            try {
+                $connection->transactional(fn () => $connection->insert(self::GROUP_TABLE, [
+                    'group_id' => $groupId,
+                    'gather_channel_name' => $gatherChannelName,
+                    'size' => $size,
+                    'arrived' => 0,
+                    'version' => 0,
+                    'state' => 'open',
+                    'original_message' => $this->messages->encode($original),
+                    'deadline' => $deadline,
+                ]));
+            } catch (UniqueConstraintViolationException) {
+                return;
+            } catch (Throwable $failure) {
+                throw MissingTableFailure::explained($failure, $this->tableManager);
+            }
+            $whenOpened();
+        });
     }
 
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): bool
     {
         $connection = $this->connection();
-        $callbackFailure = null;
-        try {
-            return $connection->transactional(function () use ($connection, $groupId, $partNumber, $report, $whenComplete, &$callbackFailure): bool {
+
+        return $connection->transactional(function () use ($connection, $groupId, $partNumber, $report, $whenComplete): bool {
+            try {
                 $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
                 if (! $group) {
                     throw GatheredGroupNotFound::forId($groupId);
@@ -122,19 +114,16 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                     foreach ($this->loadPartsForRelease($groupId) as $part) {
                         $parts[(int) $part['part_number']] = $this->messages->decode($part['report']);
                     }
-                    try {
-                        $whenComplete($this->messages->decode($group['original_message']), $parts, $size);
-                    } catch (Throwable $failure) {
-                        $callbackFailure = $failure;
-                        throw $failure;
-                    }
                 }
+            } catch (Throwable $failure) {
+                throw MissingTableFailure::explained($failure, $this->tableManager);
+            }
+            if ($completed) {
+                $whenComplete($this->messages->decode($group['original_message']), $parts, $size);
+            }
 
-                return true;
-            });
-        } catch (Throwable $failure) {
-            throw $callbackFailure ?? MissingTableFailure::explained($failure, $this->tableManager);
-        }
+            return true;
+        });
     }
 
     public function gatherChannelNameFor(string $groupId): string
@@ -154,9 +143,9 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     public function releaseGroup(string $groupId, callable $whenReleased): bool
     {
         $connection = $this->connection();
-        $callbackFailure = null;
-        try {
-            return $connection->transactional(function () use ($connection, $groupId, $whenReleased, &$callbackFailure): bool {
+
+        return $connection->transactional(function () use ($connection, $groupId, $whenReleased): bool {
+            try {
                 $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
                 if (! $group || $group['state'] !== 'open') {
                     return true;
@@ -170,18 +159,13 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 foreach ($this->loadPartsForRelease($groupId) as $part) {
                     $parts[(int) $part['part_number']] = $this->messages->decode($part['report']);
                 }
-                try {
-                    $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size']);
-                } catch (Throwable $failure) {
-                    $callbackFailure = $failure;
-                    throw $failure;
-                }
+            } catch (Throwable $failure) {
+                throw MissingTableFailure::explained($failure, $this->tableManager);
+            }
+            $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size']);
 
-                return true;
-            });
-        } catch (Throwable $failure) {
-            throw $callbackFailure ?? MissingTableFailure::explained($failure, $this->tableManager);
-        }
+            return true;
+        });
     }
 
     public function discard(string $groupId): void
@@ -231,7 +215,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
 
-        return array_map(function (array $row) use ($closed): array {
+        return array_map(function (array $row): array {
             $accounted = array_map('intval', $this->connection()->fetchFirstColumn('SELECT part_number FROM ' . self::PART_TABLE . ' WHERE group_id = ? ORDER BY part_number', [$row['group_id']]));
             $size = (int) $row['size'];
 

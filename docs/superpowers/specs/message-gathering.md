@@ -177,8 +177,7 @@ boot Pulse beside a real split/gather application.
 
 The maintainer approved three follow-ups: explicit gathered splitter endpoint ids, refusal of multi-destination
 routers in gathered flows, and an optional channel-builder delay capability with bootstrap timeout validation.
-The explicit-id guard and runtime router guard are implemented. The public `#[Router]` path resolves through application code, so its fan-out guard runs when the message arrives; the maintainer confirmed that no new static-routing API or testing exception is needed. The provisional database current-read exception is the only outstanding
-maintainer decision; it remains unrecorded as approved.
+The explicit-id guard and runtime router guard are implemented. The public `#[Router]` path resolves through application code, so its fan-out guard runs when the message arrives; the maintainer confirmed that no new static-routing API or testing exception is needed. The provisional database current-read exception remains unrecorded as approved. Transport-dependent declarations for Symfony Messenger and Laravel Queue also await a maintainer decision.
 
 ## Delayed-channel capability
 

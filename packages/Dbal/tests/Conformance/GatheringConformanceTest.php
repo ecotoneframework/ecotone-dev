@@ -4,19 +4,31 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Conformance;
 
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Gathered;
+use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Gateway\GatheredGroups;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 /**
  * licence Apache-2.0
@@ -149,4 +161,275 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame([1, 2], $groups[0]['missingPartNumbers']);
     }
 
+    #[DataProvider('implementations')]
+    public function test_open_group_lists_accounted_and_missing_parts(bool $durable): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+        );
+
+        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        self::assertSame([], $handler->gathered);
+
+        $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+
+        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary');
+        $groups = array_values(array_filter($groups, static fn (array $group): bool => ! in_array($group['groupId'], $previousGroupIds, true)));
+        self::assertCount(1, $groups);
+        self::assertSame([1], $groups[0]['accountedPartNumbers']);
+        self::assertSame([2], $groups[0]['missingPartNumbers']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_gathered_handler_failure_rolls_back_the_completing_part(bool $durable): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+            public bool $shouldFail = true;
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                if ($this->shouldFail) {
+                    throw new RuntimeException('Gathered handler failed');
+                }
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries', isAutoAcked: false)],
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+        );
+
+        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        try {
+            $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+            self::fail();
+        } catch (RuntimeException $failure) {
+            self::assertSame('Gathered handler failed', $failure->getMessage());
+        }
+        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroupIds, true)));
+        self::assertCount(1, $groups);
+        self::assertSame([1], $groups[0]['accountedPartNumbers']);
+        self::assertSame([2], $groups[0]['missingPartNumbers']);
+        self::assertSame([], $handler->gathered);
+
+        $handler->shouldFail = false;
+        $ecotone->run('summaries');
+
+        self::assertCount(1, $handler->gathered);
+        self::assertSame([1 => 10, 2 => 20], $handler->gathered[0]->results);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_gathered_handler_receives_all_part_results_in_split_order(bool $durable): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+        );
+
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        self::assertSame([], $handler->gathered);
+
+        $ecotone->run('summaries');
+
+        self::assertCount(1, $handler->gathered);
+        self::assertSame([1 => 10, 2 => 20], $handler->gathered[0]->results);
+        self::assertSame([], $handler->gathered[0]->missingPartNumbers);
+        self::assertSame(2, $handler->gathered[0]->size);
+        self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
+    }
+    public function test_gathered_handler_runs_once_when_last_two_parts_are_recorded_concurrently(): void
+    {
+        self::concurrentApplication()->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $testId = bin2hex(random_bytes(16));
+        self::concurrentApplication()->sendCommandWithRouting('split', [10, 20], metadata: ['testId' => $testId]);
+        $children = [];
+        $code = 'require ' . var_export(dirname(__DIR__, 4) . '/vendor/autoload.php', true) . '; require ' . var_export(__FILE__, true) . '; ' . self::class . '::consumeConcurrentPart();';
+        for ($part = 0; $part < 2; $part++) {
+            $process = proc_open([PHP_BINARY, '-r', $code], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+            self::assertIsResource($process);
+            fclose($pipes[0]);
+            $children[] = [$process, $pipes];
+        }
+        foreach ($children as [$process, $pipes]) {
+            self::assertSame('', stream_get_contents($pipes[1]));
+            self::assertSame('', stream_get_contents($pipes[2]));
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            self::assertSame(0, proc_close($process));
+        }
+
+        self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20}}', self::concurrentApplication()->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
+    }
+
+    public function test_releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established(): void
+    {
+        $other = self::concurrentApplication();
+        $other->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $testId = bin2hex(random_bytes(16));
+        $other->getGateway(DocumentStore::class)->addDocument('gathering_snapshot', $testId, '{"ready":true}');
+        $other->sendCommandWithRouting('split', [10, 20], metadata: ['testId' => $testId]);
+        $interceptor = new class ($other, $testId) {
+            public bool $interleaved = false;
+
+            public function __construct(private FlowTestSupport $other, private string $testId)
+            {
+            }
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
+            public function recordOtherPartAfterSnapshot(MethodInvocation $invocation, #[Reference] DocumentStore $documents): mixed
+            {
+                $documents->getDocument('gathering_snapshot', $this->testId);
+                $this->other->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+                $this->interleaved = true;
+
+                return $invocation->proceed();
+            }
+        };
+
+        self::concurrentApplication([$interceptor])->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+
+        self::assertTrue($interceptor->interleaved);
+        self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20}}', self::concurrentApplication()->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
+    }
+
+    public static function consumeConcurrentPart(): void
+    {
+        self::concurrentApplication()->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+    }
+
+    private static function concurrentApplication(array $additionalServices = []): FlowTestSupport
+    {
+        $handler = new class () {
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('gathering_concurrency')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts, #[Header('testId')] string $testId, #[Reference] DocumentStore $documents): void
+            {
+                $documents->addDocument('gathering_concurrency', $testId, json_encode(['results' => $parts->results], JSON_THROW_ON_ERROR));
+            }
+        };
+        return EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, ...array_map(static fn (object $service): string => $service::class, $additionalServices)],
+            containerOrAvailableServices: [$handler, ...$additionalServices, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: [DbalBackedMessageChannelBuilder::create('gathering_concurrency')],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: self::ENTERPRISE_LICENCE,
+        );
+    }
 }

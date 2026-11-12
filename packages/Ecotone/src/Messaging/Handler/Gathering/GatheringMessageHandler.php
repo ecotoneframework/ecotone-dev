@@ -1,0 +1,92 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ecotone\Messaging\Handler\Gathering;
+
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Messaging\GatheredParts;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\MessageHandler;
+use Ecotone\Messaging\Support\FrameworkHeaders;
+use Ecotone\Messaging\Support\MessageBuilder;
+
+/**
+ * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
+ */
+final class GatheringMessageHandler implements MessageHandler
+{
+    public function __construct(private MessageHandler $handler, private GatheredGroupStore $store, private MessageBuilder $messageBuilder, private ConversionService $conversionService)
+    {
+    }
+
+    public function __toString(): string
+    {
+        return 'Gathering ' . $this->handler;
+    }
+
+    public function handle(Message $message): void
+    {
+        $this->store->completePart(
+            groupId: $message->getHeaders()->get(GatheringHeaders::GROUP_ID),
+            partNumber: (int) $message->getHeaders()->get(GatheringHeaders::PART_NUMBER),
+            report: $message,
+            whenComplete: function (Message $original, array $parts, int $size): void {
+                ksort($parts);
+                $results = [];
+                foreach ($parts as $number => $part) {
+                    $results[$number] = $part->getHeaders()->get(GatheringHeaders::NO_RESULT) ? null : $this->resultOf($part);
+                }
+                $headers = FrameworkHeaders::unsetAllFrameworkHeaders($original->getHeaders()->headers());
+                foreach ([GatheringHeaders::GROUP_ID, GatheringHeaders::PART_NUMBER, GatheringHeaders::SIZE, GatheringHeaders::CHANNEL_NAME, MessageHeaders::MESSAGE_CORRELATION_ID, MessageHeaders::PARENT_MESSAGE_ID, MessageHeaders::TRACING_ID, MessageHeaders::TRACEPARENT, MessageHeaders::TRACESTATE] as $header) {
+                    if ($original->getHeaders()->containsKey($header)) {
+                        $headers[$header] = $original->getHeaders()->get($header);
+                    }
+                }
+                $this->handler->handle($this->messageBuilder->withPayload(new GatheredParts(
+                    results: $results,
+                    missingPartNumbers: [],
+                    size: $size,
+                    originalPayload: $this->resultOf($original),
+                ))->setMultipleHeaders($headers)->setContentType(MediaType::createApplicationXPHPWithTypeParameter(GatheredParts::class))->build());
+            },
+        );
+    }
+    private function resultOf(Message $part): mixed
+    {
+        $mediaType = $part->getHeaders()->hasContentType() ? $part->getHeaders()->getContentType() : MediaType::createApplicationXPHP();
+        if ($mediaType->isCompatibleWith(MediaType::createApplicationXPHP())) {
+            return $part->getPayload();
+        }
+        $targetType = $part->getHeaders()->containsKey(MessageHeaders::TYPE_ID)
+            ? Type::create($part->getHeaders()->get(MessageHeaders::TYPE_ID))
+            : Type::anything();
+
+        return $this->conversionService->convert(
+            $part->getPayload(),
+            Type::createFromVariable($part->getPayload()),
+            $mediaType,
+            $targetType,
+            MediaType::createApplicationXPHP(),
+        );
+    }
+}

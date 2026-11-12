@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gathering;
 
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\MessageProcessor;
@@ -45,29 +44,34 @@ final class GatheringSplitterProcessor implements MessageProcessor
     public function process(Message $message): ?Message
     {
         $reply = $this->splitter->process($message);
-        if ($reply !== null && $reply->getPayload() === []) {
-            $gathered = new GatheredParts(
-                results: [],
-                missingPartNumbers: [],
-                size: 0,
-                originalPayload: $message->getPayload(),
-            );
-            $this->channelResolver->resolve($this->gatherChannelName)->send(
-                $this->messageBuilder->fromParentMessage($message)
-                    ->setPayload($gathered)
-                    ->setContentType(MediaType::createApplicationXPHP())
-                    ->build()
-            );
+        if ($reply === null) {
+            return null;
+        }
+        $size = count($reply->getPayload());
+        $groupId = hash('sha256', $message->getHeaders()->getMessageId() . ':' . $this->splitterEndpointId);
+        $this->store->openGroup(groupId: $groupId, gatherChannelName: $this->gatherChannelName, size: $size, original: $message);
+        if ($size === 0) {
+            $trigger = $this->stamp($message, $groupId, 0, 0);
+            $this->channelResolver->resolve($this->gatherChannelName)->send($trigger);
+
+            return $reply;
+        }
+        $parts = [];
+        foreach ($reply->getPayload() as $number => $payload) {
+            $part = $payload instanceof Message ? $payload : $this->messageBuilder->fromParentMessage($reply)->setPayload($payload)->setContentType(MediaType::createApplicationXPHP())->build();
+            $parts[] = $this->stamp($part, $groupId, $number + 1, $size);
         }
 
-        if ($reply !== null && count($reply->getPayload()) > 0) {
-            $this->store->openGroup(
-                groupId: hash('sha256', $message->getHeaders()->getMessageId() . ':' . $this->splitterEndpointId),
-                gatherChannelName: $this->gatherChannelName,
-                size: count($reply->getPayload()),
-            );
-        }
+        return $this->messageBuilder->fromMessage($reply)->setPayload($parts)->build();
+    }
 
-        return $reply;
+    private function stamp(Message $message, string $groupId, int $partNumber, int $size): Message
+    {
+        return $this->messageBuilder->fromParentMessage($message)
+            ->setHeader(GatheringHeaders::GROUP_ID, $groupId)
+            ->setHeader(GatheringHeaders::PART_NUMBER, $partNumber)
+            ->setHeader(GatheringHeaders::SIZE, $size)
+            ->setHeader(GatheringHeaders::CHANNEL_NAME, $this->gatherChannelName)
+            ->build();
     }
 }

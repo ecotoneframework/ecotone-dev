@@ -12,13 +12,19 @@ use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupOperations;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStoreRegistration;
+use Ecotone\Messaging\Handler\Gathering\GatheringPartCompletion;
 use Ecotone\Messaging\Handler\Gathering\InMemoryGatheredGroupStore;
+use Ecotone\Messaging\Handler\Gathering\NullPartCompletion;
+use Ecotone\Messaging\Handler\Gathering\PartCompletion;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 #[ModuleAnnotation]
 /**
@@ -65,6 +71,9 @@ final class GatheringModule extends NoExternalConfigurationModule
             $gatherChannelName = $this->gatherChannelNames[0];
             throw LicensingException::create("Splitter gather channel '{$gatherChannelName}' requires an Ecotone Enterprise licence. Provide a licence key through EcotoneLite::bootstrapFlowTesting(licenceKey: ...), or remove gatherChannelName from #[Splitter].");
         }
+        $messagingConfiguration->registerServiceDefinition(NullPartCompletion::class, new Definition(NullPartCompletion::class));
+        $messagingConfiguration->registerServiceDefinition(GatheringPartCompletion::class, new Definition(GatheringPartCompletion::class, [new Reference(ChannelResolver::class), new Reference(MessageBuilder::class)]));
+        $messagingConfiguration->registerServiceDefinition(PartCompletion::class, LicenceDecider::prepareDefinition(PartCompletion::class, NullPartCompletion::class, GatheringPartCompletion::class));
         if ($this->gatherChannelNames !== []) {
             $store = ExtensionObjectResolver::resolveUnique(GatheredGroupStoreRegistration::class, $extensionObjects, new GatheredGroupStoreRegistration(InMemoryGatheredGroupStore::class));
             $messagingConfiguration->registerServiceDefinition(InMemoryGatheredGroupStore::class, new Definition(InMemoryGatheredGroupStore::class));

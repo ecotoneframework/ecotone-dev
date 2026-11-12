@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gathering;
 
+use Ecotone\Api\Messaging\Message;
+
 /**
  * licence Enterprise
  *
@@ -25,7 +27,9 @@ namespace Ecotone\Messaging\Handler\Gathering;
  */
 interface GatheredGroupStore
 {
-    public function openGroup(string $groupId, string $gatherChannelName, int $size): void;
+    public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original): void;
+
+    public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void;
 
     public function listOpenGroups(string $gatherChannelName): array;
 }

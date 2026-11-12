@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ecotone\Messaging\Handler\Gathering;
+
+use Ecotone\Api\Messaging\Message;
+
+/**
+ * licence Apache-2.0
+ */
+interface PartCompletion
+{
+    public function complete(Message $request, ?Message $reply): bool;
+}

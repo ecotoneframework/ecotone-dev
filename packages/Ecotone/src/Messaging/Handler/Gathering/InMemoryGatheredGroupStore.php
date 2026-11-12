@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gathering;
 
+use Ecotone\Api\Messaging\Message;
+use Throwable;
+
 /**
  * licence Enterprise
  *
@@ -27,19 +30,45 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
 {
     private array $groups = [];
 
-    public function openGroup(string $groupId, string $gatherChannelName, int $size): void
+    public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original): void
     {
         $this->groups[$groupId] ??= [
+            'original' => $original,
+            'parts' => [],
+            'state' => 'open',
             'groupId' => $groupId,
             'gatherChannelName' => $gatherChannelName,
             'size' => $size,
             'accountedPartNumbers' => [],
-            'missingPartNumbers' => range(1, $size),
+            'missingPartNumbers' => $size === 0 ? [] : range(1, $size),
         ];
+    }
+
+    public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void
+    {
+        $previous = $this->groups[$groupId];
+        if ($previous['state'] !== 'open' || isset($previous['parts'][$partNumber])) {
+            return;
+        }
+        if ($previous['size'] > 0) {
+            $this->groups[$groupId]['parts'][$partNumber] = $report;
+            $this->groups[$groupId]['accountedPartNumbers'][] = $partNumber;
+            $this->groups[$groupId]['missingPartNumbers'] = array_values(array_diff($previous['missingPartNumbers'], [$partNumber]));
+        }
+        if (count($this->groups[$groupId]['parts']) !== $previous['size']) {
+            return;
+        }
+        $this->groups[$groupId]['state'] = 'released';
+        try {
+            $whenComplete($previous['original'], $this->groups[$groupId]['parts'], $previous['size']);
+        } catch (Throwable $failure) {
+            $this->groups[$groupId] = $previous;
+            throw $failure;
+        }
     }
 
     public function listOpenGroups(string $gatherChannelName): array
     {
-        return array_values(array_filter($this->groups, static fn (array $group): bool => $group['gatherChannelName'] === $gatherChannelName));
+        return array_values(array_map(static fn (array $group): array => array_diff_key($group, ['original' => true, 'parts' => true, 'state' => true]), array_filter($this->groups, static fn (array $group): bool => $group['gatherChannelName'] === $gatherChannelName && $group['state'] === 'open')));
     }
 }

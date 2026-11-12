@@ -63,7 +63,7 @@ final class GatheringTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Gather channel 'summary' requires durable storage outside flow testing: in-memory groups cannot survive restarts or be shared between workers. Install and configure ecotone/dbal and run ecotone:migration:database:setup --feature=gathering before the first message. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove gatherChannelName from #[Splitter].");
+        $this->expectExceptionMessage("Gather channel 'summary' requires durable storage when bootstrapping without test configuration: in-memory groups cannot survive restarts or be shared between workers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove gatherChannelName from #[Splitter].");
 
         EcotoneLite::bootstrap(
             classesToResolve: [$handler::class],

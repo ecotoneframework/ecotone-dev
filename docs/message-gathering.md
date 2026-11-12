@@ -74,10 +74,14 @@ The last part or release trigger runs the handler in its consumption transaction
 last arrival/group closure rolls back and ordinary retries and dead-letter handling apply. Duplicate part
 reports do not count twice. An empty split invokes the asynchronous gathered handler with zero parts.
 
-Flow testing without DBAL uses an in-memory store. Production gathering requires durable storage: install and
-configure `ecotone/dbal`; bootstrap refuses a gathered flow without it. Groups and parts are durable. Before processing
-messages, run the existing database setup command with `--feature=gathering` (or include its SQL in your
-application migrations). Gathering never creates tables while handling messages.
+Flow testing without DBAL uses an in-memory store. Bootstrapping without test configuration requires the DBAL
+module for gathering, including ordinary `EcotoneLite::bootstrap()` and framework kernels in a test environment.
+Install `ecotone/dbal` and enable `ModulePackageList::DBAL_PACKAGE` in EcotoneLite's `enabledModules`, or add
+`'dbal'` to `enabledModulePackageNames` in Symfony, Laravel's `config/ecotone.php`, or Tempest's `EcotoneConfig`.
+With DBAL, groups and parts survive restarts and are shared between workers. Configure its connection and,
+before processing messages, run `ecotone:migration:database:setup --initialize --feature=gathering`, or generate
+SQL for your application migrations with `ecotone:migration:database:setup --sql --feature=gathering`.
+Gathering never creates tables while handling messages.
 
 Late part reports are acknowledged without invoking a closed group's handler again, and increment its retained
 `latePartCount`. Closed groups are retained for seven days from release or discard. Configure another period

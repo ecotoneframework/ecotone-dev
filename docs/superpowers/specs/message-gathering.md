@@ -25,11 +25,14 @@ The in-memory store and DBAL store are exercised through the same split/handler/
 `GatheringConformanceTest`. `DbalGatheringModule` supplies a store registration to the core module and registers
 `GatheringTableManager` with the existing database setup commands. Message handling performs no schema work.
 
-Production gathering requires a durable store. When a gather channel exists and the selected store is the
-in-memory default, bootstrap refuses it unless `Configuration::isRunningForTest()` is true. The error names
-installing/configuring `ecotone/dbal` and running database setup with `--feature=gathering`, using
+Gathering without test configuration requires a durable store. When a gather channel exists and the selected
+store is the in-memory default, bootstrap refuses it unless `Configuration::isRunningForTest()` is true. The error names
+installing `ecotone/dbal`, enabling `ModulePackageList::DBAL_PACKAGE` in EcotoneLite or `'dbal'` in
+`enabledModulePackageNames`, and running database setup with `--initialize --feature=gathering`
+(or generating migration SQL with `--sql --feature=gathering`), using
 `EcotoneLite::bootstrapFlowTesting()` for in-memory tests, or removing the splitter's gather channel.
-There is no production non-durable opt-in.
+Test configuration is the signal, regardless of the kernel's environment name. The guard checks the selected
+store registration, not connection configuration or table existence. There is no non-durable opt-in outside tests.
 
 A group id is derived from the split message id and splitter endpoint id. A splitter naming a gather channel must supply an explicit `endpointId`; bootstrap refuses a generated identity because replay and restart must address the same group. The group retains the original message;
 part reports retain the payload representation and content/type metadata delivered by the asynchronous channel.
@@ -182,7 +185,7 @@ boot Pulse beside a real split/gather application.
 | Guarantee | Named test (without the `test_` prefix) |
 |---|---|
 | Durable opening | `open_group_survives_application_restart` |
-| Production requires durable storage | `gathered_flow_without_durable_storage_is_refused_outside_flow_testing` |
+| Bootstraps without test configuration require durable storage | `gathered_flow_without_durable_storage_is_refused_outside_flow_testing` |
 | Split progress | `split_opens_a_group_until_all_parts_are_accounted_for`, `open_group_lists_accounted_and_missing_parts`, `progress_lists_accounted_parts_in_split_order` |
 | Ordered results and no-result completion | `gathered_handler_receives_all_part_results_in_split_order`, `part_returning_nothing_counts_as_done` |
 | Typed payload conversion and snapshot | `gathered_parts_restore_typed_results_and_original_payload`, `original_payload_is_a_snapshot_of_the_message_at_the_split` |

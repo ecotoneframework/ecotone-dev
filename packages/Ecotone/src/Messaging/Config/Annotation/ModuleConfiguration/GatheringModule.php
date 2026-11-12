@@ -14,6 +14,10 @@ use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\GatheringConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Messaging\Handler\Gathering\PulseGathering;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Messaging\GatheredParts;
@@ -88,6 +92,7 @@ final class GatheringModule extends NoExternalConfigurationModule
         $this->refuseStaticallyUngatheredSplitters();
         $this->registerPartCompletion($messagingConfiguration);
         $this->registerStore($messagingConfiguration, $extensionObjects, $interfaceToCallRegistry);
+        $this->registerPulse($messagingConfiguration, $extensionObjects);
     }
 
     private function assertLicence(Configuration $messagingConfiguration): void
@@ -163,6 +168,21 @@ final class GatheringModule extends NoExternalConfigurationModule
                 ->registerConsoleCommand(ConsoleCommandConfiguration::create('ecotone.gathering.cleanup', 'ecotone:gathering:cleanup', [], 'Removes closed gathering groups after their retention period'));
             $this->registerConsoleCommands($messagingConfiguration, $interfaceToCallRegistry);
         }
+    }
+
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
+    {
+        return $this->gatherChannelNames !== [] && ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []
+            ? [new PulseSnapshotSectionRegistration(sectionName: 'gathering', serviceReference: PulseGathering::class, tenantScoped: true)]
+            : [];
+    }
+
+    private function registerPulse(Configuration $configuration, array $extensionObjects): void
+    {
+        if ($this->gatherChannelNames === [] || ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) === []) {
+            return;
+        }
+        $configuration->registerServiceDefinition(PulseGathering::class, new Definition(PulseGathering::class, [new Reference(GatheredGroups::class), $this->gatherChannelNames]));
     }
 
     private function registerConsoleCommands(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry): void

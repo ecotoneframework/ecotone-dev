@@ -6,8 +6,8 @@
 
 {% block body %}
     {% include 'services/_header.html.twig' with {route: 'service_gathering', current: 'gathering', heading: 'Gathering', trail: [{label: 'Gathering'}]} %}
-    {% if action == 'release' and actionStatus == 'requested' %}
-        <p class="notice toast" role="status" data-gathering-notice>Release requested for group {{ groupId }}. The handler runs when its consumer handles the release trigger.</p>
+    {% if action in ['release', 'discard'] and actionStatus == 'requested' %}
+        <p class="notice toast" role="status" data-gathering-notice>{{ action == 'release' ? 'Release' : 'Discard' }} requested for group {{ groupId }}. {% if action == 'release' %}The handler runs when its consumer handles the release trigger.{% else %}The service closes the group without invoking its handler.{% endif %}</p>
     {% endif %}
     <p>A group waits for its split parts. Requesting release queues a trigger; the gathered handler runs when its consumer handles that trigger. Discard closes the group without running the handler.</p>
     {% for scope in scopes %}
@@ -32,10 +32,10 @@
                                 <td data-late-parts>{{ group.latePartCount }}</td>
                                 <td>
                                     {% if group.state == 'open' %}
-                                        <form method="post" action="{{ path('service_gathering', {service: scope.scope}) }}/{{ group.groupId|url_encode }}/release">
+                                        <form method="post" action="{{ path('service_gathering_release', {service: scope.scope, groupId: group.groupId}) }}">
                                             <button type="submit" name="confirm" value="1" data-release-group>Request release</button>
                                         </form>
-                                        <form method="post" action="{{ path('service_gathering', {service: scope.scope}) }}/{{ group.groupId|url_encode }}/discard">
+                                        <form method="post" action="{{ path('service_gathering_discard', {service: scope.scope, groupId: group.groupId}) }}">
                                             <button type="submit" name="confirm" value="1" data-discard-group>Discard</button>
                                         </form>
                                     {% else %}Closed{% endif %}

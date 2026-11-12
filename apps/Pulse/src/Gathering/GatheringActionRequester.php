@@ -41,7 +41,7 @@ use Throwable;
  */
 final readonly class GatheringActionRequester
 {
-    public const ROUTING_KEYS = ['release' => 'ecotone.pulse.gathering.release'];
+    public const ROUTING_KEYS = ['release' => 'ecotone.pulse.gathering.release', 'discard' => 'ecotone.pulse.gathering.discard'];
 
     public function __construct(
         private DistributedBus $distributedBus,

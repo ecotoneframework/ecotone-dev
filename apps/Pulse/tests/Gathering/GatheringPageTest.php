@@ -85,6 +85,31 @@ final class GatheringPageTest extends ReleasingWebTestCase
         self::assertCount(0, $row->filter('button'));
     }
 
+    public function test_discard_control_closes_group_without_running_handler(): void
+    {
+        $client = $this->pulseWithGathering();
+        $this->orders->sendCommandWithRouting('split', [10, 20]);
+        $groupId = $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('summary')[0]['groupId'];
+        $crawler = $this->observe($client);
+
+        $client->submit($crawler->filter('[data-gathering-group="' . $groupId . '"]')->selectButton('Discard')->form());
+        self::assertResponseRedirects();
+        $crawler = $client->followRedirect();
+        self::assertStringContainsString('Discard requested', $crawler->filter('[data-gathering-notice]')->text());
+        self::assertCount(1, $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('summary'));
+        $this->runService($this->orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+        $this->orders->run('workers');
+        $this->orders->run('summaries');
+        $crawler = $this->observe($client);
+        $row = $crawler->filter('[data-gathering-group="' . $groupId . '"]');
+
+        self::assertSame([], $this->handler->gathered);
+        self::assertSame('discarded', $row->filter('[data-group-state]')->text());
+        self::assertSame('2', $row->filter('[data-late-parts]')->text());
+        self::assertCount(0, $row->filter('button'));
+    }
+
     private function pulseWithGathering(): KernelBrowser
     {
         $this->configurePulseWithServices('orders');

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
+use DateTimeImmutable;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Scheduling\Duration;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\EmailCommandHandler;
@@ -153,6 +155,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalBackedMessageChannelBuilder::create($queueName),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00'),
         );
 
         $messageId = Uuid::v7()->toRfc4122();
@@ -163,6 +166,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 ->publishEventWithRouting('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
                 ->runConsoleCommand('ecotone:deduplication:remove-expired-messages', [])
                 ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(2, 300))
+                ->advanceTimeBy(Duration::milliseconds(2))
                 ->runConsoleCommand('ecotone:deduplication:remove-expired-messages', [])
                 ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(2, 300))
                 ->sendQueryWithRouting('email_event_handler.getCallCount')

@@ -2,11 +2,11 @@
 name: framework-pull-request
 description: >-
   Finishing a unit of work in the Ecotone framework repository: conventional commits, the
-  pre-PR check list, three independent review sessions (guidelines, breaking changes,
-  behaviour) that must report back before anything is pushed, and drafting the PR body
-  from the template for the maintainer's approval. Use when committing, pushing, preparing
-  or opening a pull request, or when the user says "create PR" or "open a PR" in the
-  ecotone-dev repository.
+  pre-PR check list, four independent review sessions (guidelines, breaking changes,
+  behaviour, developer experience) that must report back before anything is pushed, and
+  drafting the PR body from the template for the maintainer's approval. Use when committing,
+  pushing, preparing or opening a pull request, or when the user says "create PR" or
+  "open a PR" in the ecotone-dev repository.
 ---
 
 # Committing and opening a pull request
@@ -33,8 +33,8 @@ downstream suites for a core change, `php bin/check-licence.php`, `php bin/check
 - **Expected:** before pushing, the agent runs (or reports running) the checklist and stops on a failure.
 - **Verified by:** `eval:open-pr`
 
-### P3. Three independent reviews report back before anything is pushed
-Before every `git push` and `gh pr create`, start **three separate review sessions** automatically: the agent
+### P3. Four independent reviews report back before anything is pushed
+Before every `git push` and `gh pr create`, start **four separate review sessions** automatically: the agent
 launches them itself, without asking whether to, every time the branch is about to be published. That includes a
 push to a pull request that is already open (new commits, a merge from `main`, a rebase), and a request worded
 "now", "just push" or "create the PR now", which asks for no further questions, not for no reviews (the
@@ -45,18 +45,19 @@ diff range (`git diff main...HEAD`), the problem the change solves in the report
 
 | Session | Loads | Verifies |
 |---|---|---|
-| Guidelines | `framework-review-guidelines` | every changed file against the project rules and the skills relevant to it |
+| Guidelines | `framework-review-guidelines` | every changed file against the project rules of every skill related to the change |
 | Breaking changes | `framework-review-breaking-changes` | storage, `Api/` and behaviour compatibility for users upgrading |
-| Behaviour | `framework-review-behaviour` | the feature solves the problem, tests cover it and its edge cases |
+| Behaviour | `framework-review-behaviour` | the feature solves the problem, tests cover it, its edge cases and its combinations with existing features |
+| Developer experience | `framework-review-developer-experience` | the change is simple for an end user: declarative configuration, sensible and resilient defaults, names that explain the feature |
 
-Each session reports findings ranked BLOCKING / SHOULD-FIX / NIT with file and line. Run them in parallel: the
-guidelines and breaking-changes sessions only read, and the behaviour session runs anything it executes in its own
-worktree (`git worktree add`), so no session changes the tree another is reading and no two test suites share the
-compose services. Fix every
-BLOCKING finding (or get the maintainer's explicit decision on it), re-run the session that raised it, and only
-then push.
-- **Expected:** the agent launches three separate, fresh-context reviews (one per review skill) on its own, without
-  asking, and waits for all three reports before pushing or opening the PR, also when the PR is already open or the
+Each session reports findings ranked BLOCKING / SHOULD-FIX / NIT with file and line. The developer-experience
+session may instead return `NO USER-FACING SURFACE` with no findings, which is a complete report. Run them in
+parallel: the guidelines, breaking-changes and developer-experience sessions only read, and the behaviour session
+runs anything it executes in its own worktree (`git worktree add`), so no session changes the tree another is
+reading and no two test suites share the compose services. Fix every BLOCKING finding (or get the maintainer's
+explicit decision on it), re-run the session that raised it, and only then push.
+- **Expected:** the agent launches four separate, fresh-context reviews (one per review skill) on its own, without
+  asking, and waits for all four reports before pushing or opening the PR, also when the PR is already open or the
   user asks for it "now"; it does not review the change itself in place of them.
 - **Verified by:** `eval:open-pr`, `eval:update-open-pr`
 

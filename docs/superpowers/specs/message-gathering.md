@@ -144,7 +144,7 @@ and missing-part numbers stay unchanged by a late arrival.
 arrival counts, requests release, discards and cleans up. `releaseNow(groupId)` returns `release requested` after
 queuing a distinct manual trigger on the gathered handler's own asynchronous channel. The group remains open
 until consumption closes it and invokes the handler in that consumption's transaction. Its result carries
-`GatheredReleaseReason::RELEASED_BY_HAND`. Duplicate requests invoke the handler once. A trigger for an already
+`GatheredReleaseReason::MANUAL_RELEASE`. Duplicate requests invoke the handler once. A trigger for an already
 closed group does nothing. Handler failure rolls closure back and uses ordinary retry/dead-letter handling.
 
 Discard closes the group transactionally without invoking the handler. Repeating discard does not move the

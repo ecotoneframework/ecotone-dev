@@ -56,7 +56,7 @@ flowchart LR
   a `null` value. A missing part has no result entry.
 - `missingPartNumbers` and `size`: which work is missing and how many parts were split.
 - `originalPayload`: the message payload at the time it was split.
-- `releaseReason`: `GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR`, `TIMEOUT` or `RELEASED_BY_HAND`.
+- `releaseReason`: `GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR`, `TIMEOUT` or `MANUAL_RELEASE`.
 
 The released message restores application headers and correlation/tracing context. It follows the gathered
 handler's output flow. It does not resume the split request's routing slip or answer its synchronous caller.

@@ -772,7 +772,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertCount(1, $handler->gathered);
         self::assertSame([1 => 20], $handler->gathered[0]->results);
         self::assertSame([2], $handler->gathered[0]->missingPartNumbers);
-        self::assertSame(GatheredReleaseReason::RELEASED_BY_HAND, $handler->gathered[0]->releaseReason);
+        self::assertSame(GatheredReleaseReason::MANUAL_RELEASE, $handler->gathered[0]->releaseReason);
         self::assertNotContains($groupId, array_column($groups->listOpenGroups('timeout.summary'), 'groupId'));
     }
 
@@ -975,7 +975,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertCount(1, $handler->gathered);
         self::assertSame([1 => 20], $handler->gathered[0]->results);
         self::assertSame([2], $handler->gathered[0]->missingPartNumbers);
-        self::assertSame(GatheredReleaseReason::RELEASED_BY_HAND, $handler->gathered[0]->releaseReason);
+        self::assertSame(GatheredReleaseReason::MANUAL_RELEASE, $handler->gathered[0]->releaseReason);
         self::assertNotContains($groupId, array_column($groups->listOpenGroups('timeout.summary'), 'groupId'));
     }
 
@@ -1134,7 +1134,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertCount(1, $handler->gathered);
         self::assertSame([1 => 20], $handler->gathered[0]->results);
         self::assertSame([2], $handler->gathered[0]->missingPartNumbers);
-        self::assertSame($trigger === 'timeout' ? GatheredReleaseReason::TIMEOUT : GatheredReleaseReason::RELEASED_BY_HAND, $handler->gathered[0]->releaseReason);
+        self::assertSame($trigger === 'timeout' ? GatheredReleaseReason::TIMEOUT : GatheredReleaseReason::MANUAL_RELEASE, $handler->gathered[0]->releaseReason);
     }
 
     public static function releaseTriggers(): iterable
@@ -2400,7 +2400,7 @@ final class GatheringConformanceTest extends TestCase
         $result = json_decode($consumer->getGateway(DocumentStore::class)->getDocument('gathering_release', $testId), true, flags: JSON_THROW_ON_ERROR);
         self::assertSame([1 => 10], $result['results']);
         self::assertSame([2], $result['missing']);
-        self::assertSame(($trigger === 'manual' ? GatheredReleaseReason::RELEASED_BY_HAND : GatheredReleaseReason::TIMEOUT)->value, $result['reason']);
+        self::assertSame(($trigger === 'manual' ? GatheredReleaseReason::MANUAL_RELEASE : GatheredReleaseReason::TIMEOUT)->value, $result['reason']);
     }
 
     public static function conflictingReleaseTriggers(): iterable

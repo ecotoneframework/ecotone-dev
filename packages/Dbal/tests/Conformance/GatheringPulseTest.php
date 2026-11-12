@@ -98,7 +98,7 @@ final class GatheringPulseTest extends TestCase
 
         self::assertCount(1, $this->handler->gathered);
         self::assertSame([1, 2], $this->handler->gathered[0]->missingPartNumbers);
-        self::assertSame(GatheredReleaseReason::RELEASED_BY_HAND, $this->handler->gathered[0]->releaseReason);
+        self::assertSame(GatheredReleaseReason::MANUAL_RELEASE, $this->handler->gathered[0]->releaseReason);
     }
 
     #[DataProvider('implementations')]

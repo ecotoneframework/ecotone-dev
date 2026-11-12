@@ -51,7 +51,7 @@ final class GatheringMessageHandler implements MessageHandler
         $timeout = $message->getHeaders()->containsKey(GatheringHeaders::TIMEOUT);
         $manualRelease = $message->getHeaders()->containsKey(GatheringHeaders::MANUAL_RELEASE);
         $releaseReason = match (true) {
-            $manualRelease => GatheredReleaseReason::RELEASED_BY_HAND,
+            $manualRelease => GatheredReleaseReason::MANUAL_RELEASE,
             $timeout => GatheredReleaseReason::TIMEOUT,
             default => GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR,
         };

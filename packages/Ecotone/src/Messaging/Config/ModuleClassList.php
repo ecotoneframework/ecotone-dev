@@ -169,6 +169,7 @@ class ModuleClassList
     ];
 
     public const DBAL_MODULES = [
+        \Ecotone\Dbal\Gathering\DbalGatheringModule::class,
         DbalBatchForwardingModule::class,
         DbalConnectionModule::class,
         DbalDeadLetterModule::class,

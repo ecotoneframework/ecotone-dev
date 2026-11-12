@@ -29,6 +29,6 @@ final class GatheredGroupNotFound extends RuntimeException
 {
     public static function forId(string $groupId): self
     {
-        return new self("Gathering group '{$groupId}' was not found. Its closed-group retention may have expired. Increase GatheringConfiguration::withRetention(...), or replay failed parts before running ecotone:gathering:cleanup.");
+        return new self("Gathering group '{$groupId}' was not found. Its closed-group retention may have expired, or the split's transaction has not committed yet. Increase GatheringConfiguration::withRetention(...) or replay failed parts before running ecotone:gathering:cleanup. For non-transactional part/report channels, send the split through an outbox / combined channel so parts are published with the commit, then replay the report.");
     }
 }

@@ -156,3 +156,9 @@ Gathering uses the default DBAL connection, including its configured tenant rout
 connection-reference option for gathering storage or its table setup. Keep the gathering tables and report
 channel on that connection when they must share a message transaction; moving gathering to a separately named
 connection is not supported by this version.
+
+A report may arrive before the split's transaction commits when work is published through a non-transactional
+channel such as AMQP, SQS or Redis. A consumer cannot see the uncommitted group and refuses that report through
+normal retry and dead-letter handling. Publish parts with the split's commit through an outbox / combined channel,
+then replay the report. A missing group can also mean its closed-group retention expired; increase retention or
+replay before cleanup in that case.

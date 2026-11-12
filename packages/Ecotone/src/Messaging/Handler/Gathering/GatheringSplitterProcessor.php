@@ -55,19 +55,26 @@ final class GatheringSplitterProcessor implements MessageProcessor
         $groupId = hash('sha256', $message->getHeaders()->getMessageId() . ':' . $this->splitterEndpointId);
         $timeout = $this->timeouts->forChannel($this->gatherChannelName);
         $deadline = $timeout === null ? null : $this->clock->now()->unixTime()->inMilliseconds() + $timeout;
-        $this->store->openGroup(groupId: $groupId, gatherChannelName: $this->gatherChannelName, size: $size, original: $message, deadline: $deadline);
+        $this->store->openGroup(
+            groupId: $groupId,
+            gatherChannelName: $this->gatherChannelName,
+            size: $size,
+            original: $message,
+            deadline: $deadline,
+            whenOpened: function () use ($size, $message, $groupId, $timeout): void {
+                if ($size === 0) {
+                    $this->channelResolver->resolve($this->gatherChannelName)->send($this->stamp($message, $groupId, 0, 0));
+                } elseif ($timeout !== null) {
+                    $trigger = $this->messageBuilder->fromMessage($this->stamp($message, $groupId, 0, $size))
+                        ->setHeader(GatheringHeaders::TIMEOUT, true)
+                        ->setHeader(MessageHeaders::DELIVERY_DELAY, $timeout)
+                        ->build();
+                    $this->channelResolver->resolve($this->gatherChannelName)->send($trigger);
+                }
+            },
+        );
         if ($size === 0) {
-            $trigger = $this->stamp($message, $groupId, 0, 0);
-            $this->channelResolver->resolve($this->gatherChannelName)->send($trigger);
-
             return $reply;
-        }
-        if ($timeout !== null) {
-            $trigger = $this->messageBuilder->fromMessage($this->stamp($message, $groupId, 0, $size))
-                ->setHeader(GatheringHeaders::TIMEOUT, true)
-                ->setHeader(MessageHeaders::DELIVERY_DELAY, $timeout)
-                ->build();
-            $this->channelResolver->resolve($this->gatherChannelName)->send($trigger);
         }
         $parts = [];
         foreach ($reply->getPayload() as $number => $payload) {

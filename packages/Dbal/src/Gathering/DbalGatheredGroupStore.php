@@ -49,17 +49,26 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     ) {
     }
 
-    public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline): void
+    public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void
     {
         $connection = $this->connection();
-        $onDuplicate = $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform
-            ? ' ON DUPLICATE KEY UPDATE group_id = group_id'
-            : ' ON CONFLICT (group_id) DO NOTHING';
         try {
-            $connection->executeStatement(
-                'INSERT INTO ' . self::GROUP_TABLE . ' (group_id, gather_channel_name, size, arrived, state, original_message, deadline) VALUES (?, ?, ?, 0, ?, ?, ?)' . $onDuplicate,
-                [$groupId, $gatherChannelName, $size, 'open', $this->messages->encode($original), $deadline],
-            );
+            $connection->transactional(function () use ($connection, $groupId, $gatherChannelName, $size, $original, $deadline, $whenOpened): void {
+                try {
+                    $connection->transactional(fn () => $connection->insert(self::GROUP_TABLE, [
+                        'group_id' => $groupId,
+                        'gather_channel_name' => $gatherChannelName,
+                        'size' => $size,
+                        'arrived' => 0,
+                        'state' => 'open',
+                        'original_message' => $this->messages->encode($original),
+                        'deadline' => $deadline,
+                    ]));
+                } catch (UniqueConstraintViolationException) {
+                    return;
+                }
+                $whenOpened();
+            });
         } catch (Throwable $failure) {
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }

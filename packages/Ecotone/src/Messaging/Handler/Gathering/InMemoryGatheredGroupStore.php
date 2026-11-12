@@ -35,9 +35,12 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
     {
     }
 
-    public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline): void
+    public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void
     {
-        $this->groups[$groupId] ??= [
+        if (isset($this->groups[$groupId])) {
+            return;
+        }
+        $this->groups[$groupId] = [
             'original' => $original,
             'parts' => [],
             'state' => 'open',
@@ -50,6 +53,12 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             'accountedPartNumbers' => [],
             'missingPartNumbers' => $size === 0 ? [] : range(1, $size),
         ];
+        try {
+            $whenOpened();
+        } catch (Throwable $failure) {
+            unset($this->groups[$groupId]);
+            throw $failure;
+        }
     }
 
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void

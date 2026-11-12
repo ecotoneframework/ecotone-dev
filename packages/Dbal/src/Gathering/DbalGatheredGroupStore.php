@@ -49,7 +49,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     ) {
     }
 
-    public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original): void
+    public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline): void
     {
         $connection = $this->connection();
         $onDuplicate = $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform
@@ -57,8 +57,8 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             : ' ON CONFLICT (group_id) DO NOTHING';
         try {
             $connection->executeStatement(
-                'INSERT INTO ' . self::GROUP_TABLE . ' (group_id, gather_channel_name, size, arrived, state, original_message) VALUES (?, ?, ?, 0, ?, ?)' . $onDuplicate,
-                [$groupId, $gatherChannelName, $size, 'open', $this->messages->encode($original)],
+                'INSERT INTO ' . self::GROUP_TABLE . ' (group_id, gather_channel_name, size, arrived, state, original_message, deadline) VALUES (?, ?, ?, 0, ?, ?, ?)' . $onDuplicate,
+                [$groupId, $gatherChannelName, $size, 'open', $this->messages->encode($original), $deadline],
             );
         } catch (Throwable $failure) {
             throw MissingTableFailure::explained($failure, $this->tableManager);
@@ -164,7 +164,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     {
         try {
             $rows = $this->connection()->fetchAllAssociative(
-                'SELECT group_id, gather_channel_name, size, state, late_part_count, closed_at FROM ' . self::GROUP_TABLE . ' WHERE gather_channel_name = ? AND state ' . ($closed ? '<>' : '=') . " 'open'",
+                'SELECT group_id, gather_channel_name, size, state, late_part_count, closed_at, deadline FROM ' . self::GROUP_TABLE . ' WHERE gather_channel_name = ? AND state ' . ($closed ? '<>' : '=') . " 'open'",
                 [$gatherChannelName],
             );
         } catch (Throwable $failure) {
@@ -176,6 +176,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             $size = (int) $row['size'];
 
             return ($closed ? ['state' => $row['state']] : []) + [
+                'deadline' => $row['deadline'] === null ? null : (int) $row['deadline'],
                 'closedAt' => $row['closed_at'] === null ? null : (int) $row['closed_at'],
                 'latePartCount' => (int) $row['late_part_count'],
                 'groupId' => $row['group_id'],

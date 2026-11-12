@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gathering;
 
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -40,6 +41,7 @@ final class GatheringSplitterProcessor implements MessageProcessor
         private string $splitterEndpointId,
         private GatheredGroupStore $store,
         private GatheringTimeouts $timeouts,
+        private EcotoneClockInterface $clock,
     ) {
     }
 
@@ -51,14 +53,15 @@ final class GatheringSplitterProcessor implements MessageProcessor
         }
         $size = count($reply->getPayload());
         $groupId = hash('sha256', $message->getHeaders()->getMessageId() . ':' . $this->splitterEndpointId);
-        $this->store->openGroup(groupId: $groupId, gatherChannelName: $this->gatherChannelName, size: $size, original: $message);
+        $timeout = $this->timeouts->forChannel($this->gatherChannelName);
+        $deadline = $timeout === null ? null : $this->clock->now()->unixTime()->inMilliseconds() + $timeout;
+        $this->store->openGroup(groupId: $groupId, gatherChannelName: $this->gatherChannelName, size: $size, original: $message, deadline: $deadline);
         if ($size === 0) {
             $trigger = $this->stamp($message, $groupId, 0, 0);
             $this->channelResolver->resolve($this->gatherChannelName)->send($trigger);
 
             return $reply;
         }
-        $timeout = $this->timeouts->forChannel($this->gatherChannelName);
         if ($timeout !== null) {
             $trigger = $this->messageBuilder->fromMessage($this->stamp($message, $groupId, 0, $size))
                 ->setHeader(GatheringHeaders::TIMEOUT, true)

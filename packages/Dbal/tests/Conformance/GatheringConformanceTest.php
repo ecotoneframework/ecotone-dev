@@ -435,6 +435,61 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->run('summaries');
     }
 
+    #[DataProvider('implementations')]
+    public function test_timeout_deadline_is_measured_from_the_split(bool $durable): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'timeout.split', outputChannelName: 'work', gatherChannelName: 'timeout.summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Asynchronous('workers')]
+            #[InternalHandler('work', endpointId: 'timeout.work')]
+            public function work(int $part): int
+            {
+                return $part * 2;
+            }
+
+            #[Gathered(timeout: new TimeSpan(minutes: 30))]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('workers'),
+                SimpleMessageChannelBuilder::createQueueChannel('summaries'),
+            ],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        $ecotone->advanceTimeBy(new TimeSpan(minutes: 29));
+        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+
+        self::assertCount(1, $groups);
+        self::assertSame((new DateTimeImmutable('2026-01-01 12:30:00 UTC'))->getTimestamp() * 1000, $groups[0]['deadline']);
+    }
+
     public static function implementations(): iterable
     {
         yield 'in-memory' => [false];

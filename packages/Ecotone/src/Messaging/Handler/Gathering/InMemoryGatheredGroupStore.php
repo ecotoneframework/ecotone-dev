@@ -35,7 +35,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
     {
     }
 
-    public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original): void
+    public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline): void
     {
         $this->groups[$groupId] ??= [
             'original' => $original,
@@ -43,6 +43,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             'state' => 'open',
             'latePartCount' => 0,
             'closedAt' => null,
+            'deadline' => $deadline,
             'groupId' => $groupId,
             'gatherChannelName' => $gatherChannelName,
             'size' => $size,

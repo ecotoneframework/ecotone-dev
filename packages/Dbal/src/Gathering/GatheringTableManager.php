@@ -112,6 +112,7 @@ final class GatheringTableManager implements DbalTableManager
         $group->addColumn('size', Types::INTEGER);
         $group->addColumn('arrived', Types::INTEGER);
         $group->addColumn('late_part_count', Types::INTEGER, ['default' => 0]);
+        $group->addColumn('deadline', Types::BIGINT, ['notnull' => false]);
         $group->addColumn('closed_at', Types::BIGINT, ['notnull' => false]);
         $group->addColumn('state', Types::STRING, ['length' => 16]);
         $group->addColumn('original_message', Types::TEXT);

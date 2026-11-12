@@ -16,6 +16,7 @@ use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Scheduling\TimeSpan;
+use Enqueue\AmqpTools\RabbitMqDlxDelayStrategy;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -55,6 +56,43 @@ final class GatheringTimeoutTest extends TestCase
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, AmqpExtConnectionFactory::class => new AmqpExtConnectionFactory(getenv('RABBIT_HOST'))],
             extensionObjects: [AmqpBackedMessageChannelBuilder::create('summaries')],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'));
+    }
+
+    public function test_gathered_timeout_trusts_custom_amqp_delay_strategy_unknown_maximum_as_unbounded(): void
+    {
+        $handler = new class () {
+            #[Splitter('parts', endpointId: 'parts.split', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered(timeout: new TimeSpan(days: 60))]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+        };
+
+
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, AmqpExtConnectionFactory::class => new AmqpExtConnectionFactory(getenv('RABBIT_HOST')), 'custom.delay' => new RabbitMqDlxDelayStrategy()],
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create('summaries')->withDelayStrategy('custom.delay')],
             enabledModules: [ModulePackageList::AMQP_PACKAGE],
             licenceKey: self::ENTERPRISE_LICENCE,
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),

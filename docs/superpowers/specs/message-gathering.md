@@ -170,6 +170,7 @@ boot Pulse beside a real split/gather application.
 | Router fan-out refusal | `router_resolving_multiple_destinations_in_a_gathered_flow_is_refused` |
 | Timeout channel capability | `gathered_timeout_is_refused_when_its_channel_cannot_hold_delayed_messages`, `gathered_timeout_is_refused_when_channel_builder_does_not_declare_delay_capability` |
 | Sequential and combined timeout holding | `gathered_timeout_waits_on_first_delayable_channel_before_non_delayable_sequential_hop`, `gathered_timeout_resolves_combined_channel_to_its_first_delayable_hop`, `gathered_timeout_is_refused_when_first_sequential_channel_is_not_delayable`, `gathered_timeout_is_refused_when_combined_channels_first_physical_hop_is_not_delayable` |
+| Unknown delay maximum | `gathered_timeout_trusts_symfony_messenger_unknown_maximum_as_unbounded`, `gathered_timeout_trusts_laravel_queue_unknown_maximum_as_unbounded`, `gathered_timeout_trusts_custom_amqp_delay_strategy_unknown_maximum_as_unbounded` |
 | Broker timeout boundaries | `gathered_timeout_at_sqs_fifteen_minute_limit_is_accepted_at_bootstrap`, `gathered_timeout_exceeding_sqs_fifteen_minute_limit_is_refused_at_bootstrap`, `gathered_timeout_on_sqs_fifo_queue_is_refused_at_bootstrap`, `kafka_declares_no_delay_support_and_refuses_gathered_timeout`, `gathered_timeout_is_accepted_on_amqp_delayed_channel`, `gathered_timeout_is_accepted_on_redis_delayed_channel` |
 | Optional no-match router | `optional_router_with_no_match_counts_as_done_without_result` |
 | Gateway operations | `manual_release_is_requested_until_its_trigger_is_consumed`, `discard_closes_the_group_without_invoking_its_handler` |
@@ -182,7 +183,7 @@ boot Pulse beside a real split/gather application.
 
 The maintainer approved three follow-ups: explicit gathered splitter endpoint ids, refusal of multi-destination
 routers in gathered flows, and an optional channel-builder delay capability with bootstrap timeout validation.
-The explicit-id guard and runtime router guard are implemented. The public `#[Router]` path resolves through application code, so its fan-out guard runs when the message arrives; the maintainer confirmed that no new static-routing API or testing exception is needed. The provisional database current-read exception remains unrecorded as approved. Transport-dependent declarations for Symfony Messenger and Laravel Queue also await a maintainer decision.
+The explicit-id guard and runtime router guard are implemented. The public `#[Router]` path resolves through application code, so its fan-out guard runs when the message arrives; the maintainer confirmed that no new static-routing API or testing exception is needed. The provisional database current-read exception remains unrecorded as approved. The maintainer approved trusting an unknown delay maximum as unbounded; Symfony Messenger, Laravel Queue and custom AMQP delay strategies use that policy without driver inspection.
 
 ## Delayed-channel capability
 
@@ -205,8 +206,11 @@ No timeout means no new capability requirement for the channel.
   ([AWS SendMessage](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html)).
 - Kafka declares no delay support.
 
-Symfony Messenger and Laravel Queue capability declarations remain pending the maintainer's transport policy;
-neither builder has been changed. Custom AMQP delay-strategy limits remain provisional under the same unknown-maximum policy question.
+Symfony Messenger and Laravel Queue declare delay support with no known maximum. A custom AMQP delay strategy
+is accepted on the same basis. The maintainer approved trusting these unknown maxima as unbounded, without
+driver inspection or an additional declaration. The underlying transport's delay limit is the application's
+responsibility on these channels. A builder not implementing the optional interface is still refused for a
+configured gathered timeout.
 
 The timeout guard resolves a `CombinedMessageChannel` alias exactly as asynchronous wiring does, then validates
 only the first physical channel in the sequential chain. That channel holds the delayed trigger; later hops do

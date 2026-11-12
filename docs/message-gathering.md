@@ -129,3 +129,9 @@ part, including successful replay of failed parts. Custom builders can implement
 For an asynchronous channel chain or `CombinedMessageChannel`, the first physical channel holds the timeout.
 Only that first channel needs delay support. A later non-delayable channel is supported after the timeout has
 waited until its deadline on the first channel.
+
+Symfony Messenger, Laravel Queue and AMQP channels using a custom delay strategy support delays but cannot
+know the underlying transport's maximum. Ecotone trusts an unknown maximum as unbounded and performs no driver
+inspection. On these channels, checking and respecting the underlying transport's delay limit is your
+responsibility. Channel builders that do not implement `DelayedMessageChannelBuilder` are still refused when
+a gathered handler configures a timeout.

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Symfony;
 
+use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -22,8 +24,18 @@ use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannel;
 /**
  * licence Apache-2.0
  */
-final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuilder, FinalFailureStrategyChannelBuilder
+final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuilder, FinalFailureStrategyChannelBuilder, DelayedMessageChannelBuilder
 {
+    public function supportsDelayedMessages(): bool
+    {
+        return true;
+    }
+
+    public function maximumDelay(): ?TimeSpan
+    {
+        return null;
+    }
+
     private const TRANSPORT_SERVICE_PREFIX = 'messenger.transport.';
 
     private HeaderMapper $headerMapper;

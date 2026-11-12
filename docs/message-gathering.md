@@ -146,3 +146,13 @@ count. One consumer on the gathered handler's channel avoids report-to-report co
 On a transactional DBAL channel using the group store's connection, the replacement commits before the original
 is acknowledged. A crash between these steps can leave both deliveries; default message deduplication and the
 unique group-id/part-number identity keep completion safe.
+
+## Deployment and connection selection
+
+Upgrade every participating consumer before enabling a gathered flow. Older workers acknowledge parts without
+reporting their completion, leaving those groups incomplete.
+
+Gathering uses the default DBAL connection, including its configured tenant routing. There is no separate
+connection-reference option for gathering storage or its table setup. Keep the gathering tables and report
+channel on that connection when they must share a message transaction; moving gathering to a separately named
+connection is not supported by this version.

@@ -3886,6 +3886,14 @@ channel and run the normal database setup command with `--feature=gathering` bef
 using DBAL. Run the gathered handler's consumer to process empty splits and release requests too. See
 [Message gathering](docs/message-gathering.md) for timeout, replay, nesting, retention and operations.
 
+Upgrade every consumer participating in a gathered flow before enabling `gatherChannelName`. Older workers
+acknowledge completed parts without reporting them to gathering, so mixed-version gathered flows remain incomplete.
+The feature reserves `ecotone_gathering_*` message headers, `ecotone:gathering:*` console commands, and
+`ecotone.gathering.*` / `ecotone.pulse.gathering.*` channels. With an Enterprise licence, a plain splitter refuses
+a message carrying a gathering group header: give that nested splitter its own gather channel, or start a separate
+flow through a command/event bus hop.
+
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them

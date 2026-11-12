@@ -11,5 +11,7 @@ namespace Ecotone\Api\Gateway;
  */
 interface GatheredGroups
 {
+    public function listClosedGroups(string $gatherChannelName): array;
+
     public function listOpenGroups(string $gatherChannelName): array;
 }

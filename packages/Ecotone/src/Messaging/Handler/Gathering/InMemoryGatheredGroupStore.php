@@ -36,6 +36,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             'original' => $original,
             'parts' => [],
             'state' => 'open',
+            'latePartCount' => 0,
             'groupId' => $groupId,
             'gatherChannelName' => $gatherChannelName,
             'size' => $size,
@@ -47,7 +48,12 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void
     {
         $previous = $this->groups[$groupId];
-        if ($previous['state'] !== 'open' || isset($previous['parts'][$partNumber])) {
+        if ($previous['state'] !== 'open') {
+            $this->groups[$groupId]['latePartCount']++;
+
+            return;
+        }
+        if (isset($previous['parts'][$partNumber])) {
             return;
         }
         if ($previous['size'] > 0) {
@@ -80,6 +86,11 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             $this->groups[$groupId] = $previous;
             throw $failure;
         }
+    }
+
+    public function listClosedGroups(string $gatherChannelName): array
+    {
+        return array_values(array_map(static fn (array $group): array => array_diff_key($group, ['original' => true, 'parts' => true]), array_filter($this->groups, static fn (array $group): bool => $group['gatherChannelName'] === $gatherChannelName && $group['state'] !== 'open')));
     }
 
     public function listOpenGroups(string $gatherChannelName): array

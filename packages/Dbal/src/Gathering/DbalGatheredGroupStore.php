@@ -68,7 +68,12 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         try {
             $connection->transactional(function () use ($connection, $groupId, $partNumber, $report, $whenComplete): void {
                 $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
-                if (! $group || $group['state'] !== 'open') {
+                if (! $group) {
+                    return;
+                }
+                if ($group['state'] !== 'open') {
+                    $this->noteLatePart($groupId);
+
                     return;
                 }
                 if ((int) $group['size'] > 0) {
@@ -83,6 +88,9 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                     }
                     $updated = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET arrived = arrived + 1 WHERE group_id = ? AND state = 'open'", [$groupId]);
                     if ($updated === 0) {
+                        $connection->delete(self::PART_TABLE, ['group_id' => $groupId, 'part_number' => $partNumber]);
+                        $this->noteLatePart($groupId);
+
                         return;
                     }
                     $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
@@ -128,20 +136,31 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
 
     public function listOpenGroups(string $gatherChannelName): array
     {
+        return $this->listGroups($gatherChannelName, false);
+    }
+
+    public function listClosedGroups(string $gatherChannelName): array
+    {
+        return $this->listGroups($gatherChannelName, true);
+    }
+
+    private function listGroups(string $gatherChannelName, bool $closed): array
+    {
         try {
             $rows = $this->connection()->fetchAllAssociative(
-                'SELECT group_id, gather_channel_name, size FROM ' . self::GROUP_TABLE . " WHERE gather_channel_name = ? AND state = 'open'",
+                'SELECT group_id, gather_channel_name, size, state, late_part_count FROM ' . self::GROUP_TABLE . ' WHERE gather_channel_name = ? AND state ' . ($closed ? '<>' : '=') . " 'open'",
                 [$gatherChannelName],
             );
         } catch (Throwable $failure) {
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
 
-        return array_map(function (array $row): array {
+        return array_map(function (array $row) use ($closed): array {
             $accounted = array_map('intval', $this->connection()->fetchFirstColumn('SELECT part_number FROM ' . self::PART_TABLE . ' WHERE group_id = ? ORDER BY part_number', [$row['group_id']]));
             $size = (int) $row['size'];
 
-            return [
+            return ($closed ? ['state' => $row['state']] : []) + [
+                'latePartCount' => (int) $row['late_part_count'],
                 'groupId' => $row['group_id'],
                 'gatherChannelName' => $row['gather_channel_name'],
                 'size' => $size,
@@ -149,6 +168,11 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 'missingPartNumbers' => array_values(array_diff($size === 0 ? [] : range(1, $size), $accounted)),
             ];
         }, $rows);
+    }
+
+    private function noteLatePart(string $groupId): void
+    {
+        $this->connection()->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET late_part_count = late_part_count + 1 WHERE group_id = ? AND state <> 'open'", [$groupId]);
     }
 
     private function loadPartsForRelease(string $groupId): array

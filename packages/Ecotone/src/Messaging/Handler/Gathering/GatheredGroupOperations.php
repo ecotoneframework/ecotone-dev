@@ -29,6 +29,11 @@ final class GatheredGroupOperations implements \Ecotone\Api\Gateway\GatheredGrou
     {
     }
 
+    public function listClosedGroups(string $gatherChannelName): array
+    {
+        return $this->store->listClosedGroups($gatherChannelName);
+    }
+
     public function listOpenGroups(string $gatherChannelName): array
     {
         return $this->store->listOpenGroups($gatherChannelName);

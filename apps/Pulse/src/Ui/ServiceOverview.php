@@ -165,6 +165,7 @@ final readonly class ServiceOverview
             'channels' => $this->urls->generate('service_channels', $own),
             'failures' => $this->urls->generate('dead_letters', ['service' => $scope]),
             'projections' => $this->urls->generate('service_projections', ['service' => $scope]),
+            'gathering' => $this->urls->generate('service_gathering', ['service' => $scope]),
             'traces' => $this->urls->generate('traces', ['service' => $scope]),
             'configuration' => $this->urls->generate('service_configuration', $own),
         ];

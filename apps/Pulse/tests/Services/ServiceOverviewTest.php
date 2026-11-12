@@ -70,7 +70,7 @@ final class ServiceOverviewTest extends ReleasingWebTestCase
 
         $tiles = $crawler->filter('[data-tile-kind]');
         self::assertSame(['channels', 'dead-letters', 'projections', 'traces'], $tiles->each(static fn (Crawler $tile): string => (string) $tile->attr('data-tile-kind')));
-        self::assertSame(['/services/orders/channels', '/dead-letters?service=orders', '/services/orders/projections', '/traces?service=orders'], $tiles->each(static fn (Crawler $tile): string => (string) $tile->filter('a.tile-link')->attr('href')));
+        self::assertSame(['/services/orders/channels', '/dead-letters?service=orders', '/services/orders/projections', '/services/orders/gathering', '/traces?service=orders'], $tiles->each(static fn (Crawler $tile): string => (string) $tile->filter('a.tile-link')->attr('href')));
         $deadLetters = $crawler->filter('[data-hub-dead-letters]');
         self::assertSame('2', $deadLetters->filter('a.tile-link b')->text());
         self::assertSame('in 1 failure group', $deadLetters->filter('[data-tile-state]')->text());
@@ -141,8 +141,8 @@ final class ServiceOverviewTest extends ReleasingWebTestCase
         $channels = $client->request('GET', '/services/orders/channels');
 
         $tabs = $overview->filter('nav[data-service-tabs] a');
-        self::assertSame(['overview', 'channels', 'failures', 'projections', 'traces', 'configuration'], $tabs->each(static fn (Crawler $tab): string => (string) $tab->attr('data-service-tab')));
-        self::assertSame(['/services/orders', '/services/orders/channels', '/dead-letters?service=orders', '/services/orders/projections', '/traces?service=orders', '/services/orders/configuration'], $tabs->each(static fn (Crawler $tab): string => (string) $tab->attr('href')));
+        self::assertSame(['overview', 'channels', 'failures', 'projections', 'gathering', 'traces', 'configuration'], $tabs->each(static fn (Crawler $tab): string => (string) $tab->attr('data-service-tab')));
+        self::assertSame(['/services/orders', '/services/orders/channels', '/dead-letters?service=orders', '/services/orders/projections', '/services/orders/gathering', '/traces?service=orders', '/services/orders/configuration'], $tabs->each(static fn (Crawler $tab): string => (string) $tab->attr('href')));
         self::assertSame('Failed messages 2', trim($overview->filter('[data-service-tab="failures"]')->text()));
         self::assertSame('page', $overview->filter('[data-service-tab="overview"]')->attr('aria-current'));
         self::assertSame('page', $channels->filter('[data-service-tab="channels"]')->attr('aria-current'));

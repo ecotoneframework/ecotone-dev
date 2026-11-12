@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gathering · {{ service.service }} · Ecotone Pulse{% endblock %}
+
+{% block head %}{% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}{% endblock %}
+
+{% block body %}
+    {% include 'services/_header.html.twig' with {route: 'service_gathering', current: 'gathering', heading: 'Gathering', trail: [{label: 'Gathering'}]} %}
+    <p>A group waits for its split parts. Requesting release queues a trigger; the gathered handler runs when its consumer handles that trigger. Discard closes the group without running the handler.</p>
+    {% for scope in scopes %}
+        <section aria-label="Gathering groups{% if scope.tenant %} of {{ scope.tenant }}{% endif %}">
+            {% if scope.tenant %}<h2>{{ scope.tenant }}</h2>{% endif %}
+            {% set groups = scope.snapshot.gathering.groups ?? [] %}
+            {% if groups is empty %}
+                <p>No gathering groups reported.</p>
+            {% else %}
+                <div class="flush" style="overflow-x:auto" tabindex="0" role="region" aria-label="Gathering group progress">
+                    <table>
+                        <thead><tr><th scope="col">Group</th><th scope="col">Gather channel</th><th scope="col">State</th><th scope="col">Accounted parts</th><th scope="col">Missing parts</th><th scope="col">Deadline</th><th scope="col">Late parts</th><th scope="col">Operations</th></tr></thead>
+                        <tbody>
+                        {% for group in groups %}
+                            <tr data-gathering-group="{{ group.groupId }}"{% if scope.tenant %} data-tenant="{{ scope.tenant }}"{% endif %}>
+                                <th scope="row"><code>{{ group.groupId }}</code></th>
+                                <td data-gather-channel>{{ group.gatherChannelName }}</td>
+                                <td data-group-state>{{ group.state }}</td>
+                                <td data-accounted-parts>{{ group.accountedPartNumbers|join(', ') ?: 'none' }} of {{ group.size }}</td>
+                                <td data-missing-parts>{{ group.missingPartNumbers|join(', ') ?: 'none' }}</td>
+                                <td data-group-deadline>{% if group.deadline is not null %}{{ (group.deadline / 1000)|date('c', 'UTC') }}{% else %}No timeout{% endif %}</td>
+                                <td data-late-parts>{{ group.latePartCount }}</td>
+                                <td>
+                                    {% if group.state == 'open' %}
+                                        <form method="post" action="{{ path('service_gathering', {service: scope.scope}) }}/{{ group.groupId|url_encode }}/release">
+                                            <button type="submit" name="confirm" value="1" data-release-group>Request release</button>
+                                        </form>
+                                        <form method="post" action="{{ path('service_gathering', {service: scope.scope}) }}/{{ group.groupId|url_encode }}/discard">
+                                            <button type="submit" name="confirm" value="1" data-discard-group>Discard</button>
+                                        </form>
+                                    {% else %}Closed{% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </section>
+    {% endfor %}
+{% endblock %}

@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gathering;
 
 use Ecotone\Api\Gateway\GatheredGroups;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
+use JsonException;
+use stdClass;
 
 /**
  * licence Enterprise
@@ -46,7 +49,7 @@ final class PulseGatheringActions
     {
         $snapshot->authorizeRequestFrom($sourceService);
         $snapshot->tenantOfScopedRequest($headers);
-        $groupId = json_decode($payload, true, flags: JSON_THROW_ON_ERROR)['groupId'];
+        $groupId = $this->groupIdFrom($payload);
         if ($action === 'release') {
             $status = $this->groups->releaseNow($groupId);
         } else {
@@ -59,4 +62,19 @@ final class PulseGatheringActions
             'gatheringAction' => ['groupId' => $groupId, 'status' => $status],
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
+
+    private function groupIdFrom(string $payload): string
+    {
+        try {
+            $request = json_decode($payload, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            $request = null;
+        }
+        if (! $request instanceof stdClass || array_keys(get_object_vars($request)) !== ['groupId'] || ! is_string($request->groupId) || trim($request->groupId) === '') {
+            throw InvalidArgumentException::create('Pulse gathering actions require a JSON object containing only a non-empty string groupId. Send {"groupId":"id"}, taking id from gathering.groups in the Pulse snapshot.');
+        }
+
+        return $request->groupId;
+    }
+
 }

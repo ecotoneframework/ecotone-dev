@@ -23,6 +23,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Exception;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -122,7 +123,53 @@ final class GatheringPulseTest extends TestCase
         self::assertSame(2, $closed[0]['latePartCount']);
     }
 
-    private function bootstrap(bool $durable): void
+    public static function invalidActionBodies(): iterable
+    {
+        foreach (['release', 'discard'] as $action) {
+            foreach (['missing' => '{}', 'list' => '[]', 'empty id' => '{"groupId":""}', 'non-string id' => '{"groupId":7}', 'unknown field' => '{"groupId":"id","all":true}', 'malformed json' => '{'] as $case => $body) {
+                yield $action . ': ' . $case => [$action, $body];
+            }
+        }
+    }
+
+    #[DataProvider('invalidActionBodies')]
+    public function test_pulse_action_refuses_invalid_group_selection(string $action, string $body): void
+    {
+        $this->bootstrap(false);
+
+        $reply = $this->request('ecotone.pulse.gathering.' . $action, $body);
+
+        self::assertSame('Pulse gathering actions require a JSON object containing only a non-empty string groupId. Send {"groupId":"id"}, taking id from gathering.groups in the Pulse snapshot.', $reply['message']);
+        self::assertSame([], $this->service->getGateway(GatheredGroups::class)->listOpenGroups('pulse.summary'));
+        self::assertSame([], $this->handler->gathered);
+    }
+
+    public static function actions(): iterable
+    {
+        yield 'release' => ['release'];
+        yield 'discard' => ['discard'];
+    }
+
+    #[DataProvider('actions')]
+    public function test_unconfigured_pulse_service_cannot_change_a_group(string $action): void
+    {
+        $this->bootstrap(false, 'intruder');
+        $this->service->sendCommandWithRouting('split', [10]);
+        $groups = $this->service->getGateway(GatheredGroups::class);
+        $groupId = $groups->listOpenGroups('pulse.summary')[0]['groupId'];
+
+        try {
+            $this->request('ecotone.pulse.gathering.' . $action, ['groupId' => $groupId]);
+            self::fail();
+        } catch (Exception $exception) {
+            self::assertSame("Service gathering_service was asked for its Pulse snapshot by intruder, but it only answers the configured Pulse service ecotone_pulse. Send the request from the Pulse service, or change the accepted service with PulseConfiguration::createWithDefaults(pulseServiceName: 'intruder') in a #[ServiceContext].", $exception->getMessage());
+        }
+        self::assertSame($groupId, $groups->listOpenGroups('pulse.summary')[0]['groupId']);
+        $this->service->run('summaries');
+        self::assertSame([], $this->handler->gathered);
+    }
+
+    private function bootstrap(bool $durable, string $pulseServiceName = 'ecotone_pulse'): void
     {
         $this->handler = $handler = new class () {
             public array $gathered = [];
@@ -185,7 +232,7 @@ final class GatheringPulseTest extends TestCase
             extensionObjects: [
                 ...$channels,
                 DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'gathering_service', channelName: 'gathering_rpc'),
-                ServiceConfiguration::createWithDefaults()->withServiceName('ecotone_pulse'),
+                ServiceConfiguration::createWithDefaults()->withServiceName($pulseServiceName),
             ],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
@@ -193,13 +240,13 @@ final class GatheringPulseTest extends TestCase
         );
     }
 
-    private function request(string $routingKey, array $payload): array
+    private function request(string $routingKey, array|string $payload): array
     {
         $before = count($this->pulse->snapshots);
         $this->pulseService->getDistributedBus()->sendMessage(
             targetServiceName: 'gathering_service',
             routingKey: $routingKey,
-            payload: json_encode($payload, JSON_THROW_ON_ERROR),
+            payload: is_array($payload) ? json_encode($payload, JSON_THROW_ON_ERROR) : $payload,
             sourceMediaType: MediaType::APPLICATION_JSON,
             replyRoutingKey: 'ecotone.pulse.snapshot_received',
         );

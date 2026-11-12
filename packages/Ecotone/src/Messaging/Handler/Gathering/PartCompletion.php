@@ -11,5 +11,7 @@ use Ecotone\Api\Messaging\Message;
  */
 interface PartCompletion
 {
+    public function validateRoute(Message $request, array $destinations): void;
+
     public function complete(Message $request, ?Message $reply): bool;
 }

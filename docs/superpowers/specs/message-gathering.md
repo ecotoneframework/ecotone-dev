@@ -69,7 +69,7 @@ handler; a gathered handler must have a splitter pointing at it. Invalid wiring 
 preparation with the supported alternatives in the exception message.
 
 An optional router with no destination accounts for its part without a result, through the same completion
-collaborator as the reply producer. Existing router behaviour without group headers remains unchanged.
+collaborator as the reply producer. The maintainer approved refusing a router that resolves multiple destinations for a message carrying group headers. The runtime guard runs before sending any branch and names three exits: one destination, a nested splitter with its own gather channel, or a bus hop. Existing router behaviour without group headers remains unchanged.
 
 A splitter without its own gather channel cannot split a tracked part. Attribute-defined static output chains
 are checked at bootstrap; the Enterprise splitter processor checks dynamic routing slips when the part arrives.
@@ -175,12 +175,8 @@ boot Pulse beside a real split/gather application.
 
 ## Maintainer decisions still required before publication
 
-Three decisions remain outside this implementation's authority: the channel delay-capability seam and broker
-limits, multi-destination routers in a gathered flow, and the provisional database current-read exception. The maintainer approved requiring an explicit
-`endpointId` for a splitter naming a gather channel; that bootstrap refusal is implemented. No channel-capability guard, router policy or
-unapproved endpoint-id default has been added while these decisions are pending.
-
-The provisional `loadPartsForRelease()` current read is confined to the completing transaction. The deterministic
-`releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established` test reproduces a MySQL/MariaDB
-repeatable-read snapshot that otherwise misses a committed part. This mechanism is not recorded here as an
-approved departure from storage rule 8; publication remains gated on the maintainer's decision.
+The maintainer approved three follow-ups: explicit gathered splitter endpoint ids, refusal of multi-destination
+routers in gathered flows, and an optional channel-builder delay capability with bootstrap timeout validation.
+The explicit-id guard and runtime router guard are implemented. Static router wiring checks and delay-capability
+validation remain implementation work. The provisional database current-read exception is the only outstanding
+maintainer decision; it remains unrecorded as approved.

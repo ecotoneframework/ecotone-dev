@@ -11,6 +11,10 @@ use Ecotone\Api\Messaging\Message;
  */
 final class NullPartCompletion implements PartCompletion
 {
+    public function validateRoute(Message $request, array $destinations): void
+    {
+    }
+
     public function complete(Message $request, ?Message $reply): bool
     {
         return false;

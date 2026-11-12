@@ -807,6 +807,56 @@ final class GatheringTest extends TestCase
         self::assertSame(2, $handler->gathered[0]->size);
         self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
     }
+    public function test_router_resolving_multiple_destinations_in_a_gathered_flow_is_refused(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Router('work')]
+            public function route(int $part): array
+            {
+                return ['first', 'second'];
+            }
+
+            #[InternalHandler('first')]
+            #[InternalHandler('second')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $this->expectExceptionMessage("Router resolved multiple destinations 'first', 'second' inside a gathered flow, so its branches cannot be accounted for as one part. Return one destination, replace the router with a #[Splitter] naming its own gatherChannelName, or send the branch work through CommandBus::send() or EventBus::publish() to leave the gathered flow.");
+
+        $ecotone->sendCommandWithRouting('split', [10]);
+    }
+
     public function test_optional_router_with_no_match_counts_as_done_without_result(): void
     {
         $handler = new class () {

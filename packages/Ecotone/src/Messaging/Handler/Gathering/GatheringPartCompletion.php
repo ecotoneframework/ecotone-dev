@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Handler\Gathering;
 
 use Ecotone\Api\Messaging\ErrorMessage;
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -32,6 +33,20 @@ final class GatheringPartCompletion implements PartCompletion
 {
     public function __construct(private ChannelResolver $channelResolver, private MessageBuilder $messageBuilder)
     {
+    }
+
+    public function validateRoute(Message $request, array $destinations): void
+    {
+        if ($request->getHeaders()->containsKey(GatheringHeaders::GROUP_ID) && count($destinations) > 1) {
+            throw self::multipleDestinations($destinations);
+        }
+    }
+
+    public static function multipleDestinations(array $destinations): ConfigurationException
+    {
+        $channels = "'" . implode("', '", $destinations) . "'";
+
+        return ConfigurationException::create("Router resolved multiple destinations {$channels} inside a gathered flow, so its branches cannot be accounted for as one part. Return one destination, replace the router with a #[Splitter] naming its own gatherChannelName, or send the branch work through CommandBus::send() or EventBus::publish() to leave the gathered flow.");
     }
 
     public function complete(Message $request, ?Message $reply): bool

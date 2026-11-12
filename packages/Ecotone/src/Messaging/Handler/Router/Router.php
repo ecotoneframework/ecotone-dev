@@ -52,6 +52,8 @@ final class Router implements MessageHandler
             return;
         }
 
+        $this->partCompletion->validateRoute($message, $resolutionChannels);
+
         $sequenceSize = count($resolutionChannels);
         $sequenceNumber = 1;
         foreach ($resolutionChannels as $resolutionChannel) {

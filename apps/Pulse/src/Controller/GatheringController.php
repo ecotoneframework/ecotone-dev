@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Snapshot\ServiceScope;
-use App\Snapshot\Refusals;
 use App\Gathering\GatheringActionRequester;
+use App\Snapshot\Refusals;
+use App\Snapshot\ServiceScope;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
 use App\Ui\ServiceOverview;

@@ -77,5 +77,4 @@ final class PulseGatheringActions
 
         return $request->groupId;
     }
-
 }

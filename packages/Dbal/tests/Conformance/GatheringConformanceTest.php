@@ -1692,6 +1692,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(2, $handler->gathered[0]->size);
         self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
     }
+
     #[DataProvider('implementations')]
     public function test_duplicate_part_is_not_counted_twice(bool $durable): void
     {
@@ -1765,6 +1766,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(2, $handler->gathered[0]->size);
         self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
     }
+
     #[DataProvider('implementations')]
     public function test_part_returning_nothing_counts_as_done(bool $durable): void
     {
@@ -1817,6 +1819,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(2, $handler->gathered[0]->size);
         self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
     }
+
     #[DataProvider('implementations')]
     public function test_splitter_endpoint_ids_can_contain_another_endpoint_id_followed_by_core(bool $durable): void
     {
@@ -2009,6 +2012,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(0, $handler->gathered[0]->size);
         self::assertSame([], $handler->gathered[0]->originalPayload);
     }
+
     #[DataProvider('implementations')]
     public function test_direct_gathered_command_names_the_supported_ways_out(bool $durable): void
     {
@@ -2120,6 +2124,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(0, $handler->gathered[0]->size);
         self::assertSame([], $handler->gathered[0]->originalPayload);
     }
+
     public function test_missing_gathering_tables_name_setup_and_migration_instructions(): void
     {
         $handler = new class () {
@@ -2226,6 +2231,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(0, $handler->gathered[0]->size);
         self::assertSame([], $handler->gathered[0]->originalPayload);
     }
+
     #[DataProvider('implementations')]
     public function test_released_message_carries_application_headers_but_not_the_split_requests_routing(bool $durable): void
     {
@@ -2346,6 +2352,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(2, $handler->gathered[0]->size);
         self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
     }
+
     #[DataProvider('implementations')]
     public function test_group_headers_do_not_cross_an_event_bus_hop(bool $durable): void
     {
@@ -2407,6 +2414,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(2, $handler->gathered[0]->size);
         self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
     }
+
     #[DataProvider('implementations')]
     public function test_gathered_command_handler_receives_all_part_results(bool $durable): void
     {
@@ -2460,6 +2468,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(2, $handler->gathered[0]->size);
         self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
     }
+
     #[DataProvider('implementations')]
     public function test_gathered_parts_report_all_parts_accounted_for_release_reason(bool $durable): void
     {
@@ -2514,6 +2523,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(2, $handler->gathered[0]->size);
         self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
     }
+
     #[DataProvider('implementations')]
     public function test_optional_router_with_no_match_counts_as_done_without_result(bool $durable): void
     {
@@ -2567,6 +2577,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(2, $handler->gathered[0]->size);
         self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
     }
+
     public function test_gathered_handler_runs_once_when_last_two_parts_are_recorded_concurrently(): void
     {
         if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
@@ -2844,6 +2855,7 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }
+
     private static function releaseApplication(array $additionalServices, array $channels): FlowTestSupport
     {
         $handler = new class () {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Splitter;
 
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -14,6 +15,7 @@ use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheringSplitterProcessor;
+use Ecotone\Messaging\Handler\Gathering\GatheringTimeouts;
 use Ecotone\Messaging\Handler\Gathering\UngatheredSplitterProcessor;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -43,15 +45,15 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
     private array $methodParameterConverterBuilders = [];
     private string $gatherChannelName = '';
 
+    private function __construct(private Reference|Definition|DefinedObject $reference, private InterfaceToCallReference $interfaceToCallReference)
+    {
+    }
+
     public function withGatherChannelName(string $gatherChannelName): self
     {
         $this->gatherChannelName = $gatherChannelName;
 
         return $this;
-    }
-
-    private function __construct(private Reference|Definition|DefinedObject $reference, private InterfaceToCallReference $interfaceToCallReference)
-    {
     }
 
     public static function create(string $referenceName, InterfaceToCall $interfaceToCall): self
@@ -138,8 +140,8 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
                 $this->gatherChannelName,
                 $this->getEndpointId(),
                 new Reference(GatheredGroupStore::class),
-                new Reference(\Ecotone\Messaging\Handler\Gathering\GatheringTimeouts::class),
-                new Reference(\Ecotone\Api\Gateway\EcotoneClockInterface::class),
+                new Reference(GatheringTimeouts::class),
+                new Reference(EcotoneClockInterface::class),
             ]);
         $builder->register($enterpriseProcessorReference, $enterpriseProcessor);
         $processor = $builder->register($processorReference, LicenceDecider::prepareDefinition(

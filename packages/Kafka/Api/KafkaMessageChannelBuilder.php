@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Kafka;
 
+use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Kafka\Channel\KafkaMessageChannel;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
@@ -28,8 +30,18 @@ use Ecotone\Messaging\Support\Assert;
  *
  * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
-final class KafkaMessageChannelBuilder implements MessageChannelWithSerializationBuilder, DepthProbedMessageChannelBuilder, FinalFailureStrategyChannelBuilder, HighThroughputPublishingChannelBuilder
+final class KafkaMessageChannelBuilder implements MessageChannelWithSerializationBuilder, DepthProbedMessageChannelBuilder, FinalFailureStrategyChannelBuilder, HighThroughputPublishingChannelBuilder, DelayedMessageChannelBuilder
 {
+    public function supportsDelayedMessages(): bool
+    {
+        return false;
+    }
+
+    public function maximumDelay(): ?TimeSpan
+    {
+        return null;
+    }
+
     private KafkaInboundChannelAdapterBuilder $inboundChannelAdapterBuilder;
     private KafkaOutboundChannelAdapterBuilder $outboundChannelAdapterBuilder;
     private string $headerMapper;

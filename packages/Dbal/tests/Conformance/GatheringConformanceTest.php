@@ -158,7 +158,7 @@ final class GatheringConformanceTest extends TestCase
             containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
-                SimpleMessageChannelBuilder::createQueueChannel('summaries'),
+                $durable ? DbalBackedMessageChannelBuilder::create('summaries') : SimpleMessageChannelBuilder::createQueueChannel('summaries'),
             ],
             enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
             licenceKey: self::ENTERPRISE_LICENCE,

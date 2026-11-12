@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Redis;
 
+use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Ecotone\Messaging\Channel\DepthProbedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
@@ -17,8 +19,18 @@ use Ecotone\Redis\RedisOutboundChannelAdapterBuilder;
 /**
  * licence Apache-2.0
  */
-final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection, DepthProbedMessageChannelBuilder
+final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection, DepthProbedMessageChannelBuilder, DelayedMessageChannelBuilder
 {
+    public function supportsDelayedMessages(): bool
+    {
+        return true;
+    }
+
+    public function maximumDelay(): ?TimeSpan
+    {
+        return null;
+    }
+
     private function __construct(string $channelName, public readonly string $connectionReferenceName)
     {
         parent::__construct(

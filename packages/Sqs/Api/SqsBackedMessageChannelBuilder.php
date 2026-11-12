@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Sqs;
 
+use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Ecotone\Messaging\Channel\DepthProbedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
@@ -16,8 +18,18 @@ use Ecotone\Sqs\SqsOutboundChannelAdapterBuilder;
 /**
  * licence Apache-2.0
  */
-final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection, DepthProbedMessageChannelBuilder
+final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection, DepthProbedMessageChannelBuilder, DelayedMessageChannelBuilder
 {
+    public function supportsDelayedMessages(): bool
+    {
+        return ! str_ends_with($this->getMessageChannelName(), '.fifo');
+    }
+
+    public function maximumDelay(): ?TimeSpan
+    {
+        return new TimeSpan(minutes: 15);
+    }
+
     private function __construct(string $channelName, public readonly string $connectionReferenceName)
     {
         parent::__construct(

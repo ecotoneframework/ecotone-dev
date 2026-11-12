@@ -2,7 +2,9 @@
 
 namespace Ecotone\Api\Dbal\ExtensionObject;
 
+use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Dbal\DbalInboundChannelAdapterBuilder;
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
@@ -16,8 +18,18 @@ use Ecotone\Messaging\Config\Container\Reference;
 /**
  * licence Apache-2.0
  */
-class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection, DepthProbedMessageChannelBuilder
+class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection, DepthProbedMessageChannelBuilder, DelayedMessageChannelBuilder
 {
+    public function supportsDelayedMessages(): bool
+    {
+        return true;
+    }
+
+    public function maximumDelay(): ?TimeSpan
+    {
+        return null;
+    }
+
     private function __construct(string $channelName, public readonly string $connectionReferenceName)
     {
         parent::__construct(

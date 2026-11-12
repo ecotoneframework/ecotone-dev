@@ -119,3 +119,9 @@ ecotone:gathering:cleanup
 Pulse's Gathering tab shows open and retained closed groups, accounted/missing parts, deadlines and late
 arrivals. Open groups offer Request release and Discard. The page reports `Release requested` while the
 handler is still waiting for its trigger; a service refusal is shown with its explanation.
+
+Timeouts require an asynchronous channel builder implementing `DelayedMessageChannelBuilder`. Bootstrap refuses
+channels without declared delay support and durations exceeding the declared maximum. Standard SQS queues allow
+at most 15 minutes; SQS FIFO queues and Kafka cannot hold a per-message timeout. Omit `timeout` to wait for every
+part, including successful replay of failed parts. Custom builders can implement the optional public interface;
+`maximumDelay()` returns `null` when there is no fixed broker maximum.

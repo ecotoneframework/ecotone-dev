@@ -12,7 +12,9 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Attribute\Transformer;
+use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\GatheringConfiguration;
+use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DistributedBusHeader;
@@ -96,6 +98,7 @@ final class GatheringModule extends NoExternalConfigurationModule
     {
         $this->assertLicence($messagingConfiguration);
         $this->validateWiring($interfaceToCallRegistry);
+        $this->validateTimeouts($extensionObjects, $interfaceToCallRegistry);
         $this->refuseStaticallyUngatheredSplitters();
         $this->registerPartCompletion($messagingConfiguration);
         $this->registerStore($messagingConfiguration, $extensionObjects, $interfaceToCallRegistry);
@@ -147,6 +150,39 @@ final class GatheringModule extends NoExternalConfigurationModule
         foreach ($this->gatherChannelNames as $channel) {
             if (! in_array($channel, $gatheredChannels, true)) {
                 throw ConfigurationException::create("Splitter gather channel '{$channel}' must target a gathered handler. Define an #[InternalHandler] or #[CommandHandler] on '{$channel}' with #[Gathered] and #[Asynchronous], or remove gatherChannelName from #[Splitter].");
+            }
+        }
+    }
+
+    private function validateTimeouts(array $extensionObjects, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    {
+        $channels = [];
+        foreach ($extensionObjects as $extension) {
+            if ($extension instanceof MessageChannelBuilder) {
+                $channels[$extension->getMessageChannelName()] = $extension;
+            }
+        }
+        foreach ($this->annotationFinder->findAnnotatedMethods(Gathered::class) as $registration) {
+            $timeout = $registration->getAnnotationForMethod()->timeout;
+            if ($timeout === null) {
+                continue;
+            }
+            $interface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
+            $asynchronous = $interface->getSingleAnnotation(Type::create(Asynchronous::class));
+            $handler = array_values(array_filter($interface->getMethodAnnotations(), static fn (object $annotation): bool => $annotation instanceof InternalHandler || $annotation instanceof CommandHandler))[0];
+            foreach ($asynchronous->getChannelName() as $channelName) {
+                $builder = $channels[$channelName] ?? null;
+                if (! $builder instanceof DelayedMessageChannelBuilder || ! $builder->supportsDelayedMessages()) {
+                    $handlerChannel = $handler->getInputChannelName();
+                    throw ConfigurationException::create("Gathered handler '{$handlerChannel}' has a timeout but asynchronous channel '{$channelName}' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove timeout from #[Gathered].");
+                }
+                $maximumDelay = $builder->maximumDelay();
+                if ($maximumDelay !== null && $timeout->toMilliseconds() > $maximumDelay->toMilliseconds()) {
+                    $handlerChannel = $handler->getInputChannelName();
+                    $timeoutMilliseconds = $timeout->toMilliseconds();
+                    $maximumMilliseconds = $maximumDelay->toMilliseconds();
+                    throw ConfigurationException::create("Gathered handler '{$handlerChannel}' timeout of {$timeoutMilliseconds} milliseconds exceeds asynchronous channel '{$channelName}' maximum delay of {$maximumMilliseconds} milliseconds. Reduce timeout in #[Gathered], use a channel with a longer maximum delay, or remove timeout.");
+                }
             }
         }
     }

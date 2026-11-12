@@ -177,6 +177,30 @@ boot Pulse beside a real split/gather application.
 
 The maintainer approved three follow-ups: explicit gathered splitter endpoint ids, refusal of multi-destination
 routers in gathered flows, and an optional channel-builder delay capability with bootstrap timeout validation.
-The explicit-id guard and runtime router guard are implemented. Static router wiring checks and delay-capability
-validation remain implementation work. The provisional database current-read exception is the only outstanding
+The explicit-id guard and runtime router guard are implemented. The public `#[Router]` path resolves through application code, so its fan-out guard runs when the message arrives; the maintainer confirmed that no new static-routing API or testing exception is needed. The provisional database current-read exception is the only outstanding
 maintainer decision; it remains unrecorded as approved.
+
+## Delayed-channel capability
+
+The optional public `DelayedMessageChannelBuilder` interface lives in `Api/ExtensionObject`. It declares
+`supportsDelayedMessages(): bool` and `maximumDelay(): ?TimeSpan`; `null` means no fixed broker maximum within
+the framework's representable duration range. The timeout guard runs at bootstrap. A builder without this
+interface, a channel declaring no support, or a timeout above a declared maximum is refused with the ways out.
+No timeout means no new capability requirement for the channel.
+
+- In-memory delayable queues support delayed delivery; ordinary queues and streaming channels do not.
+- DBAL stores `delayed_until` as a bigint timestamp (`Database/EnqueueTableManager.php`,
+  `Connection/DbalProducer.php`) and exposes no fixed broker maximum.
+- AMQP's default `HeadersExchangeDelayStrategy` creates a per-delay queue with `x-message-ttl` and dead lettering.
+  RabbitMQ accepts nonnegative millisecond TTL values including AMQP long-long-int, so the default strategy has
+  no fixed limit below the framework's duration range ([RabbitMQ TTL](https://www.rabbitmq.com/docs/ttl)).
+- Redis stores delayed entries in its sorted set with a future timestamp score (`RedisOutboundChannelAdapter.php`)
+  and exposes no fixed broker maximum.
+- SQS maps the delay to `DelaySeconds` (`SqsOutboundChannelAdapter.php`). Standard queues accept at most 900
+  seconds; FIFO queues do not accept per-message delays and declare no support
+  ([AWS SendMessage](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html)).
+- Kafka declares no delay support.
+
+Symfony Messenger and Laravel Queue capability declarations remain pending the maintainer's transport policy;
+neither builder has been changed. Custom AMQP delay-strategy limits and combined asynchronous channel validation
+are under review before the capability increment is finalized.

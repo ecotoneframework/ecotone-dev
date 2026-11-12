@@ -41,6 +41,29 @@ final class GatheringPageTest extends ReleasingWebTestCase
     private FlowTestSupport $orders;
     private object $handler;
 
+    public function test_page_waits_for_the_first_snapshot_before_reporting_groups(): void
+    {
+        $client = $this->pulseWithGathering();
+
+        $crawler = $client->request('GET', '/services/orders/gathering');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Waiting for the first answer of orders', $crawler->text());
+        self::assertStringNotContainsString('No gathering groups reported.', $crawler->text());
+    }
+
+    public function test_page_distinguishes_a_service_that_does_not_report_gathering(): void
+    {
+        $client = $this->pulseWithGathering();
+        $this->orders = $this->realService('orders');
+
+        $crawler = $this->observe($client);
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('orders does not report gathering.', $crawler->text());
+        self::assertStringNotContainsString('No gathering groups reported.', $crawler->text());
+    }
+
     public function test_page_shows_open_group_progress_and_operations(): void
     {
         $client = $this->pulseWithGathering();

@@ -1884,6 +1884,64 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame([], $handler->gathered[0]->originalPayload);
     }
     #[DataProvider('implementations')]
+    public function test_direct_gathered_command_names_the_supported_ways_out(bool $durable): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[CommandHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $ecotone->sendCommandWithRouting('summary', new GatheredParts(
+            results: [],
+            missingPartNumbers: [],
+            size: 0,
+            originalPayload: [],
+            releaseReason: GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR,
+        ));
+        try {
+            $ecotone->run('summaries');
+            self::fail();
+        } catch (\Throwable $failure) {
+            self::assertStringContainsString('Send a message to the splitter', $failure->getMessage());
+            self::assertStringContainsString('remove #[Gathered]', $failure->getMessage());
+        }
+    }
+
+    #[DataProvider('implementations')]
     public function test_empty_split_runs_gathered_handler_with_zero_parts(bool $durable): void
     {
         $handler = new class () {

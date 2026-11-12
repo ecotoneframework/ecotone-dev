@@ -12,6 +12,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\FrameworkHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -48,6 +49,10 @@ final class GatheringMessageHandler implements MessageHandler
 
     public function handle(Message $message): void
     {
+        if (! $message->getHeaders()->containsKey(GatheringHeaders::GROUP_ID)) {
+            throw InvalidArgumentException::create('A #[Gathered] handler requires a gathering group opened by its splitter. Send a message to the splitter naming this gather channel, or remove #[Gathered] to accept ordinary commands directly.');
+        }
+
         $timeout = $message->getHeaders()->containsKey(GatheringHeaders::TIMEOUT);
         $manualRelease = $message->getHeaders()->containsKey(GatheringHeaders::MANUAL_RELEASE);
         $releaseReason = match (true) {

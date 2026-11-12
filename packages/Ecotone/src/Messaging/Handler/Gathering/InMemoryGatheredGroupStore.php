@@ -76,6 +76,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         if ($previous['size'] > 0) {
             $this->groups[$groupId]['parts'][$partNumber] = $report;
             $this->groups[$groupId]['accountedPartNumbers'][] = $partNumber;
+            sort($this->groups[$groupId]['accountedPartNumbers'], SORT_NUMERIC);
             $this->groups[$groupId]['missingPartNumbers'] = array_values(array_diff($previous['missingPartNumbers'], [$partNumber]));
         }
         if (count($this->groups[$groupId]['parts']) !== $previous['size']) {

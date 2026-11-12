@@ -1242,6 +1242,83 @@ final class GatheringConformanceTest extends TestCase
         self::assertEquals([1 => new GatheringPartResult(20), 2 => new GatheringPartResult(40)], $handler->gathered[0]->results);
     }
 
+    #[DataProvider('implementations')]
+    public function test_progress_lists_accounted_parts_in_split_order(bool $durable): void
+    {
+        $handler = new class () {
+            #[CommandHandler('progress.split', outputChannelName: 'progress.parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('progress.parts', endpointId: 'progress.splitter', outputChannelName: 'progress.work', gatherChannelName: 'progress.summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Router('progress.work')]
+            public function route(int $part): string
+            {
+                return match ($part) {
+                    1 => 'progress.slow',
+                    2 => 'progress.medium',
+                    default => 'progress.fast',
+                };
+            }
+
+            #[Asynchronous('slow_workers')]
+            #[InternalHandler('progress.slow', endpointId: 'progress.slow.handler')]
+            public function slow(int $part): int
+            {
+                return $part;
+            }
+
+            #[Asynchronous('medium_workers')]
+            #[InternalHandler('progress.medium', endpointId: 'progress.medium.handler')]
+            public function medium(int $part): int
+            {
+                return $part;
+            }
+
+            #[InternalHandler('progress.fast')]
+            public function fast(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('progress_summaries')]
+            #[InternalHandler('progress.summary', endpointId: 'progress.summary.handler')]
+            public function summary(GatheredParts $parts): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $groups = $ecotone->getGateway(GatheredGroups::class);
+        $before = $groups->listOpenGroups('progress.summary');
+        $ecotone->sendCommandWithRouting('progress.split', [1, 2, 3]);
+        $ecotone->run('progress_summaries');
+        $ecotone->run('medium_workers');
+        $ecotone->run('progress_summaries');
+        $opened = array_values(array_filter($groups->listOpenGroups('progress.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+
+        self::assertCount(1, $opened);
+        self::assertSame([2, 3], $opened[0]['accountedPartNumbers']);
+        self::assertSame([1], $opened[0]['missingPartNumbers']);
+        $groups->releaseNow($opened[0]['groupId']);
+        $ecotone->run('progress_summaries');
+        $closed = array_values(array_filter($groups->listClosedGroups('progress.summary'), static fn (array $group): bool => $group['groupId'] === $opened[0]['groupId']));
+        self::assertSame([2, 3], $closed[0]['accountedPartNumbers']);
+    }
+
     public static function implementations(): iterable
     {
         yield 'in-memory' => [false];

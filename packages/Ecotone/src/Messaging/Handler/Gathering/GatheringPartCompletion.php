@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gathering;
 
+use Ecotone\Api\Messaging\ErrorMessage;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -35,7 +36,7 @@ final class GatheringPartCompletion implements PartCompletion
 
     public function complete(Message $request, ?Message $reply): bool
     {
-        if (! $request->getHeaders()->containsKey(GatheringHeaders::GROUP_ID)) {
+        if (! $request->getHeaders()->containsKey(GatheringHeaders::GROUP_ID) || ErrorMessage::isErrorMessage($request)) {
             return false;
         }
         $report = $this->messageBuilder->fromMessage($reply ?? $request);

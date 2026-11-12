@@ -65,6 +65,18 @@ the test cannot reproduce it, report that instead of changing code.
 
 ## Maintainer decisions during fixes
 
+- F1 (should fix): database setup requires `--initialize --feature=gathering` to create tables, or
+  `--sql --feature=gathering` to generate application migration SQL. Correct the guard and adoption instructions.
+- F2 (should fix): explain enabling the installed DBAL package using `ModulePackageList::DBAL_PACKAGE`
+  or `'dbal'` in `enabledModulePackageNames`, following the existing event-store guard.
+- F3 (nit): describe restart survival and worker sharing as properties of DBAL storage, not of every store.
+- F4 (nit): the guard applies to bootstraps without test configuration, including framework kernels in their
+  test environment. Describe the actual condition rather than calling it production-only.
+- F5 (nit): install and enable DBAL; do not imply this guard verifies a connection or existing tables.
+- F6 (optional): retain the acceptance-map follow-up commit as is; do not rewrite the history.
+- F7 (should fix): prove ordinary `EcotoneLite::bootstrap()` accepts a gathered flow with DBAL enabled.
+  Verify the new test detects a guard changed to refuse every bootstrap without test configuration.
+
 - X4 (blocking, developer experience): refuse production gathering without durable storage at bootstrap.
   In-memory storage remains available to flow tests; production applications must install and configure
   `ecotone/dbal` and run database setup with `--feature=gathering`. No non-durable opt-in is offered.

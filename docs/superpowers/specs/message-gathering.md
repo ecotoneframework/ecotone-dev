@@ -57,6 +57,9 @@ must receive `GatheredParts` as its first payload parameter. A splitter's gather
 handler; a gathered handler must have a splitter pointing at it. Invalid wiring is refused during module
 preparation with the supported alternatives in the exception message.
 
+An optional router with no destination accounts for its part without a result, through the same completion
+collaborator as the reply producer. Existing router behaviour without group headers remains unchanged.
+
 A splitter without its own gather channel cannot split a tracked part. Attribute-defined static output chains
 are checked at bootstrap; the Enterprise splitter processor checks dynamic routing slips when the part arrives.
 Both refusals name the choices: give that splitter its own gather channel, or send the sub-work through a bus so

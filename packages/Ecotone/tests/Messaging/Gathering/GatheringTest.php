@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Orchestrator;
 use Ecotone\Api\Attribute\PropagateHeaders;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
@@ -750,6 +751,57 @@ final class GatheringTest extends TestCase
 
         self::assertCount(1, $handler->gathered);
         self::assertSame([1 => 10, 2 => 20], $handler->gathered[0]->results);
+        self::assertSame([], $handler->gathered[0]->missingPartNumbers);
+        self::assertSame(2, $handler->gathered[0]->size);
+        self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
+    }
+    public function test_optional_router_with_no_match_counts_as_done_without_result(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Router('work', isResolutionRequired: false)]
+            public function route(int $part): array
+            {
+                return [];
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+        );
+
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        self::assertSame([], $handler->gathered);
+
+        $ecotone->run('summaries');
+
+        self::assertCount(1, $handler->gathered);
+        self::assertSame([1 => null, 2 => null], $handler->gathered[0]->results);
         self::assertSame([], $handler->gathered[0]->missingPartNumbers);
         self::assertSame(2, $handler->gathered[0]->size);
         self::assertSame([10, 20], $handler->gathered[0]->originalPayload);

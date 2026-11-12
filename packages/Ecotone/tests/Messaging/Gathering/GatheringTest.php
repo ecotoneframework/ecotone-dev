@@ -360,7 +360,7 @@ final class GatheringTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Splitter gather channel 'summary' requires an Ecotone Enterprise licence. Provide a licence key through EcotoneLite::bootstrapFlowTesting(licenceKey: ...), or remove gatherChannelName from #[Splitter].");
+        $this->expectExceptionMessage("Splitter gather channel 'summary' requires an Ecotone Enterprise licence. Provide your licence key as `licenceKey` in the Symfony, Laravel or Tempest Ecotone configuration, or as the `licenceKey:` argument of EcotoneLite, or start a trial at https://ecotone.tech/pricing. Alternatively, remove gatherChannelName from #[Splitter].");
 
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],

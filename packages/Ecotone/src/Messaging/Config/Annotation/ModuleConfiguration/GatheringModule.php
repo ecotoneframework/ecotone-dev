@@ -110,7 +110,7 @@ final class GatheringModule extends NoExternalConfigurationModule
     {
         if ($this->gatherChannelNames !== [] && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             $gatherChannelName = $this->gatherChannelNames[0];
-            throw LicensingException::create("Splitter gather channel '{$gatherChannelName}' requires an Ecotone Enterprise licence. Provide a licence key through EcotoneLite::bootstrapFlowTesting(licenceKey: ...), or remove gatherChannelName from #[Splitter].");
+            throw LicensingException::create("Splitter gather channel '{$gatherChannelName}' requires an Ecotone Enterprise licence. Provide your licence key as `licenceKey` in the Symfony, Laravel or Tempest Ecotone configuration, or as the `licenceKey:` argument of EcotoneLite, or start a trial at https://ecotone.tech/pricing. Alternatively, remove gatherChannelName from #[Splitter].");
         }
     }
 

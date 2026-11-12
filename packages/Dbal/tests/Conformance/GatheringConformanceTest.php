@@ -240,6 +240,71 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame([], $closed[0]['accountedPartNumbers']);
     }
 
+    #[DataProvider('implementations')]
+    public function test_cleanup_retains_closed_groups_for_seven_days_from_release_and_never_removes_open_groups(bool $durable): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'timeout.split', outputChannelName: 'work', gatherChannelName: 'timeout.summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Asynchronous('workers')]
+            #[InternalHandler('work', endpointId: 'timeout.work')]
+            public function work(int $part): int
+            {
+                return $part * 2;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('workers'),
+                SimpleMessageChannelBuilder::createQueueChannel('summaries'),
+            ],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $ecotone->sendCommandWithRouting('split', []);
+        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $closedGroupId = array_values(array_diff(array_column($groups, 'groupId'), array_column($before, 'groupId')))[0];
+        $ecotone->advanceTimeBy(new TimeSpan(days: 6));
+        $ecotone->run('summaries');
+        $ecotone->sendCommandWithRouting('split', [10]);
+        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $openGroupId = array_values(array_diff(array_column($groups, 'groupId'), array_column($before, 'groupId')))[0];
+        $ecotone->advanceTimeBy(new TimeSpan(days: 1));
+        $ecotone->runConsoleCommand('ecotone:gathering:cleanup');
+        self::assertContains($closedGroupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary'), 'groupId'));
+        $ecotone->advanceTimeBy(new TimeSpan(days: 6));
+        $ecotone->runConsoleCommand('ecotone:gathering:cleanup');
+
+        self::assertNotContains($closedGroupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary'), 'groupId'));
+        self::assertContains($openGroupId, array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary'), 'groupId'));
+    }
+
     public static function implementations(): iterable
     {
         yield 'in-memory' => [false];

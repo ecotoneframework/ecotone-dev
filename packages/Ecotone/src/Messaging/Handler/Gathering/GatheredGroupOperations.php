@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gathering;
 
+use Ecotone\Api\Gateway\EcotoneClockInterface;
+
 /**
  * licence Enterprise
  *
@@ -25,8 +27,13 @@ namespace Ecotone\Messaging\Handler\Gathering;
  */
 final class GatheredGroupOperations implements \Ecotone\Api\Gateway\GatheredGroups
 {
-    public function __construct(private GatheredGroupStore $store)
+    public function __construct(private GatheredGroupStore $store, private EcotoneClockInterface $clock)
     {
+    }
+
+    public function cleanupClosedGroups(): void
+    {
+        $this->store->cleanupClosedGroups($this->clock->now()->unixTime()->inMilliseconds() - 7 * 24 * 60 * 60 * 1000);
     }
 
     public function listClosedGroups(string $gatherChannelName): array

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gathering;
 
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\Message;
 use Throwable;
 
@@ -30,6 +31,10 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
 {
     private array $groups = [];
 
+    public function __construct(private EcotoneClockInterface $clock)
+    {
+    }
+
     public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original): void
     {
         $this->groups[$groupId] ??= [
@@ -37,6 +42,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             'parts' => [],
             'state' => 'open',
             'latePartCount' => 0,
+            'closedAt' => null,
             'groupId' => $groupId,
             'gatherChannelName' => $gatherChannelName,
             'size' => $size,
@@ -65,6 +71,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             return;
         }
         $this->groups[$groupId]['state'] = 'released';
+        $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
         try {
             $whenComplete($previous['original'], $this->groups[$groupId]['parts'], $previous['size']);
         } catch (Throwable $failure) {
@@ -80,12 +87,18 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             return;
         }
         $this->groups[$groupId]['state'] = 'released';
+        $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
         try {
             $whenReleased($previous['original'], $previous['parts'], $previous['size']);
         } catch (Throwable $failure) {
             $this->groups[$groupId] = $previous;
             throw $failure;
         }
+    }
+
+    public function cleanupClosedGroups(int $closedAtOrBefore): void
+    {
+        $this->groups = array_filter($this->groups, static fn (array $group): bool => $group['state'] === 'open' || $group['closedAt'] > $closedAtOrBefore);
     }
 
     public function listClosedGroups(string $gatherChannelName): array

@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\MissingTableFailure;
@@ -43,6 +44,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         private CachedConnectionFactory $connectionFactory,
         private GatheringTableManager $tableManager,
         private StoredGatheringMessages $messages,
+        private EcotoneClockInterface $clock,
     ) {
     }
 
@@ -98,7 +100,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                         return;
                     }
                 }
-                $released = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'released' WHERE group_id = ? AND state = 'open'", [$groupId]);
+                $released = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'released', closed_at = ? WHERE group_id = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $groupId]);
                 if ($released === 0) {
                     return;
                 }
@@ -118,7 +120,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         $connection = $this->connection();
         try {
             $connection->transactional(function () use ($connection, $groupId, $whenReleased): void {
-                $released = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'released' WHERE group_id = ? AND state = 'open'", [$groupId]);
+                $released = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'released', closed_at = ? WHERE group_id = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $groupId]);
                 if ($released === 0) {
                     return;
                 }
@@ -128,6 +130,19 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                     $parts[(int) $part['part_number']] = $this->messages->decode($part['report']);
                 }
                 $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size']);
+            });
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
+        }
+    }
+
+    public function cleanupClosedGroups(int $closedAtOrBefore): void
+    {
+        $connection = $this->connection();
+        try {
+            $connection->transactional(function () use ($connection, $closedAtOrBefore): void {
+                $connection->executeStatement('DELETE FROM ' . self::PART_TABLE . ' WHERE group_id IN (SELECT group_id FROM ' . self::GROUP_TABLE . " WHERE state <> 'open' AND closed_at <= ?)", [$closedAtOrBefore]);
+                $connection->executeStatement('DELETE FROM ' . self::GROUP_TABLE . " WHERE state <> 'open' AND closed_at <= ?", [$closedAtOrBefore]);
             });
         } catch (Throwable $failure) {
             throw MissingTableFailure::explained($failure, $this->tableManager);
@@ -148,7 +163,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     {
         try {
             $rows = $this->connection()->fetchAllAssociative(
-                'SELECT group_id, gather_channel_name, size, state, late_part_count FROM ' . self::GROUP_TABLE . ' WHERE gather_channel_name = ? AND state ' . ($closed ? '<>' : '=') . " 'open'",
+                'SELECT group_id, gather_channel_name, size, state, late_part_count, closed_at FROM ' . self::GROUP_TABLE . ' WHERE gather_channel_name = ? AND state ' . ($closed ? '<>' : '=') . " 'open'",
                 [$gatherChannelName],
             );
         } catch (Throwable $failure) {
@@ -160,6 +175,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             $size = (int) $row['size'];
 
             return ($closed ? ['state' => $row['state']] : []) + [
+                'closedAt' => $row['closed_at'] === null ? null : (int) $row['closed_at'],
                 'latePartCount' => (int) $row['late_part_count'],
                 'groupId' => $row['group_id'],
                 'gatherChannelName' => $row['gather_channel_name'],

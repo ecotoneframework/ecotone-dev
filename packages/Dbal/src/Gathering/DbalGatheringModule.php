@@ -11,6 +11,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
@@ -86,6 +87,7 @@ final class DbalGatheringModule extends NoExternalConfigurationModule
             CachedConnectionFactory::registerIn($messagingConfiguration, DbalConnectionReference::DEFAULT, DbalReconnectableConnectionFactory::definitionFor(DbalConnectionReference::DEFAULT)),
             new Reference(GatheringTableManager::class),
             new Reference(StoredGatheringMessages::class),
+            new Reference(EcotoneClockInterface::class),
         ]));
     }
 

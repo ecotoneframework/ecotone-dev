@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Handler\Gathering;
 
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -38,6 +39,7 @@ final class GatheringSplitterProcessor implements MessageProcessor
         private string $gatherChannelName,
         private string $splitterEndpointId,
         private GatheredGroupStore $store,
+        private GatheringTimeouts $timeouts,
     ) {
     }
 
@@ -55,6 +57,14 @@ final class GatheringSplitterProcessor implements MessageProcessor
             $this->channelResolver->resolve($this->gatherChannelName)->send($trigger);
 
             return $reply;
+        }
+        $timeout = $this->timeouts->forChannel($this->gatherChannelName);
+        if ($timeout !== null) {
+            $trigger = $this->messageBuilder->fromMessage($this->stamp($message, $groupId, 0, $size))
+                ->setHeader(GatheringHeaders::TIMEOUT, true)
+                ->setHeader(MessageHeaders::DELIVERY_DELAY, $timeout)
+                ->build();
+            $this->channelResolver->resolve($this->gatherChannelName)->send($trigger);
         }
         $parts = [];
         foreach ($reply->getPayload() as $number => $payload) {

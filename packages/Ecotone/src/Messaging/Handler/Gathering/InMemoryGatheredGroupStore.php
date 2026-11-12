@@ -67,6 +67,21 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         }
     }
 
+    public function releaseGroup(string $groupId, callable $whenReleased): void
+    {
+        $previous = $this->groups[$groupId];
+        if ($previous['state'] !== 'open') {
+            return;
+        }
+        $this->groups[$groupId]['state'] = 'released';
+        try {
+            $whenReleased($previous['original'], $previous['parts'], $previous['size']);
+        } catch (Throwable $failure) {
+            $this->groups[$groupId] = $previous;
+            throw $failure;
+        }
+    }
+
     public function listOpenGroups(string $gatherChannelName): array
     {
         return array_values(array_map(static fn (array $group): array => array_diff_key($group, ['original' => true, 'parts' => true, 'state' => true]), array_filter($this->groups, static fn (array $group): bool => $group['gatherChannelName'] === $gatherChannelName && $group['state'] === 'open')));

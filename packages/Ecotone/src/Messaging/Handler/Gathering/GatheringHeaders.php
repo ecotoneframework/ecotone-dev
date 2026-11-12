@@ -9,6 +9,8 @@ namespace Ecotone\Messaging\Handler\Gathering;
  */
 final class GatheringHeaders
 {
+    public const TIMEOUT = 'ecotone_gathering_group_timeout';
+
     public const GROUP_ID = 'ecotone_gathering_group_id';
     public const PART_NUMBER = 'ecotone_gathering_part_number';
     public const SIZE = 'ecotone_gathering_group_size';

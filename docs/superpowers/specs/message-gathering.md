@@ -73,3 +73,16 @@ suite covers this through `inner_gathered_result_becomes_outer_part_result`.
 `GatheredParts::releaseReason` is a typed `GatheredReleaseReason`; ordinary completion is
 `ALL_PARTS_ACCOUNTED_FOR`. Results remain keyed by their split part numbers, including `null` for a part that
 completed without returning a result.
+
+## Timeout and retention
+
+`#[Gathered(timeout: new TimeSpan(minutes: 30))]` schedules a delayed trigger at the split on the gathered
+handler's own asynchronous channel. Consuming that trigger closes the group and invokes the ordinary handler in
+that consumption's transaction. The payload includes only accounted results, the missing part numbers, the
+original split payload and `GatheredReleaseReason::TIMEOUT`.
+
+Closed groups are retained for seven days from release or discard by default. This matches
+[`DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS`](../../../packages/Dbal/src/Deduplication/DeduplicationModule.php)
+and its default use in
+[`DbalConfiguration`](../../../packages/Dbal/Api/ExtensionObject/DbalConfiguration.php).
+The gathering configuration may set another retention period; cleanup never removes an open group.

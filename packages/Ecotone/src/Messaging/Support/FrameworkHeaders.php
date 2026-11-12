@@ -132,6 +132,7 @@ final class FrameworkHeaders
     private static function getFrameworksHeaderNames(): array
     {
         return [
+            GatheringHeaders::TIMEOUT,
             GatheringHeaders::GROUP_ID,
             GatheringHeaders::PART_NUMBER,
             GatheringHeaders::SIZE,

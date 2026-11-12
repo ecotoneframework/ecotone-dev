@@ -136,6 +136,7 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
                 $this->gatherChannelName,
                 $this->getEndpointId(),
                 new Reference(GatheredGroupStore::class),
+                new Reference(\Ecotone\Messaging\Handler\Gathering\GatheringTimeouts::class),
             ]);
         $builder->register($processorReference . '.enterprise', $enterpriseProcessor);
         $processor = $builder->register($processorReference, LicenceDecider::prepareDefinition(

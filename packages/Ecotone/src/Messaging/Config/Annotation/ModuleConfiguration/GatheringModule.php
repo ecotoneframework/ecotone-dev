@@ -26,6 +26,7 @@ use Ecotone\Messaging\Handler\Gathering\GatheredGroupOperations;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStoreRegistration;
 use Ecotone\Messaging\Handler\Gathering\GatheringPartCompletion;
+use Ecotone\Messaging\Handler\Gathering\GatheringTimeouts;
 use Ecotone\Messaging\Handler\Gathering\InMemoryGatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\NullPartCompletion;
 use Ecotone\Messaging\Handler\Gathering\PartCompletion;
@@ -80,7 +81,7 @@ final class GatheringModule extends NoExternalConfigurationModule
         $this->validateWiring($interfaceToCallRegistry);
         $this->refuseStaticallyUngatheredSplitters();
         $this->registerPartCompletion($messagingConfiguration);
-        $this->registerStore($messagingConfiguration, $extensionObjects);
+        $this->registerStore($messagingConfiguration, $extensionObjects, $interfaceToCallRegistry);
     }
 
     private function assertLicence(Configuration $messagingConfiguration): void
@@ -132,9 +133,20 @@ final class GatheringModule extends NoExternalConfigurationModule
         $messagingConfiguration->registerServiceDefinition(PartCompletion::class, LicenceDecider::prepareDefinition(PartCompletion::class, NullPartCompletion::class, GatheringPartCompletion::class));
     }
 
-    private function registerStore(Configuration $messagingConfiguration, array $extensionObjects): void
+    private function registerStore(Configuration $messagingConfiguration, array $extensionObjects, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         if ($this->gatherChannelNames !== []) {
+            $timeouts = [];
+            foreach ($this->annotationFinder->findAnnotatedMethods(Gathered::class) as $registration) {
+                $gathered = $registration->getAnnotationForMethod();
+                $interface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->getMethodAnnotations();
+                foreach ($interface as $annotation) {
+                    if ($annotation instanceof InternalHandler || $annotation instanceof CommandHandler) {
+                        $timeouts[$annotation->getInputChannelName()] = $gathered->timeout?->toMilliseconds();
+                    }
+                }
+            }
+            $messagingConfiguration->registerServiceDefinition(GatheringTimeouts::class, new Definition(GatheringTimeouts::class, [$timeouts]));
             $store = ExtensionObjectResolver::resolveUnique(GatheredGroupStoreRegistration::class, $extensionObjects, new GatheredGroupStoreRegistration(InMemoryGatheredGroupStore::class));
             $messagingConfiguration->registerServiceDefinition(InMemoryGatheredGroupStore::class, new Definition(InMemoryGatheredGroupStore::class));
             $messagingConfiguration->registerServiceDefinition(GatheredGroupStore::class, new Reference($store->serviceReference));

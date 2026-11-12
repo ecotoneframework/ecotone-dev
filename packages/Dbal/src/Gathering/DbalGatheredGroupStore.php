@@ -105,6 +105,27 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         }
     }
 
+    public function releaseGroup(string $groupId, callable $whenReleased): void
+    {
+        $connection = $this->connection();
+        try {
+            $connection->transactional(function () use ($connection, $groupId, $whenReleased): void {
+                $released = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'released' WHERE group_id = ? AND state = 'open'", [$groupId]);
+                if ($released === 0) {
+                    return;
+                }
+                $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
+                $parts = [];
+                foreach ($this->loadPartsForRelease($groupId) as $part) {
+                    $parts[(int) $part['part_number']] = $this->messages->decode($part['report']);
+                }
+                $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size']);
+            });
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
+        }
+    }
+
     public function listOpenGroups(string $gatherChannelName): array
     {
         try {

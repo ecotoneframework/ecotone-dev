@@ -31,5 +31,7 @@ interface GatheredGroupStore
 
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void;
 
+    public function releaseGroup(string $groupId, callable $whenReleased): void;
+
     public function listOpenGroups(string $gatherChannelName): array;
 }

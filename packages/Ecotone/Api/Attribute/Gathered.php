@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Api\Attribute;
 
 use Attribute;
+use Ecotone\Api\Scheduling\TimeSpan;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 /**
@@ -14,4 +15,7 @@ use Attribute;
  */
 final class Gathered
 {
+    public function __construct(public readonly ?TimeSpan $timeout = null)
+    {
+    }
 }

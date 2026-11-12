@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Conformance;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
@@ -34,6 +35,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\GatheredReleaseReason;
+use Ecotone\Api\Scheduling\TimeSpan;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -108,6 +110,69 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(2, $groups[0]['size']);
         self::assertSame([], $groups[0]['accountedPartNumbers']);
         self::assertSame([1, 2], $groups[0]['missingPartNumbers']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_timeout_releases_group_with_missing_parts_reported(bool $durable): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'timeout.split', outputChannelName: 'work', gatherChannelName: 'timeout.summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Asynchronous('workers')]
+            #[InternalHandler('work', endpointId: 'timeout.work')]
+            public function work(int $part): int
+            {
+                return $part * 2;
+            }
+
+            #[Gathered(timeout: new TimeSpan(minutes: 30))]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('workers'),
+                SimpleMessageChannelBuilder::createQueueChannel('summaries'),
+            ],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotone->run('summaries');
+        self::assertSame([], $handler->gathered);
+        $ecotone->advanceTimeBy(new TimeSpan(minutes: 29));
+        $ecotone->run('summaries');
+        self::assertSame([], $handler->gathered);
+        $ecotone->advanceTimeBy(new TimeSpan(minutes: 1));
+        $ecotone->run('summaries');
+        self::assertCount(1, $handler->gathered);
+        self::assertSame([1 => 20], $handler->gathered[0]->results);
+        self::assertSame([2], $handler->gathered[0]->missingPartNumbers);
+        self::assertSame(2, $handler->gathered[0]->size);
+        self::assertSame([10, 20], $handler->gathered[0]->originalPayload);
+        self::assertSame(GatheredReleaseReason::TIMEOUT, $handler->gathered[0]->releaseReason);
     }
 
     public static function implementations(): iterable

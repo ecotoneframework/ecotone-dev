@@ -65,7 +65,7 @@ final class GatheringPulseTest extends TestCase
         self::assertSame('open', $open[0]['state']);
         self::assertSame([1], $open[0]['accountedPartNumbers']);
         self::assertSame([2], $open[0]['missingPartNumbers']);
-        $groups->releaseNow($groupId);
+        $groups->requestRelease($groupId);
         $this->service->run('summaries');
         $this->service->run('workers');
         $this->service->run('summaries');

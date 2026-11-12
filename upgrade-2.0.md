@@ -3888,6 +3888,9 @@ channel, install and configure `ecotone/dbal`, and run the normal database setup
 Run the gathered handler's consumer to process empty splits and release requests too. See
 [Message gathering](docs/message-gathering.md) for timeout, replay, nesting, retention and operations.
 
+`GatheredGroups::requestRelease(groupId)` queues a manual release and returns no value; the group stays open
+until its gathered handler's consumer processes the trigger. Console and Pulse show `release requested`.
+
 Upgrade every consumer participating in a gathered flow before enabling `gatherChannelName`. Older workers
 acknowledge completed parts without reporting them to gathering, so mixed-version gathered flows remain incomplete.
 The feature reserves `ecotone_gathering_*` message headers, `ecotone:gathering:*` console commands, and

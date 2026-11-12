@@ -243,7 +243,7 @@ final class GatheringModule extends NoExternalConfigurationModule
         }
         $configuration->registerServiceDefinition(PulseGathering::class, new Definition(PulseGathering::class, [new Reference(GatheredGroups::class), $this->gatherChannelNames]));
         $configuration->registerServiceDefinition(PulseGatheringActions::class, new Definition(PulseGatheringActions::class, [new Reference(GatheredGroups::class)]));
-        foreach (['releaseNow' => 'release', 'discard' => 'discard'] as $method => $action) {
+        foreach (['requestRelease' => 'release', 'discard' => 'discard'] as $method => $action) {
             $configuration->registerMessageHandler(
                 MessageProcessorActivatorBuilder::createForMethod(PulseGatheringActions::class, $interfaceToCallRegistry->getFor(PulseGatheringActions::class, $method))
                     ->withInputChannelName('ecotone.pulse.gathering.' . $action)
@@ -262,7 +262,7 @@ final class GatheringModule extends NoExternalConfigurationModule
         $configuration->registerServiceDefinition(GatheringConsoleCommands::class, new Definition(GatheringConsoleCommands::class, [new Reference(GatheredGroups::class)]));
         foreach ([
             'listGroups' => ['list', 'Lists gathering group progress and late arrivals'],
-            'releaseNow' => ['release', 'Requests release on the gathered handler asynchronous channel'],
+            'requestRelease' => ['release', 'Requests release on the gathered handler asynchronous channel'],
             'discard' => ['discard', 'Discards a group without invoking its gathered handler'],
         ] as $method => [$commandName, $description]) {
             [$handler, $command] = ConsoleCommandModule::prepareConsoleCommandForReference(

@@ -34,7 +34,7 @@ final class GatheredGroupOperations implements GatheredGroups
     {
     }
 
-    public function releaseNow(string $groupId): void
+    public function requestRelease(string $groupId): void
     {
         $gatherChannelName = $this->store->gatherChannelNameFor($groupId);
         $trigger = $this->messageBuilder->withPayload($groupId)

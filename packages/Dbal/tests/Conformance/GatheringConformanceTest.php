@@ -83,7 +83,7 @@ final class GatheringConformanceTest extends TestCase
             {
                 if ($part === 20) {
                     try {
-                        $this->other->getGateway(GatheredGroups::class)->releaseNow($groupId);
+                        $this->other->getGateway(GatheredGroups::class)->requestRelease($groupId);
                     } catch (Throwable $failure) {
                         $this->failure = $failure->getMessage();
                     }
@@ -956,8 +956,8 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $ecotone->run('summaries');
 
-        $groups->releaseNow($groupId);
-        $groups->releaseNow($groupId);
+        $groups->requestRelease($groupId);
+        $groups->requestRelease($groupId);
         self::assertSame([], $handler->gathered);
         self::assertContains($groupId, array_column($groups->listOpenGroups('timeout.summary'), 'groupId'));
         $ecotone->run('summaries');
@@ -1024,7 +1024,7 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $ecotone->run('summaries');
 
-        self::assertNull($groups->releaseNow($groupId));
+        self::assertNull($groups->requestRelease($groupId));
         self::assertSame([], $handler->gathered);
         self::assertContains($groupId, array_column($groups->listOpenGroups('timeout.summary'), 'groupId'));
         $ecotone->run('summaries');
@@ -1100,7 +1100,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame($ecotone->now()->unixTime()->inMilliseconds(), $closed[0]['closedAt']);
         $ecotone->advanceTimeBy(new TimeSpan(days: 1));
         $groups->discard($groupId);
-        $groups->releaseNow($groupId);
+        $groups->requestRelease($groupId);
         $ecotone->run('workers');
         $ecotone->run('summaries');
         $after = array_values(array_filter($groups->listClosedGroups('timeout.summary'), static fn (array $group): bool => $group['groupId'] === $groupId));
@@ -1304,7 +1304,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame($ecotone->now()->unixTime()->inMilliseconds(), $closed[0]['closedAt']);
         $ecotone->advanceTimeBy(new TimeSpan(days: 1));
         $groups->discard($groupId);
-        $groups->releaseNow($groupId);
+        $groups->requestRelease($groupId);
         $ecotone->run('workers');
         $ecotone->run('summaries');
         $after = array_values(array_filter($groups->listClosedGroups('timeout.summary'), static fn (array $group): bool => $group['groupId'] === $groupId));
@@ -1375,7 +1375,7 @@ final class GatheringConformanceTest extends TestCase
         if ($trigger === 'timeout') {
             $ecotone->advanceTimeBy(new TimeSpan(minutes: 30));
         } else {
-            $groups->releaseNow($groupId);
+            $groups->requestRelease($groupId);
         }
         try {
             $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
@@ -1576,7 +1576,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertCount(1, $opened);
         self::assertSame([2, 3], $opened[0]['accountedPartNumbers']);
         self::assertSame([1], $opened[0]['missingPartNumbers']);
-        $groups->releaseNow($opened[0]['groupId']);
+        $groups->requestRelease($opened[0]['groupId']);
         $ecotone->run('progress_summaries');
         $closed = array_values(array_filter($groups->listClosedGroups('progress.summary'), static fn (array $group): bool => $group['groupId'] === $opened[0]['groupId']));
         self::assertSame([2, 3], $closed[0]['accountedPartNumbers']);
@@ -3255,7 +3255,7 @@ final class GatheringConformanceTest extends TestCase
         $groups = array_values(array_filter($other->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroups, true)));
         $groupId = $groups[0]['groupId'];
         if (in_array($trigger, ['manual', 'discard_release'], true)) {
-            $other->getGateway(GatheredGroups::class)->releaseNow($groupId);
+            $other->getGateway(GatheredGroups::class)->requestRelease($groupId);
         } elseif (in_array($trigger, ['report', 'discard_part'], true)) {
             $other->run('gathering_release_workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
         }

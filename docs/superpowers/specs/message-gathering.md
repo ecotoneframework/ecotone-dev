@@ -147,9 +147,10 @@ and missing-part numbers stay unchanged by a late arrival.
 ## Operations and Pulse
 
 `GatheredGroups` lists open groups with accounted and missing part numbers, lists retained closed groups with late
-arrival counts, requests release, discards and cleans up. `releaseNow(groupId)` returns `release requested` after
-queuing a distinct manual trigger on the gathered handler's own asynchronous channel. The group remains open
-until consumption closes it and invokes the handler in that consumption's transaction. Its result carries
+arrival counts, requests release, discards and cleans up. `requestRelease(groupId)` returns no value and queues
+a distinct manual trigger on the gathered handler's own asynchronous channel. Console and Pulse responses
+say `release requested`. The group remains open until consumption closes it and invokes the handler in that
+consumption's transaction. Its result carries
 `GatheredReleaseReason::MANUAL_RELEASE`. Duplicate requests invoke the handler once. A trigger for an already
 closed group does nothing. Handler failure rolls closure back and uses ordinary retry/dead-letter handling.
 

@@ -35,7 +35,7 @@ final class PulseGatheringActions
     {
     }
 
-    public function releaseNow(string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot): string
+    public function requestRelease(string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot): string
     {
         return $this->act(action: 'release', payload: $payload, sourceService: $sourceService, headers: $headers, snapshot: $snapshot);
     }
@@ -51,7 +51,7 @@ final class PulseGatheringActions
         $snapshot->tenantOfScopedRequest($headers);
         $groupId = $this->groupIdFrom($payload);
         if ($action === 'release') {
-            $this->groups->releaseNow($groupId);
+            $this->groups->requestRelease($groupId);
             $status = 'release requested';
         } else {
             $this->groups->discard($groupId);

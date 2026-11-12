@@ -101,11 +101,11 @@ has been cleaned up is refused with a message naming this retention setting.
 ## Operations
 
 Use the `Ecotone\Api\Gateway\GatheredGroups` gateway to `listOpenGroups(gatherChannelName)`,
-`listClosedGroups(gatherChannelName)`, `releaseNow(groupId)`, `discard(groupId)` or `cleanupClosedGroups()`.
+`listClosedGroups(gatherChannelName)`, `requestRelease(groupId)`, `discard(groupId)` or `cleanupClosedGroups()`.
 
-`releaseNow()` queues a trigger and returns no value. The console and Pulse display `release requested`.
-Consume the gathered handler's asynchronous
-channel to run the handler. A duplicate request or trigger for a closed group does not run it again. Discard
+`requestRelease()` queues a trigger and returns no value. The console and Pulse display `release requested`.
+Consume the gathered handler's asynchronous channel to run the handler. A duplicate request or trigger for a
+closed group does not run it again. Discard
 closes the group without invoking its handler.
 
 The same operations are available through:

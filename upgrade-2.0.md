@@ -3882,8 +3882,10 @@ discard operations. Existing splitters without a gather channel retain their beh
 
 **How to adapt:** No change is needed for existing split flows. To adopt gathering, add the gather channel,
 `#[Gathered]` and `#[Asynchronous]`, receive `Ecotone\Api\Messaging\GatheredParts`, configure its asynchronous
-channel and run the normal database setup command with `--feature=gathering` before the first message when
-using DBAL. Run the gathered handler's consumer to process empty splits and release requests too. See
+channel, install and configure `ecotone/dbal`, and run the normal database setup command with
+`--feature=gathering` before the first message. Production bootstrap refuses gathering without durable storage;
+`EcotoneLite::bootstrapFlowTesting()` still supports in-memory gathering without DBAL.
+Run the gathered handler's consumer to process empty splits and release requests too. See
 [Message gathering](docs/message-gathering.md) for timeout, replay, nesting, retention and operations.
 
 Upgrade every consumer participating in a gathered flow before enabling `gatherChannelName`. Older workers

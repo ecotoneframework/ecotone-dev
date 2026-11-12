@@ -74,7 +74,8 @@ The last part or release trigger runs the handler in its consumption transaction
 last arrival/group closure rolls back and ordinary retries and dead-letter handling apply. Duplicate part
 reports do not count twice. An empty split invokes the asynchronous gathered handler with zero parts.
 
-Core provides an in-memory store. With the DBAL package enabled, groups and parts are durable. Before processing
+Flow testing without DBAL uses an in-memory store. Production gathering requires durable storage: install and
+configure `ecotone/dbal`; bootstrap refuses a gathered flow without it. Groups and parts are durable. Before processing
 messages, run the existing database setup command with `--feature=gathering` (or include its SQL in your
 application migrations). Gathering never creates tables while handling messages.
 

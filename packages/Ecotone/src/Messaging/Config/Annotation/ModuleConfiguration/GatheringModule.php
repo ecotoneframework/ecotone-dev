@@ -215,6 +215,10 @@ final class GatheringModule extends NoExternalConfigurationModule
             }
             $messagingConfiguration->registerServiceDefinition(GatheringTimeouts::class, new Definition(GatheringTimeouts::class, [$timeouts]));
             $store = ExtensionObjectResolver::resolveUnique(className: GatheredGroupStoreRegistration::class, extensionObjects: $extensionObjects, default: new GatheredGroupStoreRegistration(InMemoryGatheredGroupStore::class));
+            if ($store->serviceReference === InMemoryGatheredGroupStore::class && ! $messagingConfiguration->isRunningForTest()) {
+                $gatherChannelName = $this->gatherChannelNames[0];
+                throw ConfigurationException::create("Gather channel '{$gatherChannelName}' requires durable storage outside flow testing: in-memory groups cannot survive restarts or be shared between workers. Install and configure ecotone/dbal and run ecotone:migration:database:setup --feature=gathering before the first message. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove gatherChannelName from #[Splitter].");
+            }
             $messagingConfiguration->registerServiceDefinition(InMemoryGatheredGroupStore::class, new Definition(InMemoryGatheredGroupStore::class, [new Reference(EcotoneClockInterface::class), new Reference(MessageBuilder::class)]));
             $messagingConfiguration->registerServiceDefinition(GatheredGroupStore::class, new Reference($store->serviceReference));
             $messagingConfiguration->registerServiceDefinition(GatheredGroups::class, new Definition(GatheredGroupOperations::class, [new Reference(GatheredGroupStore::class), new Reference(EcotoneClockInterface::class), $configuration->retention->toMilliseconds(), new Reference(ChannelResolver::class), new Reference(MessageBuilder::class)]));

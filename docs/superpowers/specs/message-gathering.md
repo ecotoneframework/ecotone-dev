@@ -25,6 +25,12 @@ The in-memory store and DBAL store are exercised through the same split/handler/
 `GatheringConformanceTest`. `DbalGatheringModule` supplies a store registration to the core module and registers
 `GatheringTableManager` with the existing database setup commands. Message handling performs no schema work.
 
+Production gathering requires a durable store. When a gather channel exists and the selected store is the
+in-memory default, bootstrap refuses it unless `Configuration::isRunningForTest()` is true. The error names
+installing/configuring `ecotone/dbal` and running database setup with `--feature=gathering`, using
+`EcotoneLite::bootstrapFlowTesting()` for in-memory tests, or removing the splitter's gather channel.
+There is no production non-durable opt-in.
+
 A group id is derived from the split message id and splitter endpoint id. A splitter naming a gather channel must supply an explicit `endpointId`; bootstrap refuses a generated identity because replay and restart must address the same group. The group retains the original message;
 part reports retain the payload representation and content/type metadata delivered by the asynchronous channel.
 `StoredGatheringMessages` uses the existing outbound converter and conversion service. The gathered handler's

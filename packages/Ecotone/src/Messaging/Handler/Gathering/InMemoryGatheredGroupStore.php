@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Handler\Gathering;
 
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Throwable;
 
 /**
@@ -31,7 +32,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
 {
     private array $groups = [];
 
-    public function __construct(private EcotoneClockInterface $clock)
+    public function __construct(private EcotoneClockInterface $clock, private MessageBuilder $messageBuilder)
     {
     }
 
@@ -41,7 +42,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             return;
         }
         $this->groups[$groupId] = [
-            'original' => $original,
+            'original' => $this->messageBuilder->fromMessage($original)->setPayload(unserialize(serialize($original->getPayload())))->build(),
             'parts' => [],
             'state' => 'open',
             'latePartCount' => 0,

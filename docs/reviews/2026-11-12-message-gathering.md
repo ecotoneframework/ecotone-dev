@@ -65,6 +65,13 @@ the test cannot reproduce it, report that instead of changing code.
 
 ## Maintainer decisions during fixes
 
+- X4 (blocking, developer experience): refuse production gathering without durable storage at bootstrap.
+  In-memory storage remains available to flow tests; production applications must install and configure
+  `ecotone/dbal` and run database setup with `--feature=gathering`. No non-durable opt-in is offered.
+- X5 (should fix, developer experience): rename `GatheredGroups::releaseNow()` to `requestRelease()`
+  throughout the gateway, adapters and documentation, without an alias. Requests queue asynchronous work;
+  only the console and Pulse return the presentation status `release requested`.
+
 - M13: retain the literal module class string. Referencing the optional DBAL module with `::class` adds a
   `class.notFound` error to the standalone Ecotone package analysis. Neighbouring optional modules have existing
   baseline entries; adding another would grow the baseline, contrary to framework-dev-environment E4.

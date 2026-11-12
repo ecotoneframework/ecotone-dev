@@ -168,15 +168,20 @@ final class GatheringModule extends NoExternalConfigurationModule
     private function registerConsoleCommands(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $configuration->registerServiceDefinition(GatheringConsoleCommands::class, new Definition(GatheringConsoleCommands::class, [new Reference(GatheredGroups::class)]));
-        [$handler, $command] = ConsoleCommandModule::prepareConsoleCommandForReference(
-            reference: new Reference(GatheringConsoleCommands::class),
-            interfaceToCallReference: new InterfaceToCallReference(GatheringConsoleCommands::class, 'listGroups'),
-            commandName: 'ecotone:gathering:list',
-            discoverableByConsoleCommandAttribute: false,
-            interfaceToCallRegistry: $interfaceToCallRegistry,
-            description: 'Lists gathering group progress and late arrivals',
-        );
-        $configuration->registerMessageHandler($handler)->registerConsoleCommand($command);
+        foreach ([
+            'listGroups' => ['list', 'Lists gathering group progress and late arrivals'],
+            'releaseNow' => ['release', 'Requests release on the gathered handler asynchronous channel'],
+        ] as $method => [$commandName, $description]) {
+            [$handler, $command] = ConsoleCommandModule::prepareConsoleCommandForReference(
+                reference: new Reference(GatheringConsoleCommands::class),
+                interfaceToCallReference: new InterfaceToCallReference(GatheringConsoleCommands::class, $method),
+                commandName: 'ecotone:gathering:' . $commandName,
+                discoverableByConsoleCommandAttribute: false,
+                interfaceToCallRegistry: $interfaceToCallRegistry,
+                description: $description,
+            );
+            $configuration->registerMessageHandler($handler)->registerConsoleCommand($command);
+        }
     }
 
     private function refuseStaticallyUngatheredSplitters(): void

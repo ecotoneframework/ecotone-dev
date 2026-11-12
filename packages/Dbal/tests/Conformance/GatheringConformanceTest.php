@@ -2045,7 +2045,9 @@ final class GatheringConformanceTest extends TestCase
         $testId = bin2hex(random_bytes(16));
         self::concurrentApplication()->sendCommandWithRouting('split', [10, 20], metadata: ['testId' => $testId]);
         $children = [];
-        $code = 'require ' . var_export(dirname(__DIR__, 4) . '/vendor/autoload.php', true) . '; require ' . var_export(__FILE__, true) . '; ' . self::class . '::consumeConcurrentPart();';
+        $packageAutoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
+        $autoload = is_file($packageAutoload) ? $packageAutoload : dirname(__DIR__, 4) . '/vendor/autoload.php';
+        $code = 'require ' . var_export($autoload, true) . '; require ' . var_export(__FILE__, true) . '; ' . self::class . '::consumeConcurrentPart();';
         for ($part = 0; $part < 2; $part++) {
             $process = proc_open([PHP_BINARY, '-r', $code], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
             self::assertIsResource($process);

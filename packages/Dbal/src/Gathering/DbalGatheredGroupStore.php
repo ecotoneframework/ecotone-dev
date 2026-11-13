@@ -49,8 +49,18 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
 
     public function listOpenBatches(string $endpointId): array
     {
+        return $this->listBatches($endpointId, false);
+    }
+
+    public function listClosedBatches(string $endpointId): array
+    {
+        return $this->listBatches($endpointId, true);
+    }
+
+    private function listBatches(string $endpointId, bool $closed): array
+    {
         try {
-            $groups = $this->connection()->fetchAllAssociative('SELECT group_id, handler, group_key, generation, gather_channel_name, size, state, deadline, closed_at, late_part_count FROM ' . self::GROUP_TABLE . " WHERE handler = ? AND state = 'open'", [$endpointId]);
+            $groups = $this->connection()->fetchAllAssociative('SELECT group_id, handler, group_key, generation, gather_channel_name, size, state, deadline, closed_at, late_part_count FROM ' . self::GROUP_TABLE . ' WHERE handler = ? AND state ' . ($closed ? '<>' : '=') . " 'open'", [$endpointId]);
             return array_map(function (array $group): array {
                 $accounted = array_map('intval', $this->connection()->fetchFirstColumn('SELECT part_number FROM ' . self::PART_TABLE . ' WHERE group_id = ? ORDER BY part_number', [$group['group_id']]));
                 $size = (int) $group['size'];

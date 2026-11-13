@@ -53,6 +53,7 @@ final class CollectingMessageHandler implements MessageHandler
         private ?int $maxWait,
         private EcotoneClockInterface $clock,
         private ChannelResolver $channelResolver,
+        private Type $payloadType,
     ) {
     }
 
@@ -64,7 +65,12 @@ final class CollectingMessageHandler implements MessageHandler
     public function handle(Message $message): void
     {
         $timeout = $message->getHeaders()->containsKey(GatheringHeaders::TIMEOUT);
-        $reason = $timeout ? CollectedReleaseReason::MAX_WAIT : CollectedReleaseReason::SIZE_REACHED;
+        $manualRelease = $message->getHeaders()->containsKey(GatheringHeaders::MANUAL_RELEASE);
+        $reason = match (true) {
+            $manualRelease => CollectedReleaseReason::MANUAL_RELEASE,
+            $timeout => CollectedReleaseReason::MAX_WAIT,
+            default => CollectedReleaseReason::SIZE_REACHED,
+        };
         $whenReleased = function (Message $original, array $parts, ?int $size, ?string $groupKey) use ($reason): void {
             ksort($parts);
             $payloads = [];
@@ -76,7 +82,7 @@ final class CollectingMessageHandler implements MessageHandler
             $batch = new CollectedMessages(payloads: $payloads, headers: $headers, groupKey: $groupKey, size: count($payloads), releaseReason: $reason);
             $this->handler->handle($this->messageBuilder->withPayload($batch)->setContentType(MediaType::createApplicationXPHPWithTypeParameter(CollectedMessages::class))->build());
         };
-        if ($timeout) {
+        if ($timeout || $manualRelease) {
             $this->store->releaseGroup($message->getHeaders()->get(GatheringHeaders::GROUP_ID), $whenReleased);
             return;
         }
@@ -112,10 +118,10 @@ final class CollectingMessageHandler implements MessageHandler
     private function payloadOf(Message $message): mixed
     {
         $mediaType = $message->getHeaders()->hasContentType() ? $message->getHeaders()->getContentType() : MediaType::createApplicationXPHP();
-        if ($mediaType->isCompatibleWith(MediaType::createApplicationXPHP())) {
+        $type = $this->payloadType->isAnything() && $message->getHeaders()->containsKey(MessageHeaders::TYPE_ID) ? Type::create($message->getHeaders()->get(MessageHeaders::TYPE_ID)) : $this->payloadType;
+        if ($mediaType->isCompatibleWith(MediaType::createApplicationXPHP()) && $type->accepts($message->getPayload())) {
             return $message->getPayload();
         }
-        $type = $message->getHeaders()->containsKey(MessageHeaders::TYPE_ID) ? Type::create($message->getHeaders()->get(MessageHeaders::TYPE_ID)) : Type::anything();
         return $this->conversionService->convert(source: $message->getPayload(), sourcePHPType: Type::createFromVariable($message->getPayload()), sourceMediaType: $mediaType, targetPHPType: $type, targetMediaType: MediaType::createApplicationXPHP());
     }
 }

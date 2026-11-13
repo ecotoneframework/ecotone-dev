@@ -29,6 +29,8 @@ interface GatheredGroupStore
 {
     public function listOpenBatches(string $endpointId): array;
 
+    public function listClosedBatches(string $endpointId): array;
+
     public function collectMessage(string $handler, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): bool;
 
     public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void;

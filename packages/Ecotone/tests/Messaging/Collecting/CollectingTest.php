@@ -16,6 +16,8 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\CollectedMessages;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -253,7 +255,7 @@ final class CollectingTest extends TestCase
             #[Collected(maxSize: 2)]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
-            public function collect(mixed $batch): void
+            public function collect(CollectedMessages $batch): void
             {
                 $this->batches[] = $batch;
             }
@@ -277,5 +279,45 @@ final class CollectingTest extends TestCase
         self::assertSame(['first', 'second'], $handler->batches[0]->payloads);
         self::assertSame(2, $handler->batches[0]->size);
         self::assertNull($handler->batches[0]->groupKey);
+    }
+
+    public function test_collected_handler_requires_the_typed_batch_as_its_first_parameter(): void
+    {
+        $handler = new class () {
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[InternalHandler('collect', endpointId: 'collect.handler')]
+            public function collect(array $batch): void
+            {
+            }
+        };
+        $this->expectExceptionMessage("Collected handler 'collect' must receive Ecotone\\Api\\Messaging\\CollectedMessages as its first payload parameter. Change that parameter type to CollectedMessages, or remove #[Collected].");
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_collected_max_wait_requires_a_delayable_asynchronous_channel(): void
+    {
+        $handler = new class () {
+            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Asynchronous('batches')]
+            #[InternalHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $this->expectExceptionMessage("Collected handler 'collect' has maxWait but asynchronous channel 'batches' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove maxWait from #[Collected].");
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches', delayable: false)],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 }

@@ -18,6 +18,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutorCompiler;
 use Ecotone\Messaging\Handler\Gathering\CollectingMessageHandler;
+use Ecotone\Messaging\Handler\Gathering\CollectingPayloadType;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheringMessageHandler;
 use Ecotone\Messaging\Handler\Gathering\PartCompletion;
@@ -177,6 +178,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder 
                 $collected->maxWait?->toMilliseconds(),
                 new Reference(\Ecotone\Api\Gateway\EcotoneClockInterface::class),
                 new Reference(ChannelResolver::class),
+                CollectingPayloadType::for($collected),
             ]));
             return $builder->register($reference, LicenceDecider::prepareDefinition(className: MessageHandler::class, openCoreServiceReference: $reference . '.core', enterpriseServiceReference: $reference . '.enterprise'));
         }

@@ -15,10 +15,12 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
 
 #[ModuleAnnotation]
@@ -91,6 +93,9 @@ final class CollectingModule extends NoExternalConfigurationModule
             }
             if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
                 throw LicensingException::create("Collected handler '{$channel}' requires an Ecotone Enterprise licence. Provide licenceKey in the framework configuration or EcotoneLite, start a trial at https://ecotone.tech/pricing, or remove #[Collected].");
+            }
+            if (! $interface->hasFirstParameter() || ! $interface->getFirstParameter()->getTypeDescriptor()->equals(Type::create(CollectedMessages::class))) {
+                throw ConfigurationException::create("Collected handler '{$channel}' must receive Ecotone\\Api\\Messaging\\CollectedMessages as its first payload parameter. Change that parameter type to CollectedMessages, or remove #[Collected].");
             }
         }
     }

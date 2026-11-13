@@ -38,12 +38,22 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
 
     public function listOpenBatches(string $endpointId): array
     {
+        return $this->listBatches($endpointId, false);
+    }
+
+    public function listClosedBatches(string $endpointId): array
+    {
+        return $this->listBatches($endpointId, true);
+    }
+
+    private function listBatches(string $endpointId, bool $closed): array
+    {
         return array_values(array_map(static function (array $group): array {
             $details = array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true, 'handler' => true]);
             $details['endpointId'] = $group['handler'];
             $details['size'] = $group['size'] < 0 ? null : $group['size'];
             return $details;
-        }, array_filter($this->groups, static fn (array $group): bool => ($group['handler'] ?? null) === $endpointId && $group['state'] === 'open')));
+        }, array_filter($this->groups, static fn (array $group): bool => ($group['handler'] ?? null) === $endpointId && ($closed ? $group['state'] !== 'open' : $group['state'] === 'open'))));
     }
 
     public function collectMessage(string $handler, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): bool

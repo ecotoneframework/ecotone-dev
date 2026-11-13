@@ -34,6 +34,11 @@ final class GatheredGroupOperations implements GatheredGroups
     {
     }
 
+    public function listClosedBatches(string $endpointId): array
+    {
+        return $this->store->listClosedBatches($endpointId);
+    }
+
     public function listOpenBatches(string $endpointId): array
     {
         return $this->store->listOpenBatches($endpointId);

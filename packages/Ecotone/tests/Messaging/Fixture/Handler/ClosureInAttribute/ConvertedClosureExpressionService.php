@@ -9,6 +9,9 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
+use Test\Ecotone\Messaging\Unit\Handler\PreferredChannel;
+use Test\Ecotone\Messaging\Unit\Handler\ReferenceByQuery;
+use Test\Ecotone\Messaging\Unit\Handler\TenantChannels;
 
 /**
  * licence Apache-2.0

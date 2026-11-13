@@ -32,7 +32,7 @@ class PayloadExpressionConverter implements ParameterConverter
     public function getArgumentFrom(Message $message)
     {
         try {
-            return $this->argumentTypeConversion->convertWhenPossible(
+            return $this->argumentTypeConversion->convertExpressionResult(
                 $this->expressionEvaluationService->evaluateWithMessage(
                     $this->expression,
                     $message,

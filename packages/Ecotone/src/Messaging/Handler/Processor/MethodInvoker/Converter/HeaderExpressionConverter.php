@@ -36,7 +36,7 @@ class HeaderExpressionConverter implements ParameterConverter
         }
 
         try {
-            return $this->argumentTypeConversion->convertWhenPossible(
+            return $this->argumentTypeConversion->convertExpressionResult(
                 $this->expressionEvaluationService->evaluateWithMessage(
                     $this->expression,
                     $message,

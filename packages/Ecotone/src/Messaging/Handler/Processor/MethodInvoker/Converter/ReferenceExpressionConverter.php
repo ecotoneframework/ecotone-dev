@@ -13,10 +13,9 @@ use Ecotone\Messaging\Handler\Type;
 use Throwable;
 
 /**
- * @internal
- */
-/**
  * licence Apache-2.0
+ *
+ * @internal
  */
 final class ReferenceExpressionConverter implements ParameterConverter
 {
@@ -30,13 +29,10 @@ final class ReferenceExpressionConverter implements ParameterConverter
     ) {
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getArgumentFrom(Message $message): mixed
     {
         try {
-            return $this->argumentTypeConversion->convertWhenPossible(
+            return $this->argumentTypeConversion->convertExpressionResult(
                 $this->expressionEvaluationService->evaluateWithMessage(
                     $this->expression,
                     $message,

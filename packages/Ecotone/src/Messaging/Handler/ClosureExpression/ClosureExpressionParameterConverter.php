@@ -46,7 +46,7 @@ final class ClosureExpressionParameterConverter implements ParameterConverter
         $result = $this->attributeExpressionExecutor->execute($message, AdditionalContextResolver::resolve($message, $this->staticAdditionalContext, $this->valueFromHeaderName, $this->valueFromPayload));
 
         try {
-            return $this->argumentTypeConversion->convertWhenPossible($result, $this->parameterType);
+            return $this->argumentTypeConversion->convertExpressionResult($result, $this->parameterType);
         } catch (Throwable $exception) {
             throw ExpressionEvaluationException::wrapping($this->attributeExpressionExecutor->location(), $exception);
         }

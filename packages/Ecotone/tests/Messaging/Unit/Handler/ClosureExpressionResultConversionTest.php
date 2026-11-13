@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler;
 
+use Attribute;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Handler\ExpressionEvaluationException;
+use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Handler\ClosureInAttribute\ConvertedClosureExpressionService;
-use Test\Ecotone\Messaging\Fixture\Handler\ClosureInAttribute\PreferredChannel;
-use Test\Ecotone\Messaging\Fixture\Handler\ClosureInAttribute\TenantChannels;
 
 /**
  * licence Enterprise
@@ -72,6 +75,24 @@ final class ClosureExpressionResultConversionTest extends TestCase
         self::assertSame(PreferredChannel::Email, $handler->channel);
     }
 
+    public function test_closure_expression_result_that_fails_to_convert_names_the_conversion_that_failed(): void
+    {
+        $handler = new ConvertedClosureExpressionService();
+
+        try {
+            $this->bootstrapWith($handler)->sendCommandWithRouting('channel.fromPayloadClosure', ['channel' => 'fax']);
+            self::fail('Expected the conversion to fail');
+        } catch (MethodInvocationException $exception) {
+            self::assertInstanceOf(ExpressionEvaluationException::class, $exception->getPrevious());
+            self::assertSame(
+                '#[Payload] on $channel in ' . ConvertedClosureExpressionService::class . '::fromPayloadClosure failed.'
+                . ' Expression: closure.'
+                . ' Converting the expression result from string to ' . PreferredChannel::class . ' failed: "fax" is not a valid backing value for enum ' . PreferredChannel::class,
+                $exception->getPrevious()->getMessage(),
+            );
+        }
+    }
+
     private function bootstrapWith(ConvertedClosureExpressionService $handler): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
@@ -79,6 +100,32 @@ final class ClosureExpressionResultConversionTest extends TestCase
             [$handler, new TenantChannels()],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+}
+
+enum PreferredChannel: string
+{
+    case Sms = 'sms';
+    case Email = 'email';
+}
+
+final class TenantChannels
+{
+    public function channelNameOf(string $tenantId): string
+    {
+        return $tenantId === 'tenant-a' ? 'sms' : 'email';
+    }
+}
+
+#[Attribute(Attribute::TARGET_PARAMETER)]
+final class ReferenceByQuery extends Reference
+{
+    public function __construct(string $routingKey)
+    {
+        parent::__construct(
+            QueryBus::class,
+            expression: static fn (#[Reference] QueryBus $queryBus): mixed => $queryBus->sendWithRouting($routingKey),
         );
     }
 }

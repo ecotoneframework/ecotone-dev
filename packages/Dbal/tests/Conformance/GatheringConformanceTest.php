@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\Header;
@@ -1797,6 +1798,189 @@ final class GatheringConformanceTest extends TestCase
 
         self::assertCount(1, $handler->gathered);
         self::assertSame([1 => 10, 2 => 20], $handler->gathered[0]->results);
+    }
+
+    public function test_gathered_handler_runs_without_a_transaction_when_asynchronous_endpoints_run_without_one(): void
+    {
+        $handler = new class () {
+            public DbalConnectionFactory $connectionFactory;
+            public array $transactionActive = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->transactionActive[] = $this->connectionFactory->createContext()->getDbalConnection()->isTransactionActive();
+            }
+        };
+        $handler->connectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN'));
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $handler->connectionFactory],
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(false),
+                SimpleMessageChannelBuilder::createQueueChannel('summaries'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        $ecotone->run('summaries');
+
+        self::assertSame([false], $handler->transactionActive);
+    }
+
+    public function test_failing_gathered_handler_without_a_transaction_leaves_its_group_released_without_running_it_again(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+            public bool $shouldFail = true;
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                if ($this->shouldFail) {
+                    throw new RuntimeException('Gathered handler failed');
+                }
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(false),
+                SimpleMessageChannelBuilder::createQueueChannel('summaries', isAutoAcked: false),
+            ],
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary'), 'groupId');
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        try {
+            $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+            self::fail();
+        } catch (RuntimeException $failure) {
+            self::assertSame('Gathered handler failed', $failure->getMessage());
+        }
+        $handler->shouldFail = false;
+        $ecotone->run('summaries');
+
+        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroupIds, true)));
+        self::assertCount(1, $groups);
+        self::assertSame('released', $groups[0]['state']);
+        self::assertSame([], $handler->gathered);
+    }
+
+    public function test_gathering_console_commands_run_inside_the_database_transaction(): void
+    {
+        $handler = new class () {
+            public DbalConnectionFactory $connectionFactory;
+            public array $transactionActive = [];
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1, pointcut: ConsoleCommand::class)]
+            public function record(MethodInvocation $invocation, ConsoleCommand $consoleCommand): mixed
+            {
+                $this->transactionActive[$consoleCommand->getName()] = $this->connectionFactory->createContext()->getDbalConnection()->isTransactionActive();
+
+                return $invocation->proceed();
+            }
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Asynchronous('workers')]
+            #[InternalHandler('work', endpointId: 'work.handler')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+        };
+        $handler->connectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN'));
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $handler->connectionFactory],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('workers'),
+                SimpleMessageChannelBuilder::createQueueChannel('summaries'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        $groupId = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId')[0];
+
+        $ecotone->runConsoleCommand('ecotone:gathering:list', ['gatherChannelName' => 'summary']);
+        $ecotone->runConsoleCommand('ecotone:gathering:release', ['groupId' => $groupId]);
+        $ecotone->runConsoleCommand('ecotone:gathering:discard', ['groupId' => $groupId]);
+        $ecotone->runConsoleCommand('ecotone:gathering:cleanup');
+
+        self::assertSame(['ecotone:gathering:list' => true, 'ecotone:gathering:release' => true, 'ecotone:gathering:discard' => true, 'ecotone:gathering:cleanup' => true], $handler->transactionActive);
     }
 
     public function test_dbal_report_channel_redelivers_the_completing_part_with_its_group_transaction(): void

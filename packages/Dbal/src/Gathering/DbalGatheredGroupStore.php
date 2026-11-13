@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Gathering;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalContext;
@@ -50,80 +49,76 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void
     {
         $connection = $this->connection();
-        $connection->transactional(function () use ($connection, $groupId, $gatherChannelName, $size, $original, $deadline, $whenOpened): void {
-            try {
-                $connection->transactional(fn () => $connection->insert(self::GROUP_TABLE, [
-                    'group_id' => $groupId,
-                    'gather_channel_name' => $gatherChannelName,
-                    'size' => $size,
-                    'arrived' => 0,
-                    'version' => 0,
-                    'state' => 'open',
-                    'original_message' => $this->messages->encode($original),
-                    'deadline' => $deadline,
-                ]));
-            } catch (UniqueConstraintViolationException) {
+        try {
+            if ($connection->fetchOne('SELECT 1 FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]) !== false) {
                 return;
-            } catch (Throwable $failure) {
-                throw MissingTableFailure::explained($failure, $this->tableManager);
             }
-            $whenOpened();
-        });
+            $connection->insert(self::GROUP_TABLE, [
+                'group_id' => $groupId,
+                'gather_channel_name' => $gatherChannelName,
+                'size' => $size,
+                'arrived' => 0,
+                'version' => 0,
+                'state' => 'open',
+                'original_message' => $this->messages->encode($original),
+                'deadline' => $deadline,
+            ]);
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
+        }
+        $whenOpened();
     }
 
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): bool
     {
         $connection = $this->connection();
+        try {
+            $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
+            if (! $group) {
+                throw GatheredGroupNotFound::forId($groupId);
+            }
+            if ($group['state'] !== 'open') {
+                if ((int) $group['size'] > 0 && $connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE group_id = ? AND part_number = ?', [$groupId, $partNumber]) === false) {
+                    $this->noteLatePart($groupId);
+                }
 
-        return $connection->transactional(function () use ($connection, $groupId, $partNumber, $report, $whenComplete): bool {
-            try {
-                $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
-                if (! $group) {
-                    throw GatheredGroupNotFound::forId($groupId);
-                }
-                if ($group['state'] !== 'open') {
-                    if ((int) $group['size'] > 0 && $connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE group_id = ? AND part_number = ?', [$groupId, $partNumber]) === false) {
-                        $this->noteLatePart($groupId);
-                    }
-
-                    return true;
-                }
-                $size = (int) $group['size'];
-                if ($size > 0 && $connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE group_id = ? AND part_number = ?', [$groupId, $partNumber]) !== false) {
-                    return true;
-                }
-                $arrived = (int) $group['arrived'] + ($size > 0 ? 1 : 0);
-                $completed = $arrived === $size;
-                $version = (int) $group['version'];
-                $updated = $connection->executeStatement(
-                    'UPDATE ' . self::GROUP_TABLE . " SET arrived = ?, version = ?, state = ?, closed_at = ? WHERE group_id = ? AND version = ? AND state = 'open'",
-                    [$arrived, $version + 1, $completed ? 'released' : 'open', $completed ? $this->clock->now()->unixTime()->inMilliseconds() : null, $groupId, $version],
-                );
-                if ($updated === 0) {
-                    return false;
-                }
-                if ($size > 0) {
-                    $connection->insert(self::PART_TABLE, [
-                        'group_id' => $groupId,
-                        'part_number' => $partNumber,
-                        'report' => $this->messages->encode($report),
-                    ]);
-                }
-                if ($completed) {
-                    $parts = [];
-                    foreach ($this->loadPartsForRelease($groupId) as $part) {
-                        $parts[(int) $part['part_number']] = $this->messages->decode($part['report']);
-                    }
-                }
-            } catch (Throwable $failure) {
-                throw MissingTableFailure::explained($failure, $this->tableManager);
+                return true;
+            }
+            $size = (int) $group['size'];
+            if ($size > 0 && $connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE group_id = ? AND part_number = ?', [$groupId, $partNumber]) !== false) {
+                return true;
+            }
+            $arrived = (int) $group['arrived'] + ($size > 0 ? 1 : 0);
+            $completed = $arrived === $size;
+            $version = (int) $group['version'];
+            $updated = $connection->executeStatement(
+                'UPDATE ' . self::GROUP_TABLE . " SET arrived = ?, version = ?, state = ?, closed_at = ? WHERE group_id = ? AND version = ? AND state = 'open'",
+                [$arrived, $version + 1, $completed ? 'released' : 'open', $completed ? $this->clock->now()->unixTime()->inMilliseconds() : null, $groupId, $version],
+            );
+            if ($updated === 0) {
+                return false;
+            }
+            if ($size > 0) {
+                $connection->insert(self::PART_TABLE, [
+                    'group_id' => $groupId,
+                    'part_number' => $partNumber,
+                    'report' => $this->messages->encode($report),
+                ]);
             }
             if ($completed) {
-                $whenComplete($this->messages->decode($group['original_message']), $parts, $size);
+                $parts = [];
+                foreach ($this->loadPartsForRelease($groupId) as $part) {
+                    $parts[(int) $part['part_number']] = $this->messages->decode($part['report']);
+                }
             }
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
+        }
+        if ($completed) {
+            $whenComplete($this->messages->decode($group['original_message']), $parts, $size);
+        }
 
-            return true;
-        });
+        return true;
     }
 
     public function gatherChannelNameFor(string $groupId): string
@@ -143,39 +138,33 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     public function releaseGroup(string $groupId, callable $whenReleased): bool
     {
         $connection = $this->connection();
-
-        return $connection->transactional(function () use ($connection, $groupId, $whenReleased): bool {
-            try {
-                $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
-                if (! $group || $group['state'] !== 'open') {
-                    return true;
-                }
-                $version = (int) $group['version'];
-                $released = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'released', closed_at = ?, version = ? WHERE group_id = ? AND version = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $version + 1, $groupId, $version]);
-                if ($released === 0) {
-                    return false;
-                }
-                $parts = [];
-                foreach ($this->loadPartsForRelease($groupId) as $part) {
-                    $parts[(int) $part['part_number']] = $this->messages->decode($part['report']);
-                }
-            } catch (Throwable $failure) {
-                throw MissingTableFailure::explained($failure, $this->tableManager);
+        try {
+            $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
+            if (! $group || $group['state'] !== 'open') {
+                return true;
             }
-            $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size']);
+            $version = (int) $group['version'];
+            $released = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'released', closed_at = ?, version = ? WHERE group_id = ? AND version = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $version + 1, $groupId, $version]);
+            if ($released === 0) {
+                return false;
+            }
+            $parts = [];
+            foreach ($this->loadPartsForRelease($groupId) as $part) {
+                $parts[(int) $part['part_number']] = $this->messages->decode($part['report']);
+            }
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
+        }
+        $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size']);
 
-            return true;
-        });
+        return true;
     }
 
     public function discard(string $groupId): void
     {
-        $connection = $this->connection();
+        $this->gatherChannelNameFor($groupId);
         try {
-            $connection->transactional(function () use ($connection, $groupId): void {
-                $this->gatherChannelNameFor($groupId);
-                $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'discarded', closed_at = ?, version = version + 1 WHERE group_id = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $groupId]);
-            });
+            $this->connection()->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'discarded', closed_at = ?, version = version + 1 WHERE group_id = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $groupId]);
         } catch (Throwable $failure) {
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
@@ -185,10 +174,8 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     {
         $connection = $this->connection();
         try {
-            $connection->transactional(function () use ($connection, $closedAtOrBefore): void {
-                $connection->executeStatement('DELETE FROM ' . self::PART_TABLE . ' WHERE group_id IN (SELECT group_id FROM ' . self::GROUP_TABLE . " WHERE state <> 'open' AND closed_at <= ?)", [$closedAtOrBefore]);
-                $connection->executeStatement('DELETE FROM ' . self::GROUP_TABLE . " WHERE state <> 'open' AND closed_at <= ?", [$closedAtOrBefore]);
-            });
+            $connection->executeStatement('DELETE FROM ' . self::PART_TABLE . ' WHERE group_id IN (SELECT group_id FROM ' . self::GROUP_TABLE . " WHERE state <> 'open' AND closed_at <= ?)", [$closedAtOrBefore]);
+            $connection->executeStatement('DELETE FROM ' . self::GROUP_TABLE . " WHERE state <> 'open' AND closed_at <= ?", [$closedAtOrBefore]);
         } catch (Throwable $failure) {
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }

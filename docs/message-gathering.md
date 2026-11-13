@@ -72,7 +72,28 @@ results that have arrived and the missing part numbers when the timeout is consu
 
 The last part or release trigger runs the handler in its consumption transaction. If the handler fails, the
 last arrival/group closure rolls back and ordinary retries and dead-letter handling apply. Duplicate part
-reports do not count twice. An empty split invokes the asynchronous gathered handler with zero parts.
+reports do not count twice. Gathering opens no transaction of its own: these guarantees come from the database
+transaction of the place the message entered, which is on by default for the asynchronous endpoint
+(`DbalConfiguration::withTransactionOnAsynchronousEndpoints()`), the command bus (`withTransactionOnCommandBus()`)
+and console commands (`withTransactionOnConsoleCommands()`). The `ecotone:gathering:*` commands run in the console
+command's transaction. A split reached synchronously through the event bus, the query bus or a gateway without
+`#[DbalTransaction]`, and `GatheredGroups` called directly from application code, run in whatever transaction
+that code has.
+
+With `DbalConfiguration::withTransactionOnAsynchronousEndpoints(false)`, or `#[WithoutDatabaseTransaction]` on the
+gathered handler, gathering runs without a transaction, and you lose these guarantees:
+
+- a failing gathered handler leaves its group released, and a retry or a replay from the dead letter does not run
+  the handler again, so that gathered result is lost;
+- a process that stops between recording the arrival and storing the part can count a redelivered part twice;
+- a split whose timeout or empty-split trigger fails to send after its group was stored leaves that group open with
+  no trigger, and its retry does not send one; release it with `ecotone:gathering:release`.
+
+Keep the asynchronous endpoint transaction on for gathered handlers whose result must not be lost. To run other
+endpoints without it, keep it on globally and switch it off only for those endpoints with
+`#[WithoutDatabaseTransaction]`.
+
+An empty split invokes the asynchronous gathered handler with zero parts.
 
 Flow testing without DBAL uses an in-memory store. Bootstrapping without test configuration requires the DBAL
 module for gathering, including ordinary `EcotoneLite::bootstrap()` and framework kernels in a test environment.

@@ -72,7 +72,10 @@ deduplicated or conflicts again, and part identity is the pair `(group_id, part_
 check normally leaves nested DBAL transactions/savepoints usable; no rollback-only state is introduced.
 
 The completing consumer closes the group and invokes the ordinary handler inside the same transaction. Failure
-rolls back its part, group version and closure; retrying that message can complete the group again. The
+rolls back its part, group version and closure; retrying that message can complete the group again. That
+transaction is the asynchronous endpoint's: the store opens none itself (storage rule 16d), so a consumer whose
+endpoint transaction is switched off runs the handler without one. A redelivered split finds its group already
+open through an existence check; the unique group key remains the final guard. The
 in-memory implementation restores the previous group state when that invocation fails.
 
 An empty split opens a zero-size group and queues a trigger on the gathered handler's asynchronous channel. It
@@ -157,7 +160,7 @@ consumption's transaction. Its result carries
 `GatheredReleaseReason::MANUAL_RELEASE`. Duplicate requests invoke the handler once. A trigger for an already
 closed group does nothing. Handler failure rolls closure back and uses ordinary retry/dead-letter handling.
 
-Discard closes the group transactionally without invoking the handler. Repeating discard does not move the
+Discard closes the group without invoking the handler, in the console command's or the Pulse request's transaction. Repeating discard does not move the
 closure time or extend retention. `ecotone:gathering:list`, `ecotone:gathering:release`,
 `ecotone:gathering:discard` and `ecotone:gathering:cleanup` expose the same operations. Listing with `--closed`
 shows retained groups and late-arrival counts. Release output says `release requested`, since the handler has

@@ -14,6 +14,7 @@ use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\OrchestratorGateway;
 use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
@@ -59,6 +60,7 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleInvocationResolver;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -251,7 +253,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             new Definition(ExpiredTraceRemover::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class), $flowTracking->retention->inMilliseconds(), $flowTracking->removalBatchSize])
         );
         $messagingConfiguration
-            ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(ExpiredTraceRemover::class, 'removeExpiredTraces')->withInputChannelName(self::REMOVE_EXPIRED_TRACES_CHANNEL))
+            ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(ExpiredTraceRemover::class, 'removeExpiredTraces')->withInputChannelName(self::REMOVE_EXPIRED_TRACES_CHANNEL)->withEndpointAnnotations([new AttributeDefinition(WithoutDatabaseTransaction::class)]))
             ->registerConsoleCommand(ConsoleCommandConfiguration::create(self::REMOVE_EXPIRED_TRACES_CHANNEL, 'ecotone:tracing:remove-expired-traces', [], 'Removes tracked flows older than the configured retention'));
     }
 

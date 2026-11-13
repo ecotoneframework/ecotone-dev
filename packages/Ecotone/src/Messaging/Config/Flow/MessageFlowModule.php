@@ -53,7 +53,6 @@ final class MessageFlowModule implements AnnotationModule
             new Reference(MessageFlowConsoleCommands::class),
             new InterfaceToCallReference(MessageFlowConsoleCommands::class, 'dump'),
             'ecotone:flow:dump',
-            true,
             $interfaceToCallRegistry,
             'Dumps the message flow graph of the application: commands, events, queries, handlers, aggregates, sagas, projections, gateways and channels, with what each handler emits, as Mermaid or JSON',
         );

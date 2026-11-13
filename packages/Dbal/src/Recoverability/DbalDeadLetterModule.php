@@ -192,7 +192,6 @@ final class DbalDeadLetterModule implements AnnotationModule
             new Reference(DbalDeadLetterConsoleCommand::class),
             new InterfaceToCallReference(DbalDeadLetterConsoleCommand::class, $methodName),
             $commandName,
-            true,
             $interfaceToCallRegistry,
             $description
         );

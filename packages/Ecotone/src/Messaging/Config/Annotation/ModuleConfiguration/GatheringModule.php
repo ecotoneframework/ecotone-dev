@@ -269,7 +269,6 @@ final class GatheringModule extends NoExternalConfigurationModule
                 reference: new Reference(GatheringConsoleCommands::class),
                 interfaceToCallReference: new InterfaceToCallReference(GatheringConsoleCommands::class, $method),
                 commandName: 'ecotone:gathering:' . $commandName,
-                discoverableByConsoleCommandAttribute: false,
                 interfaceToCallRegistry: $interfaceToCallRegistry,
                 description: $description,
             );

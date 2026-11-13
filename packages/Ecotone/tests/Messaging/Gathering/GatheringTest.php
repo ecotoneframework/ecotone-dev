@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\Header;
@@ -760,6 +761,68 @@ final class GatheringTest extends TestCase
         self::assertSame(2, $groups[0]['size']);
         self::assertSame([], $groups[0]['accountedPartNumbers']);
         self::assertSame([1, 2], $groups[0]['missingPartNumbers']);
+    }
+
+    public function test_gathering_console_commands_run_as_console_commands(): void
+    {
+        $handler = new class () {
+            public array $consoleCommands = [];
+
+            #[Around(pointcut: ConsoleCommand::class)]
+            public function record(MethodInvocation $invocation, ConsoleCommand $consoleCommand): mixed
+            {
+                $this->consoleCommands[] = $consoleCommand->getName();
+
+                return $invocation->proceed();
+            }
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Asynchronous('workers')]
+            #[InternalHandler('work', endpointId: 'work.handler')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('workers'),
+                SimpleMessageChannelBuilder::createQueueChannel('summaries'),
+            ],
+            enabledModules: [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        $groupId = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary')[0]['groupId'];
+
+        $ecotone->runConsoleCommand('ecotone:gathering:list', ['gatherChannelName' => 'summary']);
+        $ecotone->runConsoleCommand('ecotone:gathering:release', ['groupId' => $groupId]);
+        $ecotone->runConsoleCommand('ecotone:gathering:discard', ['groupId' => $groupId]);
+        $ecotone->runConsoleCommand('ecotone:gathering:cleanup');
+
+        self::assertSame(['ecotone:gathering:list', 'ecotone:gathering:release', 'ecotone:gathering:discard', 'ecotone:gathering:cleanup'], $handler->consoleCommands);
     }
 
     public function test_part_returning_nothing_counts_as_done(): void

@@ -123,6 +123,7 @@ final class DeduplicationModule implements AnnotationModule
                     DeduplicationInterceptor::class,
                     'removeExpiredMessages'
                 )->withInputChannelName($inputChannelName = 'ecotone.deduplication.removeExpiredMessages')
+                    ->withEndpointAnnotations([new AttributeDefinition(WithoutDatabaseTransaction::class)])
             )
             ->registerConsoleCommand(ConsoleCommandConfiguration::create(
                 $inputChannelName,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Gathering;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -65,7 +66,7 @@ final class DbalGatheringModule extends NoExternalConfigurationModule
             }
         }
 
-        return new self(false);
+        return new self($annotationRegistrationService->findAnnotatedMethods(Collected::class) !== []);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void

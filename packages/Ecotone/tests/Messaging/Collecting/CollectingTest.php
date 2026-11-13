@@ -244,4 +244,38 @@ final class CollectingTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
+
+    public function test_collected_handler_runs_once_when_the_batch_reaches_max_size(): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(mixed $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->sendCommandWithRouting('collect', 'first');
+        $ecotone->run('batches');
+        self::assertSame([], $handler->batches);
+
+        $ecotone->sendCommandWithRouting('collect', 'second');
+        $ecotone->run('batches');
+        self::assertCount(1, $handler->batches);
+        self::assertSame(['first', 'second'], $handler->batches[0]->payloads);
+        self::assertSame(2, $handler->batches[0]->size);
+        self::assertNull($handler->batches[0]->groupKey);
+    }
 }

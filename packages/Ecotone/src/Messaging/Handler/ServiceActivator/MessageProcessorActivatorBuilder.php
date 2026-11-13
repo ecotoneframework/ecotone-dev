@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Handler\ServiceActivator;
 
+use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\ChannelReference;
@@ -14,6 +15,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\Gathering\CollectingMessageHandler;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheringMessageHandler;
 use Ecotone\Messaging\Handler\Gathering\PartCompletion;
@@ -27,6 +29,7 @@ use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -150,6 +153,21 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder 
             ]
         );
         $interface = $chainedMessageProcessorBuilder->getInterceptedInterface();
+        if ($interface !== null && $builder->getInterfaceToCall($interface)->hasMethodAnnotation(Collected::class)) {
+            $collected = $builder->getInterfaceToCall($interface)->getSingleAnnotation(Type::create(Collected::class));
+            $reference = 'ecotone.collecting.handler.' . $this->getEndpointId();
+            $builder->register($reference . '.core', $handler);
+            $builder->register($reference . '.enterprise', new Definition(CollectingMessageHandler::class, [
+                new Reference($reference . '.core'),
+                new Reference(GatheredGroupStore::class),
+                new Reference(MessageBuilder::class),
+                new Reference(ConversionService::class),
+                $this->getEndpointId(),
+                $this->getInputMessageChannelName(),
+                $collected->maxSize,
+            ]));
+            return $builder->register($reference, LicenceDecider::prepareDefinition(className: MessageHandler::class, openCoreServiceReference: $reference . '.core', enterpriseServiceReference: $reference . '.enterprise'));
+        }
         if ($interface !== null && $builder->getInterfaceToCall($interface)->hasMethodAnnotation(Gathered::class)) {
             $reference = 'ecotone.gathering.handler.' . $this->getEndpointId();
             $builder->register($reference . '.core', $handler);

@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -201,7 +202,7 @@ final class GatheringModule extends NoExternalConfigurationModule
 
     private function registerStore(Configuration $messagingConfiguration, array $extensionObjects, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if ($this->gatherChannelNames !== []) {
+        if ($this->gatherChannelNames !== [] || $this->annotationFinder->findAnnotatedMethods(Collected::class) !== []) {
             $configuration = ExtensionObjectResolver::resolveUnique(className: GatheringConfiguration::class, extensionObjects: $extensionObjects, default: GatheringConfiguration::createWithDefaults());
             $timeouts = [];
             foreach ($this->annotationFinder->findAnnotatedMethods(Gathered::class) as $registration) {

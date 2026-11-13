@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Gathering;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalContext;
@@ -44,6 +45,48 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         private StoredGatheringMessages $messages,
         private EcotoneClockInterface $clock,
     ) {
+    }
+
+    public function collectMessage(string $handler, ?string $groupKey, string $gatherChannelName, int $maxSize, Message $message, callable $whenReleased): bool
+    {
+        $connection = $this->connection();
+        try {
+            if ($connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE handler = ? AND message_id = ?', [$handler, $message->getHeaders()->getMessageId()]) !== false) {
+                return true;
+            }
+            $keyHash = hash('sha256', $groupKey ?? '');
+            $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE handler = ? AND group_key_hash = ? ORDER BY generation DESC LIMIT 1', [$handler, $keyHash]);
+            if (! $group || $group['state'] !== 'open') {
+                $groupId = bin2hex(random_bytes(32));
+                $generation = $group ? (int) $group['generation'] + 1 : 1;
+                $sql = 'INSERT INTO ' . self::GROUP_TABLE . ' (group_id, gather_channel_name, size, arrived, version, state, original_message, handler, group_key, group_key_hash, generation) VALUES (?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?)';
+                $sql .= $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform ? ' ON DUPLICATE KEY UPDATE group_id = group_id' : ' ON CONFLICT (handler, group_key_hash, generation) DO NOTHING';
+                $connection->executeStatement($sql, [$groupId, $gatherChannelName, $maxSize, 'open', $this->messages->encode($message), $handler, $groupKey, $keyHash, $generation]);
+                $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
+                if (! $group) {
+                    return false;
+                }
+            }
+            $arrived = (int) $group['arrived'] + 1;
+            $completed = $arrived === (int) $group['size'];
+            $updated = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET arrived = ?, version = version + 1, state = ?, closed_at = ? WHERE group_id = ? AND version = ? AND state = 'open'", [$arrived, $completed ? 'released' : 'open', $completed ? $this->clock->now()->unixTime()->inMilliseconds() : null, $group['group_id'], $group['version']]);
+            if ($updated === 0) {
+                return false;
+            }
+            $connection->insert(self::PART_TABLE, ['group_id' => $group['group_id'], 'part_number' => $arrived, 'report' => $this->messages->encode($message), 'handler' => $handler, 'message_id' => $message->getHeaders()->getMessageId()]);
+            if ($completed) {
+                $parts = [];
+                foreach ($this->loadPartsForRelease($group['group_id']) as $part) {
+                    $parts[(int) $part['part_number']] = $this->messages->decode($part['report']);
+                }
+            }
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
+        }
+        if ($completed) {
+            $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size']);
+        }
+        return true;
     }
 
     public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void

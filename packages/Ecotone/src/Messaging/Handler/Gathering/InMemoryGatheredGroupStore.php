@@ -36,6 +36,40 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
     {
     }
 
+    public function collectMessage(string $handler, ?string $groupKey, string $gatherChannelName, int $maxSize, Message $message, callable $whenReleased): bool
+    {
+        $groupId = null;
+        $generation = 0;
+        foreach ($this->groups as $id => $group) {
+            if (($group['handler'] ?? null) !== $handler) {
+                continue;
+            }
+            foreach ($group['parts'] as $part) {
+                if ($part->getHeaders()->getMessageId() === $message->getHeaders()->getMessageId()) {
+                    return true;
+                }
+            }
+            if ($group['groupKey'] === $groupKey && $group['generation'] > $generation) {
+                $generation = $group['generation'];
+                $groupId = $group['state'] === 'open' ? $id : null;
+            }
+        }
+        $previousGroups = $this->groups;
+        if ($groupId === null) {
+            $groupId = bin2hex(random_bytes(32));
+            $this->openGroup($groupId, $gatherChannelName, $maxSize, $message, null, static fn () => null);
+            $this->groups[$groupId]['handler'] = $handler;
+            $this->groups[$groupId]['groupKey'] = $groupKey;
+            $this->groups[$groupId]['generation'] = $generation + 1;
+        }
+        try {
+            return $this->completePart($groupId, count($this->groups[$groupId]['parts']) + 1, $message, $whenReleased);
+        } catch (Throwable $failure) {
+            $this->groups = $previousGroups;
+            throw $failure;
+        }
+    }
+
     public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void
     {
         if (isset($this->groups[$groupId])) {

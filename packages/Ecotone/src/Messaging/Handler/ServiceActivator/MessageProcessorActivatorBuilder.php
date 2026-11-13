@@ -5,6 +5,7 @@ namespace Ecotone\Messaging\Handler\ServiceActivator;
 use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
@@ -15,6 +16,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutorCompiler;
 use Ecotone\Messaging\Handler\Gathering\CollectingMessageHandler;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheringMessageHandler;
@@ -163,8 +165,18 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder 
                 new Reference(MessageBuilder::class),
                 new Reference(ConversionService::class),
                 $this->getEndpointId(),
-                $this->getInputMessageChannelName(),
+                substr($this->getInputMessageChannelName(), 0, -strlen(\Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule::HANDLER_EXECUTION_CHANNEL_SUFFIX)),
                 $collected->maxSize,
+                AttributeExpressionExecutorCompiler::compile(
+                    attributeWithExpression: $collected,
+                    attributeDeclaration: new AttributeDeclaration(Collected::class, $interface->getClassName(), $interface->getMethodName()),
+                    owner: $builder->getInterfaceToCall($interface),
+                    targetParameterName: 'groupBy',
+                ),
+                is_string($collected->groupBy) ? $collected->groupBy : 'closure',
+                $collected->maxWait?->toMilliseconds(),
+                new Reference(\Ecotone\Api\Gateway\EcotoneClockInterface::class),
+                new Reference(ChannelResolver::class),
             ]));
             return $builder->register($reference, LicenceDecider::prepareDefinition(className: MessageHandler::class, openCoreServiceReference: $reference . '.core', enterpriseServiceReference: $reference . '.enterprise'));
         }

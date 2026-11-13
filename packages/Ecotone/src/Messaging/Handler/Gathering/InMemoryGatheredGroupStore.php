@@ -36,7 +36,17 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
     {
     }
 
-    public function collectMessage(string $handler, ?string $groupKey, string $gatherChannelName, int $maxSize, Message $message, callable $whenReleased): bool
+    public function listOpenBatches(string $endpointId): array
+    {
+        return array_values(array_map(static function (array $group): array {
+            $details = array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true, 'handler' => true]);
+            $details['endpointId'] = $group['handler'];
+            $details['size'] = $group['size'] < 0 ? null : $group['size'];
+            return $details;
+        }, array_filter($this->groups, static fn (array $group): bool => ($group['handler'] ?? null) === $endpointId && $group['state'] === 'open')));
+    }
+
+    public function collectMessage(string $handler, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): bool
     {
         $groupId = null;
         $generation = 0;
@@ -57,10 +67,11 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         $previousGroups = $this->groups;
         if ($groupId === null) {
             $groupId = bin2hex(random_bytes(32));
-            $this->openGroup($groupId, $gatherChannelName, $maxSize, $message, null, static fn () => null);
+            $this->openGroup($groupId, $gatherChannelName, $maxSize ?? -1, $message, $deadline, static fn () => null);
             $this->groups[$groupId]['handler'] = $handler;
             $this->groups[$groupId]['groupKey'] = $groupKey;
             $this->groups[$groupId]['generation'] = $generation + 1;
+            $whenOpened($groupId);
         }
         try {
             return $this->completePart($groupId, count($this->groups[$groupId]['parts']) + 1, $message, $whenReleased);
@@ -87,7 +98,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             'gatherChannelName' => $gatherChannelName,
             'size' => $size,
             'accountedPartNumbers' => [],
-            'missingPartNumbers' => $size === 0 ? [] : range(1, $size),
+            'missingPartNumbers' => $size <= 0 ? [] : range(1, $size),
         ];
         try {
             $whenOpened();
@@ -115,7 +126,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             return false;
         }
         $this->groups[$groupId]['version']++;
-        if ($previous['size'] > 0) {
+        if ($previous['size'] > 0 || isset($previous['handler'])) {
             $this->groups[$groupId]['parts'][$partNumber] = $report;
             $this->groups[$groupId]['accountedPartNumbers'][] = $partNumber;
             sort($this->groups[$groupId]['accountedPartNumbers'], SORT_NUMERIC);
@@ -127,7 +138,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         $this->groups[$groupId]['state'] = 'released';
         $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
         try {
-            $whenComplete($previous['original'], $this->groups[$groupId]['parts'], $previous['size']);
+            $whenComplete($previous['original'], $this->groups[$groupId]['parts'], $previous['size'], $previous['groupKey'] ?? null);
         } catch (Throwable $failure) {
             $this->groups[$groupId] = $previous;
             throw $failure;
@@ -155,7 +166,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         $this->groups[$groupId]['state'] = 'released';
         $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
         try {
-            $whenReleased($previous['original'], $previous['parts'], $previous['size']);
+            $whenReleased($previous['original'], $previous['parts'], $previous['size'], $previous['groupKey'] ?? null);
         } catch (Throwable $failure) {
             $this->groups[$groupId] = $previous;
             throw $failure;

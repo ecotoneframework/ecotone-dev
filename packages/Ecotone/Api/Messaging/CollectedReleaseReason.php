@@ -11,5 +11,6 @@ namespace Ecotone\Api\Messaging;
  */
 enum CollectedReleaseReason: string
 {
+    case MAX_WAIT = 'max_wait';
     case SIZE_REACHED = 'size_reached';
 }

@@ -47,7 +47,34 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     ) {
     }
 
-    public function collectMessage(string $handler, ?string $groupKey, string $gatherChannelName, int $maxSize, Message $message, callable $whenReleased): bool
+    public function listOpenBatches(string $endpointId): array
+    {
+        try {
+            $groups = $this->connection()->fetchAllAssociative('SELECT group_id, handler, group_key, generation, gather_channel_name, size, state, deadline, closed_at, late_part_count FROM ' . self::GROUP_TABLE . " WHERE handler = ? AND state = 'open'", [$endpointId]);
+            return array_map(function (array $group): array {
+                $accounted = array_map('intval', $this->connection()->fetchFirstColumn('SELECT part_number FROM ' . self::PART_TABLE . ' WHERE group_id = ? ORDER BY part_number', [$group['group_id']]));
+                $size = (int) $group['size'];
+                return [
+                    'groupId' => $group['group_id'],
+                    'endpointId' => $group['handler'],
+                    'groupKey' => $group['group_key'],
+                    'generation' => (int) $group['generation'],
+                    'gatherChannelName' => $group['gather_channel_name'],
+                    'size' => $size < 0 ? null : $size,
+                    'state' => $group['state'],
+                    'deadline' => $group['deadline'] === null ? null : (int) $group['deadline'],
+                    'closedAt' => $group['closed_at'] === null ? null : (int) $group['closed_at'],
+                    'latePartCount' => (int) $group['late_part_count'],
+                    'accountedPartNumbers' => $accounted,
+                    'missingPartNumbers' => array_values(array_diff($size <= 0 ? [] : range(1, $size), $accounted)),
+                ];
+            }, $groups);
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
+        }
+    }
+
+    public function collectMessage(string $handler, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): bool
     {
         $connection = $this->connection();
         try {
@@ -59,13 +86,14 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             if (! $group || $group['state'] !== 'open') {
                 $groupId = bin2hex(random_bytes(32));
                 $generation = $group ? (int) $group['generation'] + 1 : 1;
-                $sql = 'INSERT INTO ' . self::GROUP_TABLE . ' (group_id, gather_channel_name, size, arrived, version, state, original_message, handler, group_key, group_key_hash, generation) VALUES (?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?)';
+                $sql = 'INSERT INTO ' . self::GROUP_TABLE . ' (group_id, gather_channel_name, size, arrived, version, state, original_message, handler, group_key, group_key_hash, generation, deadline) VALUES (?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?)';
                 $sql .= $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform ? ' ON DUPLICATE KEY UPDATE group_id = group_id' : ' ON CONFLICT (handler, group_key_hash, generation) DO NOTHING';
-                $connection->executeStatement($sql, [$groupId, $gatherChannelName, $maxSize, 'open', $this->messages->encode($message), $handler, $groupKey, $keyHash, $generation]);
+                $connection->executeStatement($sql, [$groupId, $gatherChannelName, $maxSize ?? -1, 'open', $this->messages->encode($message), $handler, $groupKey, $keyHash, $generation, $deadline]);
                 $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
                 if (! $group) {
                     return false;
                 }
+                $whenOpened($groupId);
             }
             $arrived = (int) $group['arrived'] + 1;
             $completed = $arrived === (int) $group['size'];
@@ -84,7 +112,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
         if ($completed) {
-            $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size']);
+            $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size'], $group['group_key'] ?? null);
         }
         return true;
     }
@@ -198,7 +226,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         } catch (Throwable $failure) {
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
-        $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size']);
+        $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size'], $group['group_key'] ?? null);
 
         return true;
     }
@@ -258,7 +286,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 'gatherChannelName' => $row['gather_channel_name'],
                 'size' => $size,
                 'accountedPartNumbers' => $accounted,
-                'missingPartNumbers' => array_values(array_diff($size === 0 ? [] : range(1, $size), $accounted)),
+                'missingPartNumbers' => array_values(array_diff($size <= 0 ? [] : range(1, $size), $accounted)),
             ];
         }, $rows);
     }

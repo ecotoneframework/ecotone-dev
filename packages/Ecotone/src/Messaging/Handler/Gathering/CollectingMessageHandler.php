@@ -5,14 +5,19 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gathering;
 
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Messaging\CollectedReleaseReason;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHandler;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Stringable;
 
 /**
  * licence Enterprise
@@ -42,7 +47,12 @@ final class CollectingMessageHandler implements MessageHandler
         private ConversionService $conversionService,
         private string $endpointId,
         private string $channelName,
-        private int $maxSize,
+        private ?int $maxSize,
+        private AttributeExpressionExecutor $groupBy,
+        private string $groupByDescription,
+        private ?int $maxWait,
+        private EcotoneClockInterface $clock,
+        private ChannelResolver $channelResolver,
     ) {
     }
 
@@ -53,23 +63,49 @@ final class CollectingMessageHandler implements MessageHandler
 
     public function handle(Message $message): void
     {
+        $timeout = $message->getHeaders()->containsKey(GatheringHeaders::TIMEOUT);
+        $reason = $timeout ? CollectedReleaseReason::MAX_WAIT : CollectedReleaseReason::SIZE_REACHED;
+        $whenReleased = function (Message $original, array $parts, ?int $size, ?string $groupKey) use ($reason): void {
+            ksort($parts);
+            $payloads = [];
+            $headers = [];
+            foreach ($parts as $part) {
+                $payloads[] = $this->payloadOf($part);
+                $headers[] = $part->getHeaders()->headers();
+            }
+            $batch = new CollectedMessages(payloads: $payloads, headers: $headers, groupKey: $groupKey, size: count($payloads), releaseReason: $reason);
+            $this->handler->handle($this->messageBuilder->withPayload($batch)->setContentType(MediaType::createApplicationXPHPWithTypeParameter(CollectedMessages::class))->build());
+        };
+        if ($timeout) {
+            $this->store->releaseGroup($message->getHeaders()->get(GatheringHeaders::GROUP_ID), $whenReleased);
+            return;
+        }
+        $groupKey = null;
+        if ($this->groupBy->hasExpression()) {
+            $key = $this->groupBy->execute($this->messageBuilder->fromMessage($message)->setPayload($this->payloadOf($message))->setContentType(MediaType::createApplicationXPHP())->build());
+            if ($key === null || (! is_scalar($key) && ! $key instanceof Stringable)) {
+                throw InvalidArgumentException::create("Collected handler '{$this->endpointId}' groupBy '{$this->groupByDescription}' must return a non-null scalar or stringable key. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.");
+            }
+            $groupKey = (string) $key;
+        }
         $this->store->collectMessage(
             handler: $this->endpointId,
-            groupKey: null,
+            groupKey: $groupKey,
             gatherChannelName: $this->channelName,
             maxSize: $this->maxSize,
             message: $message,
-            whenReleased: function (Message $original, array $parts, int $size): void {
-                ksort($parts);
-                $payloads = [];
-                $headers = [];
-                foreach ($parts as $part) {
-                    $payloads[] = $this->payloadOf($part);
-                    $headers[] = $part->getHeaders()->headers();
+            deadline: $this->maxWait === null ? null : $this->clock->now()->unixTime()->inMilliseconds() + $this->maxWait,
+            whenOpened: function (string $groupId): void {
+                if ($this->maxWait !== null) {
+                    $trigger = $this->messageBuilder->withPayload($groupId)
+                        ->setHeader(GatheringHeaders::GROUP_ID, $groupId)
+                        ->setHeader(GatheringHeaders::TIMEOUT, true)
+                        ->setHeader(MessageHeaders::DELIVERY_DELAY, $this->maxWait)
+                        ->build();
+                    $this->channelResolver->resolve($this->channelName)->send($trigger);
                 }
-                $batch = new CollectedMessages(payloads: $payloads, headers: $headers, groupKey: null, size: count($payloads), releaseReason: CollectedReleaseReason::SIZE_REACHED);
-                $this->handler->handle($this->messageBuilder->withPayload($batch)->setContentType(MediaType::createApplicationXPHPWithTypeParameter(CollectedMessages::class))->build());
             },
+            whenReleased: $whenReleased,
         );
     }
 

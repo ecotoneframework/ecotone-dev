@@ -34,6 +34,11 @@ final class GatheredGroupOperations implements GatheredGroups
     {
     }
 
+    public function listOpenBatches(string $endpointId): array
+    {
+        return $this->store->listOpenBatches($endpointId);
+    }
+
     public function requestRelease(string $groupId): void
     {
         $gatherChannelName = $this->store->gatherChannelNameFor($groupId);

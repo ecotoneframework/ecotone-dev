@@ -27,7 +27,9 @@ use Ecotone\Api\Messaging\Message;
  */
 interface GatheredGroupStore
 {
-    public function collectMessage(string $handler, ?string $groupKey, string $gatherChannelName, int $maxSize, Message $message, callable $whenReleased): bool;
+    public function listOpenBatches(string $endpointId): array;
+
+    public function collectMessage(string $handler, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): bool;
 
     public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void;
 

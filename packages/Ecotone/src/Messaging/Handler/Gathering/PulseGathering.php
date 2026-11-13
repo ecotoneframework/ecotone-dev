@@ -28,7 +28,7 @@ use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSection;
  */
 final class PulseGathering implements PulseSnapshotSection
 {
-    public function __construct(private GatheredGroups $groups, private array $gatherChannelNames)
+    public function __construct(private GatheredGroups $groups, private array $gatherChannelNames, private array $collectedEndpointIds)
     {
     }
 
@@ -42,6 +42,13 @@ final class PulseGathering implements PulseSnapshotSection
             $groups = [...$groups, ...$this->groups->listClosedGroups($gatherChannelName)];
         }
 
-        return ['groups' => $groups];
+        if ($this->collectedEndpointIds === []) {
+            return ['groups' => $groups];
+        }
+        $batches = [];
+        foreach (array_unique($this->collectedEndpointIds) as $endpointId) {
+            $batches = [...$batches, ...$this->groups->listOpenBatches($endpointId), ...$this->groups->listClosedBatches($endpointId)];
+        }
+        return ['groups' => $groups, 'batches' => $batches];
     }
 }

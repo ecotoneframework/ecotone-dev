@@ -20,6 +20,7 @@ use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutorCompi
 use Ecotone\Messaging\Handler\Gathering\CollectingMessageHandler;
 use Ecotone\Messaging\Handler\Gathering\CollectingPayloadType;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
+use Ecotone\Messaging\Handler\Gathering\GatheringConflictRedelivery;
 use Ecotone\Messaging\Handler\Gathering\GatheringMessageHandler;
 use Ecotone\Messaging\Handler\Gathering\PartCompletion;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
@@ -179,6 +180,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder 
                 new Reference(\Ecotone\Api\Gateway\EcotoneClockInterface::class),
                 new Reference(ChannelResolver::class),
                 CollectingPayloadType::for($collected),
+                new Reference(GatheringConflictRedelivery::class),
             ]));
             return $builder->register($reference, LicenceDecider::prepareDefinition(className: MessageHandler::class, openCoreServiceReference: $reference . '.core', enterpriseServiceReference: $reference . '.enterprise'));
         }
@@ -190,7 +192,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder 
                 new Reference(GatheredGroupStore::class),
                 new Reference(MessageBuilder::class),
                 new Reference(ConversionService::class),
-                new Reference(ChannelResolver::class),
+                new Reference(GatheringConflictRedelivery::class),
             ]));
             return $builder->register($reference, LicenceDecider::prepareDefinition(className: MessageHandler::class, openCoreServiceReference: $reference . '.core', enterpriseServiceReference: $reference . '.enterprise'));
         }

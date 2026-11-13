@@ -57,6 +57,7 @@ use Throwable;
  */
 final class GatheringConformanceTest extends TestCase
 {
+    use ConcurrentConsumers;
     private const ENTERPRISE_LICENCE = 'eyJzaWduYXR1cmUiOiJxRmtrSDdCQkxzdUlTRzExZmVXeHVKVTY3bGZScmFSTFBpb0VUaGdoZTAyYWRjajlVRkNWWXhvaGl4YXhoaEFlNzU5aExOT0R5NXo1T2N2eFppUGQyemRRblYrb1dNZjFwM2lqbFN4cUg1MDhVV1wvOG90TllkM28wMVRZRmdMSjU4RXJzYThLcUJib0Z1MmhaZW9lczQ3elM2VHR5TzFGV2pOeWxlbG1aRWNLUHFydFhzOTNcL1YxY0wwWVg4UFBOZDl6bVRPOWxyc3UzM3F1anBXVlB4eVRMTW4yK3lPc3Jxa2pJZDArSU1LSWl0dG1IZGlBcml6NnZIXC93RnFKTU5Od2JKWnFsUXRNa3pQc3pvRlFseVgyZnNPTG5CTWNCajA5S0VnNjhVcG14OVwvUnBHZXBNV2UzcThYeFZMa3laOEtXdndEN2JBZDZPSXVoejlxRThyamVQVVVsbUxybm0wd3ZFYjV6UVZEbU5OY21uZnNkMEYyazJhSldySzc5VXlEWVY3UFNvVkZiM0diV0VNN2p1STVFV2w5cTVaWXJiOGxFcmxTTmNpYmQwbCttMWkzUWk1TnZhU1RscHBTV1BGS0g4c2x5dDhKRzV4YXZqQlJFU3BJWGVDNE9VREdoZDRJNEhaaEpDXC9Wcm9Nb0FRNzBMaXRrUHcxWkdWQ1dqTURucHdNdWRyWThpMVQwak5MRytXYlpYckpvRHZxd0x4SENKdU9EWnhuYVNISkVVSVFndGViUXZPRURIKzBjN0o0VVJMWkV2NnU2d2tcL1F6TzlPVnVVS1BubDkzK1dVam8xVDZqOEJ0MEtSeHhsMmtBY2pQcE9wWTg5Q25BQlBtckF4THJhYkxXeThpZmxVQ0cwUjNmZzB4UnpiMjlMSENvUW95b2NmRStzYjhFYz0iLCJkYXRhIjp7ImVtYWlsIjoiam9obnlAd3AucGwiLCJleHBpcmVBdCI6IjIwMzItMTAtMTEgMDA6MDA6MDAiLCJpc0VudGVycHJpc2VQbHVzIjpmYWxzZX19';
 
     public function test_gathered_flow_with_dbal_is_accepted_without_test_configuration(): void
@@ -3326,7 +3327,7 @@ final class GatheringConformanceTest extends TestCase
         self::concurrentApplication()->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $testId = bin2hex(random_bytes(16));
         self::concurrentApplication()->sendCommandWithRouting('split', [10, 20], metadata: ['testId' => $testId]);
-        $this->runConcurrentConsumers(2);
+        $this->runConcurrentConsumers(2, __FILE__, 'consumeConcurrentPart');
         self::concurrentApplication()->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20},"runs":1}', self::concurrentApplication()->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
@@ -3347,7 +3348,7 @@ final class GatheringConformanceTest extends TestCase
         $previousGroups = array_column($application->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
         $application->sendCommandWithRouting('split', $parts, metadata: ['testId' => $testId]);
 
-        $this->runConcurrentConsumers(count($parts));
+        $this->runConcurrentConsumers(count($parts), __FILE__, 'consumeConcurrentPart');
 
         $groups = array_values(array_filter($application->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroups, true)));
         self::assertCount(1, $groups);
@@ -3363,52 +3364,6 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(1, $result['runs']);
         $failures = array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previousFailures, true)));
         self::assertSame([], $failures);
-    }
-
-    private function runConcurrentConsumers(int $numberOfConsumers): void
-    {
-        $children = [];
-        $packageAutoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
-        $autoload = is_file($packageAutoload) ? $packageAutoload : dirname(__DIR__, 4) . '/vendor/autoload.php';
-        $code = 'require ' . var_export($autoload, true) . '; require ' . var_export(__FILE__, true) . '; ' . self::class . '::consumeConcurrentPart();';
-        for ($part = 0; $part < $numberOfConsumers; $part++) {
-            $process = proc_open([PHP_BINARY, '-r', $code], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
-            self::assertIsResource($process);
-            $children[] = [$process, $pipes];
-        }
-        try {
-            $ready = [];
-            foreach ($children as [$process, $pipes]) {
-                $ready[] = fgets($pipes[1]);
-            }
-            foreach ($children as $number => [$process, $pipes]) {
-                if ($ready[$number] === "ready\n") {
-                    fwrite($pipes[0], "consume\n");
-                }
-                fclose($pipes[0]);
-            }
-            self::assertSame(array_fill(0, $numberOfConsumers, "ready\n"), $ready);
-            foreach ($children as [$process, $pipes]) {
-                self::assertSame('', stream_get_contents($pipes[1]));
-                self::assertSame('', stream_get_contents($pipes[2]));
-                fclose($pipes[1]);
-                fclose($pipes[2]);
-                self::assertSame(0, proc_close($process));
-            }
-        } finally {
-            foreach ($children as [$process, $pipes]) {
-                foreach ($pipes as $pipe) {
-                    if (is_resource($pipe)) {
-                        fclose($pipe);
-                    }
-                }
-                if (is_resource($process)) {
-                    proc_terminate($process);
-                    proc_close($process);
-                }
-            }
-        }
-
     }
 
     public function test_releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established(): void
@@ -3543,23 +3498,7 @@ final class GatheringConformanceTest extends TestCase
 
     public static function consumeConcurrentPart(): void
     {
-        $barrier = new class () {
-            private bool $released = false;
-
-            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
-            public function awaitOtherConsumer(MethodInvocation $invocation): mixed
-            {
-                if (! $this->released) {
-                    fwrite(STDOUT, "ready\n");
-                    if (fgets(STDIN) !== "consume\n") {
-                        throw new RuntimeException('Concurrent consumer start was not released.');
-                    }
-                    $this->released = true;
-                }
-
-                return $invocation->proceed();
-            }
-        };
+        $barrier = self::concurrentConsumerBarrier();
         self::concurrentApplication([$barrier])->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false)->withExecutionAmountLimit(1));
     }
 

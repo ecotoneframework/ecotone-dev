@@ -320,4 +320,44 @@ final class CollectingTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
+
+    public function test_collected_handler_refuses_zero_max_size_at_bootstrap(): void
+    {
+        $handler = new class () {
+            #[Collected(maxSize: 0)]
+            #[Asynchronous('batches')]
+            #[InternalHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $this->expectExceptionMessage("Collected handler 'collect' maxSize is 0; maxSize must be at least 1. Set maxSize to a positive integer, omit maxSize and set maxWait, or remove #[Collected].");
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_collected_handler_refuses_zero_max_wait_at_bootstrap(): void
+    {
+        $handler = new class () {
+            #[Collected(maxWait: new TimeSpan(milliseconds: 0))]
+            #[Asynchronous('batches')]
+            #[InternalHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $this->expectExceptionMessage("Collected handler 'collect' maxWait is 0 milliseconds; maxWait must be greater than 0. Set a positive TimeSpan, omit maxWait and set maxSize, or remove #[Collected].");
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
 }

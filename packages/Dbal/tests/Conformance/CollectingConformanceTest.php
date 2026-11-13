@@ -18,6 +18,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Messaging\CollectedReleaseReason;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Test\LicenceTesting;
@@ -446,6 +447,30 @@ final class CollectingConformanceTest extends TestCase
         self::assertCount(1, $handler->batches);
         self::assertSame('header:one', $handler->batches[0]->groupKey);
         self::assertEquals([new CollectedEventForConformance('one', 'first'), new CollectedEventForConformance('one', 'second')], $handler->batches[0]->payloads);
+    }
+
+
+    #[DataProvider('implementations')]
+    public function test_batch_console_listing_uses_endpoint_id_and_hides_an_unknown_size(bool $durable): void
+    {
+        $handler = new class () {
+            #[Collected(maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["tenant"]')]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect', ['tenant' => 'one']);
+        $ecotone->run('batches');
+        $batch = $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler')[0];
+        self::assertNull($batch['size']);
+
+        $result = $ecotone->getServiceFromContainer(ConfiguredMessagingSystem::class)->runConsoleCommand('ecotone:collecting:list', ['endpointId' => 'collect.handler']);
+        self::assertSame(['Group id', 'Endpoint id', 'Group key', 'State', 'Size', 'Recorded messages', 'Deadline'], $result->columnHeaders);
+        self::assertCount(1, $result->rows);
+        self::assertSame([$batch['groupId'], 'collect.handler', 'one', 'open', '', 1, '2026-01-01T12:00:10+00:00'], $result->rows[0]);
     }
 
     private function bootstrap(object $handler, bool $durable, bool $instantRetries = true): FlowTestSupport

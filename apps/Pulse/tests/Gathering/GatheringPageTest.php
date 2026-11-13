@@ -10,6 +10,7 @@ use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Gathered;
+use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
@@ -22,6 +23,7 @@ use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
+use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\TimeSpan;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -40,6 +42,58 @@ final class GatheringPageTest extends ReleasingWebTestCase
 
     private FlowTestSupport $orders;
     private object $handler;
+
+
+    public function test_page_lists_collected_batches_by_endpoint_and_key_without_an_unknown_size(): void
+    {
+        $client = $this->pulseWithGathering();
+        $this->orders->sendCommandWithRouting('collect', ['tenant' => 'one']);
+        $this->orders->run('summaries');
+        $batchId = $this->orders->getGateway(GatheredGroups::class)->listOpenBatches('dashboard.collect')[0]['groupId'];
+        $crawler = $this->observe($client);
+
+        self::assertResponseIsSuccessful();
+        $row = $crawler->filter('[data-collected-batch="' . $batchId . '"]');
+        self::assertCount(1, $row);
+        self::assertSame('dashboard.collect', $row->filter('[data-batch-endpoint]')->text());
+        self::assertSame('one', $row->filter('[data-batch-key]')->text());
+        self::assertSame('No maximum size', $row->filter('[data-batch-size]')->text());
+        self::assertSame('1', $row->filter('[data-batch-recorded]')->text());
+        self::assertCount(1, $row->filter('[data-release-group]'));
+        self::assertCount(1, $row->filter('[data-discard-group]'));
+    }
+
+
+    public function test_collected_batch_release_control_waits_for_handler_consumption(): void
+    {
+        $client = $this->pulseWithGathering();
+        $this->orders->sendCommandWithRouting('collect', ['tenant' => 'one']);
+        $this->orders->run('summaries');
+        $batchId = $this->orders->getGateway(GatheredGroups::class)->listOpenBatches('dashboard.collect')[0]['groupId'];
+        $crawler = $this->observe($client);
+        $client->submit($crawler->filter('[data-collected-batch="' . $batchId . '"]')->selectButton('Request release')->form());
+        self::assertSame([], $this->handler->batches);
+        $this->runService($this->orders, 'orders');
+        self::assertSame([], $this->handler->batches);
+        $this->orders->run('summaries');
+        self::assertCount(1, $this->handler->batches);
+        self::assertSame([['tenant' => 'one']], $this->handler->batches[0]->payloads);
+    }
+
+    public function test_collected_batch_discard_control_does_not_invoke_the_handler(): void
+    {
+        $client = $this->pulseWithGathering();
+        $this->orders->sendCommandWithRouting('collect', ['tenant' => 'one']);
+        $this->orders->run('summaries');
+        $batchId = $this->orders->getGateway(GatheredGroups::class)->listOpenBatches('dashboard.collect')[0]['groupId'];
+        $crawler = $this->observe($client);
+        $client->submit($crawler->filter('[data-collected-batch="' . $batchId . '"]')->selectButton('Discard')->form());
+        $this->runService($this->orders, 'orders');
+        $this->orders->advanceTimeBy(new TimeSpan(seconds: 10));
+        $this->orders->run('summaries');
+        self::assertSame([], $this->handler->batches);
+        self::assertSame([], $this->orders->getGateway(GatheredGroups::class)->listOpenBatches('dashboard.collect'));
+    }
 
     public function test_page_waits_for_the_first_snapshot_before_reporting_groups(): void
     {
@@ -174,6 +228,16 @@ final class GatheringPageTest extends ReleasingWebTestCase
         $this->pinnedWaitClock();
         $this->handler = $handler = new class () {
             public array $gathered = [];
+            public array $batches = [];
+
+            #[Collected(maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["tenant"]')]
+            #[Asynchronous('summaries')]
+            #[CommandHandler('collect', endpointId: 'dashboard.collect')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+
 
             #[CommandHandler('split', outputChannelName: 'parts')]
             public function start(array $parts): array

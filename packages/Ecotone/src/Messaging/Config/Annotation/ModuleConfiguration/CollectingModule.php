@@ -91,6 +91,13 @@ final class CollectingModule extends NoExternalConfigurationModule
             if ($collected->maxSize === null && $collected->maxWait === null) {
                 throw ConfigurationException::create("Collected handler '{$channel}' needs a release limit. Set maxSize or maxWait on #[Collected], or remove #[Collected].");
             }
+            if ($collected->maxSize !== null && $collected->maxSize < 1) {
+                throw ConfigurationException::create("Collected handler '{$channel}' maxSize is {$collected->maxSize}; maxSize must be at least 1. Set maxSize to a positive integer, omit maxSize and set maxWait, or remove #[Collected].");
+            }
+            if ($collected->maxWait !== null && $collected->maxWait->toMilliseconds() <= 0) {
+                $milliseconds = $collected->maxWait->toMilliseconds();
+                throw ConfigurationException::create("Collected handler '{$channel}' maxWait is {$milliseconds} milliseconds; maxWait must be greater than 0. Set a positive TimeSpan, omit maxWait and set maxSize, or remove #[Collected].");
+            }
             if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
                 throw LicensingException::create("Collected handler '{$channel}' requires an Ecotone Enterprise licence. Provide licenceKey in the framework configuration or EcotoneLite, start a trial at https://ecotone.tech/pricing, or remove #[Collected].");
             }

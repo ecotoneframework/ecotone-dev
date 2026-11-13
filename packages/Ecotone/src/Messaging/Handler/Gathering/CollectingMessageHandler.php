@@ -54,6 +54,7 @@ final class CollectingMessageHandler implements MessageHandler
         private EcotoneClockInterface $clock,
         private ChannelResolver $channelResolver,
         private Type $payloadType,
+        private GatheringConflictRedelivery $redelivery,
     ) {
     }
 
@@ -83,7 +84,9 @@ final class CollectingMessageHandler implements MessageHandler
             $this->handler->handle($this->messageBuilder->withPayload($batch)->setContentType(MediaType::createApplicationXPHPWithTypeParameter(CollectedMessages::class))->build());
         };
         if ($timeout || $manualRelease) {
-            $this->store->releaseGroup($message->getHeaders()->get(GatheringHeaders::GROUP_ID), $whenReleased);
+            if (! $this->store->releaseGroup($message->getHeaders()->get(GatheringHeaders::GROUP_ID), $whenReleased)) {
+                $this->redelivery->resend($message, $this->channelName);
+            }
             return;
         }
         $groupKey = null;
@@ -94,7 +97,7 @@ final class CollectingMessageHandler implements MessageHandler
             }
             $groupKey = (string) $key;
         }
-        $this->store->collectMessage(
+        $recorded = $this->store->collectMessage(
             handler: $this->endpointId,
             groupKey: $groupKey,
             gatherChannelName: $this->channelName,
@@ -113,6 +116,9 @@ final class CollectingMessageHandler implements MessageHandler
             },
             whenReleased: $whenReleased,
         );
+        if (! $recorded) {
+            $this->redelivery->resend($message, $this->channelName);
+        }
     }
 
     private function payloadOf(Message $message): mixed

@@ -47,6 +47,23 @@ final class GatheringConsoleCommands
         return ConsoleCommandResultSet::create(['Group id', 'Status'], [[$groupId, 'discarded']]);
     }
 
+    public function listBatches(string $endpointId, bool $closed = false): ConsoleCommandResultSet
+    {
+        $batches = $closed ? $this->groups->listClosedBatches($endpointId) : $this->groups->listOpenBatches($endpointId);
+        return ConsoleCommandResultSet::create(
+            columnHeaders: ['Group id', 'Endpoint id', 'Group key', 'State', 'Size', 'Recorded messages', 'Deadline'],
+            rows: array_map(static fn (array $batch): array => [
+                $batch['groupId'],
+                $batch['endpointId'],
+                $batch['groupKey'] ?? '',
+                $batch['state'],
+                $batch['size'] ?? '',
+                count($batch['accountedPartNumbers']),
+                $batch['deadline'] === null ? '' : DatePoint::createFromTimestamp($batch['deadline'] / 1000)->format(DATE_ATOM),
+            ], $batches),
+        );
+    }
+
     public function listGroups(string $gatherChannelName, bool $closed = false): ConsoleCommandResultSet
     {
         $groups = $closed ? $this->groups->listClosedGroups($gatherChannelName) : $this->groups->listOpenGroups($gatherChannelName);

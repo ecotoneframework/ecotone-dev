@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -55,6 +58,30 @@ final class CollectingModule extends NoExternalConfigurationModule
             $interface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
             $handlers = array_values(array_filter($interface->getMethodAnnotations(), static fn (object $attribute): bool => $attribute instanceof InternalHandler || $attribute instanceof CommandHandler || $attribute instanceof EventHandler));
             $channel = $handlers === [] ? $registration->getMethodName() : ($handlers[0] instanceof EventHandler ? $handlers[0]->listenTo : $handlers[0]->getInputChannelName());
+            if ($interface->hasMethodAnnotation(Gathered::class)) {
+                throw ConfigurationException::create("Collected handler '{$channel}' also has #[Gathered]: collecting ordinary messages and gathering split parts cannot share a handler. Remove #[Gathered] to collect ordinary messages, or remove #[Collected] to gather split parts.");
+            }
+            if ($interface->hasClassAnnotation(Aggregate::class)) {
+                throw ConfigurationException::create("Collected handler '{$channel}' belongs to an aggregate or saga, but a batch has no single instance to load. Move #[Collected] to a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
+            }
+            if ($interface->hasAnnotation(QueryHandler::class)) {
+                $method = $registration->getMethodName();
+                throw ConfigurationException::create("Method '{$method}' is marked #[Collected] but is not an allowed message handler: a query caller waits for an answer. Stack #[Collected] on a service #[CommandHandler], #[EventHandler] or #[InternalHandler] with #[Asynchronous], or remove #[Collected].");
+            }
+            if ($handlers === []) {
+                $method = $registration->getMethodName();
+                throw ConfigurationException::create("Method '{$method}' is marked #[Collected] but has no ordinary message handler attribute. Stack it on a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
+            }
+            foreach ($handlers as $handler) {
+                if ($handler instanceof CommandHandler && $handler->getInputChannelName() === '') {
+                    $endpointId = $handler->getEndpointId();
+                    throw ConfigurationException::create("Collected handler '{$endpointId}' cannot infer its subscription from the batch parameter. Set routingKey on #[CommandHandler], or remove #[Collected].");
+                }
+                if ($handler instanceof EventHandler && $handler->listenTo === '') {
+                    $endpointId = $handler->getEndpointId();
+                    throw ConfigurationException::create("Collected handler '{$endpointId}' cannot infer its subscription from the batch parameter. Set listenTo on #[EventHandler], or remove #[Collected].");
+                }
+            }
             if (! $interface->hasAnnotation(Asynchronous::class)) {
                 throw ConfigurationException::create("Collected handler '{$channel}' requires an asynchronous channel. Add #[Asynchronous('channelName')] to the handler, or remove #[Collected].");
             }

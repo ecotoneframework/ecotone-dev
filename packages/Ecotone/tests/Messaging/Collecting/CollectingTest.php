@@ -4,11 +4,19 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Collecting;
 
+use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Collected;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Gathered;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -75,6 +83,165 @@ final class CollectingTest extends TestCase
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
+        );
+    }
+
+    public function test_collected_event_handler_without_explicit_subscription_is_refused_at_bootstrap(): void
+    {
+        $handler = new class () {
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[EventHandler(endpointId: 'collect.handler')]
+            public function collect(mixed $batch): void
+            {
+            }
+        };
+
+        $this->expectExceptionMessage("Collected handler 'collect.handler' cannot infer its subscription from the batch parameter. Set listenTo on #[EventHandler], or remove #[Collected].");
+
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_collected_command_handler_without_explicit_subscription_is_refused_at_bootstrap(): void
+    {
+        $handler = new class () {
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler(endpointId: 'collect.handler')]
+            public function collect(mixed $batch): void
+            {
+            }
+        };
+
+        $this->expectExceptionMessage("Collected handler 'collect.handler' cannot infer its subscription from the batch parameter. Set routingKey on #[CommandHandler], or remove #[Collected].");
+
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_collected_query_handler_is_refused_at_bootstrap(): void
+    {
+        $handler = new class () {
+            #[Collected(maxSize: 2)]
+            #[QueryHandler('collect')]
+            public function collect(mixed $batch): array
+            {
+                return [];
+            }
+        };
+
+        $this->expectExceptionMessage("Method 'collect' is marked #[Collected] but is not an allowed message handler: a query caller waits for an answer. Stack #[Collected] on a service #[CommandHandler], #[EventHandler] or #[InternalHandler] with #[Asynchronous], or remove #[Collected].");
+
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_collected_handler_on_an_aggregate_is_refused_at_bootstrap(): void
+    {
+        $handler = new #[Aggregate] class () {
+            #[Identifier]
+            public string $id = 'batch';
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public static function collect(mixed $batch): self
+            {
+                return new self();
+            }
+        };
+
+        $this->expectExceptionMessage("Collected handler 'collect' belongs to an aggregate or saga, but a batch has no single instance to load. Move #[Collected] to a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
+
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_collected_handler_on_a_saga_is_refused_at_bootstrap(): void
+    {
+        $handler = new #[Saga] class () {
+            #[Identifier]
+            public string $id = 'batch';
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public static function collect(mixed $batch): self
+            {
+                return new self();
+            }
+        };
+
+        $this->expectExceptionMessage("Collected handler 'collect' belongs to an aggregate or saga, but a batch has no single instance to load. Move #[Collected] to a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
+
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_collected_and_gathered_on_one_handler_are_refused_at_bootstrap(): void
+    {
+        $handler = new class () {
+            #[Collected(maxSize: 2)]
+            #[Gathered]
+            #[Asynchronous('batches')]
+            #[InternalHandler('collect', endpointId: 'collect.handler')]
+            public function collect(mixed $batch): void
+            {
+            }
+        };
+
+        $this->expectExceptionMessage("Collected handler 'collect' also has #[Gathered]: collecting ordinary messages and gathering split parts cannot share a handler. Remove #[Gathered] to collect ordinary messages, or remove #[Collected] to gather split parts.");
+
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_collected_without_an_ordinary_handler_is_refused_at_bootstrap(): void
+    {
+        $handler = new class () {
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            public function collect(mixed $batch): void
+            {
+            }
+        };
+
+        $this->expectExceptionMessage("Method 'collect' is marked #[Collected] but has no ordinary message handler attribute. Stack it on a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
+
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 }

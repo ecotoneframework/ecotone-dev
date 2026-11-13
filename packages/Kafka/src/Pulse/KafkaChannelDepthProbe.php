@@ -61,7 +61,7 @@ final class KafkaChannelDepthProbe implements PulseChannelProbe
         } catch (Throwable $failure) {
             return PulseChannelDepth::failed("Kafka lag of channel '{$channelName}' could not be measured: {$failure->getMessage()}");
         } finally {
-            $consumer->close();
+            unset($consumer);
         }
     }
 

@@ -19,6 +19,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\Attributes\RequiresOperatingSystemFamily;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
@@ -82,6 +83,42 @@ final class PulseChannelDepthTest extends ConnectionTestCase
 
         self::assertNull($orders['ready']);
         self::assertStringContainsString("Kafka topic '{$this->topic}'", $orders['probeError']);
+    }
+
+    #[RequiresOperatingSystemFamily('Linux')]
+    public function test_measuring_the_lag_leaves_no_kafka_client_running_after_the_snapshot(): void
+    {
+        $this->bootstrap();
+        $this->orderService->getGateway(CommandBus::class)->sendWithRouting('order.place', 'coffee');
+        $this->requestSnapshot();
+        $threadsAfterFirstSnapshot = $this->runningThreads();
+
+        for ($snapshot = 0; $snapshot < 3; $snapshot++) {
+            $this->pulse->snapshots = [];
+            $this->requestSnapshot();
+        }
+
+        self::assertSame($threadsAfterFirstSnapshot, $this->runningThreads());
+    }
+
+    #[RequiresOperatingSystemFamily('Linux')]
+    public function test_failing_to_measure_the_lag_leaves_no_kafka_client_running_after_the_snapshot(): void
+    {
+        $this->bootstrap();
+        $this->requestSnapshot();
+        $threadsAfterFirstSnapshot = $this->runningThreads();
+
+        for ($snapshot = 0; $snapshot < 3; $snapshot++) {
+            $this->pulse->snapshots = [];
+            self::assertNotNull($this->channelsByName($this->requestSnapshot())['kafka_orders']['probeError']);
+        }
+
+        self::assertSame($threadsAfterFirstSnapshot, $this->runningThreads());
+    }
+
+    private function runningThreads(): int
+    {
+        return count(glob('/proc/self/task/*'));
     }
 
     private string $topic;

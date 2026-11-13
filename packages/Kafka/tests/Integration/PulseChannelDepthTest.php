@@ -101,6 +101,21 @@ final class PulseChannelDepthTest extends ConnectionTestCase
         self::assertSame($threadsAfterFirstSnapshot, $this->runningThreads());
     }
 
+    #[RequiresOperatingSystemFamily('Linux')]
+    public function test_failing_to_measure_the_lag_leaves_no_kafka_client_running_after_the_snapshot(): void
+    {
+        $this->bootstrap();
+        $this->requestSnapshot();
+        $threadsAfterFirstSnapshot = $this->runningThreads();
+
+        for ($snapshot = 0; $snapshot < 3; $snapshot++) {
+            $this->pulse->snapshots = [];
+            self::assertNotNull($this->channelsByName($this->requestSnapshot())['kafka_orders']['probeError']);
+        }
+
+        self::assertSame($threadsAfterFirstSnapshot, $this->runningThreads());
+    }
+
     private function runningThreads(): int
     {
         return count(glob('/proc/self/task/*'));

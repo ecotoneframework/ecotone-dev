@@ -20,7 +20,7 @@ final class FlowComparison
      * @param list<FlowEdgeChange> $changedEdges
      */
     private function __construct(
-        private readonly MessageFlowGraph $later,
+        private readonly MessageFlowGraph $to,
         public readonly array $addedNodes,
         public readonly array $removedNodes,
         public readonly array $changedNodes,
@@ -30,33 +30,33 @@ final class FlowComparison
     ) {
     }
 
-    public static function between(MessageFlowGraph $earlier, MessageFlowGraph $later): self
+    public static function between(MessageFlowGraph $from, MessageFlowGraph $to): self
     {
-        $earlierNodes = self::nodesById($earlier);
-        $laterNodes = self::nodesById($later);
-        $earlierEdges = self::edgesByIdentity($earlier);
-        $laterEdges = self::edgesByIdentity($later);
+        $fromNodes = self::nodesById($from);
+        $toNodes = self::nodesById($to);
+        $fromEdges = self::edgesByIdentity($from);
+        $toEdges = self::edgesByIdentity($to);
 
         $changedNodes = [];
-        foreach (array_intersect_key($laterNodes, $earlierNodes) as $id => $node) {
-            if (self::canonical($earlierNodes[$id]->toArray()) !== self::canonical($node->toArray())) {
-                $changedNodes[] = new FlowNodeChange($earlierNodes[$id], $node);
+        foreach (array_intersect_key($toNodes, $fromNodes) as $id => $node) {
+            if (self::canonical($fromNodes[$id]->toArray()) !== self::canonical($node->toArray())) {
+                $changedNodes[] = new FlowNodeChange($fromNodes[$id], $node);
             }
         }
         $changedEdges = [];
-        foreach (array_intersect_key($laterEdges, $earlierEdges) as $identity => $edge) {
-            if (self::canonical($earlierEdges[$identity]->toArray()) !== self::canonical($edge->toArray())) {
-                $changedEdges[] = new FlowEdgeChange($earlierEdges[$identity], $edge);
+        foreach (array_intersect_key($toEdges, $fromEdges) as $identity => $edge) {
+            if (self::canonical($fromEdges[$identity]->toArray()) !== self::canonical($edge->toArray())) {
+                $changedEdges[] = new FlowEdgeChange($fromEdges[$identity], $edge);
             }
         }
 
         return new self(
-            later: $later,
-            addedNodes: array_values(array_diff_key($laterNodes, $earlierNodes)),
-            removedNodes: array_values(array_diff_key($earlierNodes, $laterNodes)),
+            to: $to,
+            addedNodes: array_values(array_diff_key($toNodes, $fromNodes)),
+            removedNodes: array_values(array_diff_key($fromNodes, $toNodes)),
             changedNodes: $changedNodes,
-            addedEdges: array_values(array_diff_key($laterEdges, $earlierEdges)),
-            removedEdges: array_values(array_diff_key($earlierEdges, $laterEdges)),
+            addedEdges: array_values(array_diff_key($toEdges, $fromEdges)),
+            removedEdges: array_values(array_diff_key($fromEdges, $toEdges)),
             changedEdges: $changedEdges,
         );
     }
@@ -90,7 +90,7 @@ final class FlowComparison
 
     public function combinedGraph(): MessageFlowGraph
     {
-        return MessageFlowGraph::create([...$this->later->nodes(), ...$this->removedNodes], [...$this->later->edges(), ...$this->removedEdges]);
+        return MessageFlowGraph::create([...$this->to->nodes(), ...$this->removedNodes], [...$this->to->edges(), ...$this->removedEdges]);
     }
 
     /**
@@ -164,7 +164,7 @@ final class FlowComparison
 
     public function toMermaid(): string
     {
-        return $this->combinedGraph()->toMermaidMarking($this);
+        return $this->combinedGraph()->toMermaidWithChangesOf($this);
     }
 
     /**
@@ -257,10 +257,10 @@ final class FlowComparison
         sort($names, SORT_STRING);
         $lines = [];
         foreach ($names as $name) {
-            $earlier = self::canonical($before[$name] ?? null);
-            $later = self::canonical($after[$name] ?? null);
-            if ($earlier !== $later) {
-                $lines[] = sprintf('      %s: %s -> %s', $name, self::printable($earlier), self::printable($later));
+            $valueBefore = self::canonical($before[$name] ?? null);
+            $valueAfter = self::canonical($after[$name] ?? null);
+            if ($valueBefore !== $valueAfter) {
+                $lines[] = sprintf('      %s: %s -> %s', $name, self::printable($valueBefore), self::printable($valueAfter));
             }
         }
 

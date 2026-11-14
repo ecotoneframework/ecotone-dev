@@ -124,9 +124,9 @@ final class MessageFlowGraph implements DefinedObject
         ));
     }
 
-    public function compareTo(MessageFlowGraph $later): FlowComparison
+    public function compareTo(MessageFlowGraph $to): FlowComparison
     {
-        return FlowComparison::between($this, $later);
+        return FlowComparison::between(from: $this, to: $to);
     }
 
     public function withNode(FlowNode $node): self
@@ -163,7 +163,7 @@ final class MessageFlowGraph implements DefinedObject
         return $this->mermaid(fn (FlowNode $node): FlowChange => FlowChange::UNCHANGED, fn (FlowEdge $edge): FlowChange => FlowChange::UNCHANGED);
     }
 
-    public function toMermaidMarking(FlowComparison $comparison): string
+    public function toMermaidWithChangesOf(FlowComparison $comparison): string
     {
         return $this->mermaid(fn (FlowNode $node): FlowChange => $comparison->changeOfNode($node->id), $comparison->changeOfEdge(...));
     }
@@ -207,12 +207,11 @@ final class MessageFlowGraph implements DefinedObject
             if ($edge->kind === FlowEdgeKind::PROJECTS_INTO) {
                 continue;
             }
-            $asynchronousChannels = $edge->kind === FlowEdgeKind::ROUTED_TO ? $this->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS, to: $edge->to) : [];
             $change = $changeOfEdge($edge);
-            foreach ($asynchronousChannels === [] ? [$edge->to] : array_map(fn (FlowEdge $channel): string => $channel->from, $asynchronousChannels) as $target) {
+            foreach ($this->drawnTargetsOf($edge, $change, $changeOfEdge) as $target => $drawnChange) {
                 $edgeLine = sprintf('    %s %s %s', $mermaidIds[$edge->from], $this->mermaidArrow($edge), $mermaidIds[$target]);
                 if (($edgeLines[$edgeLine] ?? FlowChange::UNCHANGED) === FlowChange::UNCHANGED) {
-                    $edgeLines[$edgeLine] = $change;
+                    $edgeLines[$edgeLine] = $drawnChange;
                 }
             }
         }
@@ -239,6 +238,40 @@ final class MessageFlowGraph implements DefinedObject
         }
 
         return implode("\n", [...$lines, ...array_keys($edgeLines), ...$marks]) . "\n";
+    }
+
+    /**
+     * @param callable(FlowEdge): FlowChange $changeOfEdge
+     * @return array<string, FlowChange>
+     */
+    private function drawnTargetsOf(FlowEdge $edge, FlowChange $change, callable $changeOfEdge): array
+    {
+        if ($edge->kind !== FlowEdgeKind::ROUTED_TO) {
+            return [$edge->to => $change];
+        }
+        $channelsBefore = [];
+        $channelsAfter = [];
+        foreach ($this->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS, to: $edge->to) as $asynchronous) {
+            $asynchronousChange = $changeOfEdge($asynchronous);
+            if ($asynchronousChange !== FlowChange::ADDED) {
+                $channelsBefore[] = $asynchronous->from;
+            }
+            if ($asynchronousChange !== FlowChange::REMOVED) {
+                $channelsAfter[] = $asynchronous->from;
+            }
+        }
+        $before = $change === FlowChange::ADDED ? [] : ($channelsBefore === [] ? [$edge->to] : $channelsBefore);
+        $after = $change === FlowChange::REMOVED ? [] : ($channelsAfter === [] ? [$edge->to] : $channelsAfter);
+
+        $targets = [];
+        foreach ($after as $target) {
+            $targets[$target] = in_array($target, $before, true) ? $change : FlowChange::ADDED;
+        }
+        foreach ($before as $target) {
+            $targets[$target] ??= FlowChange::REMOVED;
+        }
+
+        return $targets;
     }
 
     public function getDefinition(): Definition

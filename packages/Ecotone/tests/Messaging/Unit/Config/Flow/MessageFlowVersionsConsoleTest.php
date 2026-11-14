@@ -266,7 +266,7 @@ final class MessageFlowVersionsConsoleTest extends TestCase
         $ecotone = $this->placingOrders();
         $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
 
-        $this->expectExceptionMessage("Flow version `1.0.0` is already stored in {$this->location}/1.0.0.json, and a stored version is not replaced. Store the current flow under another label, or delete that file first to store it again.");
+        $this->expectExceptionMessage("Flow version `1.0.0` is already stored in {$this->location}/1.0.0.json, and a stored version is not replaced unless asked. Store the current flow under another label, or pass --replace to store it again under this one.");
 
         $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
     }
@@ -326,6 +326,162 @@ final class MessageFlowVersionsConsoleTest extends TestCase
         $this->expectExceptionMessage('Flow versions are available only as part of Ecotone Enterprise. Provide a licence key, or remove the FlowVersionsConfiguration from your #[ServiceContext]. See https://docs.ecotone.tech/enterprise for details.');
 
         EcotoneLite::bootstrapFlowTesting(extensionObjects: [FlowVersionsConfiguration::createWithLocation($this->location)], enabledModules: []);
+    }
+
+    public function test_store_replaces_an_already_stored_label_when_asked(): void
+    {
+        $this->placingOrders()->runConsoleCommand('ecotone:flow:store', ['label' => 'next']);
+        $ecotone = $this->placingAndRefundingOrders();
+
+        $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => 'next', 'replace' => true]);
+        $ecotone->runConsoleCommand('ecotone:flow:compare');
+
+        self::assertSame("Message flow from version next to the current code\nNo changes in the message flow.\n", $ecotone->getInMemoryConsoleWriter()->getWrittenContent());
+    }
+
+    public function test_the_latest_version_is_the_one_stored_last_whatever_timezone_each_was_stored_in(): void
+    {
+        $ecotone = $this->placingAndRefundingOrders();
+        $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => 'stored-last']);
+        $this->placingOrders()->runConsoleCommand('ecotone:flow:store', ['label' => 'stored-first']);
+        $this->rewrite('stored-first', fn (array $stored): array => [...$stored, 'storedAt' => '2026-03-01T10:30:00+01:00']);
+
+        $ecotone->runConsoleCommand('ecotone:flow:compare');
+
+        self::assertStringStartsWith("Message flow from version stored-last to the current code\n", $ecotone->getInMemoryConsoleWriter()->getWrittenContent());
+    }
+
+    public function test_a_version_is_stored_with_its_time_in_utc(): void
+    {
+        $placing = $this->placingService();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$placing::class],
+            [$placing],
+            extensionObjects: [FlowVersionsConfiguration::createWithLocation($this->location)],
+            enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-03-01T10:00:00+02:00'),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
+
+        self::assertSame('2026-03-01T08:00:00+00:00', json_decode(file_get_contents($this->location . '/1.0.0.json'), true, flags: JSON_THROW_ON_ERROR)['storedAt']);
+    }
+
+    public function test_versions_are_listed_from_a_location_whose_path_holds_brackets(): void
+    {
+        $this->location .= '/releases [2026]';
+        $ecotone = $this->placingOrders();
+
+        $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
+        $ecotone->runConsoleCommand('ecotone:flow:versions');
+
+        self::assertSame(['1.0.0'], array_column($ecotone->getInMemoryConsoleWriter()->getTables()[0]['rows'], 0));
+        $this->location = dirname($this->location);
+    }
+
+    public function test_a_file_that_is_not_json_is_refused_naming_the_file(): void
+    {
+        $ecotone = $this->placingOrders();
+        $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
+        file_put_contents($this->location . '/1.0.0.json', '{"formatVersion": 1,');
+
+        $this->expectExceptionMessage("Flow version file {$this->location}/1.0.0.json is not valid JSON, so it cannot be read as a stored flow version. Restore the file from version control, or delete it and store the flow again with `ecotone:flow:store <label>`.");
+
+        $ecotone->runConsoleCommand('ecotone:flow:versions');
+    }
+
+    public function test_a_json_file_that_is_not_a_stored_version_is_refused_naming_what_it_lacks(): void
+    {
+        $ecotone = $this->placingOrders();
+        mkdir($this->location, recursive: true);
+        file_put_contents($this->location . '/composer.json', '{"name": "shop/orders"}');
+
+        $this->expectExceptionMessage("Flow version file {$this->location}/composer.json does not hold `formatVersion`, `label`, `storedAt` and `graph`, so it was not written by `ecotone:flow:store`. Keep only stored flow versions in {$this->location}: move the file elsewhere, or point FlowVersionsConfiguration::createWithLocation() at a directory of its own.");
+
+        $ecotone->runConsoleCommand('ecotone:flow:versions');
+    }
+
+    public function test_a_version_stored_by_a_newer_ecotone_is_refused_naming_the_upgrade(): void
+    {
+        $ecotone = $this->placingOrders();
+        $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
+        $this->rewrite('1.0.0', fn (array $stored): array => [...$stored, 'formatVersion' => 2]);
+
+        $this->expectExceptionMessage("Flow version file {$this->location}/1.0.0.json has format version 2, but this Ecotone reads format versions up to 1, so a newer Ecotone stored it. Upgrade Ecotone in this application, or store the flow again with `ecotone:flow:store 1.0.0 --replace`.");
+
+        $ecotone->runConsoleCommand('ecotone:flow:compare');
+    }
+
+    public function test_a_version_whose_graph_cannot_be_read_is_refused_naming_the_file_and_the_reason(): void
+    {
+        $ecotone = $this->placingOrders();
+        $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
+        $this->rewrite('1.0.0', function (array $stored): array {
+            $stored['graph']['nodes'][0]['kind'] = 'teleporter';
+
+            return $stored;
+        });
+
+        $this->expectExceptionMessage("Flow version file {$this->location}/1.0.0.json holds a graph this Ecotone cannot read");
+
+        $ecotone->runConsoleCommand('ecotone:flow:compare');
+    }
+
+    public function test_a_file_holding_another_label_than_its_name_is_refused_naming_the_rename(): void
+    {
+        $ecotone = $this->placingOrders();
+        $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
+        copy($this->location . '/1.0.0.json', $this->location . '/2.0.0.json');
+
+        $this->expectExceptionMessage("Flow version file {$this->location}/2.0.0.json holds the label `1.0.0`, but a stored version is named after its label, so the file was copied or renamed. Rename it to 1.0.0.json, or delete it and store the flow with `ecotone:flow:store 2.0.0`.");
+
+        $ecotone->runConsoleCommand('ecotone:flow:versions');
+    }
+
+    public function test_store_refuses_a_location_that_cannot_be_created(): void
+    {
+        file_put_contents($this->location, 'a file where the directory should be');
+        $blocked = $this->location;
+        $this->location .= '/flow-versions';
+        $ecotone = $this->placingOrders();
+
+        try {
+            $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
+            self::fail();
+        } catch (Exception $exception) {
+            self::assertSame("Flow version `1.0.0` could not be stored, because the location {$this->location} does not exist and could not be created. Create that directory, or point FlowVersionsConfiguration::createWithLocation() at a directory the application can write to.", $exception->getMessage());
+        } finally {
+            unlink($blocked);
+        }
+    }
+
+    public function test_store_refuses_a_location_it_cannot_write_to(): void
+    {
+        mkdir($this->location, 0o555, true);
+        $ecotone = $this->placingOrders();
+
+        try {
+            $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
+            self::fail();
+        } catch (Exception $exception) {
+            self::assertSame("Flow version `1.0.0` could not be written to {$this->location}/1.0.0.json. Make the location {$this->location} writable for the user running this command, or point FlowVersionsConfiguration::createWithLocation() at a directory that is.", $exception->getMessage());
+        } finally {
+            chmod($this->location, 0o755);
+        }
+    }
+
+    public function test_a_stream_address_is_refused_as_a_location_at_bootstrap(): void
+    {
+        $this->expectExceptionMessage("FlowVersionsConfiguration points at location `s3://releases/flow-versions`, which is a stream address, but flow versions are kept in a local directory that ships with the application. Pass an absolute path, for example FlowVersionsConfiguration::createWithLocation(__DIR__ . '/../flow-versions').");
+
+        EcotoneLite::bootstrapFlowTesting(extensionObjects: [FlowVersionsConfiguration::createWithLocation('s3://releases/flow-versions')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+    }
+
+    private function rewrite(string $label, callable $change): void
+    {
+        $file = $this->location . '/' . $label . '.json';
+        file_put_contents($file, json_encode($change(json_decode(file_get_contents($file), true, flags: JSON_THROW_ON_ERROR)), JSON_THROW_ON_ERROR));
     }
 
     private function placingOrders(): FlowTestSupport

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config\Flow\Version;
 
+use DateTimeZone;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\Flow\FlowEdge;
 use Ecotone\Api\Messaging\Flow\FlowNode;
@@ -39,20 +40,20 @@ final class FlowVersions
     {
     }
 
-    public function store(string $label, MessageFlowGraph $graph): void
+    public function store(string $label, MessageFlowGraph $graph, bool $replace): void
     {
         if (preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]*$/', $label) !== 1) {
             throw InvalidArgumentException::create("Flow version label `{$label}` cannot be used, because the label becomes the file name of the stored version. Use letters, digits, dots, dashes and underscores only, starting with a letter or a digit, for example `1.4.0` or a commit hash.");
         }
         $file = $this->fileOf($label);
-        if (is_file($file)) {
-            throw InvalidArgumentException::create("Flow version `{$label}` is already stored in {$file}, and a stored version is not replaced. Store the current flow under another label, or delete that file first to store it again.");
+        if (! $replace && is_file($file)) {
+            throw InvalidArgumentException::create("Flow version `{$label}` is already stored in {$file}, and a stored version is not replaced unless asked. Store the current flow under another label, or pass --replace to store it again under this one.");
         }
         if (! is_dir($this->location) && ! @mkdir($this->location, 0o775, true) && ! is_dir($this->location)) {
             throw InvalidArgumentException::create("Flow version `{$label}` could not be stored, because the location {$this->location} does not exist and could not be created. Create that directory, or point FlowVersionsConfiguration::createWithLocation() at a directory the application can write to.");
         }
         $content = json_encode(
-            ['formatVersion' => self::FORMAT_VERSION, 'label' => $label, 'storedAt' => $this->clock->now()->format(DATE_ATOM), 'graph' => self::sorted($graph)],
+            ['formatVersion' => self::FORMAT_VERSION, 'label' => $label, 'storedAt' => $this->clock->now()->setTimezone(new DateTimeZone('UTC'))->format(DATE_ATOM), 'graph' => self::sorted($graph)],
             JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
         );
         if (@file_put_contents($file, $content . "\n") === false) {
@@ -65,20 +66,26 @@ final class FlowVersions
      */
     public function all(): array
     {
-        $versions = array_map($this->read(...), glob($this->location . '/*.json') ?: []);
-        usort($versions, fn (FlowVersion $first, FlowVersion $second): int => [$first->storedAt, $first->label] <=> [$second->storedAt, $second->label]);
+        $versions = [];
+        foreach (is_dir($this->location) ? scandir($this->location) : [] as $name) {
+            if (str_ends_with($name, '.json') && is_file($this->location . '/' . $name)) {
+                $versions[] = $this->read($this->location . '/' . $name);
+            }
+        }
+        usort($versions, fn (FlowVersion $first, FlowVersion $second): int => [strtotime($first->storedAt), $first->label] <=> [strtotime($second->storedAt), $second->label]);
 
         return $versions;
     }
 
     public function of(string $label): FlowVersion
     {
-        foreach ($this->all() as $version) {
+        $versions = $this->all();
+        foreach ($versions as $version) {
             if ($version->label === $label) {
                 return $version;
             }
         }
-        $stored = array_map(fn (FlowVersion $version): string => "`{$version->label}`", $this->all());
+        $stored = array_map(fn (FlowVersion $version): string => "`{$version->label}`", $versions);
 
         throw InvalidArgumentException::create("Flow version `{$label}` is not stored in {$this->location}. Stored versions: " . ($stored === [] ? 'none' : implode(', ', $stored)) . ". Pass one of them, or store the current flow first with `ecotone:flow:store {$label}`.");
     }
@@ -90,20 +97,28 @@ final class FlowVersions
 
     private function read(string $file): FlowVersion
     {
-        $repair = 'Delete the file, or store the flow again with `ecotone:flow:store <label>` after moving it away.';
         try {
             $stored = json_decode((string) file_get_contents($file), true, flags: JSON_THROW_ON_ERROR);
         } catch (Throwable) {
-            throw InvalidArgumentException::create("Flow version file {$file} is not valid JSON, so it cannot be read as a stored flow version. {$repair}");
+            throw InvalidArgumentException::create("Flow version file {$file} is not valid JSON, so it cannot be read as a stored flow version. Restore the file from version control, or delete it and store the flow again with `ecotone:flow:store <label>`.");
         }
-        if (! is_array($stored) || ! isset($stored['formatVersion'], $stored['label'], $stored['storedAt'], $stored['graph']['nodes'], $stored['graph']['edges'])) {
-            throw InvalidArgumentException::create("Flow version file {$file} does not hold `formatVersion`, `label`, `storedAt` and `graph`, so it was not written by `ecotone:flow:store`. Keep only stored flow versions in {$this->location}. {$repair}");
+        if (! is_array($stored) || ! is_int($stored['formatVersion'] ?? null) || ! is_string($stored['label'] ?? null) || ! is_string($stored['storedAt'] ?? null) || strtotime($stored['storedAt']) === false || ! is_array($stored['graph']['nodes'] ?? null) || ! is_array($stored['graph']['edges'] ?? null)) {
+            throw InvalidArgumentException::create("Flow version file {$file} does not hold `formatVersion`, `label`, `storedAt` and `graph`, so it was not written by `ecotone:flow:store`. Keep only stored flow versions in {$this->location}: move the file elsewhere, or point FlowVersionsConfiguration::createWithLocation() at a directory of its own.");
         }
-        if ($stored['formatVersion'] !== self::FORMAT_VERSION) {
-            throw InvalidArgumentException::create("Flow version file {$file} has format version `{$stored['formatVersion']}`, but this Ecotone reads format version " . self::FORMAT_VERSION . '. Upgrade Ecotone to the version that stored it, or store the flow again with `ecotone:flow:store <label>`.');
+        $named = basename($file, '.json');
+        if ($stored['label'] !== $named) {
+            throw InvalidArgumentException::create("Flow version file {$file} holds the label `{$stored['label']}`, but a stored version is named after its label, so the file was copied or renamed. Rename it to {$stored['label']}.json, or delete it and store the flow with `ecotone:flow:store {$named}`.");
+        }
+        if ($stored['formatVersion'] > self::FORMAT_VERSION) {
+            throw InvalidArgumentException::create("Flow version file {$file} has format version {$stored['formatVersion']}, but this Ecotone reads format versions up to " . self::FORMAT_VERSION . ", so a newer Ecotone stored it. Upgrade Ecotone in this application, or store the flow again with `ecotone:flow:store {$named} --replace`.");
+        }
+        try {
+            $graph = MessageFlowGraph::fromArray($stored['graph']);
+        } catch (Throwable $unreadable) {
+            throw InvalidArgumentException::create("Flow version file {$file} holds a graph this Ecotone cannot read ({$unreadable->getMessage()}). Upgrade Ecotone if a newer one stored it, restore the file from version control, or store the flow again with `ecotone:flow:store {$named} --replace`.");
         }
 
-        return new FlowVersion((string) $stored['label'], (string) $stored['storedAt'], MessageFlowGraph::fromArray($stored['graph']));
+        return new FlowVersion(label: $stored['label'], storedAt: $stored['storedAt'], graph: $graph);
     }
 
     /**

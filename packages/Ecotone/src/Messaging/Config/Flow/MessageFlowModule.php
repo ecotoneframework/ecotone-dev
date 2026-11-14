@@ -84,7 +84,7 @@ final class MessageFlowModule implements AnnotationModule
             ->registerConsoleCommand($consoleCommandConfiguration);
         $this->registerFlowVersions($messagingConfiguration, $flowVersionsConfigurations, $interfaceToCallRegistry);
         if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) !== []) {
-            $this->registerPulseFlowVersions($messagingConfiguration, $flowVersionsConfigurations !== [], ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults())->serviceName, $interfaceToCallRegistry);
+            $this->registerPulseFlowVersions(messagingConfiguration: $messagingConfiguration, hasLocation: $flowVersionsConfigurations !== [], serviceName: ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults())->serviceName, interfaceToCallRegistry: $interfaceToCallRegistry);
         }
     }
 
@@ -117,24 +117,28 @@ final class MessageFlowModule implements AnnotationModule
         }
         $commands = FlowVersionsNotConfigured::class;
         if ($flowVersionsConfigurations !== []) {
-            if (preg_match('#^(/|[A-Za-z]:[\\\\/]|[a-z][a-z0-9+.-]*://)#', $flowVersionsConfigurations[0]->location) !== 1) {
-                throw ConfigurationException::create("FlowVersionsConfiguration points at location `{$flowVersionsConfigurations[0]->location}`, which is relative, so it would resolve differently for a console command and a web request. Pass an absolute path, for example FlowVersionsConfiguration::createWithLocation(__DIR__ . '/../flow-versions').");
+            $location = $flowVersionsConfigurations[0]->location;
+            if (preg_match('#^[A-Za-z][A-Za-z0-9+.-]+://#', $location) === 1) {
+                throw ConfigurationException::create("FlowVersionsConfiguration points at location `{$location}`, which is a stream address, but flow versions are kept in a local directory that ships with the application. Pass an absolute path, for example FlowVersionsConfiguration::createWithLocation(__DIR__ . '/../flow-versions').");
+            }
+            if (preg_match('#^(/|[A-Za-z]:[\\\\/])#', $location) !== 1) {
+                throw ConfigurationException::create("FlowVersionsConfiguration points at location `{$location}`, which is relative, so it would resolve differently for a console command and a web request. Pass an absolute path, for example FlowVersionsConfiguration::createWithLocation(__DIR__ . '/../flow-versions').");
             }
             $messagingConfiguration->registerServiceDefinition(FlowVersions::class, new Definition(FlowVersions::class, [self::withoutParentSegments($flowVersionsConfigurations[0]->location), new Reference(EcotoneClockInterface::class)]));
             $commands = FlowVersionConsoleCommands::class;
         }
         $messagingConfiguration->registerServiceDefinition($commands, new Definition($commands));
         foreach ([
-            'store' => ['ecotone:flow:store', 'Stores the current message flow graph as a flow version under the given label, in the location of FlowVersionsConfiguration'],
+            'store' => ['ecotone:flow:store', 'Stores the current message flow graph as a flow version under the given label, in the location of FlowVersionsConfiguration; --replace stores it again under a label that is already stored'],
             'versions' => ['ecotone:flow:versions', 'Lists the stored flow versions, from the earliest stored to the latest'],
-            'compare' => ['ecotone:flow:compare', 'Compares a stored flow version (the latest by default, or --from) with the current code (or with the stored version --to), and reports added, removed and changed parts of the message flow as text, JSON or Mermaid'],
+            'compare' => ['ecotone:flow:compare', 'Compares a stored flow version (the one stored most recently by default, or --from) with the current code (or with the stored version --to), and reports added, removed and changed parts of the message flow as text, JSON or Mermaid'],
         ] as $method => [$commandName, $description]) {
             [$messageHandlerBuilder, $consoleCommandConfiguration] = ConsoleCommandModule::prepareConsoleCommandForReference(
-                new Reference($commands),
-                new InterfaceToCallReference($commands, $method),
-                $commandName,
-                $interfaceToCallRegistry,
-                $description,
+                reference: new Reference($commands),
+                interfaceToCallReference: new InterfaceToCallReference($commands, $method),
+                commandName: $commandName,
+                interfaceToCallRegistry: $interfaceToCallRegistry,
+                description: $description,
             );
             $messagingConfiguration
                 ->registerMessageHandler($messageHandlerBuilder)
@@ -144,7 +148,7 @@ final class MessageFlowModule implements AnnotationModule
 
     private static function withoutParentSegments(string $location): string
     {
-        preg_match('#^(/|[A-Za-z]:[\\\\/]|[a-z][a-z0-9+.-]*://)(.*)$#', $location, $parts);
+        preg_match('#^(/|[A-Za-z]:[\\\\/])(.*)$#', $location, $parts);
         $segments = [];
         foreach (preg_split('#[\\\\/]+#', $parts[2], flags: PREG_SPLIT_NO_EMPTY) as $segment) {
             if ($segment === '..') {

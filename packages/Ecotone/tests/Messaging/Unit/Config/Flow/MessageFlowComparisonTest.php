@@ -155,7 +155,40 @@ final class MessageFlowComparisonTest extends TestCase
         self::assertMatchesRegularExpression('/^    class n\d+ removed$/m', $mermaid);
         self::assertMatchesRegularExpression('/^    class n\d+ changed$/m', $mermaid);
         self::assertMatchesRegularExpression('/^    linkStyle \d+(,\d+)* stroke:#2da44e/m', $mermaid);
-        self::assertMatchesRegularExpression('/^    linkStyle \d+ stroke:#cf222e/m', $mermaid);
+        self::assertMatchesRegularExpression('/^    linkStyle \d+(,\d+)* stroke:#cf222e/m', $mermaid);
+    }
+
+    public function test_mermaid_draws_a_handler_that_became_synchronous_with_its_new_direct_arrow_and_the_channel_arrows_removed(): void
+    {
+        $nodes = [
+            new FlowNode('message:a', FlowNodeKind::COMMAND, 'a'),
+            new FlowNode('handler:H::h', FlowNodeKind::COMMAND_HANDLER, 'H::h'),
+            new FlowNode('channel:q', FlowNodeKind::CHANNEL, 'q'),
+        ];
+        $routed = new FlowEdge('message:a', 'handler:H::h', FlowEdgeKind::ROUTED_TO);
+        $asynchronous = MessageFlowGraph::create($nodes, [$routed, new FlowEdge('channel:q', 'handler:H::h', FlowEdgeKind::ASYNCHRONOUS)]);
+        $synchronous = MessageFlowGraph::create($nodes, [$routed]);
+
+        self::assertSame(
+            <<<'MERMAID'
+                flowchart LR
+                    n0>"a"]
+                    n1["Command Handler<br/>H::h"]
+                    n2[("Channel<br/>q")]
+                    n0 --> n1
+                    n0 --> n2
+                    n2 ==>|"async"| n1
+                    classDef added fill:#dafbe1,stroke:#2da44e,color:#1f2328
+                    linkStyle 0 stroke:#2da44e,stroke-width:2px
+                    classDef removed fill:#ffebe9,stroke:#cf222e,color:#1f2328,stroke-dasharray:5 5
+                    linkStyle 1,2 stroke:#cf222e,stroke-width:2px,stroke-dasharray:5 5
+
+                MERMAID,
+            $asynchronous->compareTo($synchronous)->toMermaid(),
+        );
+        self::assertStringContainsString("    n0 --> n2\n    n0 --> n1\n    n2 ==>|\"async\"| n1\n", $synchronous->compareTo($asynchronous)->toMermaid());
+        self::assertStringContainsString("    linkStyle 0,2 stroke:#2da44e,stroke-width:2px\n", $synchronous->compareTo($asynchronous)->toMermaid());
+        self::assertStringContainsString("    linkStyle 1 stroke:#cf222e,stroke-width:2px,stroke-dasharray:5 5\n", $synchronous->compareTo($asynchronous)->toMermaid());
     }
 
     public function test_mermaid_of_identical_graphs_marks_nothing(): void

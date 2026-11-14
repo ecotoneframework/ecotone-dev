@@ -32,9 +32,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  */
 final class FlowVersionConsoleCommands
 {
-    public function store(ConfiguredMessagingSystem $messagingSystem, ConsoleWriter $writer, FlowVersions $versions, string $label): void
+    public function store(ConfiguredMessagingSystem $messagingSystem, ConsoleWriter $writer, FlowVersions $versions, string $label, bool $replace = false): void
     {
-        $versions->store($label, $messagingSystem->getMessageFlowGraph());
+        $versions->store(label: $label, graph: $messagingSystem->getMessageFlowGraph(), replace: $replace);
 
         $writer->success("Stored flow version {$label} in {$versions->location}/{$label}.json");
     }
@@ -59,14 +59,14 @@ final class FlowVersionConsoleCommands
         if (! in_array($format, ['text', 'json', 'mermaid'], true)) {
             throw ConfigurationException::create("ecotone:flow:compare was asked for format `{$format}`, which it cannot produce. Pass --format=text for a list of the changes, --format=json for the added, removed and changed nodes and edges, or --format=mermaid for a Mermaid flowchart with the changes marked.");
         }
-        $earlier = $from === null ? $this->latestOf($versions) : $versions->of($from);
-        $later = $to === null ? null : $versions->of($to);
-        $comparison = $earlier->graph->compareTo($later === null ? $messagingSystem->getMessageFlowGraph() : $later->graph);
-        $sides = "from version {$earlier->label} to " . ($later === null ? 'the current code' : "version {$later->label}");
+        $fromVersion = $from === null ? $this->latestOf($versions) : $versions->of($from);
+        $toVersion = $to === null ? null : $versions->of($to);
+        $comparison = $fromVersion->graph->compareTo($toVersion === null ? $messagingSystem->getMessageFlowGraph() : $toVersion->graph);
+        $sides = "from version {$fromVersion->label} to " . ($toVersion === null ? 'the current code' : "version {$toVersion->label}");
 
         $writer->write(match ($format) {
             'text' => "Message flow {$sides}\n" . $comparison->toText(),
-            'json' => json_encode(['from' => $earlier->label, 'to' => $later?->label, ...$comparison->toArray()], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n",
+            'json' => json_encode(['from' => $fromVersion->label, 'to' => $toVersion?->label, ...$comparison->toArray()], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n",
             'mermaid' => $comparison->toMermaid(),
         });
 

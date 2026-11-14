@@ -4003,14 +4003,15 @@ the collected batch object.
 
 ### Store the message flow as versions and compare them (Enterprise)
 
-**Before:** `ecotone:flow:dump` printed the message flow graph of the running code, in the order it was discovered,
-and nothing compared one dump with another.
+**Before:** an application had no description of its message flow to keep, so what a release changed in it was
+found by reading the code.
 
 **Now:** registering `Ecotone\Api\Messaging\Flow\FlowVersionsConfiguration::createWithLocation(__DIR__ .
 '/../flow-versions')` from a `#[ServiceContext]` method gives the application a directory of flow versions.
 `ecotone:flow:store <label>` writes the current graph there as `<label>.json`, with nodes, edges and attributes
-sorted, so the same code always stores the same file. `ecotone:flow:versions` lists them from the earliest stored.
-`ecotone:flow:compare` reports the added, removed and changed nodes and edges between the latest stored version (or
+sorted, so the same code always stores the same graph (only `storedAt`, kept in UTC, differs); `--replace` stores a
+label again. `ecotone:flow:versions` lists them from the earliest stored. `ecotone:flow:compare` reports the added,
+removed and changed nodes and edges between the version stored most recently (or
 `--from`) and the current code (or the stored version `--to`), as text, `--format=json` or `--format=mermaid` with the
 changes coloured; `--failOnChange` makes it fail when anything differs. `MessageFlowGraph::compareTo()` returns the
 same comparison as a `FlowComparison` in code. A node is matched by its id and an edge by its kind, ends and target, so
@@ -4022,8 +4023,11 @@ A service that also registers `PulseConfiguration` answers `ecotone.pulse.flow_v
 `graph`), to the Pulse service only; Pulse draws two versions as one graph from them and stores nothing itself.
 
 **How to adapt:** nothing is required. To use it, register the configuration with an absolute path (a relative one, a
+stream address such as `s3://`, a
 second configuration, or a configuration without an Enterprise licence is refused at bootstrap), commit the directory
-with the application so the deployed service can list it, and store a version on each release. Without the
+with the application so the deployed service can list it, and store a version on each release. The framework derives
+the graph, so a later Ecotone that reads more of the flow reports changes the application did not make: store a new
+version after upgrading Ecotone. A file stored by a newer Ecotone than the one reading it is refused naming the upgrade. Without the
 configuration the three commands refuse to run and name it, and `ecotone:flow:dump` is unchanged.
 
 

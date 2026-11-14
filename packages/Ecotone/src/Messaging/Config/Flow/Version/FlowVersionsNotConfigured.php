@@ -28,7 +28,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
  */
 final class FlowVersionsNotConfigured
 {
-    public function store(string $label): void
+    public function store(string $label, bool $replace = false): void
     {
         throw self::refusalOf('ecotone:flow:store');
     }

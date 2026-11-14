@@ -26,14 +26,15 @@ A version check on the write, never a pessimistic lock or a bespoke tracker.
   `SELECT ... FOR UPDATE`, no lock table.
 - **Verified by:** `eval:store-feature-state`
 
-### 8a. Failed operations use the framework's retries
+### 8a. A lost optimistic write uses the framework's retries
 A lost optimistic write throws `Ecotone\Api\Messaging\ConcurrencyException`; the existing command-bus and
 asynchronous-endpoint instant retries under a database transaction handle it, followed by the configured error
 channel, delayed retries and dead letter. No handwritten retry loop, consumed-message re-send from a handler or
-store, feature-specific retry configuration or backoff. Applications may tune the existing `InstantRetryConfiguration` and error-channel
-configuration; a feature introduces no configuration of its own. An exception requires the maintainer's explicit decision,
-recorded with its reason in the feature spec. Load [references/rules.md](references/rules.md) for the failure that
-established this rule and why a syntax-only check cannot decide it.
+store, feature-specific retry configuration or backoff. Applications may tune the existing
+`InstantRetryConfiguration` and error-channel configuration; a feature introduces no configuration of its own. An
+exception requires the maintainer's explicit decision, recorded with its reason in the feature spec. Load
+[references/rules.md](references/rules.md) for the failure that established this rule and why a syntax-only check cannot
+decide it.
 - **Expected:** a store or handler losing a version check throws `ConcurrencyException` naming the ways out;
   tests prove automatic retry with the default configuration and dead-letter handling when attempts run out.
 - **Verified by:** `eval:handle-version-conflict`

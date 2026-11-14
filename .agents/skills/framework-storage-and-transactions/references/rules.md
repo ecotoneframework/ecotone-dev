@@ -273,7 +273,7 @@ The exceptions keep a transaction short where the boundary's would be long-runni
 `transaction()`, `beginTransaction()` or `wrapInTransaction()` call under `packages/*/src` and `packages/*/Api`.
 
 
-## 8a. Failed operations use the framework's retries
+## 8a. A lost optimistic write uses the framework's retries
 
 A store or handler reports a lost optimistic write with `Ecotone\Api\Messaging\ConcurrencyException`, with the
 ways out named in its message. Ecotone already retries the command bus and asynchronous endpoints running in a

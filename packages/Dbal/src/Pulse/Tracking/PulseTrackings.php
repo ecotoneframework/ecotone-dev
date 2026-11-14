@@ -6,16 +6,12 @@ namespace Ecotone\Dbal\Pulse\Tracking;
 
 use DateTimeImmutable;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
-use Ecotone\Api\Tracing\Span;
-use Ecotone\Api\Tracing\SpanAttribute;
-use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Dbal\Recoverability\DeadLetterStore;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetterScan;
 use Ecotone\Dbal\Tracing\Pulse\PulseTime;
-use Ecotone\Dbal\Tracing\TraceStore;
+use Ecotone\Messaging\Handler\Gathering\GatheringHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
-use Ecotone\Projecting\ProjectingHeaders;
 use Exception;
 use JsonException;
 use stdClass;
@@ -48,9 +44,11 @@ final class PulseTrackings
     public const DEAD_LETTERS_SCANNED = 2000;
     private const EXAMPLE = '{"since": "2026-10-14T12:00:00+00:00", "category": "ecotone-pulse", "type": "projection-rebuild", "reference": "orders", "limit": 100}';
 
+    private const OPERATIONS = [Tracking::PROJECTION_REBUILD_TYPE => 'rebuild', Tracking::PROJECTION_BACKFILL_TYPE => 'backfill'];
+
     public function __construct(
         private TrackingStore $trackings,
-        private TraceStore $traces,
+        private ProjectionRunGroups $runGroups,
         private DeadLetterStore $deadLetters,
         private EcotoneClockInterface $clock,
         private string $serviceName,
@@ -67,62 +65,105 @@ final class PulseTrackings
         $queryId = $this->queryIdOf($queryId);
         $query = $this->queryOf($payload);
         $limit = $this->limitOf($query);
+        $since = $this->sinceOf($query);
+        $category = $this->optionalText($query, 'category');
+        $type = $this->optionalText($query, 'type');
+        $reference = $this->optionalText($query, 'reference');
 
-        $found = $this->trackings->startedSince($this->sinceOf($query), $this->optionalText($query, 'category'), $this->optionalText($query, 'type'), $this->optionalText($query, 'reference'), $limit + 1);
-        $listed = array_slice($found, 0, $limit);
-        $now = $this->clock->now()->unixTime()->inMicroseconds();
-        $progress = [];
-        foreach ($listed as $tracking) {
-            $progress[$tracking->tracingId] = $this->progressOf($tracking, $this->traces->stepsOf($tracking->tracingId));
+        $groups = [];
+        foreach ($this->runGroups->listRuns() as $group) {
+            $groups[$group['groupId']] = $group;
         }
-        $deadLetters = $this->deadLetterMessageIdsOf(array_keys(array_filter($progress, fn (array $one): bool => $one['state'] !== 'done')));
+        $runs = [];
+        foreach ($this->trackings->startedSince($since, $category, $type, $reference, $limit + 1) as $tracking) {
+            $runs[] = $this->runOf($tracking, $groups);
+        }
+        foreach ($groups as $group) {
+            $run = $this->consoleRunOf($group);
+            if ($this->matches(run: $run, since: $since, category: $category, type: $type, reference: $reference)) {
+                $runs[] = $run;
+            }
+        }
+        usort($runs, static fn (array $first, array $second): int => $second['startedAt'] <=> $first['startedAt']);
+        $listed = array_slice($runs, 0, $limit);
+        $failedBatches = $this->failedBatchesOf(array_values(array_filter(array_map(static fn (array $run): ?string => $run['group'] !== null && $run['group']['state'] === 'open' ? $run['group']['groupId'] : null, $listed))));
+        $now = $this->clock->now()->unixTime()->inMicroseconds();
 
         return json_encode([
             'queryId' => $queryId,
             'cap' => self::CAP,
-            'truncated' => count($found) > $limit,
-            'trackings' => array_map(fn (Tracking $tracking): array => $this->described($tracking, $progress[$tracking->tracingId], $deadLetters[$tracking->tracingId] ?? null, $now), $listed),
+            'truncated' => count($runs) > $limit,
+            'trackings' => array_map(fn (array $run): array => $this->described($run, $failedBatches[$run['group']['groupId'] ?? ''] ?? [], $now), $listed),
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 
     /**
-     * @param Span[] $spans
-     * @return array{state: string, batchesDone: int, batchCount: int|null, finishedAt: int|null}
+     * @param array<string, array{projectionName: string, operation: string, groupId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, openedAt: int, closedAt: ?int}> $groups
+     * @return array{tracingId: ?string, category: string, type: string, reference: string, tenant: ?string, startedAt: int, startedFrom: string, asynchronous: bool, group: ?array}
      */
-    private function progressOf(Tracking $tracking, array $spans): array
+    private function runOf(Tracking $tracking, array &$groups): array
     {
-        $batches = [];
-        $batchCount = null;
-        $finishedAt = null;
-        $failed = false;
-        foreach ($spans as $span) {
-            if ($span->status === SpanStatus::Error) {
-                $failed = true;
+        $operation = self::OPERATIONS[$tracking->type] ?? null;
+        $asynchronous = $operation !== null && $this->runGroups->runsAsynchronously($tracking->reference, $operation);
+        $group = null;
+        if ($asynchronous) {
+            foreach ($groups as $groupId => $candidate) {
+                if ($candidate['groupKey'] === $tracking->tracingId && $candidate['projectionName'] === $tracking->reference && $candidate['operation'] === $operation) {
+                    $group = $candidate;
+                    unset($groups[$groupId]);
 
-                continue;
+                    break;
+                }
             }
-            if (! isset($span->attributes[ProjectingHeaders::REBUILD_BATCH_NUMBER]) || ($span->attributes[SpanAttribute::MESSAGING_OPERATION_TYPE] ?? null) !== SpanAttribute::OPERATION_PROCESS) {
-                continue;
-            }
-            $batchNumber = (int) $span->attributes[ProjectingHeaders::REBUILD_BATCH_NUMBER];
-            if ($batchNumber > 0) {
-                $batches[$batchNumber] = true;
-            }
-            $batchCount = (int) $span->attributes[ProjectingHeaders::REBUILD_BATCH_COUNT];
-            $finishedAt = max($finishedAt ?? 0, $span->endedAt->unixTime()->inMicroseconds());
         }
-        $state = $batchCount !== null && count($batches) >= $batchCount ? 'done' : ($failed ? 'failed' : 'running');
 
-        return ['state' => $state, 'batchesDone' => count($batches), 'batchCount' => $batchCount, 'finishedAt' => $finishedAt];
+        return [
+            'tracingId' => $tracking->tracingId,
+            'category' => $tracking->category,
+            'type' => $tracking->type,
+            'reference' => $tracking->reference,
+            'tenant' => $tracking->tenant,
+            'startedAt' => $tracking->startedAtInMicroseconds,
+            'startedFrom' => 'pulse',
+            'asynchronous' => $asynchronous,
+            'group' => $group,
+        ];
     }
 
     /**
-     * @param string[] $tracingIds
-     * @return array<string, string> dead letter message id per tracing id
+     * @param array{projectionName: string, operation: string, groupId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, openedAt: int, closedAt: ?int} $group
+     * @return array{tracingId: ?string, category: string, type: string, reference: string, tenant: ?string, startedAt: int, startedFrom: string, asynchronous: bool, group: ?array}
      */
-    private function deadLetterMessageIdsOf(array $tracingIds): array
+    private function consoleRunOf(array $group): array
     {
-        $wanted = array_flip($tracingIds);
+        return [
+            'tracingId' => $group['groupKey'],
+            'category' => Tracking::PULSE_CATEGORY,
+            'type' => array_search($group['operation'], self::OPERATIONS, true),
+            'reference' => $group['projectionName'],
+            'tenant' => $this->trackings->activeTenant(),
+            'startedAt' => $group['openedAt'] * 1000,
+            'startedFrom' => 'console',
+            'asynchronous' => true,
+            'group' => $group,
+        ];
+    }
+
+    private function matches(array $run, int $since, ?string $category, ?string $type, ?string $reference): bool
+    {
+        return $run['startedAt'] >= $since
+            && ($category === null || $category === $run['category'])
+            && ($type === null || $type === $run['type'])
+            && ($reference === null || $reference === $run['reference']);
+    }
+
+    /**
+     * @param list<string> $groupIds
+     * @return array<string, list<array{batch: int, deadLetterMessageId: string}>> failed batches per group id
+     */
+    private function failedBatchesOf(array $groupIds): array
+    {
+        $wanted = array_flip($groupIds);
         $found = [];
         if ($wanted === []) {
             return $found;
@@ -130,49 +171,56 @@ final class PulseTrackings
         $scanned = 0;
         foreach (PulseDeadLetterScan::newestFirst($this->deadLetters) as $entry) {
             $failure = $entry->toArray();
-            if (isset($wanted[$failure['traceId'] ?? ''])) {
-                $found[$failure['traceId']] ??= $failure['messageId'];
+            $groupId = $failure['headers'][GatheringHeaders::GROUP_ID] ?? null;
+            if ($groupId !== null && isset($wanted[$groupId])) {
+                $batch = (int) ($failure['headers'][GatheringHeaders::PART_NUMBER] ?? 0);
+                $found[$groupId][$batch] ??= ['batch' => $batch, 'deadLetterMessageId' => $failure['messageId']];
             }
-            if (count($found) === count($wanted) || ++$scanned >= self::DEAD_LETTERS_SCANNED) {
+            if (++$scanned >= self::DEAD_LETTERS_SCANNED) {
                 break;
             }
         }
 
-        return $found;
+        return array_map(static function (array $batches): array {
+            ksort($batches);
+
+            return array_values($batches);
+        }, $found);
     }
 
     /**
-     * @param array{state: string, batchesDone: int, batchCount: int|null, finishedAt: int|null} $progress
+     * @param array{tracingId: ?string, category: string, type: string, reference: string, tenant: ?string, startedAt: int, startedFrom: string, asynchronous: bool, group: ?array} $run
+     * @param list<array{batch: int, deadLetterMessageId: string}> $failedBatches
      */
-    private function described(Tracking $tracking, array $progress, ?string $deadLetterMessageId, int $now): array
+    private function described(array $run, array $failedBatches, int $now): array
     {
-        $state = $deadLetterMessageId !== null && $progress['state'] === 'running' ? 'failed' : $progress['state'];
+        $group = $run['group'];
+        $state = match (true) {
+            ! $run['asynchronous'], $group === null, $group['state'] !== 'open' => 'done',
+            $failedBatches !== [] => 'failed',
+            default => 'running',
+        };
         $described = [
-            'tracingId' => $tracking->tracingId,
-            'category' => $tracking->category,
-            'type' => $tracking->type,
-            'reference' => $tracking->reference,
-            'tenant' => $tracking->tenant,
-            'startedAt' => PulseTime::format($tracking->startedAtInMicroseconds),
+            'tracingId' => $run['tracingId'],
+            'category' => $run['category'],
+            'type' => $run['type'],
+            'reference' => $run['reference'],
+            'tenant' => $run['tenant'],
+            'startedAt' => PulseTime::format($run['startedAt']),
+            'startedFrom' => $run['startedFrom'],
             'state' => $state,
-            'batchesDone' => $progress['batchesDone'],
-            'batchCount' => $progress['batchCount'],
+            'batchesDone' => $group['recorded'] ?? 0,
+            'batchCount' => $group['expectedSize'] ?? null,
+            'missingBatches' => $group['missingPartNumbers'] ?? [],
+            'failedBatches' => $failedBatches,
+            ...($group === null ? [] : ['groupId' => $group['groupId']]),
         ];
 
         return match ($state) {
-            'done' => [...$described, 'durationMs' => $this->durationOf($tracking, $progress['finishedAt'], $now)],
-            'failed' => [...$described, 'deadLetterMessageId' => $deadLetterMessageId],
-            default => [...$described, 'elapsedMs' => intdiv(max(0, $now - $tracking->startedAtInMicroseconds), 1000)],
+            'done' => [...$described, 'durationMs' => $group['closedAt'] ?? null ? max(0, $group['closedAt'] - intdiv($run['startedAt'], 1000)) : null],
+            'failed' => [...$described, 'deadLetterMessageId' => $failedBatches[0]['deadLetterMessageId']],
+            default => [...$described, 'elapsedMs' => intdiv(max(0, $now - $run['startedAt']), 1000)],
         };
-    }
-
-    private function durationOf(Tracking $tracking, ?int $finishedAt, int $now): ?int
-    {
-        if ($finishedAt === null) {
-            return intdiv(max(0, $now - $tracking->startedAtInMicroseconds), 1000);
-        }
-
-        return intdiv(max(0, $finishedAt - $tracking->startedAtInMicroseconds), 1000);
     }
 
     private function queryIdOf(?string $queryId): string

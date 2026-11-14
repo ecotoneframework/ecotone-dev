@@ -268,16 +268,12 @@ class ProjectingManager
             }
         }
 
-        $totalPartitions = array_sum(array_column($partitionsPerStreamFilter, 1));
-        $totalBatches = array_sum(array_map(fn (array $counted): int => (int) ceil($counted[1] / $partitionBatchSize), $partitionsPerStreamFilter));
-        $batchNumber = 0;
         $batches = [];
 
         foreach ($partitionsPerStreamFilter as [$streamFilter, $partitionsOfFilter]) {
             $numberOfBatches = (int) ceil($partitionsOfFilter / $partitionBatchSize);
 
             for ($batch = 0; $batch < $numberOfBatches; $batch++) {
-                $batchNumber++;
                 $batches[] = [
                     'partitionBatch.limit' => $partitionBatchSize,
                     'partitionBatch.offset' => $batch * $partitionBatchSize,
@@ -286,9 +282,6 @@ class ProjectingManager
                     'partitionBatch.eventStoreReferenceName' => $streamFilter->eventStoreReferenceName,
                     'partitionBatch.tag' => $streamFilter->tag,
                     'partitionBatch.shouldReset' => $shouldReset,
-                    ProjectingHeaders::REBUILD_BATCH_NUMBER => $batchNumber,
-                    ProjectingHeaders::REBUILD_BATCH_COUNT => $totalBatches,
-                    ProjectingHeaders::REBUILD_PARTITION_COUNT => $totalPartitions,
                 ];
             }
         }

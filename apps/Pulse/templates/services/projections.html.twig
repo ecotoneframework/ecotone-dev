@@ -10,12 +10,14 @@
 
 {% macro pill(projection) %}<span data-projection-status="{{ projection.state.value }}">{% include '_status.html.twig' with {status: projection.statusView, label: projection.state.label, inline_reason: false} only %}</span>{% endmacro %}
 
-{% macro operation(projection) %}
+{% macro failedBatches(rebuild, serviceName) %}{% for failed in rebuild.failedBatches %}{{ loop.first ? '' : ', ' }}<a href="{{ path('dead_letter', {service: serviceName, messageId: failed.deadLetterMessageId}) }}" data-rebuild-failed-batch="{{ failed.batch }}">batch {{ failed.batch }} failed</a>{% endfor %}{% endmacro %}
+
+{% macro operation(projection, serviceName) %}
     {% set rebuild = projection.latestRebuild %}
     {% if rebuild %}
         <div data-rebuild-state="{{ rebuild.state }}" data-operation-kind="{{ rebuild.kind }}">
             {% if rebuild.state == 'running' %}
-                {% if projection.partitioned and rebuild.batchCount %}
+                {% if projection.partitioned and rebuild.hasBatchCount %}
                     <progress max="100" value="{{ rebuild.percent }}" aria-label="{{ rebuild.label }} of {{ projection.name }}"></progress>
                     <span data-rebuild-percent>{{ rebuild.percent }}%</span>
                     <span class="muted" data-rebuild-batches>{{ rebuild.batchesDone }} of {{ rebuild.batchCount }} batches</span>
@@ -28,13 +30,17 @@
                 <span class="muted" data-rebuild-duration>in {{ rebuild.duration ?? 'an unreported time' }}</span>
             {% else %}
                 <span class="pill bad sq">{{ rebuild.label }} failed</span>
+                {% if rebuild.hasBatchCount %}<span class="muted" data-rebuild-batches>{{ rebuild.batchesDone }} of {{ rebuild.batchCount }} batches</span>{% endif %}
+                {% if rebuild.failedBatches is not empty %}<span data-rebuild-failed-batches>{{ _self.failedBatches(rebuild, serviceName) }}</span>{% endif %}
             {% endif %}
-            <a href="{{ path('trace_detail', {traceId: rebuild.tracingId}) }}" data-rebuild-trace>trace of the {{ rebuild.noun }}</a>
+            {% if rebuild.missingBatchesLabel %}<span class="muted" data-rebuild-missing>{{ rebuild.missingBatchesLabel }}</span>{% endif %}
+            {% if rebuild.startedFromConsole %}<span class="muted" data-rebuild-started-from-console>started from the console</span>{% endif %}
+            {% if rebuild.hasTrace %}<a href="{{ path('trace_detail', {traceId: rebuild.tracingId}) }}" data-rebuild-trace>trace of the {{ rebuild.noun }}</a>{% endif %}
         </div>
     {% endif %}
 {% endmacro %}
 
-{% macro table(list, projections, label) %}
+{% macro table(list, projections, label, serviceName) %}
     <div class="card flush" tabindex="0" role="region" aria-label="{{ label }}">
         <table>
             <thead>
@@ -56,7 +62,7 @@
                     <td class="num" data-gap>{{ projection.unavailable ? 'unknown' : projection.gap }}</td>
                     <td class="hide-narrow" data-last-change>{{ projection.changedAgo ?? 'no change seen yet' }}</td>
                     <td>
-                        {{ _self.operation(projection) }}
+                        {{ _self.operation(projection, serviceName) }}
                         {% set actions = projection.canBeBackfilled and projection.canBeRebuilt ? 'Backfill or rebuild' : (projection.canBeRebuilt ? 'Rebuild' : 'Details') %}
                         <a href="#{{ anchor }}" data-projection-actions aria-label="{{ actions }} {{ projection.name }}">{{ actions }} ›</a>
                     </td>
@@ -210,13 +216,13 @@
         {% if list.attention %}
             <section class="projections-attention sev-{{ list.attentionStatus.value }}" data-projections-attention>
                 <h{{ level }}>Not up to date <span class="summary-state" data-summary-state>{{ list.attentionSummary }}</span></h{{ level }}>
-                {{ _self.table(list, list.attention, 'Projections of ' ~ scope ~ ' that are not up to date') }}
+                {{ _self.table(list, list.attention, 'Projections of ' ~ scope ~ ' that are not up to date', service.service) }}
             </section>
         {% endif %}
 
         {% if list.quiet %}
-            {% embed '_section.html.twig' with {key: 'projections.' ~ scope ~ '.quiet', hook: 'projections-quiet', title: 'Healthy', summary: list.quietSummary, status: 'ok', level: level, list: list} only %}
-                {% block body %}{% import 'services/projections.html.twig' as page %}{{ page.table(list, list.quiet, 'Healthy projections of ' ~ list.snapshot.scope) }}{% endblock %}
+            {% embed '_section.html.twig' with {key: 'projections.' ~ scope ~ '.quiet', hook: 'projections-quiet', title: 'Healthy', summary: list.quietSummary, status: 'ok', level: level, list: list, serviceName: service.service} only %}
+                {% block body %}{% import 'services/projections.html.twig' as page %}{{ page.table(list, list.quiet, 'Healthy projections of ' ~ list.snapshot.scope, serviceName) }}{% endblock %}
             {% endembed %}
         {% endif %}
 
@@ -231,20 +237,21 @@
                 {% elseif list.rebuilds.notAnswering %}
                     <p class="drift" data-rebuilds-unavailable>{{ serviceName }} did not answer the question for its tracked operations, so none are shown. Pulse asks again on the next visit.</p>
                 {% elseif list.rebuilds.rebuilds is empty %}
-                    <p class="muted" data-no-rebuilds>No rebuild or backfill was started from Pulse in the last {{ list.trackingDays }} days (<code>PULSE_TRACKING_DAYS</code>).</p>
+                    <p class="muted" data-no-rebuilds>No rebuild or backfill was started from Pulse, and no asynchronous one from the console, in the last {{ list.trackingDays }} days (<code>PULSE_TRACKING_DAYS</code>).</p>
                 {% else %}
                     <div class="card flush" tabindex="0" role="region" aria-label="Recent operations of {{ list.snapshot.scope }}" data-recent-rebuilds>
                         <table>
                             <thead><tr><th scope="col">Projection</th><th scope="col">Operation</th><th scope="col">Started</th><th scope="col">State</th><th scope="col">Progress</th><th scope="col">Trace</th></tr></thead>
                             <tbody>
+                            {% import 'services/projections.html.twig' as page %}
                             {% for rebuild in list.rebuilds.rebuilds %}
-                                <tr data-rebuild="{{ rebuild.tracingId }}">
+                                <tr data-rebuild="{{ rebuild.key }}">
                                     <th scope="row">{{ rebuild.projection }}</th>
-                                    <td data-operation-type>{{ rebuild.label }}</td>
+                                    <td data-operation-type>{{ rebuild.label }}{% if rebuild.startedFromConsole %} <span class="muted" data-rebuild-started-from-console>from the console</span>{% endif %}</td>
                                     <td>{{ rebuild.startedAt }}</td>
                                     <td>{{ rebuild.state }}</td>
-                                    <td>{% if rebuild.batchCount and rebuild.batchCount > 1 %}{{ rebuild.batchesDone }} of {{ rebuild.batchCount }} batches{% elseif rebuild.state == 'running' %}running for {{ rebuild.elapsed ?? '0s' }}{% elseif rebuild.state == 'done' %}{{ rebuild.duration ?? 'time not reported' }}{% else %}stopped, see its trace{% endif %}</td>
-                                    <td><a href="{{ path('trace_detail', {traceId: rebuild.tracingId}) }}" data-rebuild-trace>trace of the {{ rebuild.noun }}</a></td>
+                                    <td data-rebuild-progress>{% if rebuild.batchCount is not null and rebuild.batchCount != 1 %}{{ rebuild.batchesDone }} of {{ rebuild.batchCount }} batches{% elseif rebuild.state == 'running' %}running for {{ rebuild.elapsed ?? '0s' }}{% elseif rebuild.state == 'done' %}{{ rebuild.duration ?? 'time not reported' }}{% else %}stopped, see its trace{% endif %}{% if rebuild.failedBatches is not empty %}; {{ page.failedBatches(rebuild, serviceName) }}{% endif %}{% if rebuild.missingBatchesLabel %}; <span data-rebuild-missing>{{ rebuild.missingBatchesLabel }}</span>{% endif %}</td>
+                                    <td>{% if rebuild.hasTrace %}<a href="{{ path('trace_detail', {traceId: rebuild.tracingId}) }}" data-rebuild-trace>trace of the {{ rebuild.noun }}</a>{% else %}<span class="muted" data-rebuild-no-trace>no trace, started from the console</span>{% endif %}</td>
                                 </tr>
                             {% endfor %}
                             </tbody>

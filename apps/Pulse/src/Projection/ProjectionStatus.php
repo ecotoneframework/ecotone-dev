@@ -134,7 +134,7 @@ final readonly class ProjectionStatus
         if ($operation === null) {
             return 'it is running.';
         }
-        if ($this->partitioned && $operation->batchCount) {
+        if ($this->partitioned && $operation->hasBatchCount()) {
             return sprintf('%d%% done, %d of %d batches.', $operation->percent(), $operation->batchesDone, $operation->batchCount);
         }
 

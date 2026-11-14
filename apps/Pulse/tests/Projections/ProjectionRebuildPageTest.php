@@ -383,6 +383,71 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertSame('failed', $crawler->filter('tr[data-projection="broken"] [data-rebuild-state]')->attr('data-rebuild-state'));
     }
 
+    public function test_a_rebuild_with_a_failed_batch_shows_the_batch_with_its_dead_letter_and_the_batches_not_done_yet(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'failed', batchesDone: 2, batchCount: 3, deadLetterMessageId: 'dead-2', missingBatches: [2], failedBatches: [['batch' => 2, 'deadLetterMessageId' => 'dead-2']], groupId: 'group-1')];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('failed', $row->filter('[data-rebuild-state]')->attr('data-rebuild-state'));
+        self::assertSame('2 of 3 batches', $row->filter('[data-rebuild-batches]')->text());
+        self::assertSame('batch 2 failed', $row->filter('a[data-rebuild-failed-batch="2"]')->text());
+        self::assertSame('/dead-letters/orders/dead-2', $row->filter('a[data-rebuild-failed-batch="2"]')->attr('href'));
+        self::assertSame('batch 2 not done yet', $row->filter('[data-rebuild-missing]')->text());
+        self::assertSame('/dead-letters/orders/dead-2', $crawler->filter('[data-recent-rebuilds] tr[data-rebuild="group-1"] a[data-rebuild-failed-batch="2"]')->attr('href'));
+    }
+
+    public function test_a_running_rebuild_of_a_projection_without_partitions_shows_zero_batches_and_is_not_failed(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'running', batchesDone: 0, batchCount: 0, elapsedMs: 1000)];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('running', $row->filter('[data-rebuild-state]')->attr('data-rebuild-state'));
+        self::assertSame('0%', $row->filter('[data-rebuild-percent]')->text());
+        self::assertSame('0 of 0 batches', $row->filter('[data-rebuild-batches]')->text());
+        self::assertSame('0 of 0 batches', $crawler->filter('[data-recent-rebuilds] [data-rebuild-progress]')->text());
+    }
+
+    public function test_a_rebuild_whose_failed_batch_was_replayed_shows_done_with_every_batch(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'done', batchesDone: 3, batchCount: 3, durationMs: 61000)];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('done', $row->filter('[data-rebuild-state]')->attr('data-rebuild-state'));
+        self::assertSame('in 1m 1s', $row->filter('[data-rebuild-duration]')->text());
+        self::assertCount(0, $row->filter('[data-rebuild-missing], [data-rebuild-failed-batches]'));
+        self::assertSame('3 of 3 batches', $crawler->filter('[data-recent-rebuilds] [data-rebuild-progress]')->text());
+    }
+
+    public function test_a_rebuild_started_from_the_console_is_shown_without_a_trace(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'running', batchesDone: 1, batchCount: 4, tracingId: null, startedFrom: 'console', missingBatches: [2, 3, 4], groupId: 'group-1')];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('1 of 4 batches', $row->filter('[data-rebuild-batches]')->text());
+        self::assertSame('batches 2, 3, 4 not done yet', $row->filter('[data-rebuild-missing]')->text());
+        self::assertSame('started from the console', $row->filter('[data-rebuild-started-from-console]')->text());
+        self::assertCount(0, $crawler->filter('a[data-rebuild-trace]'));
+        $recent = $crawler->filter('[data-recent-rebuilds] tr[data-rebuild="group-1"]');
+        self::assertSame('from the console', $recent->filter('[data-rebuild-started-from-console]')->text());
+        self::assertSame('no trace, started from the console', $recent->filter('[data-rebuild-no-trace]')->text());
+    }
+
     public function test_the_recent_rebuilds_list_links_every_rebuild_to_its_trace(): void
     {
         $client = $this->pulseWithOrders();
@@ -548,10 +613,14 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         ];
     }
 
-    private function tracking(string $projection, string $state, int $batchesDone = 0, ?int $batchCount = null, ?int $elapsedMs = null, ?int $durationMs = null, ?string $deadLetterMessageId = null, string $tracingId = self::TRACE, string $type = 'projection-rebuild'): array
+    private function tracking(string $projection, string $state, int $batchesDone = 0, ?int $batchCount = null, ?int $elapsedMs = null, ?int $durationMs = null, ?string $deadLetterMessageId = null, ?string $tracingId = self::TRACE, string $type = 'projection-rebuild', string $startedFrom = 'pulse', array $missingBatches = [], array $failedBatches = [], ?string $groupId = null): array
     {
         return [
             'tracingId' => $tracingId,
+            'startedFrom' => $startedFrom,
+            'missingBatches' => $missingBatches,
+            'failedBatches' => $failedBatches,
+            ...($groupId === null ? [] : ['groupId' => $groupId]),
             'category' => 'ecotone-pulse',
             'type' => $type,
             'reference' => $projection,

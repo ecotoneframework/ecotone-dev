@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
@@ -21,6 +22,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromStream;
@@ -59,6 +61,7 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
     private const SECOND_TRACE = '1af7651916cd43dd8448eb211c80319c';
 
     private object $pulse;
+    private object $failingOrders;
     private FlowTestSupport $orderService;
     private FlowTestSupport $pulseService;
 
@@ -79,19 +82,66 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
         $running = $this->trackings()['trackings'];
         self::assertCount(1, $running);
         self::assertSame(
-            ['tracingId' => self::FIRST_TRACE, 'category' => 'ecotone-pulse', 'type' => 'projection-rebuild', 'reference' => 'async_orders', 'tenant' => null, 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'state' => 'running', 'batchesDone' => 0, 'batchCount' => null, 'elapsedMs' => 0],
-            $running[0],
+            ['tracingId' => self::FIRST_TRACE, 'category' => 'ecotone-pulse', 'type' => 'projection-rebuild', 'reference' => 'async_orders', 'tenant' => null, 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'startedFrom' => 'pulse', 'state' => 'running', 'batchesDone' => 0, 'batchCount' => 1, 'missingBatches' => [1], 'failedBatches' => [], 'elapsedMs' => 0],
+            array_diff_key($running[0], ['groupId' => true]),
         );
+        self::assertSame($running[0]['groupId'], $this->orderService->getGateway(GatheredGroups::class)->listOpenGroups('async_orders.rebuild')[0]['groupId']);
 
         $this->orderService->advanceTimeBy(Duration::seconds(5));
         $this->orderService->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         $done = $this->trackings()['trackings'][0];
-        self::assertSame('done', $done['state']);
-        self::assertSame(1, $done['batchesDone']);
-        self::assertSame(1, $done['batchCount']);
-        self::assertSame(5000, $done['durationMs']);
+        self::assertSame(['done', 1, 1, [], 5000], [$done['state'], $done['batchesDone'], $done['batchCount'], $done['missingBatches'], $done['durationMs']]);
         self::assertSame(2, $this->orderService->sendQueryWithRouting('async_orders.count'));
+    }
+
+    public function test_rebuild_progress_counts_executed_batches_without_stored_traces(): void
+    {
+        $this->bootstrap('dbal', traces: false);
+
+        $this->rebuild('async_orders', self::FIRST_TRACE);
+        self::assertSame(['running', 0, 1], $this->progressOf($this->trackings()['trackings'][0]));
+
+        $this->orderService->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['done', 1, 1], $this->progressOf($this->trackings()['trackings'][0]));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_rebuild_started_from_the_console_is_listed_from_its_group(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $this->orderService->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'async_orders']);
+
+        $running = $this->trackings()['trackings'];
+        self::assertCount(1, $running);
+        self::assertSame(['projection-rebuild', 'async_orders', 'console', 'running', 0, 1, [1]], [$running[0]['type'], $running[0]['reference'], $running[0]['startedFrom'], $running[0]['state'], $running[0]['batchesDone'], $running[0]['batchCount'], $running[0]['missingBatches']]);
+
+        $this->orderService->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['done', 1, 1], $this->progressOf($this->trackings()['trackings'][0]));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_the_group_of_a_rebuild_is_listed_in_the_gathering_snapshot_under_its_endpoint_id(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $reply = $this->rebuild('async_orders', self::FIRST_TRACE);
+
+        $groups = array_values(array_filter($reply['gathering']['groups'], static fn (array $group): bool => $group['endpointId'] === 'async_orders.rebuild'));
+        self::assertSame([[self::FIRST_TRACE, 'open', 1, 0, [1]]], array_map(static fn (array $group): array => [$group['groupKey'], $group['state'], $group['expectedSize'], $group['recorded'], $group['missingPartNumbers']], $groups));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_synchronous_rebuild_started_from_the_console_is_not_listed(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $this->orderService->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'sync_orders']);
+
+        self::assertSame([], $this->trackings()['trackings']);
     }
 
     #[DataProvider('implementations')]
@@ -103,13 +153,12 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
 
         self::assertSame('synchronous', $reply['rebuildAction']['mode']);
         $tracking = $this->trackings()['trackings'][0];
-        self::assertSame('done', $tracking['state']);
-        self::assertSame('sync_orders', $tracking['reference']);
+        self::assertSame(['done', 'sync_orders', 'pulse'], [$tracking['state'], $tracking['reference'], $tracking['startedFrom']]);
         self::assertSame(2, $this->orderService->sendQueryWithRouting('sync_orders.count'));
     }
 
     #[DataProvider('implementations')]
-    public function test_a_rebuild_that_ends_in_the_dead_letter_is_failed_by_the_trace_of_its_tracking(string $implementation): void
+    public function test_a_rebuild_batch_in_the_dead_letter_is_failed_and_links_its_dead_letter(string $implementation): void
     {
         $this->bootstrap($implementation);
 
@@ -117,20 +166,35 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
         $this->orderService->run('failing_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         $tracking = $this->trackings()['trackings'][0];
-        self::assertSame('failed', $tracking['state']);
+        self::assertSame(['failed', 0, 1, [1]], [$tracking['state'], $tracking['batchesDone'], $tracking['batchCount'], $tracking['missingBatches']]);
         self::assertNotNull($tracking['deadLetterMessageId']);
+        self::assertSame([['batch' => 1, 'deadLetterMessageId' => $tracking['deadLetterMessageId']]], $tracking['failedBatches']);
     }
 
     #[DataProvider('implementations')]
-    public function test_a_rebuild_batch_that_failed_is_not_counted_as_done(string $implementation): void
+    public function test_a_replayed_rebuild_batch_completes_the_tracked_rebuild(string $implementation): void
     {
         $this->bootstrap($implementation);
-
         $this->rebuild('failing_orders', self::FIRST_TRACE);
         $this->orderService->run('failing_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
+        $this->failingOrders->fail = false;
+        $this->orderService->getGateway(DeadLetterGateway::class)->replayAll();
+        $this->orderService->run('failing_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
         $tracking = $this->trackings()['trackings'][0];
-        self::assertSame(['state' => 'failed', 'batchesDone' => 0], ['state' => $tracking['state'], 'batchesDone' => $tracking['batchesDone']]);
+        self::assertSame(['done', 1, 1, [], []], [$tracking['state'], $tracking['batchesDone'], $tracking['batchCount'], $tracking['missingBatches'], $tracking['failedBatches']]);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_failed_synchronous_rebuild_leaves_no_tracking(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $reply = $this->rebuild('failing_sync_orders', self::FIRST_TRACE);
+
+        self::assertStringContainsString('Order could not be projected', $reply['message']);
+        self::assertSame([], $this->trackings()['trackings']);
     }
 
     #[DataProvider('implementations')]
@@ -140,7 +204,7 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
 
         $reply = $this->rebuild('missing', self::FIRST_TRACE);
 
-        self::assertStringContainsString('there is no such projection. Registered projections: [async_orders, failing_orders, sync_orders]', $reply['message']);
+        self::assertStringContainsString('there is no such projection. Registered projections: [async_orders, failing_orders, failing_sync_orders, sync_orders]', $reply['message']);
     }
 
     #[DataProvider('implementations')]
@@ -192,6 +256,14 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
         return json_decode(array_pop($this->pulse->snapshots), true, flags: JSON_THROW_ON_ERROR);
     }
 
+    /**
+     * @return array{string, int, int|null}
+     */
+    private function progressOf(array $tracking): array
+    {
+        return [$tracking['state'], $tracking['batchesDone'], $tracking['batchCount']];
+    }
+
     private function trackings(array $query = []): array
     {
         $queryId = 'query-' . (count($this->pulse->queryResults) + 1);
@@ -202,7 +274,7 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
         return json_decode($this->pulse->queryResults[$queryId], true, flags: JSON_THROW_ON_ERROR);
     }
 
-    private function bootstrap(string $implementation, bool $tablesSetUp = true): void
+    private function bootstrap(string $implementation, bool $tablesSetUp = true, bool $traces = true): void
     {
         $inMemory = $implementation === 'in-memory';
         $asyncOrders = new #[Projection('async_orders'), FromStream('orders_stream'), ProjectionRebuild(asyncChannelName: 'rebuild_channel')] class () {
@@ -236,6 +308,18 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
             }
         };
         $failingOrders = new #[Projection('failing_orders'), FromStream('orders_stream'), ProjectionRebuild(asyncChannelName: 'failing_channel')] class () {
+            public bool $fail = true;
+
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+                if ($this->fail) {
+                    throw new RuntimeException('Order could not be projected');
+                }
+            }
+        };
+        $this->failingOrders = $failingOrders;
+        $failingSyncOrders = new #[Projection('failing_sync_orders'), FromStream('orders_stream')] class () {
             #[EventHandler('order.placed')]
             public function whenPlaced(array $event): void
             {
@@ -265,11 +349,11 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
             SimpleMessageChannelBuilder::createQueueChannel('failing_channel'),
         ];
         $this->orderService = $this->bootstrapFlowTesting(
-            classesToResolve: [$asyncOrders::class, $syncOrders::class, $failingOrders::class],
-            containerOrAvailableServices: [$asyncOrders, $syncOrders, $failingOrders, DbalConnectionFactory::class => $this->getConnectionFactory()],
+            classesToResolve: [$asyncOrders::class, $syncOrders::class, $failingOrders::class, $failingSyncOrders::class],
+            containerOrAvailableServices: [$asyncOrders, $syncOrders, $failingOrders, $failingSyncOrders, DbalConnectionFactory::class => $this->getConnectionFactory()],
             extensionObjects: [
                 ...$channels,
-                FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($inMemory),
+                ...($traces ? [FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($inMemory)] : []),
                 DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel'),
                 ServiceConfiguration::createWithDefaults()->withServiceName('order_service')->withDefaultErrorChannel('dbal_dead_letter'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
@@ -281,7 +365,7 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
         );
         $this->orderService->withEventStream('orders_stream', [Event::createWithType('order.placed', ['orderId' => '1']), Event::createWithType('order.placed', ['orderId' => '2'])]);
         if ($tablesSetUp) {
-            $this->orderService->initializeProjection('async_orders')->initializeProjection('sync_orders')->initializeProjection('failing_orders');
+            $this->orderService->initializeProjection('async_orders')->initializeProjection('sync_orders')->initializeProjection('failing_orders')->initializeProjection('failing_sync_orders');
         }
         $this->pulseService = $this->bootstrapFlowTesting(
             classesToResolve: [$this->pulse::class],

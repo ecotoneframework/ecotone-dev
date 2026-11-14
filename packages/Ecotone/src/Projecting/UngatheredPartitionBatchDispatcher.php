@@ -18,13 +18,6 @@ final class UngatheredPartitionBatchDispatcher implements PartitionBatchDispatch
 
     public function dispatch(string $projectionName, string $operation, ?string $asyncChannelName, Message $prepare, array $batches): void
     {
-        if ($batches === []) {
-            $this->send(projectionName: $projectionName, headers: [
-                ProjectingHeaders::REBUILD_BATCH_NUMBER => 0,
-                ProjectingHeaders::REBUILD_BATCH_COUNT => 0,
-                ProjectingHeaders::REBUILD_PARTITION_COUNT => 0,
-            ], asyncChannelName: null);
-        }
         foreach ($batches as $headers) {
             $this->send(projectionName: $projectionName, headers: $headers, asyncChannelName: $asyncChannelName);
         }

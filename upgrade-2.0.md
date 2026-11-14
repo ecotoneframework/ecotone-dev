@@ -3071,6 +3071,53 @@ This applies to `#[EventTag]` values as well, for the same reason: a boolean tag
 comparison written where a value was meant.
 
 
+### An expression result is converted to the handler parameter's type
+
+**Before:** the result of a `#[Reference(expression:)]`, `#[Header(expression:)]` or `#[Payload(expression:)]` was
+handed to the handler as the expression returned it. Only a plain `#[Header]` converted its value. A string returned
+for an enum parameter, or an array returned for a value object, ended in PHP's `TypeError` at the handler call.
+
+**Now:** a result the declared parameter type does not accept is converted to it, the same way a plain `#[Header]`
+value is: scalars to enums out of the box, anything else through a registered `#[Converter]`. This holds for string
+expressions and PHP 8.5 closures alike, on every handler and interceptor parameter.
+
+```php
+#[CommandHandler('invoice.issue')]
+public function issue(
+    #[Reference(QueryBus::class, "service.sendWithRouting('tenant.invoicing')")] TenantInvoicing $invoicing,
+): void {
+}
+
+#[Converter]
+public function toTenantInvoicing(array $invoicing): TenantInvoicing
+{
+    return new TenantInvoicing($invoicing['tenantId'], $invoicing['currency']);
+}
+```
+
+A result nothing can convert is refused with an `ExpressionEvaluationException` that names the way out, in place of
+the `TypeError`:
+
+```
+#[Reference] on $invoicing in App\InvoiceService::issue failed. Expression: service.invoicingData(). The expression returned an array with keys 'tenantId', 'currency', which cannot be passed as App\TenantInvoicing. Register a #[Converter] from array<string,string> to App\TenantInvoicing, return App\TenantInvoicing from the expression, or change the parameter type.
+```
+
+A converter that throws is reported the same way, as `Converting the expression result from string to
+App\NotificationChannel failed: ...`. A `null` result for a parameter that does not allow null is refused too.
+
+**What stays as it was:** a result the parameter type already accepts, a scalar result for a scalar parameter
+(PHP still coerces `int` to `float`), an array or iterable result for an `array` / `iterable` parameter that nothing
+converts, and a `Generator`, which is never inspected.
+
+**How to adapt:** nothing in most applications. Two cases can change a handler that worked:
+
+- **A narrower docblock on an `array` or `iterable` parameter.** `@param Invoicing[] $invoicings` on an expression-backed
+  parameter that receives raw arrays now converts them when a converter for that collection is registered (the JMS
+  converter module handles every collection). Correct the docblock to what the handler expects, or put
+  `#[IgnoreDocblockTypeHint]` on the method.
+- **A `catch (TypeError)` around a handler call** for a mismatched expression result. It is now an
+  `ExpressionEvaluationException`, the `$previous` of the `MethodInvocationException`.
+
 ### `DocumentStore` writes name the version they replace, and document-store aggregates are version-checked
 
 **Before:** `DocumentStore::updateDocument()` and `DocumentStore::upsertDocument()` took the collection, the id and

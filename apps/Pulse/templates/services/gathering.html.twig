@@ -30,17 +30,17 @@
                         {% for group in groups %}
                             <tr data-gathering-group="{{ group.groupId }}"{% if scope.tenant %} data-tenant="{{ scope.tenant }}"{% endif %}>
                                 <th scope="row"><code>{{ group.groupId }}</code></th>
-                                <td data-group-endpoint>{{ group.endpointId is defined ? group.endpointId : '—' }}</td>
-                                <td data-group-key>{% if group.groupKey is not defined and group.endpointId is not defined %}—{% else %}{{ group.groupKey ?? '' }}{% endif %}</td>
+                                <td data-group-endpoint>{{ group.endpointId }}</td>
+                                <td data-group-key>{{ group.groupKey ?? '' }}</td>
                                 <td data-group-state>{{ group.state }}</td>
-                                <td data-group-expected-size>{% if group.expectedSize is defined %}{{ group.expectedSize ?? 'No expected size' }}{% else %}—{% endif %}</td>
-                                <td data-group-recorded>{{ group.recorded is defined ? group.recorded : '—' }}</td>
-                                <td data-missing-parts>{% if group.missingPartNumbers is defined %}{{ group.missingPartNumbers|join(', ') ?: 'none' }}{% else %}—{% endif %}</td>
-                                <td data-late-parts>{{ group.latePartCount is defined ? group.latePartCount : '—' }}</td>
-                                <td data-group-opened>{% if group.openedAt is defined %}{{ (group.openedAt / 1000)|date('c', 'UTC') }}{% else %}—{% endif %}</td>
-                                <td data-group-deadline>{% if group.deadline is not defined %}—{% elseif group.deadline is not null %}{{ (group.deadline / 1000)|date('c', 'UTC') }}{% else %}No deadline{% endif %}</td>
-                                <td data-group-closed>{% if group.closedAt is not defined %}—{% elseif group.closedAt is not null %}{{ (group.closedAt / 1000)|date('c', 'UTC') }}{% endif %}</td>
-                                <td data-group-release-reason>{% if group.releaseReason is defined %}{{ group.releaseReason ?? '' }}{% else %}—{% endif %}</td>
+                                <td data-group-expected-size>{{ group.expectedSize ?? 'No expected size' }}</td>
+                                <td data-group-recorded>{{ group.recorded }}</td>
+                                <td data-missing-parts>{{ group.missingPartNumbers|join(', ') ?: 'none' }}</td>
+                                <td data-late-parts>{{ group.latePartCount }}</td>
+                                <td data-group-opened>{{ (group.openedAt / 1000)|date('c', 'UTC') }}</td>
+                                <td data-group-deadline>{% if group.deadline is not null %}{{ (group.deadline / 1000)|date('c', 'UTC') }}{% else %}No deadline{% endif %}</td>
+                                <td data-group-closed>{% if group.closedAt is not null %}{{ (group.closedAt / 1000)|date('c', 'UTC') }}{% endif %}</td>
+                                <td data-group-release-reason>{{ group.releaseReason ?? '' }}</td>
                                 <td>
                                     {% if group.state == 'open' %}
                                         <form method="post" action="{{ path('service_gathering_release', {service: scope.scope, groupId: group.groupId}) }}">

@@ -260,31 +260,6 @@ final class GatheringPageTest extends ReleasingWebTestCase
         self::assertSame('manual_release', $crawler->filter('[data-gathering-group="' . $batchId . '"] [data-group-release-reason]')->text());
     }
 
-    public function test_group_from_a_service_built_before_the_shared_listing_shows_a_dash_for_missing_fields(): void
-    {
-        $this->configurePulseWithServices('orders');
-        $client = static::createClient();
-        $client->disableReboot();
-        $this->setUpPulseDatabase($client->getKernel());
-        $this->orders = $this->serviceAnsweringWith('orders', json_encode([
-            'schemaVersion' => 1, 'serviceName' => 'orders', 'takenAt' => '2026-10-20T12:00:00+00:00',
-            'overview' => ['ecotoneVersion' => '2.0.0', 'phpVersion' => PHP_VERSION, 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]],
-            'flowGraph' => ['nodes' => [], 'edges' => []], 'topology' => ['serviceMaps' => []],
-            'gathering' => ['groups' => [['groupId' => 'old-group', 'gatherChannelName' => 'summary', 'size' => 2, 'state' => 'open', 'deadline' => null, 'closedAt' => null, 'latePartCount' => 0, 'accountedPartNumbers' => [1], 'missingPartNumbers' => [2]]]],
-        ], JSON_THROW_ON_ERROR));
-
-        $crawler = $this->observe($client);
-
-        self::assertResponseIsSuccessful();
-        $row = $crawler->filter('[data-gathering-group="old-group"]');
-        self::assertCount(1, $row);
-        foreach (['data-group-endpoint', 'data-group-key', 'data-group-expected-size', 'data-group-recorded', 'data-group-opened', 'data-group-release-reason'] as $cell) {
-            self::assertSame('—', $row->filter('[' . $cell . ']')->text());
-        }
-        self::assertSame('2', $row->filter('[data-missing-parts]')->text());
-        self::assertSame('open', $row->filter('[data-group-state]')->text());
-    }
-
     private function pulseWithGathering(bool $gathers = true): KernelBrowser
     {
         $this->configurePulseWithServices('orders');

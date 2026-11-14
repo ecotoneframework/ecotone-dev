@@ -160,7 +160,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         $this->groups[$groupId]['releaseReason'] = $previous['collected'] ? CollectedReleaseReason::MAX_SIZE_REACHED->value : GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR->value;
         $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
         try {
-            $whenComplete($previous['original'], $this->groups[$groupId]['parts'], GatheredGroupSize::asNullable($previous['size']), $previous['groupKey'] ?? null);
+            $whenComplete($previous['original'], $this->groups[$groupId]['parts'], GatheredGroupSize::asNullable($previous['size']), $previous['groupKey']);
         } catch (Throwable $failure) {
             $this->groups[$groupId] = $previous;
             throw $failure;
@@ -189,7 +189,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         $this->groups[$groupId]['releaseReason'] = $releaseReason?->value;
         $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
         try {
-            $whenReleased($previous['original'], $previous['parts'], GatheredGroupSize::asNullable($previous['size']), $previous['groupKey'] ?? null);
+            $whenReleased($previous['original'], $previous['parts'], GatheredGroupSize::asNullable($previous['size']), $previous['groupKey']);
         } catch (Throwable $failure) {
             $this->groups[$groupId] = $previous;
             throw $failure;

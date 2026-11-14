@@ -260,3 +260,20 @@ a retried, dead-lettered and replayed message is collected once). No BLOCKING fi
   characters in the skill and its grader.
 - Also (coordinator): the collecting licence refusal uses shorter wording than the gathering one; use the same
   full wording (Symfony, Laravel or Tempest configuration, the `licenceKey:` argument of EcotoneLite, the trial).
+
+### Resolution of R1-R9
+
+Test names omit their `test_` prefix.
+
+| Finding | Resolution commit | Verification |
+|---|---|---|
+| R1 | `35d1dbbd9` | collected_handler_runs_without_a_transaction_when_asynchronous_endpoints_run_without_one; failing_collected_handler_without_a_transaction_leaves_its_batch_released_without_running_it_again; guide lists the lost guarantees and the in-memory difference; ConcurrencyException no longer offers instant retries to an endpoint without a transaction |
+| R2 | `35d1dbbd9` | gathering_conflict_on_an_endpoint_without_the_framework_transaction_reaches_the_error_channel_without_a_retry (PostgreSQL, MySQL, MariaDB); upgrade note and gathering guide; exception names turning the transaction on or ErrorHandlerConfiguration delayed retries |
+| R3 | `cf9296de9` | same_message_delivered_twice_at_once_while_its_batch_closes_is_a_lost_write_and_collected_once_after_replay (reproduced: raw UniqueConstraintViolationException in the dead letter). Resolved as a lost write, not by returning: PostgreSQL aborts the transaction at the failed insert after the batch row was written |
+| R4 | `cf9296de9` | lock_wait_timeout_surfaces_as_itself_rather_than_as_a_lost_optimistic_write (red on MySQL before the fix); only deadlock/serialization failures and unique violations in the previous-exception chain become ConcurrencyException |
+| R5 | `4d1b66811` | first_messages_delivery_headers_do_not_cross_the_batch_or_output_boundary extended with aggregate id, retry number and replay marker; max_wait_timer_does_not_carry_the_first_messages_retry_or_replay_markers; one FrameworkHeaders exclusion shared with the header propagator |
+| R6 | `347bce9f2` | each_collected_message_carries_the_same_header_names_from_every_store (full key set, both stores) |
+| R7 | `882d54e7e` | endpoint_ids_with_core_suffixes_compile_independent_gathered_handlers |
+| R8 | `0ef6713f7` | renamed to every_original_message_redelivered_after_a_real_database_race_is_not_collected_again; C1 row corrected |
+| R9 | `ccb3bfa45` | check-agent-skills; rule 8a retitled, skill and grader lines within 120 characters |
+| Licence wording | `0ef51fc36` | collected_handler_requires_an_enterprise_licence asserts the full gathering-style wording |

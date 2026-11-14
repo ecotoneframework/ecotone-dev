@@ -37,7 +37,7 @@ final class MessageFlowGraph implements DefinedObject
         foreach ($edges as $edge) {
             $graph->nodes[$edge->from] ?? throw InvalidArgumentException::create("Flow edge {$edge->kind->value} starts at `{$edge->from}`, which is not a node of this graph. Add the node first with MessageFlowGraph::create() or withNode().");
             $graph->nodes[$edge->to] ?? throw InvalidArgumentException::create("Flow edge {$edge->kind->value} ends at `{$edge->to}`, which is not a node of this graph. Add the node first with MessageFlowGraph::create() or withNode().");
-            $key = $edge->kind->value . '|' . strlen($edge->from) . '|' . $edge->from . $edge->to . '|' . ($edge->kind === FlowEdgeKind::SENDS_TO ? $edge->attributes['via'] ?? '' : '') . '|' . ($edge->attributes['targetService'] ?? '') . '|' . ($edge->attributes['targetChannel'] ?? '');
+            $key = $edge->identity();
             if (! isset($seenEdges[$key])) {
                 $graph->edges[] = $edge;
                 $seenEdges[$key] = true;
@@ -124,6 +124,11 @@ final class MessageFlowGraph implements DefinedObject
         ));
     }
 
+    public function compareTo(MessageFlowGraph $later): FlowComparison
+    {
+        return FlowComparison::between($this, $later);
+    }
+
     public function withNode(FlowNode $node): self
     {
         $nodes = $this->nodes;
@@ -154,6 +159,20 @@ final class MessageFlowGraph implements DefinedObject
     }
 
     public function toMermaid(): string
+    {
+        return $this->mermaid(fn (FlowNode $node): FlowChange => FlowChange::UNCHANGED, fn (FlowEdge $edge): FlowChange => FlowChange::UNCHANGED);
+    }
+
+    public function toMermaidMarking(FlowComparison $comparison): string
+    {
+        return $this->mermaid(fn (FlowNode $node): FlowChange => $comparison->changeOfNode($node->id), $comparison->changeOfEdge(...));
+    }
+
+    /**
+     * @param callable(FlowNode): FlowChange $changeOfNode
+     * @param callable(FlowEdge): FlowChange $changeOfEdge
+     */
+    private function mermaid(callable $changeOfNode, callable $changeOfEdge): string
     {
         $lines = ['flowchart LR'];
         $mermaidIds = [];
@@ -189,17 +208,37 @@ final class MessageFlowGraph implements DefinedObject
                 continue;
             }
             $asynchronousChannels = $edge->kind === FlowEdgeKind::ROUTED_TO ? $this->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS, to: $edge->to) : [];
-            if ($asynchronousChannels === []) {
-                $edgeLines[] = sprintf('    %s %s %s', $mermaidIds[$edge->from], $this->mermaidArrow($edge), $mermaidIds[$edge->to]);
-
-                continue;
-            }
-            foreach ($asynchronousChannels as $asynchronousChannel) {
-                $edgeLines[] = sprintf('    %s %s %s', $mermaidIds[$edge->from], $this->mermaidArrow($edge), $mermaidIds[$asynchronousChannel->from]);
+            $change = $changeOfEdge($edge);
+            foreach ($asynchronousChannels === [] ? [$edge->to] : array_map(fn (FlowEdge $channel): string => $channel->from, $asynchronousChannels) as $target) {
+                $edgeLine = sprintf('    %s %s %s', $mermaidIds[$edge->from], $this->mermaidArrow($edge), $mermaidIds[$target]);
+                if (($edgeLines[$edgeLine] ?? FlowChange::UNCHANGED) === FlowChange::UNCHANGED) {
+                    $edgeLines[$edgeLine] = $change;
+                }
             }
         }
 
-        return implode("\n", [...$lines, ...array_values(array_unique($edgeLines))]) . "\n";
+        $marks = [];
+        foreach ([FlowChange::ADDED, FlowChange::REMOVED, FlowChange::CHANGED] as $change) {
+            $markedNodes = array_values(array_filter($this->nodes, fn (FlowNode $node): bool => $changeOfNode($node) === $change));
+            $markedEdges = array_keys(array_filter(array_values($edgeLines), fn (FlowChange $edgeChange): bool => $edgeChange === $change));
+            if ($markedNodes === [] && $markedEdges === []) {
+                continue;
+            }
+            [$fill, $stroke, $dashes] = match ($change) {
+                FlowChange::ADDED => ['#dafbe1', '#2da44e', ''],
+                FlowChange::REMOVED => ['#ffebe9', '#cf222e', ',stroke-dasharray:5 5'],
+                default => ['#fff8c5', '#bf8700', ''],
+            };
+            $marks[] = sprintf('    classDef %s fill:%s,stroke:%s,color:#1f2328%s', $change->value, $fill, $stroke, $dashes);
+            if ($markedNodes !== []) {
+                $marks[] = sprintf('    class %s %s', implode(',', array_map(fn (FlowNode $node): string => $mermaidIds[$node->id], $markedNodes)), $change->value);
+            }
+            if ($markedEdges !== []) {
+                $marks[] = sprintf('    linkStyle %s stroke:%s,stroke-width:2px%s', implode(',', $markedEdges), $stroke, $dashes);
+            }
+        }
+
+        return implode("\n", [...$lines, ...array_keys($edgeLines), ...$marks]) . "\n";
     }
 
     public function getDefinition(): Definition

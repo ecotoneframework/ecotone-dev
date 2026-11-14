@@ -429,7 +429,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage('should have endpointId defined for handling asynchronously');
+        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId '') has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set #[InternalHandler(inputChannelName: 'collect', endpointId: 'your.stable.id')], or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],
@@ -450,7 +450,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage('should have endpointId defined for handling asynchronously');
+        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId '') has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set #[CommandHandler(routingKey: 'collect', endpointId: 'your.stable.id')], or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],
@@ -471,7 +471,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage('should have endpointId defined for handling asynchronously');
+        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId '') has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set #[EventHandler(listenTo: 'collect.event', endpointId: 'your.stable.id')], or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],

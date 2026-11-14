@@ -53,7 +53,30 @@ final class CollectingModule extends NoExternalConfigurationModule
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
+        self::validateExplicitEndpointIds($annotationRegistrationService, $interfaceToCallRegistry);
         return new self($annotationRegistrationService);
+    }
+
+    private static function validateExplicitEndpointIds(AnnotationFinder $finder, InterfaceToCallRegistry $registry): void
+    {
+        foreach ($finder->findAnnotatedMethods(Collected::class) as $registration) {
+            $interface = $registry->getFor($registration->getClassName(), $registration->getMethodName());
+            foreach ($interface->getMethodAnnotations() as $handler) {
+                if (! $handler instanceof InternalHandler && ! $handler instanceof CommandHandler && ! $handler instanceof EventHandler) {
+                    continue;
+                }
+                if (! $handler->isEndpointIdGenerated()) {
+                    continue;
+                }
+                $context = new CollectedHandlerContext(className: $registration->getClassName(), methodName: $registration->getMethodName(), endpointId: '', groupByDescription: '');
+                $attribute = match (true) {
+                    $handler instanceof CommandHandler => "#[CommandHandler(routingKey: " . var_export($handler->getInputChannelName(), true) . ", endpointId: 'your.stable.id')]",
+                    $handler instanceof EventHandler => "#[EventHandler(listenTo: " . var_export($handler->listenTo, true) . ", endpointId: 'your.stable.id')]",
+                    default => "#[InternalHandler(inputChannelName: " . var_export($handler->getInputChannelName(), true) . ", endpointId: 'your.stable.id')]",
+                };
+                throw ConfigurationException::create("Collected handler {$context->description} has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set {$attribute}, or remove #[Collected].");
+            }
+        }
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void

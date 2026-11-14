@@ -45,6 +45,8 @@ final class EndpointFlowScenarios
             self::handlerWithoutCollectorSendsImmediatelyEvenWhenItFails(),
             self::handlerWithCollectorSendsWhatItPublishedOnceItSucceeds(),
             self::sharedHandlerMethodUsesTheRecordedEndpoint(),
+            self::firstHandlerAttributeUsesTheRecordedEndpoint(),
+            self::mixedHandlerAttributesUseTheRecordedEndpoint(),
         ];
     }
 
@@ -68,6 +70,60 @@ final class EndpointFlowScenarios
                     ->expect(
                         ExpectedSpan::named('send command')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'order.second'])->containing(
                             ExpectedSpan::named('process class@anonymous::handle')->withAttributes([SpanAttribute::ENDPOINT_ID => 'order.second.handler']),
+                        ),
+                    )
+                    ->withNoOtherSpans(),
+            ],
+        );
+    }
+
+    private static function firstHandlerAttributeUsesTheRecordedEndpoint(): FlowScenario
+    {
+        $orders = new class () {
+            #[CommandHandler('order.first', endpointId: 'order.first.handler')]
+            #[CommandHandler('order.second', endpointId: 'order.second.handler')]
+            public function handle(string $orderId): void
+            {
+            }
+        };
+
+        return new FlowScenario(
+            name: 'first handler attribute uses the recorded endpoint',
+            classesToResolve: [$orders::class],
+            services: [$orders],
+            extensionObjects: [],
+            stages: [
+                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.first', '1', metadata: $metadata))
+                    ->expect(
+                        ExpectedSpan::named('send command')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'order.first'])->containing(
+                            ExpectedSpan::named('process class@anonymous::handle')->withAttributes([SpanAttribute::ENDPOINT_ID => 'order.first.handler']),
+                        ),
+                    )
+                    ->withNoOtherSpans(),
+            ],
+        );
+    }
+
+    private static function mixedHandlerAttributesUseTheRecordedEndpoint(): FlowScenario
+    {
+        $orders = new class () {
+            #[CommandHandler('order.first', endpointId: 'order.first.handler')]
+            #[EventHandler('order.event')]
+            public function handle(string $orderId): void
+            {
+            }
+        };
+
+        return new FlowScenario(
+            name: 'mixed handler attributes use the recorded endpoint',
+            classesToResolve: [$orders::class],
+            services: [$orders],
+            extensionObjects: [],
+            stages: [
+                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.first', '1', metadata: $metadata))
+                    ->expect(
+                        ExpectedSpan::named('send command')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'order.first'])->containing(
+                            ExpectedSpan::named('process class@anonymous::handle')->withAttributes([SpanAttribute::ENDPOINT_ID => 'order.first.handler']),
                         ),
                     )
                     ->withNoOtherSpans(),

@@ -8,6 +8,7 @@ use App\Tests\Support\Diagram;
 use App\Tests\Support\ReleasingWebTestCase;
 use App\Tests\Support\TracedServicesTrait;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanContext;
@@ -51,6 +52,56 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
         self::assertCount(1, $second);
         self::assertSame('tracePassed', $second->attr('data-trace-state'));
         self::assertNull($first->attr('data-trace-state'));
+    }
+
+    public function test_a_trace_highlights_the_first_endpoint_on_a_shared_method(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $handler = new class () {
+            #[CommandHandler('order.first', endpointId: 'order.first.handler')]
+            #[CommandHandler('order.second', endpointId: 'order.second.handler')]
+            public function handle(string $orderId): void
+            {
+            }
+        };
+        $client = $this->pulseWebClient();
+        $orders = $this->tracedService('orders', $handler, DistributedServiceMap::initialize());
+        $orders->sendCommandWithRouting('order.first', '1', metadata: $this->inTrace(self::INVOICED));
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
+
+        $crawler = $this->traceView($client, '/flow?trace=' . self::INVOICED);
+
+        $first = $crawler->filter('[data-diagram-node][href*="order.first.handler"]');
+        $second = $crawler->filter('[data-diagram-node][href*="order.second.handler"]');
+        self::assertCount(1, $first);
+        self::assertCount(1, $second);
+        self::assertSame('tracePassed', $first->attr('data-trace-state'));
+        self::assertNull($second->attr('data-trace-state'));
+    }
+
+    public function test_a_command_trace_does_not_highlight_the_generated_event_endpoint_on_the_same_method(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $handler = new class () {
+            #[CommandHandler('order.first', endpointId: 'order.first.handler')]
+            #[EventHandler('order.event')]
+            public function handle(string $orderId): void
+            {
+            }
+        };
+        $client = $this->pulseWebClient();
+        $orders = $this->tracedService('orders', $handler, DistributedServiceMap::initialize());
+        $orders->sendCommandWithRouting('order.first', '1', metadata: $this->inTrace(self::INVOICED));
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
+
+        $crawler = $this->traceView($client, '/flow?trace=' . self::INVOICED);
+
+        $first = $crawler->filter('[data-diagram-node][href*="order.first.handler"]');
+        $second = $crawler->filter('[data-diagram-node][data-kind="eventHandler"]');
+        self::assertCount(1, $first);
+        self::assertCount(1, $second);
+        self::assertSame('tracePassed', $first->attr('data-trace-state'));
+        self::assertNull($second->attr('data-trace-state'));
     }
 
     public function test_the_trace_page_links_to_the_flow_graph_highlighting_the_trace(): void

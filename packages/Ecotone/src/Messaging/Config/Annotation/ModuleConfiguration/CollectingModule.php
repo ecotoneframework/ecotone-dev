@@ -115,13 +115,13 @@ final class CollectingModule extends NoExternalConfigurationModule
     {
         foreach ($handlers as $handler) {
             if ($handler instanceof InternalHandler && $handler->getInputChannelName() === '') {
-                throw ConfigurationException::create("Collected handler {$handlerDescription} cannot infer its subscription from the batch parameter. Set inputChannelName on #[InternalHandler], or remove #[Collected].");
+                throw ConfigurationException::create("Collected handler {$handlerDescription} cannot infer its subscription because the first parameter is CollectedMessages. Set #[InternalHandler(inputChannelName: 'your.input.channel', endpointId: '{$handler->getEndpointId()}')], or remove #[Collected].");
             }
             if ($handler instanceof CommandHandler && $handler->getInputChannelName() === '') {
-                throw ConfigurationException::create("Collected handler {$handlerDescription} cannot infer its subscription from the batch parameter. Set routingKey on #[CommandHandler], or remove #[Collected].");
+                throw ConfigurationException::create("Collected handler {$handlerDescription} cannot infer its subscription because the first parameter is CollectedMessages. Set #[CommandHandler(routingKey: 'your.routing.key', endpointId: '{$handler->getEndpointId()}')], or remove #[Collected].");
             }
             if ($handler instanceof EventHandler && $handler->listenTo === '') {
-                throw ConfigurationException::create("Collected handler {$handlerDescription} cannot infer its subscription from the batch parameter. Set listenTo on #[EventHandler], or remove #[Collected].");
+                throw ConfigurationException::create("Collected handler {$handlerDescription} cannot infer its subscription because the first parameter is CollectedMessages. Set #[EventHandler(listenTo: YourEvent::class, endpointId: '{$handler->getEndpointId()}')], or remove #[Collected].");
             }
         }
         if (! $interface->hasAnnotation(Asynchronous::class)) {

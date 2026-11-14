@@ -103,7 +103,7 @@ final class CollectingTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') cannot infer its subscription from the batch parameter. Set listenTo on #[EventHandler], or remove #[Collected].");
+        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') cannot infer its subscription because the first parameter is CollectedMessages. Set #[EventHandler(listenTo: YourEvent::class, endpointId: 'collect.handler')], or remove #[Collected].");
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
@@ -126,7 +126,7 @@ final class CollectingTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') cannot infer its subscription from the batch parameter. Set routingKey on #[CommandHandler], or remove #[Collected].");
+        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') cannot infer its subscription because the first parameter is CollectedMessages. Set #[CommandHandler(routingKey: 'your.routing.key', endpointId: 'collect.handler')], or remove #[Collected].");
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
@@ -387,7 +387,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') cannot infer its subscription from the batch parameter. Set inputChannelName on #[InternalHandler], or remove #[Collected].");
+        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') cannot infer its subscription because the first parameter is CollectedMessages. Set #[InternalHandler(inputChannelName: 'your.input.channel', endpointId: 'collect.handler')], or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],

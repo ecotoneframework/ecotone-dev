@@ -14,9 +14,9 @@ use Ecotone\Messaging\Config\ConfigurationException;
 
 final class MessageFlowConsoleCommands
 {
-    public function dump(ConfiguredMessagingSystem $messagingSystem, ConsoleWriter $writer, #[ConsoleParameterOption] string $format = 'mermaid'): void
+    public function dump(ConfiguredMessagingSystem $messagingSystem, ConsoleWriter $writer, InternalMessageFlowGraphBuilder $internalMessageFlow, #[ConsoleParameterOption] string $format = 'mermaid', bool $internal = false): void
     {
-        $graph = $messagingSystem->getMessageFlowGraph();
+        $graph = $internal ? $internalMessageFlow->build() : $messagingSystem->getMessageFlowGraph();
 
         $writer->write(match ($format) {
             'mermaid' => $graph->toMermaid(),

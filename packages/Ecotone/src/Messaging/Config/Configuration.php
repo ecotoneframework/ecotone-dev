@@ -16,6 +16,7 @@ use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\InterceptorWithPointCut;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Psr\Container\ContainerInterface;
 
@@ -122,6 +123,26 @@ interface Configuration extends CompilerPass
      * @return GatewayProxyBuilder[]
      */
     public function getRegisteredGateways(): array;
+
+    /**
+     * @return MessageHandlerBuilder[]
+     */
+    public function getRegisteredMessageHandlers(): array;
+
+    /**
+     * @return MessageChannelBuilder[]
+     */
+    public function getRegisteredMessageChannels(): array;
+
+    /**
+     * @return ChannelAdapterConsumerBuilder[]
+     */
+    public function getRegisteredConsumers(): array;
+
+    /**
+     * @return array{before: InterceptorWithPointCut[], around: InterceptorWithPointCut[], after: InterceptorWithPointCut[]}
+     */
+    public function getRegisteredMethodInterceptors(): array;
 
     /**
      * @return ConsoleCommandConfiguration[]

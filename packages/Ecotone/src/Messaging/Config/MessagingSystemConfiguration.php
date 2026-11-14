@@ -1240,6 +1240,26 @@ final class MessagingSystemConfiguration implements Configuration
         return $this->consoleCommands;
     }
 
+    public function getRegisteredMessageHandlers(): array
+    {
+        return $this->messageHandlerBuilders;
+    }
+
+    public function getRegisteredMessageChannels(): array
+    {
+        return $this->channelBuilders;
+    }
+
+    public function getRegisteredConsumers(): array
+    {
+        return $this->channelAdapters;
+    }
+
+    public function getRegisteredMethodInterceptors(): array
+    {
+        return ['before' => $this->beforeCallMethodInterceptors, 'around' => $this->aroundMethodInterceptors, 'after' => $this->afterCallMethodInterceptors];
+    }
+
     public function registerConsoleCommand(ConsoleCommandConfiguration $consoleCommandConfiguration): Configuration
     {
         $this->consoleCommands[] = $consoleCommandConfiguration;

@@ -41,7 +41,7 @@ final readonly class ComparedFlowDiagram
         $edges = [];
         foreach ($graph->edges() as $edge) {
             [$arrow, $label] = StitchedFlowGraph::arrow($edge, $graph->node($edge->to));
-            $drawn = new DiagramEdge($ids[$edge->from], $ids[$edge->to], $arrow, $label, change: self::markOf($comparison->changeOfEdge($edge)));
+            $drawn = new DiagramEdge(from: $ids[$edge->from], to: $ids[$edge->to], arrow: $arrow, label: $label, change: self::markOf($comparison->changeOfEdge($edge)));
             $edges[$drawn->key()] = isset($edges[$drawn->key()]) ? $edges[$drawn->key()]->orChanged($drawn->change) : $drawn;
         }
 
@@ -58,11 +58,11 @@ final readonly class ComparedFlowDiagram
         ];
 
         return new self(
-            new Diagram([['id' => self::GROUP, 'title' => $service]], $nodes, array_values($edges)),
-            $changes,
-            count($comparison->addedNodes) + count($comparison->addedEdges),
-            count($comparison->removedNodes) + count($comparison->removedEdges),
-            count($comparison->changedNodes) + count($comparison->changedEdges),
+            diagram: new Diagram(groups: [['id' => self::GROUP, 'title' => $service]], nodes: $nodes, edges: array_values($edges)),
+            changes: $changes,
+            added: count($comparison->addedNodes) + count($comparison->addedEdges),
+            removed: count($comparison->removedNodes) + count($comparison->removedEdges),
+            changed: count($comparison->changedNodes) + count($comparison->changedEdges),
         );
     }
 

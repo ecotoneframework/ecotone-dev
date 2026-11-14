@@ -28,7 +28,7 @@ final class FlowCompareController extends AbstractController
     public function compare(Request $request): Response
     {
         $flows = ServiceFlows::of($this->snapshots->viewAndRequestStale())->flows;
-        $services = array_map(fn (ServiceFlow $flow): string => $flow->name, $flows);
+        $services = array_values(array_unique(array_map(fn (ServiceFlow $flow): string => $flow->name, $flows)));
         $service = trim((string) $request->query->get('service', ''));
         if ($service === '' && count($services) === 1) {
             $service = $services[0];
@@ -60,23 +60,30 @@ final class FlowCompareController extends AbstractController
             return $this->render('graph/compare.html.twig', $view);
         }
 
-        $from = trim((string) $request->query->get('from', '')) ?: (string) $versions[count($versions) - 1]['label'];
+        $from = trim((string) $request->query->get('from', ''));
+        if ($from === '') {
+            $from = (string) $versions[count($versions) - 1]['label'];
+        }
         $to = trim((string) $request->query->get('to', ''));
-        $earlier = $this->queries->askAll([$scope], TraceQuery::flowVersion($from))[0];
-        $later = $to === '' ? null : $this->queries->askAll([$scope], TraceQuery::flowVersion($to))[0];
-        $view = [...$view, 'from' => $from, 'to' => $to, 'waiting' => $view['waiting'] || self::isWaiting($earlier) || ($later !== null && self::isWaiting($later))];
-        foreach (array_filter([$earlier, $later]) as $answer) {
+        $fromAnswer = $this->queries->askAll([$scope], TraceQuery::flowVersion($from))[0];
+        $toAnswer = $to === '' ? null : $this->queries->askAll([$scope], TraceQuery::flowVersion($to))[0];
+        $view = [...$view, 'from' => $from, 'to' => $to, 'waiting' => $view['waiting'] || self::isWaiting($fromAnswer) || ($toAnswer !== null && self::isWaiting($toAnswer))];
+        foreach (array_filter([$fromAnswer, $toAnswer]) as $answer) {
             if (in_array($answer->state, [TraceAnswerState::Refused, TraceAnswerState::NotAnswering], true)) {
-                return $this->render('graph/compare.html.twig', [...$view, 'refusal' => $answer->failure ?? sprintf('%s is not answering for this flow version.', $service), 'waiting' => false]);
+                return $this->render('graph/compare.html.twig', [...$view, 'refusal' => $answer->failure ?? sprintf('%s is not answering for this flow version. Check that the service is running and consuming its channel.', $service), 'waiting' => false]);
             }
         }
-        $earlierGraph = is_array($earlier->result['graph'] ?? null) ? ServiceFlow::graphOf($earlier->result['graph']) : null;
-        $laterGraph = $later === null ? $live->graph : (is_array($later->result['graph'] ?? null) ? ServiceFlow::graphOf($later->result['graph']) : null);
-        if ($earlierGraph === null || $laterGraph === null) {
+        $fromGraph = is_array($fromAnswer->result['graph'] ?? null) ? ServiceFlow::graphOf($fromAnswer->result['graph']) : null;
+        $toGraph = $toAnswer === null ? $live->graph : (is_array($toAnswer->result['graph'] ?? null) ? ServiceFlow::graphOf($toAnswer->result['graph']) : null);
+        $answered = $fromAnswer->hasResult() && ($toAnswer === null || $toAnswer->hasResult());
+        if ($answered && ($fromGraph === null || $toGraph === null)) {
+            return $this->render('graph/compare.html.twig', [...$view, 'refusal' => sprintf('%s answered with version %s, but this Pulse cannot read its graph. Update Pulse to the Ecotone version the service runs, or store the version again with ecotone:flow:store %s --replace.', $service, $fromGraph === null ? $from : $to, $fromGraph === null ? $from : $to), 'waiting' => false]);
+        }
+        if ($fromGraph === null || $toGraph === null) {
             return $this->render('graph/compare.html.twig', $view);
         }
 
-        return $this->render('graph/compare.html.twig', [...$view, 'compared' => ComparedFlowDiagram::of($service, $earlierGraph->compareTo($laterGraph)), 'waiting' => false]);
+        return $this->render('graph/compare.html.twig', [...$view, 'compared' => ComparedFlowDiagram::of(service: $service, comparison: $fromGraph->compareTo($toGraph)), 'waiting' => false]);
     }
 
     private static function isWaiting(TraceAnswer $answer): bool

@@ -48,7 +48,7 @@ final readonly class TraceQuery
 
     public static function flowVersion(string $label): self
     {
-        return new self(self::FLOW_VERSION_ROUTING_KEY, ['label' => $label]);
+        return new self(self::FLOW_VERSION_ROUTING_KEY, ['label' => $label], self::FLOW_VERSIONS_FRESHNESS_SECONDS);
     }
 
     public function key(): string

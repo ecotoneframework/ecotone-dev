@@ -361,7 +361,7 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
                 new SeatSales(),
                 new HoldExpiry(),
                 new ConcertSeatMap($doctrine->getConnection()),
-                new ConcertSalesLedger($doctrine->getConnection()),
+                new ConcertSalesLedger($doctrine->getConnection(), ''),
                 new SoldOutWatch(),
                 new DemoSeed(),
                 ...$applicationHandlers,

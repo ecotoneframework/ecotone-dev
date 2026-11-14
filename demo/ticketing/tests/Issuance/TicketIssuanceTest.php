@@ -424,7 +424,7 @@ final class TicketIssuanceTest extends KernelTestCase
         /** @var ManagerRegistry $doctrine */
         $doctrine = self::getContainer()->get('doctrine');
 
-        return $this->bootstrapTicketing('', [new DemoSeed(), new ConcertSalesLedger($doctrine->getConnection())]);
+        return $this->bootstrapTicketing('', [new DemoSeed(), new ConcertSalesLedger($doctrine->getConnection(), '')]);
     }
 
     private function bootKernelOnEmptyTables(): void

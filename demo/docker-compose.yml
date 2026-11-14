@@ -16,6 +16,7 @@
 #   DEMO_RABBITMQ_MANAGEMENT_PORT  host port of the RabbitMQ management UI, default 15672
 #   TICKETING_HOLD_SECONDS         how long ticketing holds a seat before it expires, default 120
 #   TICKETING_RENDER_FAILS_FOR_SEAT  a seat code, like C-7, whose ticket render fails on ticketing-worker; empty by default
+#   TICKETING_SALES_LEDGER_RESET_FAILS_FOR_CONCERT  a concert id whose rebuild batch of the sales ledger fails on ticketing-worker; empty by default
 #   RUSH_DEADLINE_SECONDS          how long a rush runs before its buyers still picking give up, default 600
 #
 # The repository root is mounted at /repo: the applications run from demo/ticketing, demo/storefront and apps/Pulse,
@@ -194,6 +195,7 @@ services:
     environment:
       <<: *ticketing-environment
       TICKETING_RENDER_FAILS_FOR_SEAT: ${TICKETING_RENDER_FAILS_FOR_SEAT:-}
+      TICKETING_SALES_LEDGER_RESET_FAILS_FOR_CONCERT: ${TICKETING_SALES_LEDGER_RESET_FAILS_FOR_CONCERT:-}
     deploy:
       replicas: 2
     healthcheck: *worker-healthcheck

@@ -392,7 +392,7 @@ final class ConcertCatalogueTest extends KernelTestCase
                 new DemoSeed(),
                 new SeatSales(),
                 new HoldExpiry(),
-                new ConcertSalesLedger($doctrine->getConnection()),
+                new ConcertSalesLedger($doctrine->getConnection(), ''),
                 'doctrine' => $doctrine,
             ],
             configurationVariables: ['ticketingHoldSeconds' => 600],

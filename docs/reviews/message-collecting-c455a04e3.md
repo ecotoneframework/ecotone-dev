@@ -172,3 +172,50 @@ Items marked HELD wait for the maintainer; do not start them.
   `handle-version-conflict` case. The first run's below-threshold scores remain in its local report; no CI run was
   retried. No syntax-only re-send check is added because it cannot distinguish forwarding and timers from retry
   across message builders and collaborators; the rule's reference records that boundary.
+
+
+## Resolution index after rebase onto main
+
+C8's earlier proposed mechanism is superseded by C31. H1, H2 and H3 are resolved by the recorded maintainer
+choices; no held item remains. Test names below omit their `test_` prefix.
+
+| Finding | Resolution commit | Verification |
+|---|---|---|
+| C1 | `5ef988066` | original_message_redelivery_after_a_real_database_conflict_is_not_collected_twice; own message id retained, replacement-only variant removed |
+| C2 | `210298f52` | max_wait_timer_keeps_the_first_messages_tenant_for_its_database_connection |
+| C3 | `a249aa57a`, `5ef988066` | max_size_plus_one_concurrent_messages_keep_the_next_partial_batch_in_a_real_database_race; max_wait_timer_racing_an_append_releases_each_message_once_in_a_real_database_race; manual_release_racing_an_append_releases_each_message_once_in_a_real_database_race |
+| C4 | `dea15fc27` | failed_max_wait_or_manual_release_is_retried_with_the_same_batch; dead_lettered_release_keeps_collecting_past_the_deadline_until_replayed; dead_lettered_size_filling_message_joins_a_later_batch_when_replayed |
+| C5 | `dea15fc27` | real_dbal_channel_restores_each_object_by_its_type_header_before_string_grouping; real_dbal_channel_exposes_payload_without_a_type_header_as_it_arrived; real_dbal_channel_converts_each_payload_for_a_typed_grouping_closure |
+| C6 | `af3cefbb2` | cleanup_racing_two_arriving_messages_keeps_one_open_batch_in_a_real_database_race; discard_racing_an_arriving_message_frees_the_slot_atomically_in_a_real_database_race |
+| C7 | `cf0ce9a22` | empty_boolean_and_float_group_keys_are_refused; integer_and_string_keys_share_a_batch_while_case_and_long_keys_stay_distinct |
+| C8 | `5ef988066` | Obsolete: no conflict re-send or replacement time to live; independent shared-input manual-trigger tests retained |
+| C9 | `0675103a0`, `af3cefbb2`, `f825d9955` | manual_release_requested_twice_invokes_the_batch_handler_once; discard_requested_twice_is_idempotent_and_the_next_message_opens_a_new_batch; a_timer_arriving_after_retention_cleanup_has_no_effect; console_commands_release_and_discard_collected_batches; string_group_expression_can_read_each_messages_headers; collected_and_ordinary_handlers_of_one_event_keep_their_own_delivery_frequency; collected_max_wait_exceeding_the_channels_maximum_names_the_handler_and_ways_out; existing race/closure cases |
+| C10 | `267e6fa66` | max_wait_only_collects_a_batch_without_a_known_size; batch_console_listing_uses_endpoint_id_and_hides_an_unknown_size |
+| C11 / H1 | `a2a653af0` | batch_listings_name_the_maximum_recorded_count_and_first_recording_time; batch_console_listing_uses_endpoint_id_and_hides_an_unknown_size; group_listings_remain_separate_from_collected_batch_listings |
+| C12 | `af3cefbb2` | open_batches_are_listed_by_collected_endpoint_id; endpoint_id storage and endpointId API naming |
+| C13 | `d1cef079a`, `f825d9955` | CollectingTest bootstrap refusals; failing_group_expression_names_the_handler_and_expression_without_opening_a_batch |
+| C14 | `4c1938c48` | collected_internal_handler_requires_an_explicit_endpoint_id; collected_command_handler_requires_an_explicit_endpoint_id; collected_event_handler_requires_an_explicit_endpoint_id |
+| C15 | `4b8e6e466` | collected_event_handler_without_explicit_subscription_is_refused_at_bootstrap; collected_command_handler_without_explicit_subscription_is_refused_at_bootstrap; collected_internal_handler_without_explicit_subscription_is_refused_at_bootstrap |
+| C16 | `f783e369a` | mixed_gathering_and_collecting_storage_refusal_names_both_flows; collected_handler_requires_durable_storage_outside_flow_testing |
+| C17 | `f825d9955` | failing_group_expression_names_the_handler_and_expression_without_opening_a_batch; failing_or_null_group_closure_names_its_owner_and_the_way_out |
+| C18 | `8ee649d4b` | collected_method_with_two_handler_attributes_is_refused_at_bootstrap |
+| C19 / H2 | `3a527ee98` | Enterprise GatheringHandlerCompiler; collecting licence/bootstrap and gathering regression tests |
+| C20 | `8c35ee273` | Named-argument/spacing sweep and affected tests; obsolete hasGatheringSplitters condition had already been removed by C16; changed package files checked by php-cs-fixer, Pulse spacing/imports normalized manually under container path restriction |
+| C21 | `f825d9955` | group_key_can_be_a_closure_with_payload_first_or_explicit_after_a_header; compiler exposes no reusable payload-type query |
+| C22 | `192269028`, `5ef988066` | Upgrade entry alongside gathering: schema migration, reserved services/commands and consumer rollout; C31 recovery change included |
+| C23 | `3d296a813` | endpoint_ids_with_core_suffixes_compile_independent_collected_handlers |
+| C24 | `192269028` | Guide Test it example executed with licence, pinned time and run() |
+| C25 | `192269028` | Guide specifies PHP 8.5 closure syntax, older-version error and string alternative; closure tests use RequiresPhp |
+| C26 | `a2a653af0` | collected_batches_section_has_its_own_empty_state_without_split_parts_copy; closed_collected_batch_displays_its_release_reason |
+| C27 | `192269028`, `5ef988066` | Guide explains memory rollback limit, hot-key retries, endpoint identity and gateway listing fields |
+| C28 | `7ae125e39` | release_reason_names_match_the_configured_size_and_wait_limits |
+| C29 | `e212f0804` | batch_contains_ordered_message_objects_with_their_own_payload_and_headers |
+| C30 / H3 | `f9ce84450` | batch_inherits_the_first_messages_user_headers_and_retains_each_messages_own_headers; first_messages_delivery_headers_do_not_cross_the_batch_or_output_boundary |
+| C31 | `5ef988066` | Rewritten gathering conflict tests listed above; deterministic append/release/report exhaustion and replay; three-engine concurrency invariants |
+| C32 | `b6b1c1bdf` | check-agent-skills; all three storage eval cases score 1.00 after the rubric clarification |
+
+The base moved from the gathering development history at `3ab80144b` to main at `09d1879ec`: gathering is now
+squash-merged as `ca6b0ed86` (#765), and #767 converts expression results to parameter types. The rebase had no
+conflicts. Collecting uses the existing attribute-expression executor directly for the key; closure parameter
+converters share the upstream conversion behavior. String/closure grouping and both closure payload forms remain
+covered after the rebase. The pull request now targets main.

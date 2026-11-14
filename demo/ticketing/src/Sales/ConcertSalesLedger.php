@@ -25,8 +25,8 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 #[FromTaggedStream('concert')]
 #[Partitioned]
 #[Asynchronous('ticketing_async')]
-#[ProjectionRebuild(partitionBatchSize: 1, asyncChannelName: 'ticketing_async')]
-#[ProjectionBackfill(backfillPartitionBatchSize: 1, asyncChannelName: 'ticketing_async')]
+#[ProjectionRebuild(partitionBatchSize: 1, asyncChannelName: 'ticketing_async', batchCompletionChannelName: 'ticketing_batch_completions')]
+#[ProjectionBackfill(backfillPartitionBatchSize: 1, asyncChannelName: 'ticketing_async', batchCompletionChannelName: 'ticketing_batch_completions')]
 final class ConcertSalesLedger
 {
     public const NAME = 'concert_sales_ledger';

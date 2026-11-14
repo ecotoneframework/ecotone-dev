@@ -479,6 +479,7 @@ final class TicketIssuanceTest extends KernelTestCase
             extensionObjects: [
                 ...$this->inMemoryChannels(),
                 SymfonyMessengerMessageChannelBuilder::create('ticketing_async'),
+                SimpleMessageChannelBuilder::createQueueChannel('ticketing_batch_completions'),
                 SymfonyConnectionReference::defaultManagerRegistry('default'),
             ],
             pathToRootCatalog: dirname(__DIR__, 2),

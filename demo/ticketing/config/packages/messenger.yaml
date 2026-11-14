@@ -2,3 +2,4 @@ framework:
     messenger:
         transports:
             ticketing_async: 'doctrine://default?queue_name=ticketing_async&auto_setup=0'
+            ticketing_batch_completions: 'doctrine://default?queue_name=ticketing_batch_completions&auto_setup=0'

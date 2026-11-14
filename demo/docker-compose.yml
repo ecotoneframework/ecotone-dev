@@ -191,7 +191,7 @@ services:
   ticketing-worker:
     <<: *app
     working_dir: /repo/demo/ticketing
-    command: ["worker", "ticketing", "ticketing_async"]
+    command: ["worker", "ticketing", "ticketing_async", "ticketing_batch_completions"]
     environment:
       <<: *ticketing-environment
       TICKETING_RENDER_FAILS_FOR_SEAT: ${TICKETING_RENDER_FAILS_FOR_SEAT:-}

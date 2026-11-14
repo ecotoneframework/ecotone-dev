@@ -463,6 +463,7 @@ final class ConcertCatalogueTest extends KernelTestCase
             SimpleMessageChannelBuilder::createQueueChannel('ticketing'),
             SimpleMessageChannelBuilder::createQueueChannel('storefront'),
             SimpleMessageChannelBuilder::createQueueChannel('ticketing_async'),
+            SimpleMessageChannelBuilder::createQueueChannel('ticketing_batch_completions'),
             SimpleMessageChannelBuilder::createQueueChannel('ecotone_pulse'),
         ];
     }

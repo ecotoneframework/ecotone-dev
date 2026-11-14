@@ -16,12 +16,14 @@ use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\PartitionTagValue;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\ProjectionReset;
 
 #[Projection(self::NAME)]
 #[FromTaggedStream('concert')]
 #[Partitioned]
 #[Asynchronous('ticketing_async')]
+#[ProjectionRebuild(partitionBatchSize: 1, asyncChannelName: 'ticketing_async')]
 final class ConcertSeatMap
 {
     public const NAME = 'concert_seat_map';

@@ -42,6 +42,87 @@ final class MessageFlowVersionsConsoleTest extends TestCase
         rmdir($this->location);
     }
 
+    public function test_renaming_an_explicit_endpoint_is_one_changed_node_with_unchanged_arrows(): void
+    {
+        $ecotone = $this->renamedEndpoint();
+        $ecotone->runConsoleCommand('ecotone:flow:compare');
+
+        $output = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
+        self::assertStringContainsString('Changed (1)', $output);
+        self::assertStringNotContainsString('Added (', $output);
+        self::assertStringNotContainsString('Removed (', $output);
+        self::assertStringContainsString('handler:flow.stable', $output);
+    }
+
+    public function test_renaming_an_explicit_endpoint_as_json_keeps_its_arrows(): void
+    {
+        $ecotone = $this->renamedEndpoint();
+        $ecotone->runConsoleCommand('ecotone:flow:compare', ['format' => 'json']);
+
+        $comparison = json_decode($ecotone->getInMemoryConsoleWriter()->getWrittenContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertCount(1, $comparison['changed']['nodes']);
+        self::assertSame([], $comparison['added']['nodes']);
+        self::assertSame([], $comparison['removed']['nodes']);
+        self::assertSame([], $comparison['added']['edges']);
+        self::assertSame([], $comparison['removed']['edges']);
+        self::assertSame([], $comparison['changed']['edges']);
+    }
+
+    public function test_renaming_an_explicit_endpoint_as_mermaid_marks_only_one_changed_node(): void
+    {
+        $ecotone = $this->renamedEndpoint();
+        $ecotone->runConsoleCommand('ecotone:flow:compare', ['format' => 'mermaid']);
+
+        $output = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
+        self::assertMatchesRegularExpression('/^    class n\d+ changed$/m', $output);
+        self::assertDoesNotMatchRegularExpression('/^    class .* (added|removed)$/m', $output);
+        self::assertStringNotContainsString('linkStyle', $output);
+    }
+
+    public function test_renaming_without_an_explicit_endpoint_removes_and_adds_a_node(): void
+    {
+        $before = new class () {
+            #[CommandHandler('flow.renamed')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+        $after = new class () {
+            #[CommandHandler('flow.renamed')]
+            public function renamed(string $payload): void
+            {
+            }
+        };
+        $earlier = EcotoneLite::bootstrapFlowTesting([$before::class], [$before], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $later = EcotoneLite::bootstrapFlowTesting([$after::class], [$after], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        $comparison = $earlier->compareTo($later);
+
+        self::assertCount(1, $comparison->removedNodes);
+        self::assertCount(1, $comparison->addedNodes);
+        self::assertSame([], $comparison->changedNodes);
+    }
+
+    private function renamedEndpoint(): FlowTestSupport
+    {
+        $before = new class () {
+            #[CommandHandler('flow.renamed', endpointId: 'flow.stable')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+        $after = new class () {
+            #[CommandHandler('flow.renamed', endpointId: 'flow.stable')]
+            public function renamed(string $payload): void
+            {
+            }
+        };
+        EcotoneLite::bootstrapFlowTesting([$before::class], [$before], extensionObjects: [FlowVersionsConfiguration::createWithLocation($this->location)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)
+            ->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
+
+        return EcotoneLite::bootstrapFlowTesting([$after::class], [$after], extensionObjects: [FlowVersionsConfiguration::createWithLocation($this->location)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+    }
+
     public function test_a_stored_version_is_listed_with_its_label_and_the_time_it_was_stored(): void
     {
         $ecotone = $this->placingOrders();

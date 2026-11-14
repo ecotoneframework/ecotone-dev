@@ -8,6 +8,7 @@ use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -21,6 +22,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\TimeSpan;
@@ -41,6 +43,57 @@ final class GatheringPageTest extends ReleasingWebTestCase
     private FlowTestSupport $orders;
     private object $handler;
 
+    public function test_page_lists_collected_batches_by_endpoint_and_key_without_an_unknown_size(): void
+    {
+        $client = $this->pulseWithGathering();
+        $this->orders->sendCommandWithRouting('collect', ['tenant' => 'one']);
+        $this->orders->run('summaries');
+        $batchId = $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('dashboard.collect')[0]['groupId'];
+        $crawler = $this->observe($client);
+
+        self::assertResponseIsSuccessful();
+        $row = $crawler->filter('[data-gathering-group="' . $batchId . '"]');
+        self::assertCount(1, $row);
+        self::assertSame('dashboard.collect', $row->filter('[data-group-endpoint]')->text());
+        self::assertSame('one', $row->filter('[data-group-key]')->text());
+        self::assertSame('No expected size', $row->filter('[data-group-expected-size]')->text());
+        self::assertSame('1', $row->filter('[data-group-recorded]')->text());
+        self::assertSame('2026-10-20T12:00:00+00:00', $row->filter('[data-group-opened]')->text());
+        self::assertCount(1, $row->filter('[data-release-group]'));
+        self::assertCount(1, $row->filter('[data-discard-group]'));
+    }
+
+    public function test_collected_batch_release_control_waits_for_handler_consumption(): void
+    {
+        $client = $this->pulseWithGathering();
+        $this->orders->sendCommandWithRouting('collect', ['tenant' => 'one']);
+        $this->orders->run('summaries');
+        $batchId = $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('dashboard.collect')[0]['groupId'];
+        $crawler = $this->observe($client);
+        $client->submit($crawler->filter('[data-gathering-group="' . $batchId . '"]')->selectButton('Request release')->form());
+        self::assertSame([], $this->handler->batches);
+        $this->runService($this->orders, 'orders');
+        self::assertSame([], $this->handler->batches);
+        $this->orders->run('summaries');
+        self::assertCount(1, $this->handler->batches);
+        self::assertSame([['tenant' => 'one']], array_column($this->handler->batches[0]->messages, 'payload'));
+    }
+
+    public function test_collected_batch_discard_control_does_not_invoke_the_handler(): void
+    {
+        $client = $this->pulseWithGathering();
+        $this->orders->sendCommandWithRouting('collect', ['tenant' => 'one']);
+        $this->orders->run('summaries');
+        $batchId = $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('dashboard.collect')[0]['groupId'];
+        $crawler = $this->observe($client);
+        $client->submit($crawler->filter('[data-gathering-group="' . $batchId . '"]')->selectButton('Discard')->form());
+        $this->runService($this->orders, 'orders');
+        $this->orders->advanceTimeBy(new TimeSpan(seconds: 10));
+        $this->orders->run('summaries');
+        self::assertSame([], $this->handler->batches);
+        self::assertSame([], $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('dashboard.collect'));
+    }
+
     public function test_page_waits_for_the_first_snapshot_before_reporting_groups(): void
     {
         $client = $this->pulseWithGathering();
@@ -49,7 +102,7 @@ final class GatheringPageTest extends ReleasingWebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('Waiting for the first answer of orders', $crawler->text());
-        self::assertStringNotContainsString('No gathering groups reported.', $crawler->text());
+        self::assertStringNotContainsString('No gathered groups or collected batches reported.', $crawler->text());
     }
 
     public function test_page_distinguishes_a_service_that_does_not_report_gathering(): void
@@ -61,21 +114,22 @@ final class GatheringPageTest extends ReleasingWebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('orders does not report gathering.', $crawler->text());
-        self::assertStringNotContainsString('No gathering groups reported.', $crawler->text());
+        self::assertStringNotContainsString('No gathered groups or collected batches reported.', $crawler->text());
     }
 
     public function test_page_shows_open_group_progress_and_operations(): void
     {
         $client = $this->pulseWithGathering();
         $this->orders->sendCommandWithRouting('split', [10, 20]);
-        $groupId = $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('summary')[0]['groupId'];
+        $groupId = $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('dashboard.summary')[0]['groupId'];
 
         $crawler = $this->observe($client);
 
         self::assertResponseIsSuccessful();
         $row = $crawler->filter('[data-gathering-group="' . $groupId . '"]');
         self::assertCount(1, $row);
-        self::assertSame('summary', $row->filter('[data-gather-channel]')->text());
+        self::assertSame('dashboard.summary', $row->filter('[data-group-endpoint]')->text());
+        self::assertSame('2', $row->filter('[data-group-expected-size]')->text());
         self::assertSame('open', $row->filter('[data-group-state]')->text());
         self::assertSame('1, 2', $row->filter('[data-missing-parts]')->text());
         self::assertCount(1, $row->filter('button[data-release-group]'));
@@ -87,7 +141,7 @@ final class GatheringPageTest extends ReleasingWebTestCase
     {
         $client = $this->pulseWithGathering();
         $this->orders->sendCommandWithRouting('split', [10, 20]);
-        $groupId = $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('summary')[0]['groupId'];
+        $groupId = $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('dashboard.summary')[0]['groupId'];
         $crawler = $this->observe($client);
 
         $client->submit($crawler->filter('[data-gathering-group="' . $groupId . '"]')->selectButton('Request release')->form());
@@ -115,14 +169,14 @@ final class GatheringPageTest extends ReleasingWebTestCase
     {
         $client = $this->pulseWithGathering();
         $this->orders->sendCommandWithRouting('split', [10, 20]);
-        $groupId = $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('summary')[0]['groupId'];
+        $groupId = $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('dashboard.summary')[0]['groupId'];
         $crawler = $this->observe($client);
 
         $client->submit($crawler->filter('[data-gathering-group="' . $groupId . '"]')->selectButton('Discard')->form());
         self::assertResponseRedirects();
         $crawler = $client->followRedirect();
         self::assertStringContainsString('Discard requested', $crawler->filter('[data-gathering-notice]')->text());
-        self::assertCount(1, $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('summary'));
+        self::assertCount(1, $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('dashboard.summary'));
         $this->runService($this->orders, 'orders');
         $this->runPulseWorker($client->getKernel());
         $this->orders->run('workers');
@@ -148,7 +202,7 @@ final class GatheringPageTest extends ReleasingWebTestCase
         $client = $this->pulseWithGathering();
         $this->orders->sendCommandWithRouting('split', [10]);
         $groups = $this->orders->getGateway(GatheredGroups::class);
-        $groupId = $groups->listOpenGroups('summary')[0]['groupId'];
+        $groupId = $groups->listOpenGroups('dashboard.summary')[0]['groupId'];
         $crawler = $this->observe($client);
         $groups->discard($groupId);
         $this->orders->advanceTimeBy(new TimeSpan(days: 7));
@@ -165,7 +219,48 @@ final class GatheringPageTest extends ReleasingWebTestCase
         self::assertSame([], $this->handler->gathered);
     }
 
-    private function pulseWithGathering(): KernelBrowser
+    public function test_service_with_only_collected_handlers_shows_the_shared_empty_state(): void
+    {
+        $client = $this->pulseWithGathering(gathers: false);
+        $client->catchExceptions(false);
+        $crawler = $this->observe($client);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-no-gathering-groups]'));
+        self::assertSame('No gathered groups or collected batches reported.', $crawler->filter('[data-no-gathering-groups]')->text());
+        self::assertCount(1, $crawler->filter('section[aria-label="Gathered groups and collected batches"]'));
+    }
+
+    public function test_page_lists_gathered_groups_and_collected_batches_in_one_table(): void
+    {
+        $client = $this->pulseWithGathering();
+        $this->orders->sendCommandWithRouting('split', [10, 20]);
+        $this->orders->sendCommandWithRouting('collect', ['tenant' => 'one']);
+        $this->orders->run('summaries');
+        $groups = $this->orders->getGateway(GatheredGroups::class);
+        $groupId = $groups->listOpenGroups('dashboard.summary')[0]['groupId'];
+        $batchId = $groups->listOpenGroups('dashboard.collect')[0]['groupId'];
+        $crawler = $this->observe($client);
+
+        $table = $crawler->filter('table');
+        self::assertCount(1, $table);
+        self::assertCount(1, $table->filter('[data-gathering-group="' . $groupId . '"]'));
+        self::assertCount(1, $table->filter('[data-gathering-group="' . $batchId . '"]'));
+    }
+
+    public function test_closed_collected_batch_displays_its_release_reason(): void
+    {
+        $client = $this->pulseWithGathering();
+        $client->catchExceptions(false);
+        $this->orders->sendCommandWithRouting('collect', ['tenant' => 'one']);
+        $this->orders->run('summaries');
+        $batchId = $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('dashboard.collect')[0]['groupId'];
+        $this->orders->getGateway(GatheredGroups::class)->requestRelease($batchId);
+        $this->orders->run('summaries');
+        $crawler = $this->observe($client);
+        self::assertSame('manual_release', $crawler->filter('[data-gathering-group="' . $batchId . '"] [data-group-release-reason]')->text());
+    }
+
+    private function pulseWithGathering(bool $gathers = true): KernelBrowser
     {
         $this->configurePulseWithServices('orders');
         $client = static::createClient();
@@ -174,6 +269,15 @@ final class GatheringPageTest extends ReleasingWebTestCase
         $this->pinnedWaitClock();
         $this->handler = $handler = new class () {
             public array $gathered = [];
+            public array $batches = [];
+
+            #[Collected(maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["tenant"]')]
+            #[Asynchronous('summaries')]
+            #[CommandHandler('collect', endpointId: 'dashboard.collect')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
 
             #[CommandHandler('split', outputChannelName: 'parts')]
             public function start(array $parts): array
@@ -202,6 +306,16 @@ final class GatheringPageTest extends ReleasingWebTestCase
                 $this->gathered[] = $parts;
             }
         };
+        if (! $gathers) {
+            $this->handler = $handler = new class () {
+                #[Collected(maxWait: new TimeSpan(seconds: 10))]
+                #[Asynchronous('summaries')]
+                #[CommandHandler('collect', endpointId: 'dashboard.collect.only')]
+                public function collect(CollectedMessages $batch): void
+                {
+                }
+            };
+        }
         $this->orders = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory($_SERVER['PULSE_TRANSPORT_DSN'])],

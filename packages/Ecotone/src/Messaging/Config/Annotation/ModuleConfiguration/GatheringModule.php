@@ -6,7 +6,9 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
@@ -32,9 +34,11 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\Gathering\CollectedHandlerContext;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupOperations;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStoreRegistration;
+use Ecotone\Messaging\Handler\Gathering\GatheredHandlerEndpoints;
 use Ecotone\Messaging\Handler\Gathering\GatheringConsoleCommands;
 use Ecotone\Messaging\Handler\Gathering\GatheringPartCompletion;
 use Ecotone\Messaging\Handler\Gathering\GatheringTimeouts;
@@ -78,7 +82,7 @@ use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionReg
  */
 final class GatheringModule extends NoExternalConfigurationModule
 {
-    public function __construct(private array $gatherChannelNames, private AnnotationFinder $annotationFinder)
+    public function __construct(private array $gatherChannelNames, private AnnotationFinder $annotationFinder, private array $collectedEndpointIds, private array $gatheredEndpointIds)
     {
     }
 
@@ -92,7 +96,31 @@ final class GatheringModule extends NoExternalConfigurationModule
             }
         }
 
-        return new self($gatherChannelNames, $annotationRegistrationService);
+        $collectedEndpointIds = [];
+        foreach ($annotationRegistrationService->findAnnotatedMethods(Collected::class) as $registration) {
+            foreach ($interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->getMethodAnnotations() as $handler) {
+                if ($handler instanceof InternalHandler || $handler instanceof CommandHandler || $handler instanceof EventHandler) {
+                    $collectedEndpointIds[] = $handler->getEndpointId();
+                }
+            }
+        }
+        $gatheredEndpointIds = [];
+        foreach ($annotationRegistrationService->findAnnotatedMethods(Gathered::class) as $registration) {
+            foreach ($interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->getMethodAnnotations() as $handler) {
+                if (! $handler instanceof InternalHandler && ! $handler instanceof CommandHandler) {
+                    continue;
+                }
+                $channel = $handler->getInputChannelName();
+                if ($handler->isEndpointIdGenerated()) {
+                    $attribute = $handler instanceof CommandHandler
+                        ? '#[CommandHandler(routingKey: ' . var_export($channel, true) . ", endpointId: 'your.stable.id')]"
+                        : '#[InternalHandler(inputChannelName: ' . var_export($channel, true) . ", endpointId: 'your.stable.id')]";
+                    throw ConfigurationException::create("Gathered handler '{$channel}' has no explicit endpointId. Its groups are stored and listed under that endpointId, so it must stay stable across deploys. Set {$attribute}, or remove #[Gathered] and the splitter's gatherChannelName.");
+                }
+                $gatheredEndpointIds[$channel] = $handler->getEndpointId();
+            }
+        }
+        return new self(gatherChannelNames: $gatherChannelNames, annotationFinder: $annotationRegistrationService, collectedEndpointIds: $collectedEndpointIds, gatheredEndpointIds: $gatheredEndpointIds);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -167,27 +195,34 @@ final class GatheringModule extends NoExternalConfigurationModule
                 $combinedChannels[$extension->getReferenceName()] = $extension->combinedChannels;
             }
         }
-        foreach ($this->annotationFinder->findAnnotatedMethods(Gathered::class) as $registration) {
-            $timeout = $registration->getAnnotationForMethod()->timeout;
+        foreach (array_merge($this->annotationFinder->findAnnotatedMethods(Gathered::class), $this->annotationFinder->findAnnotatedMethods(Collected::class)) as $registration) {
+            $marker = $registration->getAnnotationForMethod();
+            $collecting = $marker instanceof Collected;
+            $timeout = $collecting ? $marker->maxWait : $marker->timeout;
+            $kind = $collecting ? 'Collected' : 'Gathered';
+            $setting = $collecting ? 'maxWait' : 'timeout';
+            $hasTimeout = $collecting ? 'has maxWait' : 'has a timeout';
             if ($timeout === null) {
                 continue;
             }
             $interface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
             $asynchronous = $interface->getSingleAnnotation(Type::create(Asynchronous::class));
-            $handler = array_values(array_filter($interface->getMethodAnnotations(), static fn (object $annotation): bool => $annotation instanceof InternalHandler || $annotation instanceof CommandHandler))[0];
+            $handler = array_values(array_filter($interface->getMethodAnnotations(), static fn (object $annotation): bool => $annotation instanceof InternalHandler || $annotation instanceof CommandHandler || $annotation instanceof EventHandler))[0];
+            $handlerChannel = $handler instanceof EventHandler ? $handler->listenTo : $handler->getInputChannelName();
+            $handlerDescription = $collecting ? (new CollectedHandlerContext(className: $registration->getClassName(), methodName: $registration->getMethodName(), endpointId: $handler->getEndpointId(), groupByDescription: ''))->description : "'{$handlerChannel}'";
             $channelName = $asynchronous->getChannelName()[0];
             $channelName = $combinedChannels[$channelName][0] ?? $channelName;
             $builder = $channels[$channelName] ?? null;
             if (! $builder instanceof DelayedMessageChannelBuilder || ! $builder->supportsDelayedMessages()) {
-                $handlerChannel = $handler->getInputChannelName();
-                throw ConfigurationException::create("Gathered handler '{$handlerChannel}' has a timeout but asynchronous channel '{$channelName}' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove timeout from #[Gathered].");
+                $handlerChannel = $handler instanceof EventHandler ? $handler->listenTo : $handler->getInputChannelName();
+                throw ConfigurationException::create("{$kind} handler {$handlerDescription} {$hasTimeout} but asynchronous channel '{$channelName}' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove {$setting} from #[{$kind}].");
             }
             $maximumDelay = $builder->maximumDelay();
             if ($maximumDelay !== null && $timeout->toMilliseconds() > $maximumDelay->toMilliseconds()) {
-                $handlerChannel = $handler->getInputChannelName();
+                $handlerChannel = $handler instanceof EventHandler ? $handler->listenTo : $handler->getInputChannelName();
                 $timeoutMilliseconds = $timeout->toMilliseconds();
                 $maximumMilliseconds = $maximumDelay->toMilliseconds();
-                throw ConfigurationException::create("Gathered handler '{$handlerChannel}' timeout of {$timeoutMilliseconds} milliseconds exceeds asynchronous channel '{$channelName}' maximum delay of {$maximumMilliseconds} milliseconds. Reduce timeout in #[Gathered], use a channel with a longer maximum delay, or remove timeout.");
+                throw ConfigurationException::create("{$kind} handler {$handlerDescription} {$setting} of {$timeoutMilliseconds} milliseconds exceeds asynchronous channel '{$channelName}' maximum delay of {$maximumMilliseconds} milliseconds. Reduce {$setting} in #[{$kind}], use a channel with a longer maximum delay, or remove {$setting}.");
             }
         }
     }
@@ -201,7 +236,7 @@ final class GatheringModule extends NoExternalConfigurationModule
 
     private function registerStore(Configuration $messagingConfiguration, array $extensionObjects, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if ($this->gatherChannelNames !== []) {
+        if ($this->gatherChannelNames !== [] || $this->annotationFinder->findAnnotatedMethods(Collected::class) !== []) {
             $configuration = ExtensionObjectResolver::resolveUnique(className: GatheringConfiguration::class, extensionObjects: $extensionObjects, default: GatheringConfiguration::createWithDefaults());
             $timeouts = [];
             foreach ($this->annotationFinder->findAnnotatedMethods(Gathered::class) as $registration) {
@@ -214,14 +249,23 @@ final class GatheringModule extends NoExternalConfigurationModule
                 }
             }
             $messagingConfiguration->registerServiceDefinition(GatheringTimeouts::class, new Definition(GatheringTimeouts::class, [$timeouts]));
+            $messagingConfiguration->registerServiceDefinition(GatheredHandlerEndpoints::class, new Definition(GatheredHandlerEndpoints::class, [$this->gatheredEndpointIds]));
             $store = ExtensionObjectResolver::resolveUnique(className: GatheredGroupStoreRegistration::class, extensionObjects: $extensionObjects, default: new GatheredGroupStoreRegistration(InMemoryGatheredGroupStore::class));
             if ($store->serviceReference === InMemoryGatheredGroupStore::class && ! $messagingConfiguration->isRunningForTest()) {
+                if ($this->collectedEndpointIds !== []) {
+                    $registration = $this->annotationFinder->findAnnotatedMethods(Collected::class)[0];
+                    $handlerDescription = (new CollectedHandlerContext(className: $registration->getClassName(), methodName: $registration->getMethodName(), endpointId: $this->collectedEndpointIds[0], groupByDescription: ''))->description;
+                    $scope = $this->gatherChannelNames === [] ? "Collected handler {$handlerDescription} requires" : "Gather channel '{$this->gatherChannelNames[0]}' and collected handler {$handlerDescription} require";
+                    $entities = $this->gatherChannelNames === [] ? 'batches' : 'groups and batches';
+                    $removal = $this->gatherChannelNames === [] ? '#[Collected]' : 'gatherChannelName from #[Splitter] and #[Collected] from the service handler';
+                    throw ConfigurationException::create("{$scope} durable storage outside flow testing: {$entities} must survive restarts and be shared between consumers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove {$removal}.");
+                }
                 $gatherChannelName = $this->gatherChannelNames[0];
                 throw ConfigurationException::create("Gather channel '{$gatherChannelName}' requires durable storage when bootstrapping without test configuration: in-memory groups cannot survive restarts or be shared between workers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove gatherChannelName from #[Splitter].");
             }
             $messagingConfiguration->registerServiceDefinition(InMemoryGatheredGroupStore::class, new Definition(InMemoryGatheredGroupStore::class, [new Reference(EcotoneClockInterface::class), new Reference(MessageBuilder::class)]));
             $messagingConfiguration->registerServiceDefinition(GatheredGroupStore::class, new Reference($store->serviceReference));
-            $messagingConfiguration->registerServiceDefinition(GatheredGroups::class, new Definition(GatheredGroupOperations::class, [new Reference(GatheredGroupStore::class), new Reference(EcotoneClockInterface::class), $configuration->retention->toMilliseconds(), new Reference(ChannelResolver::class), new Reference(MessageBuilder::class)]));
+            $messagingConfiguration->registerServiceDefinition(GatheredGroups::class, new Definition(GatheredGroupOperations::class, [new Reference(GatheredGroupStore::class), new Reference(EcotoneClockInterface::class), $configuration->retention->toMilliseconds(), new Reference(ChannelResolver::class), new Reference(MessageBuilder::class), $this->gatheredEndpointIds, array_values(array_unique($this->collectedEndpointIds))]));
             $messagingConfiguration
                 ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(GatheredGroups::class, 'cleanupClosedGroups')->withInputChannelName('ecotone.gathering.cleanup'))
                 ->registerConsoleCommand(ConsoleCommandConfiguration::create(channelName: 'ecotone.gathering.cleanup', name: 'ecotone:gathering:cleanup', parameterNames: [], description: 'Removes closed gathering groups after their retention period'));
@@ -231,17 +275,17 @@ final class GatheringModule extends NoExternalConfigurationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return $this->gatherChannelNames !== [] && ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []
+        return ($this->gatherChannelNames !== [] || $this->collectedEndpointIds !== []) && ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []
             ? [new PulseSnapshotSectionRegistration(sectionName: 'gathering', serviceReference: PulseGathering::class, tenantScoped: true)]
             : [];
     }
 
     private function registerPulse(Configuration $configuration, array $extensionObjects, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if ($this->gatherChannelNames === [] || ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) === []) {
+        if (($this->gatherChannelNames === [] && $this->collectedEndpointIds === []) || ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) === []) {
             return;
         }
-        $configuration->registerServiceDefinition(PulseGathering::class, new Definition(PulseGathering::class, [new Reference(GatheredGroups::class), $this->gatherChannelNames]));
+        $configuration->registerServiceDefinition(PulseGathering::class, new Definition(PulseGathering::class, [new Reference(GatheredGroups::class), array_values(array_unique([...array_values($this->gatheredEndpointIds), ...$this->collectedEndpointIds]))]));
         $configuration->registerServiceDefinition(PulseGatheringActions::class, new Definition(PulseGatheringActions::class, [new Reference(GatheredGroups::class)]));
         foreach (['requestRelease' => 'release', 'discard' => 'discard'] as $method => $action) {
             $configuration->registerMessageHandler(
@@ -261,7 +305,7 @@ final class GatheringModule extends NoExternalConfigurationModule
     {
         $configuration->registerServiceDefinition(GatheringConsoleCommands::class, new Definition(GatheringConsoleCommands::class, [new Reference(GatheredGroups::class)]));
         foreach ([
-            'listGroups' => ['list', 'Lists gathering group progress and late arrivals'],
+            'listGroups' => ['list', 'Lists gathered groups and collected batches by endpointId'],
             'requestRelease' => ['release', 'Requests release on the gathered handler asynchronous channel'],
             'discard' => ['discard', 'Discards a group without invoking its gathered handler'],
         ] as $method => [$commandName, $description]) {

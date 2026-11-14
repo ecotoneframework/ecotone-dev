@@ -6,6 +6,7 @@ namespace Test\Ecotone\Dbal\Conformance;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Doctrine\DBAL\TransactionIsolationLevel;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
@@ -28,6 +29,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\GatheringConfiguration;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -40,6 +42,7 @@ use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\GatheredReleaseReason;
@@ -57,6 +60,7 @@ use Throwable;
  */
 final class GatheringConformanceTest extends TestCase
 {
+    use ConcurrentConsumers;
     private const ENTERPRISE_LICENCE = 'eyJzaWduYXR1cmUiOiJxRmtrSDdCQkxzdUlTRzExZmVXeHVKVTY3bGZScmFSTFBpb0VUaGdoZTAyYWRjajlVRkNWWXhvaGl4YXhoaEFlNzU5aExOT0R5NXo1T2N2eFppUGQyemRRblYrb1dNZjFwM2lqbFN4cUg1MDhVV1wvOG90TllkM28wMVRZRmdMSjU4RXJzYThLcUJib0Z1MmhaZW9lczQ3elM2VHR5TzFGV2pOeWxlbG1aRWNLUHFydFhzOTNcL1YxY0wwWVg4UFBOZDl6bVRPOWxyc3UzM3F1anBXVlB4eVRMTW4yK3lPc3Jxa2pJZDArSU1LSWl0dG1IZGlBcml6NnZIXC93RnFKTU5Od2JKWnFsUXRNa3pQc3pvRlFseVgyZnNPTG5CTWNCajA5S0VnNjhVcG14OVwvUnBHZXBNV2UzcThYeFZMa3laOEtXdndEN2JBZDZPSXVoejlxRThyamVQVVVsbUxybm0wd3ZFYjV6UVZEbU5OY21uZnNkMEYyazJhSldySzc5VXlEWVY3UFNvVkZiM0diV0VNN2p1STVFV2w5cTVaWXJiOGxFcmxTTmNpYmQwbCttMWkzUWk1TnZhU1RscHBTV1BGS0g4c2x5dDhKRzV4YXZqQlJFU3BJWGVDNE9VREdoZDRJNEhaaEpDXC9Wcm9Nb0FRNzBMaXRrUHcxWkdWQ1dqTURucHdNdWRyWThpMVQwak5MRytXYlpYckpvRHZxd0x4SENKdU9EWnhuYVNISkVVSVFndGViUXZPRURIKzBjN0o0VVJMWkV2NnU2d2tcL1F6TzlPVnVVS1BubDkzK1dVam8xVDZqOEJ0MEtSeHhsMmtBY2pQcE9wWTg5Q25BQlBtckF4THJhYkxXeThpZmxVQ0cwUjNmZzB4UnpiMjlMSENvUW95b2NmRStzYjhFYz0iLCJkYXRhIjp7ImVtYWlsIjoiam9obnlAd3AucGwiLCJleHBpcmVBdCI6IjIwMzItMTAtMTEgMDA6MDA6MDAiLCJpc0VudGVycHJpc2VQbHVzIjpmYWxzZX19';
 
     public function test_gathered_flow_with_dbal_is_accepted_without_test_configuration(): void
@@ -204,7 +208,7 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $previousGroups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary');
+        $previousGroups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
@@ -219,12 +223,11 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-
-        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary');
+        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler');
         self::assertCount(count($previousGroups) + 1, $groups);
         $groups = array_values(array_filter($groups, static fn (array $group): bool => ! in_array($group['groupId'], array_column($previousGroups, 'groupId'), true)));
-        self::assertSame(2, $groups[0]['size']);
-        self::assertSame([], $groups[0]['accountedPartNumbers']);
+        self::assertSame(2, $groups[0]['expectedSize']);
+        self::assertSame(0, $groups[0]['recorded']);
         self::assertSame([1, 2], $groups[0]['missingPartNumbers']);
     }
 
@@ -400,9 +403,9 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
-        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $groupId = array_values(array_diff(array_column($groups, 'groupId'), array_column($before, 'groupId')))[0];
         $ecotone->advanceTimeBy(new TimeSpan(minutes: 30));
         $ecotone->run('summaries');
@@ -412,11 +415,11 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->run('summaries');
 
         self::assertCount(1, $handler->gathered);
-        $closed = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary'), static fn (array $group): bool => $group['groupId'] === $groupId));
+        $closed = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary.handler'), static fn (array $group): bool => $group['groupId'] === $groupId));
         self::assertCount(1, $closed);
         self::assertSame('released', $closed[0]['state']);
         self::assertSame(2, $closed[0]['latePartCount']);
-        self::assertSame([], $closed[0]['accountedPartNumbers']);
+        self::assertSame(0, $closed[0]['recorded']);
     }
 
     #[DataProvider('implementations')]
@@ -465,23 +468,23 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $ecotone->sendCommandWithRouting('split', []);
-        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $closedGroupId = array_values(array_diff(array_column($groups, 'groupId'), array_column($before, 'groupId')))[0];
         $ecotone->advanceTimeBy(new TimeSpan(days: 6));
         $ecotone->run('summaries');
         $ecotone->sendCommandWithRouting('split', [10]);
-        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $openGroupId = array_values(array_diff(array_column($groups, 'groupId'), array_column($before, 'groupId')))[0];
         $ecotone->advanceTimeBy(new TimeSpan(days: 1));
         $ecotone->runConsoleCommand('ecotone:gathering:cleanup');
-        self::assertContains($closedGroupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary'), 'groupId'));
+        self::assertContains($closedGroupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary.handler'), 'groupId'));
         $ecotone->advanceTimeBy(new TimeSpan(days: 6));
         $ecotone->runConsoleCommand('ecotone:gathering:cleanup');
 
-        self::assertNotContains($closedGroupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary'), 'groupId'));
-        self::assertContains($openGroupId, array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary'), 'groupId'));
+        self::assertNotContains($closedGroupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary.handler'), 'groupId'));
+        self::assertContains($openGroupId, array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler'), 'groupId'));
     }
 
     #[DataProvider('implementations')]
@@ -536,17 +539,17 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $ecotone->sendCommandWithRouting('split', []);
-        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $groupId = array_values(array_diff(array_column($groups, 'groupId'), array_column($before, 'groupId')))[0];
         $ecotone->run('summaries');
         $ecotone->advanceTimeBy(new TimeSpan(days: 1));
         $ecotone->getGateway(GatheredGroups::class)->cleanupClosedGroups();
-        self::assertContains($groupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary'), 'groupId'));
+        self::assertContains($groupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary.handler'), 'groupId'));
         $ecotone->advanceTimeBy(new TimeSpan(days: 1));
         $ecotone->getGateway(GatheredGroups::class)->cleanupClosedGroups();
-        self::assertNotContains($groupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary'), 'groupId'));
+        self::assertNotContains($groupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary.handler'), 'groupId'));
     }
 
     #[DataProvider('implementations')]
@@ -595,9 +598,9 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
-        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $groupId = array_values(array_diff(array_column($groups, 'groupId'), array_column($before, 'groupId')))[0];
         $ecotone->advanceTimeBy(new TimeSpan(minutes: 30));
         $ecotone->run('summaries');
@@ -658,10 +661,10 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $ecotone->advanceTimeBy(new TimeSpan(minutes: 29));
-        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
 
         self::assertCount(1, $groups);
         self::assertSame((new DateTimeImmutable('2026-01-01 12:30:00 UTC'))->getTimestamp() * 1000, $groups[0]['deadline']);
@@ -793,16 +796,16 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary');
+        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $deadLetters = $ecotone->getGateway(DeadLetterGateway::class);
         $previousFailures = array_map(static fn ($failure): string => $failure->getMessageId(), $deadLetters->list(1000, 0));
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $ecotone->run('replay_workers', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
         $ecotone->run('summaries');
         self::assertSame([], $handler->gathered);
-        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
         self::assertCount(1, $groups);
-        self::assertSame([1], $groups[0]['accountedPartNumbers']);
+        self::assertSame(1, $groups[0]['recorded']);
         self::assertSame([2], $groups[0]['missingPartNumbers']);
         $ecotone->advanceTimeBy(new TimeSpan(days: 30));
         $ecotone->run('summaries');
@@ -983,9 +986,9 @@ final class GatheringConformanceTest extends TestCase
         );
 
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $before = $groups->listOpenGroups('timeout.summary');
+        $before = $groups->listOpenGroups('timeout.summary.handler');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
-        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
         self::assertSame('open', $opened[0]['state']);
         $groupId = $opened[0]['groupId'];
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
@@ -994,14 +997,14 @@ final class GatheringConformanceTest extends TestCase
         $groups->requestRelease($groupId);
         $groups->requestRelease($groupId);
         self::assertSame([], $handler->gathered);
-        self::assertContains($groupId, array_column($groups->listOpenGroups('timeout.summary'), 'groupId'));
+        self::assertContains($groupId, array_column($groups->listOpenGroups('timeout.summary.handler'), 'groupId'));
         $ecotone->run('summaries');
 
         self::assertCount(1, $handler->gathered);
         self::assertSame([1 => 20], $handler->gathered[0]->results);
         self::assertSame([2], $handler->gathered[0]->missingPartNumbers);
         self::assertSame(GatheredReleaseReason::MANUAL_RELEASE, $handler->gathered[0]->releaseReason);
-        self::assertNotContains($groupId, array_column($groups->listOpenGroups('timeout.summary'), 'groupId'));
+        self::assertNotContains($groupId, array_column($groups->listOpenGroups('timeout.summary.handler'), 'groupId'));
     }
 
     #[DataProvider('implementations')]
@@ -1051,9 +1054,9 @@ final class GatheringConformanceTest extends TestCase
         );
 
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $before = $groups->listOpenGroups('timeout.summary');
+        $before = $groups->listOpenGroups('timeout.summary.handler');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
-        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
         self::assertSame('open', $opened[0]['state']);
         $groupId = $opened[0]['groupId'];
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
@@ -1061,14 +1064,14 @@ final class GatheringConformanceTest extends TestCase
 
         self::assertNull($groups->requestRelease($groupId));
         self::assertSame([], $handler->gathered);
-        self::assertContains($groupId, array_column($groups->listOpenGroups('timeout.summary'), 'groupId'));
+        self::assertContains($groupId, array_column($groups->listOpenGroups('timeout.summary.handler'), 'groupId'));
         $ecotone->run('summaries');
 
         self::assertCount(1, $handler->gathered);
         self::assertSame([1 => 20], $handler->gathered[0]->results);
         self::assertSame([2], $handler->gathered[0]->missingPartNumbers);
         self::assertSame(GatheredReleaseReason::MANUAL_RELEASE, $handler->gathered[0]->releaseReason);
-        self::assertNotContains($groupId, array_column($groups->listOpenGroups('timeout.summary'), 'groupId'));
+        self::assertNotContains($groupId, array_column($groups->listOpenGroups('timeout.summary.handler'), 'groupId'));
     }
 
     #[DataProvider('implementations')]
@@ -1118,19 +1121,19 @@ final class GatheringConformanceTest extends TestCase
         );
 
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $before = $groups->listOpenGroups('timeout.summary');
+        $before = $groups->listOpenGroups('timeout.summary.handler');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
-        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
         $groupId = $opened[0]['groupId'];
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $ecotone->run('summaries');
 
         $groups->discard($groupId);
         self::assertSame([], $handler->gathered);
-        self::assertNotContains($groupId, array_column($groups->listOpenGroups('timeout.summary'), 'groupId'));
-        $closed = array_values(array_filter($groups->listClosedGroups('timeout.summary'), static fn (array $group): bool => $group['groupId'] === $groupId));
+        self::assertNotContains($groupId, array_column($groups->listOpenGroups('timeout.summary.handler'), 'groupId'));
+        $closed = array_values(array_filter($groups->listClosedGroups('timeout.summary.handler'), static fn (array $group): bool => $group['groupId'] === $groupId));
         self::assertSame('discarded', $closed[0]['state']);
-        self::assertSame([1], $closed[0]['accountedPartNumbers']);
+        self::assertSame(1, $closed[0]['recorded']);
         self::assertSame([2], $closed[0]['missingPartNumbers']);
         self::assertSame($ecotone->now()->unixTime()->inMilliseconds(), $closed[0]['closedAt']);
         $ecotone->advanceTimeBy(new TimeSpan(days: 1));
@@ -1138,7 +1141,7 @@ final class GatheringConformanceTest extends TestCase
         $groups->requestRelease($groupId);
         $ecotone->run('workers');
         $ecotone->run('summaries');
-        $after = array_values(array_filter($groups->listClosedGroups('timeout.summary'), static fn (array $group): bool => $group['groupId'] === $groupId));
+        $after = array_values(array_filter($groups->listClosedGroups('timeout.summary.handler'), static fn (array $group): bool => $group['groupId'] === $groupId));
 
         self::assertSame([], $handler->gathered);
         self::assertSame($closed[0]['closedAt'], $after[0]['closedAt']);
@@ -1192,18 +1195,18 @@ final class GatheringConformanceTest extends TestCase
         );
 
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $before = $groups->listOpenGroups('timeout.summary');
+        $before = $groups->listOpenGroups('timeout.summary.handler');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
-        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
         $groupId = $opened[0]['groupId'];
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $ecotone->run('summaries');
 
-        $listing = $ecotone->getServiceFromContainer(ConfiguredMessagingSystem::class)->runConsoleCommand('ecotone:gathering:list', ['gatherChannelName' => 'timeout.summary']);
+        $listing = $ecotone->getServiceFromContainer(ConfiguredMessagingSystem::class)->runConsoleCommand('ecotone:gathering:list', ['endpointId' => 'timeout.summary.handler']);
         $row = array_values(array_filter($listing->rows, static fn (array $row): bool => $row[0] === $groupId));
 
-        self::assertSame(['Group id', 'State', 'Size', 'Accounted parts', 'Missing parts', 'Deadline', 'Late parts'], $listing->columnHeaders);
-        self::assertSame([[$groupId, 'open', 2, '1', '2', '', 0]], $row);
+        self::assertSame(['Group id', 'Endpoint id', 'Group key', 'State', 'Expected size', 'Recorded', 'Missing parts', 'Late parts', 'Opened at', 'Deadline', 'Closed at', 'Release reason'], $listing->columnHeaders);
+        self::assertSame([[$groupId, 'timeout.summary.handler', '', 'open', 2, 1, '2', 0, '2026-01-01T12:00:00+00:00', 'no deadline', '', '']], $row);
     }
 
     #[DataProvider('implementations')]
@@ -1253,9 +1256,9 @@ final class GatheringConformanceTest extends TestCase
         );
 
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $before = $groups->listOpenGroups('timeout.summary');
+        $before = $groups->listOpenGroups('timeout.summary.handler');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
-        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
         $groupId = $opened[0]['groupId'];
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $ecotone->run('summaries');
@@ -1264,14 +1267,14 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(['Group id', 'Status'], $result->columnHeaders);
         self::assertSame([[$groupId, 'release requested']], $result->rows);
         self::assertSame([], $handler->gathered);
-        self::assertContains($groupId, array_column($groups->listOpenGroups('timeout.summary'), 'groupId'));
+        self::assertContains($groupId, array_column($groups->listOpenGroups('timeout.summary.handler'), 'groupId'));
         $ecotone->run('summaries');
 
         self::assertCount(1, $handler->gathered);
         self::assertSame([1 => 20], $handler->gathered[0]->results);
         self::assertSame([2], $handler->gathered[0]->missingPartNumbers);
         self::assertSame(GatheredReleaseReason::MANUAL_RELEASE, $handler->gathered[0]->releaseReason);
-        self::assertNotContains($groupId, array_column($groups->listOpenGroups('timeout.summary'), 'groupId'));
+        self::assertNotContains($groupId, array_column($groups->listOpenGroups('timeout.summary.handler'), 'groupId'));
     }
 
     #[DataProvider('implementations')]
@@ -1321,9 +1324,9 @@ final class GatheringConformanceTest extends TestCase
         );
 
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $before = $groups->listOpenGroups('timeout.summary');
+        $before = $groups->listOpenGroups('timeout.summary.handler');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
-        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
         $groupId = $opened[0]['groupId'];
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $ecotone->run('summaries');
@@ -1331,10 +1334,10 @@ final class GatheringConformanceTest extends TestCase
         $result = $ecotone->getServiceFromContainer(ConfiguredMessagingSystem::class)->runConsoleCommand('ecotone:gathering:discard', ['groupId' => $groupId]);
         self::assertSame([[$groupId, 'discarded']], $result->rows);
         self::assertSame([], $handler->gathered);
-        self::assertNotContains($groupId, array_column($groups->listOpenGroups('timeout.summary'), 'groupId'));
-        $closed = array_values(array_filter($groups->listClosedGroups('timeout.summary'), static fn (array $group): bool => $group['groupId'] === $groupId));
+        self::assertNotContains($groupId, array_column($groups->listOpenGroups('timeout.summary.handler'), 'groupId'));
+        $closed = array_values(array_filter($groups->listClosedGroups('timeout.summary.handler'), static fn (array $group): bool => $group['groupId'] === $groupId));
         self::assertSame('discarded', $closed[0]['state']);
-        self::assertSame([1], $closed[0]['accountedPartNumbers']);
+        self::assertSame(1, $closed[0]['recorded']);
         self::assertSame([2], $closed[0]['missingPartNumbers']);
         self::assertSame($ecotone->now()->unixTime()->inMilliseconds(), $closed[0]['closedAt']);
         $ecotone->advanceTimeBy(new TimeSpan(days: 1));
@@ -1342,7 +1345,7 @@ final class GatheringConformanceTest extends TestCase
         $groups->requestRelease($groupId);
         $ecotone->run('workers');
         $ecotone->run('summaries');
-        $after = array_values(array_filter($groups->listClosedGroups('timeout.summary'), static fn (array $group): bool => $group['groupId'] === $groupId));
+        $after = array_values(array_filter($groups->listClosedGroups('timeout.summary.handler'), static fn (array $group): bool => $group['groupId'] === $groupId));
 
         self::assertSame([], $handler->gathered);
         self::assertSame($closed[0]['closedAt'], $after[0]['closedAt']);
@@ -1401,9 +1404,9 @@ final class GatheringConformanceTest extends TestCase
         );
 
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $before = $groups->listOpenGroups('timeout.summary');
+        $before = $groups->listOpenGroups('timeout.summary.handler');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
-        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $opened = array_values(array_filter($groups->listOpenGroups('timeout.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
         $groupId = $opened[0]['groupId'];
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $ecotone->run('summaries');
@@ -1418,9 +1421,9 @@ final class GatheringConformanceTest extends TestCase
         } catch (RuntimeException $failure) {
             self::assertSame('Summary failed', $failure->getMessage());
         }
-        $stillOpen = array_values(array_filter($groups->listOpenGroups('timeout.summary'), static fn (array $group): bool => $group['groupId'] === $groupId));
+        $stillOpen = array_values(array_filter($groups->listOpenGroups('timeout.summary.handler'), static fn (array $group): bool => $group['groupId'] === $groupId));
         self::assertCount(1, $stillOpen);
-        self::assertSame([1], $stillOpen[0]['accountedPartNumbers']);
+        self::assertSame(1, $stillOpen[0]['recorded']);
         self::assertSame([2], $stillOpen[0]['missingPartNumbers']);
         self::assertSame([], $handler->gathered);
         $handler->fail = false;
@@ -1601,26 +1604,141 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $before = $groups->listOpenGroups('progress.summary');
+        $before = $groups->listOpenGroups('progress.summary.handler');
         $ecotone->sendCommandWithRouting('progress.split', [1, 2, 3]);
         $ecotone->run('progress_summaries');
         $ecotone->run('medium_workers');
         $ecotone->run('progress_summaries');
-        $opened = array_values(array_filter($groups->listOpenGroups('progress.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $opened = array_values(array_filter($groups->listOpenGroups('progress.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
 
         self::assertCount(1, $opened);
-        self::assertSame([2, 3], $opened[0]['accountedPartNumbers']);
+        self::assertSame(2, $opened[0]['recorded']);
         self::assertSame([1], $opened[0]['missingPartNumbers']);
         $groups->requestRelease($opened[0]['groupId']);
         $ecotone->run('progress_summaries');
-        $closed = array_values(array_filter($groups->listClosedGroups('progress.summary'), static fn (array $group): bool => $group['groupId'] === $opened[0]['groupId']));
-        self::assertSame([2, 3], $closed[0]['accountedPartNumbers']);
+        $closed = array_values(array_filter($groups->listClosedGroups('progress.summary.handler'), static fn (array $group): bool => $group['groupId'] === $opened[0]['groupId']));
+        self::assertSame(2, $closed[0]['recorded']);
     }
 
     public static function implementations(): iterable
     {
         yield 'in-memory' => [false];
         yield 'dbal' => [true];
+    }
+
+    #[DataProvider('implementations')]
+    public function test_listing_a_gather_channel_name_names_its_gathered_handler_endpoint_id(bool $durable): void
+    {
+        $handler = new class () {
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work', endpointId: 'work.handler')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $groups = $ecotone->getGateway(GatheredGroups::class);
+        $expected = "'summary' is the gather channel of the gathered handler with endpointId 'summary.handler'. Groups are listed by the handler's endpointId: pass 'summary.handler'.";
+        $failures = [];
+        foreach ([static fn () => $groups->listOpenGroups('summary'), static fn () => $groups->listClosedGroups('summary'), static fn () => $ecotone->runConsoleCommand('ecotone:gathering:list', ['endpointId' => 'summary'])] as $listing) {
+            try {
+                $listing();
+            } catch (Throwable $failure) {
+                $failures[] = $failure->getMessage();
+            }
+        }
+
+        self::assertSame([$expected, $expected, $expected], $failures);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_gathered_group_listing_rows_use_the_shared_group_shape(bool $durable): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Asynchronous('workers')]
+            #[InternalHandler('work', endpointId: 'work.handler')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('workers'),
+                SimpleMessageChannelBuilder::createQueueChannel('summaries'),
+            ],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $groups = $ecotone->getGateway(GatheredGroups::class);
+        $previous = array_column([...$groups->listOpenGroups('summary.handler'), ...$groups->listClosedGroups('summary.handler')], 'groupId');
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotone->run('summaries');
+        $group = array_values(array_filter($groups->listOpenGroups('summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], $previous, true)))[0];
+        $expected = [
+            'groupId' => $group['groupId'],
+            'endpointId' => 'summary.handler',
+            'groupKey' => null,
+            'state' => 'open',
+            'expectedSize' => 2,
+            'recorded' => 1,
+            'missingPartNumbers' => [2],
+            'latePartCount' => 0,
+            'openedAt' => 1767268800000,
+            'deadline' => null,
+            'closedAt' => null,
+            'releaseReason' => null,
+        ];
+        self::assertSame($expected, $group);
+
+        $ecotone->advanceTimeBy(new TimeSpan(seconds: 3));
+        $ecotone->run('workers');
+        $ecotone->run('summaries');
+        $closed = array_values(array_filter($groups->listClosedGroups('summary.handler'), static fn (array $candidate): bool => $candidate['groupId'] === $group['groupId']))[0];
+        self::assertSame([...$expected, 'state' => 'released', 'recorded' => 2, 'missingPartNumbers' => [], 'closedAt' => 1767268803000, 'releaseReason' => GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR->value], $closed);
     }
 
     #[DataProvider('implementations')]
@@ -1666,14 +1784,14 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $previousGroups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary');
+        $previousGroups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
 
-        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary');
+        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler');
         self::assertCount(count($previousGroups) + 1, $groups);
         $groups = array_values(array_filter($groups, static fn (array $group): bool => ! in_array($group['groupId'], array_column($previousGroups, 'groupId'), true)));
-        self::assertSame(2, $groups[0]['size']);
-        self::assertSame([], $groups[0]['accountedPartNumbers']);
+        self::assertSame(2, $groups[0]['expectedSize']);
+        self::assertSame(0, $groups[0]['recorded']);
         self::assertSame([1, 2], $groups[0]['missingPartNumbers']);
     }
 
@@ -1719,16 +1837,16 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
+        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'), 'groupId');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         self::assertSame([], $handler->gathered);
 
         $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
 
-        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary');
+        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler');
         $groups = array_values(array_filter($groups, static fn (array $group): bool => ! in_array($group['groupId'], $previousGroupIds, true)));
         self::assertCount(1, $groups);
-        self::assertSame([1], $groups[0]['accountedPartNumbers']);
+        self::assertSame(1, $groups[0]['recorded']);
         self::assertSame([2], $groups[0]['missingPartNumbers']);
     }
 
@@ -1778,7 +1896,7 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
+        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'), 'groupId');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         try {
@@ -1787,9 +1905,9 @@ final class GatheringConformanceTest extends TestCase
         } catch (Throwable $failure) {
             self::assertStringContainsString('application_missing_summary_table', $failure->getMessage());
         }
-        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroupIds, true)));
+        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroupIds, true)));
         self::assertCount(1, $groups);
-        self::assertSame([1], $groups[0]['accountedPartNumbers']);
+        self::assertSame(1, $groups[0]['recorded']);
         self::assertSame([2], $groups[0]['missingPartNumbers']);
         self::assertSame([], $handler->gathered);
 
@@ -1901,7 +2019,7 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary'), 'groupId');
+        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary.handler'), 'groupId');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         try {
@@ -1913,7 +2031,7 @@ final class GatheringConformanceTest extends TestCase
         $handler->shouldFail = false;
         $ecotone->run('summaries');
 
-        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroupIds, true)));
+        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroupIds, true)));
         self::assertCount(1, $groups);
         self::assertSame('released', $groups[0]['state']);
         self::assertSame([], $handler->gathered);
@@ -1973,9 +2091,9 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
         $ecotone->sendCommandWithRouting('split', [10, 20]);
-        $groupId = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId')[0];
+        $groupId = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'), 'groupId')[0];
 
-        $ecotone->runConsoleCommand('ecotone:gathering:list', ['gatherChannelName' => 'summary']);
+        $ecotone->runConsoleCommand('ecotone:gathering:list', ['endpointId' => 'summary.handler']);
         $ecotone->runConsoleCommand('ecotone:gathering:release', ['groupId' => $groupId]);
         $ecotone->runConsoleCommand('ecotone:gathering:discard', ['groupId' => $groupId]);
         $ecotone->runConsoleCommand('ecotone:gathering:cleanup');
@@ -2029,7 +2147,7 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
+        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'), 'groupId');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $ecotone->run('transaction_summaries', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         try {
@@ -2038,9 +2156,9 @@ final class GatheringConformanceTest extends TestCase
         } catch (RuntimeException $failure) {
             self::assertSame('Gathered handler failed', $failure->getMessage());
         }
-        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroupIds, true)));
+        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroupIds, true)));
         self::assertCount(1, $groups);
-        self::assertSame([1], $groups[0]['accountedPartNumbers']);
+        self::assertSame(1, $groups[0]['recorded']);
         self::assertSame([2], $groups[0]['missingPartNumbers']);
         self::assertSame([], $handler->gathered);
 
@@ -2098,7 +2216,7 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
+        $previousGroupIds = array_column($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'), 'groupId');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         try {
@@ -2107,9 +2225,9 @@ final class GatheringConformanceTest extends TestCase
         } catch (RuntimeException $failure) {
             self::assertSame('Gathered handler failed', $failure->getMessage());
         }
-        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroupIds, true)));
+        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroupIds, true)));
         self::assertCount(1, $groups);
-        self::assertSame([1], $groups[0]['accountedPartNumbers']);
+        self::assertSame(1, $groups[0]['recorded']);
         self::assertSame([2], $groups[0]['missingPartNumbers']);
         self::assertSame([], $handler->gathered);
 
@@ -2286,13 +2404,13 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $before = array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary'), 'groupId');
+        $before = array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary.handler'), 'groupId');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         self::assertSame([], $handler->gathered);
 
         $ecotone->run('workers')->run('summaries');
         self::assertSame(4, $handler->workCalls);
-        $closed = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $before, true)));
+        $closed = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], $before, true)));
         self::assertSame(0, $closed[0]['latePartCount']);
 
         self::assertCount(1, $handler->gathered);
@@ -2737,13 +2855,13 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        $before = array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary'), 'groupId');
+        $before = array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary.handler'), 'groupId');
         $ecotone->sendCommandWithRouting('split', []);
         self::assertSame([], $handler->gathered);
 
         $ecotone->run('summaries');
 
-        $closed = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $before, true)));
+        $closed = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], $before, true)));
         self::assertSame(0, $closed[0]['latePartCount']);
         self::assertCount(1, $handler->gathered);
         self::assertSame([], $handler->gathered[0]->results);
@@ -3326,13 +3444,13 @@ final class GatheringConformanceTest extends TestCase
         self::concurrentApplication()->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $testId = bin2hex(random_bytes(16));
         self::concurrentApplication()->sendCommandWithRouting('split', [10, 20], metadata: ['testId' => $testId]);
-        $this->runConcurrentConsumers(2);
+        $this->runConcurrentConsumers(2, __FILE__, 'consumeConcurrentPart');
         self::concurrentApplication()->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20},"runs":1}', self::concurrentApplication()->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
     }
 
-    public function test_concurrent_part_reports_conflict_and_are_retried_without_reaching_the_dead_letter(): void
+    public function test_concurrent_part_reports_complete_once_after_replaying_any_exhausted_conflicts_in_a_real_database_race(): void
     {
         if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
@@ -3344,71 +3462,25 @@ final class GatheringConformanceTest extends TestCase
         $previousFailures = array_map(static fn ($failure): string => $failure->getMessageId(), $deadLetters->list(1000, 0));
         $testId = bin2hex(random_bytes(16));
         $parts = range(1, 8);
-        $previousGroups = array_column($application->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
+        $previousGroups = array_column($application->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'), 'groupId');
         $application->sendCommandWithRouting('split', $parts, metadata: ['testId' => $testId]);
 
-        $this->runConcurrentConsumers(count($parts));
+        $this->runConcurrentConsumers(count($parts), __FILE__, 'consumeConcurrentPart');
 
-        $groups = array_values(array_filter($application->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroups, true)));
-        self::assertCount(1, $groups);
-        self::assertLessThan(count($parts), count($groups[0]['accountedPartNumbers']));
-        $originalDeliveries = array_values(array_filter($application->getGateway(DocumentStore::class)->getAllDocuments('gathering_deliveries'), static fn (string $delivery): bool => json_decode($delivery, true, flags: JSON_THROW_ON_ERROR)['testId'] === $testId));
-        self::assertCount(count($parts), $originalDeliveries);
+        $failures = array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previousFailures, true));
+        foreach ($failures as $failure) {
+            $deadLetters->replay($failure->getMessageId());
+        }
         $application->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+        $groups = array_values(array_filter($application->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroups, true)));
+        self::assertSame([], $groups);
         $deliveries = array_values(array_filter($application->getGateway(DocumentStore::class)->getAllDocuments('gathering_deliveries'), static fn (string $delivery): bool => json_decode($delivery, true, flags: JSON_THROW_ON_ERROR)['testId'] === $testId));
-        self::assertGreaterThan(count($parts), count($deliveries));
-        self::assertLessThanOrEqual(count($parts) * count($parts), count($deliveries));
+        self::assertCount(count($parts), $deliveries);
         $result = json_decode($application->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId), true, flags: JSON_THROW_ON_ERROR);
         self::assertSame(array_combine($parts, $parts), $result['results']);
         self::assertSame(1, $result['runs']);
         $failures = array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previousFailures, true)));
         self::assertSame([], $failures);
-    }
-
-    private function runConcurrentConsumers(int $numberOfConsumers): void
-    {
-        $children = [];
-        $packageAutoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
-        $autoload = is_file($packageAutoload) ? $packageAutoload : dirname(__DIR__, 4) . '/vendor/autoload.php';
-        $code = 'require ' . var_export($autoload, true) . '; require ' . var_export(__FILE__, true) . '; ' . self::class . '::consumeConcurrentPart();';
-        for ($part = 0; $part < $numberOfConsumers; $part++) {
-            $process = proc_open([PHP_BINARY, '-r', $code], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
-            self::assertIsResource($process);
-            $children[] = [$process, $pipes];
-        }
-        try {
-            $ready = [];
-            foreach ($children as [$process, $pipes]) {
-                $ready[] = fgets($pipes[1]);
-            }
-            foreach ($children as $number => [$process, $pipes]) {
-                if ($ready[$number] === "ready\n") {
-                    fwrite($pipes[0], "consume\n");
-                }
-                fclose($pipes[0]);
-            }
-            self::assertSame(array_fill(0, $numberOfConsumers, "ready\n"), $ready);
-            foreach ($children as [$process, $pipes]) {
-                self::assertSame('', stream_get_contents($pipes[1]));
-                self::assertSame('', stream_get_contents($pipes[2]));
-                fclose($pipes[1]);
-                fclose($pipes[2]);
-                self::assertSame(0, proc_close($process));
-            }
-        } finally {
-            foreach ($children as [$process, $pipes]) {
-                foreach ($pipes as $pipe) {
-                    if (is_resource($pipe)) {
-                        fclose($pipe);
-                    }
-                }
-                if (is_resource($process)) {
-                    proc_terminate($process);
-                    proc_close($process);
-                }
-            }
-        }
-
     }
 
     public function test_releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established(): void
@@ -3449,16 +3521,62 @@ final class GatheringConformanceTest extends TestCase
 
         self::assertTrue($interceptor->interleaved);
         if (! str_starts_with(getenv('DATABASE_DSN'), 'pgsql:')) {
-            self::assertNull($consumer->getGateway(DocumentStore::class)->findDocument('gathering_concurrency', $testId));
-            $consumer->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
             self::assertCount(2, $interceptor->messageIds);
-            self::assertNotSame($interceptor->messageIds[0], $interceptor->messageIds[1]);
+            self::assertSame($interceptor->messageIds[0], $interceptor->messageIds[1]);
         }
         self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20},"runs":1}', self::concurrentApplication()->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
     }
 
+    public function test_exhausted_gathering_conflicts_reach_the_dead_letter_and_replay_completes_the_group_in_a_real_database_race(): void
+    {
+        if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->establishConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('The stale-snapshot race requires PostgreSQL, MySQL or MariaDB.');
+        }
+        $other = self::concurrentApplication();
+        $other->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+        $testId = bin2hex(random_bytes(16));
+        $other->getGateway(DocumentStore::class)->addDocument('gathering_snapshot', $testId, '{}');
+        $other->sendCommandWithRouting('split', [10, 20, 30], metadata: ['testId' => $testId]);
+        $interceptor = new class ($other, $testId) {
+            public bool $compete = true;
+            public array $messageIds = [];
+
+            public function __construct(private FlowTestSupport $other, private string $testId)
+            {
+            }
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
+            public function recordCompetingPart(MethodInvocation $invocation, Message $message, #[Reference] DocumentStore $documents): mixed
+            {
+                $this->messageIds[] = $message->getHeaders()->getMessageId();
+                if ($this->compete) {
+                    $documents->getDocument('gathering_snapshot', $this->testId);
+                    $this->other->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+                }
+                return $invocation->proceed();
+            }
+        };
+        $connection = new DbalConnectionFactory(getenv('DATABASE_DSN'));
+        $connection->establishConnection()->setTransactionIsolation(TransactionIsolationLevel::REPEATABLE_READ);
+        $consumer = self::concurrentApplication(additionalServices: [$interceptor, DbalConnectionFactory::class => $connection], extensionObjects: [InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 1)]);
+        $consumer->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false)->withExecutionAmountLimit(1));
+        self::assertCount(2, $interceptor->messageIds);
+        self::assertSame($interceptor->messageIds[0], $interceptor->messageIds[1]);
+        $deadLetters = $consumer->getGateway(DeadLetterGateway::class);
+        $failure = array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => $failure->getMessageId() === $interceptor->messageIds[0]));
+        self::assertCount(1, $failure);
+        self::assertSame(ConcurrencyException::class, $failure[0]->getExceptionClass());
+        self::assertStringContainsString('withAsynchronousEndpointsRetry(true, 5)', $failure[0]->getMessage());
+        self::assertNull($consumer->getGateway(DocumentStore::class)->findDocument('gathering_concurrency', $testId));
+        $interceptor->compete = false;
+        $deadLetters->replay($interceptor->messageIds[0]);
+        $consumer->run('gathering_concurrency');
+        self::assertSame([], array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => $failure->getMessageId() === $interceptor->messageIds[0])));
+        self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20,"3":30},"runs":1}', $consumer->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
+    }
+
     #[DataProvider('conflictingGroupOperations')]
-    public function test_conflicting_group_operation_is_redelivered_before_observing_a_fresh_snapshot(string $trigger): void
+    public function test_conflicting_group_operation_retries_the_original_message_in_a_fresh_transaction(string $trigger): void
     {
         if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
@@ -3468,9 +3586,9 @@ final class GatheringConformanceTest extends TestCase
         $other = self::releaseApplication([], $channels);
         $testId = bin2hex(random_bytes(16));
         $other->getGateway(DocumentStore::class)->addDocument('gathering_snapshot', $testId, '{"ready":true}');
-        $previousGroups = array_column($other->getGateway(GatheredGroups::class)->listOpenGroups('summary'), 'groupId');
+        $previousGroups = array_column($other->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'), 'groupId');
         $other->sendCommandWithRouting('split', [10, 20], metadata: ['testId' => $testId]);
-        $groups = array_values(array_filter($other->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroups, true)));
+        $groups = array_values(array_filter($other->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroups, true)));
         $groupId = $groups[0]['groupId'];
         if (in_array($trigger, ['manual', 'discard_release'], true)) {
             $other->getGateway(GatheredGroups::class)->requestRelease($groupId);
@@ -3511,16 +3629,14 @@ final class GatheringConformanceTest extends TestCase
 
         self::assertTrue($interceptor->interleaved);
         if (! str_starts_with(getenv('DATABASE_DSN'), 'pgsql:')) {
-            self::assertNull($consumer->getGateway(DocumentStore::class)->findDocument('gathering_release', $testId));
-            $consumer->run('gathering_release', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
             self::assertCount(2, $interceptor->messageIds);
-            self::assertNotSame($interceptor->messageIds[0], $interceptor->messageIds[1]);
+            self::assertSame($interceptor->messageIds[0], $interceptor->messageIds[1]);
         }
         if (str_starts_with($trigger, 'discard_')) {
             self::assertNull($consumer->getGateway(DocumentStore::class)->findDocument('gathering_release', $testId));
-            $closed = array_values(array_filter($consumer->getGateway(GatheredGroups::class)->listClosedGroups('summary'), static fn (array $group): bool => $group['groupId'] === $groupId));
+            $closed = array_values(array_filter($consumer->getGateway(GatheredGroups::class)->listClosedGroups('summary.handler'), static fn (array $group): bool => $group['groupId'] === $groupId));
             self::assertSame('discarded', $closed[0]['state']);
-            self::assertSame([], $closed[0]['accountedPartNumbers']);
+            self::assertSame(0, $closed[0]['recorded']);
 
             return;
         }
@@ -3532,38 +3648,79 @@ final class GatheringConformanceTest extends TestCase
         })->value, $result['reason']);
     }
 
+    public function test_gathering_conflict_on_an_endpoint_without_the_framework_transaction_reaches_the_error_channel_without_a_retry(): void
+    {
+        if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
+        }
+        $channels = [SimpleMessageChannelBuilder::createQueueChannel('gathering_release'), SimpleMessageChannelBuilder::createQueueChannel('gathering_release_workers')];
+        $other = self::releaseApplication([], $channels);
+        $testId = bin2hex(random_bytes(16));
+        $other->getGateway(DocumentStore::class)->addDocument('gathering_snapshot', $testId, '{"ready":true}');
+        $other->sendCommandWithRouting('split', [10, 20], metadata: ['testId' => $testId]);
+        $other->run('gathering_release_workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+        $connectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN'));
+        $connectionFactory->establishConnection()->setTransactionIsolation(TransactionIsolationLevel::REPEATABLE_READ);
+        $interceptor = new class ($other, $testId, $connectionFactory) {
+            public bool $interleaved = false;
+            public array $messageIds = [];
+
+            public function __construct(private FlowTestSupport $other, private string $testId, private DbalConnectionFactory $connectionFactory)
+            {
+            }
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
+            public function recordPartAfterOwnSnapshot(MethodInvocation $invocation, Message $message, #[Reference] DocumentStore $documents): mixed
+            {
+                $this->messageIds[] = $message->getHeaders()->getMessageId();
+                if ($this->interleaved) {
+                    return $invocation->proceed();
+                }
+                $connection = $this->connectionFactory->createContext()->getDbalConnection();
+                $connection->beginTransaction();
+                try {
+                    $documents->getDocument('gathering_snapshot', $this->testId);
+                    $this->other->run('gathering_release_workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+                    $this->other->run('gathering_release', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+                    $this->interleaved = true;
+                    $result = $invocation->proceed();
+                    $connection->commit();
+
+                    return $result;
+                } catch (Throwable $failure) {
+                    $connection->rollBack();
+                    throw $failure;
+                }
+            }
+        };
+        $consumer = self::releaseApplication(additionalServices: [$interceptor], channels: [...$channels, DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(false), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter')], connectionFactory: $connectionFactory);
+        $consumer->run('gathering_release', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false)->withExecutionAmountLimit(1));
+
+        self::assertTrue($interceptor->interleaved);
+        self::assertCount(1, $interceptor->messageIds);
+        $failure = array_values(array_filter($consumer->getGateway(DeadLetterGateway::class)->list(1000, 0), static fn ($failure): bool => $failure->getMessageId() === $interceptor->messageIds[0]));
+        self::assertCount(1, $failure);
+        self::assertSame(ConcurrencyException::class, $failure[0]->getExceptionClass());
+        self::assertStringContainsString('An endpoint running without a database transaction (DbalConfiguration::withTransactionOnAsynchronousEndpoints(false) or #[WithoutDatabaseTransaction]) is not retried by default: turn its transaction back on, or configure delayed retries with ErrorHandlerConfiguration', $failure[0]->getMessage());
+        self::assertNull($consumer->getGateway(DocumentStore::class)->findDocument('gathering_release', $testId));
+    }
+
     public static function conflictingGroupOperations(): iterable
     {
         yield 'manual' => ['manual'];
         yield 'timeout' => ['timeout'];
-        yield 'report_conflict_on_non_transactional_channel' => ['report'];
+        yield 'report_conflict' => ['report'];
         yield 'discard_racing_a_part' => ['discard_part'];
         yield 'discard_racing_a_release' => ['discard_release'];
     }
 
     public static function consumeConcurrentPart(): void
     {
-        $barrier = new class () {
-            private bool $released = false;
-
-            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
-            public function awaitOtherConsumer(MethodInvocation $invocation): mixed
-            {
-                if (! $this->released) {
-                    fwrite(STDOUT, "ready\n");
-                    if (fgets(STDIN) !== "consume\n") {
-                        throw new RuntimeException('Concurrent consumer start was not released.');
-                    }
-                    $this->released = true;
-                }
-
-                return $invocation->proceed();
-            }
-        };
+        $barrier = self::concurrentConsumerBarrier();
         self::concurrentApplication([$barrier])->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false)->withExecutionAmountLimit(1));
     }
 
-    private static function concurrentApplication(array $additionalServices = []): FlowTestSupport
+    private static function concurrentApplication(array $additionalServices = [], array $extensionObjects = []): FlowTestSupport
     {
         $handler = new class () {
             #[CommandHandler('split', outputChannelName: 'parts')]
@@ -3606,16 +3763,16 @@ final class GatheringConformanceTest extends TestCase
         };
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, $deliveries::class, ...array_map(static fn (object $service): string => $service::class, $additionalServices)],
-            containerOrAvailableServices: [$handler, $deliveries, ...$additionalServices, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
-            extensionObjects: [DbalBackedMessageChannelBuilder::create('gathering_concurrency'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter')],
+            containerOrAvailableServices: [$handler, $deliveries, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN')), ...$additionalServices],
+            extensionObjects: [DbalBackedMessageChannelBuilder::create('gathering_concurrency'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: self::ENTERPRISE_LICENCE,
-            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
+            testConfiguration: TestConfiguration::createWithDefaults(),
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }
 
-    private static function releaseApplication(array $additionalServices, array $channels): FlowTestSupport
+    private static function releaseApplication(array $additionalServices, array $channels, ?DbalConnectionFactory $connectionFactory = null): FlowTestSupport
     {
         $handler = new class () {
             #[CommandHandler('split', outputChannelName: 'parts')]
@@ -3647,11 +3804,11 @@ final class GatheringConformanceTest extends TestCase
         };
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, ...array_map(static fn (object $service): string => $service::class, $additionalServices)],
-            containerOrAvailableServices: [$handler, ...$additionalServices, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            containerOrAvailableServices: [$handler, ...$additionalServices, DbalConnectionFactory::class => $connectionFactory ?? new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: $channels,
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: self::ENTERPRISE_LICENCE,
-            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
+            testConfiguration: TestConfiguration::createWithDefaults(),
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }

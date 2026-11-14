@@ -271,3 +271,24 @@ The exceptions keep a transaction short where the boundary's would be long-runni
 
 `bin/check-framework-transactions.php` lists each of them with its reason and refuses any other `transactional()`,
 `transaction()`, `beginTransaction()` or `wrapInTransaction()` call under `packages/*/src` and `packages/*/Api`.
+
+
+## 8a. A lost optimistic write uses the framework's retries
+
+A store or handler reports a lost optimistic write with `Ecotone\Api\Messaging\ConcurrencyException`, with the
+ways out named in its message. Ecotone already retries the command bus and asynchronous endpoints running in a
+database transaction, each attempt in a new transaction. Once instant attempts run out, the configured error
+channel, delayed retries and dead letter own recovery. Tests prove both automatic retry under the defaults and
+exhaustion followed by replay. Framework code adds no retry loop, re-send of the consumed message, feature-specific
+retry configuration or its own backoff. A maintainer-approved exception belongs in the feature spec with its reason.
+
+Evidence: gathering in PR #765 re-sent a conflicting report as a replacement message with a new id. Collecting then
+needed a separate original-message identity header, and the replacement handling caused duplicate collection
+(review finding C1). On 2026-11-14 the maintainer replaced both features' re-send with `ConcurrencyException` so every
+optimistic lock uses one recovery mechanism.
+
+A deterministic check for re-sending a consumed message from a handler or store would need to establish message
+identity across builders, converters, collaborators and channel sends. A syntactic ban on `send()` or message
+builders also rejects legitimate forwarding, timeout scheduling and publication of new messages. No such check is
+added: the eval grades whether the proposed recovery duplicates the framework's retries, while real-database tests
+prove that a conflict rolls back and a retry reads fresh state.

@@ -27,7 +27,7 @@ public function work(int $part): int
 
 #[Gathered(timeout: new TimeSpan(minutes: 30))]
 #[Asynchronous('import_summaries')]
-#[InternalHandler('import.summary', endpointId: 'import.summary', outputChannelName: 'import.results')]
+#[InternalHandler('import.summary', endpointId: 'import.summary.handler', outputChannelName: 'import.results')]
 public function summarize(GatheredParts $parts): array
 {
     return $parts->results;
@@ -88,6 +88,7 @@ gathered handler, gathering runs without a transaction, and you lose these guara
 - a process that stops between recording the arrival and storing the part can count a redelivered part twice;
 - a split whose timeout or empty-split trigger fails to send after its group was stored leaves that group open with
   no trigger, and its retry does not send one; release it with `ecotone:gathering:release`.
+- a report that loses an optimistic write is not retried by default and goes straight to the error channel.
 
 Keep the asynchronous endpoint transaction on for gathered handlers whose result must not be lost. To run other
 endpoints without it, keep it on globally and switch it off only for those endpoints with
@@ -125,8 +126,17 @@ has been cleaned up is refused with a message naming this retention setting.
 
 ## Operations
 
-Use the `Ecotone\Api\Gateway\GatheredGroups` gateway to `listOpenGroups(gatherChannelName)`,
-`listClosedGroups(gatherChannelName)`, `requestRelease(groupId)`, `discard(groupId)` or `cleanupClosedGroups()`.
+Use the `Ecotone\Api\Gateway\GatheredGroups` gateway to `listOpenGroups(endpointId)`,
+`listClosedGroups(endpointId)`, `requestRelease(groupId)`, `discard(groupId)` or `cleanupClosedGroups()`. Groups
+are listed by the gathered handler's `endpointId`, the same listing that shows
+[collected batches](message-collecting.md). A gathered handler therefore needs an explicit, stable `endpointId`;
+bootstrap refuses one without it. Listing a gather channel name instead is refused with the handler's endpoint
+id. Renaming the endpointId leaves its open groups listed only under the old id; release or discard them there.
+
+Each row contains `groupId`, `endpointId`, `groupKey` (null for a gathered group), `state`, `expectedSize` (the
+number of split parts), `recorded` (parts recorded so far), `missingPartNumbers`, `latePartCount`, `openedAt`,
+`deadline` (null without a timeout), `closedAt` and `releaseReason` (a `GatheredReleaseReason` value; null while open
+and for a discarded group). Times are Unix milliseconds.
 
 `requestRelease()` queues a trigger and returns no value. The console and Pulse display `release requested`.
 Consume the gathered handler's asynchronous channel to run the handler. A duplicate request or trigger for a
@@ -136,15 +146,15 @@ closes the group without invoking its handler.
 The same operations are available through:
 
 ```text
-ecotone:gathering:list import.summary
-ecotone:gathering:list import.summary --closed
+ecotone:gathering:list import.summary.handler
+ecotone:gathering:list import.summary.handler --closed
 ecotone:gathering:release <groupId>
 ecotone:gathering:discard <groupId>
 ecotone:gathering:cleanup
 ```
 
-Pulse's Gathering tab shows open and retained closed groups, accounted/missing parts, deadlines and late
-arrivals. Open groups offer Request release and Discard. The page reports `Release requested` while the
+Pulse's Gathering tab shows open and retained closed groups and collected batches in one table, with the fields
+above. Open groups offer Request release and Discard. The page reports `Release requested` while the
 handler is still waiting for its trigger; a service refusal is shown with its explanation.
 
 Timeouts require an asynchronous channel builder implementing `DelayedMessageChannelBuilder`. Bootstrap refuses
@@ -163,16 +173,19 @@ inspection. On these channels, checking and respecting the underlying transport'
 responsibility. Channel builders that do not implement `DelayedMessageChannelBuilder` are still refused when
 a gathered handler configures a timeout.
 
-Several consumers on the gathered handler's channel can conflict while recording reports for the same group.
-Each conflict sends exactly one replacement report with a new message id and returns normally. The replacement
-is consumed in a new transaction; it does not re-run the part work, consume the failure retry budget or enter
-the dead letter. There is no inline retry loop or backoff. A report can lose only to a committed version-changing
-write of its own group, so retries are bounded by group writes (parts, release or discard), rather than consumer
-count. One consumer on the gathered handler's channel avoids report-to-report conflicts.
+Several consumers recording reports for one group can conflict. A lost optimistic write throws
+`ConcurrencyException`; asynchronous endpoints running in a DBAL transaction retry instantly by default, each
+retry in a new transaction. This retries recording the report, without re-running the part work.
+An endpoint running without a database transaction (`withTransactionOnAsynchronousEndpoints(false)` or
+`#[WithoutDatabaseTransaction]`) is not retried by default: the conflicting report goes to the error channel.
+Turn its transaction back on, or configure delayed retries with `ErrorHandlerConfiguration`.
 
-On a transactional DBAL channel using the group store's connection, the replacement commits before the original
-is acknowledged. A crash between these steps can leave both deliveries; default message deduplication and the
-unique group-id/part-number identity keep completion safe.
+With several consumers on one hot group, the default three retries can run out. The message then follows the
+configured error channel and delayed retries and can wait in the dead letter until replayed. Raise the instant
+retry count with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 5)`,
+or run one consumer on the gathered handler's channel; give that handler its own channel when other handlers
+need more consumers. A redelivered original keeps its own message id, and
+the retained group-id/part-number identity prevents recording the same report twice.
 
 ## Deployment and connection selection
 

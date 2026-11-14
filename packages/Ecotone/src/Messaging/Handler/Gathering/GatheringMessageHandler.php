@@ -10,10 +10,8 @@ use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHandler;
-use Ecotone\Messaging\Support\FrameworkHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -38,7 +36,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 final class GatheringMessageHandler implements MessageHandler
 {
-    public function __construct(private MessageHandler $handler, private GatheredGroupStore $store, private MessageBuilder $messageBuilder, private ConversionService $conversionService, private ChannelResolver $channelResolver)
+    public function __construct(private MessageHandler $handler, private GatheredGroupStore $store, private MessageBuilder $messageBuilder, private ConversionService $conversionService)
     {
     }
 
@@ -66,8 +64,8 @@ final class GatheringMessageHandler implements MessageHandler
             foreach ($parts as $number => $part) {
                 $results[$number] = $part->getHeaders()->get(GatheringHeaders::NO_RESULT) ? null : $this->resultOf($part);
             }
-            $headers = FrameworkHeaders::unsetAllFrameworkHeaders($original->getHeaders()->headers());
-            foreach ([GatheringHeaders::GROUP_ID, GatheringHeaders::PART_NUMBER, GatheringHeaders::SIZE, GatheringHeaders::CHANNEL_NAME, MessageHeaders::MESSAGE_CORRELATION_ID, MessageHeaders::PARENT_MESSAGE_ID, MessageHeaders::TRACING_ID, MessageHeaders::TRACEPARENT, MessageHeaders::TRACESTATE] as $header) {
+            $headers = GatheringMessageContext::from($original);
+            foreach ([GatheringHeaders::GROUP_ID, GatheringHeaders::PART_NUMBER, GatheringHeaders::SIZE, GatheringHeaders::CHANNEL_NAME] as $header) {
                 if ($original->getHeaders()->containsKey($header)) {
                     $headers[$header] = $original->getHeaders()->get($header);
                 }
@@ -82,35 +80,16 @@ final class GatheringMessageHandler implements MessageHandler
         };
         $groupId = $message->getHeaders()->get(GatheringHeaders::GROUP_ID);
         if ($timeout || $manualRelease) {
-            if (! $this->store->releaseGroup($groupId, $whenReleased)) {
-                $this->redeliver($message);
-            }
+            $this->store->releaseGroup(groupId: $groupId, whenReleased: $whenReleased, releaseReason: $releaseReason);
 
             return;
         }
-        $recorded = $this->store->completePart(
+        $this->store->completePart(
             groupId: $groupId,
             partNumber: (int) $message->getHeaders()->get(GatheringHeaders::PART_NUMBER),
             report: $message,
             whenComplete: $whenReleased,
         );
-        if (! $recorded) {
-            $this->redeliver($message);
-        }
-    }
-
-    private function redeliver(Message $message): void
-    {
-        $headers = FrameworkHeaders::unsetNonUserKeys($message->getHeaders()->headers());
-        if ($message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
-            $headers[MessageHeaders::TYPE_ID] = $message->getHeaders()->get(MessageHeaders::TYPE_ID);
-        }
-        $replacement = $this->messageBuilder->withPayload($message->getPayload())
-            ->setMultipleHeaders($headers)
-            ->removeHeaders([MessageHeaders::MESSAGE_ID, MessageHeaders::TIMESTAMP, MessageHeaders::ROUTING_SLIP])
-            ->setContentType($message->getHeaders()->hasContentType() ? $message->getHeaders()->getContentType() : MediaType::createApplicationXPHP())
-            ->build();
-        $this->channelResolver->resolve($message->getHeaders()->get(GatheringHeaders::CHANNEL_NAME))->send($replacement);
     }
 
     private function resultOf(Message $part): mixed

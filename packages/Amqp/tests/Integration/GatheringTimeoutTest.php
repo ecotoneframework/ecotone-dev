@@ -61,7 +61,7 @@ final class GatheringTimeoutTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'));
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'));
     }
 
     public function test_gathered_timeout_trusts_custom_amqp_delay_strategy_unknown_maximum_as_unbounded(): void
@@ -98,7 +98,7 @@ final class GatheringTimeoutTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'));
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'));
     }
 
 }

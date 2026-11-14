@@ -47,21 +47,31 @@ final class GatheringConsoleCommands
         return ConsoleCommandResultSet::create(['Group id', 'Status'], [[$groupId, 'discarded']]);
     }
 
-    public function listGroups(string $gatherChannelName, bool $closed = false): ConsoleCommandResultSet
+    public function listGroups(string $endpointId, bool $closed = false): ConsoleCommandResultSet
     {
-        $groups = $closed ? $this->groups->listClosedGroups($gatherChannelName) : $this->groups->listOpenGroups($gatherChannelName);
+        $groups = $closed ? $this->groups->listClosedGroups($endpointId) : $this->groups->listOpenGroups($endpointId);
 
         return ConsoleCommandResultSet::create(
-            columnHeaders: ['Group id', 'State', 'Size', 'Accounted parts', 'Missing parts', 'Deadline', 'Late parts'],
+            columnHeaders: ['Group id', 'Endpoint id', 'Group key', 'State', 'Expected size', 'Recorded', 'Missing parts', 'Late parts', 'Opened at', 'Deadline', 'Closed at', 'Release reason'],
             rows: array_map(static fn (array $group): array => [
                 $group['groupId'],
+                $group['endpointId'],
+                $group['groupKey'] ?? '',
                 $group['state'],
-                $group['size'],
-                implode(', ', $group['accountedPartNumbers']),
+                $group['expectedSize'] ?? 'no expected size',
+                $group['recorded'],
                 implode(', ', $group['missingPartNumbers']),
-                $group['deadline'] === null ? '' : DatePoint::createFromTimestamp($group['deadline'] / 1000)->format(DATE_ATOM),
                 $group['latePartCount'],
+                self::formatted($group['openedAt']),
+                $group['deadline'] === null ? 'no deadline' : self::formatted($group['deadline']),
+                $group['closedAt'] === null ? '' : self::formatted($group['closedAt']),
+                $group['releaseReason'] ?? '',
             ], $groups),
         );
+    }
+
+    private static function formatted(int $milliseconds): string
+    {
+        return DatePoint::createFromTimestamp($milliseconds / 1000)->format(DATE_ATOM);
     }
 }

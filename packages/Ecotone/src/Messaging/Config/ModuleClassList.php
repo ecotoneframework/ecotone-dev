@@ -43,6 +43,7 @@ use Ecotone\Messaging\Channel\PollableChannel\Serialization\PollableChannelSeria
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\BasicMessagingModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ChannelInterceptor\ChannelInterceptorModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\CollectingModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConverterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\EndpointHeaders\EndpointHeadersInterceptorModule;
@@ -103,6 +104,7 @@ class ModuleClassList
         DistributedHandlerModule::class,
         DistributedBusWithServiceMapModule::class,
         PulseModule::class,
+        CollectingModule::class,
         AggregateModule::class,
         ServiceHandlerModule::class,
         EventTaggingModule::class,

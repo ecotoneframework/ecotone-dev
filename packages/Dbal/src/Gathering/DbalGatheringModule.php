@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Gathering;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -53,7 +54,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 final class DbalGatheringModule extends NoExternalConfigurationModule
 {
-    public function __construct(private bool $hasGatheringSplitters)
+    public function __construct(private bool $usesGatheringStorage)
     {
     }
 
@@ -65,12 +66,12 @@ final class DbalGatheringModule extends NoExternalConfigurationModule
             }
         }
 
-        return new self(false);
+        return new self($annotationRegistrationService->findAnnotatedMethods(Collected::class) !== []);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if (! $this->hasGatheringSplitters) {
+        if (! $this->usesGatheringStorage) {
             return;
         }
         $connectionReference = self::connectionReferenceOf($extensionObjects);
@@ -95,7 +96,7 @@ final class DbalGatheringModule extends NoExternalConfigurationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return $this->hasGatheringSplitters ? [new DbalTableManagerReference(GatheringTableManager::class, self::connectionReferenceOf($serviceExtensions)), new GatheredGroupStoreRegistration(DbalGatheredGroupStore::class)] : [];
+        return $this->usesGatheringStorage ? [new DbalTableManagerReference(GatheringTableManager::class, self::connectionReferenceOf($serviceExtensions)), new GatheredGroupStoreRegistration(DbalGatheredGroupStore::class)] : [];
     }
 
     private static function connectionReferenceOf(array $extensionObjects): string

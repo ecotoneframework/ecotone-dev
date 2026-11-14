@@ -41,6 +41,7 @@ final class GatheringSplitterProcessor implements MessageProcessor
         private string $splitterEndpointId,
         private GatheredGroupStore $store,
         private GatheringTimeouts $timeouts,
+        private GatheredHandlerEndpoints $gatheredHandlerEndpoints,
         private EcotoneClockInterface $clock,
     ) {
     }
@@ -57,6 +58,7 @@ final class GatheringSplitterProcessor implements MessageProcessor
         $deadline = $timeout === null ? null : $this->clock->now()->unixTime()->inMilliseconds() + $timeout;
         $this->store->openGroup(
             groupId: $groupId,
+            endpointId: $this->gatheredHandlerEndpoints->forChannel($this->gatherChannelName),
             gatherChannelName: $this->gatherChannelName,
             size: $size,
             original: $message,

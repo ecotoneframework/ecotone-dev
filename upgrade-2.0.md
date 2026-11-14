@@ -3963,8 +3963,16 @@ without the DBAL module, including framework kernels running in a test environme
 Run the gathered handler's consumer to process empty splits and release requests too. See
 [Message gathering](docs/message-gathering.md) for timeout, replay, nesting, retention and operations.
 
+Groups are listed by the gathered handler's `endpointId`, which must be explicit and stable:
+`GatheredGroups::listOpenGroups(endpointId)` / `listClosedGroups(endpointId)` and
+`ecotone:gathering:list <endpointId> [--closed]`, the same listing as collected batches.
 `GatheredGroups::requestRelease(groupId)` queues a manual release and returns no value; the group stays open
 until its gathered handler's consumer processes the trigger. Console and Pulse show `release requested`.
+
+Several consumers recording reports for one group can conflict. A lost optimistic write throws
+`ConcurrencyException`, and the default instant retries of an asynchronous endpoint running in a database
+transaction handle it, each attempt in a new transaction; after them it follows the configured error channel,
+delayed retries and dead letter. An endpoint without that transaction gets no default retry.
 
 Upgrade every consumer participating in a gathered flow before enabling `gatherChannelName`. Older workers
 acknowledge completed parts without reporting them to gathering, so mixed-version gathered flows remain incomplete.
@@ -3972,6 +3980,25 @@ The feature reserves `ecotone_gathering_*` message headers, `ecotone:gathering:*
 `ecotone.gathering.*` / `ecotone.pulse.gathering.*` channels. With an Enterprise licence, a plain splitter refuses
 a message carrying a gathering group header: give that nested splitter its own gather channel, or start a separate
 flow through a command/event bus hop.
+
+### Collect ordinary messages into a batch (Enterprise)
+
+**Before:** Ordinary asynchronous service handlers ran once per message.
+
+**Now:** Opt-in `#[Collected]` handlers receive a typed batch when it reaches its size limit or its first message
+reaches the waiting limit. Unmarked handlers retain their behavior. Batches are kept in the gathering tables, one
+open batch per endpoint and key, and a message already recorded for an endpoint is not recorded twice. Conflicts
+throw `ConcurrencyException` and use the default retries, as for gathering.
+
+**How to adapt:** No application change is required unless enabling collecting. Follow
+[the guide](docs/message-collecting.md): use explicit subscriptions and stable endpoint ids, configure DBAL and an
+Enterprise licence, and run `ecotone:migration:database:setup --initialize --feature=gathering` before the first
+message.
+
+The feature reserves `ecotone.collecting.*` container service identifiers. Batches are listed with
+`ecotone:gathering:list <endpointId>` and share `ecotone:gathering:release`, `discard` and `cleanup`. Upgrade every
+consumer before adding the marker: an older consumer invokes the handler with one ordinary payload and cannot supply
+the collected batch object.
 
 
 ## 15. Testing and developer-experience changes

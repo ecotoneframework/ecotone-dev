@@ -2,7 +2,6 @@
 
 namespace Ecotone\Messaging\Handler\ServiceActivator;
 
-use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
@@ -11,11 +10,8 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\LicenceDecider;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
-use Ecotone\Messaging\Handler\Gathering\GatheringMessageHandler;
+use Ecotone\Messaging\Handler\Gathering\GatheringHandlerCompiler;
 use Ecotone\Messaging\Handler\Gathering\PartCompletion;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -27,7 +23,6 @@ use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -149,21 +144,13 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder 
                 $chainedMessageProcessorBuilder->getInterceptedInterface()?->getName() ?? '',
             ]
         );
-        $interface = $chainedMessageProcessorBuilder->getInterceptedInterface();
-        if ($interface !== null && $builder->getInterfaceToCall($interface)->hasMethodAnnotation(Gathered::class)) {
-            $reference = 'ecotone.gathering.handler.' . $this->getEndpointId();
-            $builder->register($reference . '.core', $handler);
-            $builder->register($reference . '.enterprise', new Definition(GatheringMessageHandler::class, [
-                new Reference($reference . '.core'),
-                new Reference(GatheredGroupStore::class),
-                new Reference(MessageBuilder::class),
-                new Reference(ConversionService::class),
-                new Reference(ChannelResolver::class),
-            ]));
-            return $builder->register($reference, LicenceDecider::prepareDefinition(className: MessageHandler::class, openCoreServiceReference: $reference . '.core', enterpriseServiceReference: $reference . '.enterprise'));
-        }
-
-        return $handler;
+        return GatheringHandlerCompiler::compile(
+            builder: $builder,
+            handler: $handler,
+            interface: $chainedMessageProcessorBuilder->getInterceptedInterface(),
+            endpointId: $this->getEndpointId(),
+            inputChannelName: $this->getInputMessageChannelName(),
+        );
     }
 
     public function __toString(): string

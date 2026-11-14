@@ -40,37 +40,55 @@ final class InternalFlowBaselineTest extends TestCase
         rmdir($this->location);
     }
 
-    public function test_snapshot_command_stores_one_file_per_catalogue_scenario_and_the_same_bytes_when_run_again(): void
+    public function test_snapshot_command_replaces_a_location_with_one_file_per_catalogue_scenario_and_the_same_bytes_when_run_again(): void
     {
         $tooling = $this->tooling();
+
+        mkdir($this->location . '/second', recursive: true);
+        file_put_contents($this->location . '/second/a-scenario-that-was-removed.json', '{}');
+        file_put_contents($this->location . '/second/notes.txt', 'kept');
 
         $tooling->runConsoleCommand('ecotone:internal-flow:snapshot', ['location' => $this->location . '/first']);
         $tooling->runConsoleCommand('ecotone:internal-flow:snapshot', ['location' => $this->location . '/second']);
 
         $first = $this->filesIn($this->location . '/first');
         self::assertCount(count(FlowScenarioCatalogue::all()) + 1, $first);
-        self::assertSame($first, $this->filesIn($this->location . '/second'));
+        $second = $this->filesIn($this->location . '/second');
+        self::assertSame('kept', $second['notes.txt']);
+        unset($second['notes.txt']);
+        self::assertSame($first, $second);
         self::assertArrayHasKey('projection-rebuilt-asynchronously.json', $first);
         $rebuild = json_decode($first['projection-rebuilt-asynchronously.json'], true, flags: JSON_THROW_ON_ERROR);
         self::assertSame('projection rebuilt asynchronously', $rebuild['scenario']);
         self::assertContains('receive rebuild', array_column($rebuild['trace'], 'name'));
     }
 
-    public function test_wiring_every_application_gets_is_stored_once_and_a_scenario_stores_only_what_it_adds_to_it(): void
+    public function test_wiring_every_application_gets_is_stored_once_and_compared_as_part_of_every_scenario(): void
     {
-        $this->tooling()->runConsoleCommand('ecotone:internal-flow:snapshot', ['location' => $this->location]);
-
-        $files = $this->filesIn($this->location);
+        $tooling = $this->tooling();
+        $tooling->runConsoleCommand('ecotone:internal-flow:snapshot', ['location' => $this->location . '/before']);
+        $files = $this->filesIn($this->location . '/before');
         $shared = json_decode($files['shared-wiring.json'], true, flags: JSON_THROW_ON_ERROR);
         $rebuild = json_decode($files['projection-rebuilt-asynchronously.json'], true, flags: JSON_THROW_ON_ERROR);
 
         self::assertSame(['formatVersion', 'wiring'], array_keys($shared));
-        self::assertContains('gateway:Ecotone\Api\Gateway\CommandBus::send', array_column($shared['wiring']['nodes'], 'id'));
-        self::assertNotContains('gateway:Ecotone\Api\Gateway\CommandBus::send', array_column($rebuild['wiring']['nodes'], 'id'));
+        self::assertContains('gateway:Ecotone\\Api\\Gateway\\CommandBus::send', array_column($shared['wiring']['nodes'], 'id'));
+        self::assertNotContains('gateway:Ecotone\\Api\\Gateway\\CommandBus::send', array_column($rebuild['wiring']['nodes'], 'id'));
         self::assertContains('projection:orders', array_column($rebuild['wiring']['nodes'], 'id'));
         self::assertContains('channel:rebuild', array_column($rebuild['wiring']['nodes'], 'id'));
         self::assertSame(['nodes', 'edges', 'withoutNodes', 'withoutEdges'], array_keys($rebuild['wiring']));
         self::assertLessThan(strlen($files['shared-wiring.json']) / 2, strlen($files['projection-rebuilt-asynchronously.json']));
+
+        mkdir($this->location . '/after');
+        foreach ($files as $name => $content) {
+            file_put_contents($this->location . '/after/' . $name, $name === 'shared-wiring.json' ? str_replace('"label":"CommandBus::send"', '"label":"CommandBus::dispatch"', $content) : $content);
+        }
+        $tooling->runConsoleCommand('ecotone:internal-flow:compare', ['from' => $this->location . '/before', 'to' => $this->location . '/after', 'presentation' => 'json']);
+        $comparison = json_decode($tooling->getInMemoryConsoleWriter()->getWrittenContent(), true, flags: JSON_THROW_ON_ERROR);
+
+        self::assertCount(1, $comparison['groups']);
+        self::assertCount(count(FlowScenarioCatalogue::all()), $comparison['groups'][0]['scenarios']);
+        self::assertSame(['gateway:Ecotone\\Api\\Gateway\\CommandBus::send'], array_column(array_column($comparison['groups'][0]['wiring']['changed']['nodes'], 'after'), 'id'));
     }
 
     public function test_check_command_passes_on_snapshots_the_code_produces_and_names_every_snapshot_that_differs(): void
@@ -94,18 +112,6 @@ final class InternalFlowBaselineTest extends TestCase
         );
 
         $tooling->runConsoleCommand('ecotone:internal-flow:check', ['location' => $this->location]);
-    }
-
-    public function test_snapshot_command_removes_the_snapshot_of_a_scenario_the_catalogue_no_longer_has(): void
-    {
-        mkdir($this->location, recursive: true);
-        file_put_contents($this->location . '/a-scenario-that-was-removed.json', '{}');
-        file_put_contents($this->location . '/notes.txt', 'kept');
-
-        $this->tooling()->runConsoleCommand('ecotone:internal-flow:snapshot', ['location' => $this->location]);
-
-        self::assertFileDoesNotExist($this->location . '/a-scenario-that-was-removed.json');
-        self::assertFileExists($this->location . '/notes.txt');
     }
 
     private function tooling(): FlowTestSupport

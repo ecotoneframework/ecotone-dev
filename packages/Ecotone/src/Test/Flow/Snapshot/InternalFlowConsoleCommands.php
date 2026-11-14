@@ -62,4 +62,12 @@ final class InternalFlowConsoleCommands
 
         $writer->success('All ' . (count($files) - 1) . " flow snapshots in {$location} match what the code produces");
     }
+
+    #[ConsoleCommand('ecotone:internal-flow:compare', 'Framework development: prints what changed between the snapshots stored in two locations, cut to the changed parts; scenarios whose change is identical are grouped')]
+    public function compare(ConsoleWriter $writer, #[ConsoleParameterOption] string $from, #[ConsoleParameterOption] string $to, #[ConsoleParameterOption] string $presentation = 'json'): void
+    {
+        $comparison = FlowSnapshotComparison::between((new FlowSnapshots($from))->all(), (new FlowSnapshots($to))->all());
+
+        $writer->write($comparison->toJson());
+    }
 }

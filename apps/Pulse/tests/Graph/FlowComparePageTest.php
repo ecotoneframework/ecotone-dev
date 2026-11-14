@@ -116,19 +116,35 @@ final class FlowComparePageTest extends ReleasingWebTestCase
         self::assertCount(1, $crawler->filter(sprintf('[data-diagram-node="%s"][data-change="added"]', $pointed)));
     }
 
-    public function test_a_node_whose_attributes_differ_is_marked_changed_with_what_differs(): void
+    public function test_a_renamed_endpoint_is_one_changed_node_with_unchanged_arrows(): void
     {
         $this->configurePulseWithServices('orders');
-        $orders = $this->ordersPlacingAndRefunding();
-        $orders->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
-        file_put_contents($this->location . '/1.0.0.json', str_replace('order.place.handler', 'order.place.before', (string) file_get_contents($this->location . '/1.0.0.json')));
+        $before = new class () {
+            #[CommandHandler('order.place', endpointId: 'order.place.handler')]
+            public function place(array $payload): void
+            {
+            }
+        };
+        $after = new class () {
+            #[CommandHandler('order.place', endpointId: 'order.place.handler')]
+            public function renamed(array $payload): void
+            {
+            }
+        };
+        $extensions = [FlowVersionsConfiguration::createWithLocation($this->location)];
+        $this->distributedService('orders', $before, DistributedServiceMap::initialize(), $extensions)->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
+        $orders = $this->distributedService('orders', $after, DistributedServiceMap::initialize(), $extensions);
         $client = $this->pulseWebClient();
         $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
 
         $crawler = $this->compared($client, $orders, '/flow/compare?service=orders');
 
         self::assertSame(['Command handler · changed'], $this->nodesMarked($crawler, 'changed'));
-        self::assertStringContainsString('endpointId: "order.place.before" → "order.place.handler"', $crawler->filter('[data-compare-change="changed"]')->text());
+        self::assertSame([], $this->nodesMarked($crawler, 'added'));
+        self::assertSame([], $this->nodesMarked($crawler, 'removed'));
+        self::assertCount(1, $crawler->filter('[data-compare-change]'));
+        self::assertStringContainsString('method: "place" → "renamed"', $crawler->filter('[data-compare-change="changed"]')->text());
+        self::assertCount(0, $crawler->filter('[data-diagram-edge][data-change]'));
     }
 
     public function test_two_stored_versions_are_compared_with_each_other(): void

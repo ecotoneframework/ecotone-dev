@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Laravel;
 
+use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Laravel\Queue\LaravelQueueAcknowledgementCallback;
 use Ecotone\Laravel\Queue\LaravelQueueMessageChannel;
 use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
@@ -24,8 +26,18 @@ use Illuminate\Support\Facades\Config;
 /**
  * licence Apache-2.0
  */
-final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder, FinalFailureStrategyChannelBuilder
+final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder, FinalFailureStrategyChannelBuilder, DelayedMessageChannelBuilder
 {
+    public function supportsDelayedMessages(): bool
+    {
+        return true;
+    }
+
+    public function maximumDelay(): ?TimeSpan
+    {
+        return null;
+    }
+
     private HeaderMapper $headerMapper;
 
     private function __construct(

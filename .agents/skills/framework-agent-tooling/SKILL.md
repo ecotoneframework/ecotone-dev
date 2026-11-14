@@ -76,6 +76,7 @@ service"), never by naming the rule, so the case also proves the skill is found 
 | `licence-header` | `php bin/check-licence.php` | licence header on every `src` file |
 | `suite-parity` | `php bin/check-suite-parity.php` | root and per-package phpunit configs agree |
 | `monorepo-shards` | `php bin/check-monorepo-shards.php` | every test suite of `phpunit.xml.dist` belongs to exactly one shard of `.github/monorepo-shards.json` |
+| `framework-transactions` | `php bin/check-framework-transactions.php` | framework `src`/`Api` opens no database transaction outside the listed boundaries and exceptions |
 | `phpstan` | `vendor/bin/phpstan` | level 3 over `src` and `Api/` |
 | `contribution-terms` | `.github/workflows/contribution-check.yml` | the PR body's contribution checkbox |
 

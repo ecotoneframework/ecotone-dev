@@ -385,7 +385,6 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
             new Reference($className),
             new InterfaceToCallReference($className, $methodName),
             $commandName,
-            true,
             $interfaceToCallRegistry,
             $description
         );

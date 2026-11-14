@@ -195,7 +195,6 @@ final class DatabaseSetupModule implements AnnotationModule
             new Reference($className),
             new InterfaceToCallReference($className, $methodName),
             $commandName,
-            true,
             $interfaceToCallRegistry,
             $description
         );

@@ -50,6 +50,22 @@ it, in its own short transaction like the dead letter.
   one database write outside it records a failure the error channel already took, in its own transaction.
 - **Verified by:** `eval:store-feature-state`
 
+### 16d. Framework code opens no transaction; the boundaries do
+A database transaction is opened only where a message enters: the command bus (or a gateway marked
+`#[DbalTransaction]`), the asynchronous endpoint (polling consumer or inbound channel adapter) and the console
+command. A store, a handler processor or a module's service never calls `transactional()`, `transaction()` or
+`beginTransaction()`; it runs in the caller's transaction, so a user who switches a boundary's transaction off
+(`DbalConfiguration::withTransactionOn*`) gets none, also around their own handler. A console command a module
+registers carries `ConsoleCommand` automatically and so gets the console transaction. Work that must not sit
+inside one long boundary transaction keeps it short instead: a batched console command runs with
+`#[WithoutDatabaseTransaction]`, a consumer loop (`ecotone:run`) is registered
+`withoutConsoleCommandInterception()`, and code that opens its own, like projections (per batch), is listed with
+its reason in `bin/check-framework-transactions.php`.
+- **Expected:** new framework storage code relies on the boundary transaction instead of wrapping its writes or a
+  user callback in `transactional()`/`beginTransaction()`; a module's console command keeps the console
+  transaction unless its work is batched or long-running, and then opts out with `#[WithoutDatabaseTransaction]`.
+- **Verified by:** `check:framework-transactions`, `eval:framework-store-transaction`
+
 ### 16b. No DDL in a command, event or asynchronous flow
 Every table — Ecotone's and a projection's — is migrated before the first message, through console commands or
 the application's migrations. Nothing a remote request triggers creates, alters or drops one.
@@ -64,4 +80,4 @@ MySQL and MariaDB implicitly commit on DDL, so a PostgreSQL or SQLite run cannot
 
 ## References
 
-- [references/rules.md](references/rules.md) — rules 8, 9, 16, 16a, 16b in full.
+- [references/rules.md](references/rules.md) — rules 8, 9, 16, 16a, 16b, 16d in full.

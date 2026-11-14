@@ -5,6 +5,8 @@ namespace Ecotone\Api\Amqp;
 use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\Amqp\Pulse\AmqpChannelDepthProbe;
+use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Ecotone\Messaging\Channel\DepthProbedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
@@ -14,8 +16,18 @@ use Ecotone\Messaging\Config\Container\Reference;
 /**
  * licence Apache-2.0
  */
-class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection, DepthProbedMessageChannelBuilder
+class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection, DepthProbedMessageChannelBuilder, DelayedMessageChannelBuilder
 {
+    public function supportsDelayedMessages(): bool
+    {
+        return true;
+    }
+
+    public function maximumDelay(): ?TimeSpan
+    {
+        return null;
+    }
+
     private string $channelName;
     private string $amqpConnectionReferenceName;
     private string $queueName;

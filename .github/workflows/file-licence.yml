@@ -31,3 +31,6 @@ jobs:
         shell: bash
         run: |
           php bin/check-licence.php
+
+      - name: Check framework code opens no transaction outside the boundaries
+        run: php bin/check-framework-transactions.php

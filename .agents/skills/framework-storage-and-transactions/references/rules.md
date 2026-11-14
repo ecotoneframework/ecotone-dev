@@ -208,3 +208,66 @@ and `deleteProjection` console commands out of the DBAL transaction for the same
 
 ---
 
+
+## 16d. Framework code opens no transaction; the boundaries do
+
+The transaction belongs to the place a message enters Ecotone: the command bus (and a gateway marked
+`#[DbalTransaction]`), the asynchronous endpoint (polling consumer, inbound channel adapter) and the console
+command. The event bus, query bus and other gateways open none: framework code reached from them directly runs
+without a transaction, which is the user's choice of entry point. `DbalTransactionModule`
+wraps each of them by default and `DbalConfiguration::withTransactionOnCommandBus()`,
+`withTransactionOnAsynchronousEndpoints()` and `withTransactionOnConsoleCommands()` switch them off. Everything the
+framework does on the message path - a store's read-check-write, closing a group, recording a part, calling the
+application's handler - runs inside that one transaction, so it commits or rolls back with the message.
+
+A store that wraps its own writes in `transactional()` adds nothing while the boundary transaction is open (DBAL
+nests it as a savepoint). When the user switched the boundary transaction off, it opens one anyway, and if a user
+callback runs inside it, the framework holds a transaction around arbitrary application code (HTTP calls, slow
+work) on exactly the path the user asked to run without one.
+
+Wrong - the store opens a transaction and runs the application's handler inside it:
+
+```php
+return $connection->transactional(function () use ($groupId, $whenComplete): bool {
+    $this->closeGroup($groupId);
+    $whenComplete($parts);            // the user's #[Gathered] handler, inside a framework transaction
+    return true;
+});
+```
+
+Right - the store relies on the consumer's transaction; with the default configuration the close and the handler
+still commit or roll back together:
+
+```php
+$this->closeGroup($groupId);
+$whenComplete($parts);
+return true;
+```
+
+Idempotency that used to lean on a savepoint (swallowing a duplicate-key error inside a nested transaction) becomes a
+plain existence check before the insert, with the unique key left as the final guard: a concurrent duplicate fails
+the delivery and its retry sees the row.
+
+A console command a module registers (`ConsoleCommandModule::prepareConsoleCommandForReference()`, or a handler plus
+`ConsoleCommandConfiguration`) carries the `ConsoleCommand` endpoint annotation automatically
+(`MessagingSystemConfiguration::markConsoleCommandHandlers()`), so the console transaction and every other
+console-command interceptor apply to it like to an application `#[ConsoleCommand]`.
+
+The exceptions keep a transaction short where the boundary's would be long-running or wrong:
+
+- projections commit per batch (`ProjectingManager`, projection state storage), and their init, delete and backfill
+  commands run without the console transaction;
+- `ecotone:deduplication:remove-expired-messages` and `ecotone:tracing:remove-expired-traces` delete in short
+  batches, so their handlers carry `#[WithoutDatabaseTransaction]`: they still run as console commands (tenant
+  activation, application interceptors), only without the one long transaction;
+- `ecotone:run` runs a consumer loop in which each message gets its own transaction, and `ecotone:list` only reads
+  configuration, so both are registered with `ConsoleCommandConfiguration::withoutConsoleCommandInterception()` and
+  no console-command interceptor wraps them;
+- the outbox forwarder claims a batch in its own consumer loop; traces and Pulse tracking are written outside the
+  message transaction they describe; a time-boxed schema read scopes `SET LOCAL` and always rolls back; an Eloquent
+  aggregate save keeps its version claim and write as one unit (its own short transaction, or a savepoint inside the
+  boundary's); driver adapters implement the connection's
+  transaction API.
+
+`bin/check-framework-transactions.php` lists each of them with its reason and refuses any other `transactional()`,
+`transaction()`, `beginTransaction()` or `wrapInTransaction()` call under `packages/*/src` and `packages/*/Api`.

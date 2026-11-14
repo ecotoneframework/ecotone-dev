@@ -47,6 +47,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConverterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\EndpointHeaders\EndpointHeadersInterceptorModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorHandlerModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\GatheringModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessageConsumerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands\MessagingCommandsModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
@@ -128,6 +129,7 @@ class ModuleClassList
         SerializerModule::class,
         ServiceActivatorModule::class,
         SplitterModule::class,
+        GatheringModule::class,
         TransformerModule::class,
         OrchestratorModule::class,
         MessageConsumerModule::class,
@@ -167,6 +169,7 @@ class ModuleClassList
     ];
 
     public const DBAL_MODULES = [
+        'Ecotone\Dbal\Gathering\DbalGatheringModule',
         DbalBatchForwardingModule::class,
         DbalConnectionModule::class,
         DbalDeadLetterModule::class,

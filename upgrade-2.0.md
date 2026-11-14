@@ -2781,6 +2781,31 @@ once it is due, where before a delay shorter than the receive timeout was waited
 being handled in the same run; run again, or bound the run with `--executionTimeLimit` and no
 `--finishWhenNoMessages`.
 
+### Every console command a module registers runs as a console command
+
+**Before:** a console command registered by a module rather than by `#[ConsoleCommand]` carried the
+`ConsoleCommand` endpoint annotation only when the module asked for it. `ecotone:deduplication:remove-expired-messages`
+and `ecotone:tracing:remove-expired-traces` did not, so no `ConsoleCommand` interceptor ran for them: an application
+interceptor with `pointcut: ConsoleCommand::class` did not wrap them, and a `--header tenant:<name>` did not
+activate that tenant around them.
+
+**Now:** every registered console command carries `ConsoleCommand`, so the console command's interceptors wrap it
+like an application `#[ConsoleCommand]`. The two cleanup commands still run without the console command's database
+transaction (`#[WithoutDatabaseTransaction]`), because they delete in short batches. `ecotone:run` and `ecotone:list`
+are not wrapped by any `ConsoleCommand` interceptor, as before: a consumer gives each message its own transaction.
+
+The same holds for a console command your own module registers from code, as a handler plus
+`ConsoleCommandConfiguration` or through `ConsoleCommandModule::prepareConsoleCommandForReference()`: it now runs in
+the console command's database transaction (and the AMQP one, when enabled for console commands), where before it
+ran with none unless the module asked for `ConsoleCommand`. `prepareConsoleCommandForReference()` no longer takes the
+`$discoverableByConsoleCommandAttribute` argument.
+
+**How to adapt:** nothing, unless an interceptor with `pointcut: ConsoleCommand::class` must not run for the two
+cleanup commands; narrow its pointcut to the commands it is for. A module command doing batched or long work adds
+`#[WithoutDatabaseTransaction]` to its handler's endpoint annotations; one that must not be treated as a console
+command at all is registered with `ConsoleCommandConfiguration::withoutConsoleCommandInterception()`. Drop the
+fourth argument from `prepareConsoleCommandForReference()` calls.
+
 ### A DBAL channel consumer waits through Ecotone's clock
 
 **Before:** a DBAL channel consumer polling an empty queue slept in real time between its polls, whatever clock the
@@ -3868,6 +3893,39 @@ Unreachable, and is asked again once the 60 seconds after which a snapshot stops
 
 **How to adapt:** nothing is required. A service that replies to Pulse over AMQP or SQS needs Pulse to have started
 consuming its reply channel first; until then the reply fails with the exception above, goes through the service's instant retries and error handling like any failure of a handler, and the request is processed again once Pulse's queue exists.
+
+### Split, work, gather (Enterprise)
+
+**Before:** Split parts could be processed independently, but coordinating their results required application
+storage and completion logic.
+
+**Now:** A splitter may name `gatherChannelName` and target an ordinary asynchronous handler marked
+`#[Gathered]`. The handler receives typed `GatheredParts` once the parts are accounted for, or when an optional
+timeout/manual-release trigger is consumed. Failed parts remain missing until successful replay. DBAL groups
+are durable; closed groups retain late-arrival notes until cleanup. Pulse adds a Gathering view and release /
+discard operations. Existing splitters without a gather channel retain their behaviour.
+
+**How to adapt:** No change is needed for existing split flows. To adopt gathering, add the gather channel,
+`#[Gathered]` and `#[Asynchronous]`, receive `Ecotone\Api\Messaging\GatheredParts`, configure its asynchronous
+channel, install `ecotone/dbal`, enable `ModulePackageList::DBAL_PACKAGE` in EcotoneLite's `enabledModules` or
+`'dbal'` in `enabledModulePackageNames`, configure its connection, and run
+`ecotone:migration:database:setup --initialize --feature=gathering` before the first message (or generate SQL for
+your own migrations with `--sql --feature=gathering`). Bootstrap without test configuration refuses gathering
+without the DBAL module, including framework kernels running in a test environment;
+`EcotoneLite::bootstrapFlowTesting()` still supports in-memory gathering without DBAL.
+Run the gathered handler's consumer to process empty splits and release requests too. See
+[Message gathering](docs/message-gathering.md) for timeout, replay, nesting, retention and operations.
+
+`GatheredGroups::requestRelease(groupId)` queues a manual release and returns no value; the group stays open
+until its gathered handler's consumer processes the trigger. Console and Pulse show `release requested`.
+
+Upgrade every consumer participating in a gathered flow before enabling `gatherChannelName`. Older workers
+acknowledge completed parts without reporting them to gathering, so mixed-version gathered flows remain incomplete.
+The feature reserves `ecotone_gathering_*` message headers, `ecotone:gathering:*` console commands, and
+`ecotone.gathering.*` / `ecotone.pulse.gathering.*` channels. With an Enterprise licence, a plain splitter refuses
+a message carrying a gathering group header: give that nested splitter its own gather channel, or start a separate
+flow through a command/event bus hop.
+
 
 ## 15. Testing and developer-experience changes
 

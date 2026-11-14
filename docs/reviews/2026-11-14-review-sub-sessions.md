@@ -22,3 +22,10 @@ finding. The developer-experience session returned NO USER-FACING SURFACE.
 - V5 (nit). A later push to an open PR does not say whether its reviews resume the earlier sessions.
 - V6 (nit). Over several fix rounds the range should start at the last commit that session verified.
 - V7 (nit). Only the open-pr eval case grades P3a.
+
+## Second round, on the fixes (commit 2db80a5d7), from the resumed sessions
+- G4 (nit). P3 asks for the numbered lists to be committed, but its *Expected* does not.
+- V8 (should fix). After a rebase or a merge from `main`, `<last verified sha>..HEAD` is wrong or pulls in main.
+- V9 (should fix). P3 still opens with "start four separate review sessions" and the update-open-pr grader still
+  expects fresh sessions, against P3a's resume on a later push. The eval re-run failed that grader (0.50).
+- V10 (nit). Whether a fix adds user-facing surface was left for the implementer to judge.

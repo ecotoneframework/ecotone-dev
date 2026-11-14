@@ -34,7 +34,8 @@ downstream suites for a core change, `php bin/check-licence.php`, `php bin/check
 - **Verified by:** `eval:open-pr`
 
 ### P3. Four independent reviews report back before anything is pushed
-Before every `git push` and `gh pr create`, start **four separate review sessions** automatically: the agent
+Before every `git push` and `gh pr create`, run **four separate review sessions** automatically, started for the
+first push of a branch and resumed for a later one while they still can be (rule P3a): the agent
 launches them itself, without asking whether to, every time the branch is about to be published. That includes a
 push to a pull request that is already open (new commits, a merge from `main`, a rebase), and a request worded
 "now", "just push" or "create the PR now", which asks for no further questions, not for no reviews (the
@@ -59,9 +60,10 @@ parallel: the guidelines, breaking-changes and developer-experience sessions onl
 runs anything it executes in its own worktree (`git worktree add`), so no session changes the tree another is
 reading and no two test suites share the compose services. Keep the four sub-sessions open until the branch is
 pushed and the pull request is merged: rule P3a resumes them.
-- **Expected:** the agent launches four separate review sub-sessions (one per review skill), each starting from a
-  fresh context, on its own, without asking, and waits for all four reports before pushing or opening the PR, also
-  when the PR is already open or the user asks for it "now"; it does not review the change itself in place of them.
+- **Expected:** the agent runs four separate review sub-sessions (one per review skill), each started from a fresh
+  context or, for a later push, resumed, on its own, without asking; it waits for all four reports and commits
+  their numbered findings before fixing or pushing, also when the PR is already open or the user asks for it "now";
+  it does not review the change itself in place of them.
 - **Verified by:** `eval:open-pr`, `eval:update-open-pr`
 
 ### P3a. A fix is re-verified by resuming the review sub-sessions
@@ -70,13 +72,14 @@ accept, commit, then resume the same sub-sessions; do not start new ones for the
 yourself. A resumed session already holds the diff, the rules it loaded and its own numbered findings, so it is
 given only the commits since the last one it verified (`git diff <last verified sha>..HEAD`) and asked two things:
 is each of its findings resolved, and does the new code break a rule it checks. Resume every session, also one
-that raised nothing, because the fix commits are new code no session has seen; only a developer-experience
-session that returned `NO USER-FACING SURFACE` is left alone when the fix adds no such surface. A resumed behaviour
-session first moves its own worktree to the new head and runs the affected tests again (and `bin/test-agent-skills`
-when the fix touched a skill). Repeat after each further fix, until no session reports a BLOCKING finding; only
-then push. A session that can no longer be resumed is replaced by a new one, which is given the whole range
-(`git diff main...HEAD`) and the committed numbered findings. A later push to the same pull request resumes the
-same sub-sessions with its new commits while they can still be resumed, and starts new ones otherwise.
+that raised nothing or returned `NO USER-FACING SURFACE`, because the fix commits are new code no session has seen.
+A resumed behaviour session first moves its own worktree to the new head and runs the affected tests again (and
+`bin/test-agent-skills` when the fix touched a skill). Repeat after each further fix, until no session reports a
+BLOCKING finding; only then push. A session that can no longer be resumed is replaced by a new one, which is given
+the whole range (`git diff main...HEAD`) and the committed numbered findings. A later push to the same pull request
+resumes the same sub-sessions while they can still be resumed, and starts new ones otherwise; after a rebase or a
+merge from `main` the last verified commit no longer bounds the branch's own changes, so the resumed sessions are
+given the whole range (`git diff main...HEAD`) again.
 - **Expected:** after fixing review findings the agent resumes the review sub-sessions with the commits since the
   last one each verified, and repeats until none reports a BLOCKING finding before pushing; it does not start a
   fresh review for the re-check, re-verify the fix itself, or push on the strength of the fix alone.

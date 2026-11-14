@@ -86,7 +86,7 @@ final class CollectingTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') requires an Ecotone Enterprise licence. Provide licenceKey in the framework configuration or EcotoneLite, start a trial at https://ecotone.tech/pricing, or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') requires an Ecotone Enterprise licence. Provide your licence key as `licenceKey` in the Symfony, Laravel or Tempest Ecotone configuration, or as the `licenceKey:` argument of EcotoneLite, or start a trial at https://ecotone.tech/pricing. Alternatively, remove #[Collected].");
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),

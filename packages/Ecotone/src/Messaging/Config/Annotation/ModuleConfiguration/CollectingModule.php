@@ -149,7 +149,7 @@ final class CollectingModule extends NoExternalConfigurationModule
     private function validateLicence(bool $enterprise, string $handlerDescription): void
     {
         if (! $enterprise) {
-            throw LicensingException::create("Collected handler {$handlerDescription} requires an Ecotone Enterprise licence. Provide licenceKey in the framework configuration or EcotoneLite, start a trial at https://ecotone.tech/pricing, or remove #[Collected].");
+            throw LicensingException::create("Collected handler {$handlerDescription} requires an Ecotone Enterprise licence. Provide your licence key as `licenceKey` in the Symfony, Laravel or Tempest Ecotone configuration, or as the `licenceKey:` argument of EcotoneLite, or start a trial at https://ecotone.tech/pricing. Alternatively, remove #[Collected].");
         }
     }
 

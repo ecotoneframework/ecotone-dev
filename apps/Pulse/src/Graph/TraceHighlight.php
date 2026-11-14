@@ -227,7 +227,8 @@ final readonly class TraceHighlight
             return 'send ' . $node->kind->value === $row['name'] && ServiceFlow::routingKeyOf($node) === $row['destination'];
         }
         if ($row['function'] !== null && $node->kind->isHandler() && isset($node->attributes['class'], $node->attributes['method'])) {
-            return $row['function'] === $node->attributes['class'] . '::' . $node->attributes['method'];
+            return $row['function'] === $node->attributes['class'] . '::' . $node->attributes['method']
+                && ($endpoint === '' || ($node->attributes['endpointId'] ?? null) === null);
         }
 
         return false;

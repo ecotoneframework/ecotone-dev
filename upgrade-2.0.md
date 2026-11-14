@@ -4001,6 +4001,32 @@ consumer before adding the marker: an older consumer invokes the handler with on
 the collected batch object.
 
 
+### Store the message flow as versions and compare them (Enterprise)
+
+**Before:** `ecotone:flow:dump` printed the message flow graph of the running code, in the order it was discovered,
+and nothing compared one dump with another.
+
+**Now:** registering `Ecotone\Api\Messaging\Flow\FlowVersionsConfiguration::createWithLocation(__DIR__ .
+'/../flow-versions')` from a `#[ServiceContext]` method gives the application a directory of flow versions.
+`ecotone:flow:store <label>` writes the current graph there as `<label>.json`, with nodes, edges and attributes
+sorted, so the same code always stores the same file. `ecotone:flow:versions` lists them from the earliest stored.
+`ecotone:flow:compare` reports the added, removed and changed nodes and edges between the latest stored version (or
+`--from`) and the current code (or the stored version `--to`), as text, `--format=json` or `--format=mermaid` with the
+changes coloured; `--failOnChange` makes it fail when anything differs. `MessageFlowGraph::compareTo()` returns the
+same comparison as a `FlowComparison` in code. A node is matched by its id and an edge by its kind, ends and target, so
+a renamed class or method is one removal and one addition.
+
+A service that also registers `PulseConfiguration` answers `ecotone.pulse.flow_versions.list` (replying `queryId`,
+`configured` and `versions`, each with `label`, `storedAt`, `nodes` and `edges`) and
+`ecotone.pulse.flow_versions.version` (taking `{"label": "1.4.0"}` and replying `queryId`, `label`, `storedAt` and
+`graph`), to the Pulse service only; Pulse draws two versions as one graph from them and stores nothing itself.
+
+**How to adapt:** nothing is required. To use it, register the configuration with an absolute path (a relative one, a
+second configuration, or a configuration without an Enterprise licence is refused at bootstrap), commit the directory
+with the application so the deployed service can list it, and store a version on each release. Without the
+configuration the three commands refuse to run and name it, and `ecotone:flow:dump` is unchanged.
+
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them

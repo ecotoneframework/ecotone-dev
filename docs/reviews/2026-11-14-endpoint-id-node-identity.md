@@ -38,6 +38,7 @@ in the implementation worktree. Two BLOCKING findings (G1, V1). Fix every item t
   explicit `endpointId`; bootstrap accepts it, and the graph merges both methods into one node, losing the
   factory's inferred edges. Coordinator's decision: when one explicit endpoint id is declared on more than one
   method, those nodes keep their class-and-method ids. Add a test.
+  Withdrawn: bootstrap rejects a shared explicit endpoint id, in BusRoutingMapBuilder for the same routing key and MessagingSystemConfiguration for different keys.
 - V3 (should fix). "Unchanged arrows" is proved only on a bare handler. Add one rename fixture whose handler is
   asynchronous, intercepted, has an inferred emits edge, and is an aggregate or saga event handler, and assert no
   edge is added or removed.

@@ -10,7 +10,6 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Modelling\AggregateNotFoundException;
 use Ecotone\Messaging\Support\FrameworkHeaders;
-use Ecotone\Modelling\AggregateMessage;
 use WeakMap;
 
 /**
@@ -38,15 +37,7 @@ class MessageHeadersPropagatorInterceptor
         if ($propagateHeaders !== null && ! $propagateHeaders->doPropagation) {
             $userlandHeaders = [];
         } else {
-            $userlandHeaders = FrameworkHeaders::unsetAllFrameworkHeaders($message->getHeaders()->headers());
-            unset(
-                $userlandHeaders[AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER],
-                $userlandHeaders[AggregateMessage::AGGREGATE_ID],
-                $userlandHeaders[AggregateMessage::CALLED_AGGREGATE_CLASS],
-                $userlandHeaders[AggregateMessage::CALLED_AGGREGATE_INSTANCE],
-                $userlandHeaders[AggregateMessage::CALLED_AGGREGATE_COUNTER_CAPTURED_AT_LOAD],
-                $userlandHeaders[AggregateMessage::TARGET_VERSION],
-            );
+            $userlandHeaders = FrameworkHeaders::unsetHeadersNotPropagatedToFollowingMessages($message->getHeaders()->headers());
             $userlandHeaders[MessageHeaders::MESSAGE_ID] = $message->getHeaders()->getMessageId();
             $userlandHeaders[MessageHeaders::MESSAGE_CORRELATION_ID] = $message->getHeaders()->getCorrelationId();
         }

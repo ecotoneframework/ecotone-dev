@@ -42,6 +42,17 @@ final class FrameworkHeaders
         return self::unsetAggregateKeys($metadata);
     }
 
+    public static function unsetHeadersNotPropagatedToFollowingMessages(array $metadata): array
+    {
+        $metadata = self::unsetAllFrameworkHeaders($metadata);
+        unset(
+            $metadata[AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER],
+            $metadata[AggregateMessage::AGGREGATE_ID],
+        );
+
+        return $metadata;
+    }
+
     public static function unsetNonUserKeys(array $metadata): array
     {
         $metadata = self::unsetEnqueueMetadata($metadata);

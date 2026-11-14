@@ -6,6 +6,8 @@ namespace Ecotone\Messaging\Handler\Gathering;
 
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Messaging\Handler\Recoverability\DelayedRetryErrorHandler;
 use Ecotone\Messaging\Support\FrameworkHeaders;
 
 /**
@@ -31,7 +33,10 @@ final class GatheringMessageContext
 {
     public static function from(Message $message): array
     {
-        $headers = FrameworkHeaders::unsetAllFrameworkHeaders($message->getHeaders()->headers());
+        $headers = FrameworkHeaders::unsetHeadersNotPropagatedToFollowingMessages($message->getHeaders()->headers());
+        foreach ([DelayedRetryErrorHandler::ECOTONE_RETRY_HEADER, ErrorContext::DLQ_MESSAGE_REPLIED, ...ErrorContext::WHOLE_ERROR_CONTEXT] as $recoveryHeader) {
+            unset($headers[$recoveryHeader]);
+        }
         foreach ([MessageHeaders::MESSAGE_CORRELATION_ID, MessageHeaders::PARENT_MESSAGE_ID, MessageHeaders::TRACING_ID, MessageHeaders::TRACEPARENT, MessageHeaders::TRACESTATE] as $header) {
             if ($message->getHeaders()->containsKey($header)) {
                 $headers[$header] = $message->getHeaders()->get($header);

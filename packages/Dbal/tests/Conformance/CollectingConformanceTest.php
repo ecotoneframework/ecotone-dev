@@ -6,6 +6,10 @@ namespace Test\Ecotone\Dbal\Conformance;
 
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\ChannelInterceptor;
 use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -1129,6 +1133,10 @@ final class CollectingConformanceTest extends TestCase
             MessageHeaders::DELIVERY_DELAY => 1000,
             MessageHeaders::TIME_TO_LIVE => 60000,
             MessageHeaders::PRIORITY => 5,
+            'aggregate.id' => 'order-1',
+            'ecotone.modelling.aggregate.id' => 'order-1',
+            'ecotone_retry_number' => 2,
+            ErrorContext::DLQ_MESSAGE_REPLIED => '1',
             'label' => 'first',
         ]);
         $ecotone->advanceTimeBy(new TimeSpan(seconds: 1));
@@ -1141,9 +1149,48 @@ final class CollectingConformanceTest extends TestCase
         foreach ([$handler->batchHeaders[0], $handler->outputHeaders[0]] as $headers) {
             self::assertSame('first', $headers['label']);
             self::assertNotSame($originalId, $headers[MessageHeaders::MESSAGE_ID]);
-            foreach ([MessageHeaders::ROUTING_SLIP, MessageHeaders::DELIVERY_DELAY, MessageHeaders::TIME_TO_LIVE, MessageHeaders::PRIORITY, MessageHeaders::REPLY_CHANNEL] as $excluded) {
+            foreach ([MessageHeaders::ROUTING_SLIP, MessageHeaders::DELIVERY_DELAY, MessageHeaders::TIME_TO_LIVE, MessageHeaders::PRIORITY, MessageHeaders::REPLY_CHANNEL, 'aggregate.id', 'ecotone.modelling.aggregate.id', 'ecotone_retry_number', ErrorContext::DLQ_MESSAGE_REPLIED] as $excluded) {
                 self::assertArrayNotHasKey($excluded, $headers);
             }
+        }
+    }
+
+    #[DataProvider('implementations')]
+    public function test_max_wait_timer_does_not_carry_the_first_messages_retry_or_replay_markers(bool $durable): void
+    {
+        $handler = new class () {
+            public array $consumedHeaders = [];
+
+            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+
+            #[Around(pointcut: AsynchronousRunningEndpoint::class)]
+            public function recordConsumed(MethodInvocation $invocation, #[Headers] array $headers): mixed
+            {
+                $this->consumedHeaders[] = $headers;
+                return $invocation->proceed();
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect', 'first', metadata: [
+            'ecotone_retry_number' => 2,
+            ErrorContext::DLQ_MESSAGE_REPLIED => '1',
+            'aggregate.id' => 'order-1',
+            'label' => 'first',
+        ]);
+        $ecotone->run('batches');
+        $handler->consumedHeaders = [];
+        $ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
+        $ecotone->run('batches');
+
+        self::assertCount(1, $handler->consumedHeaders);
+        self::assertSame('first', $handler->consumedHeaders[0]['label']);
+        foreach (['ecotone_retry_number', ErrorContext::DLQ_MESSAGE_REPLIED, 'aggregate.id'] as $excluded) {
+            self::assertArrayNotHasKey($excluded, $handler->consumedHeaders[0]);
         }
     }
 

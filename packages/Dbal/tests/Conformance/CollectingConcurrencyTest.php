@@ -6,6 +6,7 @@ namespace Test\Ecotone\Dbal\Conformance;
 
 use Closure;
 use DateTimeImmutable;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Ecotone\Api\Attribute\Around;
@@ -43,6 +44,7 @@ use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -81,6 +83,146 @@ final class CollectingConcurrencyTest extends TestCase
     {
         yield 'append' => [false];
         yield 'manual_release' => [true];
+    }
+
+    public function test_same_message_delivered_twice_at_once_while_its_batch_closes_is_a_lost_write_and_collected_once_after_replay(): void
+    {
+        $connection = new DbalConnectionFactory(getenv('DATABASE_DSN'));
+        if ($connection->establishConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('The stale-snapshot race requires PostgreSQL, MySQL or MariaDB.');
+        }
+        $connection->establishConnection()->setTransactionIsolation(TransactionIsolationLevel::REPEATABLE_READ);
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 1, groupBy: 'payload["key"]')]
+            #[Asynchronous('duplicate_collecting')]
+            #[CommandHandler('collect.duplicate', endpointId: 'collect.duplicate.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = array_column(array_column($batch->messages, 'payload'), 'value');
+            }
+        };
+        $interleaving = new class () {
+            public ?Closure $compete = null;
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
+            public function deliverTheSameMessageElsewhere(MethodInvocation $invocation, #[Reference] DocumentStore $documents): mixed
+            {
+                if ($this->compete !== null) {
+                    $documents->getAllDocuments('collecting_duplicate_snapshot');
+                    $compete = $this->compete;
+                    $this->compete = null;
+                    $compete();
+                }
+                return $invocation->proceed();
+            }
+        };
+        $extensions = [SimpleMessageChannelBuilder::createQueueChannel('duplicate_collecting'), DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)];
+        $first = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, $interleaving::class],
+            containerOrAvailableServices: [$handler, $interleaving, DbalConnectionFactory::class => $connection],
+            extensionObjects: $extensions,
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $second = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: $extensions,
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $key = bin2hex(random_bytes(16));
+        $messageId = bin2hex(random_bytes(16));
+        $interleaving->compete = static function () use ($second, $key, $messageId): void {
+            $second->sendCommandWithRouting('collect.duplicate', ['key' => $key, 'value' => 'duplicate'], metadata: [MessageHeaders::MESSAGE_ID => $messageId]);
+            $second->run('duplicate_collecting');
+        };
+        $first->sendCommandWithRouting('collect.duplicate', ['key' => $key, 'value' => 'duplicate'], metadata: [MessageHeaders::MESSAGE_ID => $messageId]);
+        $first->run('duplicate_collecting', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false)->withExecutionAmountLimit(1));
+
+        $deadLetters = $first->getGateway(DeadLetterGateway::class);
+        $failure = array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => $failure->getMessageId() === $messageId));
+        self::assertCount(1, $failure);
+        self::assertSame(ConcurrencyException::class, $failure[0]->getExceptionClass());
+        $deadLetters->replay($messageId);
+        $first->run('duplicate_collecting');
+
+        self::assertSame([['duplicate']], $handler->batches);
+        self::assertSame([], array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => $failure->getMessageId() === $messageId)));
+        self::assertSame([], array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenBatches('collect.duplicate.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key)));
+        self::assertCount(1, array_filter($first->getGateway(GatheredGroups::class)->listClosedBatches('collect.duplicate.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key));
+    }
+
+    public function test_lock_wait_timeout_surfaces_as_itself_rather_than_as_a_lost_optimistic_write(): void
+    {
+        $connection = new DbalConnectionFactory(getenv('DATABASE_DSN'));
+        $platform = $connection->establishConnection()->getDatabasePlatform();
+        if ($platform instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite serialises writers with a database-wide lock instead of row locks.');
+        }
+        $connection->establishConnection()->executeStatement($platform instanceof PostgreSQLPlatform ? "SET lock_timeout = '1s'" : 'SET SESSION innodb_lock_wait_timeout = 1');
+        $handler = new class () {
+            #[Collected(maxSize: 100, groupBy: 'payload["key"]')]
+            #[Asynchronous('locked_collecting')]
+            #[CommandHandler('collect.locked', endpointId: 'collect.locked.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $holder = new class () {
+            public ?Closure $whileHoldingTheLock = null;
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
+            public function holdTheBatchLock(MethodInvocation $invocation): mixed
+            {
+                $result = $invocation->proceed();
+                if ($this->whileHoldingTheLock !== null) {
+                    $whileHoldingTheLock = $this->whileHoldingTheLock;
+                    $this->whileHoldingTheLock = null;
+                    $whileHoldingTheLock();
+                }
+                return $result;
+            }
+        };
+        $extensions = [SimpleMessageChannelBuilder::createQueueChannel('locked_collecting'), DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)];
+        $waiting = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $connection],
+            extensionObjects: $extensions,
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $locking = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, $holder::class],
+            containerOrAvailableServices: [$handler, $holder, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: $extensions,
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $key = bin2hex(random_bytes(16));
+        $locking->sendCommandWithRouting('collect.locked', ['key' => $key, 'value' => 'seed']);
+        $locking->run('locked_collecting');
+        $failure = null;
+        $holder->whileHoldingTheLock = static function () use ($waiting, $key, &$failure): void {
+            $waiting->sendCommandWithRouting('collect.locked', ['key' => $key, 'value' => 'waiting']);
+            try {
+                $waiting->run('locked_collecting', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+            } catch (Throwable $exception) {
+                $failure = $exception;
+            }
+        };
+        $locking->sendCommandWithRouting('collect.locked', ['key' => $key, 'value' => 'holder']);
+        $locking->run('locked_collecting');
+
+        self::assertInstanceOf(Throwable::class, $failure);
+        self::assertNotInstanceOf(ConcurrencyException::class, $failure);
+        self::assertMatchesRegularExpression('/lock/i', $failure->getMessage());
     }
 
     #[DataProvider('exhaustedOperations')]

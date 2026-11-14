@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Gathering;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Exception\RetryableException;
+use Doctrine\DBAL\Exception\DeadlockException;
+use Doctrine\DBAL\Exception\LockWaitTimeoutException;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\CollectedReleaseReason;
@@ -120,7 +122,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 }
             }
         } catch (Throwable $failure) {
-            if ($failure instanceof RetryableException) {
+            if (self::isLostOptimisticWrite($failure)) {
                 throw ConcurrencyException::forGatheredGroup($group['group_id'] ?? $groupId ?? $endpointId);
             }
             throw MissingTableFailure::explained($failure, $this->tableManager);
@@ -196,7 +198,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 }
             }
         } catch (Throwable $failure) {
-            if ($failure instanceof RetryableException) {
+            if (self::isLostOptimisticWrite($failure)) {
                 throw ConcurrencyException::forGatheredGroup($groupId);
             }
             throw MissingTableFailure::explained($failure, $this->tableManager);
@@ -238,7 +240,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 $parts[(int) $part['part_number']] = $this->messages->decode($part['report']);
             }
         } catch (Throwable $failure) {
-            if ($failure instanceof RetryableException) {
+            if (self::isLostOptimisticWrite($failure)) {
                 throw ConcurrencyException::forGatheredGroup($groupId);
             }
             throw MissingTableFailure::explained($failure, $this->tableManager);
@@ -322,5 +324,19 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         assert($context instanceof DbalContext);
 
         return $context->getDbalConnection();
+    }
+
+    private static function isLostOptimisticWrite(Throwable $failure): bool
+    {
+        for ($cause = $failure; $cause !== null; $cause = $cause->getPrevious()) {
+            if ($cause instanceof LockWaitTimeoutException) {
+                return false;
+            }
+            if ($cause instanceof DeadlockException || $cause instanceof UniqueConstraintViolationException) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

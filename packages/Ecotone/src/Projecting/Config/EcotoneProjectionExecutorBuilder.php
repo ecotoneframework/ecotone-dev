@@ -28,6 +28,7 @@ use Ecotone\Projecting\EnterpriseProjectionNameHeader;
 use Ecotone\Projecting\OpenCoreProjectionNameHeader;
 use Ecotone\Projecting\ProjectingHeaders;
 use Ecotone\Projecting\ProjectionNameHeader;
+use Ecotone\Projecting\ProjectionOperationEndpoint;
 
 class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
 {
@@ -163,7 +164,7 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
 
     public function backfillCompletionChannelName(): ?string
     {
-        return $this->backfillCompletionChannelName ?? $this->backfillAsyncChannelName;
+        return ProjectionOperationEndpoint::completionChannelOf($this->backfillCompletionChannelName, $this->backfillAsyncChannelName);
     }
 
     public function rebuildPartitionBatchSize(): int
@@ -178,7 +179,7 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
 
     public function rebuildCompletionChannelName(): ?string
     {
-        return $this->rebuildCompletionChannelName ?? $this->rebuildAsyncChannelName;
+        return ProjectionOperationEndpoint::completionChannelOf($this->rebuildCompletionChannelName, $this->rebuildAsyncChannelName);
     }
 
     public function isOpenSourceEligible(): bool

@@ -150,7 +150,7 @@ final class PulseTrackings
 
     /**
      * @param list<array{projectionName: string, operation: string, groupId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, openedAt: int, closedAt: ?int, releaseReason: ?string}> $openGroups
-     * @return array<string, array{failed: list<array{batch: int, deadLetterMessageId: string}>, waiting: list<array{batch: int, deadLetterMessageId: string}>}> per group id: failed batches, and batches whose record waits
+     * @return array<string, array{failed: list<array{batch: int, deadLetterMessageId: string}>, waiting: list<array{batch: int, deadLetterMessageId: string}>}>
      */
     private function deadLettersOf(array $openGroups): array
     {

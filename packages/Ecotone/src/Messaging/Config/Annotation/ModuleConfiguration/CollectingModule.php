@@ -96,6 +96,10 @@ final class CollectingModule extends NoExternalConfigurationModule
 
     private function validateHandlerKind(InterfaceToCall $interface, array $handlers, string $handlerDescription): void
     {
+        $handlerCount = count($handlers) + ($interface->hasMethodAnnotation(QueryHandler::class) ? 1 : 0);
+        if ($handlerCount > 1) {
+            throw ConfigurationException::create("Collected handler {$handlerDescription} has {$handlerCount} handler attributes. A collected method must have exactly one #[CommandHandler], #[EventHandler] or #[InternalHandler]. Keep one handler attribute, move the other handler to a separate method, or remove #[Collected].");
+        }
         if ($interface->hasMethodAnnotation(Gathered::class)) {
             throw ConfigurationException::create("Collected handler {$handlerDescription} also has #[Gathered]: collecting ordinary messages and gathering split parts cannot share a handler. Remove #[Gathered] to collect ordinary messages, or remove #[Collected] to gather split parts.");
         }

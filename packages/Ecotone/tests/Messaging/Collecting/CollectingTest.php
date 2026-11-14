@@ -560,4 +560,25 @@ final class CollectingTest extends TestCase
         self::assertSame([['third']], $handler->second);
     }
 
+    public function test_collected_method_with_two_handler_attributes_is_refused_at_bootstrap(): void
+    {
+        $handler = new class () {
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect.command', endpointId: 'collect.command.handler')]
+            #[EventHandler(listenTo: 'collect.event', endpointId: 'collect.event.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.command.handler') has 2 handler attributes. A collected method must have exactly one #[CommandHandler], #[EventHandler] or #[InternalHandler]. Keep one handler attribute, move the other handler to a separate method, or remove #[Collected].");
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+    }
+
 }

@@ -71,7 +71,7 @@ Keep the title under 70 characters, concise and descriptive.
 - Ask the user using AskUserQuestion: "Do you agree to the contribution terms outlined in CONTRIBUTING.md?" with options:
   - "Yes, I agree" — Mark the checkbox with `[X]`
   - "No" — Leave the checkbox empty `[]`
-- If agreed: `- [X] I have read and agree to the contribution terms outlined in [CONTRIBUTING](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md)`
+- If agreed: `- [ ] I have read and agree to the contribution terms outlined in [CONTRIBUTING](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md)`
 - If not agreed: `- [] I have read and agree to the contribution terms outlined in [CONTRIBUTING](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md)`
 
 ### Step 4: Review with User
@@ -82,10 +82,10 @@ Present the complete PR content (title + body) to the user for review. Ask if th
 
 Before anything is pushed, run the [checklist](checklist.md) and start, without asking, the four independent review
 sub-sessions of [framework-pull-request rule P3](../SKILL.md#p3-four-independent-reviews-report-back-before-anything-is-pushed).
-Wait for all four reports and fix every BLOCKING finding (or get the maintainer's decision on it). Then resume the
-sub-session that raised each fixed finding with the fix commits
-([rule P3a](../SKILL.md#p3a-a-fix-is-re-verified-by-resuming-the-sub-session-that-raised-the-finding)), and continue
-only when it reports no BLOCKING finding.
+Wait for all four reports, commit their numbered findings, and fix every BLOCKING finding (or get the maintainer's
+decision on it) and every SHOULD-FIX finding you accept. Then resume the sub-sessions with the fix commits
+([rule P3a](../SKILL.md#p3a-a-fix-is-re-verified-by-resuming-the-review-sub-sessions)), and continue only when none
+reports a BLOCKING finding.
 
 ### Step 5: Create the PR
 
@@ -103,15 +103,18 @@ gh pr create --title "feat: description here" --body "$(cat <<'EOF'
 
 ## Pull Request Contribution Terms
 
-- [X] I have read and agree to the contribution terms outlined in [CONTRIBUTING](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md).
+- [ ] I have read and agree to the contribution terms outlined in [CONTRIBUTING](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md).
 EOF
 )"
 ```
 
+The box is ticked (`- [X]`) only after the user has said they agree to the terms (rule P4).
+
 Push the branch first if needed (`git push -u origin <branch-name>`).
 
 A later push to the open PR (a fix, a merge from `main`, a rebase) goes through Step 4b again first: the checklist
-and the four reviews of the new diff, started automatically, before `git push`.
+and the four reviews of the new commits, before `git push`: the earlier sub-sessions resumed while they still can
+be, new ones started automatically otherwise.
 
 Return the PR URL when done.
 

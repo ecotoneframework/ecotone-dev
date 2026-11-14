@@ -52,28 +52,33 @@ terms, and the skill to load:
 | Behaviour | `framework-review-behaviour` | the feature solves the problem, tests cover it, its edge cases and its combinations with existing features |
 | Developer experience | `framework-review-developer-experience` | the change is simple for an end user: declarative configuration, sensible and resilient defaults, names that explain the feature |
 
-Each session reports findings ranked BLOCKING / SHOULD-FIX / NIT with file and line. The developer-experience
+Each session reports numbered findings (G1, B1, V1, D1, ...) ranked BLOCKING / SHOULD-FIX / NIT with file and line.
+Commit the numbered lists before fixing anything (`framework-design-and-briefs` rule D4). The developer-experience
 session may instead return `NO USER-FACING SURFACE` with no findings, which is a complete report. Run them in
 parallel: the guidelines, breaking-changes and developer-experience sessions only read, and the behaviour session
 runs anything it executes in its own worktree (`git worktree add`), so no session changes the tree another is
 reading and no two test suites share the compose services. Keep the four sub-sessions open until the branch is
-pushed: rule P3a resumes them.
+pushed and the pull request is merged: rule P3a resumes them.
 - **Expected:** the agent launches four separate review sub-sessions (one per review skill), each starting from a
   fresh context, on its own, without asking, and waits for all four reports before pushing or opening the PR, also
   when the PR is already open or the user asks for it "now"; it does not review the change itself in place of them.
 - **Verified by:** `eval:open-pr`, `eval:update-open-pr`
 
-### P3a. A fix is re-verified by resuming the sub-session that raised the finding
+### P3a. A fix is re-verified by resuming the review sub-sessions
 Fix every BLOCKING finding (or get the maintainer's explicit decision on it) and every SHOULD-FIX finding you
-accept, commit, then resume the same sub-session that raised each finding. It already holds the diff, the rules it
-loaded and its own numbered findings, so it is given only the fix commits (`git diff <reviewed sha>..HEAD`) and
-asked two things: is each of its findings resolved, and did the fix break a rule it checks. Do not start a new
-session for the re-check and do not judge the fix yourself. Resume again after each further fix, until the
-session reports no BLOCKING finding; only then push. A sub-session that can no longer be resumed is replaced by a
-new one, which is handed the committed numbered findings (`framework-design-and-briefs` rule D4) along with the
-fix commits. A session that had no finding touched by the fixes is not resumed.
-- **Expected:** after fixing review findings the agent resumes the review sub-session that raised them, passing it
-  the fix commits, and repeats until that session reports no BLOCKING finding before pushing; it does not start a
+accept, commit, then resume the same sub-sessions; do not start new ones for the re-check and do not judge the fix
+yourself. A resumed session already holds the diff, the rules it loaded and its own numbered findings, so it is
+given only the commits since the last one it verified (`git diff <last verified sha>..HEAD`) and asked two things:
+is each of its findings resolved, and does the new code break a rule it checks. Resume every session, also one
+that raised nothing, because the fix commits are new code no session has seen; only a developer-experience
+session that returned `NO USER-FACING SURFACE` is left alone when the fix adds no such surface. A resumed behaviour
+session first moves its own worktree to the new head and runs the affected tests again (and `bin/test-agent-skills`
+when the fix touched a skill). Repeat after each further fix, until no session reports a BLOCKING finding; only
+then push. A session that can no longer be resumed is replaced by a new one, which is given the whole range
+(`git diff main...HEAD`) and the committed numbered findings. A later push to the same pull request resumes the
+same sub-sessions with its new commits while they can still be resumed, and starts new ones otherwise.
+- **Expected:** after fixing review findings the agent resumes the review sub-sessions with the commits since the
+  last one each verified, and repeats until none reports a BLOCKING finding before pushing; it does not start a
   fresh review for the re-check, re-verify the fix itself, or push on the strength of the fix alone.
 - **Verified by:** `eval:open-pr`
 

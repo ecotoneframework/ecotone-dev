@@ -19,12 +19,17 @@ tables and operations hold a run (design rule D1).
 - The group's `endpointId` is `<projection>.rebuild` or `<projection>.backfill`. An application handler with the
   same `endpointId` is refused at bootstrap, naming the projection, the handler and the ways out.
 - The group id is derived from the prepare message id and that `endpointId`, as the gathering splitter derives
-  it, so a redelivered prepare message finds its group through the store's existence check.
+  it. The prepare step runs in the process that starts the run (a direct channel), inside the caller's
+  transaction, so a failed prepare rolls back with its group; there is no queued prepare message to redeliver.
 - The group key is the prepare message's tracing id. Pulse matches a run it started by that key. The group key
   hash stays empty, so collecting's open-slot uniqueness never applies to a run and two runs never merge.
 - The size is the number of batches. An empty projection opens a zero-size group; it closes when its completion
   is consumed on the completion channel, like gathering's empty split (not at prepare time).
 - A second rebuild while a run is open opens its own group; both complete independently, as two runs did before.
+- Batches sent to the asynchronous channel, and the completion of an empty run, carry the request's headers that
+  the framework propagates to following messages (the tenant of a multi-tenant application, user metadata);
+  framework headers such as the id, routing, reply channel and delivery delay are not copied. Before, batches lost
+  the tenant and a multi-tenant asynchronous rebuild failed on its first batch.
 
 Each batch message is consumed by the existing `partition_batch_executor_handler`, which reports its part through
 the existing `PartCompletion` when `executeBatch` returns: the report is a message on the run's gather channel
@@ -38,8 +43,8 @@ sends carry no gathering headers, so a batch is counted only when all its partit
 The internal gathered handler is asynchronous on the run's `asyncChannelName` by default (maintainer decision
 M3). `completionChannelName` on `#[ProjectionRebuild]` and `#[ProjectionBackfill]` names a separate channel for
 it. Naming `completionChannelName` without `asyncChannelName` is refused when the attribute is read, naming both
-ways out. Because the completion endpoint is attached to the asynchronous channel, a rebuild or backfill channel
-that is declared but not registered is now refused at bootstrap by the existing missing-channel error.
+ways out. An `asyncChannelName` or `completionChannelName` that is not registered as a message channel is refused at
+bootstrap, naming the projection, the attribute, the parameter and the ways out.
 
 ## Failure and conflicts
 
@@ -71,9 +76,14 @@ Ecotone Pulse reads a run from its group, also when no traces are stored: `Pulse
 started (matched by group key) and the asynchronous runs started from the console (listed from their groups,
 `startedFrom: console`). Each entry carries `batchesDone` (recorded parts), `batchCount` (group size),
 `missingBatches`, `failedBatches` (the batch number and dead-letter message id of each batch whose message is in
-the dead letter, found by its gathering group header), `groupId`, the start and, when closed, the duration. The
-state is `done` when the group is closed, `failed` when a batch is in the dead letter, otherwise `running`. A run
-whose group was removed by retention is `done`. A synchronous run is `done` once its tracking exists: the
+the dead letter, found by its gathering group header), `groupId`, the start and, when closed, the duration. A part report that exhausted its retries is listed in
+`batchesWaitingToBeRecorded`: its batch was projected and its record waits in the dead letter, so it is not a failed
+batch. The state is `done` when the group closed with every part, `discarded` or `released` when an operator
+discarded or released it by hand (with the batches not done), `failed` when a batch is in the dead letter (Pulse
+labels it as waiting for the replay), otherwise `running`. A run whose group was removed by retention is `done`.
+The service reports each projection's effective completion channel (`rebuildCompletionChannel`,
+`backfillCompletionChannel`); while a run's reports queue behind its batches on a shared channel with nothing
+recorded yet, Pulse shows the running time and how `completionChannelName` shows progress instead of a 0% bar. A synchronous run is `done` once its tracking exists: the
 tracking is written in the run's transaction, so a failed synchronous run leaves none
 (`test_a_failed_synchronous_rebuild_leaves_no_tracking`). The span-derived progress and the
 `ecotone_projecting_rebuild_batch_number|batch_count|partition_count` headers are removed. The run's group is
@@ -97,10 +107,14 @@ page stays at `0 of N` until every batch has been executed, then advances as the
 | Failure and replay | `failed_batch_stays_missing_until_it_is_replayed_from_the_dead_letter`, `replayed_batch_completes_the_rebuild` |
 | No header leak into partitions | `batch_failing_after_its_first_partition_is_not_counted_as_done` |
 | Graceful shutdown | `stop_signal_during_a_rebuild_batch_lets_the_batch_finish_and_leaves_the_next_batch_on_the_channel`, `stop_signal_during_a_backfill_batch_lets_each_partition_of_the_batch_finish` |
-| Durable storage | `run_group_survives_application_restart`, `asynchronous_rebuild_with_dbal_is_accepted_without_test_configuration` |
+| Durable storage | `run_group_survives_application_restart`, `asynchronous_rebuild_with_dbal_is_accepted_without_test_configuration`, `asynchronous_rebuild_without_durable_storage_is_refused_outside_flow_testing_with_the_ways_out`, `asynchronous_backfill_without_durable_storage_is_refused_outside_flow_testing_with_the_ways_out` |
+| Both stores | `asynchronous_projection_rebuild_is_one_group_under_its_endpoint_id_that_closes_once` (in-memory and DBAL) |
+| Unregistered channels | `an_unregistered_rebuild_channel_is_refused_naming_the_attribute_and_the_ways_out`, `an_unregistered_backfill_channel_is_refused_naming_the_attribute_and_the_ways_out`, `an_unregistered_completion_channel_is_refused_naming_the_attribute_and_the_ways_out` |
+| Two stream filters | `rebuild_of_a_projection_reading_two_streams_counts_the_batches_of_both_and_completes_once` |
+| Multi-tenancy and metadata | `asynchronous_rebuild_of_a_tenant_completes_in_that_tenants_group_and_is_listed_for_that_tenant_only`, `metadata_of_a_rebuild_request_reaches_its_batches_while_framework_headers_do_not` |
 | Pulse progress without traces | `rebuild_progress_counts_executed_batches_without_stored_traces` |
-| Pulse states | `a_rebuild_through_the_projection_rebuild_channel_is_running_until_its_batch_is_handled`, `a_rebuild_batch_in_the_dead_letter_is_failed_and_links_its_dead_letter`, `a_replayed_rebuild_batch_completes_the_tracked_rebuild`, `a_rebuild_started_from_the_console_is_listed_from_its_group`, `a_synchronous_rebuild_started_from_the_console_is_not_listed`, `the_group_of_a_rebuild_is_listed_in_the_gathering_snapshot_under_its_endpoint_id` |
-| Pulse pages | `a_rebuild_with_a_failed_batch_shows_the_batch_with_its_dead_letter_and_the_batches_not_done_yet`, `a_running_rebuild_of_a_projection_without_partitions_shows_zero_batches_and_is_not_failed`, `a_rebuild_whose_failed_batch_was_replayed_shows_done_with_every_batch`, `a_rebuild_started_from_the_console_is_shown_without_a_trace`, `group_opened_between_two_seconds_shows_the_second_it_opened_in` |
+| Pulse states | `a_rebuild_through_the_projection_rebuild_channel_is_running_until_its_batch_is_handled`, `a_rebuild_batch_in_the_dead_letter_is_failed_and_links_its_dead_letter`, `a_replayed_rebuild_batch_completes_the_tracked_rebuild`, `a_rebuild_started_from_the_console_is_listed_from_its_group`, `a_synchronous_rebuild_started_from_the_console_is_not_listed`, `the_group_of_a_rebuild_is_listed_in_the_gathering_snapshot_under_its_endpoint_id`, `a_discarded_rebuild_is_not_shown_as_done`, `a_rebuild_released_by_hand_with_batches_missing_is_not_shown_as_done`, `a_batch_whose_record_waits_in_the_dead_letter_is_executed_and_not_failed`, `a_pulse_started_rebuild_beyond_the_listing_limit_is_not_listed_as_started_from_the_console`, `a_rebuild_whose_group_was_removed_by_retention_is_done` |
+| Pulse pages | `a_running_rebuild_of_a_projection_without_partitions_shows_zero_batches_and_is_not_failed`, `a_rebuild_whose_failed_batch_was_replayed_shows_done_with_every_batch`, `a_rebuild_started_from_the_console_is_shown_without_a_trace`, `group_opened_between_two_seconds_shows_the_second_it_opened_in`, `a_rebuild_with_a_failed_batch_waits_for_its_replay_and_links_its_dead_letter`, `a_rebuild_with_a_failed_batch_and_a_batch_still_queued_names_only_the_queued_one_as_not_done`, `a_running_rebuild_whose_records_queue_behind_its_batches_shows_its_running_time_and_how_to_see_progress`, `a_running_rebuild_with_a_separate_completion_channel_shows_its_batches_from_the_first_one`, `a_discarded_rebuild_is_shown_as_discarded_with_the_batches_not_done`, `a_rebuild_released_by_hand_is_shown_as_released_with_the_batches_not_done`, `a_batch_whose_record_waits_in_the_dead_letter_is_shown_done_and_links_the_record`, `a_failed_console_rebuild_of_one_batch_links_its_failed_batch`, `recent_operations_show_the_state_as_a_pill_and_a_short_start_time_with_the_full_one_in_its_datetime` |
 
 The real-database race runs on PostgreSQL, MySQL and MariaDB and is skipped on SQLite, like gathering's races.
 `apps/Pulse/tests/Accessibility/projection-runs.mjs` drives the same run through Pulse in a real browser against

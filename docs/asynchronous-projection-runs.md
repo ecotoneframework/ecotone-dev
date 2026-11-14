@@ -49,8 +49,10 @@ the application is refused at bootstrap with the names of both.
 A run must survive restarts and be shared between consumers, so it is stored by the DBAL module in the gathering
 tables. Create them before the first run with `ecotone:migration:database:setup --initialize --feature=gathering`,
 or generate the SQL for your migrations with `--sql --feature=gathering`. Outside `EcotoneLite::bootstrapFlowTesting()`,
-an application with an asynchronous rebuild or backfill and no DBAL module is refused at bootstrap. The channel
-named in `asyncChannelName` must be registered, or the application is refused at bootstrap.
+an application with an asynchronous rebuild or backfill and no DBAL module is refused at bootstrap. The channels
+named in `asyncChannelName` and `completionChannelName` must be registered, or the application is refused at
+bootstrap with the attribute and the parameter named. Batches carry the request's metadata, so a rebuild started
+for a tenant of a multi-tenant application runs in that tenant.
 
 ## Completion channel
 

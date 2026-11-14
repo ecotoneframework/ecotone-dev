@@ -29,6 +29,8 @@ final readonly class ProjectionStatus
         public ?string $initializeCommand,
         public ?string $asyncChannel,
         public ?array $partitions,
+        public ?string $rebuildBatchCompletionChannel,
+        public ?string $backfillBatchCompletionChannel,
     ) {
     }
 
@@ -128,14 +130,43 @@ final readonly class ProjectionStatus
         return $this->changedSecondsAgo === null ? null : self::spoken($this->changedSecondsAgo) . ' ago';
     }
 
+    public function recordsQueueBehindBatches(): bool
+    {
+        $operation = $this->latestRebuild;
+        if ($operation === null || ! $operation->isRunning() || ($operation->batchCount ?? 0) === 0) {
+            return false;
+        }
+        [$batches, $completions] = $operation->kind === Rebuild::BACKFILL ? [$this->backfillAsyncChannel, $this->backfillBatchCompletionChannel] : [$this->rebuildAsyncChannel, $this->rebuildBatchCompletionChannel];
+
+        return $batches !== null && $batches === $completions;
+    }
+
+    public function nothingRecordedBehindQueuedBatches(): bool
+    {
+        return $this->recordsQueueBehindBatches() && $this->latestRebuild?->batchesDone === 0;
+    }
+
+    public function queuedBatchesChannel(): ?string
+    {
+        return $this->latestRebuild?->kind === Rebuild::BACKFILL ? $this->backfillAsyncChannel : $this->rebuildAsyncChannel;
+    }
+
+    public function runAttribute(): string
+    {
+        return $this->latestRebuild?->kind === Rebuild::BACKFILL ? '#[ProjectionBackfill]' : '#[ProjectionRebuild]';
+    }
+
     private function runningExplanation(): string
     {
         $operation = $this->latestRebuild;
         if ($operation === null) {
             return 'it is running.';
         }
-        if ($this->partitioned && $operation->batchCount) {
-            return sprintf('%d%% done, %d of %d batches.', $operation->percent(), $operation->batchesDone, $operation->batchCount);
+        if ($this->nothingRecordedBehindQueuedBatches()) {
+            return sprintf('running for %s.', $operation->elapsed() ?? '0s');
+        }
+        if ($this->partitioned && $operation->hasBatchCount()) {
+            return sprintf('%d%% done, %d of %d batches%s.', $operation->percent(), $operation->batchesDone, $operation->batchCount, $this->recordsQueueBehindBatches() ? ' recorded' : '');
         }
 
         return sprintf('running for %s.', $operation->elapsed() ?? '0s');
@@ -143,6 +174,10 @@ final readonly class ProjectionStatus
 
     private function upToDateExplanation(): string
     {
+        $unfinished = $this->latestRebuild?->unfinishedLabel();
+        if ($unfinished !== null) {
+            return sprintf('event positions are caught up; %s.', $unfinished);
+        }
         if ($this->partitions === null) {
             return 'no event is left to project.';
         }

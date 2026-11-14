@@ -3,6 +3,8 @@ parameters:
     ticketingHoldSeconds: '%env(int:TICKETING_HOLD_SECONDS)%'
     env(TICKETING_RENDER_FAILS_FOR_SEAT): ''
     ticketingRenderFailsForSeat: '%env(TICKETING_RENDER_FAILS_FOR_SEAT)%'
+    env(TICKETING_SALES_LEDGER_RESET_FAILS_FOR_CONCERT): ''
+    ticketingSalesLedgerResetFailsForConcert: '%env(TICKETING_SALES_LEDGER_RESET_FAILS_FOR_CONCERT)%'
     ticketFilesDirectory: '%kernel.project_dir%/var/tickets'
 
 services:

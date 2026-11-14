@@ -28,6 +28,8 @@
         <env name="TICKETING_HOLD_SECONDS" value="600" force="true" />
         <server name="TICKETING_RENDER_FAILS_FOR_SEAT" value="" force="true" />
         <env name="TICKETING_RENDER_FAILS_FOR_SEAT" value="" force="true" />
+        <server name="TICKETING_SALES_LEDGER_RESET_FAILS_FOR_CONCERT" value="" force="true" />
+        <env name="TICKETING_SALES_LEDGER_RESET_FAILS_FOR_CONCERT" value="" force="true" />
         <server name="AMQP_DSN" value="amqp://guest:guest@127.0.0.1:1" force="true" />
         <env name="AMQP_DSN" value="amqp://guest:guest@127.0.0.1:1" force="true" />
     </php>

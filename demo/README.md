@@ -258,7 +258,7 @@ The storefront talks to no real payment provider or mail server. The checkout as
 | Outbox | Ticketing's announcements go out from `ticketing_async`, a Doctrine Messenger transport committed with the change; the storefront's requests to ticketing, charges and emails go out from `storefront_async`, a database queue committed with the order | `ticketing/src/Catalogue/ConcertAnnouncements.php`, `storefront/app/Ordering/TicketingRequests.php` |
 | Distributed Bus with replies | `tickets.hold` and `tickets.confirm` sent to ticketing and answered with `tickets.hold.result` and `tickets.confirm.result`; events such as `tickets.issued` published to the storefront | `ticketing/src/Sales/SeatSalesOverDistributedBus.php`, `storefront/app/Ordering/TicketingRequests.php`, `TicketingReplies.php` |
 | Delayed messages | A hold expires through a message delayed until its expiry, which frees only the hold it was scheduled for | `ticketing/src/Sales/HoldExpiry.php` |
-| Projections | The seat map and the sales ledger of each concert, on `ticketing_async` | `ticketing/src/Sales/ConcertSeatMap.php`, `ConcertSalesLedger.php` |
+| Projections | The seat map and the sales ledger of each concert, on `ticketing_async`, rebuilt in batches with the sales ledger's batch reports on `ticketing_batch_completions` | `ticketing/src/Sales/ConcertSeatMap.php`, `ConcertSalesLedger.php` |
 | Orchestrator | Ticket issuance as a routing slip built from the order, with an asynchronous hop before the render | `ticketing/src/Issuance/TicketIssuance.php` |
 | Flow tracking and Pulse | Each service records its flows and answers Pulse over the Distributed Bus | both apps' `Infrastructure/EcotoneConfiguration.php`, Pulse in `apps/Pulse` |
 | OpenTelemetry | Every handler, bus and channel traced to Jaeger over OTLP, inside the HTTP request (Laravel and Symfony auto-instrumentation) and with every database call beside it (PDO auto-instrumentation); a database call made outside any trace, such as a worker polling its queue, is dropped by Ecotone's `DropDatabaseCallsOutsideAnyTrace` sampler | both apps' `Infrastructure/EcotoneConfiguration.php` and `OtlpTracerProviderFactory.php`, the `OTEL_*` variables in `docker-compose.yml` |
@@ -325,6 +325,12 @@ a contention's refusals apart by `reasonCode`, and refuses a refused `tickets.ho
 and keeps its own position, so a busy concert never holds back another. A rebuild or backfill, from the console or from
 Pulse, which lists both projections as partitioned, resets and replays one concert at a time: the `#[ProjectionReset]`
 takes the concert's id through `#[PartitionTagValue]` and deletes only that concert's rows.
+
+Both rebuild asynchronously on `ticketing_async`, one concert per batch, and each run is one gathering group that Pulse
+follows. The sales ledger's `#[ProjectionRebuild]` and `#[ProjectionBackfill]` name
+`batchCompletionChannelName: 'ticketing_batch_completions'`, which `ticketing-worker` consumes on its own, so Pulse counts
+each batch as it finishes. The seat map leaves it out, so its batch reports queue on `ticketing_async` behind its
+batches, and Pulse shows its running time until they have run.
 
 ### Ticket issuance
 

@@ -37,9 +37,9 @@
                                 <td data-group-recorded>{{ group.recorded }}</td>
                                 <td data-missing-parts>{{ group.missingPartNumbers|join(', ') ?: 'none' }}</td>
                                 <td data-late-parts>{{ group.latePartCount }}</td>
-                                <td data-group-opened>{{ (group.openedAt / 1000)|date('c', 'UTC') }}</td>
-                                <td data-group-deadline>{% if group.deadline is not null %}{{ (group.deadline / 1000)|date('c', 'UTC') }}{% else %}No deadline{% endif %}</td>
-                                <td data-group-closed>{% if group.closedAt is not null %}{{ (group.closedAt / 1000)|date('c', 'UTC') }}{% endif %}</td>
+                                <td data-group-opened>{{ (group.openedAt // 1000)|date('c', 'UTC') }}</td>
+                                <td data-group-deadline>{% if group.deadline is not null %}{{ (group.deadline // 1000)|date('c', 'UTC') }}{% else %}No deadline{% endif %}</td>
+                                <td data-group-closed>{% if group.closedAt is not null %}{{ (group.closedAt // 1000)|date('c', 'UTC') }}{% endif %}</td>
                                 <td data-group-release-reason>{{ group.releaseReason ?? '' }}</td>
                                 <td>
                                     {% if group.state == 'open' %}

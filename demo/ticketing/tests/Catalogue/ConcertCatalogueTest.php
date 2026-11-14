@@ -392,7 +392,7 @@ final class ConcertCatalogueTest extends KernelTestCase
                 new DemoSeed(),
                 new SeatSales(),
                 new HoldExpiry(),
-                new ConcertSalesLedger($doctrine->getConnection()),
+                new ConcertSalesLedger($doctrine->getConnection(), ''),
                 'doctrine' => $doctrine,
             ],
             configurationVariables: ['ticketingHoldSeconds' => 600],
@@ -463,6 +463,7 @@ final class ConcertCatalogueTest extends KernelTestCase
             SimpleMessageChannelBuilder::createQueueChannel('ticketing'),
             SimpleMessageChannelBuilder::createQueueChannel('storefront'),
             SimpleMessageChannelBuilder::createQueueChannel('ticketing_async'),
+            SimpleMessageChannelBuilder::createQueueChannel('ticketing_batch_completions'),
             SimpleMessageChannelBuilder::createQueueChannel('ecotone_pulse'),
         ];
     }

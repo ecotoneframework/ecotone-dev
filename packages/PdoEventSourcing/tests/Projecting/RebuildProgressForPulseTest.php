@@ -53,13 +53,13 @@ final class RebuildProgressForPulseTest extends ProjectingTestCase
 
         $this->rebuild('rebuild_progress_for_pulse');
 
-        self::assertSame(['running', 0, null], $this->progress());
+        self::assertSame(['running', 0, 3, [1, 2, 3]], $this->progress());
+        $this->ticketService->run('rebuild_pulse_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 10000));
+        self::assertSame(['running', 1, 3, [2, 3]], $this->progress());
         $this->ticketService->run('rebuild_pulse_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 10000));
-        self::assertSame(['running', 1, 3], $this->progress());
+        self::assertSame(['running', 2, 3, [3]], $this->progress());
         $this->ticketService->run('rebuild_pulse_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 10000));
-        self::assertSame(['running', 2, 3], $this->progress());
-        $this->ticketService->run('rebuild_pulse_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 10000));
-        self::assertSame(['done', 3, 3], $this->progress());
+        self::assertSame(['done', 3, 3, []], $this->progress());
     }
 
     private function rebuild(string $projection): void
@@ -69,7 +69,7 @@ final class RebuildProgressForPulseTest extends ProjectingTestCase
     }
 
     /**
-     * @return array{string, int, int|null}
+     * @return array{string, int, int|null, list<int>}
      */
     private function progress(): array
     {
@@ -79,7 +79,7 @@ final class RebuildProgressForPulseTest extends ProjectingTestCase
         $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $tracking = json_decode($this->pulse->queryResults[$queryId], true, flags: JSON_THROW_ON_ERROR)['trackings'][0];
 
-        return [$tracking['state'], $tracking['batchesDone'], $tracking['batchCount']];
+        return [$tracking['state'], $tracking['batchesDone'], $tracking['batchCount'], $tracking['missingBatches']];
     }
 
     private function bootstrap(): void

@@ -31,6 +31,7 @@ use Ecotone\Messaging\Handler\Gathering\GatheredGroupStoreRegistration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Projecting\Config\ProjectionRuns;
 
 #[ModuleAnnotation]
 /**
@@ -66,7 +67,7 @@ final class DbalGatheringModule extends NoExternalConfigurationModule
             }
         }
 
-        return new self($annotationRegistrationService->findAnnotatedMethods(Collected::class) !== []);
+        return new self($annotationRegistrationService->findAnnotatedMethods(Collected::class) !== [] || ProjectionRuns::fromAnnotations($annotationRegistrationService) !== []);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void

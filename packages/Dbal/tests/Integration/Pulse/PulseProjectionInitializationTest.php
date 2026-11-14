@@ -198,7 +198,7 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
 
         $trackings = $this->trackings()['trackings'];
         self::assertCount(1, $trackings);
-        self::assertSame(["projection-{$operation}", 'done', 0, 0], [$trackings[0]['type'], $trackings[0]['state'], $trackings[0]['batchesDone'], $trackings[0]['batchCount']]);
+        self::assertSame(["projection-{$operation}", 'done', 0, $projection === 'empty_async_orders' ? 0 : null], [$trackings[0]['type'], $trackings[0]['state'], $trackings[0]['batchesDone'], $trackings[0]['batchCount']]);
     }
 
     private function initializationOf(string $projection): ?string

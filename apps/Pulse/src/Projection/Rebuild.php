@@ -4,14 +4,23 @@ declare(strict_types=1);
 
 namespace App\Projection;
 
+use DateTimeImmutable;
+use DateTimeZone;
+use Exception;
+
 final readonly class Rebuild
 {
     public const REBUILD = 'rebuild';
     public const BACKFILL = 'backfill';
     private const KINDS = ['projection-rebuild' => self::REBUILD, 'projection-backfill' => self::BACKFILL];
 
+    /**
+     * @param list<int> $missingBatches
+     * @param list<array{batch: int, deadLetterMessageId: string}> $failedBatches
+     * @param list<array{batch: int, deadLetterMessageId: string}> $batchesWaitingToBeRecorded
+     */
     public function __construct(
-        public string $tracingId,
+        public ?string $tracingId,
         public string $projection,
         public string $kind,
         public string $startedAt,
@@ -20,6 +29,11 @@ final readonly class Rebuild
         public ?int $batchCount,
         public ?int $elapsedMs,
         public ?int $durationMs,
+        public string $startedFrom = 'pulse',
+        public array $missingBatches = [],
+        public array $failedBatches = [],
+        public ?string $groupId = null,
+        public array $batchesWaitingToBeRecorded = [],
     ) {
     }
 
@@ -29,12 +43,14 @@ final readonly class Rebuild
     public static function fromTracking(array $tracking): ?self
     {
         $kind = self::KINDS[$tracking['type'] ?? null] ?? null;
-        if ($kind === null || ! is_string($tracking['tracingId'] ?? null) || ! is_string($tracking['reference'] ?? null) || ! in_array($tracking['state'] ?? null, ['running', 'done', 'failed'], true)) {
+        $tracingId = is_string($tracking['tracingId'] ?? null) ? $tracking['tracingId'] : null;
+        $groupId = is_string($tracking['groupId'] ?? null) ? $tracking['groupId'] : null;
+        if ($kind === null || ($tracingId === null && $groupId === null) || ! is_string($tracking['reference'] ?? null) || ! in_array($tracking['state'] ?? null, ['running', 'done', 'failed', 'discarded', 'released'], true)) {
             return null;
         }
 
         return new self(
-            $tracking['tracingId'],
+            $tracingId,
             $tracking['reference'],
             $kind,
             is_string($tracking['startedAt'] ?? null) ? $tracking['startedAt'] : '',
@@ -43,7 +59,110 @@ final readonly class Rebuild
             is_int($tracking['batchCount'] ?? null) ? $tracking['batchCount'] : null,
             is_int($tracking['elapsedMs'] ?? null) ? $tracking['elapsedMs'] : null,
             is_int($tracking['durationMs'] ?? null) ? $tracking['durationMs'] : null,
+            ($tracking['startedFrom'] ?? null) === 'console' ? 'console' : 'pulse',
+            is_array($tracking['missingBatches'] ?? null) ? array_values(array_filter($tracking['missingBatches'], is_int(...))) : [],
+            self::batchesOf($tracking['failedBatches'] ?? null),
+            $groupId,
+            self::batchesOf($tracking['batchesWaitingToBeRecorded'] ?? null),
         );
+    }
+
+    /**
+     * @return list<array{batch: int, deadLetterMessageId: string}>
+     */
+    private static function batchesOf(mixed $batches): array
+    {
+        return is_array($batches) ? array_values(array_filter($batches, static fn (mixed $batch): bool => is_array($batch) && is_int($batch['batch'] ?? null) && is_string($batch['deadLetterMessageId'] ?? null))) : [];
+    }
+
+    public function key(): string
+    {
+        return $this->groupId ?? $this->tracingId ?? '';
+    }
+
+    public function startedAtShort(): string
+    {
+        if ($this->startedAt === '') {
+            return '';
+        }
+        try {
+            return (new DateTimeImmutable($this->startedAt))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i') . ' UTC';
+        } catch (Exception) {
+            return $this->startedAt;
+        }
+    }
+
+    public function hasTrace(): bool
+    {
+        return $this->tracingId !== null;
+    }
+
+    public function startedFromConsole(): bool
+    {
+        return $this->startedFrom === 'console';
+    }
+
+    public function hasBatchCount(): bool
+    {
+        return $this->batchCount !== null;
+    }
+
+    public function missingBatchesLabel(): ?string
+    {
+        $accounted = [...array_column($this->failedBatches, 'batch'), ...array_column($this->batchesWaitingToBeRecorded, 'batch')];
+        $notDone = array_values(array_diff($this->missingBatches, $accounted));
+        if ($notDone === [] || $this->state === 'done' || count($notDone) >= $this->batchesDone) {
+            return null;
+        }
+
+        return sprintf('%s %s %s', count($notDone) === 1 ? 'batch' : 'batches', implode(', ', $notDone), $this->isClosedEarly() ? 'not projected' : 'not done yet');
+    }
+
+    public function unfinishedLabel(): ?string
+    {
+        $failed = array_column($this->failedBatches, 'batch');
+        $notProjected = array_values(array_diff($this->missingBatches, array_column($this->batchesWaitingToBeRecorded, 'batch')));
+
+        return match (true) {
+            $this->state === 'failed' && $failed !== [] => sprintf('the latest %s waits for the replay of %s', $this->noun(), self::batchList($failed)),
+            $this->state === 'failed' => sprintf('the latest %s waits for a failed batch to be replayed', $this->noun()),
+            $this->isClosedEarly() => sprintf('the latest %s was %s%s', $this->noun(), $this->shortStateLabel(), $notProjected === [] ? '' : sprintf(' with %s not projected', self::batchList($notProjected))),
+            default => null,
+        };
+    }
+
+    public function unfinishedSummaryLabel(): ?string
+    {
+        return match (true) {
+            $this->state === 'failed' => $this->noun() . ' waiting for replay',
+            $this->isClosedEarly() => $this->noun() . ' ' . $this->shortStateLabel(),
+            default => null,
+        };
+    }
+
+    public function stateLabel(): string
+    {
+        return match ($this->state) {
+            'done' => $this->doneLabel(),
+            'failed' => $this->label() . ' waiting',
+            'discarded' => $this->label() . ' discarded',
+            'released' => $this->label() . ' released by hand',
+            default => $this->label() . ' running',
+        };
+    }
+
+    public function shortStateLabel(): string
+    {
+        return match ($this->state) {
+            'failed' => 'waiting',
+            'released' => 'released by hand',
+            default => $this->state,
+        };
+    }
+
+    public function isClosedEarly(): bool
+    {
+        return in_array($this->state, ['discarded', 'released'], true);
     }
 
     public function label(): string
@@ -106,7 +225,7 @@ final readonly class Rebuild
     private static function spoken(int $milliseconds): string
     {
         if ($milliseconds < 1000) {
-            return $milliseconds . 'ms';
+            return 'under 1s';
         }
         if ($milliseconds < 60_000) {
             return rtrim(rtrim(number_format($milliseconds / 1000, 1, '.', ''), '0'), '.') . 's';
@@ -117,5 +236,13 @@ final readonly class Rebuild
         }
 
         return intdiv($seconds, 3600) . 'h ' . intdiv($seconds % 3600, 60) . 'm';
+    }
+
+    /**
+     * @param list<int> $batches
+     */
+    private static function batchList(array $batches): string
+    {
+        return sprintf('%s %s', count($batches) === 1 ? 'batch' : 'batches', implode(', ', $batches));
     }
 }

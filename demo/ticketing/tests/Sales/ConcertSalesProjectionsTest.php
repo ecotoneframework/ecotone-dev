@@ -36,6 +36,7 @@ use DateTimeImmutable;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
@@ -186,6 +187,33 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
         self::assertSame($sales, [$firstConcert => $ticketing->sendQueryWithRouting('concert.sales', $firstConcert), $secondConcert => $ticketing->sendQueryWithRouting('concert.sales', $secondConcert)]);
         self::assertSame(['free' => 70, 'held' => 1, 'sold' => 1], $this->statusCounts($ticketing, $firstConcert));
         self::assertSame(['free' => 70, 'held' => 1, 'sold' => 1], $this->statusCounts($ticketing, $secondConcert));
+    }
+
+    public function test_the_sales_ledger_records_each_finished_rebuild_batch_on_its_own_channel_while_the_seat_map_records_them_behind_its_batches(): void
+    {
+        $ticketing = $this->ticketing();
+        foreach ([$this->concertOnSale($ticketing), $this->concertOnSale($ticketing)] as $concertId) {
+            $orderId = Uuid::v7()->toRfc4122();
+            $customerId = Uuid::v7()->toRfc4122();
+            $this->hold(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, seatCode: 'A-1', customerId: $customerId);
+            $this->confirm(ticketing: $ticketing, orderId: $orderId, concertId: $concertId, customerId: $customerId, seatCodes: ['A-1']);
+        }
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithTestingSetup());
+        $groups = $ticketing->getGateway(GatheredGroups::class);
+        $seatMapGroupsBefore = $groups->listOpenGroups('concert_seat_map.rebuild');
+        $ledgerGroupsBefore = $groups->listOpenGroups('concert_sales_ledger.rebuild');
+
+        $ticketing->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'concert_sales_ledger']);
+        $ticketing->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'concert_seat_map']);
+        $ticketing->run('ticketing_async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertSame($seatMapGroupsBefore, $groups->listOpenGroups('concert_seat_map.rebuild'));
+        $ledgerGroupsWaiting = array_values(array_udiff($groups->listOpenGroups('concert_sales_ledger.rebuild'), $ledgerGroupsBefore, static fn (array $group, array $other): int => strcmp($group['groupId'], $other['groupId'])));
+        self::assertSame([0], array_map(static fn (array $group): int => $group['recorded'], $ledgerGroupsWaiting));
+
+        $ticketing->run('ticketing_batch_completions', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertSame($ledgerGroupsBefore, $groups->listOpenGroups('concert_sales_ledger.rebuild'));
     }
 
     public function test_selling_the_last_seat_of_a_concert_marks_it_sold_out_and_records_concert_sold_out(): void
@@ -361,7 +389,7 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
                 new SeatSales(),
                 new HoldExpiry(),
                 new ConcertSeatMap($doctrine->getConnection()),
-                new ConcertSalesLedger($doctrine->getConnection()),
+                new ConcertSalesLedger($doctrine->getConnection(), ''),
                 new SoldOutWatch(),
                 new DemoSeed(),
                 ...$applicationHandlers,
@@ -372,6 +400,7 @@ final class ConcertSalesProjectionsTest extends KernelTestCase
                 SimpleMessageChannelBuilder::createQueueChannel('ticketing'),
                 SimpleMessageChannelBuilder::createQueueChannel('storefront'),
                 SimpleMessageChannelBuilder::createQueueChannel('ticketing_async'),
+                SimpleMessageChannelBuilder::createQueueChannel('ticketing_batch_completions'),
                 SimpleMessageChannelBuilder::createQueueChannel('ecotone_pulse'),
                 SymfonyConnectionReference::defaultManagerRegistry('default'),
             ],

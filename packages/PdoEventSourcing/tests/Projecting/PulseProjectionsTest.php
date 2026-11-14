@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
@@ -19,7 +22,9 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Partitioned;
@@ -86,7 +91,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
             {
             }
         };
-        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel'), ProjectionBackfill(asyncChannelName: 'tickets_backfill_channel'), FromAggregateStream(Ticket::class)] class () {
+        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel', batchCompletionChannelName: 'tickets_batch_completion_channel'), ProjectionBackfill(asyncChannelName: 'tickets_backfill_channel'), FromAggregateStream(Ticket::class)] class () {
             #[EventHandler]
             public function when(TicketWasRegistered $event): void
             {
@@ -106,12 +111,12 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
 
         self::assertSame(
             [
-                ['name' => 'tickets_async', 'mode' => 'asynchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => 'tickets_async_channel', 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null],
-                ['name' => 'tickets_partitioned', 'mode' => 'synchronous', 'partitioned' => true, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => 'tickets_rebuild_channel', 'backfillAsyncChannel' => 'tickets_backfill_channel'],
-                ['name' => 'tickets_polling', 'mode' => 'polling', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null],
-                ['name' => 'tickets_sync', 'mode' => 'synchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null],
+                ['name' => 'tickets_async', 'mode' => 'asynchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => 'tickets_async_channel', 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildBatchCompletionChannel' => null, 'backfillBatchCompletionChannel' => null],
+                ['name' => 'tickets_partitioned', 'mode' => 'synchronous', 'partitioned' => true, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => 'tickets_rebuild_channel', 'backfillAsyncChannel' => 'tickets_backfill_channel', 'rebuildBatchCompletionChannel' => 'tickets_batch_completion_channel', 'backfillBatchCompletionChannel' => 'tickets_backfill_channel'],
+                ['name' => 'tickets_polling', 'mode' => 'polling', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildBatchCompletionChannel' => null, 'backfillBatchCompletionChannel' => null],
+                ['name' => 'tickets_sync', 'mode' => 'synchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildBatchCompletionChannel' => null, 'backfillBatchCompletionChannel' => null],
             ],
-            array_map(fn (array $projection): array => array_intersect_key($projection, array_flip(['name', 'mode', 'partitioned', 'manualKickOff', 'asyncChannel', 'rebuildAsyncChannel', 'backfillAsyncChannel'])), $before),
+            array_map(fn (array $projection): array => array_intersect_key($projection, array_flip(['name', 'mode', 'partitioned', 'manualKickOff', 'asyncChannel', 'rebuildAsyncChannel', 'backfillAsyncChannel', 'rebuildBatchCompletionChannel', 'backfillBatchCompletionChannel'])), $before),
         );
         self::assertSame(
             ['tickets_async' => 'prepared', 'tickets_partitioned' => 'uninitialized', 'tickets_polling' => 'prepared', 'tickets_sync' => 'prepared'],
@@ -387,15 +392,101 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         };
     }
 
+    public function test_asynchronous_rebuild_of_a_tenant_completes_in_that_tenants_group_and_is_listed_for_that_tenant_only(): void
+    {
+        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel', batchCompletionChannelName: 'tickets_batch_completion_channel'), FromAggregateStream(Ticket::class)] class () {
+            public array $tickets = [];
+
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+                $this->tickets[] = $event->getTicketId();
+            }
+        };
+        $this->bootstrap('dbal', [$partitioned], multiTenant: true);
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'), metadata: ['tenant' => 'tenant_a']);
+        $partitioned->tickets = [];
+
+        $this->act('ecotone.pulse.projections.rebuild', 'tickets_partitioned', '0af7651916cd43dd8448eb211c80319c', 'tenant_a');
+        $this->orderService->run('tickets_rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $this->orderService->run('tickets_batch_completion_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+
+        $runsOf = static fn (array $snapshot): array => array_map(static fn (array $group): array => [$group['state'], $group['expectedSize'], $group['recorded']], array_values(array_filter($snapshot['gathering']['groups'] ?? [], static fn (array $group): bool => $group['endpointId'] === 'tickets_partitioned.rebuild')));
+        self::assertSame([['released', 1, 1]], $runsOf($this->requestSnapshot('tenant_a')));
+        self::assertSame([], $runsOf($this->requestSnapshot('tenant_b')));
+        self::assertSame(['ticket-1'], $partitioned->tickets);
+        self::assertSame([['tickets_partitioned', 'done', 1, 1]], $this->runsListedFor('tenant_a'));
+        self::assertSame([], $this->runsListedFor('tenant_b'));
+    }
+
+    public function test_asynchronous_rebuild_of_a_tenant_without_partitions_completes_in_that_tenants_group(): void
+    {
+        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel', batchCompletionChannelName: 'tickets_batch_completion_channel'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+        };
+        $this->bootstrap('dbal', [$partitioned], multiTenant: true);
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'), metadata: ['tenant' => 'tenant_b']);
+
+        $this->act('ecotone.pulse.projections.rebuild', 'tickets_partitioned', '0af7651916cd43dd8448eb211c80319c', 'tenant_a');
+        $this->orderService->run('tickets_batch_completion_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+
+        self::assertSame([['tickets_partitioned', 'done', 0, 0]], $this->runsListedFor('tenant_a'));
+        self::assertSame([], $this->runsListedFor('tenant_b'));
+    }
+
+    public function test_metadata_of_a_rebuild_request_reaches_its_batches_while_framework_headers_do_not(): void
+    {
+        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(partitionBatchSize: 1, asyncChannelName: 'tickets_rebuild_channel', batchCompletionChannelName: 'tickets_batch_completion_channel'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+        };
+        $batches = new class () {
+            public array $headers = [];
+
+            #[Around(pointcut: AsynchronousRunningEndpoint::class)]
+            public function observe(MethodInvocation $invocation, Message $message): mixed
+            {
+                if ($message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) && $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME) === 'tickets_rebuild_channel') {
+                    $this->headers[] = $message->getHeaders()->headers();
+                }
+
+                return $invocation->proceed();
+            }
+        };
+        $this->bootstrap('dbal', [$partitioned, $batches]);
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'));
+        $this->orderService->sendCommand(new RegisterTicket('ticket-2', 'Anna', 'alert'));
+
+        $this->act('ecotone.pulse.projections.rebuild', 'tickets_partitioned', '0af7651916cd43dd8448eb211c80319c', metadata: ['requestedBy' => 'operations']);
+        $this->orderService->run('tickets_rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+
+        self::assertCount(2, $batches->headers);
+        self::assertSame(['operations', 'operations'], array_map(static fn (array $headers): ?string => $headers['requestedBy'] ?? null, $batches->headers));
+        self::assertNotSame($batches->headers[0][MessageHeaders::MESSAGE_ID], $batches->headers[1][MessageHeaders::MESSAGE_ID]);
+        self::assertSame([false, false], array_map(static fn (array $headers): bool => array_key_exists(MessageHeaders::PARENT_MESSAGE_ID, $headers), $batches->headers));
+    }
+
     private function bootstrap(string $storage, array $projections, bool $multiTenant = false, array $extensionObjects = [], bool $initializeProjections = true): void
     {
         $this->pulse = new class () {
             public array $snapshots = [];
+            public array $queryResults = [];
 
             #[InternalHandler('ecotone.pulse.snapshot_received')]
             public function received(string $snapshot): void
             {
                 $this->snapshots[] = $snapshot;
+            }
+
+            #[InternalHandler('ecotone.pulse.query_result_received')]
+            public function queryResult(string $result, #[Header('ecotone_pulse_query_id')] string $queryId): void
+            {
+                $this->queryResults[$queryId] = $result;
             }
         };
         $channels = [
@@ -403,6 +494,8 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
             SimpleMessageChannelBuilder::createQueueChannel('pulse_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('tickets_async_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('tickets_partitioned_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('tickets_rebuild_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('tickets_batch_completion_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('tickets_backfill_channel'),
         ];
         $dbal = $storage === 'dbal';
@@ -443,11 +536,21 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         );
     }
 
-    private function act(string $routingKey, string $projection, string $tracingId, ?string $tenant = null): void
+    private function act(string $routingKey, string $projection, string $tracingId, ?string $tenant = null, array $metadata = []): void
     {
-        $this->pulseService->getDistributedBus()->sendMessage('order_service', $routingKey, json_encode(['projection' => $projection], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId, ...($tenant === null ? [] : ['tenant' => $tenant])], replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $this->pulseService->getDistributedBus()->sendMessage('order_service', $routingKey, json_encode(['projection' => $projection], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: [...$metadata, MessageHeaders::TRACING_ID => $tracingId, ...($tenant === null ? [] : ['tenant' => $tenant])], replyRoutingKey: 'ecotone.pulse.snapshot_received');
         $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
         $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+    }
+
+    private function runsListedFor(string $tenant): array
+    {
+        $queryId = 'query-' . (count($this->pulse->queryResults) + 1);
+        $this->pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.trackings.list', json_encode(['since' => '2000-01-01T00:00:00+00:00'], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: ['ecotone_pulse_query_id' => $queryId, 'tenant' => $tenant], replyRoutingKey: 'ecotone.pulse.query_result_received');
+        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+
+        return array_map(static fn (array $run): array => [$run['reference'], $run['state'], $run['batchesDone'], $run['batchCount']], json_decode($this->pulse->queryResults[$queryId], true, flags: JSON_THROW_ON_ERROR)['trackings']);
     }
 
     private function requestSnapshot(?string $tenant = null): array

@@ -32,6 +32,7 @@ use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Projecting\Projection;
@@ -42,7 +43,10 @@ use Ecotone\Dbal\Database\PulseTrackingTableManager;
 use Ecotone\Dbal\Database\SpansTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Pulse\Tracking\DbalTrackingStore;
+use Ecotone\Dbal\Pulse\Tracking\GatheredProjectionRunGroups;
 use Ecotone\Dbal\Pulse\Tracking\InMemoryTrackingStore;
+use Ecotone\Dbal\Pulse\Tracking\NoProjectionRunGroups;
+use Ecotone\Dbal\Pulse\Tracking\ProjectionRunGroups;
 use Ecotone\Dbal\Pulse\Tracking\PulseProjectionActions;
 use Ecotone\Dbal\Pulse\Tracking\PulseTrackings;
 use Ecotone\Dbal\Pulse\Tracking\TrackingStore;
@@ -86,9 +90,11 @@ use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseFeature;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseRequestBodyBuilder;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
+use Ecotone\Projecting\Config\ProjectionRuns;
 use Ecotone\Projecting\ProjectionOperationEndpoint;
 use Ecotone\Projecting\ProjectionOperations;
 use Ecotone\Projecting\ProjectionRegistry;
+use Ecotone\Projecting\ProjectionRun;
 use Ecotone\Tracing\Config\SpanRecorderReference;
 use Ecotone\Tracing\Tracer;
 
@@ -128,6 +134,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         private array $subscriberMethods,
         private array $pollingProjectionNames,
         private array $destinationsByClass,
+        private array $projectionRuns,
     ) {
     }
 
@@ -138,6 +145,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             self::subscriberMethodsOf($annotationRegistrationService, OnFlowStepCompleted::class, FlowStepCompleted::class),
             self::pollingProjectionNames($annotationRegistrationService),
             self::destinationsByClass($annotationRegistrationService),
+            array_map(static fn (ProjectionRun $run): array => ['projectionName' => $run->projectionName, 'operation' => $run->operation], ProjectionRuns::fromAnnotations($annotationRegistrationService)),
         );
     }
 
@@ -269,8 +277,6 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
                 ? new Definition(DbalTrackingStore::class, [CachedConnectionFactory::registerIn($messagingConfiguration, $connectionReference, DbalReconnectableConnectionFactory::definitionFor($connectionReference)), new Reference(PulseTrackingTableManager::class)])
                 : new Definition(InMemoryTrackingStore::class, [new Reference($connectionReference)])
         );
-        $untracedSpans = PulseTrackings::class . '.untraced_spans';
-        $messagingConfiguration->registerServiceDefinition($untracedSpans, new Definition(InMemoryTraceStore::class));
         $deadLettersReference = PulseTrackings::class . '.dead_letters';
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
         $messagingConfiguration->registerServiceDefinition(
@@ -280,8 +286,14 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
                 : new Definition(InMemoryDeadLetterStore::class, [DefaultHeaderMapper::createAllHeadersMapping(), Reference::to(ConversionService::REFERENCE_NAME), Reference::to(MessageBuilder::class)])
         );
         $messagingConfiguration->registerServiceDefinition(
+            ProjectionRunGroups::class,
+            $this->projectionRuns === []
+                ? new Definition(NoProjectionRunGroups::class)
+                : new Definition(GatheredProjectionRunGroups::class, [new Reference(GatheredGroups::class), $this->projectionRuns])
+        );
+        $messagingConfiguration->registerServiceDefinition(
             PulseTrackings::class,
-            new Definition(PulseTrackings::class, [new Reference(TrackingStore::class), new Reference($flowTracking === null ? $untracedSpans : TraceStore::class), new Reference($deadLettersReference), new Reference(EcotoneClockInterface::class), $serviceName])
+            new Definition(PulseTrackings::class, [new Reference(TrackingStore::class), new Reference(ProjectionRunGroups::class), new Reference($deadLettersReference), new Reference(EcotoneClockInterface::class), $serviceName])
         );
         $messagingConfiguration->registerServiceDefinition(
             PulseProjectionActions::class,

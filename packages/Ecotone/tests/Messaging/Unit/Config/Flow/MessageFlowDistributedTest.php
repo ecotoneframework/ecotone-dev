@@ -328,7 +328,15 @@ final class MessageFlowDistributedTest extends TestCase
         };
         $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
-        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $this->handlerId($graph, $service, $method, ['holdRequestedSeat' => 'hold_requested_seat', 'releaseSeat' => 'release_seat', 'releaseSeatsOfFailedOrder' => 'release_seats_of_failed_order', 'confirmPaidSeats' => 'confirm_paid_seats', 'ping' => 'demo_ping', 'auditSeat' => 'audit_seat'][$method]), 'distributed:' . DistributedBus::class), 'attributes');
+        $endpointIds = [
+            'holdRequestedSeat' => 'hold_requested_seat',
+            'releaseSeat' => 'release_seat',
+            'releaseSeatsOfFailedOrder' => 'release_seats_of_failed_order',
+            'confirmPaidSeats' => 'confirm_paid_seats',
+            'ping' => 'demo_ping',
+            'auditSeat' => 'audit_seat',
+        ];
+        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $this->handlerId($graph, $service, $method, $endpointIds[$method]), 'distributed:' . DistributedBus::class), 'attributes');
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result']], $sendsOf('holdRequestedSeat'));
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.release', 'withoutReply' => true]], $sendsOf('releaseSeat'));
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.release', 'withoutReply' => true]], $sendsOf('releaseSeatsOfFailedOrder'));
@@ -850,7 +858,6 @@ final class MessageFlowDistributedTest extends TestCase
 
         return $nodes[0]->id;
     }
-
 }
 
 interface RoutedTicketRequest

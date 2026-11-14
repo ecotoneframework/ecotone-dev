@@ -278,9 +278,9 @@ final class InternalMessageFlowDiscovery
     {
         $name = $this->stable($channelName);
         $id = 'channel:' . $name;
-        if (! $this->declared->hasNode($id)) {
-            $this->nodes[$id] ??= new FlowNode($id, FlowNodeKind::CHANNEL, $name, ['name' => $name, 'pollable' => $this->configuration->isPollableChannel($channelName), 'internal' => true]);
-        }
+        $this->nodes[$id] ??= $this->declared->hasNode($id)
+            ? $this->declared->node($id)
+            : new FlowNode($id, FlowNodeKind::CHANNEL, $name, ['name' => $name, 'pollable' => $this->configuration->isPollableChannel($channelName), 'internal' => true]);
 
         return $id;
     }

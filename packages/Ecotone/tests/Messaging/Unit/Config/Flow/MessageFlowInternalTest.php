@@ -131,6 +131,21 @@ final class MessageFlowInternalTest extends TestCase
         self::assertArrayNotHasKey('internal', $internal->node('channel:notifications')->attributes);
     }
 
+    public function test_internal_dump_keeps_a_channel_the_application_registers_without_connecting_it_in_its_own_graph(): void
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('unconnected')],
+        );
+
+        $internal = $this->internalGraphOf($ecotone);
+
+        self::assertFalse($ecotone->getMessageFlowGraph()->hasNode('channel:unconnected'));
+        self::assertArrayNotHasKey('internal', $internal->node('channel:unconnected')->attributes);
+        self::assertCount(1, $internal->edgesOfKind(FlowEdgeKind::INPUT, 'channel:unconnected', 'endpoint:unconnected'));
+    }
+
     public function test_internal_node_ids_stay_the_same_when_the_application_is_built_again(): void
     {
         $handlerWithoutEndpointId = new class () {

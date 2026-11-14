@@ -579,7 +579,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $ofTenantA->toTraceparent(), 'tenant' => 'tenant_a']);
         $ecotone->sendCommandWithRouting('user.register', '2', metadata: [MessageHeaders::TRACEPARENT => $ofTenantB->toTraceparent(), 'tenant' => 'tenant_b']);
 
-        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         foreach (['tenant_a' => $ofTenantA, 'tenant_b' => $ofTenantB] as $tenant => $trace) {
             $flow = $this->completion($ecotone)->fetchFlow($trace->traceId, metadata: ['tenant' => $tenant]);

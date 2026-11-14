@@ -76,7 +76,7 @@ final class GatheringHandlerCompiler
             return $builder->register($reference, LicenceDecider::prepareDefinition(className: MessageHandler::class, openCoreServiceReference: $reference . '.core', enterpriseServiceReference: $reference . '.enterprise'));
         }
         if ($interface !== null && $builder->getInterfaceToCall($interface)->hasMethodAnnotation(Gathered::class)) {
-            $reference = 'ecotone.gathering.handler.' . $endpointId;
+            $reference = 'ecotone.gathering.handler.' . hash('sha256', $endpointId);
             $builder->register($reference . '.core', $handler);
             $builder->register($reference . '.enterprise', new Definition(GatheringMessageHandler::class, [
                 new Reference($reference . '.core'),

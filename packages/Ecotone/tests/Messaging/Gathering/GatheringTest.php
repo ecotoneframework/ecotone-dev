@@ -763,6 +763,63 @@ final class GatheringTest extends TestCase
         self::assertSame([1, 2], $groups[0]['missingPartNumbers']);
     }
 
+    public function test_endpoint_ids_with_core_suffixes_compile_independent_gathered_handlers(): void
+    {
+        $handler = new class () {
+            public array $first = [];
+            public array $second = [];
+
+            #[Splitter('split.first', endpointId: 'split.first.endpoint', outputChannelName: 'collision.work', gatherChannelName: 'summary.first')]
+            public function splitFirst(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('split.second', endpointId: 'split.second.endpoint', outputChannelName: 'collision.work', gatherChannelName: 'summary.second')]
+            public function splitSecond(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('collision.work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary.first', endpointId: 'gather.collision')]
+            public function first(GatheredParts $parts): void
+            {
+                $this->first[] = $parts->results;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary.second', endpointId: 'gather.collision.core')]
+            public function second(GatheredParts $parts): void
+            {
+                $this->second[] = $parts->results;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $ecotone->sendDirectToChannel('split.first', [1, 2]);
+        $ecotone->sendDirectToChannel('split.second', [3]);
+        $ecotone->run('summaries');
+
+        self::assertSame([[1 => 1, 2 => 2]], $handler->first);
+        self::assertSame([[1 => 3]], $handler->second);
+    }
+
     public function test_gathering_console_commands_run_as_console_commands(): void
     {
         $handler = new class () {

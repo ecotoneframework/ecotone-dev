@@ -1,17 +1,18 @@
 import {chromium} from 'playwright-core';
 import {execFileSync, spawn} from 'node:child_process';
-import {mkdirSync, writeFileSync} from 'node:fs';
+import {mkdirSync, rmSync, writeFileSync} from 'node:fs';
 
 const pulse = (process.env.PULSE_URL ?? 'http://localhost:8280').replace(/\/$/, '');
 const ticketing = (process.env.TICKETING_URL ?? 'http://localhost:8201').replace(/\/$/, '');
 const screenshots = process.env.SCREENSHOTS ?? 'var/pulse-verification';
 const compose = ['compose', '-f', process.env.DEMO_COMPOSE_FILE ?? 'demo/docker-compose.yml'];
-const projection = 'concert_sales_ledger';
-const wantedConcerts = Number(process.env.CONCERTS ?? 12);
-mkdirSync(screenshots, {recursive: true});
+const ledger = 'concert_sales_ledger';
+const seatMap = 'concert_seat_map';
+const wantedPartitions = Number(process.env.PARTITIONS ?? 8);
+const parts = `${screenshots}/.parts`;
+mkdirSync(parts, {recursive: true});
 
 const failures = [];
-const report = [];
 const check = (name, condition, detail = '') => {
     console.log(`${condition ? 'ok  ' : 'FAIL'} ${name}${detail ? ` (${detail})` : ''}`);
     if (!condition) {
@@ -20,13 +21,16 @@ const check = (name, condition, detail = '') => {
 };
 const docker = (...args) => execFileSync('docker', [...compose, ...args], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']});
 const sql = (query) => docker('exec', '-T', 'postgres', 'sh', '-c', `psql -U "$POSTGRES_USER" -d ticketing -Atc "${query}"`).trim();
-const consumeAsync = (limit, environment = {}) => docker('exec', '-T', ...Object.entries(environment).flatMap(([name, value]) => ['-e', `${name}=${value}`]), 'ticketing', 'bin/console', 'ecotone:run', 'ticketing_async', `--handledMessageLimit=${limit}`, '--executionTimeLimit=60000', '--finishWhenNoMessages=true');
-const drainAsync = (environment = {}) => consumeAsync(100000, environment);
+const consume = (channel, limit, environment = {}) => docker('exec', '-T', ...Object.entries(environment).flatMap(([name, value]) => ['-e', `${name}=${value}`]), 'ticketing', 'bin/console', 'ecotone:run', channel, `--handledMessageLimit=${limit}`, '--executionTimeLimit=60000', '--finishWhenNoMessages=true');
+const runBatches = (limit, environment = {}) => consume('ticketing_async', limit, environment);
+const drainBatches = (environment = {}) => runBatches(100000, environment);
+const drainBatchCompletions = () => consume('ticketing_batch_completions', 100000);
 const drainRequests = () => docker('exec', '-T', 'ticketing', 'bin/console', 'ecotone:run', 'ticketing', '--handledMessageLimit=100', '--executionTimeLimit=10000', '--finishWhenNoMessages=true');
-const pendingAsync = () => Number(sql("SELECT COUNT(*) FROM messenger_messages WHERE queue_name = 'ticketing_async' AND delivered_at IS NULL AND available_at <= NOW()"));
+const pending = (queue) => Number(sql(`SELECT COUNT(*) FROM messenger_messages WHERE queue_name = '${queue}' AND delivered_at IS NULL AND available_at <= NOW()`));
+const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 const browser = await chromium.launch({executablePath: process.env.CHROME_PATH ?? '/usr/bin/google-chrome', args: ['--no-sandbox']});
-const context = await browser.newContext({viewport: {width: 1440, height: 1000}});
+const context = await browser.newContext({viewport: {width: 1280, height: 900}, deviceScaleFactor: 1});
 await context.addInitScript(() => localStorage.setItem('ecotone-pulse.intro-seen-on', `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`));
 const page = await context.newPage();
 page.setDefaultTimeout(90000);
@@ -36,7 +40,7 @@ const visit = async (url) => {
         try {
             return await page.goto(url);
         } catch (error) {
-            if (attempt === 3 || !String(error).includes('ERR_ABORTED')) {
+            if (attempt === 3 || !/ERR_ABORTED|interrupted by another navigation/.test(String(error))) {
                 throw error;
             }
             await page.waitForTimeout(1000);
@@ -44,49 +48,79 @@ const visit = async (url) => {
     }
 };
 const projectionsPage = `${pulse}/services/ticketing/projections`;
-const row = () => page.locator(`tr[data-projection="${projection}"]`).first();
+const gatheringPage = `${pulse}/services/ticketing/gathering`;
+const row = (projection) => page.locator(`tr[data-projection="${projection}"]`).first();
+const latestOperation = () => page.locator('[data-recent-rebuilds] tr[data-rebuild]').first();
+const text = async (locator) => (await locator.count()) === 0 ? '' : (await locator.first().textContent()).replace(/\s+/g, ' ').trim();
+const rowState = async (projection) => (await row(projection).locator('[data-rebuild-state]').count()) === 0 ? null : row(projection).locator('[data-rebuild-state]').getAttribute('data-rebuild-state');
+const rowText = (projection) => text(row(projection).locator('[data-rebuild-state]'));
+const rowBatches = (projection) => text(row(projection).locator('[data-rebuild-batches]'));
+const latestProgress = () => text(latestOperation().locator('[data-rebuild-progress]'));
+const waitsBehindQueuedBatches = async (projection) => (await row(projection).locator('[data-rebuild-queued-records]').count()) === 1;
 
-const observe = async (until, description) => {
+const observe = async (until, description, between = () => drainRequests()) => {
     for (let attempt = 0; attempt < 40; attempt++) {
         await visit(projectionsPage);
         if (await until()) {
             return true;
         }
-        drainRequests();
+        between();
         await page.waitForTimeout(1500);
     }
-    console.log(`gave up waiting for ${description}: row "${await rowText()}", latest operation "${await latestProgress()}"`);
+    console.log(`gave up waiting for ${description}: ledger "${await rowText(ledger)}", seat map "${await rowText(seatMap)}", latest operation "${await latestProgress()}"`);
 
     return false;
 };
-const rowState = async () => (await row().locator('[data-rebuild-state]').count()) === 0 ? null : row().locator('[data-rebuild-state]').getAttribute('data-rebuild-state');
-const rowText = async () => (await row().locator('[data-rebuild-state]').count()) === 0 ? '' : (await row().locator('[data-rebuild-state]').textContent()).replace(/\s+/g, ' ').trim();
-const latestProgress = async () => (await page.locator('[data-recent-rebuilds] tr[data-rebuild] [data-rebuild-progress]').count()) === 0 ? '' : (await page.locator('[data-recent-rebuilds] tr[data-rebuild] [data-rebuild-progress]').first().textContent()).trim();
-const waitsBehindQueuedBatches = async () => (await row().locator('[data-rebuild-queued-records]').count()) === 1;
-const rowBatches = async () => (await row().locator('[data-rebuild-batches]').count()) === 0 ? null : (await row().locator('[data-rebuild-batches]').first().textContent()).trim();
-const shot = async (name) => {
-    const path = `${screenshots}/${name}.png`;
-    if ((await row().isVisible()) === false && (await page.locator('details[data-projections-quiet] > summary').count()) > 0) {
+const openQuietSection = async (projection) => {
+    if ((await row(projection).isVisible()) === false && (await page.locator('details[data-projections-quiet] > summary').count()) > 0) {
         await page.locator('details[data-projections-quiet] > summary').click();
     }
-    await row().scrollIntoViewIfNeeded();
-    await page.screenshot({path, fullPage: true});
-    console.log(`     screenshot ${path}`);
 };
-const record = async (scenario, moment) => {
-    await visit(projectionsPage);
-    await page.waitForTimeout(500);
-    const entry = {scenario, moment, executedBatches: null, page: await rowText()};
-    report.push(entry);
-    console.log(`     ${scenario} / ${moment}: ${entry.page}`);
+const stitch = (name, files) => {
+    execFileSync('python3', ['-I', '-c', `
+import sys
+from PIL import Image
+out, *paths = sys.argv[1:]
+images = [Image.open(path).convert('RGB') for path in paths]
+gap = 24
+width = max(image.width for image in images)
+canvas = Image.new('RGB', (width, sum(image.height for image in images) + gap * (len(images) - 1)), images[0].getpixel((2, 2)))
+top = 0
+for image in images:
+    canvas.paste(image, (0, top))
+    top += image.height + gap
+canvas.save(out, optimize=True)
+`, `${screenshots}/${name}.png`, ...files]);
+    console.log(`     screenshot ${screenshots}/${name}.png`);
+};
+const shotProjection = async (name, projection) => {
+    await openQuietSection(projection);
+    if ((await page.locator('details[data-projection-operations]').getAttribute('open')) === null) {
+        await page.locator('details[data-projection-operations] > summary').click();
+    }
+    const regions = [row(projection).locator('xpath=ancestor::*[self::section or self::details][1]'), page.locator('[data-projection-operations]')];
+    const files = [];
+    for (const [index, region] of regions.entries()) {
+        const file = `${parts}/${name}-${index}.png`;
+        await region.first().screenshot({path: file});
+        files.push(file);
+    }
+    stitch(name, files);
+};
+const shotWide = async (name, locator) => {
+    await page.setViewportSize({width: 2200, height: 900});
+    const box = await locator.first().evaluate((element) => {
+        const rectangle = element.getBoundingClientRect();
 
-    return entry;
+        return {x: rectangle.left + window.scrollX, y: rectangle.top + window.scrollY, width: Math.max(rectangle.width, element.scrollWidth), height: rectangle.height};
+    });
+    await page.screenshot({path: `${screenshots}/${name}.png`, fullPage: true, clip: {x: Math.max(0, box.x - 8), y: Math.max(0, box.y - 8), width: box.width + 16, height: box.height + 16}});
+    await page.setViewportSize({width: 1280, height: 900});
+    console.log(`     screenshot ${screenshots}/${name}.png`);
 };
-const rebuildFromPulse = async () => {
+const runFromPulse = async (projection) => {
     await visit(projectionsPage);
-    if ((await page.locator(`tr[data-projection="${projection}"] a[data-projection-actions]:visible`).count()) === 0) {
-        await page.locator('details[data-projections-quiet] > summary').click();
-    }
+    await openQuietSection(projection);
     await page.locator(`tr[data-projection="${projection}"] a[data-projection-actions]:visible`).first().click();
     const panel = page.locator(`[data-rebuild-confirm="${projection}"]`);
     if ((await panel.getAttribute('open')) === null) {
@@ -97,67 +131,80 @@ const rebuildFromPulse = async () => {
     drainRequests();
 };
 
+const partitions = () => Number(sql('SELECT COUNT(DISTINCT concert_id) FROM concert_sales_ledger'));
+for (let concert = 1; partitions() < wantedPartitions && concert <= wantedPartitions; concert++) {
+    await visit(`${ticketing}/admin/concerts`);
+    await page.locator('input[name="artist"]').fill(`Rebuild Verification ${concert}`);
+    await page.locator('input[name="onSaleRightAway"]').check();
+    await page.locator('form.admin-form button[type="submit"], form.admin-form input[type="submit"]').first().click();
+    await page.waitForLoadState('load');
+    const concertId = sql(`SELECT concert_id FROM concerts WHERE artist = 'Rebuild Verification ${concert}' LIMIT 1`);
+    for (let attempt = 1; ; attempt++) {
+        try {
+            docker('exec', '-T', 'storefront', 'php', 'artisan', 'demo:rush', concertId, '--buyers=2', '--declinedShare=0', '--outageShare=0', '--bounceShare=0');
+            break;
+        } catch (error) {
+            if (attempt === 30 || !String(error.stdout).includes('in the storefront')) {
+                throw error;
+            }
+            await pause(2000);
+        }
+    }
+}
+for (let attempt = 0; attempt < 90 && partitions() < wantedPartitions; attempt++) {
+    await pause(2000);
+}
+check(`the sales ledger has at least ${wantedPartitions} concerts with sales, so it rebuilds in that many batches of one concert`, partitions() >= wantedPartitions, `${partitions()} concerts with sales`);
+const activity = () => `${pending('ticketing_async')}:${pending('ticketing_batch_completions')}:${sql('SELECT COALESCE(SUM(seats_sold), 0) FROM concert_sales_ledger')}:${sql('SELECT COUNT(*) FROM messenger_messages')}`;
+for (let quiet = 0, last = activity(), attempt = 0; quiet < 5 && attempt < 150; attempt++) {
+    await pause(2000);
+    const now = activity();
+    quiet = now === last && now.startsWith('0:0:') ? quiet + 1 : 0;
+    last = now;
+}
+check('the rushes have ended and ticketing_async is empty before ticketing-worker stops', pending('ticketing_async') === 0, activity());
+
+docker('stop', 'ticketing-worker');
 const ticketingConsumer = spawn('docker', [...compose, 'exec', '-T', 'ticketing', 'bin/console', 'ecotone:run', 'ticketing', '--executionTimeLimit=3600000'], {stdio: 'ignore'});
 try {
-    docker('stop', 'ticketing-worker');
+    drainBatches();
+    drainBatchCompletions();
+    check('nothing waits on ticketing_async or ticketing_batch_completions before the first rebuild', pending('ticketing_async') === 0 && pending('ticketing_batch_completions') === 0);
 
-    const concerts = Number(sql('SELECT COUNT(*) FROM concerts'));
-    for (let concert = concerts + 1; concert <= wantedConcerts; concert++) {
-        await visit(`${ticketing}/admin/concerts`);
-        await page.locator('input[name="artist"]').fill(`Rebuild Verification ${concert}`);
-        await page.locator('input[name="onSaleRightAway"]').check();
-        await page.locator('form.admin-form button[type="submit"], form.admin-form input[type="submit"]').first().click();
-        await page.waitForLoadState('load');
-    }
-    drainAsync();
-    const partitions = Number(sql("SELECT COUNT(DISTINCT concert_id) FROM concert_sales_ledger"));
-    check('the sales ledger has at least eight concerts with sales, so it rebuilds in at least eight batches of one concert', partitions >= 8, `${partitions} concerts with sales`);
-    check('nothing else waits on ticketing_async before the rebuild', pendingAsync() === 0, `${pendingAsync()} pending`);
+    await runFromPulse(ledger);
+    check('a rebuild started from Pulse is running with none of its batches done', await observe(async () => (await rowState(ledger)) === 'running' && /^0 of \d+ batches$/.test(await rowBatches(ledger)), 'the running rebuild'), await rowText(ledger));
+    const batches = Number((await rowBatches(ledger)).split(' ')[2]);
+    check('the rebuild has one batch per concert with seat events, at least one per concert with sales', batches >= partitions(), `${batches} batches, ${partitions()} concerts with sales`);
+    check('with a separate batch completion channel the row shows its batches, not the queued-batches sentence', (await waitsBehindQueuedBatches(ledger)) === false);
+    await shotProjection('01-rebuild-started', ledger);
 
-    await rebuildFromPulse();
-    check('a rebuild started from Pulse shows its running time and that its batches are counted after the queued ones', await observe(async () => (await waitsBehindQueuedBatches()) && (await latestProgress()).startsWith('running for'), 'the running rebuild'), await rowText());
-    const batches = partitions;
-    await shot('01-rebuild-started');
-    report.push({scenario: 'shared channel, 1 consumer', moment: 'started', executedBatches: 0, page: await rowText()});
     let executed = 0;
-    for (const [percent, name] of [[25, '02-shared-one-consumer-25'], [50, '03-shared-one-consumer-50'], [75, '04-shared-one-consumer-75'], [100, '05-shared-one-consumer-all-batches-executed']]) {
+    for (const [percent, name] of [[25, '02-rebuild-progress-25'], [50, '03-rebuild-progress-50'], [75, '04-rebuild-progress-75']]) {
         const target = Math.round(batches * percent / 100);
-        consumeAsync(target - executed);
+        runBatches(target - executed);
         executed = target;
-        const entry = await record('shared channel, 1 consumer', `${percent}% of batches executed`);
-        entry.executedBatches = executed;
-        await shot(name);
+        drainBatchCompletions();
+        check(`after ${executed} of ${batches} batches ran, Pulse counts ${executed} batches done`, await observe(async () => (await rowBatches(ledger)) === `${executed} of ${batches} batches`, `${executed} batches done`), await rowText(ledger));
+        check(`the recent operations show the same ${executed} of ${batches} batches`, (await latestProgress()).startsWith(`${executed} of ${batches} batches`), await latestProgress());
+        await shotProjection(name, ledger);
     }
-    drainAsync();
-    check('the rebuild ends at done once its part reports are consumed', await observe(async () => (await rowState()) === 'done', 'done'), await rowText());
-    const done = (await page.locator(`[data-recent-rebuilds] tr[data-rebuild] [data-rebuild-progress]`).first().textContent()).trim();
-    check('the recent operations list the finished rebuild with every batch', done.startsWith(`${batches} of ${batches} batches`), done);
-    await record('shared channel, 1 consumer', 'all part reports consumed');
-    await shot('06-rebuild-done');
+    drainBatches();
+    drainBatchCompletions();
+    check('the rebuild ends at done once every batch ran', await observe(async () => (await rowState(ledger)) === 'done', 'done'), await rowText(ledger));
+    check('the recent operations list the finished rebuild with every batch', (await latestProgress()).startsWith(`${batches} of ${batches} batches`), await latestProgress());
+    await shotProjection('05-rebuild-done', ledger);
 
-    await rebuildFromPulse();
-    await observe(async () => (await waitsBehindQueuedBatches()) && (await latestProgress()).startsWith('running for'), 'the second rebuild');
-    report.push({scenario: 'shared channel, 4 consumers', moment: 'started', executedBatches: 0, page: await rowText()});
-    for (const round of [1, 2, 3]) {
-        const consumers = Array.from({length: 4}, () => new Promise((resolve) => spawn('docker', [...compose, 'exec', '-T', 'ticketing', 'bin/console', 'ecotone:run', 'ticketing_async', '--handledMessageLimit=1', '--executionTimeLimit=60000', '--finishWhenNoMessages=true'], {stdio: 'ignore'}).on('exit', resolve)));
-        await Promise.all(consumers);
-        const entry = await record('shared channel, 4 consumers', `round ${round} of 4 parallel messages`);
-        entry.executedBatches = Math.min(batches, round * 4);
-        await shot(`07-shared-four-consumers-round-${round}`);
-    }
-    drainAsync();
-    check('the rebuild with four consumers also ends at done', await observe(async () => (await rowState()) === 'done', 'done'), await rowText());
-
-    const failingConcert = sql("SELECT DISTINCT concert_id FROM concert_sales_ledger ORDER BY concert_id LIMIT 1 OFFSET 1");
-    await rebuildFromPulse();
-    await observe(async () => (await waitsBehindQueuedBatches()) && (await latestProgress()).startsWith('running for'), 'the failing rebuild');
-    drainAsync({TICKETING_SALES_LEDGER_RESET_FAILS_FOR_CONCERT: failingConcert});
-    check('a rebuild whose batch failed shows as failed', await observe(async () => (await rowState()) === 'failed', 'failed'), await rowText());
-    const failedLink = row().locator('a[data-rebuild-failed-batch]').first();
+    const failingConcert = sql('SELECT DISTINCT concert_id FROM concert_sales_ledger ORDER BY concert_id LIMIT 1 OFFSET 1');
+    await runFromPulse(ledger);
+    await observe(async () => (await rowState(ledger)) === 'running' && (await rowBatches(ledger)) === `0 of ${batches} batches`, 'the failing rebuild');
+    drainBatches({TICKETING_SALES_LEDGER_RESET_FAILS_FOR_CONCERT: failingConcert});
+    drainBatchCompletions();
+    check('a rebuild whose batch failed shows as failed', await observe(async () => (await rowState(ledger)) === 'failed', 'failed'), await rowText(ledger));
+    const failedLink = row(ledger).locator('a[data-rebuild-failed-batch]').first();
     check('the failed batch links its dead letter', (await failedLink.count()) === 1 && (await failedLink.getAttribute('href')).startsWith('/dead-letters/ticketing/'), await failedLink.getAttribute('href'));
-    check('the run waits for the replay of the failed batch', (await row().locator('[data-rebuild-state-label]').textContent()).trim() === 'Rebuild waiting' && (await row().locator('[data-rebuild-replay-hint]').count()) === 1, await rowText());
-    check('the other batches are done', (await rowBatches()) === `${batches - 1} of ${batches} batches`, await rowBatches());
-    await shot('08-rebuild-with-a-failed-batch');
+    check('the run waits for the replay of the failed batch', (await text(row(ledger).locator('[data-rebuild-state-label]'))) === 'Rebuild waiting' && (await row(ledger).locator('[data-rebuild-replay-hint]').count()) === 1, await rowText(ledger));
+    check('the other batches are done', (await rowBatches(ledger)) === `${batches - 1} of ${batches} batches`, await rowBatches(ledger));
+    await shotProjection('06-rebuild-with-a-failed-batch', ledger);
     const deadLetterUrl = new URL(await failedLink.getAttribute('href'), pulse).toString();
     await failedLink.click();
     await page.waitForLoadState('load');
@@ -168,38 +215,63 @@ try {
         await visit(deadLetterUrl);
     }
     check('the dead letter of the failed batch opens', page.url().includes('/dead-letters/ticketing/'), page.url());
-    await page.screenshot({path: `${screenshots}/09-dead-letter-of-the-failed-batch.png`, fullPage: true});
-    console.log(`     screenshot ${screenshots}/09-dead-letter-of-the-failed-batch.png`);
+    await page.screenshot({path: `${screenshots}/07-dead-letter-of-the-failed-batch.png`});
+    console.log(`     screenshot ${screenshots}/07-dead-letter-of-the-failed-batch.png`);
     const replay = page.locator('button[name="action"][value="replay"]').first();
     check('the dead letter offers a replay', (await replay.count()) === 1);
     await replay.click();
     await page.waitForLoadState('load');
-    check('replaying the failed batch completes the rebuild', await observe(async () => {
-        if ((await rowState()) === 'done') {
-            return true;
+    check('replaying the failed batch completes the rebuild', await observe(async () => (await rowState(ledger)) === 'done', 'done after replay', () => {
+        drainRequests();
+        drainBatches();
+        drainBatchCompletions();
+    }), await rowText(ledger));
+    check('the replayed rebuild has every batch done', (await latestProgress()).startsWith(`${batches} of ${batches} batches`), await latestProgress());
+    await shotProjection('08-rebuild-done-after-replay', ledger);
+
+    docker('exec', '-T', 'ticketing', 'bin/console', 'ecotone:projection:rebuild', ledger);
+    check('a rebuild started from the console is listed as started from the console', await observe(async () => (await latestOperation().locator('[data-rebuild-started-from-console]').count()) === 1, 'the console rebuild'), await rowText(ledger));
+    drainBatches();
+    drainBatchCompletions();
+    check('the console rebuild ends at done with every batch and no trace', await observe(async () => (await rowState(ledger)) === 'done' && (await latestOperation().locator('[data-rebuild-started-from-console]').count()) === 1, 'the console rebuild done') && (await latestProgress()).startsWith(`${batches} of ${batches} batches`) && (await latestOperation().locator('[data-rebuild-no-trace]').count()) === 1, await latestProgress());
+    await shotProjection('09-rebuild-started-from-the-console', ledger);
+
+    await runFromPulse(ledger);
+    await observe(async () => (await rowState(ledger)) === 'running' && (await rowBatches(ledger)) === `0 of ${batches} batches`, 'the rebuild to discard');
+    const doneBeforeDiscard = batches - 2;
+    runBatches(doneBeforeDiscard);
+    drainBatchCompletions();
+    await observe(async () => (await rowBatches(ledger)) === `${doneBeforeDiscard} of ${batches} batches`, 'the batches of the rebuild to discard');
+    const openRun = () => page.locator('tr[data-gathering-group]').filter({has: page.locator('[data-group-endpoint]', {hasText: `${ledger}.rebuild`})}).filter({has: page.locator('[data-group-state]', {hasText: 'open'})});
+    for (let attempt = 0; attempt < 30; attempt++) {
+        await visit(gatheringPage);
+        if ((await openRun().count()) === 1 && (await text(openRun().locator('[data-group-recorded]'))) === String(doneBeforeDiscard)) {
+            break;
         }
         drainRequests();
-        drainAsync();
-
-        return false;
-    }, 'done after replay'), await rowText());
-    check('the replayed rebuild has every batch done', (await page.locator('[data-recent-rebuilds] tr[data-rebuild] [data-rebuild-progress]').first().textContent()).trim().startsWith(`${batches} of ${batches} batches`));
-    await shot('10-rebuild-done-after-replay');
-
-    docker('exec', '-T', 'ticketing', 'bin/console', 'ecotone:projection:rebuild', projection);
-    check('a rebuild started from the console is shown, marked as started from the console', await observe(async () => (await row().locator('[data-rebuild-started-from-console]').count()) === 1 && (await waitsBehindQueuedBatches()), 'the console rebuild'), await rowText());
-    await shot('11-rebuild-started-from-the-console');
-    await visit(`${pulse}/services/ticketing/gathering`);
+        await page.waitForTimeout(1500);
+    }
+    check('the Gathering tab lists the running rebuild as an open group under its endpoint id with its finished batches recorded', (await openRun().count()) === 1 && (await text(openRun().locator('[data-group-recorded]'))) === String(doneBeforeDiscard), await text(openRun()));
+    await shotWide('12-gathering-tab-with-the-run', page.locator('section[aria-label^="Gathered groups"]'));
+    await openRun().locator('button[data-discard-group]').click();
     await page.waitForLoadState('load');
-    const gathering = await page.locator('body').innerText();
-    check('the run is listed on the Gathering tab under its endpoint id', gathering.includes(`${projection}.rebuild`));
-    await page.screenshot({path: `${screenshots}/12-gathering-tab-with-the-run.png`, fullPage: true});
-    console.log(`     screenshot ${screenshots}/12-gathering-tab-with-the-run.png`);
-    drainAsync();
-    check('the console rebuild ends at done', await observe(async () => (await rowState()) === 'done', 'done'), await rowText());
-    await shot('13-console-rebuild-done');
+    drainRequests();
+    check('a rebuild discarded on the Gathering tab is shown as discarded with the batches it did not project', await observe(async () => (await rowState(ledger)) === 'discarded', 'discarded'), await rowText(ledger));
+    check('the discarded rebuild keeps its finished batches and names the two it did not project', (await rowBatches(ledger)) === `${doneBeforeDiscard} of ${batches} batches` && (await latestProgress()).includes('not projected'), await latestProgress());
+    check('the recent operations summary names the discarded run instead of saying all done', (await text(page.locator('[data-projection-operations] [data-summary-state]'))).includes('1 discarded'), await text(page.locator('[data-projection-operations] [data-summary-state]')));
+    await shotProjection('10-rebuild-discarded', ledger);
+    drainBatches();
+    drainBatchCompletions();
+    check('the discarded rebuild stays discarded after its remaining batches ran', await observe(async () => (await rowState(ledger)) === 'discarded', 'still discarded'), await rowText(ledger));
+
+    await runFromPulse(seatMap);
+    check('a rebuild whose batch reports share its batches channel shows its running time and how to count each batch as it finishes', await observe(async () => (await rowState(seatMap)) === 'running' && (await waitsBehindQueuedBatches(seatMap)) && (await latestProgress()).startsWith('running for'), 'the shared-channel rebuild'), await rowText(seatMap));
+    check('the sentence names the shared channel and batchCompletionChannelName', (await text(row(seatMap).locator('[data-rebuild-queued-records]'))) === 'Finished batches are counted once the batches queued on ticketing_async have run. Set batchCompletionChannelName on #[ProjectionRebuild] to count each batch as it finishes.', await text(row(seatMap).locator('[data-rebuild-queued-records]')));
+    await shotProjection('11-shared-channel-rebuild-running', seatMap);
+    drainBatches();
+    check('the shared-channel rebuild ends at done once its batches and their reports ran', await observe(async () => (await rowState(seatMap)) === 'done', 'shared-channel done'), await rowText(seatMap));
 } finally {
-    writeFileSync(`${screenshots}/progress-report.json`, JSON.stringify(report, null, 2));
+    rmSync(parts, {recursive: true, force: true});
     ticketingConsumer.kill('SIGTERM');
     docker('exec', '-T', 'ticketing', 'sh', '-c', 'for p in $(ls /proc | grep -E "^[0-9]+$"); do tr "\\0" " " < /proc/$p/cmdline 2>/dev/null | grep -aq "^php bin/console ecotone:run ticketing --executionTimeLimit=3600000" && kill -TERM $p; done; true');
     await browser.close();

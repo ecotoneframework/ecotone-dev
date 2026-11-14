@@ -77,7 +77,7 @@ final class MessageFlowDistributedTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
         $graph = $ecotone->getMessageFlowGraph();
 
-        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes');
+        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, array_values(array_filter($graph->nodes(), fn ($node) => ($node->attributes['class'] ?? null) === $service::class && ($node->attributes['method'] ?? null) === $method))[0]->id, 'distributed:' . DistributedBus::class), 'attributes');
         self::assertSame([['inferred' => true, 'via' => 'sendCommand', 'targetService' => 'ticketing', 'targetChannel' => null]], $sendsOf('command'));
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => null]], $sendsOf('message'));
         $ecotone->runConsoleCommand('ecotone:flow:dump');
@@ -235,7 +235,7 @@ final class MessageFlowDistributedTest extends TestCase
         $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $bus = 'distributed:' . DistributedBus::class;
-        $handler = fn (string $method) => 'handler:' . $service::class . '::' . $method;
+        $handler = fn (string $method) => array_values(array_filter($graph->nodes(), fn ($node) => ($node->attributes['class'] ?? null) === $service::class && ($node->attributes['method'] ?? null) === $method))[0]->id;
         self::assertSame(
             [['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result']],
             array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $handler('holdRequestedSeat'), $bus), 'attributes'),
@@ -327,7 +327,7 @@ final class MessageFlowDistributedTest extends TestCase
         };
         $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
-        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes');
+        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, array_values(array_filter($graph->nodes(), fn ($node) => ($node->attributes['class'] ?? null) === $service::class && ($node->attributes['method'] ?? null) === $method))[0]->id, 'distributed:' . DistributedBus::class), 'attributes');
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result']], $sendsOf('holdRequestedSeat'));
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.release', 'withoutReply' => true]], $sendsOf('releaseSeat'));
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.release', 'withoutReply' => true]], $sendsOf('releaseSeatsOfFailedOrder'));
@@ -381,7 +381,7 @@ final class MessageFlowDistributedTest extends TestCase
         foreach (['concatenated', 'readFromThePayload', 'reassignedInTheHelper', 'loopVariable'] as $method) {
             self::assertSame(
                 [['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => null]],
-                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes'),
+                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, array_values(array_filter($graph->nodes(), fn ($node) => ($node->attributes['class'] ?? null) === $service::class && ($node->attributes['method'] ?? null) === $method))[0]->id, 'distributed:' . DistributedBus::class), 'attributes'),
             );
         }
     }
@@ -425,7 +425,7 @@ final class MessageFlowDistributedTest extends TestCase
         };
         $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
-        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes');
+        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, array_values(array_filter($graph->nodes(), fn ($node) => ($node->attributes['class'] ?? null) === $service::class && ($node->attributes['method'] ?? null) === $method))[0]->id, 'distributed:' . DistributedBus::class), 'attributes');
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => null]], $sendsOf('holdRequestedSeat'));
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.release', 'withoutReply' => true]], $sendsOf('releaseSeat'));
     }
@@ -458,7 +458,7 @@ final class MessageFlowDistributedTest extends TestCase
         };
         $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
-        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes');
+        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, array_values(array_filter($graph->nodes(), fn ($node) => ($node->attributes['class'] ?? null) === $service::class && ($node->attributes['method'] ?? null) === $method))[0]->id, 'distributed:' . DistributedBus::class), 'attributes');
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'withoutReply' => true]], $sendsOf('omitted'));
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => null]], $sendsOf('readFromThePayload'));
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => null]], $sendsOf('namedAndConcatenated'));
@@ -544,7 +544,7 @@ final class MessageFlowDistributedTest extends TestCase
         foreach (['shortArray', 'keyedShortArray', 'keyedInForeach', 'keyedInForeachWithItsKey'] as $method) {
             self::assertSame(
                 [['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => null]],
-                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes'),
+                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, array_values(array_filter($graph->nodes(), fn ($node) => ($node->attributes['class'] ?? null) === $service::class && ($node->attributes['method'] ?? null) === $method))[0]->id, 'distributed:' . DistributedBus::class), 'attributes'),
             );
         }
     }
@@ -642,7 +642,7 @@ final class MessageFlowDistributedTest extends TestCase
         foreach (['shadowedByAnArrowFunction', 'shadowedByAClosure', 'passedToAFunction', 'passedToAMethod', 'extracted'] as $method) {
             self::assertSame(
                 [['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => null]],
-                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes'),
+                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, array_values(array_filter($graph->nodes(), fn ($node) => ($node->attributes['class'] ?? null) === $service::class && ($node->attributes['method'] ?? null) === $method))[0]->id, 'distributed:' . DistributedBus::class), 'attributes'),
             );
         }
     }
@@ -681,7 +681,7 @@ final class MessageFlowDistributedTest extends TestCase
         foreach (['outsideTheClosure', 'beforeTheCall'] as $method) {
             self::assertSame(
                 [['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'withoutReply' => true]],
-                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes'),
+                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, array_values(array_filter($graph->nodes(), fn ($node) => ($node->attributes['class'] ?? null) === $service::class && ($node->attributes['method'] ?? null) === $method))[0]->id, 'distributed:' . DistributedBus::class), 'attributes'),
             );
         }
     }
@@ -738,7 +738,7 @@ final class MessageFlowDistributedTest extends TestCase
         };
         $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
-        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes');
+        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, array_values(array_filter($graph->nodes(), fn ($node) => ($node->attributes['class'] ?? null) === $service::class && ($node->attributes['method'] ?? null) === $method))[0]->id, 'distributed:' . DistributedBus::class), 'attributes');
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result']], $sendsOf('holdRequestedSeat'));
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.confirm', 'replyChannel' => 'tickets.confirm.result']], $sendsOf('confirmPaidSeats'));
     }
@@ -760,7 +760,7 @@ final class MessageFlowDistributedTest extends TestCase
         };
         $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
-        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes');
+        $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, array_values(array_filter($graph->nodes(), fn ($node) => ($node->attributes['class'] ?? null) === $service::class && ($node->attributes['method'] ?? null) === $method))[0]->id, 'distributed:' . DistributedBus::class), 'attributes');
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result']], $sendsOf('holdRequestedSeat'));
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.confirm', 'withoutReply' => true]], $sendsOf('confirmPaidSeats'));
     }
@@ -837,7 +837,7 @@ final class MessageFlowDistributedTest extends TestCase
         foreach (['fromAProperty', 'fromAMatch', 'fromAConcatenation', 'fromAnOverridableMethod', 'fromAnOverridableConstant', 'fromAnInterfaceMethod', 'fromAReassignedParameter'] as $method) {
             self::assertSame(
                 [['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => null]],
-                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $method, 'distributed:' . DistributedBus::class), 'attributes'),
+                array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, array_values(array_filter($graph->nodes(), fn ($node) => ($node->attributes['class'] ?? null) === $service::class && ($node->attributes['method'] ?? null) === $method))[0]->id, 'distributed:' . DistributedBus::class), 'attributes'),
             );
         }
     }

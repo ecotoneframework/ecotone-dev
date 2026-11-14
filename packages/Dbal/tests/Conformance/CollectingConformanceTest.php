@@ -13,6 +13,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
@@ -827,6 +828,49 @@ final class CollectingConformanceTest extends TestCase
         self::assertStringContainsString($handler::class . '::collect', $failure->getMessage());
         self::assertStringContainsString('payload.missingMethod()', $failure->getMessage());
         self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
+    }
+
+    public function test_max_wait_timer_keeps_the_first_messages_tenant_for_its_database_connection(): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["key"]')]
+            #[Asynchronous('tenant_batches')]
+            #[CommandHandler('collect.tenant', endpointId: 'collect.tenant.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, 'collecting_tenant_connection' => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: [
+                MultiTenantConfiguration::create('tenant', ['collecting_tenant' => 'collecting_tenant_connection']),
+                SimpleMessageChannelBuilder::createQueueChannel('tenant_batches'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)->withDefaultInstantRetries(false),
+        );
+        $ecotone->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
+        $key = bin2hex(random_bytes(16));
+        $ecotone->sendCommandWithRouting('collect.tenant', ['key' => $key, 'value' => 'first'], metadata: ['tenant' => 'collecting_tenant']);
+        $ecotone->run('tenant_batches');
+        self::assertSame([], $handler->batches);
+        $ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
+        $failure = null;
+        try {
+            $ecotone->run('tenant_batches');
+        } catch (Throwable $caught) {
+            $failure = $caught->getMessage();
+        }
+        self::assertNull($failure);
+        self::assertCount(1, $handler->batches);
+        self::assertSame([['key' => $key, 'value' => 'first']], $handler->batches[0]->payloads);
+        self::assertSame('collecting_tenant', $handler->batches[0]->headers[0]['tenant']);
     }
 
     private function bootstrap(object $handler, bool $durable, bool $instantRetries = true): FlowTestSupport

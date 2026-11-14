@@ -87,7 +87,7 @@ final class CollectingMessageHandler implements MessageHandler
             maxSize: $this->maxSize,
             message: $message,
             deadline: $this->maxWait === null ? null : $this->clock->now()->unixTime()->inMilliseconds() + $this->maxWait,
-            whenOpened: $this->scheduleTimeout(...),
+            whenOpened: fn (string $groupId) => $this->scheduleTimeout($groupId, $message),
             whenReleased: $whenReleased,
         );
         if (! $recorded) {
@@ -128,12 +128,15 @@ final class CollectingMessageHandler implements MessageHandler
         return $groupKey;
     }
 
-    private function scheduleTimeout(string $groupId): void
+    private function scheduleTimeout(string $groupId, Message $firstMessage): void
     {
         if ($this->maxWait === null) {
             return;
         }
-        $trigger = $this->messageBuilder->withPayload($groupId)
+        $trigger = $this->messageBuilder->fromParentMessage($firstMessage)
+            ->setPayload($groupId)
+            ->removeHeader(MessageHeaders::TIME_TO_LIVE)
+            ->removeHeader(MessageHeaders::DELIVERY_DELAY)
             ->setHeader(GatheringHeaders::GROUP_ID, $groupId)
             ->setHeader(GatheringHeaders::TIMEOUT, true)
             ->setHeader(MessageHeaders::DELIVERY_DELAY, $this->maxWait)

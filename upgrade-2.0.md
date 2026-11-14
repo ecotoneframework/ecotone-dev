@@ -4335,3 +4335,21 @@ normal section with "How to adapt" steps when it ships.
 15. Add `ecotone:projection:init --all` to your deployment, after the database setup (§8). Add the `version` column to `ecotone_projection_state` (`ALTER TABLE ecotone_projection_state ADD COLUMN version INTEGER NOT NULL DEFAULT 0`), and check which commands and asynchronous endpoints now retry by default (§9, §14).
 16. Add `ecotone:migration:database:setup --initialize` (or its `--sql` output, fed to your migration tool) to your deployment (§8).
 17. Once it ships: move framework YAML/PHP config options into `#[ServiceContext]` (§12).
+
+## Collecting ordinary messages (Enterprise)
+
+**Before:** Ordinary asynchronous service handlers ran once per message. The unreleased message-gathering tables
+held split groups and parts only.
+
+**Now:** Opt-in `#[Collected]` handlers receive a typed batch. Unmarked handlers retain their behavior. Gathering's
+unreleased tables gain nullable batch identity and message identity columns and indexes; setup creates new tables
+but does not alter existing ones.
+
+**How to adapt:** No application change is required unless enabling collecting or using an earlier prerelease
+gathering schema. For collecting, follow [the guide](docs/message-collecting.md), use explicit subscriptions and
+stable endpoint ids, configure DBAL and an Enterprise licence, and upgrade all consumers before adding the marker.
+For an existing prerelease gathering database, drain its open groups and stop consumers, then migrate the new
+columns/indexes through your application migrations (compare generated `--sql --feature=gathering` output), or
+recreate only the gathering tables if their retained history can be discarded:
+`ecotone:migration:database:delete --feature=gathering --force`, then
+`ecotone:migration:database:setup --initialize --feature=gathering`. Restart consumers after the schema is ready.

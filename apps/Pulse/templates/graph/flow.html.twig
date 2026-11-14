@@ -174,7 +174,7 @@
         {% endif %}
         <ul class="graph-goto" aria-label="Go to a service's failures and traces" data-graph-goto>
             {% for service in services %}
-                <li data-service-link="{{ service }}"><b>{{ service }}</b>: <a data-dead-letters href="{{ path('dead_letters', {service: service}) }}">Dead letters of {{ service }}</a> · <a data-traces href="{{ path('traces', {service: service}) }}">Traces of {{ service }}</a></li>
+                <li data-service-link="{{ service }}"><b>{{ service }}</b>: <a data-dead-letters href="{{ path('dead_letters', {service: service}) }}">Dead letters of {{ service }}</a> · <a data-traces href="{{ path('traces', {service: service}) }}">Traces of {{ service }}</a> · <a data-compare-versions="{{ service }}" href="{{ path('flow_compare', {service: service}) }}">Compare versions of {{ service }}</a></li>
             {% endfor %}
         </ul>
         {% embed '_section.html.twig' with {key: 'flow.legend', hook: 'graph-legend', title: 'Legend', summary: '5 kinds of node, 4 kinds of arrow, 4 trace marks', status: 'ok', open: trace is not null} only %}

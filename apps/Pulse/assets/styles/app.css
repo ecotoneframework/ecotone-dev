@@ -485,3 +485,19 @@ button.dn-step-ref{border:0;cursor:pointer;font-family:inherit}
 .trace-steps td.num{white-space:nowrap}
 .dn[data-trace-state] .dn-kind,.dn[data-trace-state] .dn-note{color:var(--fg)}
 @media (max-width:56rem){.trace-steps{min-width:30rem}}
+:root{--cmp-added:var(--ok);--cmp-removed:var(--bad);--cmp-changed:var(--wait)}
+.dn-added{border-color:var(--cmp-added);background:var(--ok-bg);box-shadow:0 0 0 2px color-mix(in srgb,var(--cmp-added) 55%,transparent)}
+.dn-removed{border-color:var(--cmp-removed);border-style:dashed;border-left-style:solid;background:var(--bad-bg)}.dn-removed .dn-label{text-decoration:line-through}
+.dn-changed{border-color:var(--cmp-changed);background:var(--wait-bg);box-shadow:0 0 0 2px color-mix(in srgb,var(--cmp-changed) 55%,transparent)}
+.dn[data-change] .dn-kind{color:var(--fg)}
+[data-compared] .dn:not([data-change]){opacity:.55}
+.da.da-added{stroke:var(--cmp-added);stroke-width:3}.da.da-removed{stroke:var(--cmp-removed);stroke-width:2.4;stroke-dasharray:7 5}.da.da-changed{stroke:var(--cmp-changed);stroke-width:3}
+.da-label.da-added{fill:var(--cmp-added)}.da-label.da-removed{fill:var(--cmp-removed)}.da-label.da-changed{fill:var(--cmp-changed)}
+[data-compared] .da:not(.da-added):not(.da-removed):not(.da-changed){opacity:.4}[data-compared] .da-label:not(.da-added):not(.da-removed):not(.da-changed){opacity:.5}
+.cmp-added{color:var(--ok);background:var(--ok-bg)}.cmp-removed{color:var(--bad);background:var(--bad-bg)}.cmp-changed{color:var(--wait);background:var(--wait-bg)}
+.compare-form{align-items:center;gap:.5rem .75rem}.compare-form select{max-width:100%}
+.compare-legend{margin:.6rem 0}
+.compare-changes>summary{padding:.6rem 1rem;cursor:pointer}.compare-changes>ul{list-style:none;margin:0;padding:.4rem 1rem .8rem;border-top:1px solid var(--line)}.compare-changes>ul>li{padding:.25rem 0;overflow-wrap:anywhere}
+.compare-differences{margin:.2rem 0 .2rem 1.5rem;padding:0;list-style:none;color:var(--muted);font-size:.85rem}
+button.link{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-family:var(--mono);font-size:.88rem;cursor:pointer;text-decoration:underline;text-align:left}
+.da-hub.da-added,.da-hub.da-removed,.da-hub.da-changed,.da-label.da-hub.da-added,.da-label.da-hub.da-removed,.da-label.da-hub.da-changed{opacity:1}

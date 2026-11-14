@@ -16,6 +16,7 @@ final readonly class DiagramEdge
         public string $arrow,
         public string $label = '',
         public bool $highlighted = false,
+        public ?string $change = null,
     ) {
     }
 
@@ -26,6 +27,11 @@ final readonly class DiagramEdge
 
     public function orHighlighted(bool $highlighted): self
     {
-        return new self($this->from, $this->to, $this->arrow, $this->label, $this->highlighted || $highlighted);
+        return new self($this->from, $this->to, $this->arrow, $this->label, $this->highlighted || $highlighted, $this->change);
+    }
+
+    public function orChanged(?string $change): self
+    {
+        return new self($this->from, $this->to, $this->arrow, $this->label, $this->highlighted, $this->change ?? $change);
     }
 }

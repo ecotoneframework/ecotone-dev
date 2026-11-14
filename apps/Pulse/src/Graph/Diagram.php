@@ -50,6 +50,11 @@ final readonly class Diagram
         return null;
     }
 
+    public function isCompared(): bool
+    {
+        return array_any($this->nodes, static fn (DiagramNode $node): bool => $node->change !== null) || array_any($this->edges, static fn (DiagramEdge $edge): bool => $edge->change !== null);
+    }
+
     public function hasTrace(): bool
     {
         return array_any($this->nodes, static fn (DiagramNode $node): bool => $node->state !== null);

@@ -166,7 +166,7 @@ final readonly class ProjectionList
             foreach ($lists as $list) {
                 $failed = $list->failedOperation();
                 if ($failed !== null) {
-                    return new Verdict(Status::Warning, sprintf('%d %s up to date, but the last %s of %s%s failed.', $total, $total === 1 ? 'projection is' : 'projections are', $failed->noun(), $prefixed ? $list->snapshot->tenant . ': ' : '', $failed->projection), false);
+                    return new Verdict(Status::Warning, sprintf('%d %s up to date, but the last %s of %s%s waits for a failed batch to be replayed.', $total, $total === 1 ? 'projection is' : 'projections are', $failed->noun(), $prefixed ? $list->snapshot->tenant . ': ' : '', $failed->projection), false);
                 }
             }
             $quiet = array_merge(...array_map(static fn (self $list): array => $list->quiet, $lists));

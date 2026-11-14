@@ -262,7 +262,7 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertNotNull($operations->attr('open'));
         self::assertSame('2 · 1 failed', $operations->filter('[data-summary-state]')->text());
         self::assertSame('warning', $crawler->filter('[data-verdict]')->attr('data-verdict'));
-        self::assertStringContainsString('the last rebuild of broken failed', $crawler->filter('[data-verdict-sentence]')->text());
+        self::assertStringContainsString('the last rebuild of broken waits for a failed batch to be replayed', $crawler->filter('[data-verdict-sentence]')->text());
     }
 
     public function test_recent_operations_that_all_finished_stay_folded(): void
@@ -381,6 +381,7 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertSame('in 4.2s', $crawler->filter('tr[data-projection="totals"] [data-rebuild-duration]')->text());
         self::assertSame('up_to_date', $this->statusOf($crawler, 'totals'));
         self::assertSame('failed', $crawler->filter('tr[data-projection="broken"] [data-rebuild-state]')->attr('data-rebuild-state'));
+        self::assertSame('2 projections are up to date, but the last rebuild of broken waits for a failed batch to be replayed.', $crawler->filter('[data-verdict-sentence]')->text());
     }
 
     public function test_a_rebuild_with_a_failed_batch_waits_for_its_replay_and_links_its_dead_letter(): void

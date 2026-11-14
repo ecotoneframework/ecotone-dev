@@ -19,8 +19,8 @@ use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Gathering\CollectedHandlerContext;
+use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
@@ -70,9 +70,9 @@ final class CollectingModule extends NoExternalConfigurationModule
                 }
                 $context = new CollectedHandlerContext(className: $registration->getClassName(), methodName: $registration->getMethodName(), endpointId: '', groupByDescription: '');
                 $attribute = match (true) {
-                    $handler instanceof CommandHandler => "#[CommandHandler(routingKey: " . var_export($handler->getInputChannelName(), true) . ", endpointId: 'your.stable.id')]",
-                    $handler instanceof EventHandler => "#[EventHandler(listenTo: " . var_export($handler->listenTo, true) . ", endpointId: 'your.stable.id')]",
-                    default => "#[InternalHandler(inputChannelName: " . var_export($handler->getInputChannelName(), true) . ", endpointId: 'your.stable.id')]",
+                    $handler instanceof CommandHandler => '#[CommandHandler(routingKey: ' . var_export($handler->getInputChannelName(), true) . ", endpointId: 'your.stable.id')]",
+                    $handler instanceof EventHandler => '#[EventHandler(listenTo: ' . var_export($handler->listenTo, true) . ", endpointId: 'your.stable.id')]",
+                    default => '#[InternalHandler(inputChannelName: ' . var_export($handler->getInputChannelName(), true) . ", endpointId: 'your.stable.id')]",
                 };
                 throw ConfigurationException::create("Collected handler {$context->description} has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set {$attribute}, or remove #[Collected].");
             }

@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Messaging\CollectedMessages;
+use RuntimeException;
 
 /**
  * licence Apache-2.0
@@ -39,7 +40,7 @@ return new class () {
     }
 
     #[Collected(maxSize: 2, groupBy: static function (CollectedEventForConformance $event): string {
-        throw new \RuntimeException('group key unavailable');
+        throw new RuntimeException('group key unavailable');
     })]
     #[Asynchronous('batches')]
     #[CommandHandler('collect.failing', endpointId: 'collect.failing.handler')]

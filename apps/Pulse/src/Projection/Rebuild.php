@@ -118,6 +118,28 @@ final readonly class Rebuild
         return sprintf('%s %s %s', count($notDone) === 1 ? 'batch' : 'batches', implode(', ', $notDone), $this->isClosedEarly() ? 'not projected' : 'not done yet');
     }
 
+    public function unfinishedLabel(): ?string
+    {
+        $failed = array_column($this->failedBatches, 'batch');
+        $notProjected = array_values(array_diff($this->missingBatches, array_column($this->batchesWaitingToBeRecorded, 'batch')));
+
+        return match (true) {
+            $this->state === 'failed' && $failed !== [] => sprintf('the latest %s waits for the replay of %s', $this->noun(), self::batchList($failed)),
+            $this->state === 'failed' => sprintf('the latest %s waits for a failed batch to be replayed', $this->noun()),
+            $this->isClosedEarly() => sprintf('the latest %s was %s%s', $this->noun(), $this->shortStateLabel(), $notProjected === [] ? '' : sprintf(' with %s not projected', self::batchList($notProjected))),
+            default => null,
+        };
+    }
+
+    public function unfinishedSummaryLabel(): ?string
+    {
+        return match (true) {
+            $this->state === 'failed' => $this->noun() . ' waiting for replay',
+            $this->isClosedEarly() => $this->noun() . ' ' . $this->shortStateLabel(),
+            default => null,
+        };
+    }
+
     public function stateLabel(): string
     {
         return match ($this->state) {
@@ -214,5 +236,13 @@ final readonly class Rebuild
         }
 
         return intdiv($seconds, 3600) . 'h ' . intdiv($seconds % 3600, 60) . 'm';
+    }
+
+    /**
+     * @param list<int> $batches
+     */
+    private static function batchList(array $batches): string
+    {
+        return sprintf('%s %s', count($batches) === 1 ? 'batch' : 'batches', implode(', ', $batches));
     }
 }

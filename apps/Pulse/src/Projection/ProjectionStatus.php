@@ -174,6 +174,10 @@ final readonly class ProjectionStatus
 
     private function upToDateExplanation(): string
     {
+        $unfinished = $this->latestRebuild?->unfinishedLabel();
+        if ($unfinished !== null) {
+            return sprintf('event positions are caught up; %s.', $unfinished);
+        }
         if ($this->partitions === null) {
             return 'no event is left to project.';
         }

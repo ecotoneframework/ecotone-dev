@@ -219,3 +219,44 @@ squash-merged as `ca6b0ed86` (#765), and #767 converts expression results to par
 conflicts. Collecting uses the existing attribute-expression executor directly for the key; closure parameter
 converters share the upstream conversion behavior. String/closure grouping and both closure payload forms remain
 covered after the rebase. The pull request now targets main.
+
+
+## Review of the changes made after the first review, PR #768 head 183019490 (2026-11-14)
+
+One read-only review. Core conflict handling confirmed correct for endpoints running in a database transaction
+(every lost write throws before writing anything else; each retry attempt starts a new transaction and snapshot;
+a retried, dead-lettered and replayed message is collected once). No BLOCKING finding.
+
+- R1 (should fix, high). Collecting on an endpoint WITHOUT a database transaction (`#[WithoutDatabaseTransaction]`,
+  `withTransactionOnAsynchronousEndpoints(false)`) loses batches and nothing says so: the release commits on its
+  own, a failing batch handler is not re-run by a retry or replay (message already recorded, batch already
+  closed); a crash between the group update and the part insert counts a message with no part; the in-memory
+  store behaves differently (it restores on handler failure). Follow the gathering precedent on main
+  (docs/message-gathering.md, the "you lose these guarantees" section and its tests
+  GatheringConformanceTest around lines 1806 and 1858): document the lost guarantees for collecting in the same
+  form and add the matching tests. Also: the ConcurrencyException text must not suggest raising instant retries
+  as a way out for an endpoint without a transaction.
+- R2 (should fix). Gathering without a transaction changed silently: a conflict used to be re-sent on any endpoint;
+  now nothing retries by default there and it goes to the error channel. Upgrade note and guide say so; the
+  exception names the way out for that case (turn the endpoint transaction on, or configure delayed retries);
+  one test of a gathering conflict without a transaction.
+- R3 (minor, PLAUSIBLE). Same message id delivered twice at once while the first delivery's batch closes: the
+  second opens its own batch and fails the part insert with a raw unique-violation exception. Reproduce; treat as
+  a duplicate (return) so it never depends on the retry configuration.
+- R4 (minor). A lock wait timeout is reported as "another consumer won the optimistic write". Translate only
+  genuine conflicts (unique violation on the store's own indexes, serialization failure, deadlock) and let a lock
+  timeout surface as itself; check the previous-exception chain.
+- R5 (minor, PLAUSIBLE). The shared header exclusion (GatheringMessageContext) is narrower than the framework's own
+  propagation list: aggregate id headers of the first message reach the batch message and its output, and
+  `ecotone_retry_number` / dead-letter replay markers cross into the maxWait timer. Reuse the framework's list;
+  extend the boundary test with these headers.
+- R6 (minor). `CollectedMessage->headers` differs by store: in memory it includes acknowledgement, polling and
+  reply-channel headers that DBAL strips. Same content from both; the conformance test asserts the full key set.
+- R7 (minor). Service ids `ecotone.gathering.handler.<endpointId>[.core|.enterprise]` still clash for endpoints `a`
+  and `a.core`; make them non-nesting like the collecting ids.
+- R8 (minor). `test_original_message_redelivery_after_a_real_database_conflict_is_not_collected_twice` forces no
+  conflict; rename it to what it proves, or use the forced interleaving, and correct the C1 index row.
+- R9 (minor). Rule 8a's title is broader than its body; title it for a lost optimistic write. Wrap lines over 120
+  characters in the skill and its grader.
+- Also (coordinator): the collecting licence refusal uses shorter wording than the gathering one; use the same
+  full wording (Symfony, Laravel or Tempest configuration, the `licenceKey:` argument of EcotoneLite, the trial).

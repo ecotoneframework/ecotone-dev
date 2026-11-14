@@ -119,3 +119,13 @@ Items marked HELD wait for the maintainer; do not start them.
 - H2 (C19). Where the Enterprise wiring of collecting (and of gathering in PR #765) lives.
 - H3. Which headers the batch message given to the handler carries (design decision 14 says framework headers
   only; tenant and tracing headers are then missing).
+
+## Maintainer decisions (2026-11-14)
+- H1: one console family. Listing becomes `ecotone:gathering:list-batches`; `ecotone:collecting:list` is removed.
+- H2 / C19: the gathered and the collected handler construction both move out of the Apache-2.0 builder into one
+  `licence Enterprise` collaborator, in this pull request.
+- C29: `CollectedMessages` exposes `messages`, a list in recording order of per-message objects with `payload` and
+  `headers`; no parallel `payloads` / `headers` properties.
+- C30 (H3): the batch message carries the headers of the batch's first message, minus the headers that must not
+  cross the boundary (routing slip, reply channel, delivery delay, time to live, priority, framework gathering
+  headers, message id and timestamp). The timer uses the same exclusions.

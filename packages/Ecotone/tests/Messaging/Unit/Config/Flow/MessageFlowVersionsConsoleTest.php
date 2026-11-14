@@ -5,9 +5,19 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
 use DateTimeImmutable;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Environment;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Messaging\Flow\FlowVersionsConfiguration;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Scheduling\TimeSpan;
@@ -40,6 +50,54 @@ final class MessageFlowVersionsConsoleTest extends TestCase
             $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());
         }
         rmdir($this->location);
+    }
+
+    public function test_renaming_an_async_intercepted_saga_event_handler_keeps_every_arrow(): void
+    {
+        $saga = new #[Saga] class () {
+            #[Identifier]
+            private string $id = 'order';
+
+            #[Environment(['before'])]
+            #[Asynchronous('saga.events')]
+            #[EventHandler('saga.received', endpointId: 'saga.stable')]
+            public function receive(EventBus $bus): void
+            {
+                $bus->publishWithRouting('saga.forwarded', []);
+            }
+
+            #[Environment(['after'])]
+            #[Asynchronous('saga.events')]
+            #[EventHandler('saga.received', endpointId: 'saga.stable')]
+            public function renamed(EventBus $bus): void
+            {
+                $bus->publishWithRouting('saga.forwarded', []);
+            }
+        };
+        $interceptor = new class () {
+            #[Around(pointcut: EventHandler::class)]
+            public function intercept(MethodInvocation $invocation): mixed
+            {
+                return $invocation->proceed();
+            }
+        };
+        $before = EcotoneLite::bootstrapFlowTesting([$saga::class, $interceptor::class], [$interceptor], [SimpleMessageChannelBuilder::createQueueChannel('saga.events')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, environment: 'before')->getMessageFlowGraph();
+        $after = EcotoneLite::bootstrapFlowTesting([$saga::class, $interceptor::class], [$interceptor], [SimpleMessageChannelBuilder::createQueueChannel('saga.events')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, environment: 'after')->getMessageFlowGraph();
+        $handler = 'handler:saga.stable';
+
+        self::assertTrue($before->hasNode($handler));
+        self::assertTrue($after->hasNode($handler));
+        self::assertSame('saga:' . $saga::class, $before->node($handler)->attributes['owner']);
+        self::assertCount(1, $before->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS));
+        self::assertCount(1, $before->edgesOfKind(FlowEdgeKind::INTERCEPTED_BY, $handler));
+        self::assertCount(1, $before->edgesOfKind(FlowEdgeKind::EMITS, $handler, 'message:saga.forwarded'));
+        $comparison = $before->compareTo($after);
+        self::assertCount(1, $comparison->changedNodes);
+        self::assertSame([], $comparison->addedNodes);
+        self::assertSame([], $comparison->removedNodes);
+        self::assertSame([], $comparison->addedEdges);
+        self::assertSame([], $comparison->removedEdges);
+        self::assertSame([], $comparison->changedEdges);
     }
 
     public function test_renaming_an_explicit_endpoint_is_one_changed_node_with_unchanged_arrows(): void

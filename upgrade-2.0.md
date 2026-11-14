@@ -3550,17 +3550,6 @@ flushes only a provider that can — an SDK one. Any other provider handles mess
 forced flush left on. Bind an SDK tracer provider (`OpenTelemetry\SDK\Trace\TracerProvider`) when you want spans
 actually flushed.
 
-### One handler invocation produces one process span
-
-**Before:** with 1.x OpenTelemetry tracing, a method carrying both `#[CommandHandler]` and `#[EventHandler]`
-produced two nested handler spans for each invocation, because each attribute registered its own interceptor.
-
-**Now:** one invocation produces one `process <Class::method>` span, with the endpoint id of the handler that ran.
-The command and event endpoints still handle their respective messages separately.
-
-**How to adapt:** update trace-count assertions, dashboards or alerts that counted both nested handler spans for
-one invocation to expect one process span. No handler attribute change is required.
-
 ### Tracing is part of Core, and OpenTelemetry is one of its exporters
 
 **Before:** every span was produced by the `ecotone/open-telemetry` package: `TracerInterceptor` around the buses and
@@ -3620,6 +3609,18 @@ $ecotone = EcotoneLite::bootstrapFlowTesting(
 $ecotone->sendCommand(new PlaceOrder('1'));
 $recorder->recordedSpans(); // Span[] with traceId, spanId, parentSpanId, name, kind, status, attributes, events
 ```
+
+### One handler invocation produces one process span
+
+**Before:** with 1.x OpenTelemetry tracing, a method carrying handler attributes of more than one kind
+(command, query, event or internal) produced nested handler spans for each invocation, one per kind, because each
+kind registered its own interceptor.
+
+**Now:** one invocation produces one `process <Class::method>` span, with the endpoint id of the handler that ran.
+Each kind's endpoint still handles its own messages separately.
+
+**How to adapt:** update trace-count assertions, dashboards or alerts that counted every nested handler span of
+one invocation to expect one process span. No handler attribute change is required.
 
 ### Flow tracking answers "has it completed yet?" (Enterprise, `ecotone/dbal`)
 

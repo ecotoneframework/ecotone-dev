@@ -3996,20 +3996,23 @@ delayed retries with `ErrorHandlerConfiguration`.
 ### Gathering groups are listed by the gathered handler's endpointId
 
 **Before:** `GatheredGroups::listOpenGroups()` / `listClosedGroups()` and `ecotone:gathering:list` selected groups
-by gather channel name. Rows held `gatherChannelName`, `size` and `accountedPartNumbers`. A gathered handler could
-leave its `endpointId` to be generated.
+by gather channel name. Rows held `gatherChannelName`, `size` and `accountedPartNumbers`.
 
 **Now:** Groups are selected by the gathered handler's `endpointId`, through the same listing as collected batches.
 Rows share one shape: `groupId`, `endpointId`, `groupKey`, `state`, `expectedSize`, `recorded`,
 `missingPartNumbers`, `latePartCount`, `openedAt`, `deadline`, `closedAt` and `releaseReason`. Pulse shows both kinds
-in one table. A gathered handler without an explicit `endpointId` is refused at bootstrap, because its groups are
-stored and listed under it. Groups record their endpoint id, opening time and release reason, and the gathering
-table's (gather_channel_name, state) index becomes (endpoint_id, state).
+in one table. Listing an id that is neither a gathered nor a collected endpoint id and holds no stored groups is
+refused: a gather channel name is answered with its handler's endpoint id, any other id with the known endpoint
+ids. An id that still holds groups is listed even without a current handler, so a renamed endpoint's groups can be
+released or discarded under the old id. A gathered handler without an explicit `endpointId` was already refused at
+bootstrap; the refusal now says its groups are stored and listed under it. Groups record their endpoint id, opening
+time and release reason, and the gathering table's (gather_channel_name, state) index becomes (endpoint_id, state).
 
 **How to adapt:** pass the gathered handler's `endpointId` to `listOpenGroups()`, `listClosedGroups()` and
 `ecotone:gathering:list` instead of the gather channel name, and read `expectedSize` and `recorded` instead of
-`size` and `accountedPartNumbers`. Add `endpointId` to any `#[Gathered]` handler that has none. Gathering tables
-created before this change are migrated as the next entry describes.
+`size` and `accountedPartNumbers`. Gathering tables created before this change are migrated as the next entry
+describes. Groups opened before this change have no endpoint id: they still complete, release, discard and clean
+up, but are not listed.
 
 ### Collect ordinary messages into a batch (Enterprise)
 

@@ -27,7 +27,7 @@ public function work(int $part): int
 
 #[Gathered(timeout: new TimeSpan(minutes: 30))]
 #[Asynchronous('import_summaries')]
-#[InternalHandler('import.summary', endpointId: 'import.summary', outputChannelName: 'import.results')]
+#[InternalHandler('import.summary', endpointId: 'import.summary.handler', outputChannelName: 'import.results')]
 public function summarize(GatheredParts $parts): array
 {
     return $parts->results;
@@ -130,7 +130,10 @@ Use the `Ecotone\Api\Gateway\GatheredGroups` gateway to `listOpenGroups(endpoint
 `listClosedGroups(endpointId)`, `requestRelease(groupId)`, `discard(groupId)` or `cleanupClosedGroups()`. Groups
 are listed by the gathered handler's `endpointId`, the same listing that shows
 [collected batches](message-collecting.md). A gathered handler therefore needs an explicit, stable `endpointId`;
-bootstrap refuses one without it.
+bootstrap refuses one without it. Listing a gather channel name instead is refused with the handler's endpoint
+id. Groups stored by a version that listed by gather channel name carry no endpoint id: they still complete,
+release, discard and clean up, but are not listed. Renaming the endpointId leaves its open groups listed only under
+the old id; release or discard them there.
 
 Each row contains `groupId`, `endpointId`, `groupKey` (null for a gathered group), `state`, `expectedSize` (the
 number of split parts), `recorded` (parts recorded so far), `missingPartNumbers`, `latePartCount`, `openedAt`,
@@ -145,8 +148,8 @@ closes the group without invoking its handler.
 The same operations are available through:
 
 ```text
-ecotone:gathering:list import.summary
-ecotone:gathering:list import.summary --closed
+ecotone:gathering:list import.summary.handler
+ecotone:gathering:list import.summary.handler --closed
 ecotone:gathering:release <groupId>
 ecotone:gathering:discard <groupId>
 ecotone:gathering:cleanup

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Polling;
@@ -19,7 +21,9 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Partitioned;
@@ -387,6 +391,64 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         };
     }
 
+    public function test_asynchronous_rebuild_of_a_tenant_completes_in_that_tenants_group_and_is_listed_for_that_tenant_only(): void
+    {
+        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel', completionChannelName: 'tickets_completion_channel'), FromAggregateStream(Ticket::class)] class () {
+            public array $tickets = [];
+
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+                $this->tickets[] = $event->getTicketId();
+            }
+        };
+        $this->bootstrap('dbal', [$partitioned], multiTenant: true);
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'), metadata: ['tenant' => 'tenant_a']);
+        $partitioned->tickets = [];
+
+        $this->act('ecotone.pulse.projections.rebuild', 'tickets_partitioned', '0af7651916cd43dd8448eb211c80319c', 'tenant_a');
+        $this->orderService->run('tickets_rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $this->orderService->run('tickets_completion_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+
+        $runsOf = static fn (array $snapshot): array => array_map(static fn (array $group): array => [$group['state'], $group['expectedSize'], $group['recorded']], array_values(array_filter($snapshot['gathering']['groups'] ?? [], static fn (array $group): bool => $group['endpointId'] === 'tickets_partitioned.rebuild')));
+        self::assertSame([['released', 1, 1]], $runsOf($this->requestSnapshot('tenant_a')));
+        self::assertSame([], $runsOf($this->requestSnapshot('tenant_b')));
+        self::assertSame(['ticket-1'], $partitioned->tickets);
+    }
+
+    public function test_metadata_of_a_rebuild_request_reaches_its_batches_while_framework_headers_do_not(): void
+    {
+        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel', completionChannelName: 'tickets_completion_channel'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+        };
+        $batches = new class () {
+            public array $headers = [];
+
+            #[Around(pointcut: AsynchronousRunningEndpoint::class)]
+            public function observe(MethodInvocation $invocation, Message $message): mixed
+            {
+                if ($message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) && $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME) === 'tickets_rebuild_channel') {
+                    $this->headers[] = $message->getHeaders()->headers();
+                }
+
+                return $invocation->proceed();
+            }
+        };
+        $this->bootstrap('dbal', [$partitioned, $batches]);
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'));
+
+        $this->act('ecotone.pulse.projections.rebuild', 'tickets_partitioned', '0af7651916cd43dd8448eb211c80319c', metadata: ['requestedBy' => 'operations']);
+        $this->orderService->run('tickets_rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+
+        self::assertCount(1, $batches->headers);
+        self::assertSame('operations', $batches->headers[0]['requestedBy'] ?? null);
+        self::assertArrayNotHasKey(MessageHeaders::REPLY_CHANNEL, $batches->headers[0]);
+        self::assertArrayNotHasKey(MessageHeaders::DELIVERY_DELAY, $batches->headers[0]);
+    }
+
     private function bootstrap(string $storage, array $projections, bool $multiTenant = false, array $extensionObjects = [], bool $initializeProjections = true): void
     {
         $this->pulse = new class () {
@@ -445,9 +507,9 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         );
     }
 
-    private function act(string $routingKey, string $projection, string $tracingId, ?string $tenant = null): void
+    private function act(string $routingKey, string $projection, string $tracingId, ?string $tenant = null, array $metadata = []): void
     {
-        $this->pulseService->getDistributedBus()->sendMessage('order_service', $routingKey, json_encode(['projection' => $projection], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId, ...($tenant === null ? [] : ['tenant' => $tenant])], replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $this->pulseService->getDistributedBus()->sendMessage('order_service', $routingKey, json_encode(['projection' => $projection], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: [...$metadata, MessageHeaders::TRACING_ID => $tracingId, ...($tenant === null ? [] : ['tenant' => $tenant])], replyRoutingKey: 'ecotone.pulse.snapshot_received');
         $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
         $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
     }

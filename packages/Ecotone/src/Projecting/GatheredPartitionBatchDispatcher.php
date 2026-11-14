@@ -9,6 +9,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheringHeaders;
+use Ecotone\Messaging\Support\FrameworkHeaders;
 
 /**
  * licence Enterprise
@@ -55,9 +56,9 @@ final class GatheredPartitionBatchDispatcher implements PartitionBatchDispatcher
             size: $size,
             original: $prepare,
             deadline: null,
-            whenOpened: function () use ($size, $projectionName, $groupId, $gatherChannelName): void {
+            whenOpened: function () use ($size, $projectionName, $groupId, $gatherChannelName, $prepare): void {
                 if ($size === 0) {
-                    $this->messagingEntrypoint->sendWithHeaders(payload: $projectionName, headers: self::stamp(groupId: $groupId, partNumber: 0, size: 0, gatherChannelName: $gatherChannelName), targetChannel: $gatherChannelName);
+                    $this->messagingEntrypoint->sendWithHeaders(payload: $projectionName, headers: [...FrameworkHeaders::unsetHeadersNotPropagatedToFollowingMessages($prepare->getHeaders()->headers()), ...self::stamp(groupId: $groupId, partNumber: 0, size: 0, gatherChannelName: $gatherChannelName)], targetChannel: $gatherChannelName);
                 }
             },
             groupKey: $prepare->getHeaders()->containsKey(MessageHeaders::TRACING_ID) ? (string) $prepare->getHeaders()->get(MessageHeaders::TRACING_ID) : null,
@@ -67,6 +68,7 @@ final class GatheredPartitionBatchDispatcher implements PartitionBatchDispatcher
                 projectionName: $projectionName,
                 headers: [...$headers, ...self::stamp(groupId: $groupId, partNumber: $index + 1, size: $size, gatherChannelName: $gatherChannelName)],
                 asyncChannelName: $asyncChannelName,
+                prepare: $prepare,
             );
         }
     }

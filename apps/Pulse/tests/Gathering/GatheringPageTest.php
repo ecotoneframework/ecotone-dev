@@ -8,9 +8,9 @@ use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Gathered;
-use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
@@ -22,8 +22,8 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\CollectedMessages;
+use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\TimeSpan;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -43,7 +43,6 @@ final class GatheringPageTest extends ReleasingWebTestCase
     private FlowTestSupport $orders;
     private object $handler;
 
-
     public function test_page_lists_collected_batches_by_endpoint_and_key_without_an_unknown_size(): void
     {
         $client = $this->pulseWithGathering();
@@ -59,10 +58,10 @@ final class GatheringPageTest extends ReleasingWebTestCase
         self::assertSame('one', $row->filter('[data-batch-key]')->text());
         self::assertSame('No maximum size', $row->filter('[data-batch-size]')->text());
         self::assertSame('1', $row->filter('[data-batch-recorded]')->text());
+        self::assertSame('2026-10-20T12:00:00+00:00', $row->filter('[data-batch-opened]')->text());
         self::assertCount(1, $row->filter('[data-release-group]'));
         self::assertCount(1, $row->filter('[data-discard-group]'));
     }
-
 
     public function test_collected_batch_release_control_waits_for_handler_consumption(): void
     {
@@ -219,7 +218,32 @@ final class GatheringPageTest extends ReleasingWebTestCase
         self::assertSame([], $this->handler->gathered);
     }
 
-    private function pulseWithGathering(): KernelBrowser
+    public function test_collected_batches_section_has_its_own_empty_state_without_split_parts_copy(): void
+    {
+        $client = $this->pulseWithGathering(gathers: false);
+        $client->catchExceptions(false);
+        $crawler = $this->observe($client);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-no-collected-batches]'));
+        self::assertStringContainsString('No collected batches reported.', $crawler->filter('[data-no-collected-batches]')->text());
+        self::assertStringNotContainsString('A group waits for its split parts.', $crawler->filter('body')->text());
+        self::assertStringNotContainsString('No gathering groups reported.', $crawler->filter('body')->text());
+    }
+
+    public function test_closed_collected_batch_displays_its_release_reason(): void
+    {
+        $client = $this->pulseWithGathering();
+        $client->catchExceptions(false);
+        $this->orders->sendCommandWithRouting('collect', ['tenant' => 'one']);
+        $this->orders->run('summaries');
+        $batchId = $this->orders->getGateway(GatheredGroups::class)->listOpenBatches('dashboard.collect')[0]['groupId'];
+        $this->orders->getGateway(GatheredGroups::class)->requestRelease($batchId);
+        $this->orders->run('summaries');
+        $crawler = $this->observe($client);
+        self::assertSame('manual_release', $crawler->filter('[data-collected-batch="' . $batchId . '"] [data-batch-release-reason]')->text());
+    }
+
+    private function pulseWithGathering(bool $gathers = true): KernelBrowser
     {
         $this->configurePulseWithServices('orders');
         $client = static::createClient();
@@ -237,7 +261,6 @@ final class GatheringPageTest extends ReleasingWebTestCase
             {
                 $this->batches[] = $batch;
             }
-
 
             #[CommandHandler('split', outputChannelName: 'parts')]
             public function start(array $parts): array
@@ -266,6 +289,16 @@ final class GatheringPageTest extends ReleasingWebTestCase
                 $this->gathered[] = $parts;
             }
         };
+        if (! $gathers) {
+            $this->handler = $handler = new class () {
+                #[Collected(maxWait: new TimeSpan(seconds: 10))]
+                #[Asynchronous('summaries')]
+                #[CommandHandler('collect', endpointId: 'dashboard.collect.only')]
+                public function collect(CollectedMessages $batch): void
+                {
+                }
+            };
+        }
         $this->orders = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory($_SERVER['PULSE_TRANSPORT_DSN'])],

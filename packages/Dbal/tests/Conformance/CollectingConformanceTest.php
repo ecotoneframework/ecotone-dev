@@ -180,7 +180,7 @@ final class CollectingConformanceTest extends TestCase
         self::assertCount(1, $batches);
         self::assertSame('one', $batches[0]['groupKey']);
         self::assertSame('listing.handler', $batches[0]['endpointId']);
-        self::assertSame(2, $batches[0]['size']);
+        self::assertSame(2, $batches[0]['maxSize']);
         self::assertSame([], $groups->listOpenBatches('another.handler'));
     }
 
@@ -472,12 +472,12 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect', ['tenant' => 'one']);
         $ecotone->run('batches');
         $batch = $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler')[0];
-        self::assertNull($batch['size']);
+        self::assertNull($batch['maxSize']);
 
-        $result = $ecotone->getServiceFromContainer(ConfiguredMessagingSystem::class)->runConsoleCommand('ecotone:collecting:list', ['endpointId' => 'collect.handler']);
-        self::assertSame(['Group id', 'Endpoint id', 'Group key', 'State', 'Size', 'Recorded messages', 'Deadline'], $result->columnHeaders);
+        $result = $ecotone->getServiceFromContainer(ConfiguredMessagingSystem::class)->runConsoleCommand('ecotone:gathering:list-batches', ['endpointId' => 'collect.handler']);
+        self::assertSame(['Group id', 'Endpoint id', 'Group key', 'State', 'Maximum size', 'Recorded messages', 'Opened at', 'Deadline', 'Release reason'], $result->columnHeaders);
         self::assertCount(1, $result->rows);
-        self::assertSame([$batch['groupId'], 'collect.handler', 'one', 'open', '', 1, '2026-01-01T12:00:10+00:00'], $result->rows[0]);
+        self::assertSame([$batch['groupId'], 'collect.handler', 'one', 'open', 'no maximum size', 1, '2026-01-01T12:00:00+00:00', '2026-01-01T12:00:10+00:00', ''], $result->rows[0]);
     }
 
 
@@ -592,11 +592,11 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         $groups = $ecotone->getGateway(GatheredGroups::class);
         $batch = $groups->listOpenBatches('collect.handler')[0];
-        self::assertNull($batch['size']);
-        self::assertSame([], $groups->listOpenGroups($batch['gatherChannelName']));
+        self::assertNull($batch['maxSize']);
+        self::assertSame([], $groups->listOpenGroups('collect'));
         $groups->requestRelease($batch['groupId']);
         $ecotone->run('batches');
-        self::assertSame([], $groups->listClosedGroups($batch['gatherChannelName']));
+        self::assertSame([], $groups->listClosedGroups('collect'));
     }
 
 
@@ -983,7 +983,7 @@ final class CollectingConformanceTest extends TestCase
         $failure = null;
         try {
             $ecotone->run('batches');
-        } catch (\Throwable $caught) {
+        } catch (Throwable $caught) {
             $failure = $caught->getMessage();
         }
         self::assertNotNull($failure);
@@ -1039,6 +1039,44 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
         $ecotone->run('batches');
         self::assertSame(['MAX_SIZE_REACHED', 'MAX_WAIT_REACHED'], $handler->reasons);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_batch_listings_name_the_maximum_recorded_count_and_first_recording_time(bool $durable): void
+    {
+        $handler = new class () {
+            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect', 'one');
+        $ecotone->run('batches');
+        $ecotone->advanceTimeBy(new TimeSpan(seconds: 2));
+        $ecotone->sendCommandWithRouting('collect', 'two');
+        $ecotone->run('batches');
+        $groups = $ecotone->getGateway(GatheredGroups::class);
+        $batch = $groups->listOpenBatches('collect.handler')[0];
+        $expected = [
+            'groupId' => $batch['groupId'],
+            'endpointId' => 'collect.handler',
+            'groupKey' => null,
+            'state' => 'open',
+            'maxSize' => null,
+            'recordedMessages' => 2,
+            'openedAt' => 1767268800000,
+            'deadline' => 1767268810000,
+        ];
+        self::assertSame($expected, $batch);
+        $groups->requestRelease($batch['groupId']);
+        $ecotone->run('batches');
+        $closed = array_values(array_filter($groups->listClosedBatches('collect.handler'), static fn (array $candidate): bool => $candidate['groupId'] === $batch['groupId']))[0];
+        $expected['state'] = 'released';
+        $expected['releaseReason'] = 'manual_release';
+        self::assertSame($expected, $closed);
     }
 
     private function bootstrap(object $handler, bool $durable, bool $instantRetries = true): FlowTestSupport

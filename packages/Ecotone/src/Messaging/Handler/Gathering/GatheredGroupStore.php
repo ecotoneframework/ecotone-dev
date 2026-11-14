@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gathering;
 
+use Ecotone\Api\Messaging\CollectedReleaseReason;
 use Ecotone\Api\Messaging\Message;
 
 /**
@@ -41,7 +42,7 @@ interface GatheredGroupStore
 
     public function gatherChannelNameFor(string $groupId): string;
 
-    public function releaseGroup(string $groupId, callable $whenReleased): bool;
+    public function releaseGroup(string $groupId, callable $whenReleased, ?CollectedReleaseReason $releaseReason): bool;
 
     public function discard(string $groupId): void;
 

@@ -112,6 +112,8 @@ final class GatheringTableManager implements DbalTableManager
         $group->addColumn(name: 'endpoint_id', typeName: Types::STRING, options: ['length' => 255, 'notnull' => false]);
         $group->addColumn(name: 'group_key', typeName: Types::TEXT, options: ['notnull' => false]);
         $group->addColumn(name: 'group_key_hash', typeName: Types::STRING, options: ['length' => 64, 'notnull' => false]);
+        $group->addColumn(name: 'opened_at', typeName: Types::BIGINT, options: ['notnull' => false]);
+        $group->addColumn(name: 'release_reason', typeName: Types::STRING, options: ['length' => 32, 'notnull' => false]);
         $group->addColumn(name: 'open_slot', typeName: Types::SMALLINT, options: ['notnull' => false]);
         $group->addUniqueIndex(['endpoint_id', 'group_key_hash', 'open_slot']);
         $group->addColumn('size', Types::INTEGER);

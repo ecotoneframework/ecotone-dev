@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gathering;
 
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Messaging\CollectedReleaseReason;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Throwable;
@@ -48,11 +49,21 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
 
     private function listBatches(string $endpointId, bool $closed): array
     {
-        return array_values(array_map(static function (array $group): array {
-            $details = array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true, 'endpointId' => true, 'openSlot' => true]);
-            $details['endpointId'] = $group['endpointId'];
-            $details['size'] = GatheredGroupSize::asNullable($group['size']);
-            return $details;
+        return array_values(array_map(static function (array $group) use ($closed): array {
+            $batch = [
+                'groupId' => $group['groupId'],
+                'endpointId' => $group['endpointId'],
+                'groupKey' => $group['groupKey'],
+                'state' => $group['state'],
+                'maxSize' => GatheredGroupSize::asNullable($group['size']),
+                'recordedMessages' => count($group['parts']),
+                'openedAt' => $group['openedAt'],
+                'deadline' => $group['deadline'],
+            ];
+            if ($closed) {
+                $batch['releaseReason'] = $group['releaseReason'];
+            }
+            return $batch;
         }, array_filter($this->groups, static fn (array $group): bool => ($group['endpointId'] ?? null) === $endpointId && ($closed ? $group['state'] !== 'open' : $group['state'] === 'open'))));
     }
 
@@ -80,6 +91,8 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
                 $this->groups[$groupId]['endpointId'] = $endpointId;
                 $this->groups[$groupId]['groupKey'] = $groupKey;
                 $this->groups[$groupId]['openSlot'] = 1;
+                $this->groups[$groupId]['openedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
+                $this->groups[$groupId]['releaseReason'] = null;
                 $whenOpened($groupId);
             }
             return $this->completePart($groupId, count($this->groups[$groupId]['parts']) + 1, $message, $whenReleased);
@@ -146,6 +159,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         $this->groups[$groupId]['state'] = 'released';
         if (isset($previous['endpointId'])) {
             $this->groups[$groupId]['openSlot'] = null;
+            $this->groups[$groupId]['releaseReason'] = CollectedReleaseReason::MAX_SIZE_REACHED->value;
         }
         $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
         try {
@@ -164,7 +178,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         return $group['gatherChannelName'];
     }
 
-    public function releaseGroup(string $groupId, callable $whenReleased): bool
+    public function releaseGroup(string $groupId, callable $whenReleased, ?CollectedReleaseReason $releaseReason): bool
     {
         $previous = $this->groups[$groupId] ?? null;
         if ($previous === null || $previous['state'] !== 'open') {
@@ -177,6 +191,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         $this->groups[$groupId]['state'] = 'released';
         if (isset($previous['endpointId'])) {
             $this->groups[$groupId]['openSlot'] = null;
+            $this->groups[$groupId]['releaseReason'] = $releaseReason?->value;
         }
         $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
         try {

@@ -52,7 +52,7 @@ final class CollectingPulseTest extends TestCase
         self::assertCount(1, $batches);
         self::assertSame('pulse.collect.handler', $batches[0]['endpointId']);
         self::assertSame('one', $batches[0]['groupKey']);
-        self::assertNull($batches[0]['size']);
+        self::assertNull($batches[0]['maxSize']);
         self::assertSame('open', $batches[0]['state']);
     }
 

@@ -11,8 +11,9 @@
     {% elseif action in ['release', 'discard'] and actionStatus == 'requested' %}
         <p class="notice toast" role="status" data-gathering-notice>{{ action == 'release' ? 'Release' : 'Discard' }} requested for group {{ groupId }}. {% if action == 'release' %}The handler runs when its consumer handles the release trigger.{% else %}The service closes the group without invoking its handler.{% endif %}</p>
     {% endif %}
-    <p>A group waits for its split parts. Requesting release queues a trigger; the gathered handler runs when its consumer handles that trigger. Discard closes the group without running the handler.</p>
     {% for scope in scopes %}
+        {% if scope.snapshot.gathering.gathers ?? true %}
+    <p>A group waits for its split parts. Requesting release queues a trigger; the gathered handler runs when its consumer handles that trigger. Discard closes the group without running the handler.</p>
         <section aria-label="Gathering groups{% if scope.tenant %} of {{ scope.tenant }}{% endif %}">
             {% if scope.tenant %}<h2>{{ scope.tenant }}</h2>{% endif %}
             {% set groups = scope.snapshot.gathering.groups ?? [] %}
@@ -53,14 +54,18 @@
                 </div>
             {% endif %}
         </section>
+        {% endif %}
         {% set batches = scope.snapshot.gathering.batches ?? [] %}
-        {% if batches is not empty %}
+        {% if scope.snapshot.gathering.batches is defined %}
             <section aria-label="Collected batches{% if scope.tenant %} of {{ scope.tenant }}{% endif %}">
                 <h2>Collected batches{% if scope.tenant %} · {{ scope.tenant }}{% endif %}</h2>
                 <p>Messages wait until the batch reaches its size or maximum wait. Request release to run a partial batch, or discard it without running its handler.</p>
+                {% if batches is empty %}
+                    <p data-no-collected-batches>No collected batches reported.</p>
+                {% else %}
                 <div class="flush" style="overflow-x:auto" tabindex="0" role="region" aria-label="Collected batch progress">
                     <table>
-                        <thead><tr><th scope="col">Batch</th><th scope="col">Endpoint</th><th scope="col">Group key</th><th scope="col">State</th><th scope="col">Maximum size</th><th scope="col">Recorded messages</th><th scope="col">Deadline</th><th scope="col">Operations</th></tr></thead>
+                        <thead><tr><th scope="col">Group id</th><th scope="col">Endpoint</th><th scope="col">Group key</th><th scope="col">State</th><th scope="col">Maximum size</th><th scope="col">Recorded messages</th><th scope="col">Opened at</th><th scope="col">Deadline</th><th scope="col">Release reason</th><th scope="col">Operations</th></tr></thead>
                         <tbody>
                         {% for batch in batches %}
                             <tr data-collected-batch="{{ batch.groupId }}"{% if scope.tenant %} data-tenant="{{ scope.tenant }}"{% endif %}>
@@ -68,9 +73,11 @@
                                 <td data-batch-endpoint>{{ batch.endpointId }}</td>
                                 <td data-batch-key>{{ batch.groupKey ?? 'All messages' }}</td>
                                 <td data-batch-state>{{ batch.state }}</td>
-                                <td data-batch-size>{{ batch.size ?? 'No maximum size' }}</td>
-                                <td data-batch-recorded>{{ batch.accountedPartNumbers|length }}</td>
+                                <td data-batch-size>{{ batch.maxSize ?? 'No maximum size' }}</td>
+                                <td data-batch-recorded>{{ batch.recordedMessages }}</td>
+                                <td data-batch-opened>{{ (batch.openedAt / 1000)|date('c', 'UTC') }}</td>
                                 <td data-batch-deadline>{% if batch.deadline is not null %}{{ (batch.deadline / 1000)|date('c', 'UTC') }}{% else %}No maximum wait{% endif %}</td>
+                                <td data-batch-release-reason>{{ batch.releaseReason ?? '' }}</td>
                                 <td>
                                     {% if batch.state == 'open' %}
                                         <form method="post" action="{{ path('service_gathering_release', {service: scope.scope, groupId: batch.groupId}) }}">
@@ -86,6 +93,7 @@
                         </tbody>
                     </table>
                 </div>
+                {% endif %}
             </section>
         {% endif %}
     {% endfor %}

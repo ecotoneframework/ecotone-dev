@@ -142,14 +142,16 @@ $groups->discard($anotherGroupId);
 $groups->cleanupClosedGroups();
 ```
 
-Listings use the collected endpoint id and include the group id, readable key, state, configured
-maximum size (null if omitted), recorded message numbers and deadline. Ordinary gathered-group listings stay
-separate. `requestRelease()` queues a trigger: consume the handler's asynchronous channel to invoke it.
-Discard closes a batch without running the handler. Duplicate release triggers do not run it again.
+Listings use the collected endpoint id. Each open row contains `groupId`, `endpointId`, `groupKey`, `state`,
+`maxSize` (null when omitted), `recordedMessages`, `openedAt` and `deadline` (null without maxWait). Times are Unix
+milliseconds. Closed rows also contain `releaseReason`, with a release enum value or null for a discarded batch.
+Ordinary gathered-group listings stay separate. `requestRelease()` queues a trigger: consume the handler's
+asynchronous channel to invoke it. Discard closes a batch without running the handler. Duplicate release
+triggers do not run it again.
 
 ```text
-ecotone:collecting:list search.index
-ecotone:collecting:list search.index --closed
+ecotone:gathering:list-batches search.index
+ecotone:gathering:list-batches search.index --closed
 ecotone:gathering:release <groupId>
 ecotone:gathering:discard <groupId>
 ecotone:gathering:cleanup

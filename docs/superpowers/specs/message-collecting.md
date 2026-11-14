@@ -52,7 +52,7 @@ collecting maximum; internally an unknown maximum uses -1, exposed as null every
 Existing read paths considered before adding indexes:
 
 - The primary group-id lookup cannot locate the open batch for an endpoint/key. The group row gains nullable
-  endpoint_id, readable group key, fixed-size key hash and open_slot fields. A unique index on
+  endpoint_id, readable group key, fixed-size key hash, open_slot, opened_at and release_reason fields. A unique index on
   `(endpoint_id, group_key_hash, open_slot)` allows only one open slot (1) for each endpoint/key; closed rows have
   NULL, so any number of retained closed batches is allowed. Its endpoint prefix also supports batch listings.
   Every group id is random and never reused, so delayed triggers identify their original batch.
@@ -87,9 +87,11 @@ queue rather than invoking the handler synchronously. A discard never invokes it
 open-slot rule. Cleanup still removes every expired closed batch. Closed batches follow
 `GatheringConfiguration` retention (seven days by default); cleanup leaves open batches intact.
 
-`ecotone:collecting:list <endpointId> [--closed]` lists batches; existing gathering release/discard/cleanup
+`ecotone:gathering:list-batches <endpointId> [--closed]` lists batches; existing gathering release/discard/cleanup
 commands act by group id. Pulse's Gathering page adds separate batch rows and shares the existing actions.
-Unknown maximum size is blank in the console and shown as no maximum size in Pulse; the internal sentinel
+Listings expose groupId, endpointId, groupKey, state, maxSize, recordedMessages, openedAt and deadline; closed
+rows add releaseReason (null for discard). openedAt records the first successful recording time in milliseconds.
+Unknown maximum size/wait is explicit in the console and Pulse; the internal sentinel
 never appears in the API or UI.
 
 Endpoint identity is durable: renaming an endpoint orphans its open batches under the old id. List and release

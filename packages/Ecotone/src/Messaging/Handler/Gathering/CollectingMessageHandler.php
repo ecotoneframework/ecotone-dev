@@ -76,7 +76,7 @@ final class CollectingMessageHandler implements MessageHandler
         };
         $whenReleased = $this->whenReleased($reason);
         if ($timeout || $manualRelease) {
-            if (! $this->store->releaseGroup($message->getHeaders()->get(GatheringHeaders::GROUP_ID), $whenReleased)) {
+            if (! $this->store->releaseGroup(groupId: $message->getHeaders()->get(GatheringHeaders::GROUP_ID), whenReleased: $whenReleased, releaseReason: $reason)) {
                 $this->redelivery->resendCollected($message, $this->channelName);
             }
             return;

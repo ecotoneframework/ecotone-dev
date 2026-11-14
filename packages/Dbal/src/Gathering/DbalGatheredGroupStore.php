@@ -7,14 +7,15 @@ namespace Ecotone\Dbal\Gathering;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Messaging\CollectedReleaseReason;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Handler\Gathering\CollectingMessageIdentity;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupNotFound;
-use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupSize;
+use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Throwable;
 
 /**
@@ -62,23 +63,22 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     private function listBatches(string $endpointId, bool $closed): array
     {
         try {
-            $groups = $this->connection()->fetchAllAssociative('SELECT group_id, endpoint_id, group_key, gather_channel_name, size, state, deadline, closed_at, late_part_count FROM ' . self::GROUP_TABLE . ' WHERE endpoint_id = ? AND state ' . ($closed ? '<>' : '=') . " 'open'", [$endpointId]);
-            return array_map(function (array $group): array {
-                $accounted = array_map('intval', $this->connection()->fetchFirstColumn('SELECT part_number FROM ' . self::PART_TABLE . ' WHERE group_id = ? ORDER BY part_number', [$group['group_id']]));
-                $size = (int) $group['size'];
-                return [
+            $groups = $this->connection()->fetchAllAssociative('SELECT group_id, endpoint_id, group_key, size, arrived, state, opened_at, deadline, release_reason FROM ' . self::GROUP_TABLE . ' WHERE endpoint_id = ? AND state ' . ($closed ? '<>' : '=') . " 'open' ORDER BY opened_at, group_id", [$endpointId]);
+            return array_map(static function (array $group) use ($closed): array {
+                $batch = [
                     'groupId' => $group['group_id'],
                     'endpointId' => $group['endpoint_id'],
                     'groupKey' => $group['group_key'],
-                    'gatherChannelName' => $group['gather_channel_name'],
-                    'size' => GatheredGroupSize::asNullable($size),
                     'state' => $group['state'],
+                    'maxSize' => GatheredGroupSize::asNullable((int) $group['size']),
+                    'recordedMessages' => (int) $group['arrived'],
+                    'openedAt' => (int) $group['opened_at'],
                     'deadline' => $group['deadline'] === null ? null : (int) $group['deadline'],
-                    'closedAt' => $group['closed_at'] === null ? null : (int) $group['closed_at'],
-                    'latePartCount' => (int) $group['late_part_count'],
-                    'accountedPartNumbers' => $accounted,
-                    'missingPartNumbers' => array_values(array_diff((GatheredGroupSize::isUnknown($size) || $size === 0) ? [] : range(1, $size), $accounted)),
                 ];
+                if ($closed) {
+                    $batch['releaseReason'] = $group['release_reason'];
+                }
+                return $batch;
             }, $groups);
         } catch (Throwable $failure) {
             throw MissingTableFailure::explained($failure, $this->tableManager);
@@ -96,9 +96,9 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE endpoint_id = ? AND group_key_hash = ? AND open_slot = 1', [$endpointId, $keyHash]);
             if (! $group) {
                 $groupId = bin2hex(random_bytes(32));
-                $sql = 'INSERT INTO ' . self::GROUP_TABLE . ' (group_id, gather_channel_name, size, arrived, version, state, original_message, endpoint_id, group_key, group_key_hash, open_slot, deadline) VALUES (?, ?, ?, 0, 0, ?, ?, ?, ?, ?, 1, ?)';
+                $sql = 'INSERT INTO ' . self::GROUP_TABLE . ' (group_id, gather_channel_name, size, arrived, version, state, original_message, endpoint_id, group_key, group_key_hash, open_slot, deadline, opened_at) VALUES (?, ?, ?, 0, 0, ?, ?, ?, ?, ?, 1, ?, ?)';
                 $sql .= $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform ? ' ON DUPLICATE KEY UPDATE group_id = group_id' : ' ON CONFLICT DO NOTHING';
-                $connection->executeStatement($sql, [$groupId, $gatherChannelName, $maxSize ?? GatheredGroupStore::UNKNOWN_SIZE, 'open', $this->messages->encode($message), $endpointId, $groupKey, $keyHash, $deadline]);
+                $connection->executeStatement($sql, [$groupId, $gatherChannelName, $maxSize ?? GatheredGroupStore::UNKNOWN_SIZE, 'open', $this->messages->encode($message), $endpointId, $groupKey, $keyHash, $deadline, $this->clock->now()->unixTime()->inMilliseconds()]);
                 $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
                 if (! $group) {
                     return false;
@@ -107,7 +107,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             }
             $arrived = (int) $group['arrived'] + 1;
             $completed = $arrived === (int) $group['size'];
-            $updated = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET arrived = ?, version = version + 1, state = ?, closed_at = ?, open_slot = ? WHERE group_id = ? AND version = ? AND state = 'open'", [$arrived, $completed ? 'released' : 'open', $completed ? $this->clock->now()->unixTime()->inMilliseconds() : null, $completed ? null : 1, $group['group_id'], $group['version']]);
+            $updated = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET arrived = ?, version = version + 1, state = ?, closed_at = ?, open_slot = ?, release_reason = ? WHERE group_id = ? AND version = ? AND state = 'open'", [$arrived, $completed ? 'released' : 'open', $completed ? $this->clock->now()->unixTime()->inMilliseconds() : null, $completed ? null : 1, $completed ? CollectedReleaseReason::MAX_SIZE_REACHED->value : null, $group['group_id'], $group['version']]);
             if ($updated === 0) {
                 return false;
             }
@@ -216,7 +216,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         }
     }
 
-    public function releaseGroup(string $groupId, callable $whenReleased): bool
+    public function releaseGroup(string $groupId, callable $whenReleased, ?CollectedReleaseReason $releaseReason): bool
     {
         $connection = $this->connection();
         try {
@@ -225,7 +225,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 return true;
             }
             $version = (int) $group['version'];
-            $released = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'released', closed_at = ?, open_slot = NULL, version = ? WHERE group_id = ? AND version = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $version + 1, $groupId, $version]);
+            $released = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'released', closed_at = ?, open_slot = NULL, release_reason = ?, version = ? WHERE group_id = ? AND version = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $releaseReason?->value, $version + 1, $groupId, $version]);
             if ($released === 0) {
                 return false;
             }

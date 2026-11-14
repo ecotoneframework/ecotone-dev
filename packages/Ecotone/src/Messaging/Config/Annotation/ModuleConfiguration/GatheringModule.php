@@ -285,7 +285,7 @@ final class GatheringModule extends NoExternalConfigurationModule
             [$handler, $command] = ConsoleCommandModule::prepareConsoleCommandForReference(
                 reference: new Reference(GatheringConsoleCommands::class),
                 interfaceToCallReference: new InterfaceToCallReference(GatheringConsoleCommands::class, 'listBatches'),
-                commandName: 'ecotone:collecting:list',
+                commandName: 'ecotone:gathering:list-batches',
                 interfaceToCallRegistry: $interfaceToCallRegistry,
                 description: 'Lists collected batches by endpointId',
             );

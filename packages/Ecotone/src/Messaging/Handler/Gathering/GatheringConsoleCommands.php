@@ -51,15 +51,17 @@ final class GatheringConsoleCommands
     {
         $batches = $closed ? $this->groups->listClosedBatches($endpointId) : $this->groups->listOpenBatches($endpointId);
         return ConsoleCommandResultSet::create(
-            columnHeaders: ['Group id', 'Endpoint id', 'Group key', 'State', 'Size', 'Recorded messages', 'Deadline'],
+            columnHeaders: ['Group id', 'Endpoint id', 'Group key', 'State', 'Maximum size', 'Recorded messages', 'Opened at', 'Deadline', 'Release reason'],
             rows: array_map(static fn (array $batch): array => [
                 $batch['groupId'],
                 $batch['endpointId'],
                 $batch['groupKey'] ?? '',
                 $batch['state'],
-                $batch['size'] ?? '',
-                count($batch['accountedPartNumbers']),
-                $batch['deadline'] === null ? '' : DatePoint::createFromTimestamp($batch['deadline'] / 1000)->format(DATE_ATOM),
+                $batch['maxSize'] ?? 'no maximum size',
+                $batch['recordedMessages'],
+                DatePoint::createFromTimestamp($batch['openedAt'] / 1000)->format(DATE_ATOM),
+                $batch['deadline'] === null ? 'no maximum wait' : DatePoint::createFromTimestamp($batch['deadline'] / 1000)->format(DATE_ATOM),
+                $batch['releaseReason'] ?? '',
             ], $batches),
         );
     }

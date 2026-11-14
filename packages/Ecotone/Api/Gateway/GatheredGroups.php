@@ -11,10 +11,10 @@ namespace Ecotone\Api\Gateway;
  */
 interface GatheredGroups
 {
-    /** @return list<array{groupId: string, endpointId: string, groupKey: ?string, gatherChannelName: string, size: ?int, state: string, deadline: ?int, closedAt: ?int, latePartCount: int, accountedPartNumbers: array<int>, missingPartNumbers: array<int>}> */
+    /** @return list<array{groupId: string, endpointId: string, groupKey: ?string, state: string, maxSize: ?int, recordedMessages: int, openedAt: int, deadline: ?int}> */
     public function listOpenBatches(string $endpointId): array;
 
-    /** @return list<array{groupId: string, endpointId: string, groupKey: ?string, gatherChannelName: string, size: ?int, state: string, deadline: ?int, closedAt: ?int, latePartCount: int, accountedPartNumbers: array<int>, missingPartNumbers: array<int>}> */
+    /** @return list<array{groupId: string, endpointId: string, groupKey: ?string, state: string, maxSize: ?int, recordedMessages: int, openedAt: int, deadline: ?int, releaseReason: ?string}> */
     public function listClosedBatches(string $endpointId): array;
 
     public function requestRelease(string $groupId): void;

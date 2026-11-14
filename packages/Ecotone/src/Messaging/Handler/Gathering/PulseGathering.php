@@ -49,6 +49,6 @@ final class PulseGathering implements PulseSnapshotSection
         foreach (array_unique($this->collectedEndpointIds) as $endpointId) {
             $batches = [...$batches, ...$this->groups->listOpenBatches($endpointId), ...$this->groups->listClosedBatches($endpointId)];
         }
-        return ['groups' => $groups, 'batches' => $batches];
+        return ['groups' => $groups, 'batches' => $batches, 'gathers' => $this->gatherChannelNames !== []];
     }
 }

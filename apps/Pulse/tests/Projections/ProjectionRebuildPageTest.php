@@ -278,6 +278,21 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertSame('1 · all done', $operations->filter('[data-summary-state]')->text());
     }
 
+    public function test_recent_operations_with_a_discarded_and_a_released_run_do_not_say_all_done(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true), $this->projection('totals')];
+        $this->orders->trackings = [
+            $this->tracking('per_ticket', 'discarded', batchesDone: 2, batchCount: 3, durationMs: 1000, missingBatches: [3], groupId: 'group-1'),
+            $this->tracking('per_ticket', 'released', batchesDone: 2, batchCount: 3, durationMs: 1000, missingBatches: [3], groupId: 'group-2'),
+            $this->tracking('totals', 'done', batchesDone: 1, batchCount: 1, durationMs: 4200),
+        ];
+
+        $crawler = $this->observe($client);
+
+        self::assertSame('3 · 1 discarded · 1 released by hand', $crawler->filter('[data-projection-operations] [data-summary-state]')->text());
+    }
+
     public function test_rebuild_and_backfill_name_their_projection_with_what_they_affect_and_explain_what_they_do(): void
     {
         $client = $this->pulseWithOrders();

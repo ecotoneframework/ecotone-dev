@@ -129,9 +129,13 @@ final readonly class ProjectionList
         if ($rebuilds === []) {
             return sprintf('none in the last %d %s', $this->trackingDays, $this->trackingDays === 1 ? 'day' : 'days');
         }
-        $running = count(array_filter($rebuilds, static fn (Rebuild $rebuild): bool => $rebuild->state === 'running'));
-        $failed = count(array_filter($rebuilds, static fn (Rebuild $rebuild): bool => $rebuild->state === 'failed'));
-        $parts = array_filter([$running > 0 ? $running . ' running' : null, $failed > 0 ? $failed . ' failed' : null]);
+        $parts = [];
+        foreach (['running' => 'running', 'failed' => 'failed', 'discarded' => 'discarded', 'released' => 'released by hand'] as $state => $label) {
+            $count = count(array_filter($rebuilds, static fn (Rebuild $rebuild): bool => $rebuild->state === $state));
+            if ($count > 0) {
+                $parts[] = $count . ' ' . $label;
+            }
+        }
 
         return count($rebuilds) . ' · ' . ($parts === [] ? 'all done' : implode(' · ', $parts));
     }

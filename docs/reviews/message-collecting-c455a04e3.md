@@ -190,7 +190,7 @@ choices; no held item remains. Test names below omit their `test_` prefix.
 | C7 | `cf0ce9a22` | empty_boolean_and_float_group_keys_are_refused; integer_and_string_keys_share_a_batch_while_case_and_long_keys_stay_distinct |
 | C8 | `5ef988066` | Obsolete: no conflict re-send or replacement time to live; independent shared-input manual-trigger tests retained |
 | C9 | `0675103a0`, `af3cefbb2`, `f825d9955` | manual_release_requested_twice_invokes_the_batch_handler_once; discard_requested_twice_is_idempotent_and_the_next_message_opens_a_new_batch; a_timer_arriving_after_retention_cleanup_has_no_effect; console_commands_release_and_discard_collected_batches; string_group_expression_can_read_each_messages_headers; collected_and_ordinary_handlers_of_one_event_keep_their_own_delivery_frequency; collected_max_wait_exceeding_the_channels_maximum_names_the_handler_and_ways_out; existing race/closure cases |
-| C10 | `267e6fa66` | max_wait_only_collects_a_batch_without_a_known_size; batch_console_listing_uses_endpoint_id_and_hides_an_unknown_size |
+| C10 | `267e6fa66`, `398fae2a2` | max_wait_only_collects_a_batch_without_a_known_size; batch_console_listing_uses_endpoint_id_and_hides_an_unknown_size |
 | C11 / H1 | `a2a653af0` | batch_listings_name_the_maximum_recorded_count_and_first_recording_time; batch_console_listing_uses_endpoint_id_and_hides_an_unknown_size; group_listings_remain_separate_from_collected_batch_listings |
 | C12 | `af3cefbb2` | open_batches_are_listed_by_collected_endpoint_id; endpoint_id storage and endpointId API naming |
 | C13 | `d1cef079a`, `f825d9955` | CollectingTest bootstrap refusals; failing_group_expression_names_the_handler_and_expression_without_opening_a_batch |
@@ -200,7 +200,7 @@ choices; no held item remains. Test names below omit their `test_` prefix.
 | C17 | `f825d9955` | failing_group_expression_names_the_handler_and_expression_without_opening_a_batch; failing_or_null_group_closure_names_its_owner_and_the_way_out |
 | C18 | `8ee649d4b` | collected_method_with_two_handler_attributes_is_refused_at_bootstrap |
 | C19 / H2 | `3a527ee98` | Enterprise GatheringHandlerCompiler; collecting licence/bootstrap and gathering regression tests |
-| C20 | `8c35ee273` | Named-argument/spacing sweep and affected tests; obsolete hasGatheringSplitters condition had already been removed by C16; changed package files checked by php-cs-fixer, Pulse spacing/imports normalized manually under container path restriction |
+| C20 | `8c35ee273`, `815b4fc07`, `398fae2a2` | Named-argument/spacing sweep; DbalGatheringModule flag renamed usesGatheringStorage; php-cs-fixer run over every changed file in packages and apps/Pulse; existing suites unchanged |
 | C21 | `f825d9955` | group_key_can_be_a_closure_with_payload_first_or_explicit_after_a_header; compiler exposes no reusable payload-type query |
 | C22 | `192269028`, `5ef988066` | Upgrade entry alongside gathering: schema migration, reserved services/commands and consumer rollout; C31 recovery change included |
 | C23 | `3d296a813` | endpoint_ids_with_core_suffixes_compile_independent_collected_handlers |

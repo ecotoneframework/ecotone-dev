@@ -27,6 +27,8 @@ use Ecotone\Api\Messaging\Message;
  */
 interface GatheredGroupStore
 {
+    public const UNKNOWN_SIZE = -1;
+
     public function listOpenBatches(string $endpointId): array;
 
     public function listClosedBatches(string $endpointId): array;

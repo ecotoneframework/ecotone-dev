@@ -51,7 +51,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         return array_values(array_map(static function (array $group): array {
             $details = array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true, 'endpointId' => true, 'openSlot' => true]);
             $details['endpointId'] = $group['endpointId'];
-            $details['size'] = $group['size'] < 0 ? null : $group['size'];
+            $details['size'] = GatheredGroupSize::asNullable($group['size']);
             return $details;
         }, array_filter($this->groups, static fn (array $group): bool => ($group['endpointId'] ?? null) === $endpointId && ($closed ? $group['state'] !== 'open' : $group['state'] === 'open'))));
     }
@@ -76,7 +76,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         try {
             if ($groupId === null) {
                 $groupId = bin2hex(random_bytes(32));
-                $this->openGroup($groupId, $gatherChannelName, $maxSize ?? -1, $message, $deadline, static fn () => null);
+                $this->openGroup($groupId, $gatherChannelName, $maxSize ?? GatheredGroupStore::UNKNOWN_SIZE, $message, $deadline, static fn () => null);
                 $this->groups[$groupId]['endpointId'] = $endpointId;
                 $this->groups[$groupId]['groupKey'] = $groupKey;
                 $this->groups[$groupId]['openSlot'] = 1;
@@ -106,7 +106,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             'gatherChannelName' => $gatherChannelName,
             'size' => $size,
             'accountedPartNumbers' => [],
-            'missingPartNumbers' => $size <= 0 ? [] : range(1, $size),
+            'missingPartNumbers' => (GatheredGroupSize::isUnknown($size) || $size === 0) ? [] : range(1, $size),
         ];
         try {
             $whenOpened();
@@ -149,7 +149,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         }
         $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
         try {
-            $whenComplete($previous['original'], $this->groups[$groupId]['parts'], $previous['size'], $previous['groupKey'] ?? null);
+            $whenComplete($previous['original'], $this->groups[$groupId]['parts'], GatheredGroupSize::asNullable($previous['size']), $previous['groupKey'] ?? null);
         } catch (Throwable $failure) {
             $this->groups[$groupId] = $previous;
             throw $failure;
@@ -180,7 +180,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         }
         $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
         try {
-            $whenReleased($previous['original'], $previous['parts'], $previous['size'], $previous['groupKey'] ?? null);
+            $whenReleased($previous['original'], $previous['parts'], GatheredGroupSize::asNullable($previous['size']), $previous['groupKey'] ?? null);
         } catch (Throwable $failure) {
             $this->groups[$groupId] = $previous;
             throw $failure;

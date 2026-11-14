@@ -14,6 +14,7 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Handler\Gathering\CollectingMessageIdentity;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupNotFound;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
+use Ecotone\Messaging\Handler\Gathering\GatheredGroupSize;
 use Throwable;
 
 /**
@@ -70,13 +71,13 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                     'endpointId' => $group['endpoint_id'],
                     'groupKey' => $group['group_key'],
                     'gatherChannelName' => $group['gather_channel_name'],
-                    'size' => $size < 0 ? null : $size,
+                    'size' => GatheredGroupSize::asNullable($size),
                     'state' => $group['state'],
                     'deadline' => $group['deadline'] === null ? null : (int) $group['deadline'],
                     'closedAt' => $group['closed_at'] === null ? null : (int) $group['closed_at'],
                     'latePartCount' => (int) $group['late_part_count'],
                     'accountedPartNumbers' => $accounted,
-                    'missingPartNumbers' => array_values(array_diff($size <= 0 ? [] : range(1, $size), $accounted)),
+                    'missingPartNumbers' => array_values(array_diff((GatheredGroupSize::isUnknown($size) || $size === 0) ? [] : range(1, $size), $accounted)),
                 ];
             }, $groups);
         } catch (Throwable $failure) {
@@ -97,7 +98,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 $groupId = bin2hex(random_bytes(32));
                 $sql = 'INSERT INTO ' . self::GROUP_TABLE . ' (group_id, gather_channel_name, size, arrived, version, state, original_message, endpoint_id, group_key, group_key_hash, open_slot, deadline) VALUES (?, ?, ?, 0, 0, ?, ?, ?, ?, ?, 1, ?)';
                 $sql .= $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform ? ' ON DUPLICATE KEY UPDATE group_id = group_id' : ' ON CONFLICT DO NOTHING';
-                $connection->executeStatement($sql, [$groupId, $gatherChannelName, $maxSize ?? -1, 'open', $this->messages->encode($message), $endpointId, $groupKey, $keyHash, $deadline]);
+                $connection->executeStatement($sql, [$groupId, $gatherChannelName, $maxSize ?? GatheredGroupStore::UNKNOWN_SIZE, 'open', $this->messages->encode($message), $endpointId, $groupKey, $keyHash, $deadline]);
                 $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
                 if (! $group) {
                     return false;
@@ -121,7 +122,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
         if ($completed) {
-            $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size'], $group['group_key'] ?? null);
+            $whenReleased($this->messages->decode($group['original_message']), $parts, GatheredGroupSize::asNullable((int) $group['size']), $group['group_key'] ?? null);
         }
         return true;
     }
@@ -235,7 +236,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         } catch (Throwable $failure) {
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
-        $whenReleased($this->messages->decode($group['original_message']), $parts, (int) $group['size'], $group['group_key'] ?? null);
+        $whenReleased($this->messages->decode($group['original_message']), $parts, GatheredGroupSize::asNullable((int) $group['size']), $group['group_key'] ?? null);
 
         return true;
     }
@@ -295,7 +296,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 'gatherChannelName' => $row['gather_channel_name'],
                 'size' => $size,
                 'accountedPartNumbers' => $accounted,
-                'missingPartNumbers' => array_values(array_diff($size <= 0 ? [] : range(1, $size), $accounted)),
+                'missingPartNumbers' => array_values(array_diff((GatheredGroupSize::isUnknown($size) || $size === 0) ? [] : range(1, $size), $accounted)),
             ];
         }, $rows);
     }

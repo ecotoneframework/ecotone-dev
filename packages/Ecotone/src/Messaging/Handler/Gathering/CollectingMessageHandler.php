@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Handler\Gathering;
 use Closure;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Messaging\CollectedMessage;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Messaging\CollectedReleaseReason;
 use Ecotone\Api\Messaging\Message;
@@ -105,13 +106,11 @@ final class CollectingMessageHandler implements MessageHandler
     private function invokeHandler(array $parts, ?string $groupKey, CollectedReleaseReason $reason): void
     {
         ksort($parts);
-        $payloads = [];
-        $headers = [];
+        $messages = [];
         foreach ($parts as $part) {
-            $payloads[] = $this->payloadOf($part);
-            $headers[] = $part->getHeaders()->headers();
+            $messages[] = new CollectedMessage(payload: $this->payloadOf($part), headers: $part->getHeaders()->headers());
         }
-        $batch = new CollectedMessages(payloads: $payloads, headers: $headers, groupKey: $groupKey, size: count($payloads), releaseReason: $reason);
+        $batch = new CollectedMessages(messages: $messages, groupKey: $groupKey, releaseReason: $reason);
         $this->handler->handle($this->messageBuilder->withPayload($batch)->setContentType(MediaType::createApplicationXPHPWithTypeParameter(CollectedMessages::class))->build());
     }
 

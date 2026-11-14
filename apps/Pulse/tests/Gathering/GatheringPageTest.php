@@ -77,7 +77,7 @@ final class GatheringPageTest extends ReleasingWebTestCase
         self::assertSame([], $this->handler->batches);
         $this->orders->run('summaries');
         self::assertCount(1, $this->handler->batches);
-        self::assertSame([['tenant' => 'one']], $this->handler->batches[0]->payloads);
+        self::assertSame([['tenant' => 'one']], array_column($this->handler->batches[0]->messages, 'payload'));
     }
 
     public function test_collected_batch_discard_control_does_not_invoke_the_handler(): void

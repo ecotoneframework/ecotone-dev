@@ -69,7 +69,7 @@ final class CollectingPulseTest extends TestCase
         self::assertSame([], $handler->batches);
         $service->run('batches');
         self::assertCount(1, $handler->batches);
-        self::assertSame([['tenant' => 'one']], $handler->batches[0]->payloads);
+        self::assertSame([['tenant' => 'one']], array_column($handler->batches[0]->messages, 'payload'));
         self::assertSame([], $service->getGateway(GatheredGroups::class)->listOpenBatches('pulse.collect.handler'));
     }
 

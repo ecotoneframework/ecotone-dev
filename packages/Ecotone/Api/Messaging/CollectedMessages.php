@@ -11,15 +11,10 @@ namespace Ecotone\Api\Messaging;
  */
 final class CollectedMessages
 {
-    /**
-     * @param list<mixed> $payloads
-     * @param list<array<string, mixed>> $headers
-     */
+    /** @param list<CollectedMessage> $messages */
     public function __construct(
-        public readonly array $payloads,
-        public readonly array $headers,
+        public readonly array $messages,
         public readonly ?string $groupKey,
-        public readonly int $size,
         public readonly CollectedReleaseReason $releaseReason,
     ) {
     }

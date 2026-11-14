@@ -33,8 +33,9 @@ Keys normalize to strings. Without groupBy the public key is null and all messag
 The ordinary handler's parameter conversion receives the completed typed batch; it never attempts to convert
 each ordinary incoming message to that type. The collecting wrapper restores each payload through the existing
 conversion service and then calls the handler with a fresh batch message. That message has framework headers;
-per-message headers are parallel entries inside the batch. `CollectedMessages` has public readonly `payloads`,
-`headers`, `groupKey`, `size` and `releaseReason`. Its own `CollectedReleaseReason` enum has `SIZE_REACHED`,
+per-message headers belong to each `CollectedMessage` object. `CollectedMessages` has public readonly
+`messages`, `groupKey` and `releaseReason`; `messages` is a list of `CollectedMessage` objects with readonly
+`payload` and `headers`. There is no redundant size property: use count(messages). Its own `CollectedReleaseReason` enum has `SIZE_REACHED`,
 `MAX_WAIT`, and `MANUAL_RELEASE` cases. Return values flow once for the whole batch.
 
 Payload order is recording order, equal to queue order with one consumer, not necessarily send order with
@@ -106,6 +107,7 @@ and DBAL; the database branch and concurrency tests run on PostgreSQL, MySQL and
 | Closure conversion and explicit payload | group_key_can_be_a_closure_and_its_payload_type_deserializes_each_message; group_key_closure_resolves_an_explicit_payload_after_a_header |
 | First-message deadline and size-only wait | collected_handler_runs_with_a_partial_batch_after_max_wait_from_the_first_message; later_messages_do_not_postpone_the_release; max_size_only_batch_waits_until_full_or_released_by_hand; max_wait_only_collects_a_batch_without_a_known_size |
 | Generation and stale timeout | message_after_a_release_opens_a_new_batch; timeout_of_a_released_batch_does_not_release_the_next_batch |
+| Per-message API | batch_contains_ordered_message_objects_with_their_own_payload_and_headers |
 | Recording order and headers | batch_keeps_the_order_of_recording; each_messages_headers_stay_inside_the_batch_and_do_not_become_batch_headers |
 | Duplicate and retry | redelivered_message_is_not_collected_twice_even_after_its_batch_is_released; failing_collected_handler_is_retried_with_the_same_batch; failed_timeout_send_rolls_back_opening_the_batch |
 | Return value | return_value_flows_once_per_batch |

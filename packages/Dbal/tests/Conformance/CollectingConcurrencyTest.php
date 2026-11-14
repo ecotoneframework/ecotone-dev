@@ -129,7 +129,7 @@ final class CollectingConcurrencyTest extends TestCase
             #[CommandHandler('collect.concurrent', endpointId: 'collect.concurrent.handler')]
             public function collect(CollectedMessages $batch, #[Reference] DocumentStore $documents): void
             {
-                $documents->addDocument('collecting_concurrent_results', bin2hex(random_bytes(16)), json_encode(['testId' => $batch->groupKey, 'values' => array_column($batch->payloads, 'value')], JSON_THROW_ON_ERROR));
+                $documents->addDocument('collecting_concurrent_results', bin2hex(random_bytes(16)), json_encode(['testId' => $batch->groupKey, 'values' => array_column(array_column($batch->messages, 'payload'), 'value')], JSON_THROW_ON_ERROR));
             }
         };
         $deliveries = new class () {

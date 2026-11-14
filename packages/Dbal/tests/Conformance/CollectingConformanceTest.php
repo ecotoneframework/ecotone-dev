@@ -20,6 +20,7 @@ use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\CollectedMessage;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Messaging\CollectedReleaseReason;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
@@ -68,8 +69,8 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect', 'second');
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
-        self::assertSame(['first', 'second'], $handler->batches[0]->payloads);
-        self::assertSame(2, $handler->batches[0]->size);
+        self::assertSame(['first', 'second'], array_column($handler->batches[0]->messages, 'payload'));
+        self::assertSame(2, count($handler->batches[0]->messages));
         self::assertNull($handler->batches[0]->groupKey);
     }
 
@@ -99,7 +100,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
         self::assertSame('one', $handler->batches[0]->groupKey);
-        self::assertSame([['tenant' => 'one', 'value' => 1], ['tenant' => 'one', 'value' => 3]], $handler->batches[0]->payloads);
+        self::assertSame([['tenant' => 'one', 'value' => 1], ['tenant' => 'one', 'value' => 3]], array_column($handler->batches[0]->messages, 'payload'));
     }
 
     #[DataProvider('implementations')]
@@ -149,7 +150,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->advanceTimeBy(new TimeSpan(seconds: 1));
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
-        self::assertSame(['first'], $handler->batches[0]->payloads);
+        self::assertSame(['first'], array_column($handler->batches[0]->messages, 'payload'));
         self::assertSame(CollectedReleaseReason::MAX_WAIT, $handler->batches[0]->releaseReason);
     }
 
@@ -210,7 +211,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->advanceTimeBy(new TimeSpan(seconds: 1));
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
-        self::assertSame(['first'], $handler->batches[0]->payloads);
+        self::assertSame(['first'], array_column($handler->batches[0]->messages, 'payload'));
         self::assertSame(CollectedReleaseReason::MAX_WAIT, $handler->batches[0]->releaseReason);
     }
 
@@ -239,7 +240,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
 
         self::assertCount(1, $handler->batches);
-        self::assertSame([['tenant' => 'one']], $handler->batches[0]->payloads);
+        self::assertSame([['tenant' => 'one']], array_column($handler->batches[0]->messages, 'payload'));
         self::assertSame('one', $handler->batches[0]->groupKey);
         self::assertSame(CollectedReleaseReason::MANUAL_RELEASE, $handler->batches[0]->releaseReason);
         self::assertSame([], $groups->listOpenBatches('collect.handler'));
@@ -297,8 +298,8 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect', 'fourth');
         $ecotone->run('batches');
         self::assertCount(2, $handler->batches);
-        self::assertSame(['first', 'second'], $handler->batches[0]->payloads);
-        self::assertSame(['third', 'fourth'], $handler->batches[1]->payloads);
+        self::assertSame(['first', 'second'], array_column($handler->batches[0]->messages, 'payload'));
+        self::assertSame(['third', 'fourth'], array_column($handler->batches[1]->messages, 'payload'));
     }
 
     #[DataProvider('implementations')]
@@ -330,7 +331,7 @@ final class CollectingConformanceTest extends TestCase
         self::assertCount(1, $handler->batches);
         $ecotone->sendCommandWithRouting('collect', 'fourth');
         $ecotone->run('batches');
-        self::assertSame(['third', 'fourth'], $handler->batches[1]->payloads);
+        self::assertSame(['third', 'fourth'], array_column($handler->batches[1]->messages, 'payload'));
     }
 
     #[DataProvider('implementations')]
@@ -357,7 +358,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->advanceTimeBy(new TimeSpan(seconds: 1));
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
-        self::assertSame(['first', 'second'], $handler->batches[0]->payloads);
+        self::assertSame(['first', 'second'], array_column($handler->batches[0]->messages, 'payload'));
         self::assertSame('2026-01-01 12:00:10', $ecotone->now()->format('Y-m-d H:i:s'));
     }
 
@@ -373,7 +374,7 @@ final class CollectingConformanceTest extends TestCase
             #[CommandHandler('collect', endpointId: 'collect.handler', outputChannelName: 'collected.result')]
             public function collect(CollectedMessages $batch): array
             {
-                return $batch->payloads;
+                return array_column($batch->messages, 'payload');
             }
 
             #[InternalHandler('collected.result')]
@@ -402,7 +403,7 @@ final class CollectingConformanceTest extends TestCase
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
             {
-                $this->attempts[] = $batch->payloads;
+                $this->attempts[] = array_column($batch->messages, 'payload');
                 if (count($this->attempts) === 1) {
                     throw new RuntimeException('temporarily unavailable');
                 }
@@ -436,7 +437,7 @@ final class CollectingConformanceTest extends TestCase
 
         self::assertCount(1, $handler->batches);
         self::assertSame('header:one', $handler->batches[0]->groupKey);
-        self::assertEquals([new CollectedEventForConformance('one', 'first'), new CollectedEventForConformance('one', 'second')], $handler->batches[0]->payloads);
+        self::assertEquals([new CollectedEventForConformance('one', 'first'), new CollectedEventForConformance('one', 'second')], array_column($handler->batches[0]->messages, 'payload'));
     }
 
     #[RequiresPhp('>= 8.5.0')]
@@ -451,7 +452,7 @@ final class CollectingConformanceTest extends TestCase
 
         self::assertCount(1, $handler->batches);
         self::assertSame('header:one', $handler->batches[0]->groupKey);
-        self::assertEquals([new CollectedEventForConformance('one', 'first'), new CollectedEventForConformance('one', 'second')], $handler->batches[0]->payloads);
+        self::assertEquals([new CollectedEventForConformance('one', 'first'), new CollectedEventForConformance('one', 'second')], array_column($handler->batches[0]->messages, 'payload'));
     }
 
 
@@ -500,7 +501,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommand(new CollectedEventForConformance('one', 'second'));
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
-        self::assertEquals([new CollectedEventForConformance('one', 'first'), new CollectedEventForConformance('one', 'second')], $handler->batches[0]->payloads);
+        self::assertEquals([new CollectedEventForConformance('one', 'first'), new CollectedEventForConformance('one', 'second')], array_column($handler->batches[0]->messages, 'payload'));
     }
 
     #[DataProvider('implementations')]
@@ -528,7 +529,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect.start', 'second');
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
-        self::assertSame(['first', 'second'], $handler->batches[0]->payloads);
+        self::assertSame(['first', 'second'], array_column($handler->batches[0]->messages, 'payload'));
     }
 
     #[DataProvider('implementations')]
@@ -569,8 +570,8 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         self::assertCount(1, $handler->first);
         self::assertCount(1, $handler->second);
-        self::assertSame(2, $handler->first[0]->size);
-        self::assertSame(3, $handler->second[0]->size);
+        self::assertSame(2, count($handler->first[0]->messages));
+        self::assertSame(3, count($handler->second[0]->messages));
     }
 
 
@@ -619,8 +620,8 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect', 'second', metadata: ['label' => 'second-label']);
         $ecotone->run('batches');
 
-        self::assertSame('first-label', $handler->batches[0]->headers[0]['label']);
-        self::assertSame('second-label', $handler->batches[0]->headers[1]['label']);
+        self::assertSame('first-label', $handler->batches[0]->messages[0]->headers['label']);
+        self::assertSame('second-label', $handler->batches[0]->messages[1]->headers['label']);
         self::assertArrayNotHasKey('label', $handler->headers[0]);
         self::assertArrayHasKey(MessageHeaders::MESSAGE_ID, $handler->headers[0]);
     }
@@ -654,7 +655,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->advanceTimeBy(new TimeSpan(seconds: 9));
         $ecotone->run('batches');
         self::assertCount(2, $handler->batches);
-        self::assertSame(['third'], $handler->batches[1]->payloads);
+        self::assertSame(['third'], array_column($handler->batches[1]->messages, 'payload'));
         self::assertSame(CollectedReleaseReason::MAX_WAIT, $handler->batches[1]->releaseReason);
     }
 
@@ -683,7 +684,7 @@ final class CollectingConformanceTest extends TestCase
         self::assertNull($batch['deadline']);
         $groups->requestRelease($batch['groupId']);
         $ecotone->run('batches');
-        self::assertSame(['first'], $handler->batches[0]->payloads);
+        self::assertSame(['first'], array_column($handler->batches[0]->messages, 'payload'));
         self::assertSame(CollectedReleaseReason::MANUAL_RELEASE, $handler->batches[0]->releaseReason);
     }
 
@@ -725,7 +726,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         $ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
         $ecotone->run('batches');
-        self::assertSame(['first'], $handler->batches[0]->payloads);
+        self::assertSame(['first'], array_column($handler->batches[0]->messages, 'payload'));
     }
 
     #[DataProvider('implementations')]
@@ -747,8 +748,8 @@ final class CollectingConformanceTest extends TestCase
             $ecotone->sendCommandWithRouting('collect', $payload, metadata: ['ordinal' => $payload]);
             $ecotone->run('batches');
         }
-        self::assertSame(['third', 'first', 'second'], $handler->batches[0]->payloads);
-        self::assertSame(['third', 'first', 'second'], array_column($handler->batches[0]->headers, 'ordinal'));
+        self::assertSame(['third', 'first', 'second'], array_column($handler->batches[0]->messages, 'payload'));
+        self::assertSame(['third', 'first', 'second'], array_column(array_column($handler->batches[0]->messages, 'headers'), 'ordinal'));
     }
 
     #[DataProvider('implementations')]
@@ -869,8 +870,36 @@ final class CollectingConformanceTest extends TestCase
         }
         self::assertNull($failure);
         self::assertCount(1, $handler->batches);
-        self::assertSame([['key' => $key, 'value' => 'first']], $handler->batches[0]->payloads);
-        self::assertSame('collecting_tenant', $handler->batches[0]->headers[0]['tenant']);
+        self::assertSame([['key' => $key, 'value' => 'first']], array_column($handler->batches[0]->messages, 'payload'));
+        self::assertSame('collecting_tenant', $handler->batches[0]->messages[0]->headers['tenant']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_batch_contains_ordered_message_objects_with_their_own_payload_and_headers(bool $durable): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect', 'first', metadata: ['label' => 'one']);
+        $ecotone->sendCommandWithRouting('collect', 'second', metadata: ['label' => 'two']);
+        $ecotone->run('batches');
+        $batch = $handler->batches[0];
+        self::assertObjectHasProperty('messages', $batch);
+        self::assertCount(2, $batch->messages);
+        self::assertInstanceOf(CollectedMessage::class, $batch->messages[0]);
+        self::assertSame('first', $batch->messages[0]->payload);
+        self::assertSame('one', $batch->messages[0]->headers['label']);
+        self::assertSame('second', $batch->messages[1]->payload);
+        self::assertSame('two', $batch->messages[1]->headers['label']);
     }
 
     private function bootstrap(object $handler, bool $durable, bool $instantRetries = true): FlowTestSupport

@@ -288,8 +288,8 @@ final class CollectingTest extends TestCase
         $ecotone->sendCommandWithRouting('collect', 'second');
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
-        self::assertSame(['first', 'second'], $handler->batches[0]->payloads);
-        self::assertSame(2, $handler->batches[0]->size);
+        self::assertSame(['first', 'second'], array_column($handler->batches[0]->messages, 'payload'));
+        self::assertSame(2, count($handler->batches[0]->messages));
         self::assertNull($handler->batches[0]->groupKey);
     }
 

@@ -16,7 +16,7 @@ use Ecotone\Api\Scheduling\TimeSpan;
 #[EventHandler(listenTo: ProductChanged::class, endpointId: 'search.index')]
 public function index(CollectedMessages $changes): void
 {
-    $this->search->bulkIndex($changes->payloads);
+    $this->search->bulkIndex(array_column($changes->messages, 'payload'));
 }
 ```
 
@@ -42,7 +42,7 @@ use Ecotone\Api\Attribute\InternalHandler;
 #[InternalHandler(inputChannelName: 'shipping.pack', endpointId: 'shipping.pack.handler')]
 public function pack(CollectedMessages $items): void
 {
-    $this->shipping->pack($items->groupKey, $items->payloads);
+    $this->shipping->pack($items->groupKey, array_column($items->messages, 'payload'));
 }
 ```
 
@@ -58,7 +58,7 @@ use Ecotone\Api\Attribute\Header;
 #[EventHandler(listenTo: CommentAdded::class, endpointId: 'notifications.digest')]
 public function digest(CollectedMessages $events): void
 {
-    $this->notifications->digest($events->groupKey, $events->payloads);
+    $this->notifications->digest($events->groupKey, array_column($events->messages, 'payload'));
 }
 ```
 
@@ -77,13 +77,14 @@ fallback batch. Two collected handlers subscribing to the same event keep indepe
 
 | Property | Value |
 |---|---|
-| `payloads` | Restored payloads in recording order |
-| `headers` | Each message's headers, in the same order |
+| `messages` | `CollectedMessage` objects in recording order; each has readonly `payload` and `headers` |
 | `groupKey` | Normalized key, or null when `groupBy` is omitted |
-| `size` | Number of messages actually recorded |
 | `releaseReason` | `CollectedReleaseReason::SIZE_REACHED`, `MAX_WAIT` or `MANUAL_RELEASE` |
 
-The outer batch message has framework headers; user headers remain inside `headers`. Use those individual
+`count($batch->messages)` gives the number of recorded messages. For example, `$batch->messages[0]->payload`
+and `$batch->messages[0]->headers` describe the first recorded message.
+
+The outer batch message has framework headers; user headers remain inside `$batch->messages[0]->headers`. Use those per-message
 headers for tenant or business metadata. The handler's return value flows once per batch; an `outputChannelName`
 receives one result for the whole batch.
 

@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Before;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
@@ -89,6 +90,19 @@ final class InternalFlowComparisonTest extends TestCase
         self::assertNotContains('channel:notifications', $shown);
         self::assertNotContains('gateway:Ecotone\Api\Gateway\CommandBus::send', $shown);
         self::assertLessThanOrEqual(15, count($shown));
+    }
+
+    public function test_changed_parts_that_are_not_connected_share_one_part_while_they_fit_fifteen_nodes(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->orderingWithAuditAndStatus());
+
+        $group = $this->comparison()['groups'][0];
+
+        self::assertCount(1, $group['wiringParts']);
+        self::assertContains('handler:audit', $group['wiringParts'][0]['nodes']);
+        self::assertContains('handler:orderStatus', $group['wiringParts'][0]['nodes']);
+        self::assertLessThanOrEqual(15, count($group['wiringParts'][0]['nodes']));
     }
 
     public function test_a_change_larger_than_fifteen_nodes_is_split_into_parts_and_the_rest_is_counted(): void
@@ -228,6 +242,34 @@ final class InternalFlowComparisonTest extends TestCase
 
             #[Before(pointcut: CommandBus::class . '||' . QueryBus::class . '||' . EventBus::class . '||' . MessagingTestSupport::class)]
             public function stamp(): void
+            {
+            }
+        };
+    }
+
+    private function orderingWithAuditAndStatus(): object
+    {
+        return new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', []);
+            }
+
+            #[EventHandler('order.placed', endpointId: 'audit')]
+            public function audit(): void
+            {
+            }
+
+            #[QueryHandler('order.status', endpointId: 'orderStatus')]
+            public function status(): string
+            {
+                return 'placed';
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'whenOrderWasPlaced')]
+            public function whenPlaced(): void
             {
             }
         };

@@ -130,13 +130,35 @@ final class FlowScenarioChange
                 }
                 uasort($context, fn (array $first, array $second): int => $first <=> $second);
                 $shownContext = array_slice(array_keys($context), 0, self::NODES_PER_PART - count($shownCore));
-                $nodes = [...$shownCore, ...$shownContext];
-                sort($nodes, SORT_STRING);
-                $parts[] = ['nodes' => $nodes, 'unchangedNeighboursLeftOut' => count(array_diff_key($context, array_flip($shownContext), $changedNodes))];
+                $parts[] = ['nodes' => [...$shownCore, ...$shownContext], 'unchangedNeighboursLeftOut' => count(array_diff_key($context, array_flip($shownContext), $changedNodes))];
             }
         }
 
-        return $parts;
+        return self::fittedTogether($parts);
+    }
+
+    /**
+     * @param list<array{nodes: list<string>, unchangedNeighboursLeftOut: int}> $parts
+     * @return list<array{nodes: list<string>, unchangedNeighboursLeftOut: int}>
+     */
+    private static function fittedTogether(array $parts): array
+    {
+        $fitted = [];
+        foreach ($parts as $part) {
+            $last = count($fitted) - 1;
+            $together = $last < 0 ? [] : array_values(array_unique([...$fitted[$last]['nodes'], ...$part['nodes']]));
+            if ($last >= 0 && count($together) <= self::NODES_PER_PART) {
+                $fitted[$last] = ['nodes' => $together, 'unchangedNeighboursLeftOut' => $fitted[$last]['unchangedNeighboursLeftOut'] + $part['unchangedNeighboursLeftOut']];
+            } else {
+                $fitted[] = $part;
+            }
+        }
+
+        return array_map(function (array $part): array {
+            sort($part['nodes'], SORT_STRING);
+
+            return $part;
+        }, $fitted);
     }
 
     public function wiringPartOfBothSides(int $part): MessageFlowGraph

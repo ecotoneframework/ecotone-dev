@@ -164,10 +164,32 @@ final class MessageFlowRoutingTest extends TestCase
         };
         $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
+        self::assertTrue($graph->hasNode('handler:dual.command.handler'));
+        self::assertTrue($graph->hasNode('handler:dual.event.handler'));
         self::assertCount(1, $commands = $graph->nodesOfKind(\Ecotone\Api\Messaging\Flow\FlowNodeKind::COMMAND_HANDLER));
         self::assertCount(1, $events = $graph->nodesOfKind(\Ecotone\Api\Messaging\Flow\FlowNodeKind::EVENT_HANDLER));
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:dual.command', $commands[0]->id));
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:dual.event', $events[0]->id));
+    }
+
+    public function test_generated_endpoint_ids_keep_the_method_identity_and_kind_suffix(): void
+    {
+        $service = new class () {
+            #[CommandHandler('dual.command')]
+            #[EventHandler('dual.event')]
+            public function handle(array $payload): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $id = 'handler:' . $service::class . '::handle';
+
+        self::assertTrue($graph->hasNode($id));
+        self::assertTrue($graph->hasNode($id . ':eventHandler'));
+        self::assertNull($graph->node($id)->attributes['endpointId']);
+        self::assertNull($graph->node($id . ':eventHandler')->attributes['endpointId']);
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:dual.command', $id));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:dual.event', $id . ':eventHandler'));
     }
 
     public function test_glob_subscription_matches_dotted_keys_without_treating_dots_as_wildcards(): void

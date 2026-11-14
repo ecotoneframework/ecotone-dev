@@ -116,6 +116,34 @@ final class FlowComparePageTest extends ReleasingWebTestCase
         self::assertCount(1, $crawler->filter(sprintf('[data-diagram-node="%s"][data-change="added"]', $pointed)));
     }
 
+    public function test_a_rename_without_an_explicit_endpoint_removes_and_adds_a_node(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $before = new class () {
+            #[CommandHandler('order.place')]
+            public function place(array $payload): void
+            {
+            }
+        };
+        $after = new class () {
+            #[CommandHandler('order.place')]
+            public function renamed(array $payload): void
+            {
+            }
+        };
+        $extensions = [FlowVersionsConfiguration::createWithLocation($this->location)];
+        $this->distributedService('orders', $before, DistributedServiceMap::initialize(), $extensions)->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
+        $orders = $this->distributedService('orders', $after, DistributedServiceMap::initialize(), $extensions);
+        $client = $this->pulseWebClient();
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
+
+        $crawler = $this->compared($client, $orders, '/flow/compare?service=orders');
+
+        self::assertSame(['Command handler · added'], $this->nodesMarked($crawler, 'added'));
+        self::assertSame(['Command handler · removed'], $this->nodesMarked($crawler, 'removed'));
+        self::assertSame([], $this->nodesMarked($crawler, 'changed'));
+    }
+
     public function test_a_renamed_endpoint_is_one_changed_node_with_unchanged_arrows(): void
     {
         $this->configurePulseWithServices('orders');
@@ -144,6 +172,7 @@ final class FlowComparePageTest extends ReleasingWebTestCase
         self::assertSame([], $this->nodesMarked($crawler, 'removed'));
         self::assertCount(1, $crawler->filter('[data-compare-change]'));
         self::assertStringContainsString('method: "place" → "renamed"', $crawler->filter('[data-compare-change="changed"]')->text());
+        self::assertCount(2, $crawler->filter('[data-diagram-edge]'));
         self::assertCount(0, $crawler->filter('[data-diagram-edge][data-change]'));
     }
 

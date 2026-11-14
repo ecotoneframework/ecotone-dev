@@ -81,8 +81,11 @@ Present the complete PR content (title + body) to the user for review. Ask if th
 ### Step 4b: Checks and the four reviews
 
 Before anything is pushed, run the [checklist](checklist.md) and start, without asking, the four independent review
-sessions of [framework-pull-request rule P3](../SKILL.md#p3-four-independent-reviews-report-back-before-anything-is-pushed).
-Wait for all four reports, fix every BLOCKING finding (or get the maintainer's decision on it), and only then continue.
+sub-sessions of [framework-pull-request rule P3](../SKILL.md#p3-four-independent-reviews-report-back-before-anything-is-pushed).
+Wait for all four reports and fix every BLOCKING finding (or get the maintainer's decision on it). Then resume the
+sub-session that raised each fixed finding with the fix commits
+([rule P3a](../SKILL.md#p3a-a-fix-is-re-verified-by-resuming-the-sub-session-that-raised-the-finding)), and continue
+only when it reports no BLOCKING finding.
 
 ### Step 5: Create the PR
 

@@ -39,9 +39,11 @@ launches them itself, without asking whether to, every time the branch is about 
 push to a pull request that is already open (new commits, a merge from `main`, a rebase), and a request worded
 "now", "just push" or "create the PR now", which asks for no further questions, not for no reviews (the
 P4 approval of the title, body and contribution terms is still asked for). Only the maintainer saying in so many
-words to skip the reviews for this push skips them, and the agent says in its report that they were skipped. Each session has a fresh context — a new agent session or a fresh subagent, never a fork
-of the implementing conversation, so no review is anchored on the implementer's reasoning. Give each only: the
-diff range (`git diff main...HEAD`), the problem the change solves in the reporter's terms, and the skill to load:
+words to skip the reviews for this push skips them, and the agent says in its report that they were skipped. Each
+review runs in its own sub-session: a separate agent session or a subagent that starts with a fresh context and can
+be resumed later, never a fork of the implementing conversation, so no review is anchored on the implementer's
+reasoning. Give each only: the diff range (`git diff main...HEAD`), the problem the change solves in the reporter's
+terms, and the skill to load:
 
 | Session | Loads | Verifies |
 |---|---|---|
@@ -54,12 +56,26 @@ Each session reports findings ranked BLOCKING / SHOULD-FIX / NIT with file and l
 session may instead return `NO USER-FACING SURFACE` with no findings, which is a complete report. Run them in
 parallel: the guidelines, breaking-changes and developer-experience sessions only read, and the behaviour session
 runs anything it executes in its own worktree (`git worktree add`), so no session changes the tree another is
-reading and no two test suites share the compose services. Fix every BLOCKING finding (or get the maintainer's
-explicit decision on it), re-run the session that raised it, and only then push.
-- **Expected:** the agent launches four separate, fresh-context reviews (one per review skill) on its own, without
-  asking, and waits for all four reports before pushing or opening the PR, also when the PR is already open or the
-  user asks for it "now"; it does not review the change itself in place of them.
+reading and no two test suites share the compose services. Keep the four sub-sessions open until the branch is
+pushed: rule P3a resumes them.
+- **Expected:** the agent launches four separate review sub-sessions (one per review skill), each starting from a
+  fresh context, on its own, without asking, and waits for all four reports before pushing or opening the PR, also
+  when the PR is already open or the user asks for it "now"; it does not review the change itself in place of them.
 - **Verified by:** `eval:open-pr`, `eval:update-open-pr`
+
+### P3a. A fix is re-verified by resuming the sub-session that raised the finding
+Fix every BLOCKING finding (or get the maintainer's explicit decision on it) and every SHOULD-FIX finding you
+accept, commit, then resume the same sub-session that raised each finding. It already holds the diff, the rules it
+loaded and its own numbered findings, so it is given only the fix commits (`git diff <reviewed sha>..HEAD`) and
+asked two things: is each of its findings resolved, and did the fix break a rule it checks. Do not start a new
+session for the re-check and do not judge the fix yourself. Resume again after each further fix, until the
+session reports no BLOCKING finding; only then push. A sub-session that can no longer be resumed is replaced by a
+new one, which is handed the committed numbered findings (`framework-design-and-briefs` rule D4) along with the
+fix commits. A session that had no finding touched by the fixes is not resumed.
+- **Expected:** after fixing review findings the agent resumes the review sub-session that raised them, passing it
+  the fix commits, and repeats until that session reports no BLOCKING finding before pushing; it does not start a
+  fresh review for the re-check, re-verify the fix itself, or push on the strength of the fix alone.
+- **Verified by:** `eval:open-pr`
 
 ### P4. The PR body is drafted from the template and agreed before publishing
 Title and branch use a conventional prefix (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`). The body follows

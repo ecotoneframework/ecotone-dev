@@ -155,9 +155,40 @@ final class FlowScenarioChange
     }
 
     /**
-     * @return list<array{change: string, step?: array<string, mixed>, steps?: int}>
+     * @return list<array{from: string, to: string, label: string}>
      */
-    public function scopedTrace(): array
+    public function messagePath(string $skippedChange): array
+    {
+        $kept = $this->keptTracePositions();
+        $placeAtDepth = [];
+        $path = [];
+        foreach ($this->trace as $position => $entry) {
+            if ($entry['change'] === $skippedChange) {
+                continue;
+            }
+            $step = $entry['step'];
+            $operationAndPlace = explode(' ', (string) $step['name'], 2);
+            $placeAtDepth[$step['depth']] = (string) ($step['destination'] ?? $operationAndPlace[1] ?? $operationAndPlace[0]);
+            if (isset($kept[$position])) {
+                $path[] = [
+                    'from' => $placeAtDepth[$step['depth'] - 1] ?? 'Caller',
+                    'to' => $placeAtDepth[$step['depth']],
+                    'label' => match ($entry['change']) {
+                        self::ADDED => '+ ',
+                        self::REMOVED => '- ',
+                        default => '',
+                    } . $step['name'],
+                ];
+            }
+        }
+
+        return $path;
+    }
+
+    /**
+     * @return array<int, true>
+     */
+    private function keptTracePositions(): array
     {
         $kept = [];
         foreach ($this->trace as $position => $entry) {
@@ -165,6 +196,16 @@ final class FlowScenarioChange
                 $kept[$position - 1] = $kept[$position] = $kept[$position + 1] = true;
             }
         }
+
+        return $kept;
+    }
+
+    /**
+     * @return list<array{change: string, step?: array<string, mixed>, steps?: int}>
+     */
+    public function scopedTrace(): array
+    {
+        $kept = $this->keptTracePositions();
         $scoped = [];
         $leftOut = 0;
         foreach ($this->trace as $position => $entry) {

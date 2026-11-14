@@ -119,8 +119,8 @@ final class CollectingMessageHandler implements MessageHandler
         $groupKey = null;
         if ($this->groupBy->hasExpression()) {
             $key = $this->groupBy->execute($this->messageBuilder->fromMessage($message)->setPayload($this->payloadOf($message))->setContentType(MediaType::createApplicationXPHP())->build());
-            if ($key === null || (! is_scalar($key) && ! $key instanceof Stringable)) {
-                throw InvalidArgumentException::create("Collected handler '{$this->endpointId}' groupBy '{$this->groupByDescription}' must return a non-null scalar or stringable key. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.");
+            if ((! is_string($key) && ! is_int($key) && ! $key instanceof Stringable) || (string) $key === '') {
+                throw InvalidArgumentException::create("Collected handler '{$this->endpointId}' groupBy '{$this->groupByDescription}' must return a non-empty string, an integer or a stringable object. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.");
             }
             $groupKey = (string) $key;
         }

@@ -119,7 +119,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone = $this->bootstrap($handler, $durable);
 
         $ecotone->sendCommandWithRouting('collect', ['tenant' => null]);
-        $this->expectExceptionMessage("Collected handler 'collect.handler' groupBy 'payload[\"tenant\"]' must return a non-null scalar or stringable key. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.");
+        $this->expectExceptionMessage("Collected handler 'collect.handler' groupBy 'payload[\"tenant\"]' must return a non-empty string, an integer or a stringable object. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.");
         $ecotone->run('batches');
     }
 
@@ -806,7 +806,7 @@ final class CollectingConformanceTest extends TestCase
         }
         self::assertNotNull($failure);
         self::assertStringContainsString("Collected handler 'collect.handler' groupBy 'payload[\"tenant\"]'", $failure->getMessage());
-        self::assertStringContainsString('non-null scalar or stringable key', $failure->getMessage());
+        self::assertStringContainsString('non-empty string, an integer or a stringable object', $failure->getMessage());
         self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
     }
 
@@ -955,6 +955,65 @@ final class CollectingConformanceTest extends TestCase
             foreach ([MessageHeaders::ROUTING_SLIP, MessageHeaders::DELIVERY_DELAY, MessageHeaders::TIME_TO_LIVE, MessageHeaders::PRIORITY, MessageHeaders::REPLY_CHANNEL] as $excluded) {
                 self::assertArrayNotHasKey($excluded, $headers);
             }
+        }
+    }
+
+    public static function invalidGroupKeys(): iterable
+    {
+        foreach (self::implementations() as $implementation => [$durable]) {
+            foreach (['empty' => '', 'true' => true, 'false' => false, 'float' => 1.5] as $name => $key) {
+                yield $implementation . '_' . $name => [$durable, $key];
+            }
+        }
+    }
+
+    #[DataProvider('invalidGroupKeys')]
+    public function test_empty_boolean_and_float_group_keys_are_refused(bool $durable, mixed $key): void
+    {
+        $handler = new class () {
+            #[Collected(maxSize: 2, groupBy: 'payload["key"]')]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect', ['key' => $key]);
+        $failure = null;
+        try {
+            $ecotone->run('batches');
+        } catch (\Throwable $caught) {
+            $failure = $caught->getMessage();
+        }
+        self::assertNotNull($failure);
+        self::assertStringContainsString('must return a non-empty string, an integer or a stringable object', $failure);
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_integer_and_string_keys_share_a_batch_while_case_and_long_keys_stay_distinct(bool $durable): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 2, groupBy: 'payload["key"]')]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $longKey = str_repeat('long-key', 2000);
+        foreach ([1, 'Case', 'case', $longKey, '1', 'Case', 'case', $longKey] as $key) {
+            $ecotone->sendCommandWithRouting('collect', ['key' => $key]);
+        }
+        $ecotone->run('batches');
+        self::assertSame(['1', 'Case', 'case', $longKey], array_column($handler->batches, 'groupKey'));
+        foreach ($handler->batches as $batch) {
+            self::assertCount(2, $batch->messages);
         }
     }
 

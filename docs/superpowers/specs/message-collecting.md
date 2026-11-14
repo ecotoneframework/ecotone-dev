@@ -27,7 +27,7 @@ Expressions reuse `AttributeExpressionExecutorCompiler` unchanged, including pay
 resolution. PHP 8.5 permits static closures in attributes. A closure payload parameter is first or explicitly
 marked `#[Payload]`; an unannotated object later in the list is a service reference. The closure's payload type
 selects per-message deserialization. String expressions use the type header, with unchanged payloads if absent.
-Null and non-scalar/non-stringable keys are refused; expression failures use ordinary retry/dead-letter handling.
+Null, empty strings, booleans, floats and non-stringable objects are refused; expression failures use ordinary retry/dead-letter handling.
 Keys normalize to strings. Without groupBy the public key is null and all messages for the endpoint share a batch.
 
 The ordinary handler's parameter conversion receives the completed typed batch; it never attempts to convert

@@ -67,7 +67,8 @@ with `#[Payload]`. Header parameters use `#[Header]`; an unannotated object afte
 as a service. A typed payload parameter specifies the conversion type for each message. With a string expression,
 the message's type header specifies that type; without a type header the payload is exposed as it arrived.
 
-A key must be a non-null scalar or stringable value and is normalized to a string. A missing or invalid key,
+A key must be a non-empty string, an integer or a stringable object and is normalized to a string.
+The integer `1` and string `'1'` share a batch. Booleans, floats and empty strings are refused; letter case is preserved. A missing or invalid key,
 or a failed expression, refuses the message through ordinary retry and dead-letter handling. It never enters a
 fallback batch. Two collected handlers subscribing to the same event keep independent batches by endpoint id.
 

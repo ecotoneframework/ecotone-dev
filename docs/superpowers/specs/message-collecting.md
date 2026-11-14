@@ -36,8 +36,8 @@ conversion service and then calls the handler with a fresh batch message. That m
 and bus-hop exclusions. It has a fresh identity/timestamp. The timer uses the same exclusions;
 per-message headers belong to each `CollectedMessage` object. `CollectedMessages` has public readonly
 `messages`, `groupKey` and `releaseReason`; `messages` is a list of `CollectedMessage` objects with readonly
-`payload` and `headers`. There is no redundant size property: use count(messages). Its own `CollectedReleaseReason` enum has `SIZE_REACHED`,
-`MAX_WAIT`, and `MANUAL_RELEASE` cases. Return values flow once for the whole batch.
+`payload` and `headers`. There is no redundant size property: use count(messages). Its own `CollectedReleaseReason` enum has `MAX_SIZE_REACHED`,
+`MAX_WAIT_REACHED`, and `MANUAL_RELEASE` cases. Return values flow once for the whole batch.
 
 Payload order is recording order, equal to queue order with one consumer, not necessarily send order with
 several consumers. The message that fills a batch or its delayed/manual trigger invokes the handler. Handler

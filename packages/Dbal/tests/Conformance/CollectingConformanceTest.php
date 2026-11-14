@@ -152,7 +152,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
         self::assertSame(['first'], array_column($handler->batches[0]->messages, 'payload'));
-        self::assertSame(CollectedReleaseReason::MAX_WAIT, $handler->batches[0]->releaseReason);
+        self::assertSame(CollectedReleaseReason::MAX_WAIT_REACHED, $handler->batches[0]->releaseReason);
     }
 
     #[DataProvider('implementations')]
@@ -213,7 +213,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
         self::assertSame(['first'], array_column($handler->batches[0]->messages, 'payload'));
-        self::assertSame(CollectedReleaseReason::MAX_WAIT, $handler->batches[0]->releaseReason);
+        self::assertSame(CollectedReleaseReason::MAX_WAIT_REACHED, $handler->batches[0]->releaseReason);
     }
 
 
@@ -649,7 +649,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect', 'first');
         $ecotone->sendCommandWithRouting('collect', 'second');
         $ecotone->run('batches');
-        self::assertSame(CollectedReleaseReason::SIZE_REACHED, $handler->batches[0]->releaseReason);
+        self::assertSame(CollectedReleaseReason::MAX_SIZE_REACHED, $handler->batches[0]->releaseReason);
         $ecotone->advanceTimeBy(new TimeSpan(seconds: 9));
         $ecotone->sendCommandWithRouting('collect', 'third');
         $ecotone->run('batches');
@@ -660,7 +660,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         self::assertCount(2, $handler->batches);
         self::assertSame(['third'], array_column($handler->batches[1]->messages, 'payload'));
-        self::assertSame(CollectedReleaseReason::MAX_WAIT, $handler->batches[1]->releaseReason);
+        self::assertSame(CollectedReleaseReason::MAX_WAIT_REACHED, $handler->batches[1]->releaseReason);
     }
 
     #[DataProvider('implementations')]
@@ -1015,6 +1015,30 @@ final class CollectingConformanceTest extends TestCase
         foreach ($handler->batches as $batch) {
             self::assertCount(2, $batch->messages);
         }
+    }
+
+    #[DataProvider('implementations')]
+    public function test_release_reason_names_match_the_configured_size_and_wait_limits(bool $durable): void
+    {
+        $handler = new class () {
+            public array $reasons = [];
+
+            #[Collected(maxSize: 2, maxWait: new TimeSpan(seconds: 10))]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->reasons[] = $batch->releaseReason->name;
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect', 'one');
+        $ecotone->sendCommandWithRouting('collect', 'two');
+        $ecotone->sendCommandWithRouting('collect', 'three');
+        $ecotone->run('batches');
+        $ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
+        $ecotone->run('batches');
+        self::assertSame(['MAX_SIZE_REACHED', 'MAX_WAIT_REACHED'], $handler->reasons);
     }
 
     private function bootstrap(object $handler, bool $durable, bool $instantRetries = true): FlowTestSupport

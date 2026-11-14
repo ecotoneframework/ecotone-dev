@@ -71,8 +71,8 @@ final class CollectingMessageHandler implements MessageHandler
         $manualRelease = $message->getHeaders()->containsKey(GatheringHeaders::MANUAL_RELEASE);
         $reason = match (true) {
             $manualRelease => CollectedReleaseReason::MANUAL_RELEASE,
-            $timeout => CollectedReleaseReason::MAX_WAIT,
-            default => CollectedReleaseReason::SIZE_REACHED,
+            $timeout => CollectedReleaseReason::MAX_WAIT_REACHED,
+            default => CollectedReleaseReason::MAX_SIZE_REACHED,
         };
         $whenReleased = $this->whenReleased($reason);
         if ($timeout || $manualRelease) {

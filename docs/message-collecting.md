@@ -80,7 +80,7 @@ fallback batch. Two collected handlers subscribing to the same event keep indepe
 |---|---|
 | `messages` | `CollectedMessage` objects in recording order; each has readonly `payload` and `headers` |
 | `groupKey` | Normalized key, or null when `groupBy` is omitted |
-| `releaseReason` | `CollectedReleaseReason::SIZE_REACHED`, `MAX_WAIT` or `MANUAL_RELEASE` |
+| `releaseReason` | `CollectedReleaseReason::MAX_SIZE_REACHED`, `MAX_WAIT_REACHED` or `MANUAL_RELEASE` |
 
 `count($batch->messages)` gives the number of recorded messages. For example, `$batch->messages[0]->payload`
 and `$batch->messages[0]->headers` describe the first recorded message.

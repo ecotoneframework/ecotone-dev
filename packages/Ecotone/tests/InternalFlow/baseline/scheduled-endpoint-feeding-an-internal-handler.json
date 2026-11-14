@@ -5,7 +5,7 @@
         "nodes": [
             {"id":"channel:add","kind":"channel","label":"add","attributes":{"name":"add","pollable":false}},
             {"id":"channel:scheduled_handler","kind":"channel","label":"scheduled_handler","attributes":{"internal":true,"name":"scheduled_handler","pollable":false}},
-            {"id":"endpoint:scheduled_handler.target","kind":"internalHandler","label":"class@anonymous#1::produce","attributes":{"class":"class@anonymous#1","inputChannel":"scheduled_handler","internal":true,"method":"produce"}},
+            {"id":"endpoint:scheduled_handler.target","kind":"internalHandler","label":"class@anonymous#1::produce on scheduled_handler","attributes":{"class":"class@anonymous#1","inputChannel":"scheduled_handler","internal":true,"method":"produce"}},
             {"id":"handler:adding","kind":"internalHandler","label":"class@anonymous#1::add","attributes":{"class":"class@anonymous#1","endpointId":"adding","inputChannel":"add","method":"add","owner":null}},
             {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
             {"id":"scheduled:scheduled_handler","kind":"scheduled","label":"class@anonymous#1::produce","attributes":{"class":"class@anonymous#1","endpointId":"scheduled_handler","method":"produce"}}

@@ -143,7 +143,7 @@ final class InternalMessageFlowDiscovery
             $this->nodes[$id] = new FlowNode(
                 $id,
                 $handler instanceof RouterBuilder ? FlowNodeKind::ROUTER : FlowNodeKind::INTERNAL_HANDLER,
-                $invoked === null ? $this->stable($inputChannel) : $this->shortName((string) $invoked->getInterfaceName()) . '::' . $invoked->getMethodName(),
+                ($invoked === null ? '' : $this->shortName((string) $invoked->getInterfaceName()) . '::' . $invoked->getMethodName() . ' on ') . $this->stable($inputChannel),
                 array_filter([
                     'class' => $invoked?->getInterfaceName(),
                     'method' => $invoked?->getMethodName(),

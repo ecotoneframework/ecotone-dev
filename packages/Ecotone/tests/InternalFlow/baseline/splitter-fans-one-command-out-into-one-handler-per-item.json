@@ -7,7 +7,7 @@
             {"id":"channel:batch.importing.target","kind":"channel","label":"batch.importing.target","attributes":{"internal":true,"name":"batch.importing.target","pollable":false}},
             {"id":"channel:batch.split","kind":"channel","label":"batch.split","attributes":{"name":"batch.split","pollable":false}},
             {"id":"channel:item.handle","kind":"channel","label":"item.handle","attributes":{"name":"item.handle","pollable":false}},
-            {"id":"endpoint:batch.import","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"batch.import","internal":true,"method":"process"}},
+            {"id":"endpoint:batch.import","kind":"internalHandler","label":"ChainedMessageProcessor::process on batch.import","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"batch.import","internal":true,"method":"process"}},
             {"id":"handler:batch.importing","kind":"commandHandler","label":"class@anonymous#1::import","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"batch.importing","method":"import","owner":null,"routingKeys":["batch.import"]}},
             {"id":"handler:class@anonymous#1::split","kind":"splitter","label":"class@anonymous#1::split","attributes":{"class":"class@anonymous#1","endpointId":null,"inputChannel":"batch.split","method":"split","owner":null}},
             {"id":"handler:item.handling","kind":"internalHandler","label":"class@anonymous#1::handle","attributes":{"class":"class@anonymous#1","endpointId":"item.handling","inputChannel":"item.handle","method":"handle","owner":null}},

@@ -146,6 +146,15 @@ final class MessageFlowInternalTest extends TestCase
         self::assertCount(1, $internal->edgesOfKind(FlowEdgeKind::INPUT, 'channel:unconnected', 'endpoint:unconnected'));
     }
 
+    public function test_internal_handlers_are_labelled_with_what_they_invoke_and_the_channel_they_consume(): void
+    {
+        $internal = $this->internalGraphOf($this->orderingApplication());
+
+        self::assertSame('ChainedMessageProcessor::process on ecotone.modelling.bus.command_by_name', $internal->node('endpoint:ecotone.modelling.bus.command_by_name')->label);
+        self::assertSame('Bridge::handle on notifications', $internal->node('endpoint:notifications')->label);
+        self::assertSame('RoutingSlipPrepender::transform on whenOrderWasPlaced.target', $internal->node('endpoint:whenOrderWasPlaced.target')->label);
+    }
+
     public function test_internal_node_ids_stay_the_same_when_the_application_is_built_again(): void
     {
         $handlerWithoutEndpointId = new class () {

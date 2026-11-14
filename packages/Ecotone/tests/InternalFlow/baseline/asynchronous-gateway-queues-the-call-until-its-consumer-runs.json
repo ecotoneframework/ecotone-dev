@@ -5,7 +5,7 @@
         "nodes": [
             {"id":"channel:ticket.create","kind":"channel","label":"ticket.create","attributes":{"name":"ticket.create","pollable":false}},
             {"id":"channel:tickets","kind":"channel","label":"tickets","attributes":{"name":"tickets","pollable":true}},
-            {"id":"endpoint:tickets","kind":"internalHandler","label":"Bridge::handle","attributes":{"class":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge","inputChannel":"tickets","internal":true,"method":"handle"}},
+            {"id":"endpoint:tickets","kind":"internalHandler","label":"Bridge::handle on tickets","attributes":{"class":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge","inputChannel":"tickets","internal":true,"method":"handle"}},
             {"id":"gateway:Ecotone\\Test\\Flow\\Fixture\\FlowTicketGateway::create","kind":"gateway","label":"FlowTicketGateway::create","attributes":{"interface":"Ecotone\\Test\\Flow\\Fixture\\FlowTicketGateway","internal":true,"method":"create","requestChannel":"ticket.create"}},
             {"id":"handler:ticket.creating","kind":"internalHandler","label":"class@anonymous#1::create","attributes":{"class":"class@anonymous#1","endpointId":"ticket.creating","inputChannel":"ticket.create","method":"create","owner":null}},
             {"id":"interceptor:Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor::send","kind":"interceptor","label":"CollectorSenderInterceptor::send","attributes":{"class":"Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor","internal":true,"method":"send","position":"around"}},

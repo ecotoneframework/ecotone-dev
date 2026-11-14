@@ -8,7 +8,7 @@
             {"id":"channel:shipment.label","kind":"channel","label":"shipment.label","attributes":{"name":"shipment.label","pollable":false}},
             {"id":"channel:shipment.notify","kind":"channel","label":"shipment.notify","attributes":{"name":"shipment.notify","pollable":false}},
             {"id":"channel:shipment.route","kind":"channel","label":"shipment.route","attributes":{"name":"shipment.route","pollable":false}},
-            {"id":"endpoint:shipment.dispatch","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"shipment.dispatch","internal":true,"method":"process"}},
+            {"id":"endpoint:shipment.dispatch","kind":"internalHandler","label":"ChainedMessageProcessor::process on shipment.dispatch","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"shipment.dispatch","internal":true,"method":"process"}},
             {"id":"endpoint:shipment.route","kind":"router","label":"shipment.route","attributes":{"inputChannel":"shipment.route","internal":true}},
             {"id":"handler:class@anonymous#1::route","kind":"router","label":"class@anonymous#1::route","attributes":{"class":"class@anonymous#1","endpointId":null,"inputChannel":"shipment.route","method":"route","owner":null}},
             {"id":"handler:shipment.dispatching","kind":"commandHandler","label":"class@anonymous#1::dispatch","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"shipment.dispatching","method":"dispatch","owner":null,"routingKeys":["shipment.dispatch"]}},

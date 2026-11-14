@@ -81,3 +81,20 @@ G1-G7, B1, V1, V3, V5 and D1-D4 are confirmed resolved.
 - G10 (nit). `MessageFlowDistributedTest.php:853`: blank line before the closing brace; run php-cs-fixer.
 - V10 (nit). Copies of a builder's annotations can keep an outdated `EndpointId` entry. No action.
 - B5, B6 (nit). Old stored traces differ from new ones for multi-attribute methods. No action.
+
+## Third round, on the second fixes (head 26895a43c), from the resumed sessions
+V8, V9, G8, G9 and G10 are confirmed resolved; no session reports a BLOCKING or SHOULD-FIX finding in the change.
+
+- B7 (nit, fix). `upgrade-2.0.md:3555` names only a command plus an event handler attribute; in 1.x any two
+  different handler kinds on one method (command, query, event, internal) produced nested spans. Say "handler
+  attributes of more than one kind".
+- B8 (nit, fix). The same note uses the 2.0 span name `process <Class::method>` before the section that
+  introduces it ("Tracing is part of Core"). Move the note after that section.
+- G13 (nit, fix; raised by the guidelines session for the DX one). Rule 6 of `api/skills/ecotone-handler/SKILL.md`
+  points to stored flow version comparison, an Enterprise feature, without the skill's Enterprise notice. Say it is
+  Enterprise in the form the skill already uses.
+- V11 (should fix, not in this change). `bin/test-agent-skills` cannot evaluate a public skill with the current
+  `claude` CLI (it symlinks `api/evals` into the temporary plugin, which the CLI refuses) and still exits 0. The
+  behaviour session evaluated a copied plugin instead: order-handlers 1.00, stable-flow-identity 1.00 (rule-6 on a
+  2 to 1 vote). Left for a separate change to the script.
+- G11, G12, V10, V12 (nit). No action.

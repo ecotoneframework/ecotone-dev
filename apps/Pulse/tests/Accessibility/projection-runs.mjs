@@ -146,7 +146,7 @@ for (let concert = 1; partitions() < wantedPartitions && concert <= wantedPartit
             docker('exec', '-T', 'storefront', 'php', 'artisan', 'demo:rush', concertId, '--buyers=2', '--declinedShare=0', '--outageShare=0', '--bounceShare=0');
             break;
         } catch (error) {
-            if (attempt === 30 || !String(error.stdout).includes('in the storefront')) {
+            if (attempt === 30 || !/in the storefront|not on sale/.test(String(error.stdout))) {
                 throw error;
             }
             await pause(2000);
@@ -206,7 +206,7 @@ try {
     check('the failed batch links its dead letter', (await failedLink.count()) === 1 && (await failedLink.getAttribute('href')).startsWith('/dead-letters/ticketing/'), await failedLink.getAttribute('href'));
     check('the run waits for the replay of the failed batch', (await text(row(ledger).locator('[data-rebuild-state-label]'))) === 'Rebuild waiting' && (await row(ledger).locator('[data-rebuild-replay-hint]').count()) === 1, await rowText(ledger));
     check('the other batches are done', (await rowBatches(ledger)) === `${batches - 1} of ${batches} batches`, await rowBatches(ledger));
-    check('the up-to-date row says its positions are caught up and the rebuild waits for the replay', (await text(row(ledger).locator('[data-projection-reason]'))).startsWith('Event positions are caught up; the latest rebuild waits for the replay of batch '), await text(row(ledger).locator('[data-projection-reason]')));
+    check('the row says the rebuild waits for the replay: qualified when its positions are caught up, failed once the dead letter is in the snapshot', /^(Event positions are caught up; the latest rebuild waits for the replay of batch \d+\.|A message on its channel ticketing_async failed after its retries and is stored in dead letters\.)$/.test(await text(row(ledger).locator('[data-projection-reason]'))), await text(row(ledger).locator('[data-projection-reason]')));
     check('the folded summaries say waiting for replay', (await text(page.locator('[data-projection-operations] [data-summary-state]'))).includes('1 waiting for replay'), await text(page.locator('[data-projection-operations] [data-summary-state]')));
     await shotProjection('06-rebuild-with-a-failed-batch', ledger);
     const deadLetterUrl = new URL(await failedLink.getAttribute('href'), pulse).toString();

@@ -351,7 +351,7 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertSame('rebuilding', $row->filter('[data-projection-status]')->attr('data-projection-status'));
         self::assertSame('running', $row->filter('[data-rebuild-state]')->attr('data-rebuild-state'));
         self::assertSame('40%', $row->filter('[data-rebuild-percent]')->text());
-        self::assertSame('2 of 5 batches', $row->filter('[data-rebuild-batches]')->text());
+        self::assertSame('2 of 5 batches recorded', $row->filter('[data-rebuild-batches]')->text());
         self::assertSame('40', $row->filter('progress')->attr('value'));
     }
 
@@ -427,8 +427,36 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         $row = $crawler->filter('tr[data-projection="per_ticket"]');
         self::assertCount(0, $row->filter('progress'));
         self::assertSame('running for 1m 5s', $row->filter('[data-rebuild-elapsed]')->text());
-        self::assertSame('Batches are counted after the batches queued before them on rebuild_channel; completionChannelName on #[ProjectionRebuild] shows them as they finish.', $row->filter('[data-rebuild-queued-records]')->text());
+        self::assertSame('Finished batches are counted once the batches queued on rebuild_channel have run. Set completionChannelName on #[ProjectionRebuild] to count each batch as it finishes.', $row->filter('[data-rebuild-queued-records]')->text());
+        self::assertSame('#[ProjectionRebuild]', $row->filter('[data-rebuild-queued-records] code')->text());
         self::assertCount(0, $row->filter('[data-rebuild-missing]'));
+        self::assertCount(1, $crawler->filter('[data-rebuild-queued-records]'));
+        self::assertStringNotContainsString('completionChannelName', $row->filter('[data-projection-reason]')->text());
+        self::assertSame('running for 1m 5s', $crawler->filter('[data-recent-rebuilds] [data-rebuild-progress]')->text());
+    }
+
+    public function test_a_running_rebuild_whose_records_queue_behind_its_batches_counts_its_recorded_batches_after_the_first_one(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'running', batchesDone: 1, batchCount: 11, elapsedMs: 65000, missingBatches: range(2, 11))];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('1 of 11 batches recorded', $row->filter('[data-rebuild-batches]')->text());
+        self::assertCount(1, $row->filter('[data-rebuild-queued-records]'));
+    }
+
+    public function test_a_running_rebuild_shows_a_running_time_under_a_second_in_seconds(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('totals')];
+        $this->orders->trackings = [$this->tracking('totals', 'running', batchesDone: 0, batchCount: null, elapsedMs: 669)];
+
+        $crawler = $this->observe($client);
+
+        self::assertSame('running for under 1s', $crawler->filter('tr[data-projection="totals"] [data-rebuild-elapsed]')->text());
     }
 
     public function test_a_running_rebuild_with_a_separate_completion_channel_shows_its_batches_from_the_first_one(): void
@@ -456,7 +484,7 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertSame('discarded', $row->filter('[data-rebuild-state]')->attr('data-rebuild-state'));
         self::assertSame('Rebuild discarded', $row->filter('[data-rebuild-state-label]')->text());
         self::assertSame('2 of 3 batches', $row->filter('[data-rebuild-batches]')->text());
-        self::assertSame('batch 3 not done yet', $row->filter('[data-rebuild-missing]')->text());
+        self::assertSame('batch 3 not projected', $row->filter('[data-rebuild-missing]')->text());
         self::assertSame('discarded', $crawler->filter('[data-recent-rebuilds] tr[data-rebuild="group-1"] [data-rebuild-state-cell]')->text());
     }
 
@@ -470,7 +498,8 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
 
         $row = $crawler->filter('tr[data-projection="per_ticket"]');
         self::assertSame('Rebuild released by hand', $row->filter('[data-rebuild-state-label]')->text());
-        self::assertSame('batch 3 not done yet', $row->filter('[data-rebuild-missing]')->text());
+        self::assertSame('batch 3 not projected', $row->filter('[data-rebuild-missing]')->text());
+        self::assertSame('released by hand', $crawler->filter('[data-recent-rebuilds] [data-rebuild-state-cell]')->text());
     }
 
     public function test_a_batch_whose_record_waits_in_the_dead_letter_is_shown_done_and_links_the_record(): void
@@ -497,7 +526,8 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         $crawler = $this->observe($client);
 
         $recent = $crawler->filter('[data-recent-rebuilds] tr[data-rebuild="group-1"]');
-        self::assertSame('failed', $recent->filter('[data-rebuild-state-cell] .pill')->text());
+        self::assertSame('waiting', $recent->filter('[data-rebuild-state-cell] .pill')->text());
+        self::assertSame('2 of 3 batches; batch 2 failed, replay it to continue', $recent->filter('[data-rebuild-progress]')->text());
         self::assertSame('2026-11-14 14:47 UTC', $recent->filter('time[data-rebuild-started]')->text());
         self::assertSame('2026-11-14T14:47:27.998750+00:00', $recent->filter('time[data-rebuild-started]')->attr('datetime'));
     }
@@ -555,7 +585,7 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         $crawler = $this->observe($client);
 
         $row = $crawler->filter('tr[data-projection="per_ticket"]');
-        self::assertSame('1 of 4 batches', $row->filter('[data-rebuild-batches]')->text());
+        self::assertSame('1 of 4 batches recorded', $row->filter('[data-rebuild-batches]')->text());
         self::assertCount(0, $row->filter('[data-rebuild-missing]'));
         self::assertSame('started from the console', $row->filter('[data-rebuild-started-from-console]')->text());
         self::assertCount(0, $crawler->filter('a[data-rebuild-trace]'));

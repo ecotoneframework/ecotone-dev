@@ -115,7 +115,7 @@ final readonly class Rebuild
             return null;
         }
 
-        return sprintf('%s %s not done yet', count($notDone) === 1 ? 'batch' : 'batches', implode(', ', $notDone));
+        return sprintf('%s %s %s', count($notDone) === 1 ? 'batch' : 'batches', implode(', ', $notDone), $this->isClosedEarly() ? 'not projected' : 'not done yet');
     }
 
     public function stateLabel(): string
@@ -126,6 +126,15 @@ final readonly class Rebuild
             'discarded' => $this->label() . ' discarded',
             'released' => $this->label() . ' released by hand',
             default => $this->label() . ' running',
+        };
+    }
+
+    public function shortStateLabel(): string
+    {
+        return match ($this->state) {
+            'failed' => 'waiting',
+            'released' => 'released by hand',
+            default => $this->state,
         };
     }
 
@@ -194,7 +203,7 @@ final readonly class Rebuild
     private static function spoken(int $milliseconds): string
     {
         if ($milliseconds < 1000) {
-            return $milliseconds . 'ms';
+            return 'under 1s';
         }
         if ($milliseconds < 60_000) {
             return rtrim(rtrim(number_format($milliseconds / 1000, 1, '.', ''), '0'), '.') . 's';

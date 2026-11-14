@@ -14,19 +14,22 @@
 
 {% macro waitingRecords(rebuild, serviceName) %}{% for waiting in rebuild.batchesWaitingToBeRecorded %}{{ loop.first ? '' : ', ' }}<a href="{{ path('dead_letter', {service: serviceName, messageId: waiting.deadLetterMessageId}) }}" data-rebuild-waiting-record="{{ waiting.batch }}">batch {{ waiting.batch }} done, its record waits in the dead letter</a>{% endfor %}{% endmacro %}
 
+{% macro queuedRecords(projection) %}<span class="muted" data-rebuild-queued-records>Finished batches are counted once the batches queued on {{ projection.queuedBatchesChannel }} have run. Set completionChannelName on <code class="nowrap">{{ projection.runAttribute }}</code> to count each batch as it finishes.</span>{% endmacro %}
+
 {% macro operation(projection, serviceName) %}
     {% set rebuild = projection.latestRebuild %}
     {% if rebuild %}
         <div data-rebuild-state="{{ rebuild.state }}" data-operation-kind="{{ rebuild.kind }}">
-            {% if rebuild.state == 'running' and projection.recordsQueueBehindBatches %}
+            {% if rebuild.state == 'running' and projection.nothingRecordedBehindQueuedBatches %}
                 <span class="pill wait" data-rebuild-state-label>{{ rebuild.stateLabel }}</span>
                 <span class="muted" data-rebuild-elapsed>running for {{ rebuild.elapsed ?? '0s' }}</span>
-                · <span class="muted" data-rebuild-queued-records>{{ projection.queuedRecordsSentence }}</span>
+                · {{ _self.queuedRecords(projection) }}
             {% elseif rebuild.state == 'running' %}
                 {% if projection.partitioned and rebuild.hasBatchCount %}
                     <progress max="100" value="{{ rebuild.percent }}" aria-label="{{ rebuild.label }} of {{ projection.name }}"></progress>
                     <span data-rebuild-percent>{{ rebuild.percent }}%</span>
-                    <span class="muted" data-rebuild-batches>{{ rebuild.batchesDone }} of {{ rebuild.batchCount }} batches</span>
+                    <span class="muted" data-rebuild-batches>{{ rebuild.batchesDone }} of {{ rebuild.batchCount }} batches{% if projection.recordsQueueBehindBatches %} recorded{% endif %}</span>
+                    {% if projection.recordsQueueBehindBatches %}· {{ _self.queuedRecords(projection) }}{% endif %}
                 {% else %}
                     <span class="pill wait" data-rebuild-state-label>{{ rebuild.stateLabel }}</span>
                     <span class="muted" data-rebuild-elapsed>running for {{ rebuild.elapsed ?? '0s' }}</span>
@@ -259,8 +262,8 @@
                                     <th scope="row">{{ rebuild.projection }}</th>
                                     <td data-operation-type>{{ rebuild.label }}{% if rebuild.startedFromConsole %} <span class="muted" data-rebuild-started-from-console>from the console</span>{% endif %}</td>
                                     <td><time datetime="{{ rebuild.startedAt }}" title="{{ rebuild.startedAt }}" data-rebuild-started>{{ rebuild.startedAtShort }}</time></td>
-                                    <td data-rebuild-state-cell><span class="pill {{ rebuild.state == 'done' ? 'ok' : (rebuild.state == 'running' ? 'wait' : 'bad sq') }}">{{ rebuild.state }}</span></td>
-                                    <td data-rebuild-progress>{% if rebuild.batchCount is not null and rebuild.batchCount != 1 %}{{ rebuild.batchesDone }} of {{ rebuild.batchCount }} batches{% elseif rebuild.state == 'running' %}running for {{ rebuild.elapsed ?? '0s' }}{% elseif rebuild.state == 'done' %}{{ rebuild.duration ?? 'time not reported' }}{% elseif rebuild.failedBatches is empty and rebuild.hasTrace %}stopped, see its trace{% endif %}{% if rebuild.failedBatches is not empty %}{{ rebuild.batchCount is not null and rebuild.batchCount != 1 ? '; ' : '' }}{{ page.failedBatches(rebuild, serviceName) }}{% endif %}{% if rebuild.batchesWaitingToBeRecorded is not empty %}; {{ page.waitingRecords(rebuild, serviceName) }}{% endif %}{% if rebuild.missingBatchesLabel %}; <span data-rebuild-missing>{{ rebuild.missingBatchesLabel }}</span>{% endif %}</td>
+                                    <td data-rebuild-state-cell><span class="pill {{ rebuild.state == 'done' ? 'ok' : (rebuild.state == 'running' ? 'wait' : 'bad sq') }}">{{ rebuild.shortStateLabel }}</span></td>
+                                    <td data-rebuild-progress>{% if rebuild.state == 'running' and rebuild.batchesDone == 0 and rebuild.batchCount != 0 %}running for {{ rebuild.elapsed ?? '0s' }}{% elseif rebuild.batchCount is not null and rebuild.batchCount != 1 %}{{ rebuild.batchesDone }} of {{ rebuild.batchCount }} batches{% elseif rebuild.state == 'running' %}running for {{ rebuild.elapsed ?? '0s' }}{% elseif rebuild.state == 'done' %}{{ rebuild.duration ?? 'time not reported' }}{% elseif rebuild.failedBatches is empty and rebuild.hasTrace %}stopped, see its trace{% endif %}{% if rebuild.failedBatches is not empty %}{{ rebuild.batchCount is not null and rebuild.batchCount != 1 ? '; ' : '' }}{{ page.failedBatches(rebuild, serviceName) }}, replay {{ rebuild.failedBatches|length == 1 ? 'it' : 'them' }} to continue{% endif %}{% if rebuild.batchesWaitingToBeRecorded is not empty %}; {{ page.waitingRecords(rebuild, serviceName) }}{% endif %}{% if rebuild.missingBatchesLabel %}; <span data-rebuild-missing>{{ rebuild.missingBatchesLabel }}</span>{% endif %}</td>
                                     <td>{% if rebuild.hasTrace %}<a href="{{ path('trace_detail', {traceId: rebuild.tracingId}) }}" data-rebuild-trace>trace of the {{ rebuild.noun }}</a>{% else %}<span class="muted" data-rebuild-no-trace>no trace</span>{% endif %}</td>
                                 </tr>
                             {% endfor %}

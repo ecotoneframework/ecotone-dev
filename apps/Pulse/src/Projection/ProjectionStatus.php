@@ -133,7 +133,7 @@ final readonly class ProjectionStatus
     public function recordsQueueBehindBatches(): bool
     {
         $operation = $this->latestRebuild;
-        if ($operation === null || ! $operation->isRunning() || $operation->batchesDone > 0 || ($operation->batchCount ?? 0) === 0) {
+        if ($operation === null || ! $operation->isRunning() || ($operation->batchCount ?? 0) === 0) {
             return false;
         }
         [$batches, $completions] = $operation->kind === Rebuild::BACKFILL ? [$this->backfillAsyncChannel, $this->backfillCompletionChannel] : [$this->rebuildAsyncChannel, $this->rebuildCompletionChannel];
@@ -141,12 +141,19 @@ final readonly class ProjectionStatus
         return $batches !== null && $batches === $completions;
     }
 
-    public function queuedRecordsSentence(): string
+    public function nothingRecordedBehindQueuedBatches(): bool
     {
-        $operation = $this->latestRebuild;
-        [$channel, $attribute] = $operation?->kind === Rebuild::BACKFILL ? [$this->backfillAsyncChannel, '#[ProjectionBackfill]'] : [$this->rebuildAsyncChannel, '#[ProjectionRebuild]'];
+        return $this->recordsQueueBehindBatches() && $this->latestRebuild?->batchesDone === 0;
+    }
 
-        return sprintf('Batches are counted after the batches queued before them on %s; completionChannelName on %s shows them as they finish.', $channel, $attribute);
+    public function queuedBatchesChannel(): ?string
+    {
+        return $this->latestRebuild?->kind === Rebuild::BACKFILL ? $this->backfillAsyncChannel : $this->rebuildAsyncChannel;
+    }
+
+    public function runAttribute(): string
+    {
+        return $this->latestRebuild?->kind === Rebuild::BACKFILL ? '#[ProjectionBackfill]' : '#[ProjectionRebuild]';
     }
 
     private function runningExplanation(): string
@@ -155,11 +162,11 @@ final readonly class ProjectionStatus
         if ($operation === null) {
             return 'it is running.';
         }
-        if ($this->recordsQueueBehindBatches()) {
-            return sprintf('running for %s. %s', $operation->elapsed() ?? '0s', $this->queuedRecordsSentence());
+        if ($this->nothingRecordedBehindQueuedBatches()) {
+            return sprintf('running for %s.', $operation->elapsed() ?? '0s');
         }
         if ($this->partitioned && $operation->hasBatchCount()) {
-            return sprintf('%d%% done, %d of %d batches.', $operation->percent(), $operation->batchesDone, $operation->batchCount);
+            return sprintf('%d%% done, %d of %d batches%s.', $operation->percent(), $operation->batchesDone, $operation->batchCount, $this->recordsQueueBehindBatches() ? ' recorded' : '');
         }
 
         return sprintf('running for %s.', $operation->elapsed() ?? '0s');

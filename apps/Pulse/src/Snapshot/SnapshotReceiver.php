@@ -45,9 +45,12 @@ final readonly class SnapshotReceiver
             return;
         }
         $problem = $this->problemWith($decoded, $scope);
-        $this->store->update($scope, fn (ServiceRecord $record) => $problem === null
-            ? $record->received($decoded, DateTimeImmutable::createFromInterface($this->clock->now()))
-            : $record->replyRejected($problem));
+        if ($problem !== null) {
+            $this->store->update($scope, static fn (ServiceRecord $record) => $record->replyRejected($problem));
+
+            return;
+        }
+        $this->store->receive($scope, $decoded, DateTimeImmutable::createFromInterface($this->clock->now()));
     }
 
     /**
@@ -59,7 +62,7 @@ final readonly class SnapshotReceiver
         if ($schemaVersion !== self::SUPPORTED_SCHEMA_VERSION) {
             return sprintf('Snapshot with schema version %s is not supported, Pulse reads schema version %d. Update Pulse or the service so both speak the same schema version.', is_scalar($schemaVersion) ? (string) $schemaVersion : 'unknown', self::SUPPORTED_SCHEMA_VERSION);
         }
-        if ($scope->tenant === null && ! is_array($snapshot['overview'] ?? null)) {
+        if ($scope->tenant === null && ($snapshot['partial'] ?? false) !== true && ! is_array($snapshot['overview'] ?? null) && ! isset($snapshot['digests']['overview'])) {
             return 'Snapshot has no overview section. Update the service to a version that answers Pulse snapshot requests.';
         }
 

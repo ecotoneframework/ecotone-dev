@@ -21,7 +21,7 @@ final readonly class TenantMetadata
             return [];
         }
 
-        $header = $this->store->read(ServiceScope::ofService($scope->service))->snapshot['tenancy']['header'] ?? null;
+        $header = $this->store->sections(ServiceScope::ofService($scope->service))['tenancy']['header'] ?? null;
         if (! is_string($header)) {
             throw new LogicException(sprintf('Pulse asked service "%s" for tenant "%s", but the service has not advertised a tenant header. A multi-tenant service advertises it in the `tenancy` section of its snapshot, so ask for the service snapshot first, and give the service a MultiTenantConfiguration.', $scope->service, $scope->tenant));
         }

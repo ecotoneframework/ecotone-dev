@@ -11,14 +11,12 @@ final readonly class ServiceRecord
     private const TIME_FORMAT = 'Y-m-d\TH:i:s.uP';
 
     /**
-     * @param array<string, mixed> $snapshot
      * @param array<string, array{digest: string, since: string}> $projectionMovements
      * @param array<string, array{ready: int, since: string}> $channelMovements
      * @param array<string, array{message: string, failedAt: string}> $refusedRequests
      */
     public function __construct(
         public ?DateTimeImmutable $receivedAt,
-        public array $snapshot,
         public ?DateTimeImmutable $requestedAt,
         public ?string $requestFailure,
         public ?string $replyError,
@@ -35,7 +33,7 @@ final readonly class ServiceRecord
 
     public static function empty(): self
     {
-        return new self(null, [], null, null, null);
+        return new self(null, null, null, null);
     }
 
     /**
@@ -45,7 +43,6 @@ final readonly class ServiceRecord
     {
         return new self(
             isset($stored['receivedAt']) ? new DateTimeImmutable($stored['receivedAt']) : null,
-            $stored['snapshot'] ?? [],
             isset($stored['requestedAt']) ? new DateTimeImmutable($stored['requestedAt']) : null,
             $stored['requestFailure'] ?? null,
             $stored['replyError'] ?? null,
@@ -67,7 +64,6 @@ final readonly class ServiceRecord
     {
         return [
             'receivedAt' => $this->receivedAt?->format(self::TIME_FORMAT),
-            'snapshot' => $this->snapshot,
             'requestedAt' => $this->requestedAt?->format(self::TIME_FORMAT),
             'requestFailure' => $this->requestFailure,
             'replyError' => $this->replyError,
@@ -129,22 +125,33 @@ final readonly class ServiceRecord
     }
 
     /**
-     * @param array<string, mixed> $snapshot
+     * @param array<string, mixed> $reply
      */
-    public function received(array $snapshot, DateTimeImmutable $at): self
+    public function received(array $reply, ?int $deadLetterTotalBefore, DateTimeImmutable $at): self
     {
-        return $this->with(['receivedAt' => $at, 'snapshot' => $snapshot, 'requestFailure' => null, 'replyError' => null, 'retrying' => false, 'missingDestination' => null, 'projectionMovements' => $this->projectionMovementsAfter($snapshot, $at), 'deadLettersGrewBy' => $this->deadLettersGrowthTo($snapshot), 'channelMovements' => $this->channelMovementsAfter($snapshot, $at)])->forgettingRefusalOf(SnapshotRequester::ROUTING_KEY);
+        return $this->with([
+            'receivedAt' => $at,
+            'requestFailure' => null,
+            'replyError' => null,
+            'retrying' => false,
+            'missingDestination' => null,
+            'projectionMovements' => array_key_exists('projections', $reply) ? $this->projectionMovementsAfter($reply, $at) : $this->projectionMovements,
+            'deadLettersGrewBy' => $this->deadLettersGrowthTo($reply, $deadLetterTotalBefore),
+            'channelMovements' => array_key_exists('channels', $reply) ? $this->channelMovementsAfter($reply, $at) : $this->channelMovements,
+        ])->forgettingRefusalOf(SnapshotRequester::ROUTING_KEY);
     }
 
     /**
-     * @param array<string, mixed> $snapshot
+     * @param array<string, mixed> $reply
      */
-    private function deadLettersGrowthTo(array $snapshot): int
+    private function deadLettersGrowthTo(array $reply, ?int $totalBefore): int
     {
-        $before = $this->snapshot['deadLetters']['total'] ?? null;
-        $now = $snapshot['deadLetters']['total'] ?? null;
+        if (! array_key_exists('deadLetters', $reply)) {
+            return is_array($reply['digests'] ?? null) && ! array_key_exists('deadLetters', $reply['digests']) ? $this->deadLettersGrewBy : 0;
+        }
+        $now = $reply['deadLetters']['total'] ?? null;
 
-        return is_int($before) && is_int($now) ? max(0, $now - $before) : 0;
+        return is_int($totalBefore) && is_int($now) ? max(0, $now - $totalBefore) : 0;
     }
 
     /**

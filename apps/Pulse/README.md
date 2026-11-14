@@ -62,7 +62,7 @@ One container runs everything: the web server ([FrankenPHP](https://frankenphp.d
 
 ### Internal storage
 
-Pulse keeps its own state (the latest snapshot of every service with its request bookkeeping, the cache of trace queries
+Pulse keeps its own state (the latest sections of every service's snapshot, the request bookkeeping of every service, the cache of trace queries
 and its flow tracking spans) in an **SQLite database inside the container**, at `/app/var/internal/pulse.sqlite`. It is
 created when the container starts (`pulse:setup` creates the file and Pulse's tables, `ecotone:migration:database:setup --initialize`
 creates the Ecotone tables, existing tables are skipped), it is **not a volume**, and it lives and dies with the container:
@@ -75,6 +75,23 @@ Doctrine transactions that take the write lock first, so they wait instead of fa
 The internal database is the default DBAL connection of Pulse. When `PULSE_TRANSPORT_DSN` is a database (`pgsql://`,
 `mysql://`, `sqlite://`), the Distributed Bus channels use a separate connection, so the queue and deduplication tables
 are created on that database and never in the internal one. Flow tracking in Pulse keeps its spans for 1 hour.
+
+### What travels in a snapshot
+
+A snapshot is a set of named sections (`overview`, `flowGraph`, `topology`, `packages`, `consumers`, `channels`,
+`projections`, `deadLetters`, `tracing`, `setup`, `gathering`). Pulse stores each section on its own row with the digest
+the service reported for it, so only what changed is sent and written:
+
+* A snapshot request carries `{"known": {"<section>": "<digest>"}}`, the digests Pulse holds. The reply lists the digest of
+  every section in `digests` and carries only the sections whose digest differs. The flow graph, the packages and the
+  rest of what a deploy decides are therefore sent once, and again only after a deploy changed them; `{}` asks for every section.
+* A section can tell that nothing changed without being read: the dead letters are identified by their count and their
+  newest failure, so a service whose dead letters did not change neither scans them nor sends them.
+* The reply to an action carries only what the action changed and says so with `partial: true`: a rebuild or backfill
+  carries `projections` and `gathering`, a dead letter replay or delete carries `deadLetters` and `channels`, a gathering
+  release or discard carries `gathering`. Pulse keeps every other section as it holds it.
+* A reply that is not partial is the whole truth: a section it neither carries nor lists in `digests` is one the
+  service no longer reports, and Pulse drops it.
 
 ### Awaited replies
 

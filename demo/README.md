@@ -76,6 +76,11 @@ its handlers run over `async: ticketing_async`, with the steps listed under the 
 
 ![Pulse's flow graph following tickets.hold](docs/screenshots/pulse-flow-graph.png)
 
+Pulse comparing the storefront's stored flow version `1.0.0` with its live flow: the confirmation email handler and its
+arrows are marked added, and `OrderTicketsIssued` is marked changed because it now has a handler.
+
+![Pulse comparing two versions of the storefront's flow](docs/screenshots/pulse-flow-compare.png)
+
 The rest are in [`docs/screenshots`](docs/screenshots).
 
 ## Open it
@@ -163,6 +168,11 @@ The status line under the panel counts the buyers as they hold, pay, get their t
   replies crossing the Distributed Bus between the storefront and ticketing. A message no watched service is seen
   sending, such as the `demo.ping` the storefront sends from a console command, is listed as a finding that says why
   its arrow is missing.
+- **Pulse → Flow → Compare versions of storefront** draws the flow version each service stored in its
+  `flow-versions/` directory against the live flow, with what was added, removed or changed since marked on the graph.
+  Version `1.0.0` of the storefront predates the confirmation email, and `1.0.0` of ticketing predates the sold-out
+  watch. The same comparison runs from the console: `php artisan ecotone:flow:compare` in the storefront,
+  `bin/console ecotone:flow:compare` in ticketing.
 - **Jaeger**: a trace follows a flow across both services, because the Distributed Bus carries its context. In a
   hold, `process SeatSalesOverDistributedBus::hold` decides in `Decision Models: App\Sales\SeatSales::hold` and appends
   in `Conditional Append: ecotone_event_stream`: that is the Dynamic Consistency Boundary. A conflict shows as that

@@ -1,0 +1,2416 @@
+{
+    "formatVersion": 1,
+    "label": "1.0.0",
+    "storedAt": "2026-11-14T16:08:14+00:00",
+    "graph": {
+        "nodes": [
+            {
+                "id": "aggregate:App\\Catalogue\\Concert",
+                "kind": "aggregate",
+                "label": "Concert",
+                "attributes": {
+                    "class": "App\\Catalogue\\Concert",
+                    "eventSourced": false
+                }
+            },
+            {
+                "id": "aggregate:App\\Catalogue\\Venue",
+                "kind": "aggregate",
+                "label": "Venue",
+                "attributes": {
+                    "class": "App\\Catalogue\\Venue",
+                    "eventSourced": false
+                }
+            },
+            {
+                "id": "channel:ecotone_pulse",
+                "kind": "channel",
+                "label": "ecotone_pulse",
+                "attributes": {
+                    "name": "ecotone_pulse",
+                    "pollable": true
+                }
+            },
+            {
+                "id": "channel:storefront",
+                "kind": "channel",
+                "label": "storefront",
+                "attributes": {
+                    "name": "storefront",
+                    "pollable": true
+                }
+            },
+            {
+                "id": "channel:ticket.allocate_numbers",
+                "kind": "channel",
+                "label": "ticket.allocate_numbers",
+                "attributes": {
+                    "name": "ticket.allocate_numbers",
+                    "pollable": false
+                }
+            },
+            {
+                "id": "channel:ticket.announce",
+                "kind": "channel",
+                "label": "ticket.announce",
+                "attributes": {
+                    "name": "ticket.announce",
+                    "pollable": false
+                }
+            },
+            {
+                "id": "channel:ticket.issuance",
+                "kind": "channel",
+                "label": "ticket.issuance",
+                "attributes": {
+                    "name": "ticket.issuance",
+                    "pollable": false
+                }
+            },
+            {
+                "id": "channel:ticket.register_entry_codes",
+                "kind": "channel",
+                "label": "ticket.register_entry_codes",
+                "attributes": {
+                    "name": "ticket.register_entry_codes",
+                    "pollable": false
+                }
+            },
+            {
+                "id": "channel:ticket.render",
+                "kind": "channel",
+                "label": "ticket.render",
+                "attributes": {
+                    "name": "ticket.render",
+                    "pollable": false
+                }
+            },
+            {
+                "id": "channel:ticket.vip_lounge_pass",
+                "kind": "channel",
+                "label": "ticket.vip_lounge_pass",
+                "attributes": {
+                    "name": "ticket.vip_lounge_pass",
+                    "pollable": false
+                }
+            },
+            {
+                "id": "channel:ticketing_async",
+                "kind": "channel",
+                "label": "ticketing_async",
+                "attributes": {
+                    "name": "ticketing_async",
+                    "pollable": true
+                }
+            },
+            {
+                "id": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "distributedBus",
+                "label": "Distributed Bus",
+                "attributes": {
+                    "commandMapping": {
+                        "storefront": "storefront"
+                    },
+                    "eventSubscriptions": {
+                        "storefront": [
+                            "concert.*",
+                            "tickets.*"
+                        ]
+                    },
+                    "reference": "Ecotone\\Api\\Gateway\\DistributedBus"
+                }
+            },
+            {
+                "id": "distributed:ecotone.pulse.distributed_bus",
+                "kind": "distributedBus",
+                "label": "Distributed Bus: ecotone.pulse.distributed_bus",
+                "attributes": {
+                    "commandMapping": {
+                        "ecotone_pulse": "ecotone_pulse"
+                    },
+                    "eventSubscriptions": [],
+                    "reference": "ecotone.pulse.distributed_bus"
+                }
+            },
+            {
+                "id": "gateway:App\\Issuance\\TicketIssuanceProcess::issue",
+                "kind": "gateway",
+                "label": "TicketIssuanceProcess::issue",
+                "attributes": {
+                    "interface": "App\\Issuance\\TicketIssuanceProcess",
+                    "method": "issue",
+                    "requestChannel": "ticket.issuance"
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\Catalogue::concerts",
+                "kind": "queryHandler",
+                "label": "Catalogue::concerts",
+                "attributes": {
+                    "class": "App\\Catalogue\\Catalogue",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "concerts",
+                    "owner": null,
+                    "routingKeys": [
+                        "concerts.list"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\Catalogue::venues",
+                "kind": "queryHandler",
+                "label": "Catalogue::venues",
+                "attributes": {
+                    "class": "App\\Catalogue\\Catalogue",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "venues",
+                    "owner": null,
+                    "routingKeys": [
+                        "venues.list"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\Concert::cancel",
+                "kind": "commandHandler",
+                "label": "Concert::cancel",
+                "attributes": {
+                    "class": "App\\Catalogue\\Concert",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "cancel",
+                    "owner": "aggregate:App\\Catalogue\\Concert",
+                    "routingKeys": [
+                        "App\\Catalogue\\CancelConcert"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\Concert::changeTierPrice",
+                "kind": "commandHandler",
+                "label": "Concert::changeTierPrice",
+                "attributes": {
+                    "class": "App\\Catalogue\\Concert",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "changeTierPrice",
+                    "owner": "aggregate:App\\Catalogue\\Concert",
+                    "routingKeys": [
+                        "App\\Catalogue\\ChangeTierPrice"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\Concert::detail",
+                "kind": "queryHandler",
+                "label": "Concert::detail",
+                "attributes": {
+                    "class": "App\\Catalogue\\Concert",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "detail",
+                    "owner": "aggregate:App\\Catalogue\\Concert",
+                    "routingKeys": [
+                        "concert.detail"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\Concert::markSoldOut",
+                "kind": "commandHandler",
+                "label": "Concert::markSoldOut",
+                "attributes": {
+                    "class": "App\\Catalogue\\Concert",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "markSoldOut",
+                    "owner": "aggregate:App\\Catalogue\\Concert",
+                    "routingKeys": [
+                        "App\\Catalogue\\MarkConcertSoldOut"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\Concert::openSales",
+                "kind": "commandHandler",
+                "label": "Concert::openSales",
+                "attributes": {
+                    "class": "App\\Catalogue\\Concert",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "openSales",
+                    "owner": "aggregate:App\\Catalogue\\Concert",
+                    "routingKeys": [
+                        "App\\Catalogue\\OpenSales"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\Concert::schedule",
+                "kind": "commandHandler",
+                "label": "Concert::schedule",
+                "attributes": {
+                    "class": "App\\Catalogue\\Concert",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "schedule",
+                    "owner": "aggregate:App\\Catalogue\\Concert",
+                    "routingKeys": [
+                        "App\\Catalogue\\ScheduleConcert"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\ConcertAnnouncements::concertCancelled",
+                "kind": "eventHandler",
+                "label": "ConcertAnnouncements::concertCancelled",
+                "attributes": {
+                    "class": "App\\Catalogue\\ConcertAnnouncements",
+                    "distributed": false,
+                    "endpointId": "announce_concert_cancelled",
+                    "method": "concertCancelled",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Catalogue\\ConcertCancelled"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\ConcertAnnouncements::concertScheduled",
+                "kind": "eventHandler",
+                "label": "ConcertAnnouncements::concertScheduled",
+                "attributes": {
+                    "class": "App\\Catalogue\\ConcertAnnouncements",
+                    "distributed": false,
+                    "endpointId": "announce_concert_scheduled",
+                    "method": "concertScheduled",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Catalogue\\ConcertScheduled"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\ConcertAnnouncements::concertSoldOut",
+                "kind": "eventHandler",
+                "label": "ConcertAnnouncements::concertSoldOut",
+                "attributes": {
+                    "class": "App\\Catalogue\\ConcertAnnouncements",
+                    "distributed": false,
+                    "endpointId": "announce_concert_sold_out",
+                    "method": "concertSoldOut",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Catalogue\\ConcertSoldOut"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\ConcertAnnouncements::holdExpired",
+                "kind": "eventHandler",
+                "label": "ConcertAnnouncements::holdExpired",
+                "attributes": {
+                    "class": "App\\Catalogue\\ConcertAnnouncements",
+                    "distributed": false,
+                    "endpointId": "announce_hold_expired",
+                    "method": "holdExpired",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Sales\\HoldExpired"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\ConcertAnnouncements::pricesChanged",
+                "kind": "eventHandler",
+                "label": "ConcertAnnouncements::pricesChanged",
+                "attributes": {
+                    "class": "App\\Catalogue\\ConcertAnnouncements",
+                    "distributed": false,
+                    "endpointId": "announce_prices_changed",
+                    "method": "pricesChanged",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Catalogue\\TierPriceChanged"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\ConcertAnnouncements::salesOpened",
+                "kind": "eventHandler",
+                "label": "ConcertAnnouncements::salesOpened",
+                "attributes": {
+                    "class": "App\\Catalogue\\ConcertAnnouncements",
+                    "distributed": false,
+                    "endpointId": "announce_sales_opened",
+                    "method": "salesOpened",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Catalogue\\SalesOpened"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Catalogue\\Venue::create",
+                "kind": "commandHandler",
+                "label": "Venue::create",
+                "attributes": {
+                    "class": "App\\Catalogue\\Venue",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "create",
+                    "owner": "aggregate:App\\Catalogue\\Venue",
+                    "routingKeys": [
+                        "App\\Catalogue\\CreateVenue"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Issuance\\IssuedTicketRegistry::detail",
+                "kind": "queryHandler",
+                "label": "IssuedTicketRegistry::detail",
+                "attributes": {
+                    "class": "App\\Issuance\\IssuedTicketRegistry",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "detail",
+                    "owner": null,
+                    "routingKeys": [
+                        "ticket.detail"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Issuance\\IssuedTicketRegistry::ofOrder",
+                "kind": "queryHandler",
+                "label": "IssuedTicketRegistry::ofOrder",
+                "attributes": {
+                    "class": "App\\Issuance\\IssuedTicketRegistry",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "ofOrder",
+                    "owner": null,
+                    "routingKeys": [
+                        "tickets.of_order"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Issuance\\TicketIssuance::allocateNumbers",
+                "kind": "internalHandler",
+                "label": "TicketIssuance::allocateNumbers",
+                "attributes": {
+                    "class": "App\\Issuance\\TicketIssuance",
+                    "endpointId": null,
+                    "inputChannel": "ticket.allocate_numbers",
+                    "method": "allocateNumbers",
+                    "owner": null
+                }
+            },
+            {
+                "id": "handler:App\\Issuance\\TicketIssuance::announceIssuedTickets",
+                "kind": "internalHandler",
+                "label": "TicketIssuance::announceIssuedTickets",
+                "attributes": {
+                    "class": "App\\Issuance\\TicketIssuance",
+                    "endpointId": "announce_issued_tickets",
+                    "inputChannel": "ticket.announce",
+                    "method": "announceIssuedTickets",
+                    "owner": null
+                }
+            },
+            {
+                "id": "handler:App\\Issuance\\TicketIssuance::grantVipLoungePasses",
+                "kind": "internalHandler",
+                "label": "TicketIssuance::grantVipLoungePasses",
+                "attributes": {
+                    "class": "App\\Issuance\\TicketIssuance",
+                    "endpointId": null,
+                    "inputChannel": "ticket.vip_lounge_pass",
+                    "method": "grantVipLoungePasses",
+                    "owner": null
+                }
+            },
+            {
+                "id": "handler:App\\Issuance\\TicketIssuance::registerEntryCodes",
+                "kind": "internalHandler",
+                "label": "TicketIssuance::registerEntryCodes",
+                "attributes": {
+                    "class": "App\\Issuance\\TicketIssuance",
+                    "endpointId": null,
+                    "inputChannel": "ticket.register_entry_codes",
+                    "method": "registerEntryCodes",
+                    "owner": null
+                }
+            },
+            {
+                "id": "handler:App\\Issuance\\TicketIssuance::renderTickets",
+                "kind": "internalHandler",
+                "label": "TicketIssuance::renderTickets",
+                "attributes": {
+                    "class": "App\\Issuance\\TicketIssuance",
+                    "endpointId": "render_ticket_files",
+                    "inputChannel": "ticket.render",
+                    "method": "renderTickets",
+                    "owner": null
+                }
+            },
+            {
+                "id": "handler:App\\Issuance\\TicketIssuance::slipFor",
+                "kind": "orchestrator",
+                "label": "TicketIssuance::slipFor",
+                "attributes": {
+                    "class": "App\\Issuance\\TicketIssuance",
+                    "endpointId": "ticket_issuance",
+                    "inputChannel": "ticket.issuance",
+                    "method": "slipFor",
+                    "owner": null
+                }
+            },
+            {
+                "id": "handler:App\\Issuance\\TicketIssuanceStart::whenSeatsSoldToOrder",
+                "kind": "eventHandler",
+                "label": "TicketIssuanceStart::whenSeatsSoldToOrder",
+                "attributes": {
+                    "class": "App\\Issuance\\TicketIssuanceStart",
+                    "distributed": false,
+                    "endpointId": "start_ticket_issuance_of_sold_order",
+                    "method": "whenSeatsSoldToOrder",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Sales\\SeatsSoldToOrder"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ping\\PingHandler::ping",
+                "kind": "commandHandler",
+                "label": "PingHandler::ping",
+                "attributes": {
+                    "class": "App\\Ping\\PingHandler",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "ping",
+                    "owner": null,
+                    "routingKeys": [
+                        "demo.ping"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\CancelledConcertHolds::release",
+                "kind": "eventHandler",
+                "label": "CancelledConcertHolds::release",
+                "attributes": {
+                    "class": "App\\Sales\\CancelledConcertHolds",
+                    "distributed": false,
+                    "endpointId": "release_holds_of_cancelled_concert",
+                    "method": "release",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Catalogue\\ConcertCancelled"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\ConcertSalesLedger::sales",
+                "kind": "queryHandler",
+                "label": "ConcertSalesLedger::sales",
+                "attributes": {
+                    "class": "App\\Sales\\ConcertSalesLedger",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "sales",
+                    "owner": "projection:concert_sales_ledger",
+                    "routingKeys": [
+                        "concert.sales"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\ConcertSalesLedger::seatSold",
+                "kind": "eventHandler",
+                "label": "ConcertSalesLedger::seatSold",
+                "attributes": {
+                    "class": "App\\Sales\\ConcertSalesLedger",
+                    "distributed": false,
+                    "endpointId": "concert_sales_ledger.seat_sold",
+                    "method": "seatSold",
+                    "owner": "projection:concert_sales_ledger",
+                    "routingKeys": [
+                        "App\\Sales\\SeatSold"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\ConcertSeatMap::holdExpired",
+                "kind": "eventHandler",
+                "label": "ConcertSeatMap::holdExpired",
+                "attributes": {
+                    "class": "App\\Sales\\ConcertSeatMap",
+                    "distributed": false,
+                    "endpointId": "concert_seat_map.hold_expired",
+                    "method": "holdExpired",
+                    "owner": "projection:concert_seat_map",
+                    "routingKeys": [
+                        "App\\Sales\\HoldExpired"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\ConcertSeatMap::holdReleased",
+                "kind": "eventHandler",
+                "label": "ConcertSeatMap::holdReleased",
+                "attributes": {
+                    "class": "App\\Sales\\ConcertSeatMap",
+                    "distributed": false,
+                    "endpointId": "concert_seat_map.hold_released",
+                    "method": "holdReleased",
+                    "owner": "projection:concert_seat_map",
+                    "routingKeys": [
+                        "App\\Sales\\HoldReleased"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\ConcertSeatMap::seatHeld",
+                "kind": "eventHandler",
+                "label": "ConcertSeatMap::seatHeld",
+                "attributes": {
+                    "class": "App\\Sales\\ConcertSeatMap",
+                    "distributed": false,
+                    "endpointId": "concert_seat_map.seat_held",
+                    "method": "seatHeld",
+                    "owner": "projection:concert_seat_map",
+                    "routingKeys": [
+                        "App\\Sales\\SeatHeld"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\ConcertSeatMap::seatMap",
+                "kind": "queryHandler",
+                "label": "ConcertSeatMap::seatMap",
+                "attributes": {
+                    "class": "App\\Sales\\ConcertSeatMap",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "seatMap",
+                    "owner": "projection:concert_seat_map",
+                    "routingKeys": [
+                        "concert.seat_map"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\ConcertSeatMap::seatSold",
+                "kind": "eventHandler",
+                "label": "ConcertSeatMap::seatSold",
+                "attributes": {
+                    "class": "App\\Sales\\ConcertSeatMap",
+                    "distributed": false,
+                    "endpointId": "concert_seat_map.seat_sold",
+                    "method": "seatSold",
+                    "owner": "projection:concert_seat_map",
+                    "routingKeys": [
+                        "App\\Sales\\SeatSold"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\HoldExpiry::whenDue",
+                "kind": "eventHandler",
+                "label": "HoldExpiry::whenDue",
+                "attributes": {
+                    "class": "App\\Sales\\HoldExpiry",
+                    "distributed": false,
+                    "endpointId": "expire_hold_when_due",
+                    "method": "whenDue",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Sales\\SeatHeld"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatSales::confirm",
+                "kind": "commandHandler",
+                "label": "SeatSales::confirm",
+                "attributes": {
+                    "class": "App\\Sales\\SeatSales",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "confirm",
+                    "owner": null,
+                    "returnsEvents": true,
+                    "routingKeys": [
+                        "App\\Sales\\ConfirmSeats"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatSales::confirmSeedOrder",
+                "kind": "commandHandler",
+                "label": "SeatSales::confirmSeedOrder",
+                "attributes": {
+                    "class": "App\\Sales\\SeatSales",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "confirmSeedOrder",
+                    "owner": null,
+                    "returnsEvents": true,
+                    "routingKeys": [
+                        "App\\Sales\\ConfirmSeedOrder"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatSales::expire",
+                "kind": "commandHandler",
+                "label": "SeatSales::expire",
+                "attributes": {
+                    "class": "App\\Sales\\SeatSales",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "expire",
+                    "owner": null,
+                    "returnsEvents": true,
+                    "routingKeys": [
+                        "App\\Sales\\ExpireHold"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatSales::hold",
+                "kind": "commandHandler",
+                "label": "SeatSales::hold",
+                "attributes": {
+                    "class": "App\\Sales\\SeatSales",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "hold",
+                    "owner": null,
+                    "returnsEvents": true,
+                    "routingKeys": [
+                        "App\\Sales\\HoldSeat"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatSales::holdOf",
+                "kind": "queryHandler",
+                "label": "SeatSales::holdOf",
+                "attributes": {
+                    "class": "App\\Sales\\SeatSales",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "holdOf",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Sales\\FindSeatHold"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatSales::ownerOf",
+                "kind": "queryHandler",
+                "label": "SeatSales::ownerOf",
+                "attributes": {
+                    "class": "App\\Sales\\SeatSales",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "ownerOf",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Sales\\FindSeatOwner"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatSales::release",
+                "kind": "commandHandler",
+                "label": "SeatSales::release",
+                "attributes": {
+                    "class": "App\\Sales\\SeatSales",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "release",
+                    "owner": null,
+                    "returnsEvents": true,
+                    "routingKeys": [
+                        "App\\Sales\\ReleaseSeat"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatSalesOverDistributedBus::confirm",
+                "kind": "commandHandler",
+                "label": "SeatSalesOverDistributedBus::confirm",
+                "attributes": {
+                    "class": "App\\Sales\\SeatSalesOverDistributedBus",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "confirm",
+                    "owner": null,
+                    "routingKeys": [
+                        "tickets.confirm"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatSalesOverDistributedBus::hold",
+                "kind": "commandHandler",
+                "label": "SeatSalesOverDistributedBus::hold",
+                "attributes": {
+                    "class": "App\\Sales\\SeatSalesOverDistributedBus",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "hold",
+                    "owner": null,
+                    "routingKeys": [
+                        "tickets.hold"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatSalesOverDistributedBus::release",
+                "kind": "commandHandler",
+                "label": "SeatSalesOverDistributedBus::release",
+                "attributes": {
+                    "class": "App\\Sales\\SeatSalesOverDistributedBus",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "release",
+                    "owner": null,
+                    "routingKeys": [
+                        "tickets.release"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatStateAnnouncements::holdExpired",
+                "kind": "eventHandler",
+                "label": "SeatStateAnnouncements::holdExpired",
+                "attributes": {
+                    "class": "App\\Sales\\SeatStateAnnouncements",
+                    "distributed": false,
+                    "endpointId": "announce_seat_released_on_expiry",
+                    "method": "holdExpired",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Sales\\HoldExpired"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatStateAnnouncements::holdReleased",
+                "kind": "eventHandler",
+                "label": "SeatStateAnnouncements::holdReleased",
+                "attributes": {
+                    "class": "App\\Sales\\SeatStateAnnouncements",
+                    "distributed": false,
+                    "endpointId": "announce_seat_released",
+                    "method": "holdReleased",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Sales\\HoldReleased"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatStateAnnouncements::seatHeld",
+                "kind": "eventHandler",
+                "label": "SeatStateAnnouncements::seatHeld",
+                "attributes": {
+                    "class": "App\\Sales\\SeatStateAnnouncements",
+                    "distributed": false,
+                    "endpointId": "announce_seat_held",
+                    "method": "seatHeld",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Sales\\SeatHeld"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Sales\\SeatStateAnnouncements::seatSold",
+                "kind": "eventHandler",
+                "label": "SeatStateAnnouncements::seatSold",
+                "attributes": {
+                    "class": "App\\Sales\\SeatStateAnnouncements",
+                    "distributed": false,
+                    "endpointId": "announce_seat_sold",
+                    "method": "seatSold",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Sales\\SeatSold"
+                    ]
+                }
+            },
+            {
+                "id": "message:App\\Catalogue\\CancelConcert",
+                "kind": "command",
+                "label": "CancelConcert",
+                "attributes": {
+                    "class": "App\\Catalogue\\CancelConcert",
+                    "handled": true,
+                    "routingKey": "App\\Catalogue\\CancelConcert"
+                }
+            },
+            {
+                "id": "message:App\\Catalogue\\ChangeTierPrice",
+                "kind": "command",
+                "label": "ChangeTierPrice",
+                "attributes": {
+                    "class": "App\\Catalogue\\ChangeTierPrice",
+                    "handled": true,
+                    "routingKey": "App\\Catalogue\\ChangeTierPrice"
+                }
+            },
+            {
+                "id": "message:App\\Catalogue\\ConcertCancelled",
+                "kind": "event",
+                "label": "ConcertCancelled",
+                "attributes": {
+                    "class": "App\\Catalogue\\ConcertCancelled",
+                    "handled": true,
+                    "routingKey": "App\\Catalogue\\ConcertCancelled"
+                }
+            },
+            {
+                "id": "message:App\\Catalogue\\ConcertScheduled",
+                "kind": "event",
+                "label": "ConcertScheduled",
+                "attributes": {
+                    "class": "App\\Catalogue\\ConcertScheduled",
+                    "handled": true,
+                    "routingKey": "App\\Catalogue\\ConcertScheduled"
+                }
+            },
+            {
+                "id": "message:App\\Catalogue\\ConcertSoldOut",
+                "kind": "event",
+                "label": "ConcertSoldOut",
+                "attributes": {
+                    "class": "App\\Catalogue\\ConcertSoldOut",
+                    "handled": true,
+                    "routingKey": "App\\Catalogue\\ConcertSoldOut"
+                }
+            },
+            {
+                "id": "message:App\\Catalogue\\CreateVenue",
+                "kind": "command",
+                "label": "CreateVenue",
+                "attributes": {
+                    "class": "App\\Catalogue\\CreateVenue",
+                    "handled": true,
+                    "routingKey": "App\\Catalogue\\CreateVenue"
+                }
+            },
+            {
+                "id": "message:App\\Catalogue\\MarkConcertSoldOut",
+                "kind": "command",
+                "label": "MarkConcertSoldOut",
+                "attributes": {
+                    "class": "App\\Catalogue\\MarkConcertSoldOut",
+                    "handled": true,
+                    "routingKey": "App\\Catalogue\\MarkConcertSoldOut"
+                }
+            },
+            {
+                "id": "message:App\\Catalogue\\OpenSales",
+                "kind": "command",
+                "label": "OpenSales",
+                "attributes": {
+                    "class": "App\\Catalogue\\OpenSales",
+                    "handled": true,
+                    "routingKey": "App\\Catalogue\\OpenSales"
+                }
+            },
+            {
+                "id": "message:App\\Catalogue\\SalesOpened",
+                "kind": "event",
+                "label": "SalesOpened",
+                "attributes": {
+                    "class": "App\\Catalogue\\SalesOpened",
+                    "handled": true,
+                    "routingKey": "App\\Catalogue\\SalesOpened"
+                }
+            },
+            {
+                "id": "message:App\\Catalogue\\ScheduleConcert",
+                "kind": "command",
+                "label": "ScheduleConcert",
+                "attributes": {
+                    "class": "App\\Catalogue\\ScheduleConcert",
+                    "handled": true,
+                    "routingKey": "App\\Catalogue\\ScheduleConcert"
+                }
+            },
+            {
+                "id": "message:App\\Catalogue\\TierPriceChanged",
+                "kind": "event",
+                "label": "TierPriceChanged",
+                "attributes": {
+                    "class": "App\\Catalogue\\TierPriceChanged",
+                    "handled": true,
+                    "routingKey": "App\\Catalogue\\TierPriceChanged"
+                }
+            },
+            {
+                "id": "message:App\\Catalogue\\VenueCreated",
+                "kind": "event",
+                "label": "VenueCreated",
+                "attributes": {
+                    "class": "App\\Catalogue\\VenueCreated",
+                    "handled": false,
+                    "routingKey": "App\\Catalogue\\VenueCreated"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\ConfirmSeats",
+                "kind": "command",
+                "label": "ConfirmSeats",
+                "attributes": {
+                    "class": "App\\Sales\\ConfirmSeats",
+                    "handled": true,
+                    "routingKey": "App\\Sales\\ConfirmSeats"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\ConfirmSeedOrder",
+                "kind": "command",
+                "label": "ConfirmSeedOrder",
+                "attributes": {
+                    "class": "App\\Sales\\ConfirmSeedOrder",
+                    "handled": true,
+                    "routingKey": "App\\Sales\\ConfirmSeedOrder"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\CustomerConcertSeats",
+                "kind": "event",
+                "label": "CustomerConcertSeats",
+                "attributes": {
+                    "class": "App\\Sales\\CustomerConcertSeats",
+                    "handled": false,
+                    "routingKey": "App\\Sales\\CustomerConcertSeats"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\ExpireHold",
+                "kind": "command",
+                "label": "ExpireHold",
+                "attributes": {
+                    "class": "App\\Sales\\ExpireHold",
+                    "handled": true,
+                    "routingKey": "App\\Sales\\ExpireHold"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\FindSeatHold",
+                "kind": "query",
+                "label": "FindSeatHold",
+                "attributes": {
+                    "class": "App\\Sales\\FindSeatHold",
+                    "handled": true,
+                    "routingKey": "App\\Sales\\FindSeatHold"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\FindSeatOwner",
+                "kind": "query",
+                "label": "FindSeatOwner",
+                "attributes": {
+                    "class": "App\\Sales\\FindSeatOwner",
+                    "handled": true,
+                    "routingKey": "App\\Sales\\FindSeatOwner"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\HoldExpired",
+                "kind": "event",
+                "label": "HoldExpired",
+                "attributes": {
+                    "class": "App\\Sales\\HoldExpired",
+                    "handled": true,
+                    "namedAs": "ticketing.hold_expired",
+                    "routingKey": "App\\Sales\\HoldExpired"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\HoldReleased",
+                "kind": "event",
+                "label": "HoldReleased",
+                "attributes": {
+                    "class": "App\\Sales\\HoldReleased",
+                    "handled": true,
+                    "namedAs": "ticketing.hold_released",
+                    "routingKey": "App\\Sales\\HoldReleased"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\HoldSeat",
+                "kind": "command",
+                "label": "HoldSeat",
+                "attributes": {
+                    "class": "App\\Sales\\HoldSeat",
+                    "handled": true,
+                    "routingKey": "App\\Sales\\HoldSeat"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\ReleaseSeat",
+                "kind": "command",
+                "label": "ReleaseSeat",
+                "attributes": {
+                    "class": "App\\Sales\\ReleaseSeat",
+                    "handled": true,
+                    "routingKey": "App\\Sales\\ReleaseSeat"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\SeatHeld",
+                "kind": "event",
+                "label": "SeatHeld",
+                "attributes": {
+                    "class": "App\\Sales\\SeatHeld",
+                    "handled": true,
+                    "namedAs": "ticketing.seat_held",
+                    "routingKey": "App\\Sales\\SeatHeld"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\SeatRefusal",
+                "kind": "event",
+                "label": "SeatRefusal",
+                "attributes": {
+                    "class": "App\\Sales\\SeatRefusal",
+                    "handled": false,
+                    "routingKey": "App\\Sales\\SeatRefusal"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\SeatSold",
+                "kind": "event",
+                "label": "SeatSold",
+                "attributes": {
+                    "class": "App\\Sales\\SeatSold",
+                    "handled": true,
+                    "namedAs": "ticketing.seat_sold",
+                    "routingKey": "App\\Sales\\SeatSold"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\SeatsSoldToOrder",
+                "kind": "event",
+                "label": "SeatsSoldToOrder",
+                "attributes": {
+                    "class": "App\\Sales\\SeatsSoldToOrder",
+                    "handled": true,
+                    "namedAs": "ticketing.seats_sold_to_order",
+                    "routingKey": "App\\Sales\\SeatsSoldToOrder"
+                }
+            },
+            {
+                "id": "message:App\\Sales\\SoldSeat",
+                "kind": "event",
+                "label": "SoldSeat",
+                "attributes": {
+                    "class": "App\\Sales\\SoldSeat",
+                    "handled": false,
+                    "routingKey": "App\\Sales\\SoldSeat"
+                }
+            },
+            {
+                "id": "message:concert.cancelled",
+                "kind": "event",
+                "label": "concert.cancelled",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": false,
+                    "routingKey": "concert.cancelled"
+                }
+            },
+            {
+                "id": "message:concert.detail",
+                "kind": "query",
+                "label": "concert.detail",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "concert.detail"
+                }
+            },
+            {
+                "id": "message:concert.prices_changed",
+                "kind": "event",
+                "label": "concert.prices_changed",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": false,
+                    "routingKey": "concert.prices_changed"
+                }
+            },
+            {
+                "id": "message:concert.sales",
+                "kind": "query",
+                "label": "concert.sales",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "concert.sales"
+                }
+            },
+            {
+                "id": "message:concert.sales_opened",
+                "kind": "event",
+                "label": "concert.sales_opened",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": false,
+                    "routingKey": "concert.sales_opened"
+                }
+            },
+            {
+                "id": "message:concert.scheduled",
+                "kind": "event",
+                "label": "concert.scheduled",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": false,
+                    "routingKey": "concert.scheduled"
+                }
+            },
+            {
+                "id": "message:concert.seat_map",
+                "kind": "query",
+                "label": "concert.seat_map",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "concert.seat_map"
+                }
+            },
+            {
+                "id": "message:concert.sold_out",
+                "kind": "event",
+                "label": "concert.sold_out",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": false,
+                    "routingKey": "concert.sold_out"
+                }
+            },
+            {
+                "id": "message:concerts.list",
+                "kind": "query",
+                "label": "concerts.list",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "concerts.list"
+                }
+            },
+            {
+                "id": "message:demo.ping",
+                "kind": "command",
+                "label": "demo.ping",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "demo.ping"
+                }
+            },
+            {
+                "id": "message:ticket.detail",
+                "kind": "query",
+                "label": "ticket.detail",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "ticket.detail"
+                }
+            },
+            {
+                "id": "message:tickets.confirm",
+                "kind": "command",
+                "label": "tickets.confirm",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "tickets.confirm"
+                }
+            },
+            {
+                "id": "message:tickets.hold",
+                "kind": "command",
+                "label": "tickets.hold",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "tickets.hold"
+                }
+            },
+            {
+                "id": "message:tickets.hold_expired",
+                "kind": "event",
+                "label": "tickets.hold_expired",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": false,
+                    "routingKey": "tickets.hold_expired"
+                }
+            },
+            {
+                "id": "message:tickets.issued",
+                "kind": "event",
+                "label": "tickets.issued",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": false,
+                    "routingKey": "tickets.issued"
+                }
+            },
+            {
+                "id": "message:tickets.of_order",
+                "kind": "query",
+                "label": "tickets.of_order",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "tickets.of_order"
+                }
+            },
+            {
+                "id": "message:tickets.release",
+                "kind": "command",
+                "label": "tickets.release",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "tickets.release"
+                }
+            },
+            {
+                "id": "message:tickets.seat_held",
+                "kind": "event",
+                "label": "tickets.seat_held",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": false,
+                    "routingKey": "tickets.seat_held"
+                }
+            },
+            {
+                "id": "message:tickets.seat_released",
+                "kind": "event",
+                "label": "tickets.seat_released",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": false,
+                    "routingKey": "tickets.seat_released"
+                }
+            },
+            {
+                "id": "message:tickets.seat_sold",
+                "kind": "event",
+                "label": "tickets.seat_sold",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": false,
+                    "routingKey": "tickets.seat_sold"
+                }
+            },
+            {
+                "id": "message:venues.list",
+                "kind": "query",
+                "label": "venues.list",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "venues.list"
+                }
+            },
+            {
+                "id": "projection:concert_sales_ledger",
+                "kind": "projection",
+                "label": "concert_sales_ledger",
+                "attributes": {
+                    "class": "App\\Sales\\ConcertSalesLedger",
+                    "fromTags": [
+                        "concert"
+                    ]
+                }
+            },
+            {
+                "id": "projection:concert_seat_map",
+                "kind": "projection",
+                "label": "concert_seat_map",
+                "attributes": {
+                    "class": "App\\Sales\\ConcertSeatMap",
+                    "fromTags": [
+                        "concert"
+                    ]
+                }
+            }
+        ],
+        "edges": [
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Catalogue\\ConcertAnnouncements::concertCancelled",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Catalogue\\ConcertAnnouncements::concertScheduled",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Catalogue\\ConcertAnnouncements::concertSoldOut",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Catalogue\\ConcertAnnouncements::holdExpired",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Catalogue\\ConcertAnnouncements::pricesChanged",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Catalogue\\ConcertAnnouncements::salesOpened",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Issuance\\TicketIssuance::announceIssuedTickets",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Issuance\\TicketIssuance::renderTickets",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Issuance\\TicketIssuanceStart::whenSeatsSoldToOrder",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Sales\\CancelledConcertHolds::release",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Sales\\ConcertSalesLedger::seatSold",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Sales\\ConcertSeatMap::holdExpired",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Sales\\ConcertSeatMap::holdReleased",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Sales\\ConcertSeatMap::seatHeld",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Sales\\ConcertSeatMap::seatSold",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Sales\\HoldExpiry::whenDue",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Sales\\SeatStateAnnouncements::holdExpired",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Sales\\SeatStateAnnouncements::holdReleased",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Sales\\SeatStateAnnouncements::seatHeld",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticketing_async",
+                "to": "handler:App\\Sales\\SeatStateAnnouncements::seatSold",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "handler:App\\Issuance\\TicketIssuanceStart::whenSeatsSoldToOrder",
+                "to": "gateway:App\\Issuance\\TicketIssuanceProcess::issue",
+                "kind": "calls",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:demo.ping",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:tickets.confirm",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:tickets.hold",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:tickets.release",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::hold",
+                "to": "message:App\\Sales\\CustomerConcertSeats",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "return"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::hold",
+                "to": "message:App\\Sales\\SeatHeld",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "return"
+                }
+            },
+            {
+                "from": "handler:App\\Catalogue\\Venue::create",
+                "to": "message:App\\Catalogue\\VenueCreated",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::expire",
+                "to": "message:App\\Sales\\HoldExpired",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "return"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::confirm",
+                "to": "message:App\\Sales\\CustomerConcertSeats",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "return"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::confirm",
+                "to": "message:App\\Sales\\FindSeatOwner",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::confirm",
+                "to": "message:App\\Sales\\SeatRefusal",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "return"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::confirm",
+                "to": "message:App\\Sales\\SeatSold",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "return"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::confirm",
+                "to": "message:App\\Sales\\SeatsSoldToOrder",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "return"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::confirm",
+                "to": "message:App\\Sales\\SoldSeat",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "return"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::release",
+                "to": "message:App\\Sales\\HoldReleased",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "return"
+                }
+            },
+            {
+                "from": "handler:App\\Catalogue\\Concert::cancel",
+                "to": "message:App\\Catalogue\\ConcertCancelled",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\HoldExpiry::whenDue",
+                "to": "message:App\\Sales\\ExpireHold",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Catalogue\\Concert::schedule",
+                "to": "message:App\\Catalogue\\ConcertScheduled",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Catalogue\\Concert::openSales",
+                "to": "message:App\\Catalogue\\SalesOpened",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\ConcertSeatMap::seatMap",
+                "to": "message:concert.detail",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "sendWithRouting"
+                }
+            },
+            {
+                "from": "handler:App\\Catalogue\\Concert::markSoldOut",
+                "to": "message:App\\Catalogue\\ConcertSoldOut",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\ConcertSalesLedger::sales",
+                "to": "message:concert.detail",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "sendWithRouting"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::confirmSeedOrder",
+                "to": "message:App\\Sales\\CustomerConcertSeats",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "return"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::confirmSeedOrder",
+                "to": "message:App\\Sales\\FindSeatOwner",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::confirmSeedOrder",
+                "to": "message:App\\Sales\\SeatRefusal",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "return"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSales::confirmSeedOrder",
+                "to": "message:App\\Sales\\SeatSold",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "return"
+                }
+            },
+            {
+                "from": "handler:App\\Catalogue\\Concert::changeTierPrice",
+                "to": "message:App\\Catalogue\\TierPriceChanged",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\CancelledConcertHolds::release",
+                "to": "message:App\\Sales\\ReleaseSeat",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Issuance\\TicketIssuance::renderTickets",
+                "to": "message:concert.detail",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "sendWithRouting"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatStateAnnouncements::seatHeld",
+                "to": "message:tickets.seat_held",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "convertAndPublishEvent"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatStateAnnouncements::seatSold",
+                "to": "message:tickets.seat_sold",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "convertAndPublishEvent"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSalesOverDistributedBus::hold",
+                "to": "message:App\\Sales\\FindSeatHold",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSalesOverDistributedBus::hold",
+                "to": "message:App\\Sales\\HoldSeat",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatStateAnnouncements::holdExpired",
+                "to": "message:tickets.seat_released",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "convertAndPublishEvent"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSalesOverDistributedBus::confirm",
+                "to": "message:App\\Sales\\ConfirmSeats",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSalesOverDistributedBus::release",
+                "to": "message:App\\Sales\\ReleaseSeat",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatStateAnnouncements::holdReleased",
+                "to": "message:tickets.seat_released",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "convertAndPublishEvent"
+                }
+            },
+            {
+                "from": "handler:App\\Catalogue\\ConcertAnnouncements::holdExpired",
+                "to": "message:tickets.hold_expired",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "convertAndPublishEvent"
+                }
+            },
+            {
+                "from": "handler:App\\Catalogue\\ConcertAnnouncements::salesOpened",
+                "to": "message:concert.sales_opened",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "convertAndPublishEvent"
+                }
+            },
+            {
+                "from": "handler:App\\Catalogue\\ConcertAnnouncements::pricesChanged",
+                "to": "message:concert.prices_changed",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "convertAndPublishEvent"
+                }
+            },
+            {
+                "from": "handler:App\\Catalogue\\ConcertAnnouncements::concertSoldOut",
+                "to": "message:concert.sold_out",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "convertAndPublishEvent"
+                }
+            },
+            {
+                "from": "handler:App\\Issuance\\TicketIssuance::announceIssuedTickets",
+                "to": "message:tickets.issued",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "convertAndPublishEvent"
+                }
+            },
+            {
+                "from": "handler:App\\Catalogue\\ConcertAnnouncements::concertCancelled",
+                "to": "message:concert.cancelled",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "convertAndPublishEvent"
+                }
+            },
+            {
+                "from": "handler:App\\Catalogue\\ConcertAnnouncements::concertScheduled",
+                "to": "message:concert.scheduled",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "convertAndPublishEvent"
+                }
+            },
+            {
+                "from": "channel:ticket.render",
+                "to": "handler:App\\Issuance\\TicketIssuance::renderTickets",
+                "kind": "input",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticket.announce",
+                "to": "handler:App\\Issuance\\TicketIssuance::announceIssuedTickets",
+                "kind": "input",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticket.issuance",
+                "to": "handler:App\\Issuance\\TicketIssuance::slipFor",
+                "kind": "input",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticket.vip_lounge_pass",
+                "to": "handler:App\\Issuance\\TicketIssuance::grantVipLoungePasses",
+                "kind": "input",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticket.allocate_numbers",
+                "to": "handler:App\\Issuance\\TicketIssuance::allocateNumbers",
+                "kind": "input",
+                "attributes": []
+            },
+            {
+                "from": "channel:ticket.register_entry_codes",
+                "to": "handler:App\\Issuance\\TicketIssuance::registerEntryCodes",
+                "kind": "input",
+                "attributes": []
+            },
+            {
+                "from": "handler:App\\Sales\\ConcertSeatMap::seatHeld",
+                "to": "projection:concert_seat_map",
+                "kind": "projectsInto",
+                "attributes": []
+            },
+            {
+                "from": "handler:App\\Sales\\ConcertSeatMap::seatSold",
+                "to": "projection:concert_seat_map",
+                "kind": "projectsInto",
+                "attributes": []
+            },
+            {
+                "from": "handler:App\\Sales\\ConcertSeatMap::holdExpired",
+                "to": "projection:concert_seat_map",
+                "kind": "projectsInto",
+                "attributes": []
+            },
+            {
+                "from": "handler:App\\Sales\\ConcertSalesLedger::seatSold",
+                "to": "projection:concert_sales_ledger",
+                "kind": "projectsInto",
+                "attributes": []
+            },
+            {
+                "from": "handler:App\\Sales\\ConcertSeatMap::holdReleased",
+                "to": "projection:concert_seat_map",
+                "kind": "projectsInto",
+                "attributes": []
+            },
+            {
+                "from": "message:demo.ping",
+                "to": "handler:App\\Ping\\PingHandler::ping",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:venues.list",
+                "to": "handler:App\\Catalogue\\Catalogue::venues",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:tickets.hold",
+                "to": "handler:App\\Sales\\SeatSalesOverDistributedBus::hold",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concert.sales",
+                "to": "handler:App\\Sales\\ConcertSalesLedger::sales",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concerts.list",
+                "to": "handler:App\\Catalogue\\Catalogue::concerts",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:ticket.detail",
+                "to": "handler:App\\Issuance\\IssuedTicketRegistry::detail",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concert.detail",
+                "to": "handler:App\\Catalogue\\Concert::detail",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:tickets.confirm",
+                "to": "handler:App\\Sales\\SeatSalesOverDistributedBus::confirm",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:tickets.release",
+                "to": "handler:App\\Sales\\SeatSalesOverDistributedBus::release",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concert.seat_map",
+                "to": "handler:App\\Sales\\ConcertSeatMap::seatMap",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:tickets.of_order",
+                "to": "handler:App\\Issuance\\IssuedTicketRegistry::ofOrder",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\HoldSeat",
+                "to": "handler:App\\Sales\\SeatSales::hold",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\SeatHeld",
+                "to": "handler:App\\Sales\\ConcertSeatMap::seatHeld",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\SeatHeld",
+                "to": "handler:App\\Sales\\HoldExpiry::whenDue",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\SeatHeld",
+                "to": "handler:App\\Sales\\SeatStateAnnouncements::seatHeld",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\SeatSold",
+                "to": "handler:App\\Sales\\ConcertSalesLedger::seatSold",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\SeatSold",
+                "to": "handler:App\\Sales\\ConcertSeatMap::seatSold",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\SeatSold",
+                "to": "handler:App\\Sales\\SeatStateAnnouncements::seatSold",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\ExpireHold",
+                "to": "handler:App\\Sales\\SeatSales::expire",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\HoldExpired",
+                "to": "handler:App\\Catalogue\\ConcertAnnouncements::holdExpired",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\HoldExpired",
+                "to": "handler:App\\Sales\\ConcertSeatMap::holdExpired",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\HoldExpired",
+                "to": "handler:App\\Sales\\SeatStateAnnouncements::holdExpired",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\ReleaseSeat",
+                "to": "handler:App\\Sales\\SeatSales::release",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\ConfirmSeats",
+                "to": "handler:App\\Sales\\SeatSales::confirm",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\FindSeatHold",
+                "to": "handler:App\\Sales\\SeatSales::holdOf",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\HoldReleased",
+                "to": "handler:App\\Sales\\ConcertSeatMap::holdReleased",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\HoldReleased",
+                "to": "handler:App\\Sales\\SeatStateAnnouncements::holdReleased",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Catalogue\\OpenSales",
+                "to": "handler:App\\Catalogue\\Concert::openSales",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\FindSeatOwner",
+                "to": "handler:App\\Sales\\SeatSales::ownerOf",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Catalogue\\CreateVenue",
+                "to": "handler:App\\Catalogue\\Venue::create",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Catalogue\\SalesOpened",
+                "to": "handler:App\\Catalogue\\ConcertAnnouncements::salesOpened",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\ConfirmSeedOrder",
+                "to": "handler:App\\Sales\\SeatSales::confirmSeedOrder",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Sales\\SeatsSoldToOrder",
+                "to": "handler:App\\Issuance\\TicketIssuanceStart::whenSeatsSoldToOrder",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Catalogue\\CancelConcert",
+                "to": "handler:App\\Catalogue\\Concert::cancel",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Catalogue\\ConcertSoldOut",
+                "to": "handler:App\\Catalogue\\ConcertAnnouncements::concertSoldOut",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Catalogue\\ChangeTierPrice",
+                "to": "handler:App\\Catalogue\\Concert::changeTierPrice",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Catalogue\\ScheduleConcert",
+                "to": "handler:App\\Catalogue\\Concert::schedule",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Catalogue\\ConcertCancelled",
+                "to": "handler:App\\Catalogue\\ConcertAnnouncements::concertCancelled",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Catalogue\\ConcertCancelled",
+                "to": "handler:App\\Sales\\CancelledConcertHolds::release",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Catalogue\\ConcertScheduled",
+                "to": "handler:App\\Catalogue\\ConcertAnnouncements::concertScheduled",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Catalogue\\TierPriceChanged",
+                "to": "handler:App\\Catalogue\\ConcertAnnouncements::pricesChanged",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Catalogue\\MarkConcertSoldOut",
+                "to": "handler:App\\Catalogue\\Concert::markSoldOut",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "handler:App\\Issuance\\TicketIssuance::slipFor",
+                "to": "channel:ticket.allocate_numbers",
+                "kind": "routesTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "handler:App\\Issuance\\TicketIssuance::slipFor",
+                "to": "channel:ticket.announce",
+                "kind": "routesTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "handler:App\\Issuance\\TicketIssuance::slipFor",
+                "to": "channel:ticket.register_entry_codes",
+                "kind": "routesTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "handler:App\\Issuance\\TicketIssuance::slipFor",
+                "to": "channel:ticket.render",
+                "kind": "routesTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "handler:App\\Issuance\\TicketIssuance::slipFor",
+                "to": "channel:ticket.vip_lounge_pass",
+                "kind": "routesTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "handler:App\\Issuance\\TicketIssuance::renderTickets",
+                "to": "channel:ticket.register_entry_codes",
+                "kind": "routesTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "handler:App\\Issuance\\TicketIssuance::allocateNumbers",
+                "to": "channel:ticket.vip_lounge_pass",
+                "kind": "routesTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "handler:App\\Issuance\\TicketIssuance::registerEntryCodes",
+                "to": "channel:ticket.announce",
+                "kind": "routesTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "handler:App\\Issuance\\TicketIssuance::grantVipLoungePasses",
+                "to": "channel:ticket.render",
+                "kind": "routesTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "message:tickets.issued",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "message:concert.sold_out",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "message:concert.cancelled",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "message:concert.scheduled",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "message:tickets.seat_held",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "message:tickets.seat_sold",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "message:concert.sales_opened",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "message:tickets.hold_expired",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "message:tickets.seat_released",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "message:concert.prices_changed",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true
+                }
+            },
+            {
+                "from": "handler:App\\Ping\\PingHandler::ping",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "via": "replyRoutingKey"
+                }
+            },
+            {
+                "from": "distributed:ecotone.pulse.distributed_bus",
+                "to": "channel:ecotone_pulse",
+                "kind": "sendsTo",
+                "attributes": {
+                    "targetService": "ecotone_pulse"
+                }
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "channel:storefront",
+                "kind": "sendsTo",
+                "attributes": {
+                    "targetService": "storefront"
+                }
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "channel:storefront",
+                "kind": "sendsTo",
+                "attributes": {
+                    "subscriptionKeys": [
+                        "concert.*",
+                        "tickets.*"
+                    ]
+                }
+            },
+            {
+                "from": "gateway:App\\Issuance\\TicketIssuanceProcess::issue",
+                "to": "channel:ticket.issuance",
+                "kind": "sendsTo",
+                "attributes": []
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSalesOverDistributedBus::hold",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "via": "replyRoutingKey"
+                }
+            },
+            {
+                "from": "handler:App\\Sales\\SeatSalesOverDistributedBus::confirm",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "via": "replyRoutingKey"
+                }
+            }
+        ]
+    }
+}

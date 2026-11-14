@@ -29,10 +29,10 @@ final class UngatheredPartitionBatchDispatcher implements PartitionBatchDispatch
     public function send(string $projectionName, array $headers, ?string $asyncChannelName): void
     {
         if ($asyncChannelName !== null) {
-            $this->messagingEntrypoint->sendWithHeaders($projectionName, $headers, $asyncChannelName, PartitionBatchExecutorHandler::PARTITION_BATCH_EXECUTOR_CHANNEL);
+            $this->messagingEntrypoint->sendWithHeaders(payload: $projectionName, headers: $headers, targetChannel: $asyncChannelName, routingSlip: PartitionBatchExecutorHandler::PARTITION_BATCH_EXECUTOR_CHANNEL);
 
             return;
         }
-        $this->messagingEntrypoint->sendWithHeaders($projectionName, $headers, PartitionBatchExecutorHandler::PARTITION_BATCH_EXECUTOR_CHANNEL);
+        $this->messagingEntrypoint->sendWithHeaders(payload: $projectionName, headers: $headers, targetChannel: PartitionBatchExecutorHandler::PARTITION_BATCH_EXECUTOR_CHANNEL);
     }
 }

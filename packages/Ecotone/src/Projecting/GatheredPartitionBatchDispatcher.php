@@ -57,7 +57,7 @@ final class GatheredPartitionBatchDispatcher implements PartitionBatchDispatcher
             deadline: null,
             whenOpened: function () use ($size, $projectionName, $groupId, $gatherChannelName): void {
                 if ($size === 0) {
-                    $this->messagingEntrypoint->sendWithHeaders($projectionName, self::stamp(groupId: $groupId, partNumber: 0, size: 0, gatherChannelName: $gatherChannelName), $gatherChannelName);
+                    $this->messagingEntrypoint->sendWithHeaders(payload: $projectionName, headers: self::stamp(groupId: $groupId, partNumber: 0, size: 0, gatherChannelName: $gatherChannelName), targetChannel: $gatherChannelName);
                 }
             },
             groupKey: $prepare->getHeaders()->containsKey(MessageHeaders::TRACING_ID) ? (string) $prepare->getHeaders()->get(MessageHeaders::TRACING_ID) : null,

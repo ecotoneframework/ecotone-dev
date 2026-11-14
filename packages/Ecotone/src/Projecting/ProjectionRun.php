@@ -27,7 +27,7 @@ final class ProjectionRun
     public function __construct(
         public readonly string $projectionName,
         public readonly string $operation,
-        public readonly string $asynchronousChannelName,
+        public readonly string $asyncChannelName,
         public readonly string $completionChannelName,
     ) {
     }
@@ -40,6 +40,11 @@ final class ProjectionRun
     public static function gatherChannelFor(string $projectionName, string $operation): string
     {
         return 'ecotone.projection.' . $operation . '.completion:' . $projectionName;
+    }
+
+    public function attributeName(): string
+    {
+        return $this->operation === ProjectionOperationEndpoint::REBUILD ? '#[ProjectionRebuild]' : '#[ProjectionBackfill]';
     }
 
     public function endpointId(): string

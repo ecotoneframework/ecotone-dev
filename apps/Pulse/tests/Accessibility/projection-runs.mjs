@@ -25,7 +25,7 @@ const drainAsync = (environment = {}) => consumeAsync(100000, environment);
 const drainRequests = () => docker('exec', '-T', 'ticketing', 'bin/console', 'ecotone:run', 'ticketing', '--handledMessageLimit=100', '--executionTimeLimit=10000', '--finishWhenNoMessages=true');
 const pendingAsync = () => Number(sql("SELECT COUNT(*) FROM messenger_messages WHERE queue_name = 'ticketing_async' AND delivered_at IS NULL AND available_at <= NOW()"));
 
-const browser = await chromium.launch({executablePath: process.env.CHROME_PATH ?? `${process.env.HOME}/.cache/ms-playwright/chromium-1181/chrome-linux/chrome`, args: ['--no-sandbox']});
+const browser = await chromium.launch({executablePath: process.env.CHROME_PATH ?? '/usr/bin/google-chrome', args: ['--no-sandbox']});
 const context = await browser.newContext({viewport: {width: 1440, height: 1000}});
 await context.addInitScript(() => localStorage.setItem('ecotone-pulse.intro-seen-on', `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`));
 const page = await context.newPage();

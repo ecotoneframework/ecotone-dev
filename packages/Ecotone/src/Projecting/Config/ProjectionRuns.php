@@ -50,7 +50,7 @@ final class ProjectionRuns
                 $runs[] = new ProjectionRun(
                     projectionName: $projectionName,
                     operation: $operation,
-                    asynchronousChannelName: $attribute->asyncChannelName,
+                    asyncChannelName: $attribute->asyncChannelName,
                     completionChannelName: $attribute->completionChannelName ?? $attribute->asyncChannelName,
                 );
             }
@@ -79,8 +79,7 @@ final class ProjectionRuns
                 continue;
             }
             $run = $runsByEndpointId[$endpointId];
-            $attribute = $run->operation === ProjectionOperationEndpoint::REBUILD ? '#[ProjectionRebuild]' : '#[ProjectionBackfill]';
-            throw ConfigurationException::create("Projection '{$run->projectionName}' tracks its asynchronous {$run->operation} under endpointId '{$endpointId}', which the handler {$registration->getClassName()}::{$registration->getMethodName()} also uses. Give that handler another endpointId, rename the projection, or remove asyncChannelName from {$attribute}.");
+            throw ConfigurationException::create("Projection '{$run->projectionName}' tracks its asynchronous {$run->operation} under endpointId '{$endpointId}', which the handler {$registration->getClassName()}::{$registration->getMethodName()} also uses. Give that handler another endpointId, rename the projection, or remove asyncChannelName from {$run->attributeName()}.");
         }
     }
 }

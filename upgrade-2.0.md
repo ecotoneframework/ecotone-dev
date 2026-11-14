@@ -4015,7 +4015,11 @@ removed and changed nodes and edges between the version stored most recently (or
 `--from`) and the current code (or the stored version `--to`), as text, `--format=json` or `--format=mermaid` with the
 changes coloured; `--failOnChange` makes it fail when anything differs. `MessageFlowGraph::compareTo()` returns the
 same comparison as a `FlowComparison` in code. A node is matched by its id and an edge by its kind, ends and target, so
-a renamed class or method is one removal and one addition.
+a handler or scheduled method with an explicit `endpointId` keeps its node id (`handler:{endpointId}` or
+`scheduled:{endpointId}`) when its class or method is renamed: the comparison shows one changed node with unchanged
+arrows. Without an explicit endpoint id, a rename remains one removal and one addition. Generated endpoint ids
+keep the class-and-method node id. Several handler attributes with different explicit endpoint ids produce separate
+nodes, even on the same method.
 
 A service that also registers `PulseConfiguration` answers `ecotone.pulse.flow_versions.list` (replying `queryId`,
 `configured` and `versions`, each with `label`, `storedAt`, `nodes` and `edges`) and

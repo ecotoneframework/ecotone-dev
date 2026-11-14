@@ -143,7 +143,7 @@ class ProjectingBenchmark
             [],
             self::$ecotone->getQueryBus()->sendWithRouting('product.getPriceChange', self::$expectedProductIds[0])
         );
-        $projectionManager->prepareBackfill();
+        self::$ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => PriceChangeOverTimeProjectionWithEcotoneProjection::NAME]);
         Assert::assertEquals(
             [
                 new PriceChange(100, 0),

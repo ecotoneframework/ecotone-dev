@@ -13,6 +13,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -225,7 +226,7 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
             {
             }
         };
-        $this->pulseHavingHeardFrom($client, ['ticketing' => $this->distributedService('ticketing', $handlers, DistributedServiceMap::initialize(), [], [$seatMap, $otherMap])]);
+        $this->pulseHavingHeardFrom($client, ['ticketing' => $this->distributedService('ticketing', $handlers, DistributedServiceMap::initialize(), [SimpleMessageChannelBuilder::createQueueChannel('projections')], [$seatMap, $otherMap])]);
 
         foreach (['ticketing:message:seat.held', 'ticketing:projection:concert_seat_map'] as $focus) {
             $labels = $this->labelsByService(Diagram::fromPage($client->request('GET', '/flow?focus=' . urlencode($focus))))['ticketing'];

@@ -25,6 +25,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -135,6 +136,19 @@ final class GatheringPageTest extends ReleasingWebTestCase
         self::assertCount(1, $row->filter('button[data-release-group]'));
         self::assertCount(1, $row->filter('button[data-discard-group]'));
         self::assertSame('page', $crawler->filter('[data-service-tab="gathering"]')->attr('aria-current'));
+    }
+
+    public function test_group_opened_between_two_seconds_shows_the_second_it_opened_in(): void
+    {
+        $client = $this->pulseWithGathering();
+        $this->orders->advanceTimeBy(Duration::milliseconds(752));
+        $this->orders->sendCommandWithRouting('split', [10, 20]);
+        $groupId = $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('dashboard.summary')[0]['groupId'];
+
+        $crawler = $this->observe($client);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('2026-10-20T12:00:00+00:00', $crawler->filter('[data-gathering-group="' . $groupId . '"] [data-group-opened]')->text());
     }
 
     public function test_release_control_requests_release_before_handler_consumption(): void

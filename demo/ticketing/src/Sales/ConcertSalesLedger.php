@@ -14,19 +14,27 @@ use Ecotone\Api\Projecting\FromTaggedStream;
 use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\PartitionTagValue;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionBackfill;
 use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\ProjectionReset;
+use RuntimeException;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 #[Projection(self::NAME)]
 #[FromTaggedStream('concert')]
 #[Partitioned]
 #[Asynchronous('ticketing_async')]
+#[ProjectionRebuild(partitionBatchSize: 1, asyncChannelName: 'ticketing_async', batchCompletionChannelName: 'ticketing_batch_completions')]
+#[ProjectionBackfill(backfillPartitionBatchSize: 1, asyncChannelName: 'ticketing_async', batchCompletionChannelName: 'ticketing_batch_completions')]
 final class ConcertSalesLedger
 {
     public const NAME = 'concert_sales_ledger';
 
-    public function __construct(private readonly Connection $connection)
-    {
+    public function __construct(
+        private readonly Connection $connection,
+        #[Autowire('%ticketingSalesLedgerResetFailsForConcert%')] private readonly string $resetFailsForConcert,
+    ) {
     }
 
     #[EventHandler(endpointId: 'concert_sales_ledger.seat_sold')]
@@ -66,6 +74,9 @@ final class ConcertSalesLedger
     #[ProjectionReset]
     public function reset(#[PartitionTagValue] string $concertId): void
     {
+        if ($this->resetFailsForConcert !== '' && $concertId === $this->resetFailsForConcert) {
+            throw new RuntimeException(sprintf('The sales ledger of concert %s cannot be reset, because TICKETING_SALES_LEDGER_RESET_FAILS_FOR_CONCERT is set to %s to simulate a failing rebuild batch. Unset TICKETING_SALES_LEDGER_RESET_FAILS_FOR_CONCERT and recreate the container (docker compose up -d ticketing-worker), because a restart keeps the old environment, then replay the batch from the dead letters in Ecotone Pulse or with bin/console ecotone:deadletter:replay.', $concertId, $this->resetFailsForConcert));
+        }
         $this->connection->executeStatement('DELETE FROM concert_sales_ledger WHERE concert_id = ?', [$concertId]);
     }
 

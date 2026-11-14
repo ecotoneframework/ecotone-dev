@@ -501,3 +501,4 @@ button.dn-step-ref{border:0;cursor:pointer;font-family:inherit}
 .compare-differences{margin:.2rem 0 .2rem 1.5rem;padding:0;list-style:none;color:var(--muted);font-size:.85rem}
 button.link{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-family:var(--mono);font-size:.88rem;cursor:pointer;text-decoration:underline;text-align:left}
 .da-hub.da-added,.da-hub.da-removed,.da-hub.da-changed,.da-label.da-hub.da-added,.da-label.da-hub.da-removed,.da-label.da-hub.da-changed{opacity:1}
+.nowrap{white-space:nowrap}

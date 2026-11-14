@@ -81,11 +81,15 @@ final readonly class ProjectionList
         $count = count($this->quiet);
         $noun = $count === 1 ? 'projection' : 'projections';
         $states = self::stateCounts($this->quiet);
+        $unfinished = array_count_values(array_filter(array_map(static fn (ProjectionStatus $projection): ?string => $projection->latestRebuild?->unfinishedSummaryLabel(), $this->quiet)));
+        $unfinishedParts = array_map(static fn (string $label, int $times): string => $times . ' ' . $label, array_keys($unfinished), $unfinished);
         if (count($states) === 1 && array_key_first($states) === ProjectionState::UpToDate->value) {
-            return sprintf('%d %s · %s', $count, $noun, $count === 1 ? 'up to date' : 'all up to date');
+            $upToDate = $unfinishedParts !== [] ? 'positions up to date' : ($count === 1 ? 'up to date' : 'all up to date');
+
+            return implode(' · ', [sprintf('%d %s', $count, $noun), $upToDate, ...$unfinishedParts]);
         }
 
-        return sprintf('%d %s · %s', $count, $noun, implode(' · ', $states));
+        return implode(' · ', [sprintf('%d %s', $count, $noun), ...$states, ...$unfinishedParts]);
     }
 
     public function failedOperation(): ?Rebuild
@@ -129,9 +133,13 @@ final readonly class ProjectionList
         if ($rebuilds === []) {
             return sprintf('none in the last %d %s', $this->trackingDays, $this->trackingDays === 1 ? 'day' : 'days');
         }
-        $running = count(array_filter($rebuilds, static fn (Rebuild $rebuild): bool => $rebuild->state === 'running'));
-        $failed = count(array_filter($rebuilds, static fn (Rebuild $rebuild): bool => $rebuild->state === 'failed'));
-        $parts = array_filter([$running > 0 ? $running . ' running' : null, $failed > 0 ? $failed . ' failed' : null]);
+        $parts = [];
+        foreach (['running' => 'running', 'failed' => 'waiting for replay', 'discarded' => 'discarded', 'released' => 'released by hand'] as $state => $label) {
+            $count = count(array_filter($rebuilds, static fn (Rebuild $rebuild): bool => $rebuild->state === $state));
+            if ($count > 0) {
+                $parts[] = $count . ' ' . $label;
+            }
+        }
 
         return count($rebuilds) . ' · ' . ($parts === [] ? 'all done' : implode(' · ', $parts));
     }
@@ -166,7 +174,7 @@ final readonly class ProjectionList
             foreach ($lists as $list) {
                 $failed = $list->failedOperation();
                 if ($failed !== null) {
-                    return new Verdict(Status::Warning, sprintf('%d %s up to date, but the last %s of %s%s failed.', $total, $total === 1 ? 'projection is' : 'projections are', $failed->noun(), $prefixed ? $list->snapshot->tenant . ': ' : '', $failed->projection), false);
+                    return new Verdict(Status::Warning, sprintf('%d %s up to date, but the last %s of %s%s waits for a failed batch to be replayed.', $total, $total === 1 ? 'projection is' : 'projections are', $failed->noun(), $prefixed ? $list->snapshot->tenant . ': ' : '', $failed->projection), false);
                 }
             }
             $quiet = array_merge(...array_map(static fn (self $list): array => $list->quiet, $lists));

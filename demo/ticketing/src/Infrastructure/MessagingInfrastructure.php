@@ -27,6 +27,7 @@ final class MessagingInfrastructure
             AmqpBackedMessageChannelBuilder::create('ticketing'),
             AmqpBackedMessageChannelBuilder::create('storefront'),
             SymfonyMessengerMessageChannelBuilder::create('ticketing_async'),
+            SymfonyMessengerMessageChannelBuilder::create('ticketing_batch_completions'),
         ];
     }
 
@@ -39,6 +40,7 @@ final class MessagingInfrastructure
             SimpleMessageChannelBuilder::createQueueChannel('storefront'),
             SimpleMessageChannelBuilder::createQueueChannel('ecotone_pulse'),
             SymfonyMessengerMessageChannelBuilder::create('ticketing_async'),
+            SymfonyMessengerMessageChannelBuilder::create('ticketing_batch_completions'),
         ];
     }
 }

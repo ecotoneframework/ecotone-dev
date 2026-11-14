@@ -86,6 +86,8 @@ abstract class DbalMessagingTestCase extends TestCase
         self::deleteTable(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, $connection);
         self::deleteTable(\Ecotone\Dbal\Database\SpansTableManager::DEFAULT_TABLE, $connection);
         self::deleteTable(\Ecotone\Dbal\Database\PulseTrackingTableManager::DEFAULT_TABLE, $connection);
+        self::deleteTable(\Ecotone\Dbal\Gathering\DbalGatheredGroupStore::GROUP_TABLE, $connection);
+        self::deleteTable(\Ecotone\Dbal\Gathering\DbalGatheredGroupStore::PART_TABLE, $connection);
         self::deleteTable('persons', $connection);
         self::deleteTable('activities', $connection);
     }

@@ -260,9 +260,9 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
 
         $operations = $crawler->filter('[data-projection-operations]');
         self::assertNotNull($operations->attr('open'));
-        self::assertSame('2 · 1 failed', $operations->filter('[data-summary-state]')->text());
+        self::assertSame('2 · 1 waiting for replay', $operations->filter('[data-summary-state]')->text());
         self::assertSame('warning', $crawler->filter('[data-verdict]')->attr('data-verdict'));
-        self::assertStringContainsString('the last rebuild of broken failed', $crawler->filter('[data-verdict-sentence]')->text());
+        self::assertStringContainsString('the last rebuild of broken waits for a failed batch to be replayed', $crawler->filter('[data-verdict-sentence]')->text());
     }
 
     public function test_recent_operations_that_all_finished_stay_folded(): void
@@ -276,6 +276,57 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         $operations = $crawler->filter('[data-projection-operations]');
         self::assertNull($operations->attr('open'));
         self::assertSame('1 · all done', $operations->filter('[data-summary-state]')->text());
+    }
+
+    public function test_recent_operations_with_a_discarded_and_a_released_run_do_not_say_all_done(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true), $this->projection('totals')];
+        $this->orders->trackings = [
+            $this->tracking('per_ticket', 'discarded', batchesDone: 2, batchCount: 3, durationMs: 1000, missingBatches: [3], groupId: 'group-1'),
+            $this->tracking('per_ticket', 'released', batchesDone: 2, batchCount: 3, durationMs: 1000, missingBatches: [3], groupId: 'group-2'),
+            $this->tracking('totals', 'done', batchesDone: 1, batchCount: 1, durationMs: 4200),
+        ];
+
+        $crawler = $this->observe($client);
+
+        self::assertSame('3 · 1 discarded · 1 released by hand', $crawler->filter('[data-projection-operations] [data-summary-state]')->text());
+    }
+
+    public function test_an_up_to_date_projection_whose_latest_rebuild_waits_for_a_replay_says_its_positions_are_caught_up_and_what_the_rebuild_waits_for(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true), $this->projection('totals')];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'failed', batchesDone: 2, batchCount: 3, missingBatches: [2], failedBatches: [['batch' => 2, 'deadLetterMessageId' => 'dead-2']])];
+
+        $crawler = $this->observe($client);
+
+        self::assertSame('Event positions are caught up; the latest rebuild waits for the replay of batch 2.', $crawler->filter('tr[data-projection="per_ticket"] [data-projection-reason]')->text());
+        self::assertSame('2 projections · positions up to date · 1 rebuild waiting for replay', $crawler->filter('[data-projections-quiet] [data-summary-state]')->first()->text());
+    }
+
+    public function test_an_up_to_date_projection_whose_latest_rebuild_was_discarded_says_which_batches_it_did_not_project(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'discarded', batchesDone: 7, batchCount: 9, durationMs: 1000, missingBatches: [8, 9])];
+
+        $crawler = $this->observe($client);
+
+        self::assertSame('Event positions are caught up; the latest rebuild was discarded with batches 8, 9 not projected.', $crawler->filter('tr[data-projection="per_ticket"] [data-projection-reason]')->text());
+        self::assertSame('1 projection · positions up to date · 1 rebuild discarded', $crawler->filter('[data-projections-quiet] [data-summary-state]')->first()->text());
+    }
+
+    public function test_an_up_to_date_projection_whose_latest_backfill_was_released_by_hand_says_which_batches_it_did_not_project(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true, backfillChannel: 'backfill_channel')];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'released', batchesDone: 2, batchCount: 3, durationMs: 1000, type: 'projection-backfill', missingBatches: [3])];
+
+        $crawler = $this->observe($client);
+
+        self::assertSame('Event positions are caught up; the latest backfill was released by hand with batch 3 not projected.', $crawler->filter('tr[data-projection="per_ticket"] [data-projection-reason]')->text());
+        self::assertSame('1 projection · positions up to date · 1 backfill released by hand', $crawler->filter('[data-projections-quiet] [data-summary-state]')->first()->text());
     }
 
     public function test_rebuild_and_backfill_name_their_projection_with_what_they_affect_and_explain_what_they_do(): void
@@ -351,7 +402,7 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertSame('rebuilding', $row->filter('[data-projection-status]')->attr('data-projection-status'));
         self::assertSame('running', $row->filter('[data-rebuild-state]')->attr('data-rebuild-state'));
         self::assertSame('40%', $row->filter('[data-rebuild-percent]')->text());
-        self::assertSame('2 of 5 batches', $row->filter('[data-rebuild-batches]')->text());
+        self::assertSame('2 of 5 batches recorded', $row->filter('[data-rebuild-batches]')->text());
         self::assertSame('40', $row->filter('progress')->attr('value'));
     }
 
@@ -381,6 +432,217 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertSame('in 4.2s', $crawler->filter('tr[data-projection="totals"] [data-rebuild-duration]')->text());
         self::assertSame('up_to_date', $this->statusOf($crawler, 'totals'));
         self::assertSame('failed', $crawler->filter('tr[data-projection="broken"] [data-rebuild-state]')->attr('data-rebuild-state'));
+        self::assertSame('2 projections are up to date, but the last rebuild of broken waits for a failed batch to be replayed.', $crawler->filter('[data-verdict-sentence]')->text());
+    }
+
+    public function test_a_rebuild_with_a_failed_batch_waits_for_its_replay_and_links_its_dead_letter(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'failed', batchesDone: 2, batchCount: 3, deadLetterMessageId: 'dead-2', missingBatches: [2], failedBatches: [['batch' => 2, 'deadLetterMessageId' => 'dead-2']], groupId: 'group-1')];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('failed', $row->filter('[data-rebuild-state]')->attr('data-rebuild-state'));
+        self::assertSame('Rebuild waiting', $row->filter('[data-rebuild-state-label]')->text());
+        self::assertSame('2 of 3 batches', $row->filter('[data-rebuild-batches]')->text());
+        self::assertSame('batch 2 failed', $row->filter('a[data-rebuild-failed-batch="2"]')->text());
+        self::assertSame('/dead-letters/orders/dead-2', $row->filter('a[data-rebuild-failed-batch="2"]')->attr('href'));
+        self::assertSame('replay it to continue', $row->filter('[data-rebuild-replay-hint]')->text());
+        self::assertCount(0, $row->filter('[data-rebuild-missing]'));
+        self::assertSame('/dead-letters/orders/dead-2', $crawler->filter('[data-recent-rebuilds] tr[data-rebuild="group-1"] a[data-rebuild-failed-batch="2"]')->attr('href'));
+    }
+
+    public function test_a_rebuild_with_a_failed_batch_and_a_batch_still_queued_names_only_the_queued_one_as_not_done(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'failed', batchesDone: 8, batchCount: 10, deadLetterMessageId: 'dead-2', missingBatches: [2, 3], failedBatches: [['batch' => 2, 'deadLetterMessageId' => 'dead-2']])];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('batch 2 failed', $row->filter('a[data-rebuild-failed-batch="2"]')->text());
+        self::assertSame('batch 3 not done yet', $row->filter('[data-rebuild-missing]')->text());
+    }
+
+    public function test_a_running_rebuild_whose_records_queue_behind_its_batches_shows_its_running_time_and_how_to_see_progress(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'running', batchesDone: 0, batchCount: 11, elapsedMs: 65000, missingBatches: range(1, 11))];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertCount(0, $row->filter('progress'));
+        self::assertSame('running for 1m 5s', $row->filter('[data-rebuild-elapsed]')->text());
+        self::assertSame('Finished batches are counted once the batches queued on rebuild_channel have run. Set batchCompletionChannelName on #[ProjectionRebuild] to count each batch as it finishes.', $row->filter('[data-rebuild-queued-records]')->text());
+        self::assertSame('#[ProjectionRebuild]', $row->filter('[data-rebuild-queued-records] code')->text());
+        self::assertCount(0, $row->filter('[data-rebuild-missing]'));
+        self::assertCount(1, $crawler->filter('[data-rebuild-queued-records]'));
+        self::assertStringNotContainsString('batchCompletionChannelName', $row->filter('[data-projection-reason]')->text());
+        self::assertSame('running for 1m 5s', $crawler->filter('[data-recent-rebuilds] [data-rebuild-progress]')->text());
+    }
+
+    public function test_a_running_rebuild_whose_records_queue_behind_its_batches_counts_its_recorded_batches_after_the_first_one(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'running', batchesDone: 1, batchCount: 11, elapsedMs: 65000, missingBatches: range(2, 11))];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('1 of 11 batches recorded', $row->filter('[data-rebuild-batches]')->text());
+        self::assertCount(1, $row->filter('[data-rebuild-queued-records]'));
+    }
+
+    public function test_a_running_rebuild_shows_a_running_time_under_a_second_in_seconds(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('totals')];
+        $this->orders->trackings = [$this->tracking('totals', 'running', batchesDone: 0, batchCount: null, elapsedMs: 669)];
+
+        $crawler = $this->observe($client);
+
+        self::assertSame('running for under 1s', $crawler->filter('tr[data-projection="totals"] [data-rebuild-elapsed]')->text());
+    }
+
+    public function test_a_running_rebuild_with_a_separate_batch_completion_channel_shows_its_batches_from_the_first_one(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true, rebuildBatchCompletionChannel: 'batch_completion_channel')];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'running', batchesDone: 0, batchCount: 11, elapsedMs: 65000, missingBatches: range(1, 11))];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('0 of 11 batches', $row->filter('[data-rebuild-batches]')->text());
+        self::assertCount(0, $row->filter('[data-rebuild-queued-records]'));
+    }
+
+    public function test_a_discarded_rebuild_is_shown_as_discarded_with_the_batches_not_done(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'discarded', batchesDone: 2, batchCount: 3, durationMs: 1000, missingBatches: [3], groupId: 'group-1')];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('discarded', $row->filter('[data-rebuild-state]')->attr('data-rebuild-state'));
+        self::assertSame('Rebuild discarded', $row->filter('[data-rebuild-state-label]')->text());
+        self::assertSame('2 of 3 batches', $row->filter('[data-rebuild-batches]')->text());
+        self::assertSame('batch 3 not projected', $row->filter('[data-rebuild-missing]')->text());
+        self::assertSame('discarded', $crawler->filter('[data-recent-rebuilds] tr[data-rebuild="group-1"] [data-rebuild-state-cell]')->text());
+    }
+
+    public function test_a_rebuild_released_by_hand_is_shown_as_released_with_the_batches_not_done(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'released', batchesDone: 2, batchCount: 3, durationMs: 1000, missingBatches: [3])];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('Rebuild released by hand', $row->filter('[data-rebuild-state-label]')->text());
+        self::assertSame('batch 3 not projected', $row->filter('[data-rebuild-missing]')->text());
+        self::assertSame('released by hand', $crawler->filter('[data-recent-rebuilds] [data-rebuild-state-cell]')->text());
+    }
+
+    public function test_a_batch_whose_record_waits_in_the_dead_letter_is_shown_done_and_links_the_record(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'running', batchesDone: 2, batchCount: 3, elapsedMs: 1000, missingBatches: [3], batchesWaitingToBeRecorded: [['batch' => 3, 'deadLetterMessageId' => 'record-3']])];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('running', $row->filter('[data-rebuild-state]')->attr('data-rebuild-state'));
+        self::assertSame('batch 3 done, its record waits in the dead letter', $row->filter('a[data-rebuild-waiting-record="3"]')->text());
+        self::assertSame('/dead-letters/orders/record-3', $row->filter('a[data-rebuild-waiting-record="3"]')->attr('href'));
+        self::assertCount(0, $row->filter('[data-rebuild-missing]'));
+    }
+
+    public function test_recent_operations_show_the_state_as_a_pill_and_a_short_start_time_with_the_full_one_in_its_datetime(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [[...$this->tracking('per_ticket', 'failed', batchesDone: 2, batchCount: 3, deadLetterMessageId: 'dead-2', missingBatches: [2], failedBatches: [['batch' => 2, 'deadLetterMessageId' => 'dead-2']], groupId: 'group-1'), 'startedAt' => '2026-11-14T14:47:27.998750+00:00']];
+
+        $crawler = $this->observe($client);
+
+        $recent = $crawler->filter('[data-recent-rebuilds] tr[data-rebuild="group-1"]');
+        self::assertSame('waiting', $recent->filter('[data-rebuild-state-cell] .pill')->text());
+        self::assertSame('2 of 3 batches; batch 2 failed, replay it to continue', $recent->filter('[data-rebuild-progress]')->text());
+        self::assertSame('2026-11-14 14:47 UTC', $recent->filter('time[data-rebuild-started]')->text());
+        self::assertSame('2026-11-14T14:47:27.998750+00:00', $recent->filter('time[data-rebuild-started]')->attr('datetime'));
+    }
+
+    public function test_a_failed_console_rebuild_of_one_batch_links_its_failed_batch(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('totals')];
+        $this->orders->trackings = [$this->tracking('totals', 'failed', batchesDone: 0, batchCount: 1, deadLetterMessageId: 'dead-1', tracingId: null, startedFrom: 'console', missingBatches: [1], failedBatches: [['batch' => 1, 'deadLetterMessageId' => 'dead-1']], groupId: 'group-1')];
+
+        $crawler = $this->observe($client);
+
+        $recent = $crawler->filter('[data-recent-rebuilds] tr[data-rebuild="group-1"]');
+        self::assertSame('/dead-letters/orders/dead-1', $recent->filter('a[data-rebuild-failed-batch="1"]')->attr('href'));
+        self::assertStringNotContainsString('see its trace', $recent->text());
+        self::assertSame('no trace', $recent->filter('[data-rebuild-no-trace]')->text());
+    }
+
+    public function test_a_running_rebuild_of_a_projection_without_partitions_shows_zero_batches_and_is_not_failed(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'running', batchesDone: 0, batchCount: 0, elapsedMs: 1000)];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('running', $row->filter('[data-rebuild-state]')->attr('data-rebuild-state'));
+        self::assertSame('0%', $row->filter('[data-rebuild-percent]')->text());
+        self::assertSame('0 of 0 batches', $row->filter('[data-rebuild-batches]')->text());
+        self::assertSame('0 of 0 batches', $crawler->filter('[data-recent-rebuilds] [data-rebuild-progress]')->text());
+    }
+
+    public function test_a_rebuild_whose_failed_batch_was_replayed_shows_done_with_every_batch(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'done', batchesDone: 3, batchCount: 3, durationMs: 61000)];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('done', $row->filter('[data-rebuild-state]')->attr('data-rebuild-state'));
+        self::assertSame('in 1m 1s', $row->filter('[data-rebuild-duration]')->text());
+        self::assertCount(0, $row->filter('[data-rebuild-missing], [data-rebuild-failed-batches]'));
+        self::assertSame('3 of 3 batches', $crawler->filter('[data-recent-rebuilds] [data-rebuild-progress]')->text());
+    }
+
+    public function test_a_rebuild_started_from_the_console_is_shown_without_a_trace(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [$this->tracking('per_ticket', 'running', batchesDone: 1, batchCount: 4, tracingId: null, startedFrom: 'console', missingBatches: [2, 3, 4], groupId: 'group-1')];
+
+        $crawler = $this->observe($client);
+
+        $row = $crawler->filter('tr[data-projection="per_ticket"]');
+        self::assertSame('1 of 4 batches recorded', $row->filter('[data-rebuild-batches]')->text());
+        self::assertCount(0, $row->filter('[data-rebuild-missing]'));
+        self::assertSame('started from the console', $row->filter('[data-rebuild-started-from-console]')->text());
+        self::assertCount(0, $crawler->filter('a[data-rebuild-trace]'));
+        $recent = $crawler->filter('[data-recent-rebuilds] tr[data-rebuild="group-1"]');
+        self::assertSame('from the console', $recent->filter('[data-rebuild-started-from-console]')->text());
+        self::assertSame('no trace', $recent->filter('[data-rebuild-no-trace]')->text());
     }
 
     public function test_the_recent_rebuilds_list_links_every_rebuild_to_its_trace(): void
@@ -530,7 +792,7 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
 
     private array $services = [];
 
-    private function projection(string $name, bool $partitioned = false, int $events = 0, ?string $rebuildChannel = 'rebuild_channel', ?string $initialization = 'initialized', string $mode = 'synchronous', ?string $backfillChannel = null, bool $manualKickOff = false): array
+    private function projection(string $name, bool $partitioned = false, int $events = 0, ?string $rebuildChannel = 'rebuild_channel', ?string $initialization = 'initialized', string $mode = 'synchronous', ?string $backfillChannel = null, bool $manualKickOff = false, ?string $rebuildBatchCompletionChannel = null): array
     {
         return [
             'name' => $name,
@@ -540,6 +802,8 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
             'asyncChannel' => null,
             'rebuildAsyncChannel' => $rebuildChannel,
             'backfillAsyncChannel' => $backfillChannel,
+            'rebuildBatchCompletionChannel' => $rebuildBatchCompletionChannel ?? $rebuildChannel,
+            'backfillBatchCompletionChannel' => $backfillChannel,
             'initialization' => $initialization,
             'positionDigest' => 'digest',
             'eventsBehind' => $partitioned ? null : ['events' => $events, 'atLeast' => false],
@@ -548,10 +812,15 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         ];
     }
 
-    private function tracking(string $projection, string $state, int $batchesDone = 0, ?int $batchCount = null, ?int $elapsedMs = null, ?int $durationMs = null, ?string $deadLetterMessageId = null, string $tracingId = self::TRACE, string $type = 'projection-rebuild'): array
+    private function tracking(string $projection, string $state, int $batchesDone = 0, ?int $batchCount = null, ?int $elapsedMs = null, ?int $durationMs = null, ?string $deadLetterMessageId = null, ?string $tracingId = self::TRACE, string $type = 'projection-rebuild', string $startedFrom = 'pulse', array $missingBatches = [], array $failedBatches = [], ?string $groupId = null, array $batchesWaitingToBeRecorded = []): array
     {
         return [
+            'batchesWaitingToBeRecorded' => $batchesWaitingToBeRecorded,
             'tracingId' => $tracingId,
+            'startedFrom' => $startedFrom,
+            'missingBatches' => $missingBatches,
+            'failedBatches' => $failedBatches,
+            ...($groupId === null ? [] : ['groupId' => $groupId]),
             'category' => 'ecotone-pulse',
             'type' => $type,
             'reference' => $projection,
@@ -561,8 +830,8 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
             'batchesDone' => $batchesDone,
             'batchCount' => $batchCount,
             ...match ($state) {
-                'done' => ['durationMs' => $durationMs],
-                'failed' => ['deadLetterMessageId' => $deadLetterMessageId],
+                'done', 'discarded', 'released' => ['durationMs' => $durationMs],
+                'failed' => ['deadLetterMessageId' => $deadLetterMessageId, 'elapsedMs' => $elapsedMs],
                 default => ['elapsedMs' => $elapsedMs],
             },
         ];

@@ -88,6 +88,8 @@ final class ProjectionOverview
             $notInitialized && $manualKickOff ? SetupStatus::projectionInit(self::frameworkOf($service), $name) : null,
             $asyncChannel,
             self::partitionsOf($projection),
+            is_string($projection['rebuildBatchCompletionChannel'] ?? null) ? $projection['rebuildBatchCompletionChannel'] : null,
+            is_string($projection['backfillBatchCompletionChannel'] ?? null) ? $projection['backfillBatchCompletionChannel'] : null,
         );
     }
 

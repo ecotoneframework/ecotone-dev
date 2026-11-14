@@ -86,7 +86,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         }
     }
 
-    public function openGroup(string $groupId, string $endpointId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void
+    public function openGroup(string $groupId, string $endpointId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened, ?string $groupKey): void
     {
         $connection = $this->connection();
         try {
@@ -97,6 +97,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 'group_id' => $groupId,
                 'gather_channel_name' => $gatherChannelName,
                 'endpoint_id' => $endpointId,
+                'group_key' => $groupKey,
                 'opened_at' => $this->clock->now()->unixTime()->inMilliseconds(),
                 'size' => $size,
                 'arrived' => 0,

@@ -424,7 +424,7 @@ final class TicketIssuanceTest extends KernelTestCase
         /** @var ManagerRegistry $doctrine */
         $doctrine = self::getContainer()->get('doctrine');
 
-        return $this->bootstrapTicketing('', [new DemoSeed(), new ConcertSalesLedger($doctrine->getConnection())]);
+        return $this->bootstrapTicketing('', [new DemoSeed(), new ConcertSalesLedger($doctrine->getConnection(), '')]);
     }
 
     private function bootKernelOnEmptyTables(): void
@@ -479,6 +479,7 @@ final class TicketIssuanceTest extends KernelTestCase
             extensionObjects: [
                 ...$this->inMemoryChannels(),
                 SymfonyMessengerMessageChannelBuilder::create('ticketing_async'),
+                SimpleMessageChannelBuilder::createQueueChannel('ticketing_batch_completions'),
                 SymfonyConnectionReference::defaultManagerRegistry('default'),
             ],
             pathToRootCatalog: dirname(__DIR__, 2),

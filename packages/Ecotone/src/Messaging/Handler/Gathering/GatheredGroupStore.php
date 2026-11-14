@@ -33,7 +33,7 @@ interface GatheredGroupStore
 
     public function collectMessage(string $endpointId, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): void;
 
-    public function openGroup(string $groupId, string $endpointId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void;
+    public function openGroup(string $groupId, string $endpointId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened, ?string $groupKey): void;
 
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void;
 

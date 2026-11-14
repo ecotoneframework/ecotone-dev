@@ -166,7 +166,7 @@ final readonly class ScopeProblems
             if ($rebuild->isRunning()) {
                 $problems[] = new Problem(Severity::Info, $rebuild->kind . '-running', sprintf('%s %s%s', $rebuild->projection, $rebuild->gerund(), $rebuild->elapsed() === null ? '' : ' for ' . $rebuild->elapsed()), $href);
             } elseif ($rebuild->state === 'failed') {
-                $problems[] = new Problem(Severity::Warning, $rebuild->kind . '-failed', sprintf('%s %s failed in the last %d days', $rebuild->projection, $rebuild->noun(), $this->settings->trackingDays), $href);
+                $problems[] = new Problem(Severity::Warning, $rebuild->kind . '-failed', sprintf('%s %s waits for a failed batch to be replayed', $rebuild->projection, $rebuild->noun()), $href);
             }
         }
 

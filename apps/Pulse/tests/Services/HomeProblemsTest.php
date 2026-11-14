@@ -143,7 +143,7 @@ final class HomeProblemsTest extends ReleasingWebTestCase
         $crawler = $this->observeBoard($client);
 
         self::assertSame([
-            ['text' => 'broken rebuild failed in the last 7 days', 'href' => '/services/orders/projections#projection-orders-broken', 'severity' => 'warning', 'kind' => 'rebuild-failed'],
+            ['text' => 'broken rebuild waits for a failed batch to be replayed', 'href' => '/services/orders/projections#projection-orders-broken', 'severity' => 'warning', 'kind' => 'rebuild-failed'],
             ['text' => 'totals rebuilding for 1m 5s', 'href' => '/services/orders/projections#projection-orders-totals', 'severity' => 'info', 'kind' => 'rebuild-running'],
         ], $this->problemsOf($crawler, 'orders'));
     }
@@ -167,7 +167,7 @@ final class HomeProblemsTest extends ReleasingWebTestCase
         $crawler = $this->observeBoard($client);
 
         self::assertSame([
-            ['text' => 'broken backfill failed in the last 7 days', 'href' => '/services/orders/projections#projection-orders-broken', 'severity' => 'warning', 'kind' => 'backfill-failed'],
+            ['text' => 'broken backfill waits for a failed batch to be replayed', 'href' => '/services/orders/projections#projection-orders-broken', 'severity' => 'warning', 'kind' => 'backfill-failed'],
             ['text' => 'totals backfilling for 1m 5s', 'href' => '/services/orders/projections#projection-orders-totals', 'severity' => 'info', 'kind' => 'backfill-running'],
         ], $this->problemsOf($crawler, 'orders'));
     }

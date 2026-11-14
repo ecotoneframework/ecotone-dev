@@ -150,6 +150,7 @@ $commandBus->sendWithRouting('order.place', ['orderId' => '123']);
 
 - Every handler needs a unique `endpointId` when used with async processing or polling
 - Naming convention: `'{context}.{action}'` e.g., `'order.place'`, `'notification.send'`
+- An explicit `endpointId` keeps the handler identity stable in the flow graph and version comparisons when its class or method is renamed
 - The `endpointId` connects the handler to channel configuration and monitoring
 
 ```php

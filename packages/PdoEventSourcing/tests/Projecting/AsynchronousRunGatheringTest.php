@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -18,6 +19,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\GatheredGroups;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -310,6 +312,36 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
         self::assertSame(['1' => 'Renamed 1', '2' => 'Renamed 2'], $projection->sortedNames());
         self::assertSame([[2, 0, [1, 2]]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded'], $group['missingPartNumbers']], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_names.backfill')));
+    }
+
+    public function test_run_group_survives_application_restart(): void
+    {
+        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'durable_rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
+        };
+        $this->bootstrapWithAccounts([$projection], 3, [DbalBackedMessageChannelBuilder::create('durable_rebuild_channel')])
+            ->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_names']);
+
+        $restarted = $this->bootstrapWithAccounts([$projection], 0, [DbalBackedMessageChannelBuilder::create('durable_rebuild_channel')]);
+        self::assertSame([[2, 0]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded']], $restarted->getGateway(GatheredGroups::class)->listOpenGroups('account_names.rebuild')));
+        $restarted->run('durable_rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertSame([[2, 2]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded']], $restarted->getGateway(GatheredGroups::class)->listClosedGroups('account_names.rebuild')));
+    }
+
+    public function test_asynchronous_rebuild_with_dbal_is_accepted_without_test_configuration(): void
+    {
+        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
+        };
+
+        $ecotone = EcotoneLite::bootstrap(
+            classesToResolve: [$projection::class, GatheredRunAccount::class],
+            containerOrAvailableServices: [$projection, self::getConnectionFactory()],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('rebuild_channel')],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        self::assertInstanceOf(GatheredGroups::class, $ecotone->getServiceFromContainer(GatheredGroups::class));
     }
 
     private function bootstrapWithAccounts(array $projections, int $accounts, array $extensionObjects = []): FlowTestSupport

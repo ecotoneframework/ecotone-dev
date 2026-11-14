@@ -7,7 +7,9 @@ namespace App\Tests\Graph;
 use App\Tests\Support\DistributedServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\FlowVersionsConfiguration;
@@ -200,6 +202,73 @@ final class FlowComparePageTest extends ReleasingWebTestCase
         self::assertCount(0, $crawler->filter('[data-diagram]'));
     }
 
+    public function test_a_service_that_never_lists_its_versions_is_said_to_predate_them_or_to_be_down(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseWebClient();
+        $this->pulseHavingHeardFrom($client, ['orders' => $this->ordersPlacingAndRefunding()]);
+
+        $client->request('GET', '/flow/compare?service=orders');
+        $this->advanceTimeBy(11);
+        $crawler = $client->request('GET', '/flow/compare?service=orders');
+
+        self::assertSame(
+            'orders is not answering for its flow versions. A service answers them from the Ecotone version that introduced flow versions on: upgrade Ecotone in orders, or check that it is running and consuming its channel.',
+            trim($crawler->filter('[data-compare-refused]')->text()),
+        );
+        self::assertCount(0, $crawler->filter('meta[http-equiv="refresh"]'));
+    }
+
+    public function test_a_service_that_listed_its_versions_and_then_stopped_answering_is_reported_for_the_version(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $orders = $this->ordersPlacingAndRefunding();
+        $orders->runConsoleCommand('ecotone:flow:store', ['label' => '1.1.0']);
+        $client = $this->pulseWebClient();
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
+        $client->request('GET', '/flow/compare?service=orders');
+        $this->runService($orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+
+        $waiting = $client->request('GET', '/flow/compare?service=orders');
+        $this->advanceTimeBy(11);
+        $crawler = $client->request('GET', '/flow/compare?service=orders');
+
+        self::assertSame('Waiting for orders to answer with version 1.1.0…', trim($waiting->filter('[data-waiting="orders"]')->text()));
+        self::assertCount(1, $waiting->filter('meta[http-equiv="refresh"]'));
+        self::assertSame('orders is not answering for this flow version. Check that the service is running and consuming its channel.', trim($crawler->filter('[data-compare-refused]')->text()));
+        self::assertCount(0, $crawler->filter('[data-diagram]'));
+    }
+
+    public function test_a_version_whose_graph_pulse_cannot_read_says_so_instead_of_waiting(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $orders = $this->serviceAnsweringWithAnUnreadableVersion();
+        $client = $this->pulseWebClient();
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
+
+        $crawler = $this->compared($client, $orders, '/flow/compare?service=orders');
+
+        self::assertSame(
+            'orders answered with version 1.0.0, but this Pulse cannot read its graph. Update Pulse to the Ecotone version the service runs, or store the version again with ecotone:flow:store 1.0.0 --replace.',
+            trim($crawler->filter('[data-compare-refused]')->text()),
+        );
+        self::assertCount(0, $crawler->filter('[data-waiting]'));
+    }
+
+    public function test_comparing_a_version_with_itself_says_that_nothing_changed(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $orders = $this->ordersPlacingAndRefunding();
+        $orders->runConsoleCommand('ecotone:flow:store', ['label' => '1.1.0']);
+        $client = $this->pulseWebClient();
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
+
+        $crawler = $this->compared($client, $orders, '/flow/compare?service=orders&from=1.1.0&to=1.1.0');
+
+        self::assertSame('From version 1.1.0 to version 1.1.0 of orders: nothing changed.', trim($crawler->filter('[data-compare-summary]')->text()));
+    }
+
     public function test_with_several_services_and_none_chosen_the_page_asks_which_one_to_compare(): void
     {
         $this->configurePulseWithServices('orders', 'billing');
@@ -256,6 +325,34 @@ final class FlowComparePageTest extends ReleasingWebTestCase
         sort($nodes);
 
         return $nodes;
+    }
+
+    private function serviceAnsweringWithAnUnreadableVersion(): FlowTestSupport
+    {
+        $handler = new class () {
+            #[Distributed]
+            #[CommandHandler('ecotone.pulse.snapshot')]
+            public function snapshot(string $request): string
+            {
+                return json_encode(['schemaVersion' => 1, 'serviceName' => 'orders', 'takenAt' => '2026-10-20T12:00:00+00:00', 'overview' => ['ecotoneVersion' => '2.0.0', 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]], 'flowGraph' => ['nodes' => [], 'edges' => []], 'topology' => ['serviceMaps' => []]], JSON_THROW_ON_ERROR);
+            }
+
+            #[Distributed]
+            #[CommandHandler('ecotone.pulse.flow_versions.list')]
+            public function versions(string $request, #[Header('ecotone_pulse_query_id')] string $queryId): string
+            {
+                return json_encode(['queryId' => $queryId, 'configured' => true, 'versions' => [['label' => '1.0.0', 'storedAt' => '2026-10-20T12:00:00+00:00', 'nodes' => 0, 'edges' => 1]]], JSON_THROW_ON_ERROR);
+            }
+
+            #[Distributed]
+            #[CommandHandler('ecotone.pulse.flow_versions.version')]
+            public function version(string $request, #[Header('ecotone_pulse_query_id')] string $queryId): string
+            {
+                return json_encode(['queryId' => $queryId, 'label' => '1.0.0', 'storedAt' => '2026-10-20T12:00:00+00:00', 'graph' => ['nodes' => [], 'edges' => [['from' => 'message:gone', 'to' => 'handler:gone', 'kind' => 'routedTo', 'attributes' => []]]]], JSON_THROW_ON_ERROR);
+            }
+        };
+
+        return $this->serviceApplication('orders', [$handler::class], [$handler], false);
     }
 
     private function ordersPlacingAndAuditing(): FlowTestSupport

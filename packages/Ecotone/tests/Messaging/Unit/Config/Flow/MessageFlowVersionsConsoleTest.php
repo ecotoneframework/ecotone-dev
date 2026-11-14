@@ -418,12 +418,12 @@ final class MessageFlowVersionsConsoleTest extends TestCase
         $ecotone = $this->placingOrders();
         $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
         $this->rewrite('1.0.0', function (array $stored): array {
-            $stored['graph']['nodes'][0]['kind'] = 'teleporter';
+            $stored['graph']['edges'][0]['from'] = 'message:gone';
 
             return $stored;
         });
 
-        $this->expectExceptionMessage("Flow version file {$this->location}/1.0.0.json holds a graph this Ecotone cannot read");
+        $this->expectExceptionMessage("Flow version file {$this->location}/1.0.0.json holds a graph this Ecotone cannot read (Flow edge routedTo starts at `message:gone`, which is not a node of this graph. Add the node first with MessageFlowGraph::create() or withNode().). Upgrade Ecotone if a newer one stored it, restore the file from version control, or store the flow again with `ecotone:flow:store 1.0.0 --replace`.");
 
         $ecotone->runConsoleCommand('ecotone:flow:compare');
     }
@@ -456,19 +456,14 @@ final class MessageFlowVersionsConsoleTest extends TestCase
         }
     }
 
-    public function test_store_refuses_a_location_it_cannot_write_to(): void
+    public function test_store_refuses_a_file_it_cannot_write(): void
     {
-        mkdir($this->location, 0o555, true);
+        mkdir($this->location . '/1.0.0.json', recursive: true);
         $ecotone = $this->placingOrders();
 
-        try {
-            $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
-            self::fail();
-        } catch (Exception $exception) {
-            self::assertSame("Flow version `1.0.0` could not be written to {$this->location}/1.0.0.json. Make the location {$this->location} writable for the user running this command, or point FlowVersionsConfiguration::createWithLocation() at a directory that is.", $exception->getMessage());
-        } finally {
-            chmod($this->location, 0o755);
-        }
+        $this->expectExceptionMessage("Flow version `1.0.0` could not be written to {$this->location}/1.0.0.json. Make the location {$this->location} writable for the user running this command, or point FlowVersionsConfiguration::createWithLocation() at a directory that is.");
+
+        $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
     }
 
     public function test_a_stream_address_is_refused_as_a_location_at_bootstrap(): void

@@ -16,7 +16,6 @@ final readonly class TraceQuery
     public const FLOW_VERSIONS_ROUTING_KEY = 'ecotone.pulse.flow_versions.list';
     public const FLOW_VERSION_ROUTING_KEY = 'ecotone.pulse.flow_versions.version';
     public const TRACKINGS_FRESHNESS_SECONDS = 2;
-    public const FLOW_VERSIONS_FRESHNESS_SECONDS = 5;
     public const PER_PAGE = 25;
 
     /**
@@ -43,12 +42,12 @@ final readonly class TraceQuery
 
     public static function flowVersions(): self
     {
-        return new self(self::FLOW_VERSIONS_ROUTING_KEY, [], self::FLOW_VERSIONS_FRESHNESS_SECONDS);
+        return new self(self::FLOW_VERSIONS_ROUTING_KEY, []);
     }
 
     public static function flowVersion(string $label): self
     {
-        return new self(self::FLOW_VERSION_ROUTING_KEY, ['label' => $label], self::FLOW_VERSIONS_FRESHNESS_SECONDS);
+        return new self(self::FLOW_VERSION_ROUTING_KEY, ['label' => $label]);
     }
 
     public function key(): string

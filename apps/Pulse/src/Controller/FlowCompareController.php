@@ -28,7 +28,7 @@ final class FlowCompareController extends AbstractController
     public function compare(Request $request): Response
     {
         $flows = ServiceFlows::of($this->snapshots->viewAndRequestStale())->flows;
-        $services = array_values(array_unique(array_map(fn (ServiceFlow $flow): string => $flow->name, $flows)));
+        $services = array_map(fn (ServiceFlow $flow): string => $flow->name, $flows);
         $service = trim((string) $request->query->get('service', ''));
         if ($service === '' && count($services) === 1) {
             $service = $services[0];

@@ -88,7 +88,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         try {
             if ($groupId === null) {
                 $groupId = bin2hex(random_bytes(32));
-                $this->openGroup($groupId, $gatherChannelName, $maxSize ?? GatheredGroupStore::UNKNOWN_SIZE, $message, $deadline, static fn () => null);
+                $this->openGroup(groupId: $groupId, gatherChannelName: $gatherChannelName, size: $maxSize ?? GatheredGroupStore::UNKNOWN_SIZE, original: $message, deadline: $deadline, whenOpened: static fn () => null);
                 $this->groups[$groupId]['endpointId'] = $endpointId;
                 $this->groups[$groupId]['groupKey'] = $groupKey;
                 $this->groups[$groupId]['openSlot'] = 1;
@@ -96,7 +96,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
                 $this->groups[$groupId]['releaseReason'] = null;
                 $whenOpened($groupId);
             }
-            $this->completePart($groupId, count($this->groups[$groupId]['parts']) + 1, $message, $whenReleased);
+            $this->completePart(groupId: $groupId, partNumber: count($this->groups[$groupId]['parts']) + 1, report: $message, whenComplete: $whenReleased);
         } catch (Throwable $failure) {
             $this->groups = $previousGroups;
             throw $failure;
@@ -169,7 +169,6 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             $this->groups[$groupId] = $previous;
             throw $failure;
         }
-
     }
 
     public function gatherChannelNameFor(string $groupId): string
@@ -201,7 +200,6 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             $this->groups[$groupId] = $previous;
             throw $failure;
         }
-
     }
 
     public function discard(string $groupId): void

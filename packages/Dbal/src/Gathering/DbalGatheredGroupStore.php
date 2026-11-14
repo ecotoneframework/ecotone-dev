@@ -128,7 +128,6 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         if ($completed) {
             $whenReleased($this->messages->decode($group['original_message']), $parts, GatheredGroupSize::asNullable((int) $group['size']), $group['group_key'] ?? null);
         }
-
     }
 
     public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void
@@ -205,8 +204,6 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         if ($completed) {
             $whenComplete($this->messages->decode($group['original_message']), $parts, $size);
         }
-
-
     }
 
     public function gatherChannelNameFor(string $groupId): string
@@ -247,8 +244,6 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
         $whenReleased($this->messages->decode($group['original_message']), $parts, GatheredGroupSize::asNullable((int) $group['size']), $group['group_key'] ?? null);
-
-
     }
 
     public function discard(string $groupId): void

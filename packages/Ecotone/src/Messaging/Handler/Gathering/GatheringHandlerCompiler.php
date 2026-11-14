@@ -63,7 +63,7 @@ final class GatheringHandlerCompiler
                 $collected->maxSize,
                 AttributeExpressionExecutorCompiler::compile(
                     attributeWithExpression: $collected,
-                    attributeDeclaration: new AttributeDeclaration(Collected::class, $interface->getClassName(), $interface->getMethodName()),
+                    attributeDeclaration: new AttributeDeclaration(attributeClassName: Collected::class, className: $interface->getClassName(), methodName: $interface->getMethodName()),
                     owner: $builder->getInterfaceToCall($interface),
                     targetParameterName: 'groupBy',
                 ),
@@ -89,6 +89,7 @@ final class GatheringHandlerCompiler
 
         return $handler;
     }
+
     private static function registerCollectedInputChannel(MessagingContainerBuilder $builder, InterfaceToCallReference $interface, string $endpointId, string $executionChannel): string
     {
         $asynchronous = $builder->getInterfaceToCall($interface)->getSingleAnnotation(Type::create(Asynchronous::class));
@@ -108,5 +109,4 @@ final class GatheringHandlerCompiler
         $builder->register(new ChannelReference($inputChannel), new Definition(DirectChannel::class, [$inputChannel, $forwarder]));
         return $inputChannel;
     }
-
 }

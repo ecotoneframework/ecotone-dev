@@ -112,7 +112,6 @@ final class CollectingModule extends NoExternalConfigurationModule
         if ($handlers === []) {
             throw ConfigurationException::create("Collected handler {$handlerDescription} has no ordinary message handler attribute. Stack it on a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
         }
-
     }
 
     private function validateSubscriptionAndAsynchronous(InterfaceToCall $interface, array $handlers, string $handlerDescription): void
@@ -131,7 +130,6 @@ final class CollectingModule extends NoExternalConfigurationModule
         if (! $interface->hasAnnotation(Asynchronous::class)) {
             throw ConfigurationException::create("Collected handler {$handlerDescription} requires an asynchronous channel. Add #[Asynchronous('channelName')] to the handler, or remove #[Collected].");
         }
-
     }
 
     private function validateReleaseLimits(Collected $collected, string $handlerDescription): void
@@ -146,7 +144,6 @@ final class CollectingModule extends NoExternalConfigurationModule
             $milliseconds = $collected->maxWait->toMilliseconds();
             throw ConfigurationException::create("Collected handler {$handlerDescription} maxWait is {$milliseconds} milliseconds; maxWait must be greater than 0. Set a positive TimeSpan, omit maxWait and set maxSize, or remove #[Collected].");
         }
-
     }
 
     private function validateLicence(bool $enterprise, string $handlerDescription): void
@@ -154,7 +151,6 @@ final class CollectingModule extends NoExternalConfigurationModule
         if (! $enterprise) {
             throw LicensingException::create("Collected handler {$handlerDescription} requires an Ecotone Enterprise licence. Provide licenceKey in the framework configuration or EcotoneLite, start a trial at https://ecotone.tech/pricing, or remove #[Collected].");
         }
-
     }
 
     private function validateBatchParameter(InterfaceToCall $interface, string $handlerDescription): void

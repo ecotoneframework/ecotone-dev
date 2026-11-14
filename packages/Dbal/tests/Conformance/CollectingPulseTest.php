@@ -56,7 +56,6 @@ final class CollectingPulseTest extends TestCase
         self::assertSame('open', $batches[0]['state']);
     }
 
-
     #[DataProvider('implementations')]
     public function test_pulse_requests_batch_release_on_its_asynchronous_channel(bool $durable): void
     {

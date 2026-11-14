@@ -53,7 +53,6 @@ final class GatheredGroupOperations implements GatheredGroups
             ->setHeader(GatheringHeaders::MANUAL_RELEASE, true)
             ->build();
         $this->channelResolver->resolve($gatherChannelName)->send($trigger);
-
     }
 
     public function discard(string $groupId): void

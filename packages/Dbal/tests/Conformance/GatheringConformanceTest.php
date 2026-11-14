@@ -223,7 +223,6 @@ final class GatheringConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-
         $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary');
         self::assertCount(count($previousGroups) + 1, $groups);
         $groups = array_values(array_filter($groups, static fn (array $group): bool => ! in_array($group['groupId'], array_column($previousGroups, 'groupId'), true)));

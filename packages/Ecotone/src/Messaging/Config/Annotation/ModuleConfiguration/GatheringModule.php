@@ -103,7 +103,7 @@ final class GatheringModule extends NoExternalConfigurationModule
                 }
             }
         }
-        return new self($gatherChannelNames, $annotationRegistrationService, $collectedEndpointIds);
+        return new self(gatherChannelNames: $gatherChannelNames, annotationFinder: $annotationRegistrationService, collectedEndpointIds: $collectedEndpointIds);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void

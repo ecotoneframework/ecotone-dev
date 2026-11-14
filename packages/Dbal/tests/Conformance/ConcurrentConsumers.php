@@ -59,7 +59,6 @@ trait ConcurrentConsumers
                 }
             }
         }
-
     }
 
     private static function concurrentConsumerBarrier(): object

@@ -220,8 +220,6 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame(CollectedReleaseReason::MAX_WAIT_REACHED, $handler->batches[0]->releaseReason);
     }
 
-
-
     #[DataProvider('implementations')]
     public function test_open_batch_can_be_released_by_hand_without_collecting_the_release_message(bool $durable): void
     {
@@ -251,7 +249,6 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame([], $groups->listOpenBatches('collect.handler'));
     }
 
-
     #[DataProvider('implementations')]
     public function test_released_batches_are_listed_by_collected_endpoint_id(bool $durable): void
     {
@@ -277,7 +274,6 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame('collect.handler', $closed[0]['endpointId']);
         self::assertSame([], $groups->listClosedBatches('another.handler'));
     }
-
 
     #[DataProvider('implementations')]
     public function test_message_after_a_release_opens_a_new_batch(bool $durable): void
@@ -367,7 +363,6 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame('2026-01-01 12:00:10', $ecotone->now()->format('Y-m-d H:i:s'));
     }
 
-
     #[DataProvider('implementations')]
     public function test_return_value_flows_once_per_batch(bool $durable): void
     {
@@ -428,7 +423,6 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame([['first', 'second'], ['first', 'second']], $handler->attempts);
         self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
     }
-
 
     public static function releaseFailures(): iterable
     {
@@ -679,7 +673,6 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame([$batch['groupId'], 'collect.handler', 'one', 'open', 'no maximum size', 1, '2026-01-01T12:00:00+00:00', '2026-01-01T12:00:10+00:00', ''], $result->rows[0]);
     }
 
-
     #[DataProvider('implementations')]
     public function test_collected_command_accepts_ordinary_class_routed_messages(bool $durable): void
     {
@@ -774,7 +767,6 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame(3, count($handler->second[0]->messages));
     }
 
-
     #[DataProvider('implementations')]
     public function test_group_listings_remain_separate_from_collected_batch_listings(bool $durable): void
     {
@@ -797,7 +789,6 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         self::assertSame([], $groups->listClosedGroups('collect'));
     }
-
 
     #[DataProvider('implementations')]
     public function test_batch_inherits_the_first_messages_user_headers_and_retains_each_messages_own_headers(bool $durable): void
@@ -828,7 +819,6 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame(['first-label'], $handler->labels);
         self::assertArrayHasKey(MessageHeaders::MESSAGE_ID, $handler->headers[0]);
     }
-
 
     #[DataProvider('implementations')]
     public function test_timeout_of_a_released_batch_does_not_release_the_next_batch(bool $durable): void

@@ -447,7 +447,6 @@ final class CollectingTest extends TestCase
         );
     }
 
-
     public function test_collected_internal_handler_requires_an_explicit_endpoint_id(): void
     {
         $handler = new class () {
@@ -654,5 +653,4 @@ final class CollectingTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
-
 }

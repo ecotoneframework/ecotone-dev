@@ -34,3 +34,11 @@ finding. The developer-experience session returned NO USER-FACING SURFACE.
 - V11 (nit). P3 said the agent "launches" the sessions, which reads as starting new ones only.
 - G5 (nit). The open-pr grader does not check that the numbered findings are committed. Left as is.
 - Maintainer: reviewers never run in a separate worktree; each is a session in the worktree of the change.
+
+## Fourth round, on the session-only change (commit 63aad9ddb)
+- V12, G6 (should fix). "The implementing session runs no suite while the reviews are open" forbids every later
+  check, because the sessions stay open until the merge; and the implementer was not told to leave the tree alone
+  while a review runs.
+- V13 (should fix). A reviewer that may not revert code cannot prove a test red, and nothing said what the
+  implementer hands over instead.
+- G7 (nit). Two lines of P3 ran past the wrap width.

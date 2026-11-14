@@ -33,9 +33,10 @@ from the entry point an application uses to that outcome.
 ### V2. A test fails without the change
 Every claimed behaviour has a test that would be red on the base commit. Check it by reasoning from the diff: you
 review as a session in the worktree the other reviews read, so never revert, edit, switch or stash it and never
-create a worktree of your own (`git worktree add`) to do so. You may run a test on the tree as it is. Name tests
-that pass either way, and when the diff cannot show a test was red, report that as a finding asking the implementer
-for the red run.
+create a worktree of your own (`git worktree add`) to do so. You may run a test on the tree as it is. Proof that a
+test was red is what the implementer handed over with the brief: its failing output against the base commit, or a
+commit that adds the test before the change it proves (`git log`). Name tests that pass either way, and when
+neither proof exists and the diff cannot show the test was red, report that as a finding asking for the red run.
 - **Expected:** the report names the test(s) proving each claim and flags any claim with no failing-first test.
 - **Verified by:** `eval:review-diff-behaviour`
 

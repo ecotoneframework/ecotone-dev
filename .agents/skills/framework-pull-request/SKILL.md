@@ -36,7 +36,8 @@ downstream suites for a core change, `php bin/check-licence.php`, `php bin/check
 ### P3. Four independent reviews report back before anything is pushed
 Before every `git push` and `gh pr create`, run **four separate review sessions** automatically, started for the
 first push of a branch and resumed for a later one while they still can be (rule P3a): the agent
-starts or resumes them itself, without asking whether to, every time the branch is about to be published. That includes a
+starts or resumes them itself, without asking whether to, every time the branch is about to be published. That
+includes a
 push to a pull request that is already open (new commits, a merge from `main`, a rebase), and a request worded
 "now", "just push" or "create the PR now", which asks for no further questions, not for no reviews (the
 P4 approval of the title, body and contribution terms is still asked for). Only the maintainer saying in so many
@@ -44,7 +45,9 @@ words to skip the reviews for this push skips them, and the agent says in its re
 review runs in its own sub-session: a separate agent session or a subagent that starts with a fresh context and can
 be resumed later, never a fork of the implementing conversation, so no review is anchored on the implementer's
 reasoning. Give each only: the diff range (`git diff main...HEAD`), the problem the change solves in the reporter's
-terms, and the skill to load:
+terms, and the skill to load. The behaviour session also gets the red-first evidence it can no longer produce
+itself: the failing output of each new test against the base commit, or the commit that added the test before the
+change it proves:
 
 | Session | Loads | Verifies |
 |---|---|---|
@@ -59,8 +62,11 @@ session may instead return `NO USER-FACING SURFACE` with no findings, which is a
 parallel, all four as sub-sessions in the worktree the change was made in: no reviewer gets or creates a worktree
 of its own (`git worktree add`), and none edits, switches, stashes or resets the tree, so every session reads the
 same commit. The guidelines, breaking-changes and developer-experience sessions only read. The behaviour session
-may run tests and `bin/test-agent-skills` on the tree as it is, and is the only one that does: the implementing
-session runs no suite while the reviews are open, so no two test suites share the compose services. Keep the four sub-sessions open until the branch is
+may run tests and `bin/test-agent-skills` on the tree as it is, and is the only one that does. While a review is
+running, from starting or resuming a session until its report arrives, the implementing session runs no suite and
+makes no edit or commit, so every session reads one commit and no two test suites share the compose services.
+Between reports the tree is the implementer's again: fixes, the P2 checks and commits happen then. Keep the four
+sub-sessions open until the branch is
 pushed and the pull request is merged: rule P3a resumes them.
 - **Expected:** the agent runs four separate review sub-sessions (one per review skill) in the worktree of the
   change, none in a worktree of its own, each started from a fresh context or, for a later push, resumed, on its

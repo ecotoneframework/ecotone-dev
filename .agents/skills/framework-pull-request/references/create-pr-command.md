@@ -81,8 +81,11 @@ Present the complete PR content (title + body) to the user for review. Ask if th
 ### Step 4b: Checks and the four reviews
 
 Before anything is pushed, run the [checklist](checklist.md) and start, without asking, the four independent review
-sessions of [framework-pull-request rule P3](../SKILL.md#p3-four-independent-reviews-report-back-before-anything-is-pushed).
-Wait for all four reports, fix every BLOCKING finding (or get the maintainer's decision on it), and only then continue.
+sub-sessions of [framework-pull-request rule P3](../SKILL.md#p3-four-independent-reviews-report-back-before-anything-is-pushed).
+Wait for all four reports, commit their numbered findings, and fix every BLOCKING finding (or get the maintainer's
+decision on it) and every SHOULD-FIX finding you accept. Then resume the sub-sessions with the fix commits
+([rule P3a](../SKILL.md#p3a-a-fix-is-re-verified-by-resuming-the-review-sub-sessions)), and continue only when none
+reports a BLOCKING finding.
 
 ### Step 5: Create the PR
 
@@ -100,15 +103,18 @@ gh pr create --title "feat: description here" --body "$(cat <<'EOF'
 
 ## Pull Request Contribution Terms
 
-- [X] I have read and agree to the contribution terms outlined in [CONTRIBUTING](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md).
+- [ ] I have read and agree to the contribution terms outlined in [CONTRIBUTING](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md).
 EOF
 )"
 ```
 
+The box is ticked (`- [X]`) only after the user has said they agree to the terms (rule P4).
+
 Push the branch first if needed (`git push -u origin <branch-name>`).
 
 A later push to the open PR (a fix, a merge from `main`, a rebase) goes through Step 4b again first: the checklist
-and the four reviews of the new diff, started automatically, before `git push`.
+and the four reviews of the new commits, before `git push`: the earlier sub-sessions resumed while they still can
+be, new ones started automatically otherwise.
 
 Return the PR URL when done.
 

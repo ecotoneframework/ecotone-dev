@@ -204,7 +204,9 @@ sat, and a part whose attributes differ is marked **changed**. The **Changes** l
 them with the attributes that differ, and pressing an entry brings its node into view. A node is matched by its id (the
 handler's explicit endpoint id, or its class and method when none is declared; the routing key; the channel name).
 Renaming a handler's class or method with an explicit endpoint id shows one changed node with unchanged arrows. Without
-an explicit endpoint id, the rename shows one removal and one addition. A service without a location, or with no stored version yet, is told how to set one up.
+an explicit endpoint id, the rename shows one removal and one addition. Adding or changing an endpoint id also
+shows one removal and one addition in the first comparison. A service without a location, or with no stored
+version yet, is told how to set one up.
 
 ## Catalogue pages and search
 

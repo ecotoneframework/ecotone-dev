@@ -4016,17 +4016,11 @@ removed and changed nodes and edges between the version stored most recently (or
 changes coloured; `--failOnChange` makes it fail when anything differs. `MessageFlowGraph::compareTo()` returns the
 same comparison as a `FlowComparison` in code. A node is matched by its id and an edge by its kind, ends and target.
 
-**Before:** a handler or scheduled method used its class and method as its node id, even with an explicit
-`endpointId`. Renaming either showed one removal and one addition.
-
-**Now:** an explicit endpoint id gives the node `handler:{endpointId}` or `scheduled:{endpointId}`. Renaming its
-class or method shows one changed node with unchanged arrows. Several handler attributes with different explicit
-endpoint ids produce separate nodes on the same method. Generated endpoint ids keep the class-and-method node id;
-a rename without an explicit endpoint id remains one removal and one addition.
-
-**How to adapt:** declare a stable `endpointId`, for example `#[CommandHandler(endpointId: 'order.place')]`, and
-keep it when renaming the class or method. Use the node id reported by the graph when constructing Pulse focus or
-catalogue links.
+An explicit `endpointId`, for example `#[CommandHandler(endpointId: 'order.place')]`, gives a handler the node id
+`handler:{endpointId}` and a scheduled method `scheduled:{endpointId}`. Keeping that id when renaming the class or
+method shows one changed node with unchanged arrows. Several handler attributes with different explicit endpoint
+ids produce separate nodes on the same method. Without an explicit endpoint id, a rename shows one removal and
+one addition. Adding or changing an endpoint id also shows one removal and one addition in the first comparison.
 
 A service that also registers `PulseConfiguration` answers `ecotone.pulse.flow_versions.list` (replying `queryId`,
 `configured` and `versions`, each with `label`, `storedAt`, `nodes` and `edges`) and

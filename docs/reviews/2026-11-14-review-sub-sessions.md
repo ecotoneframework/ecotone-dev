@@ -29,3 +29,8 @@ finding. The developer-experience session returned NO USER-FACING SURFACE.
 - V9 (should fix). P3 still opens with "start four separate review sessions" and the update-open-pr grader still
   expects fresh sessions, against P3a's resume on a later push. The eval re-run failed that grader (0.50).
 - V10 (nit). Whether a fix adds user-facing surface was left for the implementer to judge.
+
+## Third round (commit 5d9036842), and the maintainer's decision
+- V11 (nit). P3 said the agent "launches" the sessions, which reads as starting new ones only.
+- G5 (nit). The open-pr grader does not check that the numbered findings are committed. Left as is.
+- Maintainer: reviewers never run in a separate worktree; each is a session in the worktree of the change.

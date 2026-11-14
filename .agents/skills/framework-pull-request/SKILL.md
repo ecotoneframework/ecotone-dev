@@ -36,7 +36,7 @@ downstream suites for a core change, `php bin/check-licence.php`, `php bin/check
 ### P3. Four independent reviews report back before anything is pushed
 Before every `git push` and `gh pr create`, run **four separate review sessions** automatically, started for the
 first push of a branch and resumed for a later one while they still can be (rule P3a): the agent
-launches them itself, without asking whether to, every time the branch is about to be published. That includes a
+starts or resumes them itself, without asking whether to, every time the branch is about to be published. That includes a
 push to a pull request that is already open (new commits, a merge from `main`, a rebase), and a request worded
 "now", "just push" or "create the PR now", which asks for no further questions, not for no reviews (the
 P4 approval of the title, body and contribution terms is still asked for). Only the maintainer saying in so many
@@ -56,12 +56,15 @@ terms, and the skill to load:
 Each session reports numbered findings (G1, B1, V1, D1, ...) ranked BLOCKING / SHOULD-FIX / NIT with file and line.
 Commit the numbered lists before fixing anything (`framework-design-and-briefs` rule D4). The developer-experience
 session may instead return `NO USER-FACING SURFACE` with no findings, which is a complete report. Run them in
-parallel: the guidelines, breaking-changes and developer-experience sessions only read, and the behaviour session
-runs anything it executes in its own worktree (`git worktree add`), so no session changes the tree another is
-reading and no two test suites share the compose services. Keep the four sub-sessions open until the branch is
+parallel, all four as sub-sessions in the worktree the change was made in: no reviewer gets or creates a worktree
+of its own (`git worktree add`), and none edits, switches, stashes or resets the tree, so every session reads the
+same commit. The guidelines, breaking-changes and developer-experience sessions only read. The behaviour session
+may run tests and `bin/test-agent-skills` on the tree as it is, and is the only one that does: the implementing
+session runs no suite while the reviews are open, so no two test suites share the compose services. Keep the four sub-sessions open until the branch is
 pushed and the pull request is merged: rule P3a resumes them.
-- **Expected:** the agent runs four separate review sub-sessions (one per review skill), each started from a fresh
-  context or, for a later push, resumed, on its own, without asking; it waits for all four reports and commits
+- **Expected:** the agent runs four separate review sub-sessions (one per review skill) in the worktree of the
+  change, none in a worktree of its own, each started from a fresh context or, for a later push, resumed, on its
+  own, without asking; it waits for all four reports and commits
   their numbered findings before fixing or pushing, also when the PR is already open or the user asks for it "now";
   it does not review the change itself in place of them.
 - **Verified by:** `eval:open-pr`, `eval:update-open-pr`
@@ -73,8 +76,8 @@ yourself. A resumed session already holds the diff, the rules it loaded and its 
 given only the commits since the last one it verified (`git diff <last verified sha>..HEAD`) and asked two things:
 is each of its findings resolved, and does the new code break a rule it checks. Resume every session, also one
 that raised nothing or returned `NO USER-FACING SURFACE`, because the fix commits are new code no session has seen.
-A resumed behaviour session first moves its own worktree to the new head and runs the affected tests again (and
-`bin/test-agent-skills` when the fix touched a skill). Repeat after each further fix, until no session reports a
+A resumed behaviour session runs the affected tests again on the new head, which the shared worktree is already at
+(and `bin/test-agent-skills` when the fix touched a skill). Repeat after each further fix, until no session reports a
 BLOCKING finding; only then push. A session that can no longer be resumed is replaced by a new one, which is given
 the whole range (`git diff main...HEAD`) and the committed numbered findings. A later push to the same pull request
 resumes the same sub-sessions while they can still be resumed, and starts new ones otherwise; after a rebase or a

@@ -31,9 +31,11 @@ from the entry point an application uses to that outcome.
 - **Verified by:** `eval:review-diff-behaviour`
 
 ### V2. A test fails without the change
-Every claimed behaviour has a test that would be red on the base commit. Check it in a worktree of your own
-(`git worktree add`, revert the production change there, run the test there — never in the shared tree the other
-reviews read), or reason from the diff, and name tests that pass either way.
+Every claimed behaviour has a test that would be red on the base commit. Check it by reasoning from the diff: you
+review as a session in the worktree the other reviews read, so never revert, edit, switch or stash it and never
+create a worktree of your own (`git worktree add`) to do so. You may run a test on the tree as it is. Name tests
+that pass either way, and when the diff cannot show a test was red, report that as a finding asking the implementer
+for the red run.
 - **Expected:** the report names the test(s) proving each claim and flags any claim with no failing-first test.
 - **Verified by:** `eval:review-diff-behaviour`
 
@@ -58,7 +60,7 @@ A test using SQL on Ecotone tables, reflection, or a `src/` class proves the imp
 
 ### V7. Changed skills are evaluated, not only read
 CI checks a skill's format but never runs a model. When the diff touches `.agents/skills`, `api/skills`,
-`.agents/evals` or `api/evals`, run `bin/test-agent-skills` (in your own worktree) for the changed skills. Report
+`.agents/evals` or `api/evals`, run `bin/test-agent-skills` for the changed skills, on the tree as it is. Report
 each case's score and every failing grader as a finding: below the threshold is BLOCKING, and a failing grader
 names the rule it grades. Also check every new or changed rule has a grader in a case.
 - **Expected:** for a diff that changes a skill, the report contains `bin/test-agent-skills` scores per case and

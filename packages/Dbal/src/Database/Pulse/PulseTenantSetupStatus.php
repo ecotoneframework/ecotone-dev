@@ -52,4 +52,9 @@ final class PulseTenantSetupStatus implements PulseSnapshotSection
 
         return ['tenantTables' => $tables];
     }
+
+    public function revision(): ?string
+    {
+        return null;
+    }
 }

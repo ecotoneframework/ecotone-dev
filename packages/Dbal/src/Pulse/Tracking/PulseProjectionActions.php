@@ -91,10 +91,7 @@ final class PulseProjectionActions
             $run($projection, $tracingId);
         });
 
-        return json_encode([
-            ...json_decode($snapshot->snapshotJson($sourceService, $headers), true, flags: JSON_THROW_ON_ERROR),
-            $replyKey => ['tracingId' => $tracingId, 'projection' => $projection, 'mode' => $mode],
-        ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        return $snapshot->sectionsJson(sections: ['projections', 'gathering'], actionResult: [$replyKey => ['tracingId' => $tracingId, 'projection' => $projection, 'mode' => $mode]], sourceService: $sourceService, headers: $headers);
     }
 
     private function ensureInitialized(string $projection, string $verb): void

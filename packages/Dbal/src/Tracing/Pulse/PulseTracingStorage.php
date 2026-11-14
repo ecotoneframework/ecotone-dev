@@ -43,4 +43,9 @@ final class PulseTracingStorage implements PulseSnapshotSection
             'statsWindow' => PulseTracing::STATISTICS_WINDOW,
         ];
     }
+
+    public function revision(): ?string
+    {
+        return null;
+    }
 }

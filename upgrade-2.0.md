@@ -3766,7 +3766,7 @@ message flow, or how it is wired to other services.
 `overview` (Ecotone and PHP versions, framework, licence), the `flowGraph`, the distributed `topology` of the
 `DistributedServiceMap`s and the `channels` the service consumes: a list of `{name, kind}` with kind `async` for a
 pollable channel an `#[Asynchronous]` handler consumes and `queue` for a pollable channel no handler is bound to (the
-channels a Service Map only sends to are left out), which is what Pulse offers as a dead letter replay target. Only requests from the configured Pulse service are served; any other source fails the
+channels a Service Map only sends to are left out), which is what Pulse offers as a dead letter replay target. The reply also lists the digest of every section in `digests`; a request sent as `{"known": {"flowGraph": "<digest>"}}` leaves out each named section whose digest still matches, so a caller that keeps the sections asks again without receiving what did not change. Only requests from the configured Pulse service are served; any other source fails the
 handler with a message naming the expected service. The application needs an Enterprise licence and a service name, otherwise
 bootstrap is refused; registering `PulseConfiguration` twice is refused as well. The reply mapping to the Pulse service
 is implied: replies go to a channel named after the Pulse service, or to the one chosen with
@@ -3808,7 +3808,7 @@ The name is the distributed routing key; else the routing key the message was se
 
 Pulse acts on dead letters with the routing keys `ecotone.pulse.dead_letter.replay` (optionally with a `targetChannel`)
 and `ecotone.pulse.dead_letter.delete`, sending `{"messageIds": [...]}` or `{"filter": {"messageName": ...,
-"exceptionClass": ..., "failedFrom": ..., "failedTo": ...}}`, and receives a fresh snapshot as the reply.
+"exceptionClass": ..., "failedFrom": ..., "failedTo": ...}}`, and receives the `deadLetters` and `channels` sections as the reply, marked `partial: true` with their `digests`.
 
 A filter applies to every stored dead letter and matches the name shown in the snapshot. `failedFrom` and `failedTo` are
 inclusive at whole-second precision, and `failedFrom` later than `failedTo` is refused, as is an empty filter. A dead

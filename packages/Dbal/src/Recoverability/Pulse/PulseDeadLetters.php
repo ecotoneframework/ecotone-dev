@@ -75,4 +75,15 @@ final class PulseDeadLetters implements PulseSnapshotSection
 
         return ['total' => $this->store->count(), 'groups' => $groups, 'recent' => $recent];
     }
+
+    public function revision(): ?string
+    {
+        $newest = $this->store->listMessages(1, 0);
+        if ($newest === []) {
+            return 'empty';
+        }
+        $entry = PulseDeadLetterEntry::from($newest[0]);
+
+        return $this->store->count() . ' ' . $entry->messageId() . ' ' . $entry->failedAt()->format('U.u');
+    }
 }

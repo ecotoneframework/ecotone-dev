@@ -41,4 +41,9 @@ final class PulseGathering implements PulseSnapshotSection
 
         return ['groups' => $groups];
     }
+
+    public function revision(): ?string
+    {
+        return null;
+    }
 }

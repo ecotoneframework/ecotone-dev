@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gathering;
 
+use Closure;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\CollectedMessages;
@@ -72,23 +73,50 @@ final class CollectingMessageHandler implements MessageHandler
             $timeout => CollectedReleaseReason::MAX_WAIT,
             default => CollectedReleaseReason::SIZE_REACHED,
         };
-        $whenReleased = function (Message $original, array $parts, ?int $size, ?string $groupKey) use ($reason): void {
-            ksort($parts);
-            $payloads = [];
-            $headers = [];
-            foreach ($parts as $part) {
-                $payloads[] = $this->payloadOf($part);
-                $headers[] = $part->getHeaders()->headers();
-            }
-            $batch = new CollectedMessages(payloads: $payloads, headers: $headers, groupKey: $groupKey, size: count($payloads), releaseReason: $reason);
-            $this->handler->handle($this->messageBuilder->withPayload($batch)->setContentType(MediaType::createApplicationXPHPWithTypeParameter(CollectedMessages::class))->build());
-        };
+        $whenReleased = $this->whenReleased($reason);
         if ($timeout || $manualRelease) {
             if (! $this->store->releaseGroup($message->getHeaders()->get(GatheringHeaders::GROUP_ID), $whenReleased)) {
                 $this->redelivery->resend($message, $this->channelName);
             }
             return;
         }
+        $recorded = $this->store->collectMessage(
+            handler: $this->endpointId,
+            groupKey: $this->groupKeyFor($message),
+            gatherChannelName: $this->channelName,
+            maxSize: $this->maxSize,
+            message: $message,
+            deadline: $this->maxWait === null ? null : $this->clock->now()->unixTime()->inMilliseconds() + $this->maxWait,
+            whenOpened: $this->scheduleTimeout(...),
+            whenReleased: $whenReleased,
+        );
+        if (! $recorded) {
+            $this->redelivery->resend($message, $this->channelName);
+        }
+    }
+
+    private function whenReleased(CollectedReleaseReason $reason): Closure
+    {
+        return function (Message $original, array $parts, ?int $size, ?string $groupKey) use ($reason): void {
+            $this->invokeHandler(parts: $parts, groupKey: $groupKey, reason: $reason);
+        };
+    }
+
+    private function invokeHandler(array $parts, ?string $groupKey, CollectedReleaseReason $reason): void
+    {
+        ksort($parts);
+        $payloads = [];
+        $headers = [];
+        foreach ($parts as $part) {
+            $payloads[] = $this->payloadOf($part);
+            $headers[] = $part->getHeaders()->headers();
+        }
+        $batch = new CollectedMessages(payloads: $payloads, headers: $headers, groupKey: $groupKey, size: count($payloads), releaseReason: $reason);
+        $this->handler->handle($this->messageBuilder->withPayload($batch)->setContentType(MediaType::createApplicationXPHPWithTypeParameter(CollectedMessages::class))->build());
+    }
+
+    private function groupKeyFor(Message $message): ?string
+    {
         $groupKey = null;
         if ($this->groupBy->hasExpression()) {
             $key = $this->groupBy->execute($this->messageBuilder->fromMessage($message)->setPayload($this->payloadOf($message))->setContentType(MediaType::createApplicationXPHP())->build());
@@ -97,28 +125,20 @@ final class CollectingMessageHandler implements MessageHandler
             }
             $groupKey = (string) $key;
         }
-        $recorded = $this->store->collectMessage(
-            handler: $this->endpointId,
-            groupKey: $groupKey,
-            gatherChannelName: $this->channelName,
-            maxSize: $this->maxSize,
-            message: $message,
-            deadline: $this->maxWait === null ? null : $this->clock->now()->unixTime()->inMilliseconds() + $this->maxWait,
-            whenOpened: function (string $groupId): void {
-                if ($this->maxWait !== null) {
-                    $trigger = $this->messageBuilder->withPayload($groupId)
-                        ->setHeader(GatheringHeaders::GROUP_ID, $groupId)
-                        ->setHeader(GatheringHeaders::TIMEOUT, true)
-                        ->setHeader(MessageHeaders::DELIVERY_DELAY, $this->maxWait)
-                        ->build();
-                    $this->channelResolver->resolve($this->channelName)->send($trigger);
-                }
-            },
-            whenReleased: $whenReleased,
-        );
-        if (! $recorded) {
-            $this->redelivery->resend($message, $this->channelName);
+        return $groupKey;
+    }
+
+    private function scheduleTimeout(string $groupId): void
+    {
+        if ($this->maxWait === null) {
+            return;
         }
+        $trigger = $this->messageBuilder->withPayload($groupId)
+            ->setHeader(GatheringHeaders::GROUP_ID, $groupId)
+            ->setHeader(GatheringHeaders::TIMEOUT, true)
+            ->setHeader(MessageHeaders::DELIVERY_DELAY, $this->maxWait)
+            ->build();
+        $this->channelResolver->resolve($this->channelName)->send($trigger);
     }
 
     private function payloadOf(Message $message): mixed

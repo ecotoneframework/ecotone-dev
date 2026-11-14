@@ -103,7 +103,7 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
         $this->pulseHavingHeardFrom($client, ['storefront' => $this->distributedService('storefront', $storefront, DistributedServiceMap::initialize()->withCommandMapping('ticketing', $this->serviceChannels['ticketing'])), 'ticketing' => $this->ticketingAnsweringHolds()]);
 
         $diagram = Diagram::fromPage($client->request('GET', '/flow?view=detail'));
-        $focused = $this->labelsByService(Diagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('storefront:handler:' . $storefront::class . '::holdRequestedSeat'))));
+        $focused = $this->labelsByService(Diagram::fromPage($client->request('GET', '/flow?focus=' . urlencode('storefront:handler:hold_requested_seat'))));
 
         self::assertTrue($diagram->hasEdge('storefront', '::holdRequestedSeat', 'sends to ticketing', 'storefront', 'Distributed Bus', Diagram::DASHED));
         self::assertFalse($diagram->hasEdge('storefront', '::holdRequestedSeat', 'distributed message', 'ticketing', ''));

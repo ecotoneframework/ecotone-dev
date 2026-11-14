@@ -202,8 +202,11 @@ graph: the version stored most recently against the live flow by default, or any
 the later version has is marked **added**, a part only the earlier one has is marked **removed** and stays drawn where it
 sat, and a part whose attributes differ is marked **changed**. The **Changes** list under the graph names every one of
 them with the attributes that differ, and pressing an entry brings its node into view. A node is matched by its id (the
-handler's class and method, the routing key, the channel name), so a renamed class or method shows as one removal and one
-addition. A service without a location, or with no stored version yet, is told how to set one up.
+handler's explicit endpoint id, or its class and method when none is declared; the routing key; the channel name).
+Renaming a handler's class or method with an explicit endpoint id shows one changed node with unchanged arrows. Without
+an explicit endpoint id, the rename shows one removal and one addition. Adding or changing an endpoint id also
+shows one removal and one addition in the first comparison. A service without a location, or with no stored
+version yet, is told how to set one up.
 
 ## Catalogue pages and search
 

@@ -3610,6 +3610,18 @@ $ecotone->sendCommand(new PlaceOrder('1'));
 $recorder->recordedSpans(); // Span[] with traceId, spanId, parentSpanId, name, kind, status, attributes, events
 ```
 
+### One handler invocation produces one process span
+
+**Before:** with 1.x OpenTelemetry tracing, a method carrying handler attributes of more than one kind
+(command, query, event or internal) produced nested handler spans for each invocation, one per kind, because each
+kind registered its own interceptor.
+
+**Now:** one invocation produces one `process <Class::method>` span, with the endpoint id of the handler that ran.
+Each kind's endpoint still handles its own messages separately.
+
+**How to adapt:** update trace-count assertions, dashboards or alerts that counted every nested handler span of
+one invocation to expect one process span. No handler attribute change is required.
+
 ### Flow tracking answers "has it completed yet?" (Enterprise, `ecotone/dbal`)
 
 **Before:** an application that wrote through a command and then read through an asynchronous projection had no way
@@ -4014,8 +4026,13 @@ label again. `ecotone:flow:versions` lists them from the earliest stored. `ecoto
 removed and changed nodes and edges between the version stored most recently (or
 `--from`) and the current code (or the stored version `--to`), as text, `--format=json` or `--format=mermaid` with the
 changes coloured; `--failOnChange` makes it fail when anything differs. `MessageFlowGraph::compareTo()` returns the
-same comparison as a `FlowComparison` in code. A node is matched by its id and an edge by its kind, ends and target, so
-a renamed class or method is one removal and one addition.
+same comparison as a `FlowComparison` in code. A node is matched by its id and an edge by its kind, ends and target.
+
+An explicit `endpointId`, for example `#[CommandHandler(endpointId: 'order.place')]`, gives a handler the node id
+`handler:{endpointId}` and a scheduled method `scheduled:{endpointId}`. Keeping that id when renaming the class or
+method shows one changed node with unchanged arrows. Several handler attributes with different explicit endpoint
+ids produce separate nodes on the same method. Without an explicit endpoint id, a rename shows one removal and
+one addition. Adding or changing an endpoint id also shows one removal and one addition in the first comparison.
 
 A service that also registers `PulseConfiguration` answers `ecotone.pulse.flow_versions.list` (replying `queryId`,
 `configured` and `versions`, each with `label`, `storedAt`, `nodes` and `edges`) and

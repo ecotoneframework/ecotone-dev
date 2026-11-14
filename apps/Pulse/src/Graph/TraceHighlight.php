@@ -60,8 +60,9 @@ final readonly class TraceHighlight
                     continue;
                 }
                 $state = $row['failed'] ? self::FAILED : ($row['pending'] ? self::PENDING : self::PASSED);
+                $endpointIsKnown = array_filter($flow->graph->nodes(), fn (FlowNode $node) => self::endpointMatches($row, $node)) !== [];
                 foreach ($flow->graph->nodes() as $node) {
-                    if (self::spanPassesThrough($row, $node)) {
+                    if (self::spanPassesThrough($row, $node, $endpointIsKnown)) {
                         $states[$flow->name][$node->id] = self::stronger($states[$flow->name][$node->id] ?? null, $state);
                         $durations[$flow->name][$node->id] = max($durations[$flow->name][$node->id] ?? 0, $row['durationMicro']);
                         $matched[$rowIndex][] = [$flow->name, $node->id];
@@ -214,10 +215,10 @@ final readonly class TraceHighlight
     /**
      * @param array<string, mixed> $row
      */
-    private static function spanPassesThrough(array $row, FlowNode $node): bool
+    private static function spanPassesThrough(array $row, FlowNode $node, bool $endpointIsKnown): bool
     {
         $endpoint = $row['endpoint'];
-        if ($endpoint !== '' && ($node->attributes['endpointId'] ?? null) === $endpoint) {
+        if (self::endpointMatches($row, $node)) {
             return true;
         }
         if ($row['channel'] !== null) {
@@ -227,10 +228,22 @@ final readonly class TraceHighlight
             return 'send ' . $node->kind->value === $row['name'] && ServiceFlow::routingKeyOf($node) === $row['destination'];
         }
         if ($row['function'] !== null && $node->kind->isHandler() && isset($node->attributes['class'], $node->attributes['method'])) {
-            return $row['function'] === $node->attributes['class'] . '::' . $node->attributes['method'];
+            return $row['function'] === $node->attributes['class'] . '::' . $node->attributes['method']
+                && ! $endpointIsKnown
+                && ($endpoint === '' || ($node->attributes['endpointId'] ?? null) === null);
         }
 
         return false;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private static function endpointMatches(array $row, FlowNode $node): bool
+    {
+        return $row['endpoint'] !== '' && ($node->attributes['endpointId'] ?? null) === $row['endpoint']
+            && ($row['function'] === null || ! isset($node->attributes['class'], $node->attributes['method'])
+                || $row['function'] === $node->attributes['class'] . '::' . $node->attributes['method']);
     }
 
     private static function stronger(?string $current, string $candidate): string

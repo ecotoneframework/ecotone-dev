@@ -5,9 +5,19 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
 use DateTimeImmutable;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Environment;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Messaging\Flow\FlowVersionsConfiguration;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Scheduling\TimeSpan;
@@ -40,6 +50,135 @@ final class MessageFlowVersionsConsoleTest extends TestCase
             $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());
         }
         rmdir($this->location);
+    }
+
+    public function test_renaming_an_async_intercepted_saga_event_handler_keeps_every_arrow(): void
+    {
+        $saga = new #[Saga] class () {
+            #[Identifier]
+            private string $id = 'order';
+
+            #[Environment(['before'])]
+            #[Asynchronous('saga.events')]
+            #[EventHandler('saga.received', endpointId: 'saga.stable')]
+            public function receive(EventBus $bus): void
+            {
+                $bus->publishWithRouting('saga.forwarded', []);
+            }
+
+            #[Environment(['after'])]
+            #[Asynchronous('saga.events')]
+            #[EventHandler('saga.received', endpointId: 'saga.stable')]
+            public function renamed(EventBus $bus): void
+            {
+                $bus->publishWithRouting('saga.forwarded', []);
+            }
+        };
+        $interceptor = new class () {
+            #[Around(pointcut: EventHandler::class)]
+            public function intercept(MethodInvocation $invocation): mixed
+            {
+                return $invocation->proceed();
+            }
+        };
+        $before = EcotoneLite::bootstrapFlowTesting([$saga::class, $interceptor::class], [$interceptor], [SimpleMessageChannelBuilder::createQueueChannel('saga.events')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, environment: 'before')->getMessageFlowGraph();
+        $after = EcotoneLite::bootstrapFlowTesting([$saga::class, $interceptor::class], [$interceptor], [SimpleMessageChannelBuilder::createQueueChannel('saga.events')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, environment: 'after')->getMessageFlowGraph();
+        $handler = 'handler:saga.stable';
+
+        self::assertTrue($before->hasNode($handler));
+        self::assertTrue($after->hasNode($handler));
+        self::assertSame('saga:' . $saga::class, $before->node($handler)->attributes['owner']);
+        self::assertCount(1, $before->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS));
+        self::assertCount(1, $before->edgesOfKind(FlowEdgeKind::INTERCEPTED_BY, $handler));
+        self::assertCount(1, $before->edgesOfKind(FlowEdgeKind::EMITS, $handler, 'message:saga.forwarded'));
+        $comparison = $before->compareTo($after);
+        self::assertCount(1, $comparison->changedNodes);
+        self::assertSame([], $comparison->addedNodes);
+        self::assertSame([], $comparison->removedNodes);
+        self::assertSame([], $comparison->addedEdges);
+        self::assertSame([], $comparison->removedEdges);
+        self::assertSame([], $comparison->changedEdges);
+    }
+
+    public function test_renaming_an_explicit_endpoint_is_one_changed_node_with_unchanged_arrows(): void
+    {
+        $ecotone = $this->renamedEndpoint();
+        $ecotone->runConsoleCommand('ecotone:flow:compare');
+
+        $output = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
+        self::assertStringContainsString('Changed (1)', $output);
+        self::assertStringNotContainsString('Added (', $output);
+        self::assertStringNotContainsString('Removed (', $output);
+        self::assertStringContainsString('handler:flow.stable', $output);
+    }
+
+    public function test_renaming_an_explicit_endpoint_as_json_keeps_its_arrows(): void
+    {
+        $ecotone = $this->renamedEndpoint();
+        $ecotone->runConsoleCommand('ecotone:flow:compare', ['format' => 'json']);
+
+        $comparison = json_decode($ecotone->getInMemoryConsoleWriter()->getWrittenContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertCount(1, $comparison['changed']['nodes']);
+        self::assertSame([], $comparison['added']['nodes']);
+        self::assertSame([], $comparison['removed']['nodes']);
+        self::assertSame([], $comparison['added']['edges']);
+        self::assertSame([], $comparison['removed']['edges']);
+        self::assertSame([], $comparison['changed']['edges']);
+    }
+
+    public function test_renaming_an_explicit_endpoint_as_mermaid_marks_only_one_changed_node(): void
+    {
+        $ecotone = $this->renamedEndpoint();
+        $ecotone->runConsoleCommand('ecotone:flow:compare', ['format' => 'mermaid']);
+
+        $output = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
+        self::assertMatchesRegularExpression('/^    class n\d+ changed$/m', $output);
+        self::assertDoesNotMatchRegularExpression('/^    class .* (added|removed)$/m', $output);
+        self::assertStringNotContainsString('linkStyle', $output);
+    }
+
+    public function test_renaming_without_an_explicit_endpoint_removes_and_adds_a_node(): void
+    {
+        $before = new class () {
+            #[CommandHandler('flow.renamed')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+        $after = new class () {
+            #[CommandHandler('flow.renamed')]
+            public function renamed(string $payload): void
+            {
+            }
+        };
+        $earlier = EcotoneLite::bootstrapFlowTesting([$before::class], [$before], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $later = EcotoneLite::bootstrapFlowTesting([$after::class], [$after], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        $comparison = $earlier->compareTo($later);
+
+        self::assertCount(1, $comparison->removedNodes);
+        self::assertCount(1, $comparison->addedNodes);
+        self::assertSame([], $comparison->changedNodes);
+    }
+
+    private function renamedEndpoint(): FlowTestSupport
+    {
+        $before = new class () {
+            #[CommandHandler('flow.renamed', endpointId: 'flow.stable')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+        $after = new class () {
+            #[CommandHandler('flow.renamed', endpointId: 'flow.stable')]
+            public function renamed(string $payload): void
+            {
+            }
+        };
+        EcotoneLite::bootstrapFlowTesting([$before::class], [$before], extensionObjects: [FlowVersionsConfiguration::createWithLocation($this->location)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)
+            ->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
+
+        return EcotoneLite::bootstrapFlowTesting([$after::class], [$after], extensionObjects: [FlowVersionsConfiguration::createWithLocation($this->location)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
     public function test_a_stored_version_is_listed_with_its_label_and_the_time_it_was_stored(): void

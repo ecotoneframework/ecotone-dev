@@ -114,6 +114,22 @@ slot and release the batch; replay of the failed message then starts or joins a 
 a failed timeout leaves its batch open past the deadline, collecting more messages until a release succeeds.
 Manual release behaves the same way. A delayed retry can therefore see more messages than the first attempt.
 
+With `DbalConfiguration::withTransactionOnAsynchronousEndpoints(false)`, or `#[WithoutDatabaseTransaction]` on the
+collected handler, collecting runs without a transaction, and you lose these guarantees:
+
+- a failing collected handler leaves its batch released, and a retry or a replay from the dead letter does not run
+  the handler again, because the message is already recorded and its batch is closed, so that batch is lost;
+- a process that stops between counting a message and storing it counts a message the batch does not contain, so
+  that batch releases with fewer messages than `maxSize`;
+- a batch whose `maxWait` timeout fails to send after the batch was stored stays open with no timeout, and its retry
+  does not send one; release it with `ecotone:gathering:release`;
+- a lost optimistic write is not retried by default and goes straight to the error channel.
+
+Keep the asynchronous endpoint transaction on for collected handlers whose batches must not be lost. To run other
+endpoints without it, keep it on globally and switch it off only for those endpoints with
+`#[WithoutDatabaseTransaction]`. Flow tests without DBAL keep batches in memory and restore a batch when its
+handler fails, so there a retry runs the handler again even without a transaction.
+
 ## Storage and channel setup
 
 Install `ecotone/dbal`, configure its connection and enable `ModulePackageList::DBAL_PACKAGE` (or `dbal` in your
@@ -138,6 +154,8 @@ A stale timeout for an already closed batch has no effect on a later batch of th
 Several consumers adding to one key can conflict. A lost optimistic write throws `ConcurrencyException`.
 Asynchronous endpoints running in a DBAL transaction retry instantly by default, each retry in a new transaction.
 The message keeps its own id, so redelivery cannot add it twice while its batch is retained.
+An endpoint running without a database transaction is not retried by default: the message goes to the error
+channel. Turn its transaction back on, or configure delayed retries with `ErrorHandlerConfiguration`.
 
 With several consumers on one hot key, the default three retries can run out and messages then wait in the dead
 letter until replayed, after the configured error channel and delayed retries. Raise the attempts with

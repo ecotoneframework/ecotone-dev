@@ -88,6 +88,7 @@ gathered handler, gathering runs without a transaction, and you lose these guara
 - a process that stops between recording the arrival and storing the part can count a redelivered part twice;
 - a split whose timeout or empty-split trigger fails to send after its group was stored leaves that group open with
   no trigger, and its retry does not send one; release it with `ecotone:gathering:release`.
+- a report that loses an optimistic write is not retried by default and goes straight to the error channel.
 
 Keep the asynchronous endpoint transaction on for gathered handlers whose result must not be lost. To run other
 endpoints without it, keep it on globally and switch it off only for those endpoints with
@@ -166,6 +167,9 @@ a gathered handler configures a timeout.
 Several consumers recording reports for one group can conflict. A lost optimistic write throws
 `ConcurrencyException`; asynchronous endpoints running in a DBAL transaction retry instantly by default, each
 retry in a new transaction. This retries recording the report, without re-running the part work.
+An endpoint running without a database transaction (`withTransactionOnAsynchronousEndpoints(false)` or
+`#[WithoutDatabaseTransaction]`) is not retried by default: the conflicting report goes to the error channel.
+Turn its transaction back on, or configure delayed retries with `ErrorHandlerConfiguration`.
 
 With several consumers on one hot group, the default three retries can run out. The message then follows the
 configured error channel and delayed retries and can wait in the dead letter until replayed. Raise the instant

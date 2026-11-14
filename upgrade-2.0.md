@@ -3976,7 +3976,8 @@ flow through a command/event bus hop.
 
 ### Gathering conflicts use the framework retry strategy
 
-**Before:** A gathering conflict created a replacement report with a new id and did not use the failure retry budget.
+**Before:** A gathering conflict created a replacement report with a new id and did not use the failure retry budget,
+on every endpoint, including one running without a database transaction.
 
 **Now:** A lost optimistic write throws `ConcurrencyException`. Transactional asynchronous endpoints use their
 existing default instant retries in fresh transactions. Exhaustion follows the configured error channel, delayed
@@ -3986,6 +3987,11 @@ retries and dead letter; replay retries the original message. Collecting uses th
 raise attempts with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 5)`, or
 run one consumer on the gathered/collected handler's channel, giving that handler its own channel when needed.
 Replay messages waiting in the dead letter once contention clears.
+
+An endpoint running without a database transaction (`DbalConfiguration::withTransactionOnAsynchronousEndpoints(false)`
+or `#[WithoutDatabaseTransaction]`) gets no default instant retries, so a conflict there now goes straight to the
+error channel instead of being re-sent. Turn the endpoint transaction back on for gathered handlers, or configure
+delayed retries with `ErrorHandlerConfiguration`.
 
 ### Collect ordinary messages into a batch (Enterprise)
 

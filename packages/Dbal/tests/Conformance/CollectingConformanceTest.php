@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -1472,6 +1473,89 @@ final class CollectingConformanceTest extends TestCase
         self::assertCount(1, $handler->batches);
         self::assertSame(['first', 'second'], array_column($handler->batches[0]->messages, 'payload'));
         self::assertSame(['first', 'second'], $handler->ordinary);
+    }
+
+    public function test_collected_handler_runs_without_a_transaction_when_asynchronous_endpoints_run_without_one(): void
+    {
+        $handler = new class () {
+            public DbalConnectionFactory $connectionFactory;
+            public array $transactionActive = [];
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->transactionActive[] = $this->connectionFactory->createContext()->getDbalConnection()->isTransactionActive();
+            }
+        };
+        $handler->connectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN'));
+        $ecotone = $this->bootstrapWithoutTransaction(handler: $handler, connectionFactory: $handler->connectionFactory);
+
+        $ecotone->sendCommandWithRouting('collect', 'first');
+        $ecotone->run('batches');
+        $ecotone->sendCommandWithRouting('collect', 'second');
+        $ecotone->run('batches');
+
+        self::assertSame([false], $handler->transactionActive);
+    }
+
+    public function test_failing_collected_handler_without_a_transaction_leaves_its_batch_released_without_running_it_again(): void
+    {
+        $handler = new class () {
+            public array $attempts = [];
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->attempts[] = array_column($batch->messages, 'payload');
+                if (count($this->attempts) === 1) {
+                    throw new RuntimeException('temporarily unavailable');
+                }
+            }
+        };
+        $ecotone = $this->bootstrapWithoutTransaction(handler: $handler, connectionFactory: new DbalConnectionFactory(getenv('DATABASE_DSN')));
+        $groups = $ecotone->getGateway(GatheredGroups::class);
+        $previous = array_column($groups->listClosedBatches('collect.handler'), 'groupId');
+
+        $ecotone->sendCommandWithRouting('collect', 'first');
+        $ecotone->run('batches');
+        $ecotone->sendCommandWithRouting('collect', 'second');
+        try {
+            $ecotone->run('batches', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+            self::fail();
+        } catch (RuntimeException $failure) {
+            self::assertSame('temporarily unavailable', $failure->getMessage());
+        }
+        $ecotone->run('batches');
+
+        self::assertSame([['first', 'second']], $handler->attempts);
+        self::assertSame([], $groups->listOpenBatches('collect.handler'));
+        $closed = array_values(array_filter($groups->listClosedBatches('collect.handler'), static fn (array $batch): bool => ! in_array($batch['groupId'], $previous, true)));
+        self::assertCount(1, $closed);
+        self::assertSame(CollectedReleaseReason::MAX_SIZE_REACHED->value, $closed[0]['releaseReason']);
+    }
+
+    private function bootstrapWithoutTransaction(object $handler, DbalConnectionFactory $connectionFactory): FlowTestSupport
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $connectionFactory],
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(false),
+                SimpleMessageChannelBuilder::createQueueChannel('batches', isAutoAcked: false),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
+        );
+        foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler') as $batch) {
+            $ecotone->getGateway(GatheredGroups::class)->discard($batch['groupId']);
+        }
+        return $ecotone;
     }
 
     private function bootstrapSerialized(object $handler): FlowTestSupport

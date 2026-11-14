@@ -3533,6 +3533,63 @@ final class GatheringConformanceTest extends TestCase
         })->value, $result['reason']);
     }
 
+    public function test_gathering_conflict_on_an_endpoint_without_the_framework_transaction_reaches_the_error_channel_without_a_retry(): void
+    {
+        if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
+        }
+        $channels = [SimpleMessageChannelBuilder::createQueueChannel('gathering_release'), SimpleMessageChannelBuilder::createQueueChannel('gathering_release_workers')];
+        $other = self::releaseApplication([], $channels);
+        $testId = bin2hex(random_bytes(16));
+        $other->getGateway(DocumentStore::class)->addDocument('gathering_snapshot', $testId, '{"ready":true}');
+        $other->sendCommandWithRouting('split', [10, 20], metadata: ['testId' => $testId]);
+        $other->run('gathering_release_workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+        $connectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN'));
+        $connectionFactory->establishConnection()->setTransactionIsolation(TransactionIsolationLevel::REPEATABLE_READ);
+        $interceptor = new class ($other, $testId, $connectionFactory) {
+            public bool $interleaved = false;
+            public array $messageIds = [];
+
+            public function __construct(private FlowTestSupport $other, private string $testId, private DbalConnectionFactory $connectionFactory)
+            {
+            }
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
+            public function recordPartAfterOwnSnapshot(MethodInvocation $invocation, Message $message, #[Reference] DocumentStore $documents): mixed
+            {
+                $this->messageIds[] = $message->getHeaders()->getMessageId();
+                if ($this->interleaved) {
+                    return $invocation->proceed();
+                }
+                $connection = $this->connectionFactory->createContext()->getDbalConnection();
+                $connection->beginTransaction();
+                try {
+                    $documents->getDocument('gathering_snapshot', $this->testId);
+                    $this->other->run('gathering_release_workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+                    $this->other->run('gathering_release', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+                    $this->interleaved = true;
+                    $result = $invocation->proceed();
+                    $connection->commit();
+
+                    return $result;
+                } catch (Throwable $failure) {
+                    $connection->rollBack();
+                    throw $failure;
+                }
+            }
+        };
+        $consumer = self::releaseApplication(additionalServices: [$interceptor], channels: [...$channels, DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(false), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter')], connectionFactory: $connectionFactory);
+        $consumer->run('gathering_release', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false)->withExecutionAmountLimit(1));
+
+        self::assertTrue($interceptor->interleaved);
+        self::assertCount(1, $interceptor->messageIds);
+        $failure = array_values(array_filter($consumer->getGateway(DeadLetterGateway::class)->list(1000, 0), static fn ($failure): bool => $failure->getMessageId() === $interceptor->messageIds[0]));
+        self::assertCount(1, $failure);
+        self::assertSame(ConcurrencyException::class, $failure[0]->getExceptionClass());
+        self::assertStringContainsString('An endpoint running without a database transaction (DbalConfiguration::withTransactionOnAsynchronousEndpoints(false) or #[WithoutDatabaseTransaction]) is not retried by default: turn its transaction back on, or configure delayed retries with ErrorHandlerConfiguration', $failure[0]->getMessage());
+        self::assertNull($consumer->getGateway(DocumentStore::class)->findDocument('gathering_release', $testId));
+    }
+
     public static function conflictingGroupOperations(): iterable
     {
         yield 'manual' => ['manual'];
@@ -3600,7 +3657,7 @@ final class GatheringConformanceTest extends TestCase
         );
     }
 
-    private static function releaseApplication(array $additionalServices, array $channels): FlowTestSupport
+    private static function releaseApplication(array $additionalServices, array $channels, ?DbalConnectionFactory $connectionFactory = null): FlowTestSupport
     {
         $handler = new class () {
             #[CommandHandler('split', outputChannelName: 'parts')]
@@ -3632,7 +3689,7 @@ final class GatheringConformanceTest extends TestCase
         };
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, ...array_map(static fn (object $service): string => $service::class, $additionalServices)],
-            containerOrAvailableServices: [$handler, ...$additionalServices, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            containerOrAvailableServices: [$handler, ...$additionalServices, DbalConnectionFactory::class => $connectionFactory ?? new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: $channels,
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: self::ENTERPRISE_LICENCE,

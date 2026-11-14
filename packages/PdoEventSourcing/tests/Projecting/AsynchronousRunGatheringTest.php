@@ -61,8 +61,7 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 {
     public function test_asynchronous_rebuild_completes_once_when_every_batch_was_executed(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->rebuiltAsynchronously();
         $ecotone = $this->bootstrapWithAccounts([$projection], 5);
 
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_names']);
@@ -77,14 +76,13 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
         $closed = $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('account_names.rebuild');
         self::assertCount(1, $closed);
         self::assertSame([3, 3, [], GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR->value], [$closed[0]['expectedSize'], $closed[0]['recorded'], $closed[0]['missingPartNumbers'], $closed[0]['releaseReason']]);
-        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3', '4' => 'Account 4', '5' => 'Account 5'], $projection->sortedNames());
-        self::assertSame(5, $projection->resets);
+        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3', '4' => 'Account 4', '5' => 'Account 5'], $projection->accounts->sortedNames());
+        self::assertSame(5, $projection->accounts->resets);
     }
 
     public function test_asynchronous_backfill_completes_once_when_every_batch_was_executed(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->backfilledAsynchronously();
         $ecotone = $this->bootstrapWithAccounts([$projection], 3);
         $ecotone->deleteProjection('account_names');
         $ecotone->initializeProjection('account_names');
@@ -97,13 +95,12 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
         self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_names.backfill'));
         self::assertSame([[2, 2, GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR->value]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded'], $group['releaseReason']], $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('account_names.backfill')));
-        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3'], $projection->sortedNames());
+        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3'], $projection->accounts->sortedNames());
     }
 
     public function test_empty_projection_rebuild_completes_once_its_completion_is_consumed(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->rebuiltAsynchronously();
         $ecotone = $this->bootstrapWithAccounts([$projection], 0);
 
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_names']);
@@ -118,8 +115,7 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
     public function test_rebuild_of_a_projection_with_an_open_run_opens_its_own_group(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->rebuiltAsynchronously();
         $ecotone = $this->bootstrapWithAccounts([$projection], 3);
 
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_names']);
@@ -133,21 +129,19 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
         self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_names.rebuild'));
         self::assertSame([[2, 2], [2, 2]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded']], $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('account_names.rebuild')));
-        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3'], $projection->sortedNames());
+        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3'], $projection->accounts->sortedNames());
     }
 
     public function test_synchronous_rebuild_is_unchanged(): void
     {
-        $synchronous = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
-        $asynchronous = new #[Projection('other_account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $synchronous = $this->rebuiltSynchronously();
+        $asynchronous = $this->otherRebuiltAsynchronously();
         $ecotone = $this->bootstrapWithAccounts([$synchronous, $asynchronous], 3);
 
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_names']);
 
-        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3'], $synchronous->sortedNames());
-        self::assertSame(3, $synchronous->resets);
+        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3'], $synchronous->accounts->sortedNames());
+        self::assertSame(3, $synchronous->accounts->resets);
         self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('other_account_names.rebuild'));
         $this->expectExceptionMessage("No gathered or collected handler has endpointId 'account_names.rebuild'");
         $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_names.rebuild');
@@ -155,14 +149,13 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
     public function test_completion_can_be_consumed_from_a_separate_channel(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel', completionChannelName: 'completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->rebuiltWithCompletionChannel();
         $ecotone = $this->bootstrapWithAccounts([$projection], 3);
 
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_names']);
         $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
-        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3'], $projection->sortedNames());
+        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3'], $projection->accounts->sortedNames());
         self::assertSame([[2, 0]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded']], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_names.rebuild')));
 
         $ecotone->run('completion_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
@@ -173,8 +166,7 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
     public function test_backfill_completion_can_be_consumed_from_a_separate_channel(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_channel', completionChannelName: 'completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->backfilledWithCompletionChannel();
         $ecotone = $this->bootstrapWithAccounts([$projection], 3);
 
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'account_names']);
@@ -189,8 +181,7 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
     public function test_rebuild_completion_channel_without_asynchronous_rebuild_is_refused_at_bootstrap(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, completionChannelName: 'completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->rebuiltSynchronouslyWithCompletionChannel();
 
         $this->expectExceptionMessage('#[ProjectionRebuild] names completionChannelName \'completion_channel\' but no asyncChannelName, so the rebuild runs in the calling process and there is no asynchronous completion to consume. Add asyncChannelName to run the rebuild asynchronously, or remove completionChannelName.');
 
@@ -199,8 +190,7 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
     public function test_backfill_completion_channel_without_asynchronous_backfill_is_refused_at_bootstrap(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionBackfill(completionChannelName: 'completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->backfilledSynchronouslyWithCompletionChannel();
 
         $this->expectExceptionMessage('#[ProjectionBackfill] names completionChannelName \'completion_channel\' but no asyncChannelName, so the backfill runs in the calling process and there is no asynchronous completion to consume. Add asyncChannelName to run the backfill asynchronously, or remove completionChannelName.');
 
@@ -209,8 +199,7 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
     public function test_application_endpoint_id_equal_to_a_run_endpoint_id_is_refused_at_bootstrap(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->rebuiltAsynchronously();
         $handler = new class () {
             #[CommandHandler('account.audit', endpointId: 'account_names.rebuild')]
             public function audit(): void
@@ -225,10 +214,9 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
     public function test_failed_batch_stays_missing_until_it_is_replayed_from_the_dead_letter(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->rebuiltAsynchronously();
         $ecotone = $this->bootstrapWithAccounts([$projection], 5, [ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter')]);
-        $projection->failOn = '3';
+        $projection->accounts->failOn = '3';
 
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_names']);
         $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
@@ -241,28 +229,26 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
     public function test_replayed_batch_completes_the_rebuild(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->rebuiltAsynchronously();
         $ecotone = $this->bootstrapWithAccounts([$projection], 5, [ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter')]);
-        $projection->failOn = '3';
+        $projection->accounts->failOn = '3';
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_names']);
         $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
-        $projection->failOn = null;
+        $projection->accounts->failOn = null;
         $ecotone->getGateway(DeadLetterGateway::class)->replayAll();
         $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_names.rebuild'));
         self::assertSame([[3, 3, GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR->value]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded'], $group['releaseReason']], $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('account_names.rebuild')));
-        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3', '4' => 'Account 4', '5' => 'Account 5'], $projection->sortedNames());
+        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3', '4' => 'Account 4', '5' => 'Account 5'], $projection->accounts->sortedNames());
     }
 
     public function test_batch_failing_after_its_first_partition_is_not_counted_as_done(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->rebuiltAsynchronously();
         $ecotone = $this->bootstrapWithAccounts([$projection], 2, [ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter')]);
-        $projection->failOn = '2';
+        $projection->accounts->failOn = '2';
 
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_names']);
         $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
@@ -274,22 +260,21 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
     #[RequiresPhpExtension('posix')]
     public function test_stop_signal_during_a_rebuild_batch_lets_the_batch_finish_and_leaves_the_next_batch_on_the_channel(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->rebuiltAsynchronously();
         $ecotone = $this->bootstrapWithAccounts([$projection], 3);
-        $projection->stopOn = '1';
+        $projection->accounts->stopOn = '1';
 
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_names']);
         $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
-        self::assertSame(2, $projection->resets);
-        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3'], $projection->sortedNames());
+        self::assertSame(2, $projection->accounts->resets);
+        self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3'], $projection->accounts->sortedNames());
         self::assertSame([[2, 0, [1, 2]]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded'], $group['missingPartNumbers']], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_names.rebuild')));
 
-        $projection->stopOn = null;
+        $projection->accounts->stopOn = null;
         $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
-        self::assertSame(3, $projection->resets);
+        self::assertSame(3, $projection->accounts->resets);
         self::assertSame([[2, 2]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded']], $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('account_names.rebuild')));
     }
 
@@ -297,27 +282,25 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
     #[RequiresPhpExtension('posix')]
     public function test_stop_signal_during_a_backfill_batch_lets_each_partition_of_the_batch_finish(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionExecution(eventLoadingBatchSize: 1), ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->backfilledOneEventAtATime();
         $ecotone = $this->bootstrapWithAccounts([$projection], 3);
         foreach (['1', '2', '3'] as $account) {
             $ecotone->sendCommand(new RenameGatheredRunAccount($account, "Renamed {$account}"));
         }
         $ecotone->deleteProjection('account_names');
         $ecotone->initializeProjection('account_names');
-        $projection->stopOn = '1';
+        $projection->accounts->stopOn = '1';
 
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'account_names']);
         $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
-        self::assertSame(['1' => 'Renamed 1', '2' => 'Renamed 2'], $projection->sortedNames());
+        self::assertSame(['1' => 'Renamed 1', '2' => 'Renamed 2'], $projection->accounts->sortedNames());
         self::assertSame([[2, 0, [1, 2]]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded'], $group['missingPartNumbers']], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_names.backfill')));
     }
 
     public function test_run_group_survives_application_restart(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'durable_rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->rebuiltOnDurableChannel();
         $this->bootstrapWithAccounts([$projection], 3, [DbalBackedMessageChannelBuilder::create('durable_rebuild_channel')])
             ->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_names']);
 
@@ -330,8 +313,7 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
     public function test_asynchronous_rebuild_with_dbal_is_accepted_without_test_configuration(): void
     {
-        $projection = new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class () extends GatheredRunAccountNames {
-        };
+        $projection = $this->rebuiltAsynchronously();
 
         $ecotone = EcotoneLite::bootstrap(
             classesToResolve: [$projection::class, GatheredRunAccount::class],
@@ -342,6 +324,44 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
         );
 
         self::assertInstanceOf(GatheredGroups::class, $ecotone->getServiceFromContainer(GatheredGroups::class));
+    }
+
+    public function test_rebuild_of_a_projection_reading_two_streams_counts_the_batches_of_both_and_completes_once(): void
+    {
+        $projection = new #[Projection('account_and_wallet_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class), FromAggregateStream(GatheredRunWallet::class)] class () {
+            public array $names = [];
+
+            #[EventHandler]
+            public function whenAccountOpened(GatheredRunAccountOpened $event): void
+            {
+                $this->names[$event->accountId] = $event->name;
+            }
+
+            #[EventHandler]
+            public function whenWalletOpened(GatheredRunWalletOpened $event): void
+            {
+                $this->names[$event->walletId] = $event->name;
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionAggregateId] string $id): void
+            {
+                unset($this->names[$id]);
+            }
+        };
+        $ecotone = $this->bootstrapWithAccounts([$projection], 3);
+        $ecotone->sendCommand(new OpenGatheredRunWallet('wallet-1', 'Wallet 1'));
+        $ecotone->sendCommand(new OpenGatheredRunWallet('wallet-2', 'Wallet 2'));
+
+        $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_and_wallet_names']);
+
+        self::assertSame([[3, 0]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded']], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_and_wallet_names.rebuild')));
+
+        $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_and_wallet_names.rebuild'));
+        self::assertSame([[3, 3]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded']], $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('account_and_wallet_names.rebuild')));
+        self::assertCount(5, $projection->names);
     }
 
     private function bootstrapWithAccounts(array $projections, int $accounts, array $extensionObjects = []): FlowTestSupport
@@ -360,6 +380,18 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
             }
 
             #[Converter]
+            public function fromWalletOpened(GatheredRunWalletOpened $event): array
+            {
+                return ['walletId' => $event->walletId, 'name' => $event->name];
+            }
+
+            #[Converter]
+            public function toWalletOpened(array $event): GatheredRunWalletOpened
+            {
+                return new GatheredRunWalletOpened($event['walletId'], $event['name']);
+            }
+
+            #[Converter]
             public function fromRenamed(GatheredRunAccountRenamed $event): array
             {
                 return ['accountId' => $event->accountId, 'name' => $event->name];
@@ -372,7 +404,7 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
             }
         };
         $ecotone = $this->bootstrapFlowTesting(
-            classesToResolve: [...array_map(static fn (object $projection): string => $projection::class, $projections), $converter::class, GatheredRunAccount::class],
+            classesToResolve: [...array_map(static fn (object $projection): string => $projection::class, $projections), $converter::class, GatheredRunAccount::class, GatheredRunWallet::class],
             containerOrAvailableServices: [...$projections, $converter, self::getConnectionFactory()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('rebuild_channel'), SimpleMessageChannelBuilder::createQueueChannel('backfill_channel'), SimpleMessageChannelBuilder::createQueueChannel('completion_channel'), DbalConfiguration::createWithDefaults(), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
@@ -383,57 +415,382 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
             $ecotone->sendCommand(new OpenGatheredRunAccount((string) $account, "Account {$account}"));
         }
         foreach ($projections as $projection) {
-            $projection->resets = 0;
+            if (property_exists($projection, 'accounts')) {
+                $projection->accounts->resets = 0;
+            }
         }
 
         return $ecotone;
     }
-}
 
-abstract class GatheredRunAccountNames
-{
-    public array $names = [];
-    public int $resets = 0;
-    public ?string $failOn = null;
-    public ?string $stopOn = null;
-
-    #[EventHandler]
-    public function whenOpened(GatheredRunAccountOpened $event): void
+    private function rebuiltAsynchronously(): object
     {
-        if ($event->accountId === $this->failOn) {
-            throw new RuntimeException("Account {$event->accountId} cannot be projected");
-        }
-        if ($event->accountId === $this->stopOn) {
-            posix_kill(posix_getpid(), SIGTERM);
-        }
-        $this->names[$event->accountId] = $event->name;
+        return new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+            public function __construct(public readonly object $accounts)
+            {
+            }
+
+            #[EventHandler]
+            public function whenOpened(GatheredRunAccountOpened $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[EventHandler]
+            public function whenRenamed(GatheredRunAccountRenamed $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionAggregateId] string $accountId): void
+            {
+                $this->accounts->reset($accountId);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->accounts->delete();
+            }
+        };
     }
 
-    #[EventHandler]
-    public function whenRenamed(GatheredRunAccountRenamed $event): void
+    private function backfilledAsynchronously(): object
     {
-        $this->names[$event->accountId] = $event->name;
+        return new #[Projection('account_names'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+            public function __construct(public readonly object $accounts)
+            {
+            }
+
+            #[EventHandler]
+            public function whenOpened(GatheredRunAccountOpened $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[EventHandler]
+            public function whenRenamed(GatheredRunAccountRenamed $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionAggregateId] string $accountId): void
+            {
+                $this->accounts->reset($accountId);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->accounts->delete();
+            }
+        };
     }
 
-    #[ProjectionReset]
-    public function reset(#[PartitionAggregateId] string $accountId): void
+    private function rebuiltSynchronously(): object
     {
-        unset($this->names[$accountId]);
-        $this->resets++;
+        return new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+            public function __construct(public readonly object $accounts)
+            {
+            }
+
+            #[EventHandler]
+            public function whenOpened(GatheredRunAccountOpened $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[EventHandler]
+            public function whenRenamed(GatheredRunAccountRenamed $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionAggregateId] string $accountId): void
+            {
+                $this->accounts->reset($accountId);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->accounts->delete();
+            }
+        };
     }
 
-    #[ProjectionDelete]
-    public function delete(): void
+    private function otherRebuiltAsynchronously(): object
     {
-        $this->names = [];
+        return new #[Projection('other_account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+            public function __construct(public readonly object $accounts)
+            {
+            }
+
+            #[EventHandler]
+            public function whenOpened(GatheredRunAccountOpened $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[EventHandler]
+            public function whenRenamed(GatheredRunAccountRenamed $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionAggregateId] string $accountId): void
+            {
+                $this->accounts->reset($accountId);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->accounts->delete();
+            }
+        };
     }
 
-    public function sortedNames(): array
+    private function rebuiltWithCompletionChannel(): object
     {
-        $names = $this->names;
-        ksort($names);
+        return new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel', completionChannelName: 'completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+            public function __construct(public readonly object $accounts)
+            {
+            }
 
-        return $names;
+            #[EventHandler]
+            public function whenOpened(GatheredRunAccountOpened $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[EventHandler]
+            public function whenRenamed(GatheredRunAccountRenamed $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionAggregateId] string $accountId): void
+            {
+                $this->accounts->reset($accountId);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->accounts->delete();
+            }
+        };
+    }
+
+    private function backfilledWithCompletionChannel(): object
+    {
+        return new #[Projection('account_names'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_channel', completionChannelName: 'completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+            public function __construct(public readonly object $accounts)
+            {
+            }
+
+            #[EventHandler]
+            public function whenOpened(GatheredRunAccountOpened $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[EventHandler]
+            public function whenRenamed(GatheredRunAccountRenamed $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionAggregateId] string $accountId): void
+            {
+                $this->accounts->reset($accountId);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->accounts->delete();
+            }
+        };
+    }
+
+    private function rebuiltSynchronouslyWithCompletionChannel(): object
+    {
+        return new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, completionChannelName: 'completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+            public function __construct(public readonly object $accounts)
+            {
+            }
+
+            #[EventHandler]
+            public function whenOpened(GatheredRunAccountOpened $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[EventHandler]
+            public function whenRenamed(GatheredRunAccountRenamed $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionAggregateId] string $accountId): void
+            {
+                $this->accounts->reset($accountId);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->accounts->delete();
+            }
+        };
+    }
+
+    private function backfilledSynchronouslyWithCompletionChannel(): object
+    {
+        return new #[Projection('account_names'), Partitioned, ProjectionBackfill(completionChannelName: 'completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+            public function __construct(public readonly object $accounts)
+            {
+            }
+
+            #[EventHandler]
+            public function whenOpened(GatheredRunAccountOpened $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[EventHandler]
+            public function whenRenamed(GatheredRunAccountRenamed $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionAggregateId] string $accountId): void
+            {
+                $this->accounts->reset($accountId);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->accounts->delete();
+            }
+        };
+    }
+
+    private function backfilledOneEventAtATime(): object
+    {
+        return new #[Projection('account_names'), Partitioned, ProjectionExecution(eventLoadingBatchSize: 1), ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+            public function __construct(public readonly object $accounts)
+            {
+            }
+
+            #[EventHandler]
+            public function whenOpened(GatheredRunAccountOpened $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[EventHandler]
+            public function whenRenamed(GatheredRunAccountRenamed $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionAggregateId] string $accountId): void
+            {
+                $this->accounts->reset($accountId);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->accounts->delete();
+            }
+        };
+    }
+
+    private function rebuiltOnDurableChannel(): object
+    {
+        return new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'durable_rebuild_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+            public function __construct(public readonly object $accounts)
+            {
+            }
+
+            #[EventHandler]
+            public function whenOpened(GatheredRunAccountOpened $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[EventHandler]
+            public function whenRenamed(GatheredRunAccountRenamed $event): void
+            {
+                $this->accounts->project($event->accountId, $event->name);
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionAggregateId] string $accountId): void
+            {
+                $this->accounts->reset($accountId);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->accounts->delete();
+            }
+        };
+    }
+
+    private function accounts(): object
+    {
+        return new class () {
+            public array $names = [];
+            public int $resets = 0;
+            public ?string $failOn = null;
+            public ?string $stopOn = null;
+
+            public function project(string $accountId, string $name): void
+            {
+                if ($accountId === $this->failOn) {
+                    throw new RuntimeException("Account {$accountId} cannot be projected");
+                }
+                if ($accountId === $this->stopOn) {
+                    posix_kill(posix_getpid(), SIGTERM);
+                }
+                $this->names[$accountId] = $name;
+            }
+
+            public function reset(string $accountId): void
+            {
+                unset($this->names[$accountId]);
+                $this->resets++;
+            }
+
+            public function delete(): void
+            {
+                $this->names = [];
+            }
+
+            public function sortedNames(): array
+            {
+                $names = $this->names;
+                ksort($names);
+
+                return $names;
+            }
+        };
     }
 }
 
@@ -489,5 +846,40 @@ final class GatheredRunAccount
     public function applyOpened(GatheredRunAccountOpened $event): void
     {
         $this->accountId = $event->accountId;
+    }
+}
+
+final class OpenGatheredRunWallet
+{
+    public function __construct(public readonly string $walletId, public readonly string $name)
+    {
+    }
+}
+
+final class GatheredRunWalletOpened
+{
+    public function __construct(public readonly string $walletId, public readonly string $name)
+    {
+    }
+}
+
+#[EventSourcingAggregate]
+final class GatheredRunWallet
+{
+    use WithAggregateVersioning;
+
+    #[Identifier]
+    private string $walletId;
+
+    #[CommandHandler]
+    public static function open(OpenGatheredRunWallet $command): array
+    {
+        return [new GatheredRunWalletOpened($command->walletId, $command->name)];
+    }
+
+    #[Apply]
+    public function applyOpened(GatheredRunWalletOpened $event): void
+    {
+        $this->walletId = $event->walletId;
     }
 }

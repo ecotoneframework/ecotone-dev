@@ -27,6 +27,7 @@ use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\GatheringConfiguration;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
@@ -48,6 +49,9 @@ use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Scheduling\TimeSpan;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -1624,6 +1628,42 @@ final class GatheringConformanceTest extends TestCase
     {
         yield 'in-memory' => [false];
         yield 'dbal' => [true];
+    }
+
+    #[DataProvider('implementations')]
+    public function test_asynchronous_projection_rebuild_is_one_group_under_its_endpoint_id_that_closes_once(bool $durable): void
+    {
+        $projection = new #[Projection('gathered_run_orders'), FromStream('gathered_run_orders_stream'), ProjectionRebuild(asyncChannelName: 'gathered_run_rebuilds')] class () {
+            public int $placed = 0;
+
+            #[EventHandler('gathered_run.order_placed')]
+            public function whenPlaced(array $event): void
+            {
+                $this->placed++;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$projection::class],
+            containerOrAvailableServices: $durable ? [$projection, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$projection],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('gathered_run_rebuilds')],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $ecotone->withEventStream('gathered_run_orders_stream', [Event::createWithType('gathered_run.order_placed', ['orderId' => '1'])]);
+        $groups = $ecotone->getGateway(GatheredGroups::class);
+        $earlier = array_column([...$groups->listOpenGroups('gathered_run_orders.rebuild'), ...$groups->listClosedGroups('gathered_run_orders.rebuild')], 'groupId');
+        $groupsOfThisRun = static fn (array $listed): array => array_values(array_map(static fn (array $group): array => [$group['state'], $group['expectedSize'], $group['recorded']], array_filter($listed, static fn (array $group): bool => ! in_array($group['groupId'], $earlier, true))));
+
+        $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'gathered_run_orders']);
+
+        self::assertSame([['open', 1, 0]], $groupsOfThisRun($groups->listOpenGroups('gathered_run_orders.rebuild')));
+
+        $ecotone->run('gathered_run_rebuilds', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        self::assertSame([], $groupsOfThisRun($groups->listOpenGroups('gathered_run_orders.rebuild')));
+        self::assertSame([['released', 1, 1]], $groupsOfThisRun($groups->listClosedGroups('gathered_run_orders.rebuild')));
+        self::assertSame(1, $projection->placed);
     }
 
     #[DataProvider('implementations')]

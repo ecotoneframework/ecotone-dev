@@ -75,6 +75,10 @@ final class AsynchronousRunConcurrencyTest extends ProjectingTestCase
         $application->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'concurrent_account_names']);
         self::runConsumerProcesses(self::CONSUMERS, 'consumeRebuildChannel');
         $deadLetters = $application->getGateway(DeadLetterGateway::class);
+        $groups = $application->getGateway(GatheredGroups::class);
+        $run = [...$groups->listOpenGroups('concurrent_account_names.rebuild'), ...$groups->listClosedGroups('concurrent_account_names.rebuild')];
+        self::assertCount(1, $run);
+        self::assertSame(4, $run[0]['recorded'] + $deadLetters->count());
         while ($deadLetters->count() > 0) {
             $deadLetters->replayAll();
             $application->run('concurrent_rebuild', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));

@@ -177,6 +177,7 @@ docker compose exec -T app php bin/add-enterprise-licence.php  # Enterprise modu
 # under packages/Ecotone/tests/InternalFlow/baseline. The check fails when they are not what the code produces
 docker compose exec -T app php bin/check-internal-flow.php
 docker compose exec -T app php bin/internal-flow.php snapshot   # regenerate them after an intended change
+docker compose exec -T app php bin/internal-flow.php compare    # what changed against the baseline, as Markdown (--presentation=A|B|C|json)
 ```
 
 `phpstan.neon` is level 3 over `src` for Ecotone, Enqueue, Dbal, Amqp, JmsConverter, PdoEventSourcing, Laravel,

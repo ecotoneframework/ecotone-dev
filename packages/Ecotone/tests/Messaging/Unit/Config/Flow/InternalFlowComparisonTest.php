@@ -19,6 +19,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Lite\Test\MessagingTestSupport;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\Flow\Snapshot\InternalFlowConsoleCommands;
 use Ecotone\Test\LicenceTesting;
 use FilesystemIterator;
@@ -184,6 +185,42 @@ final class InternalFlowComparisonTest extends TestCase
         self::assertSame([[], []], array_column($groups, 'wiringParts'));
         self::assertSame('added', $groups[0]['trace'][0]['change']);
         self::assertSame('removed', $groups[1]['trace'][0]['change']);
+    }
+
+    public function test_comparing_with_a_location_that_does_not_exist_is_refused_with_the_command_that_writes_it(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering());
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("Flow snapshots were expected in {$this->location}/after, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/internal-flow.php snapshot --location={$this->location}/after`.");
+
+        $this->comparison();
+    }
+
+    public function test_comparing_a_file_that_is_not_a_snapshot_is_refused_naming_the_file(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->ordering());
+        file_put_contents($this->location . '/after/placing-an-order.json', '{"something": "else"}');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json does not hold `scenario`, `wiring` and `trace`, so it was not written by the internal flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
+
+        $this->comparison();
+    }
+
+    public function test_comparing_a_snapshot_that_lost_the_wiring_it_shares_is_refused_naming_the_missing_file(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->ordering());
+        $stored = json_decode((string) file_get_contents($this->location . '/after/placing-an-order.json'), true, flags: JSON_THROW_ON_ERROR);
+        $stored['wiring'] += ['withoutNodes' => [], 'withoutEdges' => []];
+        file_put_contents($this->location . '/after/placing-an-order.json', json_encode($stored, JSON_THROW_ON_ERROR));
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json stores only what its scenario adds to the wiring every application gets, but {$this->location}/after/shared-wiring.json is missing, so its whole wiring cannot be read. Restore that file from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
+
+        $this->comparison();
     }
 
     private function ordering(): object

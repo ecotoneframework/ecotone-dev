@@ -129,6 +129,7 @@ final class GatheringModule extends NoExternalConfigurationModule
             }
         }
         $projectionRuns = ProjectionRuns::fromAnnotations($annotationRegistrationService);
+        ProjectionRuns::refuseEndpointIdsTakenByHandlers(annotationFinder: $annotationRegistrationService, runs: $projectionRuns);
         foreach ($projectionRuns as $run) {
             $gatheredEndpointIds[$run->gatherChannelName()] = $run->endpointId();
         }
@@ -143,6 +144,7 @@ final class GatheringModule extends NoExternalConfigurationModule
         $this->refuseStaticallyUngatheredSplitters();
         $this->registerPartCompletion($messagingConfiguration);
         $this->registerStore(messagingConfiguration: $messagingConfiguration, extensionObjects: $extensionObjects, interfaceToCallRegistry: $interfaceToCallRegistry);
+        $this->refuseUnregisteredProjectionRunChannels(messagingConfiguration: $messagingConfiguration, extensionObjects: $extensionObjects);
         $this->registerProjectionRunCompletions($messagingConfiguration);
         $this->registerPulse(configuration: $messagingConfiguration, extensionObjects: $extensionObjects, interfaceToCallRegistry: $interfaceToCallRegistry);
     }
@@ -249,7 +251,8 @@ final class GatheringModule extends NoExternalConfigurationModule
 
     private function registerStore(Configuration $messagingConfiguration, array $extensionObjects, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if ($this->gatherChannelNames !== [] || $this->projectionRuns !== [] || $this->annotationFinder->findAnnotatedMethods(Collected::class) !== []) {
+        $projectionRuns = $this->licensedProjectionRuns($messagingConfiguration);
+        if ($this->gatherChannelNames !== [] || $projectionRuns !== [] || $this->annotationFinder->findAnnotatedMethods(Collected::class) !== []) {
             $configuration = ExtensionObjectResolver::resolveUnique(className: GatheringConfiguration::class, extensionObjects: $extensionObjects, default: GatheringConfiguration::createWithDefaults());
             $timeouts = [];
             foreach ($this->annotationFinder->findAnnotatedMethods(Gathered::class) as $registration) {
@@ -274,7 +277,7 @@ final class GatheringModule extends NoExternalConfigurationModule
                     throw ConfigurationException::create("{$scope} durable storage outside flow testing: {$entities} must survive restarts and be shared between consumers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove {$removal}.");
                 }
                 if ($this->gatherChannelNames === []) {
-                    $run = $this->projectionRuns[0];
+                    $run = $projectionRuns[0];
                     throw ConfigurationException::create("Projection '{$run->projectionName}' runs its {$run->operation} asynchronously on '{$run->asyncChannelName}', so the run is tracked as a gathering group that must survive restarts and be shared between consumers, which needs durable storage when bootstrapping without test configuration. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first {$run->operation}, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove asyncChannelName from {$run->attributeName()} to run the {$run->operation} in the calling process.");
                 }
                 $gatherChannelName = $this->gatherChannelNames[0];
@@ -290,13 +293,48 @@ final class GatheringModule extends NoExternalConfigurationModule
         }
     }
 
+    /**
+     * @param object[] $extensionObjects
+     */
+    private function refuseUnregisteredProjectionRunChannels(Configuration $messagingConfiguration, array $extensionObjects): void
+    {
+        if ($this->licensedProjectionRuns($messagingConfiguration) === []) {
+            return;
+        }
+        $registered = [];
+        foreach ($extensionObjects as $extension) {
+            if ($extension instanceof MessageChannelBuilder) {
+                $registered[$extension->getMessageChannelName()] = true;
+            }
+            if ($extension instanceof CombinedMessageChannel) {
+                $registered[$extension->getReferenceName()] = true;
+            }
+        }
+        foreach ($this->licensedProjectionRuns($messagingConfiguration) as $run) {
+            if (! isset($registered[$run->asyncChannelName])) {
+                throw ConfigurationException::create("Projection '{$run->projectionName}' runs its {$run->operation} on '{$run->asyncChannelName}' (asyncChannelName of {$run->attributeName()}), which is not registered as a message channel. Register it from a #[ServiceContext] method, for example DbalBackedMessageChannelBuilder::create('{$run->asyncChannelName}'), or remove asyncChannelName from {$run->attributeName()} to run the {$run->operation} in the calling process.");
+            }
+            if (! isset($registered[$run->completionChannelName])) {
+                throw ConfigurationException::create("Projection '{$run->projectionName}' consumes the batch reports of its {$run->operation} on '{$run->completionChannelName}' (completionChannelName of {$run->attributeName()}), which is not registered as a message channel. Register it from a #[ServiceContext] method, for example DbalBackedMessageChannelBuilder::create('{$run->completionChannelName}'), or remove completionChannelName to consume them on '{$run->asyncChannelName}'.");
+            }
+        }
+    }
+
+    /**
+     * @return list<ProjectionRun>
+     */
+    private function licensedProjectionRuns(Configuration $messagingConfiguration): array
+    {
+        return $messagingConfiguration->isRunningForEnterpriseLicence() ? $this->projectionRuns : [];
+    }
+
     private function registerProjectionRunCompletions(Configuration $messagingConfiguration): void
     {
-        if ($this->projectionRuns === []) {
+        if ($this->licensedProjectionRuns($messagingConfiguration) === []) {
             return;
         }
         $messagingConfiguration->registerServiceDefinition(ProjectionRunCompletion::class, new Definition(ProjectionRunCompletion::class));
-        foreach ($this->projectionRuns as $run) {
+        foreach ($this->licensedProjectionRuns($messagingConfiguration) as $run) {
             $messagingConfiguration
                 ->registerMessageHandler(
                     MessageProcessorActivatorBuilder::create()

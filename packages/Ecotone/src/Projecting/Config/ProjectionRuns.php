@@ -56,15 +56,13 @@ final class ProjectionRuns
             }
         }
 
-        self::refuseEndpointIdsTakenByHandlers(annotationFinder: $annotationFinder, runs: $runs);
-
         return $runs;
     }
 
     /**
      * @param list<ProjectionRun> $runs
      */
-    private static function refuseEndpointIdsTakenByHandlers(AnnotationFinder $annotationFinder, array $runs): void
+    public static function refuseEndpointIdsTakenByHandlers(AnnotationFinder $annotationFinder, array $runs): void
     {
         if ($runs === []) {
             return;

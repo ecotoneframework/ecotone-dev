@@ -523,4 +523,41 @@ final class CollectingTest extends TestCase
         );
     }
 
+    public function test_endpoint_ids_with_core_suffixes_compile_independent_collected_handlers(): void
+    {
+        $handler = new class () {
+            public array $first = [];
+            public array $second = [];
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect.collision.first', endpointId: 'collect.collision')]
+            public function first(CollectedMessages $batch): void
+            {
+                $this->first[] = array_column($batch->messages, 'payload');
+            }
+
+            #[Collected(maxSize: 1)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect.collision.second', endpointId: 'collect.collision.core')]
+            public function second(CollectedMessages $batch): void
+            {
+                $this->second[] = array_column($batch->messages, 'payload');
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $ecotone->sendCommandWithRouting('collect.collision.first', 'one');
+        $ecotone->sendCommandWithRouting('collect.collision.first', 'two');
+        $ecotone->sendCommandWithRouting('collect.collision.second', 'third');
+        $ecotone->run('batches');
+        self::assertSame([['one', 'two']], $handler->first);
+        self::assertSame([['third']], $handler->second);
+    }
+
 }

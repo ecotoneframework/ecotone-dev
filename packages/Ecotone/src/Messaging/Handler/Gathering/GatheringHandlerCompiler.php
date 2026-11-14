@@ -46,7 +46,7 @@ final class GatheringHandlerCompiler
     {
         if ($interface !== null && $builder->getInterfaceToCall($interface)->hasMethodAnnotation(Collected::class)) {
             $collected = $builder->getInterfaceToCall($interface)->getSingleAnnotation(Type::create(Collected::class));
-            $reference = 'ecotone.collecting.handler.' . $endpointId;
+            $reference = 'ecotone.collecting.handler.' . hash('sha256', $endpointId);
             $builder->register($reference . '.core', $handler);
             $builder->register($reference . '.enterprise', new Definition(CollectingMessageHandler::class, [
                 new Reference($reference . '.core'),

@@ -3550,6 +3550,17 @@ flushes only a provider that can — an SDK one. Any other provider handles mess
 forced flush left on. Bind an SDK tracer provider (`OpenTelemetry\SDK\Trace\TracerProvider`) when you want spans
 actually flushed.
 
+### One handler invocation produces one process span
+
+**Before:** with 1.x OpenTelemetry tracing, a method carrying both `#[CommandHandler]` and `#[EventHandler]`
+produced two nested handler spans for each invocation, because each attribute registered its own interceptor.
+
+**Now:** one invocation produces one `process <Class::method>` span, with the endpoint id of the handler that ran.
+The command and event endpoints still handle their respective messages separately.
+
+**How to adapt:** update trace-count assertions, dashboards or alerts that counted both nested handler spans for
+one invocation to expect one process span. No handler attribute change is required.
+
 ### Tracing is part of Core, and OpenTelemetry is one of its exporters
 
 **Before:** every span was produced by the `ecotone/open-telemetry` package: `TracerInterceptor` around the buses and

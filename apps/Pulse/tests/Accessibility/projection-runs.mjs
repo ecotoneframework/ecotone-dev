@@ -60,6 +60,8 @@ const observe = async (until, description) => {
 };
 const rowState = async () => (await row().locator('[data-rebuild-state]').count()) === 0 ? null : row().locator('[data-rebuild-state]').getAttribute('data-rebuild-state');
 const rowText = async () => (await row().locator('[data-rebuild-state]').count()) === 0 ? '' : (await row().locator('[data-rebuild-state]').textContent()).replace(/\s+/g, ' ').trim();
+const latestProgress = async () => (await page.locator('[data-recent-rebuilds] tr[data-rebuild] [data-rebuild-progress]').count()) === 0 ? '' : (await page.locator('[data-recent-rebuilds] tr[data-rebuild] [data-rebuild-progress]').first().textContent()).trim();
+const waitsBehindQueuedBatches = async () => (await row().locator('[data-rebuild-queued-records]').count()) === 1;
 const rowBatches = async () => (await row().locator('[data-rebuild-batches]').count()) === 0 ? null : (await row().locator('[data-rebuild-batches]').first().textContent()).trim();
 const shot = async (name) => {
     const path = `${screenshots}/${name}.png`;
@@ -111,8 +113,8 @@ try {
     check('nothing else waits on ticketing_async before the rebuild', pendingAsync() === 0, `${pendingAsync()} pending`);
 
     await rebuildFromPulse();
-    check('a rebuild started from Pulse shows as running with 0 of all batches', await observe(async () => /^0 of \d+ batches$/.test((await rowBatches()) ?? '') && (await rowBatches()) !== '0 of 0 batches', 'the running rebuild'), await rowText());
-    const batches = Number((await rowBatches()).match(/^0 of (\d+) batches$/)[1]);
+    check('a rebuild started from Pulse shows its running time and that its batches are counted after the queued ones', await observe(async () => (await waitsBehindQueuedBatches()) && /^0 of \d+ batches/.test(await latestProgress()), 'the running rebuild'), await rowText());
+    const batches = Number((await latestProgress()).match(/^0 of (\d+) batches/)[1]);
     check('the batch count equals the partitions of the sales ledger', batches >= partitions, `${batches} batches`);
     await shot('01-rebuild-started');
     report.push({scenario: 'shared channel, 1 consumer', moment: 'started', executedBatches: 0, page: await rowText()});
@@ -133,7 +135,7 @@ try {
     await shot('06-rebuild-done');
 
     await rebuildFromPulse();
-    await observe(async () => (await rowBatches()) === `0 of ${batches} batches`, 'the second rebuild');
+    await observe(async () => (await waitsBehindQueuedBatches()) && (await latestProgress()).startsWith(`0 of ${batches} batches`), 'the second rebuild');
     report.push({scenario: 'shared channel, 4 consumers', moment: 'started', executedBatches: 0, page: await rowText()});
     for (const round of [1, 2, 3]) {
         const consumers = Array.from({length: 4}, () => new Promise((resolve) => spawn('docker', [...compose, 'exec', '-T', 'ticketing', 'bin/console', 'ecotone:run', 'ticketing_async', '--handledMessageLimit=1', '--executionTimeLimit=60000', '--finishWhenNoMessages=true'], {stdio: 'ignore'}).on('exit', resolve)));
@@ -147,12 +149,12 @@ try {
 
     const failingConcert = sql("SELECT DISTINCT concert_id FROM concert_sales_ledger ORDER BY concert_id LIMIT 1 OFFSET 1");
     await rebuildFromPulse();
-    await observe(async () => (await rowBatches()) === `0 of ${batches} batches`, 'the failing rebuild');
+    await observe(async () => (await waitsBehindQueuedBatches()) && (await latestProgress()).startsWith(`0 of ${batches} batches`), 'the failing rebuild');
     drainAsync({TICKETING_SALES_LEDGER_RESET_FAILS_FOR_CONCERT: failingConcert});
     check('a rebuild whose batch failed shows as failed', await observe(async () => (await rowState()) === 'failed', 'failed'), await rowText());
     const failedLink = row().locator('a[data-rebuild-failed-batch]').first();
     check('the failed batch links its dead letter', (await failedLink.count()) === 1 && (await failedLink.getAttribute('href')).startsWith('/dead-letters/ticketing/'), await failedLink.getAttribute('href'));
-    check('the failed batch stays missing', (await row().locator('[data-rebuild-missing]').count()) === 1, await rowText());
+    check('the run waits for the replay of the failed batch', (await row().locator('[data-rebuild-state-label]').textContent()).trim() === 'Rebuild waiting' && (await row().locator('[data-rebuild-replay-hint]').count()) === 1, await rowText());
     check('the other batches are done', (await rowBatches()) === `${batches - 1} of ${batches} batches`, await rowBatches());
     await shot('08-rebuild-with-a-failed-batch');
     const deadLetterUrl = new URL(await failedLink.getAttribute('href'), pulse).toString();
@@ -184,7 +186,7 @@ try {
     await shot('10-rebuild-done-after-replay');
 
     docker('exec', '-T', 'ticketing', 'bin/console', 'ecotone:projection:rebuild', projection);
-    check('a rebuild started from the console is shown, marked as started from the console', await observe(async () => (await row().locator('[data-rebuild-started-from-console]').count()) === 1 && (await rowBatches()) === `0 of ${batches} batches`, 'the console rebuild'), await rowText());
+    check('a rebuild started from the console is shown, marked as started from the console', await observe(async () => (await row().locator('[data-rebuild-started-from-console]').count()) === 1 && (await waitsBehindQueuedBatches()), 'the console rebuild'), await rowText());
     await shot('11-rebuild-started-from-the-console');
     await visit(`${pulse}/services/ticketing/gathering`);
     await page.waitForLoadState('load');

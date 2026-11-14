@@ -120,7 +120,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             'gatherChannelName' => $gatherChannelName,
             'size' => $size,
             'accountedPartNumbers' => [],
-            'missingPartNumbers' => (GatheredGroupSize::isUnknown($size) || $size === 0) ? [] : range(1, $size),
+            'missingPartNumbers' => GatheredGroupSize::expectsNumberedParts($size) ? range(1, $size) : [],
         ];
         try {
             $whenOpened();
@@ -134,7 +134,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
     {
         $previous = $this->groups[$groupId] ?? throw GatheredGroupNotFound::forId($groupId);
         if ($previous['state'] !== 'open') {
-            if ($previous['size'] > 0 && ! isset($previous['parts'][$partNumber])) {
+            if (GatheredGroupSize::expectsNumberedParts($previous['size']) && ! isset($previous['parts'][$partNumber])) {
                 $this->groups[$groupId]['latePartCount']++;
                 $this->groups[$groupId]['version']++;
             }
@@ -148,7 +148,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             throw ConcurrencyException::forGatheredGroup($groupId);
         }
         $this->groups[$groupId]['version']++;
-        if ($previous['size'] > 0 || isset($previous['endpointId'])) {
+        if (GatheredGroupSize::expectsNumberedParts($previous['size']) || isset($previous['endpointId'])) {
             $this->groups[$groupId]['parts'][$partNumber] = $report;
             $this->groups[$groupId]['accountedPartNumbers'][] = $partNumber;
             sort($this->groups[$groupId]['accountedPartNumbers'], SORT_NUMERIC);

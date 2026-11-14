@@ -30,6 +30,11 @@ final class GatheredGroupSize
         return $size === GatheredGroupStore::UNKNOWN_SIZE;
     }
 
+    public static function expectsNumberedParts(int $size): bool
+    {
+        return $size > 0;
+    }
+
     public static function asNullable(int $size): ?int
     {
         return self::isUnknown($size) ? null : $size;

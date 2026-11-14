@@ -162,17 +162,17 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 throw GatheredGroupNotFound::forId($groupId);
             }
             if ($group['state'] !== 'open') {
-                if ((int) $group['size'] > 0 && $connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE group_id = ? AND part_number = ?', [$groupId, $partNumber]) === false) {
+                if (GatheredGroupSize::expectsNumberedParts((int) $group['size']) && $connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE group_id = ? AND part_number = ?', [$groupId, $partNumber]) === false) {
                     $this->noteLatePart($groupId);
                 }
 
                 return;
             }
             $size = (int) $group['size'];
-            if ($size > 0 && $connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE group_id = ? AND part_number = ?', [$groupId, $partNumber]) !== false) {
+            if (GatheredGroupSize::expectsNumberedParts($size) && $connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE group_id = ? AND part_number = ?', [$groupId, $partNumber]) !== false) {
                 return;
             }
-            $arrived = (int) $group['arrived'] + ($size > 0 ? 1 : 0);
+            $arrived = (int) $group['arrived'] + (GatheredGroupSize::expectsNumberedParts($size) ? 1 : 0);
             $completed = $arrived === $size;
             $version = (int) $group['version'];
             $updated = $connection->executeStatement(
@@ -182,7 +182,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             if ($updated === 0) {
                 throw ConcurrencyException::forGatheredGroup($groupId);
             }
-            if ($size > 0) {
+            if (GatheredGroupSize::expectsNumberedParts($size)) {
                 $connection->insert(self::PART_TABLE, [
                     'group_id' => $groupId,
                     'part_number' => $partNumber,
@@ -301,7 +301,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 'gatherChannelName' => $row['gather_channel_name'],
                 'size' => $size,
                 'accountedPartNumbers' => $accounted,
-                'missingPartNumbers' => array_values(array_diff((GatheredGroupSize::isUnknown($size) || $size === 0) ? [] : range(1, $size), $accounted)),
+                'missingPartNumbers' => array_values(array_diff(GatheredGroupSize::expectsNumberedParts($size) ? range(1, $size) : [], $accounted)),
             ];
         }, $rows);
     }

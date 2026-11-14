@@ -6,8 +6,11 @@ namespace Test\Ecotone\Dbal\Conformance;
 
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\ChannelInterceptor;
 use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -26,6 +29,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -471,6 +475,358 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame(['Group id', 'Endpoint id', 'Group key', 'State', 'Size', 'Recorded messages', 'Deadline'], $result->columnHeaders);
         self::assertCount(1, $result->rows);
         self::assertSame([$batch['groupId'], 'collect.handler', 'one', 'open', '', 1, '2026-01-01T12:00:10+00:00'], $result->rows[0]);
+    }
+
+
+    #[DataProvider('implementations')]
+    public function test_collected_command_accepts_ordinary_class_routed_messages(bool $durable): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler(routingKey: CollectedEventForConformance::class, endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommand(new CollectedEventForConformance('one', 'first'));
+        $ecotone->run('batches');
+        self::assertSame([], $handler->batches);
+        $ecotone->sendCommand(new CollectedEventForConformance('one', 'second'));
+        $ecotone->run('batches');
+        self::assertCount(1, $handler->batches);
+        self::assertEquals([new CollectedEventForConformance('one', 'first'), new CollectedEventForConformance('one', 'second')], $handler->batches[0]->payloads);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_collected_internal_handler_accepts_a_previous_handlers_output(bool $durable): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[CommandHandler('collect.start', outputChannelName: 'collect.internal')]
+            public function start(string $payload): string
+            {
+                return $payload;
+            }
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[InternalHandler('collect.internal', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect.start', 'first');
+        $ecotone->sendCommandWithRouting('collect.start', 'second');
+        $ecotone->run('batches');
+        self::assertCount(1, $handler->batches);
+        self::assertSame(['first', 'second'], $handler->batches[0]->payloads);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_two_collected_handlers_of_one_event_keep_separate_batches(bool $durable): void
+    {
+        $handler = new class () {
+            public array $first = [];
+            public array $second = [];
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[EventHandler(listenTo: CollectedEventForConformance::class, endpointId: 'collect.event.first')]
+            public function first(CollectedMessages $batch): void
+            {
+                $this->first[] = $batch;
+            }
+
+            #[Collected(maxSize: 3)]
+            #[Asynchronous('batches')]
+            #[EventHandler(listenTo: CollectedEventForConformance::class, endpointId: 'collect.event.second')]
+            public function second(CollectedMessages $batch): void
+            {
+                $this->second[] = $batch;
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        foreach (['collect.event.first', 'collect.event.second'] as $endpointId) {
+            foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenBatches($endpointId) as $batch) {
+                $ecotone->getGateway(GatheredGroups::class)->discard($batch['groupId']);
+            }
+        }
+        $ecotone->publishEvent(new CollectedEventForConformance('one', 'first'));
+        $ecotone->publishEvent(new CollectedEventForConformance('one', 'second'));
+        $ecotone->run('batches');
+        self::assertCount(1, $handler->first);
+        self::assertSame([], $handler->second);
+        $ecotone->publishEvent(new CollectedEventForConformance('one', 'third'));
+        $ecotone->run('batches');
+        self::assertCount(1, $handler->first);
+        self::assertCount(1, $handler->second);
+        self::assertSame(2, $handler->first[0]->size);
+        self::assertSame(3, $handler->second[0]->size);
+    }
+
+
+    #[DataProvider('implementations')]
+    public function test_group_listings_remain_separate_from_collected_batch_listings(bool $durable): void
+    {
+        $handler = new class () {
+            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect', 'first');
+        $ecotone->run('batches');
+        $groups = $ecotone->getGateway(GatheredGroups::class);
+        $batch = $groups->listOpenBatches('collect.handler')[0];
+        self::assertNull($batch['size']);
+        self::assertSame([], $groups->listOpenGroups($batch['gatherChannelName']));
+        $groups->requestRelease($batch['groupId']);
+        $ecotone->run('batches');
+        self::assertSame([], $groups->listClosedGroups($batch['gatherChannelName']));
+    }
+
+
+    #[DataProvider('implementations')]
+    public function test_each_messages_headers_stay_inside_the_batch_and_do_not_become_batch_headers(bool $durable): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+            public array $headers = [];
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch, #[Headers] array $headers): void
+            {
+                $this->batches[] = $batch;
+                $this->headers[] = $headers;
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect', 'first', metadata: ['label' => 'first-label']);
+        $ecotone->sendCommandWithRouting('collect', 'second', metadata: ['label' => 'second-label']);
+        $ecotone->run('batches');
+
+        self::assertSame('first-label', $handler->batches[0]->headers[0]['label']);
+        self::assertSame('second-label', $handler->batches[0]->headers[1]['label']);
+        self::assertArrayNotHasKey('label', $handler->headers[0]);
+        self::assertArrayHasKey(MessageHeaders::MESSAGE_ID, $handler->headers[0]);
+    }
+
+
+    #[DataProvider('implementations')]
+    public function test_timeout_of_a_released_batch_does_not_release_the_next_batch(bool $durable): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 2, maxWait: new TimeSpan(seconds: 10))]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect', 'first');
+        $ecotone->sendCommandWithRouting('collect', 'second');
+        $ecotone->run('batches');
+        self::assertSame(CollectedReleaseReason::SIZE_REACHED, $handler->batches[0]->releaseReason);
+        $ecotone->advanceTimeBy(new TimeSpan(seconds: 9));
+        $ecotone->sendCommandWithRouting('collect', 'third');
+        $ecotone->run('batches');
+        $ecotone->advanceTimeBy(new TimeSpan(seconds: 1));
+        $ecotone->run('batches');
+        self::assertCount(1, $handler->batches);
+        $ecotone->advanceTimeBy(new TimeSpan(seconds: 9));
+        $ecotone->run('batches');
+        self::assertCount(2, $handler->batches);
+        self::assertSame(['third'], $handler->batches[1]->payloads);
+        self::assertSame(CollectedReleaseReason::MAX_WAIT, $handler->batches[1]->releaseReason);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_max_size_only_batch_waits_until_full_or_released_by_hand(bool $durable): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect', 'first');
+        $ecotone->run('batches');
+        $ecotone->advanceTimeBy(new TimeSpan(days: 30));
+        $ecotone->run('batches');
+        self::assertSame([], $handler->batches);
+        $groups = $ecotone->getGateway(GatheredGroups::class);
+        $batch = $groups->listOpenBatches('collect.handler')[0];
+        self::assertNull($batch['deadline']);
+        $groups->requestRelease($batch['groupId']);
+        $ecotone->run('batches');
+        self::assertSame(['first'], $handler->batches[0]->payloads);
+        self::assertSame(CollectedReleaseReason::MANUAL_RELEASE, $handler->batches[0]->releaseReason);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_failed_timeout_send_rolls_back_opening_the_batch(bool $durable): void
+    {
+        if (! $durable) {
+            self::markTestSkipped('The test-only in-memory store has no transaction: a deferred channel send fails after the store returned.');
+        }
+        $handler = new class () {
+            public bool $failTimeout = true;
+            public array $batches = [];
+
+            #[ChannelInterceptor('batches')]
+            public function sending(#[Headers] array $headers): void
+            {
+                if ($this->failTimeout && isset($headers[MessageHeaders::DELIVERY_DELAY])) {
+                    throw new RuntimeException('timeout transport unavailable');
+                }
+            }
+
+            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable, false);
+        $ecotone->sendCommandWithRouting('collect', 'first');
+        try {
+            $ecotone->run('batches');
+        } catch (RuntimeException $failure) {
+            self::assertStringContainsString('timeout transport unavailable', $failure->getMessage());
+        }
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
+        $handler->failTimeout = false;
+        $ecotone->run('batches');
+        $ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
+        $ecotone->run('batches');
+        self::assertSame(['first'], $handler->batches[0]->payloads);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_batch_keeps_the_order_of_recording(bool $durable): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 3)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        foreach (['third', 'first', 'second'] as $payload) {
+            $ecotone->sendCommandWithRouting('collect', $payload, metadata: ['ordinal' => $payload]);
+            $ecotone->run('batches');
+        }
+        self::assertSame(['third', 'first', 'second'], $handler->batches[0]->payloads);
+        self::assertSame(['third', 'first', 'second'], array_column($handler->batches[0]->headers, 'ordinal'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_closed_batches_follow_gathering_retention_and_open_batches_are_kept(bool $durable): void
+    {
+        $handler = new class () {
+            #[Collected(maxSize: 2, groupBy: 'payload["key"]')]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $groups = $ecotone->getGateway(GatheredGroups::class);
+        $before = array_column($groups->listClosedBatches('collect.handler'), 'groupId');
+        $ecotone->sendCommandWithRouting('collect', ['key' => 'closed']);
+        $ecotone->sendCommandWithRouting('collect', ['key' => 'closed']);
+        $ecotone->sendCommandWithRouting('collect', ['key' => 'open']);
+        $ecotone->run('batches');
+        $closedId = array_values(array_diff(array_column($groups->listClosedBatches('collect.handler'), 'groupId'), $before))[0];
+        $openId = $groups->listOpenBatches('collect.handler')[0]['groupId'];
+        $ecotone->advanceTimeBy(new TimeSpan(days: 6));
+        $groups->cleanupClosedGroups();
+        self::assertContains($closedId, array_column($groups->listClosedBatches('collect.handler'), 'groupId'));
+        $ecotone->advanceTimeBy(new TimeSpan(days: 1));
+        $groups->cleanupClosedGroups();
+        self::assertNotContains($closedId, array_column($groups->listClosedBatches('collect.handler'), 'groupId'));
+        self::assertContains($openId, array_column($groups->listOpenBatches('collect.handler'), 'groupId'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_non_scalar_group_key_is_refused_without_opening_a_fallback_batch(bool $durable): void
+    {
+        $handler = new class () {
+            #[Collected(maxSize: 2, groupBy: 'payload["tenant"]')]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect', ['tenant' => ['one', 'two']]);
+        $failure = null;
+        try {
+            $ecotone->run('batches');
+        } catch (Throwable $caught) {
+            $failure = $caught;
+        }
+        self::assertNotNull($failure);
+        self::assertStringContainsString("Collected handler 'collect.handler' groupBy 'payload[\"tenant\"]'", $failure->getMessage());
+        self::assertStringContainsString('non-null scalar or stringable key', $failure->getMessage());
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_failing_group_expression_names_the_handler_and_expression_without_opening_a_batch(bool $durable): void
+    {
+        $handler = new class () {
+            #[Collected(maxSize: 2, groupBy: 'payload.missingMethod()')]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect', 'ordinary payload');
+        $failure = null;
+        try {
+            $ecotone->run('batches');
+        } catch (Throwable $caught) {
+            $failure = $caught;
+        }
+        self::assertNotNull($failure);
+        self::assertStringContainsString($handler::class . '::collect', $failure->getMessage());
+        self::assertStringContainsString('payload.missingMethod()', $failure->getMessage());
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
     }
 
     private function bootstrap(object $handler, bool $durable, bool $instantRetries = true): FlowTestSupport

@@ -276,7 +276,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     {
         try {
             $rows = $this->connection()->fetchAllAssociative(
-                'SELECT group_id, gather_channel_name, size, state, late_part_count, closed_at, deadline FROM ' . self::GROUP_TABLE . ' WHERE gather_channel_name = ? AND state ' . ($closed ? '<>' : '=') . " 'open'",
+                'SELECT group_id, gather_channel_name, size, state, late_part_count, closed_at, deadline FROM ' . self::GROUP_TABLE . ' WHERE gather_channel_name = ? AND handler IS NULL AND state ' . ($closed ? '<>' : '=') . " 'open'",
                 [$gatherChannelName],
             );
         } catch (Throwable $failure) {

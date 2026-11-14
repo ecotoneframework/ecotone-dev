@@ -75,15 +75,15 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             }
         }
         $previousGroups = $this->groups;
-        if ($groupId === null) {
-            $groupId = bin2hex(random_bytes(32));
-            $this->openGroup($groupId, $gatherChannelName, $maxSize ?? -1, $message, $deadline, static fn () => null);
-            $this->groups[$groupId]['handler'] = $handler;
-            $this->groups[$groupId]['groupKey'] = $groupKey;
-            $this->groups[$groupId]['generation'] = $generation + 1;
-            $whenOpened($groupId);
-        }
         try {
+            if ($groupId === null) {
+                $groupId = bin2hex(random_bytes(32));
+                $this->openGroup($groupId, $gatherChannelName, $maxSize ?? -1, $message, $deadline, static fn () => null);
+                $this->groups[$groupId]['handler'] = $handler;
+                $this->groups[$groupId]['groupKey'] = $groupKey;
+                $this->groups[$groupId]['generation'] = $generation + 1;
+                $whenOpened($groupId);
+            }
             return $this->completePart($groupId, count($this->groups[$groupId]['parts']) + 1, $message, $whenReleased);
         } catch (Throwable $failure) {
             $this->groups = $previousGroups;
@@ -202,11 +202,11 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
 
     public function listClosedGroups(string $gatherChannelName): array
     {
-        return array_values(array_map(static fn (array $group): array => array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true]), array_filter($this->groups, static fn (array $group): bool => $group['gatherChannelName'] === $gatherChannelName && $group['state'] !== 'open')));
+        return array_values(array_map(static fn (array $group): array => array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true]), array_filter($this->groups, static fn (array $group): bool => ! isset($group['handler']) && $group['gatherChannelName'] === $gatherChannelName && $group['state'] !== 'open')));
     }
 
     public function listOpenGroups(string $gatherChannelName): array
     {
-        return array_values(array_map(static fn (array $group): array => array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true]), array_filter($this->groups, static fn (array $group): bool => $group['gatherChannelName'] === $gatherChannelName && $group['state'] === 'open')));
+        return array_values(array_map(static fn (array $group): array => array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true]), array_filter($this->groups, static fn (array $group): bool => ! isset($group['handler']) && $group['gatherChannelName'] === $gatherChannelName && $group['state'] === 'open')));
     }
 }

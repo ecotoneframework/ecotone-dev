@@ -233,6 +233,10 @@ final class GatheringModule extends NoExternalConfigurationModule
             $messagingConfiguration->registerServiceDefinition(GatheringTimeouts::class, new Definition(GatheringTimeouts::class, [$timeouts]));
             $store = ExtensionObjectResolver::resolveUnique(className: GatheredGroupStoreRegistration::class, extensionObjects: $extensionObjects, default: new GatheredGroupStoreRegistration(InMemoryGatheredGroupStore::class));
             if ($store->serviceReference === InMemoryGatheredGroupStore::class && ! $messagingConfiguration->isRunningForTest()) {
+                if ($this->gatherChannelNames === []) {
+                    $endpointId = $this->collectedEndpointIds[0];
+                    throw ConfigurationException::create("Collected handler '{$endpointId}' requires durable storage outside flow testing: batches must survive restarts and be shared between consumers. Install ecotone/dbal, enable ModulePackageList::DBAL_PACKAGE, and run ecotone:migration:database:setup --initialize --feature=gathering before consuming messages. Use EcotoneLite::bootstrapFlowTesting() for in-memory tests, or remove #[Collected].");
+                }
                 $gatherChannelName = $this->gatherChannelNames[0];
                 throw ConfigurationException::create("Gather channel '{$gatherChannelName}' requires durable storage when bootstrapping without test configuration: in-memory groups cannot survive restarts or be shared between workers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove gatherChannelName from #[Splitter].");
             }

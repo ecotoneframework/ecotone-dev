@@ -83,14 +83,18 @@ discarded or released it by hand (with the batches not done), `failed` when a ba
 labels it as waiting for the replay), otherwise `running`. A run whose group was removed by retention is `done`.
 The service reports each projection's effective completion channel (`rebuildCompletionChannel`,
 `backfillCompletionChannel`); while a run's reports queue behind its batches on a shared channel with nothing
-recorded yet, Pulse shows the running time and how `completionChannelName` shows progress instead of a 0% bar. A synchronous run is `done` once its tracking exists: the
+recorded yet, Pulse shows the running time and, once in the Operation cell, how `completionChannelName` shows
+progress instead of a 0% bar; after the first record the count reads "batches recorded". A discarded or released run
+says its missing batches were not projected; it is not raised in the attention banner, which shows running and
+failed runs only. A synchronous run is `done` once its tracking exists: the
 tracking is written in the run's transaction, so a failed synchronous run leaves none
 (`test_a_failed_synchronous_rebuild_leaves_no_tracking`). The span-derived progress and the
 `ecotone_projecting_rebuild_batch_number|batch_count|partition_count` headers are removed. The run's group is
 also listed on the Gathering tab under its `endpointId`.
 
 Progress counts part reports. On the shared channel the reports queue behind the batches not yet executed, so the
-page stays at `0 of N` until every batch has been executed, then advances as the reports are consumed. A separate
+run records no batch until every batch has been executed, then advances as the reports are consumed; Pulse shows it
+as described above (the running time while nothing is recorded, then "batches recorded"). A separate
 `completionChannelName` with its own consumer moves the page as batches finish.
 
 ## Named acceptance coverage
@@ -111,10 +115,10 @@ page stays at `0 of N` until every batch has been executed, then advances as the
 | Both stores | `asynchronous_projection_rebuild_is_one_group_under_its_endpoint_id_that_closes_once` (in-memory and DBAL) |
 | Unregistered channels | `an_unregistered_rebuild_channel_is_refused_naming_the_attribute_and_the_ways_out`, `an_unregistered_backfill_channel_is_refused_naming_the_attribute_and_the_ways_out`, `an_unregistered_completion_channel_is_refused_naming_the_attribute_and_the_ways_out` |
 | Two stream filters | `rebuild_of_a_projection_reading_two_streams_counts_the_batches_of_both_and_completes_once` |
-| Multi-tenancy and metadata | `asynchronous_rebuild_of_a_tenant_completes_in_that_tenants_group_and_is_listed_for_that_tenant_only`, `metadata_of_a_rebuild_request_reaches_its_batches_while_framework_headers_do_not` |
+| Multi-tenancy and metadata | `asynchronous_rebuild_of_a_tenant_completes_in_that_tenants_group_and_is_listed_for_that_tenant_only`, `asynchronous_rebuild_of_a_tenant_without_partitions_completes_in_that_tenants_group`, `metadata_of_a_rebuild_request_reaches_its_batches_while_framework_headers_do_not` |
 | Pulse progress without traces | `rebuild_progress_counts_executed_batches_without_stored_traces` |
 | Pulse states | `a_rebuild_through_the_projection_rebuild_channel_is_running_until_its_batch_is_handled`, `a_rebuild_batch_in_the_dead_letter_is_failed_and_links_its_dead_letter`, `a_replayed_rebuild_batch_completes_the_tracked_rebuild`, `a_rebuild_started_from_the_console_is_listed_from_its_group`, `a_synchronous_rebuild_started_from_the_console_is_not_listed`, `the_group_of_a_rebuild_is_listed_in_the_gathering_snapshot_under_its_endpoint_id`, `a_discarded_rebuild_is_not_shown_as_done`, `a_rebuild_released_by_hand_with_batches_missing_is_not_shown_as_done`, `a_batch_whose_record_waits_in_the_dead_letter_is_executed_and_not_failed`, `a_pulse_started_rebuild_beyond_the_listing_limit_is_not_listed_as_started_from_the_console`, `a_rebuild_whose_group_was_removed_by_retention_is_done` |
-| Pulse pages | `a_running_rebuild_of_a_projection_without_partitions_shows_zero_batches_and_is_not_failed`, `a_rebuild_whose_failed_batch_was_replayed_shows_done_with_every_batch`, `a_rebuild_started_from_the_console_is_shown_without_a_trace`, `group_opened_between_two_seconds_shows_the_second_it_opened_in`, `a_rebuild_with_a_failed_batch_waits_for_its_replay_and_links_its_dead_letter`, `a_rebuild_with_a_failed_batch_and_a_batch_still_queued_names_only_the_queued_one_as_not_done`, `a_running_rebuild_whose_records_queue_behind_its_batches_shows_its_running_time_and_how_to_see_progress`, `a_running_rebuild_with_a_separate_completion_channel_shows_its_batches_from_the_first_one`, `a_discarded_rebuild_is_shown_as_discarded_with_the_batches_not_done`, `a_rebuild_released_by_hand_is_shown_as_released_with_the_batches_not_done`, `a_batch_whose_record_waits_in_the_dead_letter_is_shown_done_and_links_the_record`, `a_failed_console_rebuild_of_one_batch_links_its_failed_batch`, `recent_operations_show_the_state_as_a_pill_and_a_short_start_time_with_the_full_one_in_its_datetime` |
+| Pulse pages | `a_running_rebuild_of_a_projection_without_partitions_shows_zero_batches_and_is_not_failed`, `a_rebuild_whose_failed_batch_was_replayed_shows_done_with_every_batch`, `a_rebuild_started_from_the_console_is_shown_without_a_trace`, `group_opened_between_two_seconds_shows_the_second_it_opened_in`, `a_rebuild_with_a_failed_batch_waits_for_its_replay_and_links_its_dead_letter`, `a_rebuild_with_a_failed_batch_and_a_batch_still_queued_names_only_the_queued_one_as_not_done`, `a_running_rebuild_whose_records_queue_behind_its_batches_shows_its_running_time_and_how_to_see_progress`, `a_running_rebuild_with_a_separate_completion_channel_shows_its_batches_from_the_first_one`, `a_discarded_rebuild_is_shown_as_discarded_with_the_batches_not_done`, `a_rebuild_released_by_hand_is_shown_as_released_with_the_batches_not_done`, `a_batch_whose_record_waits_in_the_dead_letter_is_shown_done_and_links_the_record`, `a_failed_console_rebuild_of_one_batch_links_its_failed_batch`, `recent_operations_show_the_state_as_a_pill_and_a_short_start_time_with_the_full_one_in_its_datetime`, `a_running_rebuild_whose_records_queue_behind_its_batches_counts_its_recorded_batches_after_the_first_one`, `a_running_rebuild_shows_a_running_time_under_a_second_in_seconds` |
 
 The real-database race runs on PostgreSQL, MySQL and MariaDB and is skipped on SQLite, like gathering's races.
 `apps/Pulse/tests/Accessibility/projection-runs.mjs` drives the same run through Pulse in a real browser against

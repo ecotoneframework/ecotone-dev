@@ -93,16 +93,16 @@ final class AsynchronousRunConfigurationTest extends TestCase
         EcotoneLite::bootstrapFlowTesting([$projection::class], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
-    public function test_an_unregistered_completion_channel_is_refused_naming_the_attribute_and_the_ways_out(): void
+    public function test_an_unregistered_batch_completion_channel_is_refused_naming_the_attribute_and_the_ways_out(): void
     {
-        $projection = new #[Projection('orders'), FromStream('orders_stream'), ProjectionRebuild(asyncChannelName: 'rebuild_channel', completionChannelName: 'completion_channel')] class () {
+        $projection = new #[Projection('orders'), FromStream('orders_stream'), ProjectionRebuild(asyncChannelName: 'rebuild_channel', batchCompletionChannelName: 'batch_completion_channel')] class () {
             #[EventHandler('order.placed')]
             public function whenPlaced(array $event): void
             {
             }
         };
 
-        $this->expectExceptionMessage("Projection 'orders' consumes the batch reports of its rebuild on 'completion_channel' (completionChannelName of #[ProjectionRebuild]), which is not registered as a message channel. Register it from a #[ServiceContext] method, for example DbalBackedMessageChannelBuilder::create('completion_channel'), or remove completionChannelName to consume them on 'rebuild_channel'.");
+        $this->expectExceptionMessage("Projection 'orders' consumes the batch reports of its rebuild on 'batch_completion_channel' (batchCompletionChannelName of #[ProjectionRebuild]), which is not registered as a message channel. Register it from a #[ServiceContext] method, for example DbalBackedMessageChannelBuilder::create('batch_completion_channel'), or remove batchCompletionChannelName to consume them on 'rebuild_channel'.");
 
         EcotoneLite::bootstrapFlowTesting([$projection::class], [$projection], extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('rebuild_channel')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
     }

@@ -29,8 +29,8 @@ final readonly class ProjectionStatus
         public ?string $initializeCommand,
         public ?string $asyncChannel,
         public ?array $partitions,
-        public ?string $rebuildCompletionChannel,
-        public ?string $backfillCompletionChannel,
+        public ?string $rebuildBatchCompletionChannel,
+        public ?string $backfillBatchCompletionChannel,
     ) {
     }
 
@@ -136,7 +136,7 @@ final readonly class ProjectionStatus
         if ($operation === null || ! $operation->isRunning() || ($operation->batchCount ?? 0) === 0) {
             return false;
         }
-        [$batches, $completions] = $operation->kind === Rebuild::BACKFILL ? [$this->backfillAsyncChannel, $this->backfillCompletionChannel] : [$this->rebuildAsyncChannel, $this->rebuildCompletionChannel];
+        [$batches, $completions] = $operation->kind === Rebuild::BACKFILL ? [$this->backfillAsyncChannel, $this->backfillBatchCompletionChannel] : [$this->rebuildAsyncChannel, $this->rebuildBatchCompletionChannel];
 
         return $batches !== null && $batches === $completions;
     }

@@ -399,7 +399,7 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
             }
         };
         $this->failingOrders = $failingOrders;
-        $recordedOrders = new #[Projection('recorded_orders'), FromStream('orders_stream'), ProjectionRebuild(asyncChannelName: 'recorded_rebuild_channel', completionChannelName: 'recording_channel')] class () {
+        $recordedOrders = new #[Projection('recorded_orders'), FromStream('orders_stream'), ProjectionRebuild(asyncChannelName: 'recorded_rebuild_channel', batchCompletionChannelName: 'recording_channel')] class () {
             #[EventHandler('order.placed')]
             public function whenPlaced(array $event): void
             {

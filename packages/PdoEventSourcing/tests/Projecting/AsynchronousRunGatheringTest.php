@@ -147,9 +147,9 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
         $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_names.rebuild');
     }
 
-    public function test_completion_can_be_consumed_from_a_separate_channel(): void
+    public function test_batch_completion_can_be_consumed_from_a_separate_channel(): void
     {
-        $projection = $this->rebuiltWithCompletionChannel();
+        $projection = $this->rebuiltWithBatchCompletionChannel();
         $ecotone = $this->bootstrapWithAccounts([$projection], 3);
 
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_names']);
@@ -158,15 +158,15 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
         self::assertSame(['1' => 'Account 1', '2' => 'Account 2', '3' => 'Account 3'], $projection->accounts->sortedNames());
         self::assertSame([[2, 0]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded']], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_names.rebuild')));
 
-        $ecotone->run('completion_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $ecotone->run('batch_completion_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_names.rebuild'));
         self::assertSame([[2, 2]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded']], $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('account_names.rebuild')));
     }
 
-    public function test_backfill_completion_can_be_consumed_from_a_separate_channel(): void
+    public function test_backfill_batch_completion_can_be_consumed_from_a_separate_channel(): void
     {
-        $projection = $this->backfilledWithCompletionChannel();
+        $projection = $this->backfilledWithBatchCompletionChannel();
         $ecotone = $this->bootstrapWithAccounts([$projection], 3);
 
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'account_names']);
@@ -174,25 +174,25 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
         self::assertSame([[2, 0]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded']], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_names.backfill')));
 
-        $ecotone->run('completion_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $ecotone->run('batch_completion_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame([[2, 2]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded']], $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('account_names.backfill')));
     }
 
-    public function test_rebuild_completion_channel_without_asynchronous_rebuild_is_refused_at_bootstrap(): void
+    public function test_rebuild_batch_completion_channel_without_asynchronous_rebuild_is_refused_at_bootstrap(): void
     {
-        $projection = $this->rebuiltSynchronouslyWithCompletionChannel();
+        $projection = $this->rebuiltSynchronouslyWithBatchCompletionChannel();
 
-        $this->expectExceptionMessage('#[ProjectionRebuild] names completionChannelName \'completion_channel\' but no asyncChannelName, so the rebuild runs in the calling process and there is no asynchronous completion to consume. Add asyncChannelName to run the rebuild asynchronously, or remove completionChannelName.');
+        $this->expectExceptionMessage('#[ProjectionRebuild] names batchCompletionChannelName \'batch_completion_channel\' but no asyncChannelName, so the rebuild runs in the calling process and there is no asynchronous completion to consume. Add asyncChannelName to run the rebuild asynchronously, or remove batchCompletionChannelName.');
 
         $this->bootstrapWithAccounts([$projection], 0);
     }
 
-    public function test_backfill_completion_channel_without_asynchronous_backfill_is_refused_at_bootstrap(): void
+    public function test_backfill_batch_completion_channel_without_asynchronous_backfill_is_refused_at_bootstrap(): void
     {
-        $projection = $this->backfilledSynchronouslyWithCompletionChannel();
+        $projection = $this->backfilledSynchronouslyWithBatchCompletionChannel();
 
-        $this->expectExceptionMessage('#[ProjectionBackfill] names completionChannelName \'completion_channel\' but no asyncChannelName, so the backfill runs in the calling process and there is no asynchronous completion to consume. Add asyncChannelName to run the backfill asynchronously, or remove completionChannelName.');
+        $this->expectExceptionMessage('#[ProjectionBackfill] names batchCompletionChannelName \'batch_completion_channel\' but no asyncChannelName, so the backfill runs in the calling process and there is no asynchronous completion to consume. Add asyncChannelName to run the backfill asynchronously, or remove batchCompletionChannelName.');
 
         $this->bootstrapWithAccounts([$projection], 0);
     }
@@ -406,7 +406,7 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [...array_map(static fn (object $projection): string => $projection::class, $projections), $converter::class, GatheredRunAccount::class, GatheredRunWallet::class],
             containerOrAvailableServices: [...$projections, $converter, self::getConnectionFactory()],
-            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('rebuild_channel'), SimpleMessageChannelBuilder::createQueueChannel('backfill_channel'), SimpleMessageChannelBuilder::createQueueChannel('completion_channel'), DbalConfiguration::createWithDefaults(), ...$extensionObjects],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('rebuild_channel'), SimpleMessageChannelBuilder::createQueueChannel('backfill_channel'), SimpleMessageChannelBuilder::createQueueChannel('batch_completion_channel'), DbalConfiguration::createWithDefaults(), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             initialTime: new DateTimeImmutable('2026-11-14 12:00:00 UTC'),
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -555,9 +555,9 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
         };
     }
 
-    private function rebuiltWithCompletionChannel(): object
+    private function rebuiltWithBatchCompletionChannel(): object
     {
-        return new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel', completionChannelName: 'completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+        return new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel', batchCompletionChannelName: 'batch_completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
             public function __construct(public readonly object $accounts)
             {
             }
@@ -588,9 +588,9 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
         };
     }
 
-    private function backfilledWithCompletionChannel(): object
+    private function backfilledWithBatchCompletionChannel(): object
     {
-        return new #[Projection('account_names'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_channel', completionChannelName: 'completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+        return new #[Projection('account_names'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_channel', batchCompletionChannelName: 'batch_completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
             public function __construct(public readonly object $accounts)
             {
             }
@@ -621,9 +621,9 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
         };
     }
 
-    private function rebuiltSynchronouslyWithCompletionChannel(): object
+    private function rebuiltSynchronouslyWithBatchCompletionChannel(): object
     {
-        return new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, completionChannelName: 'completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+        return new #[Projection('account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, batchCompletionChannelName: 'batch_completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
             public function __construct(public readonly object $accounts)
             {
             }
@@ -654,9 +654,9 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
         };
     }
 
-    private function backfilledSynchronouslyWithCompletionChannel(): object
+    private function backfilledSynchronouslyWithBatchCompletionChannel(): object
     {
-        return new #[Projection('account_names'), Partitioned, ProjectionBackfill(completionChannelName: 'completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
+        return new #[Projection('account_names'), Partitioned, ProjectionBackfill(batchCompletionChannelName: 'batch_completion_channel'), FromAggregateStream(GatheredRunAccount::class)] class ($this->accounts()) {
             public function __construct(public readonly object $accounts)
             {
             }

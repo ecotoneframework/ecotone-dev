@@ -314,8 +314,8 @@ final class GatheringModule extends NoExternalConfigurationModule
             if (! isset($registered[$run->asyncChannelName])) {
                 throw ConfigurationException::create("Projection '{$run->projectionName}' runs its {$run->operation} on '{$run->asyncChannelName}' (asyncChannelName of {$run->attributeName()}), which is not registered as a message channel. Register it from a #[ServiceContext] method, for example DbalBackedMessageChannelBuilder::create('{$run->asyncChannelName}'), or remove asyncChannelName from {$run->attributeName()} to run the {$run->operation} in the calling process.");
             }
-            if (! isset($registered[$run->completionChannelName])) {
-                throw ConfigurationException::create("Projection '{$run->projectionName}' consumes the batch reports of its {$run->operation} on '{$run->completionChannelName}' (completionChannelName of {$run->attributeName()}), which is not registered as a message channel. Register it from a #[ServiceContext] method, for example DbalBackedMessageChannelBuilder::create('{$run->completionChannelName}'), or remove completionChannelName to consume them on '{$run->asyncChannelName}'.");
+            if (! isset($registered[$run->batchCompletionChannelName])) {
+                throw ConfigurationException::create("Projection '{$run->projectionName}' consumes the batch reports of its {$run->operation} on '{$run->batchCompletionChannelName}' (batchCompletionChannelName of {$run->attributeName()}), which is not registered as a message channel. Register it from a #[ServiceContext] method, for example DbalBackedMessageChannelBuilder::create('{$run->batchCompletionChannelName}'), or remove batchCompletionChannelName to consume them on '{$run->asyncChannelName}'.");
             }
         }
     }
@@ -342,7 +342,7 @@ final class GatheringModule extends NoExternalConfigurationModule
                         ->withEndpointId($run->endpointId())
                         ->withInputChannelName($run->gatherChannelName())
                 )
-                ->registerAsynchronousEndpoint($run->completionChannelName, $run->endpointId());
+                ->registerAsynchronousEndpoint($run->batchCompletionChannelName, $run->endpointId());
         }
     }
 

@@ -50,32 +50,32 @@ A run must survive restarts and be shared between consumers, so it is stored by 
 tables. Create them before the first run with `ecotone:migration:database:setup --initialize --feature=gathering`,
 or generate the SQL for your migrations with `--sql --feature=gathering`. Outside `EcotoneLite::bootstrapFlowTesting()`,
 an application with an asynchronous rebuild or backfill and no DBAL module is refused at bootstrap. The channels
-named in `asyncChannelName` and `completionChannelName` must be registered, or the application is refused at
+named in `asyncChannelName` and `batchCompletionChannelName` must be registered, or the application is refused at
 bootstrap with the attribute and the parameter named. Batches carry the request's metadata, so a rebuild started
 for a tenant of a multi-tenant application runs in that tenant.
 
-## Completion channel
+## Batch completion channel
 
 When you watch a run's progress in Ecotone Pulse, or run several consumers on the batch channel, name a completion
 channel and run one consumer on it:
 
 ```php
-#[ProjectionRebuild(partitionBatchSize: 100, asyncChannelName: 'projection_runs', completionChannelName: 'projection_run_completions')]
+#[ProjectionRebuild(partitionBatchSize: 100, asyncChannelName: 'projection_runs', batchCompletionChannelName: 'projection_run_completions')]
 ```
 
 Each batch reports itself with a small message when it has projected its partitions. Without
-`completionChannelName`, that message goes to the same `asyncChannelName` as the batches, so the consumers you
+`batchCompletionChannelName`, that message goes to the same `asyncChannelName` as the batches, so the consumers you
 already run complete the run. The reports then queue behind the batches that are not executed yet: the run shows
 no batch done until every batch has run, and then advances as the reports are consumed. Pulse shows such a run
-with its running time and says so. With a separate completion channel and its consumer running, the run advances
-as each batch finishes. `completionChannelName` needs `asyncChannelName`; naming it alone is refused.
+with its running time and says so. With a separate batch completion channel and its consumer running, the run advances
+as each batch finishes. `batchCompletionChannelName` needs `asyncChannelName`; naming it alone is refused.
 
 Two reports of the same run recorded at the same moment conflict. The conflict is retried by the framework's
 instant retries, and a report whose retries run out waits in the dead letter; replaying it records the batch, and
 Pulse shows that batch as done with its record waiting. Measured on PostgreSQL with 40 batches and the default
 retry configuration, the reports that reached the dead letter were: 0 with 1 consumer on the shared channel, 1
-with 4 consumers, 6 with 8 consumers, and 0 with a separate completion channel consumed by one consumer (with 1,
-4 or 8 consumers on the batches). One consumer on the completion channel records the reports one after another.
+with 4 consumers, 6 with 8 consumers, and 0 with a separate batch completion channel consumed by one consumer (with 1,
+4 or 8 consumers on the batches). One consumer on the batch completion channel records the reports one after another.
 The attempts can be raised with
 `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 5)`; that setting was not
 part of the measurement.

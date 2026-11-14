@@ -23,9 +23,9 @@ final class ProjectionOperationEndpoint
     {
     }
 
-    public static function completionChannelOf(?string $completionChannelName, ?string $asyncChannelName): ?string
+    public static function batchCompletionChannelOf(?string $batchCompletionChannelName, ?string $asyncChannelName): ?string
     {
-        return $completionChannelName ?? $asyncChannelName;
+        return $batchCompletionChannelName ?? $asyncChannelName;
     }
 
     public static function channelFor(string $projectionName, string $operation): string

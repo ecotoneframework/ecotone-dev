@@ -149,8 +149,8 @@ final class ProjectingModule implements AnnotationModule
                 'asyncChannel' => $projectionBuilder->asyncChannelName(),
                 'rebuildAsyncChannel' => $projectionBuilder->rebuildAsyncChannelName(),
                 'backfillAsyncChannel' => $projectionBuilder->backfillAsyncChannelName(),
-                'rebuildCompletionChannel' => $projectionBuilder->rebuildCompletionChannelName(),
-                'backfillCompletionChannel' => $projectionBuilder->backfillCompletionChannelName(),
+                'rebuildBatchCompletionChannel' => $projectionBuilder->rebuildBatchCompletionChannelName(),
+                'backfillBatchCompletionChannel' => $projectionBuilder->backfillBatchCompletionChannelName(),
             ];
 
             $handlerBuilder = MessageProcessorActivatorBuilder::create()
@@ -244,7 +244,7 @@ final class ProjectingModule implements AnnotationModule
         }
 
         foreach (ExtensionObjectResolver::resolve(StreamingProjectionDescription::class, $extensionObjects) as $streaming) {
-            $projectionDescriptions[$streaming->projectionName] = ['mode' => 'streaming', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => $streaming->channelName, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildCompletionChannel' => null, 'backfillCompletionChannel' => null];
+            $projectionDescriptions[$streaming->projectionName] = ['mode' => 'streaming', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => $streaming->channelName, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildBatchCompletionChannel' => null, 'backfillBatchCompletionChannel' => null];
         }
 
         $this->registerPartitionBatchDispatcher($messagingConfiguration, $projectionBuilders);

@@ -91,7 +91,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
             {
             }
         };
-        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel', completionChannelName: 'tickets_completion_channel'), ProjectionBackfill(asyncChannelName: 'tickets_backfill_channel'), FromAggregateStream(Ticket::class)] class () {
+        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel', batchCompletionChannelName: 'tickets_batch_completion_channel'), ProjectionBackfill(asyncChannelName: 'tickets_backfill_channel'), FromAggregateStream(Ticket::class)] class () {
             #[EventHandler]
             public function when(TicketWasRegistered $event): void
             {
@@ -111,12 +111,12 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
 
         self::assertSame(
             [
-                ['name' => 'tickets_async', 'mode' => 'asynchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => 'tickets_async_channel', 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildCompletionChannel' => null, 'backfillCompletionChannel' => null],
-                ['name' => 'tickets_partitioned', 'mode' => 'synchronous', 'partitioned' => true, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => 'tickets_rebuild_channel', 'backfillAsyncChannel' => 'tickets_backfill_channel', 'rebuildCompletionChannel' => 'tickets_completion_channel', 'backfillCompletionChannel' => 'tickets_backfill_channel'],
-                ['name' => 'tickets_polling', 'mode' => 'polling', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildCompletionChannel' => null, 'backfillCompletionChannel' => null],
-                ['name' => 'tickets_sync', 'mode' => 'synchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildCompletionChannel' => null, 'backfillCompletionChannel' => null],
+                ['name' => 'tickets_async', 'mode' => 'asynchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => 'tickets_async_channel', 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildBatchCompletionChannel' => null, 'backfillBatchCompletionChannel' => null],
+                ['name' => 'tickets_partitioned', 'mode' => 'synchronous', 'partitioned' => true, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => 'tickets_rebuild_channel', 'backfillAsyncChannel' => 'tickets_backfill_channel', 'rebuildBatchCompletionChannel' => 'tickets_batch_completion_channel', 'backfillBatchCompletionChannel' => 'tickets_backfill_channel'],
+                ['name' => 'tickets_polling', 'mode' => 'polling', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildBatchCompletionChannel' => null, 'backfillBatchCompletionChannel' => null],
+                ['name' => 'tickets_sync', 'mode' => 'synchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildBatchCompletionChannel' => null, 'backfillBatchCompletionChannel' => null],
             ],
-            array_map(fn (array $projection): array => array_intersect_key($projection, array_flip(['name', 'mode', 'partitioned', 'manualKickOff', 'asyncChannel', 'rebuildAsyncChannel', 'backfillAsyncChannel', 'rebuildCompletionChannel', 'backfillCompletionChannel'])), $before),
+            array_map(fn (array $projection): array => array_intersect_key($projection, array_flip(['name', 'mode', 'partitioned', 'manualKickOff', 'asyncChannel', 'rebuildAsyncChannel', 'backfillAsyncChannel', 'rebuildBatchCompletionChannel', 'backfillBatchCompletionChannel'])), $before),
         );
         self::assertSame(
             ['tickets_async' => 'prepared', 'tickets_partitioned' => 'uninitialized', 'tickets_polling' => 'prepared', 'tickets_sync' => 'prepared'],
@@ -394,7 +394,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
 
     public function test_asynchronous_rebuild_of_a_tenant_completes_in_that_tenants_group_and_is_listed_for_that_tenant_only(): void
     {
-        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel', completionChannelName: 'tickets_completion_channel'), FromAggregateStream(Ticket::class)] class () {
+        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel', batchCompletionChannelName: 'tickets_batch_completion_channel'), FromAggregateStream(Ticket::class)] class () {
             public array $tickets = [];
 
             #[EventHandler]
@@ -409,7 +409,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
 
         $this->act('ecotone.pulse.projections.rebuild', 'tickets_partitioned', '0af7651916cd43dd8448eb211c80319c', 'tenant_a');
         $this->orderService->run('tickets_rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
-        $this->orderService->run('tickets_completion_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $this->orderService->run('tickets_batch_completion_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         $runsOf = static fn (array $snapshot): array => array_map(static fn (array $group): array => [$group['state'], $group['expectedSize'], $group['recorded']], array_values(array_filter($snapshot['gathering']['groups'] ?? [], static fn (array $group): bool => $group['endpointId'] === 'tickets_partitioned.rebuild')));
         self::assertSame([['released', 1, 1]], $runsOf($this->requestSnapshot('tenant_a')));
@@ -421,7 +421,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
 
     public function test_asynchronous_rebuild_of_a_tenant_without_partitions_completes_in_that_tenants_group(): void
     {
-        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel', completionChannelName: 'tickets_completion_channel'), FromAggregateStream(Ticket::class)] class () {
+        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel', batchCompletionChannelName: 'tickets_batch_completion_channel'), FromAggregateStream(Ticket::class)] class () {
             #[EventHandler]
             public function when(TicketWasRegistered $event): void
             {
@@ -431,7 +431,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'), metadata: ['tenant' => 'tenant_b']);
 
         $this->act('ecotone.pulse.projections.rebuild', 'tickets_partitioned', '0af7651916cd43dd8448eb211c80319c', 'tenant_a');
-        $this->orderService->run('tickets_completion_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
+        $this->orderService->run('tickets_batch_completion_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withExecutionTimeLimitInMilliseconds(10000));
 
         self::assertSame([['tickets_partitioned', 'done', 0, 0]], $this->runsListedFor('tenant_a'));
         self::assertSame([], $this->runsListedFor('tenant_b'));
@@ -439,7 +439,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
 
     public function test_metadata_of_a_rebuild_request_reaches_its_batches_while_framework_headers_do_not(): void
     {
-        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(partitionBatchSize: 1, asyncChannelName: 'tickets_rebuild_channel', completionChannelName: 'tickets_completion_channel'), FromAggregateStream(Ticket::class)] class () {
+        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(partitionBatchSize: 1, asyncChannelName: 'tickets_rebuild_channel', batchCompletionChannelName: 'tickets_batch_completion_channel'), FromAggregateStream(Ticket::class)] class () {
             #[EventHandler]
             public function when(TicketWasRegistered $event): void
             {
@@ -495,7 +495,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
             SimpleMessageChannelBuilder::createQueueChannel('tickets_async_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('tickets_partitioned_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('tickets_rebuild_channel'),
-            SimpleMessageChannelBuilder::createQueueChannel('tickets_completion_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('tickets_batch_completion_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('tickets_backfill_channel'),
         ];
         $dbal = $storage === 'dbal';

@@ -51,7 +51,7 @@ final class ProjectionRuns
                     projectionName: $projectionName,
                     operation: $operation,
                     asyncChannelName: $attribute->asyncChannelName,
-                    completionChannelName: ProjectionOperationEndpoint::completionChannelOf($attribute->completionChannelName, $attribute->asyncChannelName),
+                    batchCompletionChannelName: ProjectionOperationEndpoint::batchCompletionChannelOf($attribute->batchCompletionChannelName, $attribute->asyncChannelName),
                 );
             }
         }

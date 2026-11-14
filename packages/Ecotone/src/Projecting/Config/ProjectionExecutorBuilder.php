@@ -23,7 +23,7 @@ interface ProjectionExecutorBuilder extends CompilableBuilder
     public function rebuildPartitionBatchSize(): int;
     public function rebuildAsyncChannelName(): ?string;
 
-    public function backfillCompletionChannelName(): ?string;
+    public function backfillBatchCompletionChannelName(): ?string;
 
-    public function rebuildCompletionChannelName(): ?string;
+    public function rebuildBatchCompletionChannelName(): ?string;
 }

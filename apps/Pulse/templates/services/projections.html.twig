@@ -14,7 +14,7 @@
 
 {% macro waitingRecords(rebuild, serviceName) %}{% for waiting in rebuild.batchesWaitingToBeRecorded %}{{ loop.first ? '' : ', ' }}<a href="{{ path('dead_letter', {service: serviceName, messageId: waiting.deadLetterMessageId}) }}" data-rebuild-waiting-record="{{ waiting.batch }}">batch {{ waiting.batch }} done, its record waits in the dead letter</a>{% endfor %}{% endmacro %}
 
-{% macro queuedRecords(projection) %}<span class="muted" data-rebuild-queued-records>Finished batches are counted once the batches queued on {{ projection.queuedBatchesChannel }} have run. Set completionChannelName on <code class="nowrap">{{ projection.runAttribute }}</code> to count each batch as it finishes.</span>{% endmacro %}
+{% macro queuedRecords(projection) %}<span class="muted" data-rebuild-queued-records>Finished batches are counted once the batches queued on {{ projection.queuedBatchesChannel }} have run. Set batchCompletionChannelName on <code class="nowrap">{{ projection.runAttribute }}</code> to count each batch as it finishes.</span>{% endmacro %}
 
 {% macro operation(projection, serviceName) %}
     {% set rebuild = projection.latestRebuild %}

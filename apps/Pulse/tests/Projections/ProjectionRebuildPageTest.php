@@ -427,11 +427,11 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         $row = $crawler->filter('tr[data-projection="per_ticket"]');
         self::assertCount(0, $row->filter('progress'));
         self::assertSame('running for 1m 5s', $row->filter('[data-rebuild-elapsed]')->text());
-        self::assertSame('Finished batches are counted once the batches queued on rebuild_channel have run. Set completionChannelName on #[ProjectionRebuild] to count each batch as it finishes.', $row->filter('[data-rebuild-queued-records]')->text());
+        self::assertSame('Finished batches are counted once the batches queued on rebuild_channel have run. Set batchCompletionChannelName on #[ProjectionRebuild] to count each batch as it finishes.', $row->filter('[data-rebuild-queued-records]')->text());
         self::assertSame('#[ProjectionRebuild]', $row->filter('[data-rebuild-queued-records] code')->text());
         self::assertCount(0, $row->filter('[data-rebuild-missing]'));
         self::assertCount(1, $crawler->filter('[data-rebuild-queued-records]'));
-        self::assertStringNotContainsString('completionChannelName', $row->filter('[data-projection-reason]')->text());
+        self::assertStringNotContainsString('batchCompletionChannelName', $row->filter('[data-projection-reason]')->text());
         self::assertSame('running for 1m 5s', $crawler->filter('[data-recent-rebuilds] [data-rebuild-progress]')->text());
     }
 
@@ -459,10 +459,10 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertSame('running for under 1s', $crawler->filter('tr[data-projection="totals"] [data-rebuild-elapsed]')->text());
     }
 
-    public function test_a_running_rebuild_with_a_separate_completion_channel_shows_its_batches_from_the_first_one(): void
+    public function test_a_running_rebuild_with_a_separate_batch_completion_channel_shows_its_batches_from_the_first_one(): void
     {
         $client = $this->pulseWithOrders();
-        $this->orders->projections = [$this->projection('per_ticket', partitioned: true, rebuildCompletionChannel: 'completion_channel')];
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true, rebuildBatchCompletionChannel: 'batch_completion_channel')];
         $this->orders->trackings = [$this->tracking('per_ticket', 'running', batchesDone: 0, batchCount: 11, elapsedMs: 65000, missingBatches: range(1, 11))];
 
         $crawler = $this->observe($client);
@@ -741,7 +741,7 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
 
     private array $services = [];
 
-    private function projection(string $name, bool $partitioned = false, int $events = 0, ?string $rebuildChannel = 'rebuild_channel', ?string $initialization = 'initialized', string $mode = 'synchronous', ?string $backfillChannel = null, bool $manualKickOff = false, ?string $rebuildCompletionChannel = null): array
+    private function projection(string $name, bool $partitioned = false, int $events = 0, ?string $rebuildChannel = 'rebuild_channel', ?string $initialization = 'initialized', string $mode = 'synchronous', ?string $backfillChannel = null, bool $manualKickOff = false, ?string $rebuildBatchCompletionChannel = null): array
     {
         return [
             'name' => $name,
@@ -751,8 +751,8 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
             'asyncChannel' => null,
             'rebuildAsyncChannel' => $rebuildChannel,
             'backfillAsyncChannel' => $backfillChannel,
-            'rebuildCompletionChannel' => $rebuildCompletionChannel ?? $rebuildChannel,
-            'backfillCompletionChannel' => $backfillChannel,
+            'rebuildBatchCompletionChannel' => $rebuildBatchCompletionChannel ?? $rebuildChannel,
+            'backfillBatchCompletionChannel' => $backfillChannel,
             'initialization' => $initialization,
             'positionDigest' => 'digest',
             'eventsBehind' => $partitioned ? null : ['events' => $events, 'atLeast' => false],

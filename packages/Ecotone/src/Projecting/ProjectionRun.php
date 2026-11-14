@@ -28,7 +28,7 @@ final class ProjectionRun
         public readonly string $projectionName,
         public readonly string $operation,
         public readonly string $asyncChannelName,
-        public readonly string $completionChannelName,
+        public readonly string $batchCompletionChannelName,
     ) {
     }
 

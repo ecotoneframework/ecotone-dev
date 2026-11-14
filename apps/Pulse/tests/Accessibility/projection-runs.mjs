@@ -107,14 +107,16 @@ const shotProjection = async (name, projection) => {
     }
     stitch(name, files);
 };
-const shotWide = async (name, locator) => {
-    await page.setViewportSize({width: 2200, height: 900});
-    const box = await locator.first().evaluate((element) => {
-        const rectangle = element.getBoundingClientRect();
+const boxOf = (locator) => locator.first().evaluate((element) => {
+    const rectangle = element.getBoundingClientRect();
 
-        return {x: rectangle.left + window.scrollX, y: rectangle.top + window.scrollY, width: Math.max(rectangle.width, element.scrollWidth), height: rectangle.height};
-    });
-    await page.screenshot({path: `${screenshots}/${name}.png`, fullPage: true, clip: {x: Math.max(0, box.x - 8), y: Math.max(0, box.y - 8), width: box.width + 16, height: box.height + 16}});
+    return {left: rectangle.left + window.scrollX, top: rectangle.top + window.scrollY, right: rectangle.left + window.scrollX + Math.max(rectangle.width, element.scrollWidth), bottom: rectangle.bottom + window.scrollY};
+});
+const shotSpan = async (name, from, to, width = 1280) => {
+    await page.setViewportSize({width, height: 900});
+    const [first, last] = [await boxOf(from), await boxOf(to)];
+    const left = Math.max(0, Math.min(first.left, last.left) - 8);
+    await page.screenshot({path: `${screenshots}/${name}.png`, fullPage: true, clip: {x: left, y: Math.max(0, first.top - 8), width: Math.max(first.right, last.right) + 8 - left, height: last.bottom - first.top + 16}});
     await page.setViewportSize({width: 1280, height: 900});
     console.log(`     screenshot ${screenshots}/${name}.png`);
 };
@@ -204,6 +206,8 @@ try {
     check('the failed batch links its dead letter', (await failedLink.count()) === 1 && (await failedLink.getAttribute('href')).startsWith('/dead-letters/ticketing/'), await failedLink.getAttribute('href'));
     check('the run waits for the replay of the failed batch', (await text(row(ledger).locator('[data-rebuild-state-label]'))) === 'Rebuild waiting' && (await row(ledger).locator('[data-rebuild-replay-hint]').count()) === 1, await rowText(ledger));
     check('the other batches are done', (await rowBatches(ledger)) === `${batches - 1} of ${batches} batches`, await rowBatches(ledger));
+    check('the up-to-date row says its positions are caught up and the rebuild waits for the replay', (await text(row(ledger).locator('[data-projection-reason]'))).startsWith('Event positions are caught up; the latest rebuild waits for the replay of batch '), await text(row(ledger).locator('[data-projection-reason]')));
+    check('the folded summaries say waiting for replay', (await text(page.locator('[data-projection-operations] [data-summary-state]'))).includes('1 waiting for replay'), await text(page.locator('[data-projection-operations] [data-summary-state]')));
     await shotProjection('06-rebuild-with-a-failed-batch', ledger);
     const deadLetterUrl = new URL(await failedLink.getAttribute('href'), pulse).toString();
     await failedLink.click();
@@ -215,8 +219,7 @@ try {
         await visit(deadLetterUrl);
     }
     check('the dead letter of the failed batch opens', page.url().includes('/dead-letters/ticketing/'), page.url());
-    await page.screenshot({path: `${screenshots}/07-dead-letter-of-the-failed-batch.png`});
-    console.log(`     screenshot ${screenshots}/07-dead-letter-of-the-failed-batch.png`);
+    await shotSpan('07-dead-letter-of-the-failed-batch', page.locator('main h1'), page.locator('[data-action-consequences]'));
     const replay = page.locator('button[name="action"][value="replay"]').first();
     check('the dead letter offers a replay', (await replay.count()) === 1);
     await replay.click();
@@ -252,13 +255,14 @@ try {
         await page.waitForTimeout(1500);
     }
     check('the Gathering tab lists the running rebuild as an open group under its endpoint id with its finished batches recorded', (await openRun().count()) === 1 && (await text(openRun().locator('[data-group-recorded]'))) === String(doneBeforeDiscard), await text(openRun()));
-    await shotWide('12-gathering-tab-with-the-run', page.locator('section[aria-label^="Gathered groups"]'));
+    await shotSpan('12-gathering-tab-with-the-run', page.locator('main h1'), page.locator('section[aria-label^="Gathered groups"]'), 2200);
     await openRun().locator('button[data-discard-group]').click();
     await page.waitForLoadState('load');
     drainRequests();
     check('a rebuild discarded on the Gathering tab is shown as discarded with the batches it did not project', await observe(async () => (await rowState(ledger)) === 'discarded', 'discarded'), await rowText(ledger));
     check('the discarded rebuild keeps its finished batches and names the two it did not project', (await rowBatches(ledger)) === `${doneBeforeDiscard} of ${batches} batches` && (await latestProgress()).includes('not projected'), await latestProgress());
     check('the recent operations summary names the discarded run instead of saying all done', (await text(page.locator('[data-projection-operations] [data-summary-state]'))).includes('1 discarded'), await text(page.locator('[data-projection-operations] [data-summary-state]')));
+    check('the up-to-date row says the latest rebuild was discarded with the batches it did not project', (await text(row(ledger).locator('[data-projection-reason]'))) === `Event positions are caught up; the latest rebuild was discarded with batches ${doneBeforeDiscard + 1}, ${batches} not projected.`, await text(row(ledger).locator('[data-projection-reason]')));
     await shotProjection('10-rebuild-discarded', ledger);
     drainBatches();
     drainBatchCompletions();

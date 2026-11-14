@@ -7,7 +7,6 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Collected;
-use Ecotone\Messaging\Handler\Gathering\CollectedHandlerContext;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Gathered;
@@ -35,10 +34,10 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\Gathering\CollectedHandlerContext;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupOperations;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStoreRegistration;
-use Ecotone\Messaging\Handler\Gathering\GatheringConflictRedelivery;
 use Ecotone\Messaging\Handler\Gathering\GatheringConsoleCommands;
 use Ecotone\Messaging\Handler\Gathering\GatheringPartCompletion;
 use Ecotone\Messaging\Handler\Gathering\GatheringTimeouts;
@@ -213,7 +212,6 @@ final class GatheringModule extends NoExternalConfigurationModule
 
     private function registerPartCompletion(Configuration $messagingConfiguration): void
     {
-        $messagingConfiguration->registerServiceDefinition(GatheringConflictRedelivery::class, new Definition(GatheringConflictRedelivery::class, [new Reference(ChannelResolver::class), new Reference(MessageBuilder::class)]));
         $messagingConfiguration->registerServiceDefinition(NullPartCompletion::class, new Definition(NullPartCompletion::class));
         $messagingConfiguration->registerServiceDefinition(GatheringPartCompletion::class, new Definition(GatheringPartCompletion::class, [new Reference(ChannelResolver::class), new Reference(MessageBuilder::class)]));
         $messagingConfiguration->registerServiceDefinition(PartCompletion::class, LicenceDecider::prepareDefinition(className: PartCompletion::class, openCoreServiceReference: NullPartCompletion::class, enterpriseServiceReference: GatheringPartCompletion::class));

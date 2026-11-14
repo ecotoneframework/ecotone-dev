@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gathering;
 
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
+use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
+use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -17,9 +19,12 @@ use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutorCompiler;
+use Ecotone\Messaging\Handler\ServiceActivator\UninterruptibleServiceActivator;
+use Ecotone\Messaging\Handler\Transformer\RoutingSlipPrepender;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\Config\MessageBusChannel;
 
 /**
  * licence Enterprise
@@ -54,7 +59,7 @@ final class GatheringHandlerCompiler
                 new Reference(MessageBuilder::class),
                 new Reference(ConversionService::class),
                 $endpointId,
-                substr($inputChannelName, 0, -strlen(AsynchronousModule::HANDLER_EXECUTION_CHANNEL_SUFFIX)),
+                self::registerCollectedInputChannel(builder: $builder, interface: $interface, endpointId: $endpointId, executionChannel: $inputChannelName),
                 $collected->maxSize,
                 AttributeExpressionExecutorCompiler::compile(
                     attributeWithExpression: $collected,
@@ -67,7 +72,6 @@ final class GatheringHandlerCompiler
                 new Reference(EcotoneClockInterface::class),
                 new Reference(ChannelResolver::class),
                 CollectingPayloadType::for($collected),
-                new Reference(GatheringConflictRedelivery::class),
             ]));
             return $builder->register($reference, LicenceDecider::prepareDefinition(className: MessageHandler::class, openCoreServiceReference: $reference . '.core', enterpriseServiceReference: $reference . '.enterprise'));
         }
@@ -79,11 +83,30 @@ final class GatheringHandlerCompiler
                 new Reference(GatheredGroupStore::class),
                 new Reference(MessageBuilder::class),
                 new Reference(ConversionService::class),
-                new Reference(GatheringConflictRedelivery::class),
             ]));
             return $builder->register($reference, LicenceDecider::prepareDefinition(className: MessageHandler::class, openCoreServiceReference: $reference . '.core', enterpriseServiceReference: $reference . '.enterprise'));
         }
 
         return $handler;
     }
+    private static function registerCollectedInputChannel(MessagingContainerBuilder $builder, InterfaceToCallReference $interface, string $endpointId, string $executionChannel): string
+    {
+        $asynchronous = $builder->getInterfaceToCall($interface)->getSingleAnnotation(Type::create(Asynchronous::class));
+        $channels = $asynchronous->getChannelName();
+        $firstChannel = array_shift($channels);
+        $channels[] = $executionChannel;
+        $inputChannel = 'ecotone.collecting.input.' . hash('sha256', $endpointId);
+        $forwarder = UninterruptibleServiceActivator::create(
+            new Definition(RoutingSlipPrepender::class, [
+                $channels,
+                [MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME, MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME],
+                new Reference(MessageBuilder::class),
+                MessageBusChannel::ROUTING_KEY_HEADER,
+            ]),
+            'transform',
+        )->withOutputMessageChannel($firstChannel)->compile($builder);
+        $builder->register(new ChannelReference($inputChannel), new Definition(DirectChannel::class, [$inputChannel, $forwarder]));
+        return $inputChannel;
+    }
+
 }

@@ -57,7 +57,6 @@ final class CollectingMessageHandler implements MessageHandler
         private EcotoneClockInterface $clock,
         private ChannelResolver $channelResolver,
         private Type $payloadType,
-        private GatheringConflictRedelivery $redelivery,
     ) {
     }
 
@@ -77,12 +76,10 @@ final class CollectingMessageHandler implements MessageHandler
         };
         $whenReleased = $this->whenReleased($reason);
         if ($timeout || $manualRelease) {
-            if (! $this->store->releaseGroup(groupId: $message->getHeaders()->get(GatheringHeaders::GROUP_ID), whenReleased: $whenReleased, releaseReason: $reason)) {
-                $this->redelivery->resendCollected($message, $this->channelName);
-            }
+            $this->store->releaseGroup(groupId: $message->getHeaders()->get(GatheringHeaders::GROUP_ID), whenReleased: $whenReleased, releaseReason: $reason);
             return;
         }
-        $recorded = $this->store->collectMessage(
+        $this->store->collectMessage(
             endpointId: $this->endpointId,
             groupKey: $this->groupKeyFor($message),
             gatherChannelName: $this->channelName,
@@ -92,9 +89,6 @@ final class CollectingMessageHandler implements MessageHandler
             whenOpened: fn (string $groupId) => $this->scheduleTimeout($groupId, $message),
             whenReleased: $whenReleased,
         );
-        if (! $recorded) {
-            $this->redelivery->resendCollected($message, $this->channelName);
-        }
     }
 
     private function whenReleased(CollectedReleaseReason $reason): Closure
@@ -148,7 +142,7 @@ final class CollectingMessageHandler implements MessageHandler
 
     private function contextOf(Message $message): array
     {
-        return array_diff_key(GatheringMessageContext::from($message), [CollectingMessageIdentity::ORIGINAL_MESSAGE_ID => true]);
+        return GatheringMessageContext::from($message);
     }
 
     private function payloadOf(Message $message): mixed

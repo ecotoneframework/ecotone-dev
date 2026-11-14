@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Gathering;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\RetryableException;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\CollectedReleaseReason;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Messaging\Handler\Gathering\CollectingMessageIdentity;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupNotFound;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupSize;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
@@ -85,12 +86,12 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         }
     }
 
-    public function collectMessage(string $endpointId, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): bool
+    public function collectMessage(string $endpointId, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): void
     {
         $connection = $this->connection();
         try {
-            if ($connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE endpoint_id = ? AND message_id = ?', [$endpointId, CollectingMessageIdentity::of($message)]) !== false) {
-                return true;
+            if ($connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE endpoint_id = ? AND message_id = ?', [$endpointId, $message->getHeaders()->getMessageId()]) !== false) {
+                return;
             }
             $keyHash = hash('sha256', $groupKey ?? '');
             $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE endpoint_id = ? AND group_key_hash = ? AND open_slot = 1', [$endpointId, $keyHash]);
@@ -101,7 +102,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 $connection->executeStatement($sql, [$groupId, $gatherChannelName, $maxSize ?? GatheredGroupStore::UNKNOWN_SIZE, 'open', $this->messages->encode($message), $endpointId, $groupKey, $keyHash, $deadline, $this->clock->now()->unixTime()->inMilliseconds()]);
                 $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
                 if (! $group) {
-                    return false;
+                    throw ConcurrencyException::forGatheredGroup($groupId);
                 }
                 $whenOpened($groupId);
             }
@@ -109,9 +110,9 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             $completed = $arrived === (int) $group['size'];
             $updated = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET arrived = ?, version = version + 1, state = ?, closed_at = ?, open_slot = ?, release_reason = ? WHERE group_id = ? AND version = ? AND state = 'open'", [$arrived, $completed ? 'released' : 'open', $completed ? $this->clock->now()->unixTime()->inMilliseconds() : null, $completed ? null : 1, $completed ? CollectedReleaseReason::MAX_SIZE_REACHED->value : null, $group['group_id'], $group['version']]);
             if ($updated === 0) {
-                return false;
+                throw ConcurrencyException::forGatheredGroup($group['group_id']);
             }
-            $connection->insert(self::PART_TABLE, ['group_id' => $group['group_id'], 'part_number' => $arrived, 'report' => $this->messages->encode($message), 'endpoint_id' => $endpointId, 'message_id' => CollectingMessageIdentity::of($message)]);
+            $connection->insert(self::PART_TABLE, ['group_id' => $group['group_id'], 'part_number' => $arrived, 'report' => $this->messages->encode($message), 'endpoint_id' => $endpointId, 'message_id' => $message->getHeaders()->getMessageId()]);
             if ($completed) {
                 $parts = [];
                 foreach ($this->loadPartsForRelease($group['group_id']) as $part) {
@@ -119,12 +120,15 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 }
             }
         } catch (Throwable $failure) {
+            if ($failure instanceof RetryableException) {
+                throw ConcurrencyException::forGatheredGroup($group['group_id'] ?? $groupId ?? $endpointId);
+            }
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
         if ($completed) {
             $whenReleased($this->messages->decode($group['original_message']), $parts, GatheredGroupSize::asNullable((int) $group['size']), $group['group_key'] ?? null);
         }
-        return true;
+
     }
 
     public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void
@@ -150,7 +154,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         $whenOpened();
     }
 
-    public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): bool
+    public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void
     {
         $connection = $this->connection();
         try {
@@ -163,11 +167,11 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                     $this->noteLatePart($groupId);
                 }
 
-                return true;
+                return;
             }
             $size = (int) $group['size'];
             if ($size > 0 && $connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE group_id = ? AND part_number = ?', [$groupId, $partNumber]) !== false) {
-                return true;
+                return;
             }
             $arrived = (int) $group['arrived'] + ($size > 0 ? 1 : 0);
             $completed = $arrived === $size;
@@ -177,7 +181,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 [$arrived, $version + 1, $completed ? 'released' : 'open', $completed ? $this->clock->now()->unixTime()->inMilliseconds() : null, $groupId, $version],
             );
             if ($updated === 0) {
-                return false;
+                throw ConcurrencyException::forGatheredGroup($groupId);
             }
             if ($size > 0) {
                 $connection->insert(self::PART_TABLE, [
@@ -193,13 +197,16 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 }
             }
         } catch (Throwable $failure) {
+            if ($failure instanceof RetryableException) {
+                throw ConcurrencyException::forGatheredGroup($groupId);
+            }
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
         if ($completed) {
             $whenComplete($this->messages->decode($group['original_message']), $parts, $size);
         }
 
-        return true;
+
     }
 
     public function gatherChannelNameFor(string $groupId): string
@@ -216,29 +223,32 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         }
     }
 
-    public function releaseGroup(string $groupId, callable $whenReleased, ?CollectedReleaseReason $releaseReason): bool
+    public function releaseGroup(string $groupId, callable $whenReleased, ?CollectedReleaseReason $releaseReason): void
     {
         $connection = $this->connection();
         try {
             $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
             if (! $group || $group['state'] !== 'open') {
-                return true;
+                return;
             }
             $version = (int) $group['version'];
             $released = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'released', closed_at = ?, open_slot = NULL, release_reason = ?, version = ? WHERE group_id = ? AND version = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $releaseReason?->value, $version + 1, $groupId, $version]);
             if ($released === 0) {
-                return false;
+                throw ConcurrencyException::forGatheredGroup($groupId);
             }
             $parts = [];
             foreach ($this->loadPartsForRelease($groupId) as $part) {
                 $parts[(int) $part['part_number']] = $this->messages->decode($part['report']);
             }
         } catch (Throwable $failure) {
+            if ($failure instanceof RetryableException) {
+                throw ConcurrencyException::forGatheredGroup($groupId);
+            }
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
         $whenReleased($this->messages->decode($group['original_message']), $parts, GatheredGroupSize::asNullable((int) $group['size']), $group['group_key'] ?? null);
 
-        return true;
+
     }
 
     public function discard(string $groupId): void

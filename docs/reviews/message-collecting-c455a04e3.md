@@ -149,3 +149,26 @@ Items marked HELD wait for the maintainer; do not start them.
   count. A controlled exhaustion test asserts the exception in the dead letter and replay completion.
 - C32: add the framework retry rule beside optimistic locking, with evidence and an eval, in a separate
   docs(skills) commit. No user-facing application skills change.
+
+
+## C31 verification and superseded assertions
+
+- C1: retained original-redelivery-after-commit coverage uses the original message id. Removed only the AMQP
+  non-transactional replacement-message variant, since replacement messages no longer exist.
+- C8: obsolete under C31; there is no conflict re-send channel or replacement lifetime. Independent operations
+  coverage still proves that a manual trigger reaches only its collected handler on a shared InternalHandler
+  input or EventHandler subscription.
+- Rewritten gathering tests (not removed):
+  `concurrent_part_reports_conflict_and_are_retried_without_reaching_the_dead_letter` becomes
+  `concurrent_part_reports_complete_once_after_replaying_any_exhausted_conflicts_in_a_real_database_race`;
+  `releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established` now asserts instant retry of
+  the same message; `conflicting_group_operation_is_redelivered_before_observing_a_fresh_snapshot` becomes
+  `conflicting_group_operation_retries_the_original_message_in_a_fresh_transaction`, retaining manual, timeout,
+  report, discard/part and discard/release interleavings.
+- Added deterministic exhaustion/replay tests for gathered reports, collected appends and manual batch releases.
+  Free-running contention replays failures through one consumer and asserts exact-once membership and maximum size.
+- C32: `check-agent-skills` passes. After clarifying that standard application retry configuration is allowed,
+  `bin/test-agent-skills framework-storage-and-transactions` passes all three cases at 1.00, including the new
+  `handle-version-conflict` case. The first run's below-threshold scores remain in its local report; no CI run was
+  retried. No syntax-only re-send check is added because it cannot distinguish forwarding and timers from retry
+  across message builders and collaborators; the rule's reference records that boundary.

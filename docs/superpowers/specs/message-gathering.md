@@ -45,31 +45,24 @@ changing the group. A new part conditionally writes the next `arrived` and versi
 read, also closing the group when that arrival completes it. Only a winning writer inserts the part row. The
 unique part key remains a final integrity constraint.
 
-A zero-row version check makes no group or part change. The gathering handler sends exactly one replacement
-report to its own channel with a fresh message id, retaining group/part identity, payload and content/type
-metadata, and returns normally. Default asynchronous deduplication records the original delivery; the new id
-lets the replacement run. Each replacement is a new delivery and transaction, with a fresh snapshot. No conflict
-exception reaches instant retry, failure answers, an error channel or the dead letter, and no user retry
-configuration is required. Timeout and manual-release triggers use the same conditional close and replacement
-path. Synchronous discard is one conditional write against `state = open`, incrementing the version; it depends
-on no previously read version and cannot lose a version check.
+A zero-row version check throws `ConcurrencyException`, as does a lost collecting open-slot insert. Transactional
+asynchronous endpoints use the framework's default instant retries, each in a fresh transaction. Timeout and
+manual-release triggers use the same rule. Exhaustion follows the configured error channel, delayed retries and
+dead letter; replay observes current state. Discard is a single conditional write against `state = open`,
+incrementing the version without depending on a previously read version.
 
 A successful version check proves no group write committed after the reader's snapshot. The completing
-transaction therefore sees every committed part through a plain read; no locking read is needed. This avoids
-releasing a MySQL/MariaDB repeatable-read snapshot with a committed result missing. A duplicate committed after
-the snapshot also advanced the group version, so the stale delivery conflicts and its replacement sees that
-part as a duplicate. The in-memory twin keeps the same version transitions and rollback behavior.
+transaction therefore sees every committed part through a plain read; no locking read is needed. A stale
+MySQL/MariaDB repeatable-read snapshot loses its version check, and its retry sees the committed part. The
+in-memory twin keeps the same version transitions and rollback behavior.
 
-There is no inline spin or backoff: one conflicting delivery creates one replacement and finishes. A report can
-lose only to a committed version-changing write of its own group, so retries are bounded by writes to that group
-(parts, release or discard), rather than by consumer count. One consumer on the gathered handler's channel avoids
-report-to-report conflicts. Several consumers can create retried small reports without re-running the part work.
-
-The existing acknowledgement contract remains unchanged. On a DBAL channel using the group store's connection,
-the replacement enqueue commits in the handler transaction before acknowledgement removes the source delivery.
-A crash between commit and acknowledgement leaves both messages. This is safe at least once: the original is
-deduplicated or conflicts again, and part identity is the pair `(group_id, part_number)`. Returning a zero-row
-check normally leaves nested DBAL transactions/savepoints usable; no rollback-only state is introduced.
+Maintainer decision C31 (2026-11-14) removes conflict replacement messages from both gathering and collecting.
+One retry mechanism handles every optimistic lock. Replacement ids had required their own identity handling and
+caused collecting's duplicate-collect finding C1. Reports now keep their original message id. There is no
+feature-specific retry loop or backoff; applications can raise the attempts with
+`InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 5)`, or run one consumer
+on the gathered handler's channel (using a dedicated channel when needed). Hot groups can exhaust retries and
+wait in the dead letter for replay. Retained `(group_id, part_number)` identity prevents duplicate reports.
 
 The completing consumer closes the group and invokes the ordinary handler inside the same transaction. Failure
 rolls back its part, group version and closure; retrying that message can complete the group again. That
@@ -194,7 +187,7 @@ boot Pulse beside a real split/gather application.
 | Ordered results and no-result completion | `gathered_handler_receives_all_part_results_in_split_order`, `part_returning_nothing_counts_as_done` |
 | Typed payload conversion and snapshot | `gathered_parts_restore_typed_results_and_original_payload`, `original_payload_is_a_snapshot_of_the_message_at_the_split` |
 | Duplicate parts and concurrent completion | `duplicate_part_is_not_counted_twice`, `gathered_handler_runs_once_when_last_two_parts_are_recorded_concurrently` |
-| Conflict redelivery without failure | `concurrent_part_reports_conflict_and_are_retried_without_reaching_the_dead_letter`, `releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established`, `conflicting_group_operation_is_redelivered_before_observing_a_fresh_snapshot` |
+| Conflict redelivery without failure | `concurrent_part_reports_complete_once_after_replaying_any_exhausted_conflicts_in_a_real_database_race`, `releasing_transaction_sees_a_part_committed_after_its_snapshot_was_established`, `conflicting_group_operation_retries_the_original_message_in_a_fresh_transaction` |
 | Transaction rollback | `gathered_handler_failure_rolls_back_the_completing_part`, `failed_release_handler_keeps_group_open_until_normal_retry` |
 | Original application headers | `released_message_carries_application_headers_but_not_the_split_requests_routing` |
 | Bus boundary | `group_headers_do_not_cross_a_command_bus_hop`, `group_headers_do_not_cross_an_event_bus_hop` |
@@ -273,8 +266,8 @@ replayed before the outer group completes. Named contracts are `two_manual_relea
 `timeout_after_completion_does_not_invoke_a_retained_group_again`, `empty_inner_split_becomes_an_accounted_outer_part`,
 `inner_timeout_result_becomes_an_accounted_outer_part`, `inner_gathered_handler_failure_replays_before_completing_the_outer_group`
 and `dbal_report_channel_redelivers_the_completing_part_with_its_group_transaction`.
-The `conflicting_group_operation_is_redelivered_before_observing_a_fresh_snapshot` provider covers manual and timeout
-release, report conflicts on a non-transactional channel, and discard interleaved with either a part or a release.
+The `conflicting_group_operation_retries_the_original_message_in_a_fresh_transaction` provider covers manual and timeout
+release, report conflicts under the default transactional retry configuration, and discard interleaved with either a part or a release.
 These cases remain within the four server-engine race methods excluded on SQLite.
 
 Gathering storage and table setup follow the first connection in

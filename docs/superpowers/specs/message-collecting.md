@@ -66,20 +66,29 @@ Existing read paths considered before adding indexes:
 - The existing part primary key `(group_id, part_number)` prevents duplicate part numbers but cannot detect the
   same ordinary message after a batch release. Nullable endpoint_id and message-id fields plus a unique
   `(endpoint_id, message_id)` index provide one indexed deduplication lookup across retained batches of that endpoint.
-  A conflict replacement preserves the first message identity in a framework header, including through a chain
-  of replacements. Cleanup removes those identities together with retained parts.
+  The message keeps its own id across retries. Cleanup removes those identities together with retained parts.
 
-Open/append/release use the same optimistic group version as gathering. A lost version check or lost open-slot
-insert writes nothing and re-sends through the existing conflict-redelivery collaborator to the handler's own
-asynchronous channel. A new transaction consumes it. No locking loop, new locking scheme or runtime DDL is added.
-Hot-key throughput depends on conflict rate; one consumer avoids inter-consumer conflicts.
+Open/append/release use the same optimistic group version as gathering. A lost version check or open-slot insert
+throws `ConcurrencyException`. Default instant retries on transactional asynchronous endpoints retry the same
+message, each in a new transaction; exhaustion follows the configured error channel, delayed retries and dead
+letter. Replay resumes recording against current state. No locking loop, separate retry mechanism or runtime DDL
+is added. Applications can raise attempts through `InstantRetryConfiguration` or use one consumer for a hot key.
+
+Maintainer decision C31 (2026-11-14) replaces conflict re-sending in both gathering and collecting. Every optimistic
+lock uses the existing retry mechanism. Replacement messages had required their own identity header and caused
+the duplicate-collect bug C1; the collaborator and header are removed, making C8 obsolete.
+
+Known risk: an eight-consumer PostgreSQL open-slot race exhausted the default three retries for three of eight
+messages. Tests do not assert a timing-dependent dead-letter count: deterministic interleavings prove automatic
+retry and controlled exhaustion, while free-running contention replays any failures with one consumer before
+asserting complete, duplicate-free batches. Several consumers on one hot key can require operational replay.
 
 DBAL recording, release, handler execution and deferred timeout sends are protected by the message transaction.
 The in-memory twin uses the same shared conformance suite. **Maintainer-approved parity exception (2026-11-14):**
 the in-memory store is test-only and has no transaction. A failure raised after the store returned, such as a
 deferred channel send, cannot roll back its state. DBAL rolls it back through the boundary transaction.
 Gathering timeout sends have the same property. The timeout-send failure test therefore skips in-memory with
-that reason and runs on PostgreSQL, MySQL and MariaDB. No collector or gathering transaction infrastructure is changed.
+that reason and runs on PostgreSQL, MySQL and MariaDB. No collector-specific transaction infrastructure is added.
 
 ## Operations and deployment
 
@@ -123,7 +132,7 @@ and DBAL; the database branch and concurrency tests run on PostgreSQL, MySQL and
 | Recording order and headers | batch_keeps_the_order_of_recording; batch_inherits_the_first_messages_user_headers_and_retains_each_messages_own_headers; first_messages_delivery_headers_do_not_cross_the_batch_or_output_boundary; max_wait_timer_keeps_the_first_messages_tenant_for_its_database_connection |
 | Duplicate and retry | redelivered_message_is_not_collected_twice_even_after_its_batch_is_released; failing_collected_handler_is_retried_with_the_same_batch; failed_timeout_send_rolls_back_opening_the_batch |
 | Return value | return_value_flows_once_per_batch |
-| Concurrency | batch_is_released_once_when_last_messages_are_recorded_in_a_real_database_race; consumers_opening_the_same_open_slot_in_a_real_database_race_keep_one_batch_and_resend_the_loser |
+| Concurrency | batch_is_released_once_when_last_messages_are_recorded_in_a_real_database_race; consumers_opening_the_same_open_slot_in_a_real_database_race_retry_and_keep_one_batch |
 | Storage and retention | collected_handler_requires_durable_storage_outside_flow_testing; closed_batches_follow_gathering_retention_and_open_batches_are_kept |
 | Gateway, console and Pulse | open_batches_are_listed_by_collected_endpoint_id; released_batches_are_listed_by_collected_endpoint_id; open_batch_can_be_released_by_hand_without_collecting_the_release_message; group_listings_remain_separate_from_collected_batch_listings; batch_console_listing_uses_endpoint_id_and_hides_an_unknown_size; pulse_lists_open_batches_by_collected_endpoint_and_hides_unknown_size; pulse_requests_batch_release_on_its_asynchronous_channel; pulse_discards_a_batch_without_invoking_its_handler |
 

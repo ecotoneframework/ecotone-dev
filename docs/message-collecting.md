@@ -135,9 +135,15 @@ For a channel chain or combined channel, its first physical channel must support
 [gathering channel limits](message-gathering.md#operations) for transport-specific limits and unknown maxima.
 A stale timeout for an already closed batch has no effect on a later batch of the same key.
 
-Several consumers adding to one key race; the loser is re-queued. For a hot key, run one consumer.
-Re-queuing preserves the original message identity, so later redelivery cannot add it twice while its batch is
-retained. Measure your workload before increasing consumer count.
+Several consumers adding to one key can conflict. A lost optimistic write throws `ConcurrencyException`.
+Asynchronous endpoints running in a DBAL transaction retry instantly by default, each retry in a new transaction.
+The message keeps its own id, so redelivery cannot add it twice while its batch is retained.
+
+With several consumers on one hot key, the default three retries can run out and messages then wait in the dead
+letter until replayed, after the configured error channel and delayed retries. Raise the attempts with
+`InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 5)`, or run one consumer
+on the collected handler's channel. Give that handler its own channel when other handlers need more consumers.
+Measure your workload before increasing consumer count.
 
 Flow tests without DBAL keep batches in memory. If sending a timeout fails after a message has been recorded,
 the test store keeps that message. A DBAL-backed application rolls it back with the transaction. Gathering has

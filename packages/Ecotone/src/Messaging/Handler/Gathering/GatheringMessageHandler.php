@@ -36,7 +36,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 final class GatheringMessageHandler implements MessageHandler
 {
-    public function __construct(private MessageHandler $handler, private GatheredGroupStore $store, private MessageBuilder $messageBuilder, private ConversionService $conversionService, private GatheringConflictRedelivery $redelivery)
+    public function __construct(private MessageHandler $handler, private GatheredGroupStore $store, private MessageBuilder $messageBuilder, private ConversionService $conversionService)
     {
     }
 
@@ -80,21 +80,16 @@ final class GatheringMessageHandler implements MessageHandler
         };
         $groupId = $message->getHeaders()->get(GatheringHeaders::GROUP_ID);
         if ($timeout || $manualRelease) {
-            if (! $this->store->releaseGroup(groupId: $groupId, whenReleased: $whenReleased, releaseReason: null)) {
-                $this->redelivery->resend($message, $message->getHeaders()->get(GatheringHeaders::CHANNEL_NAME));
-            }
+            $this->store->releaseGroup(groupId: $groupId, whenReleased: $whenReleased, releaseReason: null);
 
             return;
         }
-        $recorded = $this->store->completePart(
+        $this->store->completePart(
             groupId: $groupId,
             partNumber: (int) $message->getHeaders()->get(GatheringHeaders::PART_NUMBER),
             report: $message,
             whenComplete: $whenReleased,
         );
-        if (! $recorded) {
-            $this->redelivery->resend($message, $message->getHeaders()->get(GatheringHeaders::CHANNEL_NAME));
-        }
     }
 
     private function resultOf(Message $part): mixed

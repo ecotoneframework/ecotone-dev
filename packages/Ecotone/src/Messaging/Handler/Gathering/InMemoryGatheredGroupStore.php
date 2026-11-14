@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Handler\Gathering;
 
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\CollectedReleaseReason;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Throwable;
@@ -67,7 +68,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         }, array_filter($this->groups, static fn (array $group): bool => ($group['endpointId'] ?? null) === $endpointId && ($closed ? $group['state'] !== 'open' : $group['state'] === 'open'))));
     }
 
-    public function collectMessage(string $endpointId, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): bool
+    public function collectMessage(string $endpointId, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): void
     {
         $groupId = null;
         foreach ($this->groups as $id => $group) {
@@ -75,8 +76,8 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
                 continue;
             }
             foreach ($group['parts'] as $part) {
-                if (CollectingMessageIdentity::of($part) === CollectingMessageIdentity::of($message)) {
-                    return true;
+                if ($part->getHeaders()->getMessageId() === $message->getHeaders()->getMessageId()) {
+                    return;
                 }
             }
             if ($group['groupKey'] === $groupKey && $group['openSlot'] === 1) {
@@ -95,7 +96,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
                 $this->groups[$groupId]['releaseReason'] = null;
                 $whenOpened($groupId);
             }
-            return $this->completePart($groupId, count($this->groups[$groupId]['parts']) + 1, $message, $whenReleased);
+            $this->completePart($groupId, count($this->groups[$groupId]['parts']) + 1, $message, $whenReleased);
         } catch (Throwable $failure) {
             $this->groups = $previousGroups;
             throw $failure;
@@ -129,7 +130,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         }
     }
 
-    public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): bool
+    public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void
     {
         $previous = $this->groups[$groupId] ?? throw GatheredGroupNotFound::forId($groupId);
         if ($previous['state'] !== 'open') {
@@ -138,13 +139,13 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
                 $this->groups[$groupId]['version']++;
             }
 
-            return true;
+            return;
         }
         if (isset($previous['parts'][$partNumber])) {
-            return true;
+            return;
         }
         if ($this->groups[$groupId]['version'] !== $previous['version']) {
-            return false;
+            throw ConcurrencyException::forGatheredGroup($groupId);
         }
         $this->groups[$groupId]['version']++;
         if ($previous['size'] > 0 || isset($previous['endpointId'])) {
@@ -154,7 +155,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             $this->groups[$groupId]['missingPartNumbers'] = array_values(array_diff($previous['missingPartNumbers'], [$partNumber]));
         }
         if (count($this->groups[$groupId]['parts']) !== $previous['size']) {
-            return true;
+            return;
         }
         $this->groups[$groupId]['state'] = 'released';
         if (isset($previous['endpointId'])) {
@@ -168,7 +169,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             $this->groups[$groupId] = $previous;
             throw $failure;
         }
-        return true;
+
     }
 
     public function gatherChannelNameFor(string $groupId): string
@@ -178,14 +179,14 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         return $group['gatherChannelName'];
     }
 
-    public function releaseGroup(string $groupId, callable $whenReleased, ?CollectedReleaseReason $releaseReason): bool
+    public function releaseGroup(string $groupId, callable $whenReleased, ?CollectedReleaseReason $releaseReason): void
     {
         $previous = $this->groups[$groupId] ?? null;
         if ($previous === null || $previous['state'] !== 'open') {
-            return true;
+            return;
         }
         if ($this->groups[$groupId]['version'] !== $previous['version']) {
-            return false;
+            throw ConcurrencyException::forGatheredGroup($groupId);
         }
         $this->groups[$groupId]['version']++;
         $this->groups[$groupId]['state'] = 'released';
@@ -200,7 +201,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             $this->groups[$groupId] = $previous;
             throw $failure;
         }
-        return true;
+
     }
 
     public function discard(string $groupId): void

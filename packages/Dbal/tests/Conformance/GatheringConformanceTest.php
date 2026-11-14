@@ -6,6 +6,7 @@ namespace Test\Ecotone\Dbal\Conformance;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Doctrine\DBAL\TransactionIsolationLevel;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
@@ -28,6 +29,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\GatheringConfiguration;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -40,6 +42,7 @@ use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\GatheredReleaseReason;
@@ -3333,7 +3336,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20},"runs":1}', self::concurrentApplication()->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
     }
 
-    public function test_concurrent_part_reports_conflict_and_are_retried_without_reaching_the_dead_letter(): void
+    public function test_concurrent_part_reports_complete_once_after_replaying_any_exhausted_conflicts_in_a_real_database_race(): void
     {
         if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
@@ -3350,15 +3353,15 @@ final class GatheringConformanceTest extends TestCase
 
         $this->runConcurrentConsumers(count($parts), __FILE__, 'consumeConcurrentPart');
 
-        $groups = array_values(array_filter($application->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroups, true)));
-        self::assertCount(1, $groups);
-        self::assertLessThan(count($parts), count($groups[0]['accountedPartNumbers']));
-        $originalDeliveries = array_values(array_filter($application->getGateway(DocumentStore::class)->getAllDocuments('gathering_deliveries'), static fn (string $delivery): bool => json_decode($delivery, true, flags: JSON_THROW_ON_ERROR)['testId'] === $testId));
-        self::assertCount(count($parts), $originalDeliveries);
+        $failures = array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previousFailures, true));
+        foreach ($failures as $failure) {
+            $deadLetters->replay($failure->getMessageId());
+        }
         $application->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+        $groups = array_values(array_filter($application->getGateway(GatheredGroups::class)->listOpenGroups('summary'), static fn (array $group): bool => ! in_array($group['groupId'], $previousGroups, true)));
+        self::assertSame([], $groups);
         $deliveries = array_values(array_filter($application->getGateway(DocumentStore::class)->getAllDocuments('gathering_deliveries'), static fn (string $delivery): bool => json_decode($delivery, true, flags: JSON_THROW_ON_ERROR)['testId'] === $testId));
-        self::assertGreaterThan(count($parts), count($deliveries));
-        self::assertLessThanOrEqual(count($parts) * count($parts), count($deliveries));
+        self::assertCount(count($parts), $deliveries);
         $result = json_decode($application->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId), true, flags: JSON_THROW_ON_ERROR);
         self::assertSame(array_combine($parts, $parts), $result['results']);
         self::assertSame(1, $result['runs']);
@@ -3404,16 +3407,62 @@ final class GatheringConformanceTest extends TestCase
 
         self::assertTrue($interceptor->interleaved);
         if (! str_starts_with(getenv('DATABASE_DSN'), 'pgsql:')) {
-            self::assertNull($consumer->getGateway(DocumentStore::class)->findDocument('gathering_concurrency', $testId));
-            $consumer->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
             self::assertCount(2, $interceptor->messageIds);
-            self::assertNotSame($interceptor->messageIds[0], $interceptor->messageIds[1]);
+            self::assertSame($interceptor->messageIds[0], $interceptor->messageIds[1]);
         }
         self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20},"runs":1}', self::concurrentApplication()->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
     }
 
+    public function test_exhausted_gathering_conflicts_reach_the_dead_letter_and_replay_completes_the_group_in_a_real_database_race(): void
+    {
+        if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->establishConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('The stale-snapshot race requires PostgreSQL, MySQL or MariaDB.');
+        }
+        $other = self::concurrentApplication();
+        $other->run('gathering_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+        $testId = bin2hex(random_bytes(16));
+        $other->getGateway(DocumentStore::class)->addDocument('gathering_snapshot', $testId, '{}');
+        $other->sendCommandWithRouting('split', [10, 20, 30], metadata: ['testId' => $testId]);
+        $interceptor = new class ($other, $testId) {
+            public bool $compete = true;
+            public array $messageIds = [];
+
+            public function __construct(private FlowTestSupport $other, private string $testId)
+            {
+            }
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
+            public function recordCompetingPart(MethodInvocation $invocation, Message $message, #[Reference] DocumentStore $documents): mixed
+            {
+                $this->messageIds[] = $message->getHeaders()->getMessageId();
+                if ($this->compete) {
+                    $documents->getDocument('gathering_snapshot', $this->testId);
+                    $this->other->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
+                }
+                return $invocation->proceed();
+            }
+        };
+        $connection = new DbalConnectionFactory(getenv('DATABASE_DSN'));
+        $connection->establishConnection()->setTransactionIsolation(TransactionIsolationLevel::REPEATABLE_READ);
+        $consumer = self::concurrentApplication(additionalServices: [$interceptor, DbalConnectionFactory::class => $connection], extensionObjects: [InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 1)]);
+        $consumer->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false)->withExecutionAmountLimit(1));
+        self::assertCount(2, $interceptor->messageIds);
+        self::assertSame($interceptor->messageIds[0], $interceptor->messageIds[1]);
+        $deadLetters = $consumer->getGateway(DeadLetterGateway::class);
+        $failure = array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => $failure->getMessageId() === $interceptor->messageIds[0]));
+        self::assertCount(1, $failure);
+        self::assertSame(ConcurrencyException::class, $failure[0]->getExceptionClass());
+        self::assertStringContainsString('withAsynchronousEndpointsRetry(true, 5)', $failure[0]->getMessage());
+        self::assertNull($consumer->getGateway(DocumentStore::class)->findDocument('gathering_concurrency', $testId));
+        $interceptor->compete = false;
+        $deadLetters->replay($interceptor->messageIds[0]);
+        $consumer->run('gathering_concurrency');
+        self::assertSame([], array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => $failure->getMessageId() === $interceptor->messageIds[0])));
+        self::assertJsonStringEqualsJsonString('{"results":{"1":10,"2":20,"3":30},"runs":1}', $consumer->getGateway(DocumentStore::class)->getDocument('gathering_concurrency', $testId));
+    }
+
     #[DataProvider('conflictingGroupOperations')]
-    public function test_conflicting_group_operation_is_redelivered_before_observing_a_fresh_snapshot(string $trigger): void
+    public function test_conflicting_group_operation_retries_the_original_message_in_a_fresh_transaction(string $trigger): void
     {
         if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
@@ -3466,10 +3515,8 @@ final class GatheringConformanceTest extends TestCase
 
         self::assertTrue($interceptor->interleaved);
         if (! str_starts_with(getenv('DATABASE_DSN'), 'pgsql:')) {
-            self::assertNull($consumer->getGateway(DocumentStore::class)->findDocument('gathering_release', $testId));
-            $consumer->run('gathering_release', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
             self::assertCount(2, $interceptor->messageIds);
-            self::assertNotSame($interceptor->messageIds[0], $interceptor->messageIds[1]);
+            self::assertSame($interceptor->messageIds[0], $interceptor->messageIds[1]);
         }
         if (str_starts_with($trigger, 'discard_')) {
             self::assertNull($consumer->getGateway(DocumentStore::class)->findDocument('gathering_release', $testId));
@@ -3491,7 +3538,7 @@ final class GatheringConformanceTest extends TestCase
     {
         yield 'manual' => ['manual'];
         yield 'timeout' => ['timeout'];
-        yield 'report_conflict_on_non_transactional_channel' => ['report'];
+        yield 'report_conflict' => ['report'];
         yield 'discard_racing_a_part' => ['discard_part'];
         yield 'discard_racing_a_release' => ['discard_release'];
     }
@@ -3502,7 +3549,7 @@ final class GatheringConformanceTest extends TestCase
         self::concurrentApplication([$barrier])->run('gathering_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false)->withExecutionAmountLimit(1));
     }
 
-    private static function concurrentApplication(array $additionalServices = []): FlowTestSupport
+    private static function concurrentApplication(array $additionalServices = [], array $extensionObjects = []): FlowTestSupport
     {
         $handler = new class () {
             #[CommandHandler('split', outputChannelName: 'parts')]
@@ -3545,11 +3592,11 @@ final class GatheringConformanceTest extends TestCase
         };
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, $deliveries::class, ...array_map(static fn (object $service): string => $service::class, $additionalServices)],
-            containerOrAvailableServices: [$handler, $deliveries, ...$additionalServices, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
-            extensionObjects: [DbalBackedMessageChannelBuilder::create('gathering_concurrency'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter')],
+            containerOrAvailableServices: [$handler, $deliveries, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN')), ...$additionalServices],
+            extensionObjects: [DbalBackedMessageChannelBuilder::create('gathering_concurrency'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: self::ENTERPRISE_LICENCE,
-            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
+            testConfiguration: TestConfiguration::createWithDefaults(),
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }
@@ -3590,7 +3637,7 @@ final class GatheringConformanceTest extends TestCase
             extensionObjects: $channels,
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: self::ENTERPRISE_LICENCE,
-            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
+            testConfiguration: TestConfiguration::createWithDefaults(),
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }

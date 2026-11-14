@@ -163,16 +163,16 @@ inspection. On these channels, checking and respecting the underlying transport'
 responsibility. Channel builders that do not implement `DelayedMessageChannelBuilder` are still refused when
 a gathered handler configures a timeout.
 
-Several consumers on the gathered handler's channel can conflict while recording reports for the same group.
-Each conflict sends exactly one replacement report with a new message id and returns normally. The replacement
-is consumed in a new transaction; it does not re-run the part work, consume the failure retry budget or enter
-the dead letter. There is no inline retry loop or backoff. A report can lose only to a committed version-changing
-write of its own group, so retries are bounded by group writes (parts, release or discard), rather than consumer
-count. One consumer on the gathered handler's channel avoids report-to-report conflicts.
+Several consumers recording reports for one group can conflict. A lost optimistic write throws
+`ConcurrencyException`; asynchronous endpoints running in a DBAL transaction retry instantly by default, each
+retry in a new transaction. This retries recording the report, without re-running the part work.
 
-On a transactional DBAL channel using the group store's connection, the replacement commits before the original
-is acknowledged. A crash between these steps can leave both deliveries; default message deduplication and the
-unique group-id/part-number identity keep completion safe.
+With several consumers on one hot group, the default three retries can run out. The message then follows the
+configured error channel and delayed retries and can wait in the dead letter until replayed. Raise the instant
+retry count with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 5)`,
+or run one consumer on the gathered handler's channel; give that handler its own channel when other handlers
+need more consumers. No replacement message is created. A redelivered original keeps its own message id, and
+the retained group-id/part-number identity prevents recording the same report twice.
 
 ## Deployment and connection selection
 

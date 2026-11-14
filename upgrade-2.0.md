@@ -3974,6 +3974,19 @@ a message carrying a gathering group header: give that nested splitter its own g
 flow through a command/event bus hop.
 
 
+### Gathering conflicts use the framework retry strategy
+
+**Before:** A gathering conflict created a replacement report with a new id and did not use the failure retry budget.
+
+**Now:** A lost optimistic write throws `ConcurrencyException`. Transactional asynchronous endpoints use their
+existing default instant retries in fresh transactions. Exhaustion follows the configured error channel, delayed
+retries and dead letter; replay retries the original message. Collecting uses the same path.
+
+**How to adapt:** The default retries need no configuration. For a hot group or key whose messages exhaust retries,
+raise attempts with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 5)`, or
+run one consumer on the gathered/collected handler's channel, giving that handler its own channel when needed.
+Replay messages waiting in the dead letter once contention clears.
+
 ### Collect ordinary messages into a batch (Enterprise)
 
 **Before:** Ordinary asynchronous service handlers ran once per message. Gathering tables created before this change
@@ -3995,7 +4008,7 @@ recreate only the gathering tables if their retained history can be discarded:
 
 Gathering listings also use the new endpoint_id column. Tables created before this change produce a "column does
 not exist" error (or the engine's "unknown column" equivalent) until migrated, even without a collected handler.
-The feature reserves `ecotone_collecting_*` headers and `ecotone.collecting.*` container service identifiers.
+The feature reserves `ecotone.collecting.*` container service identifiers.
 Listing is `ecotone:gathering:list-batches`; batches share `ecotone:gathering:release`, `discard` and `cleanup`.
 Upgrade every consumer before adding the marker: an older consumer invokes the handler with one ordinary payload
 and cannot supply the collected batch object.

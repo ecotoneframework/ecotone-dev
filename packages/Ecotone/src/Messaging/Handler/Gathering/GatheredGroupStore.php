@@ -34,15 +34,15 @@ interface GatheredGroupStore
 
     public function listClosedBatches(string $endpointId): array;
 
-    public function collectMessage(string $endpointId, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): bool;
+    public function collectMessage(string $endpointId, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): void;
 
     public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void;
 
-    public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): bool;
+    public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void;
 
     public function gatherChannelNameFor(string $groupId): string;
 
-    public function releaseGroup(string $groupId, callable $whenReleased, ?CollectedReleaseReason $releaseReason): bool;
+    public function releaseGroup(string $groupId, callable $whenReleased, ?CollectedReleaseReason $releaseReason): void;
 
     public function discard(string $groupId): void;
 

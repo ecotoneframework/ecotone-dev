@@ -29,7 +29,7 @@ final class NoProjectionRunGroups implements ProjectionRunGroups
         return false;
     }
 
-    public function listRuns(): array
+    public function listRunsOpenedSince(int $openedAtOrAfterInMilliseconds): array
     {
         return [];
     }

@@ -39,12 +39,15 @@ final class GatheredProjectionRunGroups implements ProjectionRunGroups
         return in_array(['projectionName' => $projectionName, 'operation' => $operation], $this->runs, true);
     }
 
-    public function listRuns(): array
+    public function listRunsOpenedSince(int $openedAtOrAfterInMilliseconds): array
     {
         $listed = [];
         foreach ($this->runs as ['projectionName' => $projectionName, 'operation' => $operation]) {
             $endpointId = ProjectionRun::endpointIdFor($projectionName, $operation);
             foreach ([...$this->groups->listOpenGroups($endpointId), ...$this->groups->listClosedGroups($endpointId)] as $group) {
+                if ($group['openedAt'] < $openedAtOrAfterInMilliseconds) {
+                    continue;
+                }
                 $listed[] = [
                     'projectionName' => $projectionName,
                     'operation' => $operation,
@@ -56,6 +59,7 @@ final class GatheredProjectionRunGroups implements ProjectionRunGroups
                     'missingPartNumbers' => $group['missingPartNumbers'],
                     'openedAt' => $group['openedAt'],
                     'closedAt' => $group['closedAt'],
+                    'releaseReason' => $group['releaseReason'],
                 ];
             }
         }

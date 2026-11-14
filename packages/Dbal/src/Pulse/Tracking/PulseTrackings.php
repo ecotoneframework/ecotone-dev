@@ -6,6 +6,7 @@ namespace Ecotone\Dbal\Pulse\Tracking;
 
 use DateTimeImmutable;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Dbal\Recoverability\DeadLetterStore;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetterScan;
 use Ecotone\Dbal\Tracing\Pulse\PulseTime;
@@ -71,14 +72,12 @@ final class PulseTrackings
         $reference = $this->optionalText($query, 'reference');
 
         $groups = [];
-        foreach ($this->runGroups->listRuns() as $group) {
+        foreach ($this->runGroups->listRunsOpenedSince(intdiv($since, 1000)) as $group) {
             $groups[$group['groupId']] = $group;
         }
-        $runs = [];
-        foreach ($this->trackings->startedSince($since, $category, $type, $reference, $limit + 1) as $tracking) {
-            $runs[] = $this->runOf($tracking, $groups);
-        }
-        foreach ($groups as $group) {
+        $runs = array_map(fn (Tracking $tracking): array => $this->runOf($tracking, $groups), $this->trackings->startedSince($since, $category, $type, $reference, $limit + 1));
+        $matchedGroupIds = array_flip(array_filter(array_map(static fn (array $run): ?string => $run['group']['groupId'] ?? null, $runs)));
+        foreach (array_diff_key($groups, $matchedGroupIds) as $group) {
             $run = $this->consoleRunOf($group);
             if ($this->matches(run: $run, since: $since, category: $category, type: $type, reference: $reference)) {
                 $runs[] = $run;
@@ -86,36 +85,28 @@ final class PulseTrackings
         }
         usort($runs, static fn (array $first, array $second): int => $second['startedAt'] <=> $first['startedAt']);
         $listed = array_slice($runs, 0, $limit);
-        $failedBatches = $this->failedBatchesOf(array_values(array_filter(array_map(static fn (array $run): ?string => $run['group'] !== null && $run['group']['state'] === 'open' ? $run['group']['groupId'] : null, $listed))));
+        $deadLetters = $this->deadLettersOf(array_values(array_filter(array_map(static fn (array $run): ?array => $run['group'] !== null && $run['group']['state'] === 'open' ? $run['group'] : null, $listed))));
         $now = $this->clock->now()->unixTime()->inMicroseconds();
 
         return json_encode([
             'queryId' => $queryId,
             'cap' => self::CAP,
             'truncated' => count($runs) > $limit,
-            'trackings' => array_map(fn (array $run): array => $this->described($run, $failedBatches[$run['group']['groupId'] ?? ''] ?? [], $now), $listed),
+            'trackings' => array_map(fn (array $run): array => $this->described(run: $run, deadLetters: $deadLetters[$run['group']['groupId'] ?? ''] ?? ['failed' => [], 'waiting' => []], now: $now), $listed),
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 
     /**
-     * @param array<string, array{projectionName: string, operation: string, groupId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, openedAt: int, closedAt: ?int}> $groups
+     * @param array<string, array{projectionName: string, operation: string, groupId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, openedAt: int, closedAt: ?int, releaseReason: ?string}> $groups
      * @return array{tracingId: ?string, category: string, type: string, reference: string, tenant: ?string, startedAt: int, startedFrom: string, asynchronous: bool, group: ?array}
      */
-    private function runOf(Tracking $tracking, array &$groups): array
+    private function runOf(Tracking $tracking, array $groups): array
     {
         $operation = self::OPERATIONS[$tracking->type] ?? null;
         $asynchronous = $operation !== null && $this->runGroups->runsAsynchronously($tracking->reference, $operation);
-        $group = null;
-        if ($asynchronous) {
-            foreach ($groups as $groupId => $candidate) {
-                if ($candidate['groupKey'] === $tracking->tracingId && $candidate['projectionName'] === $tracking->reference && $candidate['operation'] === $operation) {
-                    $group = $candidate;
-                    unset($groups[$groupId]);
-
-                    break;
-                }
-            }
-        }
+        $matching = $asynchronous
+            ? array_filter($groups, static fn (array $group): bool => $group['groupKey'] === $tracking->tracingId && $group['projectionName'] === $tracking->reference && $group['operation'] === $operation)
+            : [];
 
         return [
             'tracingId' => $tracking->tracingId,
@@ -126,12 +117,12 @@ final class PulseTrackings
             'startedAt' => $tracking->startedAtInMicroseconds,
             'startedFrom' => 'pulse',
             'asynchronous' => $asynchronous,
-            'group' => $group,
+            'group' => $matching === [] ? null : array_values($matching)[0],
         ];
     }
 
     /**
-     * @param array{projectionName: string, operation: string, groupId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, openedAt: int, closedAt: ?int} $group
+     * @param array{projectionName: string, operation: string, groupId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, openedAt: int, closedAt: ?int, releaseReason: ?string} $group
      * @return array{tracingId: ?string, category: string, type: string, reference: string, tenant: ?string, startedAt: int, startedFrom: string, asynchronous: bool, group: ?array}
      */
     private function consoleRunOf(array $group): array
@@ -158,46 +149,63 @@ final class PulseTrackings
     }
 
     /**
-     * @param list<string> $groupIds
-     * @return array<string, list<array{batch: int, deadLetterMessageId: string}>> failed batches per group id
+     * @param list<array{projectionName: string, operation: string, groupId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, openedAt: int, closedAt: ?int, releaseReason: ?string}> $openGroups
+     * @return array<string, array{failed: list<array{batch: int, deadLetterMessageId: string}>, waiting: list<array{batch: int, deadLetterMessageId: string}>}> per group id: failed batches, and batches whose record waits
      */
-    private function failedBatchesOf(array $groupIds): array
+    private function deadLettersOf(array $openGroups): array
     {
-        $wanted = array_flip($groupIds);
-        $found = [];
-        if ($wanted === []) {
-            return $found;
+        $unaccounted = [];
+        foreach ($openGroups as $group) {
+            if ($group['missingPartNumbers'] !== []) {
+                $unaccounted[$group['groupId']] = array_flip($group['missingPartNumbers']);
+            }
         }
+        $found = [];
         $scanned = 0;
-        foreach (PulseDeadLetterScan::newestFirst($this->deadLetters) as $entry) {
+        foreach ($unaccounted === [] ? [] : PulseDeadLetterScan::newestFirst($this->deadLetters) as $entry) {
             $failure = $entry->toArray();
             $groupId = $failure['headers'][GatheringHeaders::GROUP_ID] ?? null;
-            if ($groupId !== null && isset($wanted[$groupId])) {
-                $batch = (int) ($failure['headers'][GatheringHeaders::PART_NUMBER] ?? 0);
-                $found[$groupId][$batch] ??= ['batch' => $batch, 'deadLetterMessageId' => $failure['messageId']];
+            $batch = (int) ($failure['headers'][GatheringHeaders::PART_NUMBER] ?? 0);
+            if ($groupId !== null && isset($unaccounted[$groupId][$batch])) {
+                $kind = array_key_exists(GatheringHeaders::NO_RESULT, $failure['headers']) ? 'waiting' : 'failed';
+                $found[$groupId][$kind][$batch] = ['batch' => $batch, 'deadLetterMessageId' => $failure['messageId']];
+                unset($unaccounted[$groupId][$batch]);
+                if ($unaccounted[$groupId] === []) {
+                    unset($unaccounted[$groupId]);
+                }
             }
-            if (++$scanned >= self::DEAD_LETTERS_SCANNED) {
+            if ($unaccounted === [] || ++$scanned >= self::DEAD_LETTERS_SCANNED) {
                 break;
             }
         }
 
-        return array_map(static function (array $batches): array {
-            ksort($batches);
+        return array_map(static fn (array $kinds): array => ['failed' => self::sortedByBatch($kinds['failed'] ?? []), 'waiting' => self::sortedByBatch($kinds['waiting'] ?? [])], $found);
+    }
 
-            return array_values($batches);
-        }, $found);
+    /**
+     * @param array<int, array{batch: int, deadLetterMessageId: string}> $batches
+     * @return list<array{batch: int, deadLetterMessageId: string}>
+     */
+    private static function sortedByBatch(array $batches): array
+    {
+        ksort($batches);
+
+        return array_values($batches);
     }
 
     /**
      * @param array{tracingId: ?string, category: string, type: string, reference: string, tenant: ?string, startedAt: int, startedFrom: string, asynchronous: bool, group: ?array} $run
-     * @param list<array{batch: int, deadLetterMessageId: string}> $failedBatches
+     * @param array{failed: list<array{batch: int, deadLetterMessageId: string}>, waiting: list<array{batch: int, deadLetterMessageId: string}>} $deadLetters
      */
-    private function described(array $run, array $failedBatches, int $now): array
+    private function described(array $run, array $deadLetters, int $now): array
     {
         $group = $run['group'];
         $state = match (true) {
-            ! $run['asynchronous'], $group === null, $group['state'] !== 'open' => 'done',
-            $failedBatches !== [] => 'failed',
+            ! $run['asynchronous'], $group === null => 'done',
+            $group['state'] === 'discarded' => 'discarded',
+            $group['state'] !== 'open' && $group['releaseReason'] === GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR->value => 'done',
+            $group['state'] !== 'open' => 'released',
+            $deadLetters['failed'] !== [] => 'failed',
             default => 'running',
         };
         $described = [
@@ -212,13 +220,14 @@ final class PulseTrackings
             'batchesDone' => $group['recorded'] ?? 0,
             'batchCount' => $group['expectedSize'] ?? null,
             'missingBatches' => $group['missingPartNumbers'] ?? [],
-            'failedBatches' => $failedBatches,
+            'failedBatches' => $deadLetters['failed'],
+            'batchesWaitingToBeRecorded' => $deadLetters['waiting'],
             ...($group === null ? [] : ['groupId' => $group['groupId']]),
         ];
 
         return match ($state) {
-            'done' => [...$described, 'durationMs' => $group['closedAt'] ?? null ? max(0, $group['closedAt'] - intdiv($run['startedAt'], 1000)) : null],
-            'failed' => [...$described, 'deadLetterMessageId' => $failedBatches[0]['deadLetterMessageId']],
+            'done', 'discarded', 'released' => [...$described, 'durationMs' => ($group['closedAt'] ?? null) === null ? null : max(0, $group['closedAt'] - intdiv($run['startedAt'], 1000))],
+            'failed' => [...$described, 'deadLetterMessageId' => $deadLetters['failed'][0]['deadLetterMessageId'], 'elapsedMs' => intdiv(max(0, $now - $run['startedAt']), 1000)],
             default => [...$described, 'elapsedMs' => intdiv(max(0, $now - $run['startedAt']), 1000)],
         };
     }

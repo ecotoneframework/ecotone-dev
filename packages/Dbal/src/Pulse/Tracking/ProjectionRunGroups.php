@@ -27,7 +27,7 @@ interface ProjectionRunGroups
     public function runsAsynchronously(string $projectionName, string $operation): bool;
 
     /**
-     * @return list<array{projectionName: string, operation: string, groupId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, openedAt: int, closedAt: ?int}>
+     * @return list<array{projectionName: string, operation: string, groupId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, openedAt: int, closedAt: ?int, releaseReason: ?string}>
      */
-    public function listRuns(): array;
+    public function listRunsOpenedSince(int $openedAtOrAfterInMilliseconds): array;
 }

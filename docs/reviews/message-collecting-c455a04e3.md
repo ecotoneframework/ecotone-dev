@@ -278,3 +278,26 @@ Test names omit their `test_` prefix.
 | R9 | `ccb3bfa45` | check-agent-skills; rule 8a retitled, skill and grader lines within 120 characters |
 | Licence wording | `0ef51fc36` | collected_handler_requires_an_enterprise_licence asserts the full gathering-style wording |
 | C33 (maintainer) | `39f82b12e` | gathered_group_listing_rows_use_the_shared_group_shape; batch_listing_rows_use_the_shared_group_shape; batches_are_listed_by_endpoint_id_and_not_by_channel_name; console_lists_a_batch_by_endpoint_id_in_the_shared_group_columns; console_lists_open_group_progress; gathered_handler_without_an_explicit_endpoint_id_is_refused_at_bootstrap; Pulse page_lists_gathered_groups_and_collected_batches_in_one_table and service_with_only_collected_handlers_shows_the_shared_empty_state; every gathering listing, console and Pulse test rewritten to the endpointId selector |
+
+
+## Review of the listing unification, PR #768 range 7f2a82549..f9aa4f981 (2026-11-14)
+
+No BLOCKING finding. Confirmed: gathering paths unchanged in the unified arrival step; the two kinds cannot cross
+(batch lookup needs a key hash and an open slot, both NULL on gathered rows); no index can reject or merge gathered
+rows now that they carry an endpoint id; one meaning and one time unit per row field.
+
+- S1 (should fix). `ecotone:gathering:list <old gather channel name>` and `listOpenGroups('<channel>')` return an
+  empty result silently, so a stuck group looks like "no groups". An id that is neither a gathered nor a collected
+  endpointId AND has no stored groups is refused: if it is a gather channel name, the message names that channel's
+  gathered handler endpointId; otherwise it lists the known endpoint ids. An id with stored groups but no handler
+  any more (renamed or removed endpoint) is still listed, so its groups can be released or discarded.
+- S2 (minor). Upgrade note: "a gathered handler could leave its endpointId to be generated" was never true on main
+  (the asynchronous module already refused it). Drop that sentence and its adaptation step; the new message only
+  replaces a generic refusal.
+- S3 (minor). Upgrade note and gathering guide: groups created before this change have no endpoint id, still
+  complete, release, discard and clean up, but are not listed; a renamed endpointId leaves its open groups listed
+  only under the old id (see S1). One line each.
+- S4 (minor, PLAUSIBLE). Pulse reading a snapshot from a service built before this change shows empty columns and
+  an opened-at of 1970. Guard missing fields in the template (show a dash), tested with an old-shape snapshot.
+- S5 (nit). In docs/message-gathering.md give the example's gathered handler an endpointId different from its
+  input channel, so the list example shows that the argument is the endpointId.

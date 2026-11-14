@@ -15,9 +15,11 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\CollectedMessages;
+use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -408,7 +410,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') requires durable storage outside flow testing: batches must survive restarts and be shared between consumers. Install ecotone/dbal, enable ModulePackageList::DBAL_PACKAGE, and run ecotone:migration:database:setup --initialize --feature=gathering before consuming messages. Use EcotoneLite::bootstrapFlowTesting() for in-memory tests, or remove #[Collected].");
+        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') requires durable storage outside flow testing: batches must survive restarts and be shared between consumers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove #[Collected].");
         EcotoneLite::bootstrap(
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
@@ -578,6 +580,51 @@ final class CollectingTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
             enabledModules: [],
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+    }
+
+    public function test_mixed_gathering_and_collecting_storage_refusal_names_both_flows(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', outputChannelName: 'mixed.parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('mixed.parts', endpointId: 'mixed.splitter', outputChannelName: 'mixed.work', gatherChannelName: 'mixed.summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('mixed.work', endpointId: 'mixed.worker')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('mixed.summary', endpointId: 'mixed.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $this->expectExceptionMessage("Gather channel 'mixed.summary' and collected handler " . $handler::class . "::collect (endpointId 'collect.handler') require durable storage outside flow testing: groups and batches must survive restarts and be shared between consumers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove gatherChannelName from #[Splitter] and #[Collected] from the service handler.");
+        EcotoneLite::bootstrap(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries'), SimpleMessageChannelBuilder::createQueueChannel('batches')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 

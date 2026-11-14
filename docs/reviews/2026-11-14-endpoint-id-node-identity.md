@@ -54,3 +54,30 @@ in the implementation worktree. Two BLOCKING findings (G1, V1). Fix every item t
   removal and one addition at the first compare.
 - D4 (nit). `api/skills/ecotone-handler/SKILL.md` "EndpointId Rules" does not name the stable identity in the flow
   graph and version comparison as a reason to declare one. Add one bullet.
+
+## Second round, on the fixes (head a862a0862), from the resumed sessions
+G1-G7, B1, V1, V3, V5 and D1-D4 are confirmed resolved.
+
+- V8 (BLOCKING, reasoned from code, not run). Aggregates and sagas that pair a factory and an action on one
+  routing key probably fail once tracing is on. `AggregateModule::registerRoutedFactoryHandler`
+  (`AggregateModule.php:640-660`) builds the factory and action processors as plain
+  `ChainedMessageProcessorBuilder`s with no endpoint annotations, yet they are intercepted. The tracing pointcut
+  still matches (the handler attribute is on the method), the new `EndpointId $endpoint` parameter of
+  `TracingInterceptor` is found in neither endpoint nor method annotations, and `AroundInterceptorBuilder.php:181`
+  falls back to the payload. Even without a crash the action would record the factory's endpoint id. Reproduce
+  first, with tracing on: (a) `#[CommandHandler('order.place')]` on a static factory and on an instance action,
+  with generated endpoint ids; (b) the same pair with two different explicit endpoint ids, if bootstrap accepts
+  it; send the command twice. Expected: no failure, and the two spans carry the factory's and then the action's
+  endpoint id. If the test is green as written, report that and V8 is withdrawn; if red, fix and keep the test.
+  Add the scenario to the modelling flow scenarios so tracing, OpenTelemetry and both DBAL flow tracking stores
+  run it.
+- V9 (should fix). A method carrying both a command and an event handler attribute produced two process spans per
+  call and now produces one. If a 1.x application with tracing would have seen two spans, say so in the tracing
+  part of `upgrade-2.0.md` (Before / Now / How to adapt); if the double span only ever existed in 2.0 betas, add
+  nothing and say so in the report.
+- G8 (should fix). `api/skills/ecotone-handler/SKILL.md` gained a rule line but no grader. Add a grader for it
+  under `api/evals/ecotone-handler/` in the form the other public evals use; the coordinator runs the eval.
+- G9 (nit). `MessageFlowDistributedTest.php:331`: hoist the inline method-to-endpoint array into a named local.
+- G10 (nit). `MessageFlowDistributedTest.php:853`: blank line before the closing brace; run php-cs-fixer.
+- V10 (nit). Copies of a builder's annotations can keep an outdated `EndpointId` entry. No action.
+- B5, B6 (nit). Old stored traces differ from new ones for multi-attribute methods. No action.

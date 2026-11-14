@@ -181,7 +181,7 @@ choices; no held item remains. Test names below omit their `test_` prefix.
 
 | Finding | Resolution commit | Verification |
 |---|---|---|
-| C1 | `5ef988066` | original_message_redelivery_after_a_real_database_conflict_is_not_collected_twice; own message id retained, replacement-only variant removed |
+| C1 | `5ef988066` | exhausted_conflicts_reach_the_dead_letter_and_replay_completes_the_batch_in_a_real_database_race (forced conflict, the original id replayed and collected once); same_message_delivered_twice_at_once_while_its_batch_closes_is_a_lost_write_and_collected_once_after_replay; every_original_message_redelivered_after_a_real_database_race_is_not_collected_again (no forced conflict); own message id retained, replacement-only variant removed |
 | C2 | `210298f52` | max_wait_timer_keeps_the_first_messages_tenant_for_its_database_connection |
 | C3 | `a249aa57a`, `5ef988066` | max_size_plus_one_concurrent_messages_keep_the_next_partial_batch_in_a_real_database_race; max_wait_timer_racing_an_append_releases_each_message_once_in_a_real_database_race; manual_release_racing_an_append_releases_each_message_once_in_a_real_database_race |
 | C4 | `dea15fc27` | failed_max_wait_or_manual_release_is_retried_with_the_same_batch; dead_lettered_release_keeps_collecting_past_the_deadline_until_replayed; dead_lettered_size_filling_message_joins_a_later_batch_when_replayed |

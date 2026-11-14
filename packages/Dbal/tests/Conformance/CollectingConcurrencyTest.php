@@ -64,7 +64,7 @@ final class CollectingConcurrencyTest extends TestCase
         $this->proveConcurrentBatch(false);
     }
 
-    public function test_original_message_redelivery_after_a_real_database_conflict_is_not_collected_twice(): void
+    public function test_every_original_message_redelivered_after_a_real_database_race_is_not_collected_again(): void
     {
         $this->proveConcurrentBatch(alreadyOpen: false, replayOriginals: true);
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Recoverability\Pulse;
 
 use DateTimeInterface;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Recoverability\DeadLetterStore;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSection;
 
@@ -78,12 +79,15 @@ final class PulseDeadLetters implements PulseSnapshotSection
 
     public function revision(): ?string
     {
-        $newest = $this->store->listMessages(1, 0);
-        if ($newest === []) {
-            return 'empty';
-        }
-        $entry = PulseDeadLetterEntry::from($newest[0]);
+        $newest = array_map(
+            static function (Message $message): string {
+                $entry = PulseDeadLetterEntry::from($message);
 
-        return $this->store->count() . ' ' . $entry->messageId() . ' ' . $entry->failedAt()->format('U.u');
+                return $entry->messageId() . ' ' . $entry->failedAt()->format('U.u') . ' ' . $entry->exceptionClass() . ' ' . $entry->exceptionMessage();
+            },
+            $this->store->listMessages(self::RECENT_LIMIT, 0),
+        );
+
+        return $this->store->count() . "\n" . implode("\n", $newest);
     }
 }

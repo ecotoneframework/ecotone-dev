@@ -25,11 +25,6 @@ final class SectionedSnapshot implements ArrayAccess
     {
     }
 
-    public static function empty(): self
-    {
-        return new self([]);
-    }
-
     public function offsetExists(mixed $offset): bool
     {
         return $this->offsetGet($offset) !== null;

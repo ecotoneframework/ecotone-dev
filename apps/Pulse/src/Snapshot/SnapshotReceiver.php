@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 final readonly class SnapshotReceiver
 {
     public const ROUTING_KEY = 'ecotone.pulse.snapshot_received';
-    public const SUPPORTED_SCHEMA_VERSION = 1;
+    public const SUPPORTED_SCHEMA_VERSION = 2;
 
     public function __construct(
         private SnapshotStore $store,

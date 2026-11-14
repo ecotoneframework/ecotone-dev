@@ -230,7 +230,7 @@ final class ServiceOverviewTest extends ReleasingWebTestCase
     private function snapshot(array $overrides = []): array
     {
         return [
-            'schemaVersion' => 1, 'serviceName' => 'orders', 'takenAt' => '2026-10-20T12:00:00+00:00',
+            'schemaVersion' => 2, 'serviceName' => 'orders', 'takenAt' => '2026-10-20T12:00:00+00:00',
             'overview' => ['ecotoneVersion' => '2.0.0', 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]],
             'flowGraph' => ['nodes' => [], 'edges' => []], 'topology' => ['serviceMaps' => []],
             'channels' => [

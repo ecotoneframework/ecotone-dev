@@ -127,7 +127,7 @@ final class SectionedSnapshotTest extends ReleasingWebTestCase
 
     private function envelope(): array
     {
-        return ['schemaVersion' => 1, 'serviceName' => 'orders', 'takenAt' => '2026-10-20T12:00:00+00:00'];
+        return ['schemaVersion' => 2, 'serviceName' => 'orders', 'takenAt' => '2026-10-20T12:00:00+00:00'];
     }
 
     private function scriptedService(string $service, array $replies): array

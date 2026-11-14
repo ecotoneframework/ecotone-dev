@@ -139,6 +139,42 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         self::assertArrayNotHasKey('storage', $ofTenantA['tracing']);
     }
 
+    public function test_only_the_tenant_whose_dead_letters_changed_sends_them_again(): void
+    {
+        $this->bootstrap();
+        $this->failOrder('milk', 'tenant_a');
+        $this->failOrder('bread', 'tenant_b');
+        $heldOfTenantA = $this->requestSnapshot('tenant_a')['digests'];
+        $heldOfTenantB = $this->requestSnapshot('tenant_b')['digests'];
+
+        $this->failOrder('eggs', 'tenant_b');
+        $ofTenantA = $this->ask('ecotone.pulse.snapshot', json_encode(['known' => $heldOfTenantA], JSON_THROW_ON_ERROR), 'tenant_a');
+        $ofTenantB = $this->ask('ecotone.pulse.snapshot', json_encode(['known' => $heldOfTenantB], JSON_THROW_ON_ERROR), 'tenant_b');
+
+        self::assertSame('tenant_a', $ofTenantA['tenant']);
+        self::assertArrayNotHasKey('deadLetters', $ofTenantA);
+        self::assertSame($heldOfTenantA['deadLetters'], $ofTenantA['digests']['deadLetters']);
+        self::assertSame('tenant_b', $ofTenantB['tenant']);
+        self::assertSame(2, $ofTenantB['deadLetters']['total']);
+        self::assertNotSame($heldOfTenantB['deadLetters'], $ofTenantB['digests']['deadLetters']);
+    }
+
+    public function test_an_action_in_a_tenant_replies_with_only_the_sections_of_that_tenant_it_changed(): void
+    {
+        $this->bootstrap();
+        $this->failOrder('milk', 'tenant_a');
+        $this->failOrder('bread', 'tenant_b');
+
+        $reply = $this->ask('ecotone.pulse.dead_letter.delete', json_encode(['filter' => ['messageName' => 'order.place']], JSON_THROW_ON_ERROR), 'tenant_b');
+
+        self::assertSame('tenant_b', $reply['tenant']);
+        self::assertTrue($reply['partial']);
+        self::assertSame(0, $reply['deadLetters']['total']);
+        self::assertEqualsCanonicalizing(['channels', 'deadLetters'], array_keys($reply['digests']));
+        self::assertSame([], array_intersect(['tracing', 'setup', 'projections', 'overview', 'flowGraph'], array_keys($reply)));
+        self::assertSame(1, $this->requestSnapshot('tenant_a')['deadLetters']['total']);
+    }
+
     public function test_replaying_dead_letters_by_ids_replays_them_in_the_tenant_that_was_asked(): void
     {
         $this->bootstrap();

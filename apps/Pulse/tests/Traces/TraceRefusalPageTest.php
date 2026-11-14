@@ -122,7 +122,7 @@ final class TraceRefusalPageTest extends ReleasingWebTestCase
                 }
 
                 return json_encode([
-                    'schemaVersion' => 1,
+                    'schemaVersion' => 2,
                     'serviceName' => 'orders',
                     'takenAt' => gmdate('c'),
                     'overview' => ['ecotoneVersion' => '2.0.0', 'phpVersion' => PHP_VERSION, 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]],

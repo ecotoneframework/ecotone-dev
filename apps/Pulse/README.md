@@ -85,11 +85,16 @@ the service reported for it, so only what changed is sent and written:
 * A snapshot request carries `{"known": {"<section>": "<digest>"}}`, the digests Pulse holds. The reply lists the digest of
   every section in `digests` and carries only the sections whose digest differs. The flow graph, the packages and the
   rest of what a deploy decides are therefore sent once, and again only after a deploy changed them; `{}` asks for every section.
-* A section can tell that nothing changed without being read: the dead letters are identified by their count and their
-  newest failure, so a service whose dead letters did not change neither scans them nor sends them.
+* A section can tell that nothing changed without being read in full: the dead letters are identified by their count
+  and their latest hundred failures, the ones Pulse lists, so a service whose dead letters did not change neither scans
+  the whole store nor sends them. A removal and an arrival that cancel out in the count, both older than the latest
+  hundred, show in the group counts once any later dead letter changes.
+* A snapshot with sections is schema version 2. Pulse and its services are upgraded together: Pulse rejects a reply of
+  another schema version with a message naming both versions.
 * The reply to an action carries only what the action changed and says so with `partial: true`: a rebuild or backfill
   carries `projections` and `gathering`, a dead letter replay or delete carries `deadLetters` and `channels`, a gathering
-  release or discard carries `gathering`. Pulse keeps every other section as it holds it.
+  release or discard carries `gathering`. Pulse keeps every other section as it holds it, and what else the action
+  moved (a projection a released group completes, a channel a synchronous rebuild filled) arrives with the next snapshot.
 * A reply that is not partial is the whole truth: a section it neither carries nor lists in `digests` is one the
   service no longer reports, and Pulse drops it.
 

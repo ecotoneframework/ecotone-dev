@@ -3766,7 +3766,10 @@ message flow, or how it is wired to other services.
 `overview` (Ecotone and PHP versions, framework, licence), the `flowGraph`, the distributed `topology` of the
 `DistributedServiceMap`s and the `channels` the service consumes: a list of `{name, kind}` with kind `async` for a
 pollable channel an `#[Asynchronous]` handler consumes and `queue` for a pollable channel no handler is bound to (the
-channels a Service Map only sends to are left out), which is what Pulse offers as a dead letter replay target. The reply also lists the digest of every section in `digests`; a request sent as `{"known": {"flowGraph": "<digest>"}}` leaves out each named section whose digest still matches, so a caller that keeps the sections asks again without receiving what did not change. Only requests from the configured Pulse service are served; any other source fails the
+channels a Service Map only sends to are left out), which is what Pulse offers as a dead letter replay target. The reply also
+lists the digest of every section in `digests`; a request sent as `{"known": {"flowGraph": "<digest>"}}` leaves out
+each named section whose digest still matches, so a caller that keeps the sections asks again without receiving what
+did not change. Only requests from the configured Pulse service are served; any other source fails the
 handler with a message naming the expected service. The application needs an Enterprise licence and a service name, otherwise
 bootstrap is refused; registering `PulseConfiguration` twice is refused as well. The reply mapping to the Pulse service
 is implied: replies go to a channel named after the Pulse service, or to the one chosen with
@@ -3791,9 +3794,8 @@ handlers, hint, configuration}`. Each table in the `setup` section names its `pa
 `{enterprise, expiresAt, testing}`, where `expiresAt` is the licence's expiry as an ATOM date (it was always `null`
 before) and `testing` is `true` on Ecotone's testing licence. A `consumers` list names every consumer the
 service can run, `{name, kind, handlers, features}`, where `kind` is `polling` or `inbound` and each feature is `{name, value,
-scope, handler}` with `scope` either `global` or `consumer-level config`. All of it is additive and `schemaVersion` stays `1`: an
-older Pulse ignores the new keys, and a newer Pulse shows the tables of an older service in one list, without packages,
-and its licence expiry as unknown.
+scope, handler}` with `scope` either `global` or `consumer-level config`. The snapshot is `schemaVersion` `2`, and Pulse rejects a reply of another schema version with a message naming
+both, so Pulse and its services are upgraded together.
 
 With the DBAL dead letter enabled, the snapshot gains a `deadLetters` section: the `total`, the `groups` by message name
 and exception class, and the 100 `recent` dead letters newest first. Each recent dead letter has its message id, name,
@@ -3808,7 +3810,8 @@ The name is the distributed routing key; else the routing key the message was se
 
 Pulse acts on dead letters with the routing keys `ecotone.pulse.dead_letter.replay` (optionally with a `targetChannel`)
 and `ecotone.pulse.dead_letter.delete`, sending `{"messageIds": [...]}` or `{"filter": {"messageName": ...,
-"exceptionClass": ..., "failedFrom": ..., "failedTo": ...}}`, and receives the `deadLetters` and `channels` sections as the reply, marked `partial: true` with their `digests`.
+"exceptionClass": ..., "failedFrom": ..., "failedTo": ...}}`, and receives the `deadLetters` and `channels` sections as the
+reply, marked `partial: true` with their `digests`.
 
 A filter applies to every stored dead letter and matches the name shown in the snapshot. `failedFrom` and `failedTo` are
 inclusive at whole-second precision, and `failedFrom` later than `failedTo` is refused, as is an empty filter. A dead
@@ -3908,7 +3911,7 @@ Or drop the table, as tracked flows are only kept for the retention, and create 
 
 **Before:** a projection was rebuilt from the console (`ecotone:projection:rebuild`) or `ProjectionOperations`, and nothing recorded that a rebuild had been requested or how far it had got.
 
-**Now:** a service with `PulseConfiguration` answers `ecotone.pulse.projections.rebuild` (payload `{"projection": "orders"}`, with the `tracingId` header Pulse sends on every action) and `ecotone.pulse.trackings.list` (payload `{"since": "<ISO 8601 time>", "category": "ecotone-pulse", "type": "projection-rebuild", "reference": "orders", "limit": 100}`, `since` required, `limit` at most 100). In the transaction of the request, the service inserts one row into the new `ecotone_pulse_tracking` table: the tracing id, the category `ecotone-pulse`, the type `projection-rebuild`, the projection name as the reference, the active tenant (`NULL` without multi-tenancy) and the start time. The row is written once and never updated. The rebuild then runs under the request's tracing id: through the projection's `#[ProjectionRebuild(asyncChannelName: ...)]` channel when it has one, otherwise inside the request, and a failure of that synchronous rebuild fails the request and leaves no row.
+**Now:** a service with `PulseConfiguration` answers `ecotone.pulse.projections.rebuild` (payload `{"projection": "orders"}`, with the `tracingId` header Pulse sends on every action) and `ecotone.pulse.trackings.list` (payload `{"since": "<ISO 8601 time>", "category": "ecotone-pulse", "type": "projection-rebuild", "reference": "orders", "limit": 100}`, `since` required, `limit` at most 100). In the transaction of the request, the service inserts one row into the new `ecotone_pulse_tracking` table: the tracing id, the category `ecotone-pulse`, the type `projection-rebuild`, the projection name as the reference, the active tenant (`NULL` without multi-tenancy) and the start time. The row is written once and never updated. The rebuild then runs under the request's tracing id: through the projection's `#[ProjectionRebuild(asyncChannelName: ...)]` channel when it has one, otherwise inside the request, and a failure of that synchronous rebuild fails the request and leaves no row. The reply to a rebuild or backfill carries the `projections` and `gathering` sections, marked `partial: true` with their `digests`.
 
 An asynchronous rebuild or backfill runs as one gathering group under the endpoint id `<projection>.rebuild` or `<projection>.backfill`, listed by `GatheredGroups` and `ecotone:gathering:list`, and each batch is traced as a `process partition batch <projection>` span. The trackings query reads an asynchronous run from its group: `running` (batches done out of the batch count, with the batch numbers not done yet), `done` (with its duration), `failed` (a batch in the dead letter, listed with its dead-letter message id), `discarded` (its group was discarded) or `released` (released by hand with batches missing); a batch whose record waits in the dead letter is listed under `batchesWaitingToBeRecorded`. It also lists asynchronous runs started from the console; a synchronous run is `done`, since its row exists only when it succeeded. Newest first and capped at 100. The projections of the Pulse snapshot report `rebuildAsyncChannel`, `backfillAsyncChannel`, `rebuildBatchCompletionChannel` and `backfillBatchCompletionChannel`. An `asyncChannelName` or `batchCompletionChannelName` that is not registered as a message channel is refused at bootstrap. The batches of an asynchronous run keep the metadata of the request that started it, so a rebuild started for a tenant of a multi-tenant application runs in that tenant.
 
@@ -3980,6 +3983,7 @@ Groups are listed by the gathered handler's `endpointId`, which must be explicit
 `ecotone:gathering:list <endpointId> [--closed]`, the same listing as collected batches.
 `GatheredGroups::requestRelease(groupId)` queues a manual release and returns no value; the group stays open
 until its gathered handler's consumer processes the trigger. Console and Pulse show `release requested`.
+A release or discard asked by Pulse is answered with the `gathering` section, marked `partial: true`.
 
 Several consumers recording reports for one group can conflict. A lost optimistic write throws
 `ConcurrencyException`, and the default instant retries of an asynchronous endpoint running in a database

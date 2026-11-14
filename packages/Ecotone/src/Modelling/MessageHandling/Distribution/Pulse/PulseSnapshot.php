@@ -42,7 +42,7 @@ use Throwable;
  */
 final class PulseSnapshot
 {
-    public const SCHEMA_VERSION = 1;
+    public const SCHEMA_VERSION = 2;
     public const ROUTING_KEY = 'ecotone.pulse.snapshot';
     public const REPLY_ROUTING_KEY = 'ecotone.pulse.snapshot_received';
     public const PROBE_BUDGET_IN_MILLISECONDS = 2000;
@@ -154,56 +154,71 @@ final class PulseSnapshot
      */
     private function answer(?string $tenant, ?array $onlySections, array $knownDigests): array
     {
-        $answer = [
-            'schemaVersion' => self::SCHEMA_VERSION,
-            'serviceName' => $this->serviceName,
-            'takenAt' => $this->clock->now()->format(DateTimeInterface::ATOM),
-            ...($tenant === null ? [] : ['tenant' => $tenant]),
-        ];
         $asked = static fn (string $sectionName): bool => $onlySections === null || in_array($sectionName, $onlySections, true);
-
+        $sections = [];
         $digests = [];
+        $sectionErrors = [];
+
         foreach ($this->describedSections($tenant) as $sectionName => $describe) {
-            if (! $asked($sectionName)) {
-                continue;
-            }
-            $section = $describe();
-            $digests[$sectionName] = self::digestOf($section);
-            if (($knownDigests[$sectionName] ?? null) !== $digests[$sectionName]) {
-                $answer[$sectionName] = $section;
+            if ($asked($sectionName)) {
+                $section = $describe();
+                $digests[$sectionName] = self::digestOf($section);
+                $sections[$sectionName] = $section;
             }
         }
-
-        $sectionErrors = [];
-        foreach ($this->registeredSections($tenant) as $sectionName => $sections) {
+        foreach ($this->registeredSections($tenant) as $sectionName => $parts) {
             if (! $asked($sectionName)) {
                 continue;
             }
             try {
-                $revision = $this->revisionOf($sections);
+                $revision = $this->revisionOf($parts);
                 if ($revision !== null && ($knownDigests[$sectionName] ?? null) === $revision) {
                     $digests[$sectionName] = $revision;
                     continue;
                 }
-                $section = [];
-                foreach ($sections as $part) {
-                    $section = [...$section, ...$this->sectionIsolation->readOnly($part->snapshot(...))];
-                }
+                $section = $this->readOf($parts);
                 $digests[$sectionName] = $revision ?? self::digestOf($section);
-                if (($knownDigests[$sectionName] ?? null) !== $digests[$sectionName]) {
-                    $answer[$sectionName] = $section;
-                }
+                $sections[$sectionName] = $section;
             } catch (Throwable $exception) {
                 $sectionErrors[$sectionName] = $exception->getMessage();
             }
         }
 
         return [
-            ...$answer,
+            'schemaVersion' => self::SCHEMA_VERSION,
+            'serviceName' => $this->serviceName,
+            'takenAt' => $this->clock->now()->format(DateTimeInterface::ATOM),
+            ...($tenant === null ? [] : ['tenant' => $tenant]),
+            ...self::differingFrom($knownDigests, $sections, $digests),
             ...($sectionErrors === [] ? [] : ['sectionErrors' => $sectionErrors]),
             'digests' => $digests,
             ...($onlySections === null ? [] : ['partial' => true]),
         ];
+    }
+
+    /**
+     * @param array<string, string> $knownDigests
+     * @param array<string, array<mixed>> $sections
+     * @param array<string, string> $digests
+     * @return array<string, array<mixed>>
+     */
+    private static function differingFrom(array $knownDigests, array $sections, array $digests): array
+    {
+        return array_filter($sections, static fn (string $sectionName): bool => ($knownDigests[$sectionName] ?? null) !== $digests[$sectionName], ARRAY_FILTER_USE_KEY);
+    }
+
+    /**
+     * @param list<PulseSnapshotSection> $parts
+     * @return array<mixed>
+     */
+    private function readOf(array $parts): array
+    {
+        $section = [];
+        foreach ($parts as $part) {
+            $section = [...$section, ...$this->sectionIsolation->readOnly($part->snapshot(...))];
+        }
+
+        return $section;
     }
 
     /**

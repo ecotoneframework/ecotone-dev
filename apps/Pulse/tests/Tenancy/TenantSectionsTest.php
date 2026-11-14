@@ -141,7 +141,7 @@ final class TenantSectionsTest extends ReleasingWebTestCase
             #[CommandHandler('ecotone.pulse.snapshot')]
             public function snapshot(string $request, #[Headers] array $headers): string
             {
-                $base = ['schemaVersion' => 1, 'serviceName' => 'orders', 'takenAt' => gmdate('c')];
+                $base = ['schemaVersion' => 2, 'serviceName' => 'orders', 'takenAt' => gmdate('c')];
                 $tenant = $headers['tenant'] ?? null;
                 if ($tenant === null) {
                     return json_encode($base + [

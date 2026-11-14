@@ -37,8 +37,8 @@ final readonly class SnapshotStore
     public function sections(ServiceScope $scope): SectionedSnapshot
     {
         $sections = [];
-        foreach ($this->database->connection()->fetchFirstColumn('SELECT section FROM ' . InternalTables::SERVICE_SECTION . ' WHERE service = ? AND tenant = ?', [$scope->service, $scope->tenantColumn()]) as $section) {
-            $sections[$section] = fn (): mixed => $this->contentOf($this->database->connection(), $scope, $section);
+        foreach ($this->database->connection()->fetchAllKeyValue('SELECT section, content FROM ' . InternalTables::SERVICE_SECTION . ' WHERE service = ? AND tenant = ?', [$scope->service, $scope->tenantColumn()]) as $section => $content) {
+            $sections[$section] = static fn (): mixed => json_decode($content, true, 512, JSON_THROW_ON_ERROR);
         }
 
         return new SectionedSnapshot($sections);
@@ -59,7 +59,7 @@ final readonly class SnapshotStore
     {
         $this->database->inTransaction(function (Connection $connection) use ($scope, $reply, $at): void {
             $deadLetters = array_key_exists('deadLetters', $reply) ? $this->contentOf($connection, $scope, 'deadLetters') : null;
-            $record = $this->readFrom($connection, $scope)->received($reply, is_array($deadLetters) && is_int($deadLetters['total'] ?? null) ? $deadLetters['total'] : null, $at);
+            $record = $this->readFrom($connection, $scope)->received(reply: $reply, deadLetterTotalBefore: is_array($deadLetters) && is_int($deadLetters['total'] ?? null) ? $deadLetters['total'] : null, at: $at);
             $this->storeSections($connection, $scope, $reply);
             $this->write($connection, $scope, $record);
         });
@@ -82,8 +82,10 @@ final readonly class SnapshotStore
         $where = ' WHERE service = ? AND tenant = ?';
         $of = [$scope->service, $scope->tenantColumn()];
         foreach ($connection->fetchAllKeyValue('SELECT section, digest FROM ' . InternalTables::SERVICE_SECTION . $where, $of) as $stored => $digest) {
-            $kept = array_key_exists($stored, $sections) || (array_key_exists($stored, $digests) && ! array_key_exists($stored, $failed)) || ($partial && $digest !== null && ! array_key_exists($stored, $failed));
-            if (! $kept) {
+            $carriedInTheReply = array_key_exists($stored, $sections);
+            $reportedUnchanged = array_key_exists($stored, $digests) && ! array_key_exists($stored, $failed);
+            $leftAloneByAPartialReply = $partial && $digest !== null && ! array_key_exists($stored, $failed);
+            if (! $carriedInTheReply && ! $reportedUnchanged && ! $leftAloneByAPartialReply) {
                 $connection->executeStatement('DELETE FROM ' . InternalTables::SERVICE_SECTION . $where . ' AND section = ?', [...$of, $stored]);
             }
         }

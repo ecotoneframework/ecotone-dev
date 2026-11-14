@@ -379,7 +379,7 @@ final class FlowComparePageTest extends ReleasingWebTestCase
             #[CommandHandler('ecotone.pulse.snapshot')]
             public function snapshot(string $request): string
             {
-                return json_encode(['schemaVersion' => 1, 'serviceName' => 'orders', 'takenAt' => '2026-10-20T12:00:00+00:00', 'overview' => ['ecotoneVersion' => '2.0.0', 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]], 'flowGraph' => ['nodes' => [], 'edges' => []], 'topology' => ['serviceMaps' => []]], JSON_THROW_ON_ERROR);
+                return json_encode(['schemaVersion' => 2, 'serviceName' => 'orders', 'takenAt' => '2026-10-20T12:00:00+00:00', 'overview' => ['ecotoneVersion' => '2.0.0', 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]], 'flowGraph' => ['nodes' => [], 'edges' => []], 'topology' => ['serviceMaps' => []]], JSON_THROW_ON_ERROR);
             }
 
             #[Distributed]

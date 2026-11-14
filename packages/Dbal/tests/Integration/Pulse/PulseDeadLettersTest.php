@@ -884,7 +884,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
 
         self::assertSame(['affected' => 1], $reply['deadLetterAction']);
         self::assertSame(1, $reply['deadLetters']['total']);
-        self::assertArrayHasKey('channels', $reply);
+        self::assertContains('order_async', array_column($reply['channels'], 'name'));
         self::assertSame(['channels', 'deadLetters'], $this->sorted(array_keys($reply['digests'])));
         self::assertTrue($reply['partial']);
         self::assertSame([], array_intersect(['flowGraph', 'packages', 'consumers', 'overview', 'topology', 'tracing', 'setup', 'projections'], array_keys($reply)));
@@ -919,6 +919,53 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         $unchanged = $this->ask('ecotone.pulse.snapshot', json_encode(['known' => ['deadLetters' => $held]], JSON_THROW_ON_ERROR));
 
         self::assertArrayNotHasKey('deadLetters', $unchanged);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_replay_replies_with_only_the_dead_letters_and_channels_it_changed(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
+        $this->deadLetter('m-2', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + 1, 'tea');
+
+        $reply = $this->replay(['messageIds' => ['m-1']]);
+
+        self::assertSame(['affected' => 1], $reply['deadLetterAction']);
+        self::assertSame(['m-2'], array_column($reply['deadLetters']['recent'], 'messageId'));
+        self::assertContains('order_async', array_column($reply['channels'], 'name'));
+        self::assertSame(['channels', 'deadLetters'], $this->sorted(array_keys($reply['digests'])));
+        self::assertTrue($reply['partial']);
+        self::assertSame([], array_intersect(['flowGraph', 'packages', 'consumers', 'overview', 'topology', 'tracing', 'setup', 'projections'], array_keys($reply)));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_removing_a_dead_letter_while_an_older_one_arrives_sends_the_dead_letters_again(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + 5);
+        $this->deadLetter('m-2', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + 1);
+        $held = $this->requestSnapshot()['digests']['deadLetters'];
+
+        $this->orderService->getGateway(DeadLetterGateway::class)->delete('m-2');
+        $this->deadLetter('m-3', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT);
+        $reply = $this->ask('ecotone.pulse.snapshot', json_encode(['known' => ['deadLetters' => $held]], JSON_THROW_ON_ERROR));
+
+        self::assertSame(2, $reply['deadLetters']['total']);
+        self::assertSame(['m-1', 'm-3'], $this->sorted(array_column($reply['deadLetters']['recent'], 'messageId')));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_dead_letter_that_failed_again_with_another_exception_message_sends_the_dead_letters_again(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT);
+        $held = $this->requestSnapshot()['digests']['deadLetters'];
+
+        $this->orderService->getGateway(DeadLetterGateway::class)->delete('m-1');
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'still down', self::FAILED_AT);
+        $reply = $this->ask('ecotone.pulse.snapshot', json_encode(['known' => ['deadLetters' => $held]], JSON_THROW_ON_ERROR));
+
+        self::assertSame(['still down'], array_column($reply['deadLetters']['groups'], 'exceptionMessage'));
     }
 
     private function bootstrap(string $implementation, ?DbalConfiguration $dbalConfiguration = null): void

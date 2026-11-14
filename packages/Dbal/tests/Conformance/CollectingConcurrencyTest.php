@@ -34,6 +34,7 @@ use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
+use Ecotone\Api\Messaging\CollectedReleaseReason;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\TimeSpan;
@@ -53,7 +54,7 @@ final class CollectingConcurrencyTest extends TestCase
         $this->proveConcurrentBatch(true);
     }
 
-    public function test_consumers_opening_the_same_generation_in_a_real_database_race_keep_one_batch_and_resend_the_loser(): void
+    public function test_consumers_opening_the_same_open_slot_in_a_real_database_race_keep_one_batch_and_resend_the_loser(): void
     {
         $this->proveConcurrentBatch(false);
     }
@@ -157,7 +158,98 @@ final class CollectingConcurrencyTest extends TestCase
         self::assertSame(['second-connection', 'first-connection'], array_column(array_column($handler->batches[$cleanup ? 1 : 0]->messages, 'payload'), 'value'));
     }
 
-    private function proveConcurrentBatch(bool $alreadyOpen, bool $replayOriginals = false, bool $nonTransactional = false): void
+    public function test_max_wait_timer_racing_an_append_releases_each_message_once_in_a_real_database_race(): void
+    {
+        $this->proveReleaseRace(manualRelease: false);
+    }
+
+    public function test_manual_release_racing_an_append_releases_each_message_once_in_a_real_database_race(): void
+    {
+        $this->proveReleaseRace(manualRelease: true);
+    }
+
+    private function proveReleaseRace(bool $manualRelease): void
+    {
+        $connection = new DbalConnectionFactory(getenv('DATABASE_DSN'));
+        if ($connection->establishConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
+        }
+        $connection->establishConnection()->setTransactionIsolation(TransactionIsolationLevel::REPEATABLE_READ);
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 3, maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["key"]')]
+            #[Asynchronous('release_race')]
+            #[CommandHandler('collect.release.race', endpointId: 'collect.release.race.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+        };
+        $interleaving = new class () {
+            public ?\Closure $releaseOnOtherConnection = null;
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
+            public function interleave(MethodInvocation $invocation, #[Reference] DocumentStore $documents): mixed
+            {
+                if ($this->releaseOnOtherConnection !== null) {
+                    $documents->getAllDocuments('collecting_release_race_snapshot');
+                    $release = $this->releaseOnOtherConnection;
+                    $this->releaseOnOtherConnection = null;
+                    $release();
+                }
+                return $invocation->proceed();
+            }
+        };
+        $first = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, $interleaving::class],
+            containerOrAvailableServices: [$handler, $interleaving, DbalConnectionFactory::class => $connection],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('release_race'), DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable($manualRelease ? '2026-01-01 12:00:00 UTC' : '2026-01-01 12:00:10 UTC'),
+        );
+        $second = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('release_race'), DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $key = bin2hex(random_bytes(16));
+        $second->sendCommandWithRouting('collect.release.race', ['key' => $key, 'value' => 'seed']);
+        $second->run('release_race');
+        $seed = array_values(array_filter($second->getGateway(GatheredGroups::class)->listOpenBatches('collect.release.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key))[0];
+        $interleaving->releaseOnOtherConnection = static function () use ($second, $seed, $manualRelease): void {
+            if ($manualRelease) {
+                $second->getGateway(GatheredGroups::class)->requestRelease($seed['groupId']);
+            } else {
+                $second->advanceTimeBy(new TimeSpan(seconds: 10));
+            }
+            $second->run('release_race', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 5)->withExecutionAmountLimit(5));
+        };
+        $first->sendCommandWithRouting('collect.release.race', ['key' => $key, 'value' => 'arriving']);
+        $first->run('release_race', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 5)->withExecutionAmountLimit(5));
+        self::assertCount(1, $handler->batches);
+        self::assertSame(['seed'], array_column(array_column($handler->batches[0]->messages, 'payload'), 'value'));
+        self::assertSame($manualRelease ? CollectedReleaseReason::MANUAL_RELEASE : CollectedReleaseReason::MAX_WAIT_REACHED, $handler->batches[0]->releaseReason);
+        $open = array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenBatches('collect.release.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key));
+        self::assertCount(1, $open);
+        self::assertNotSame($seed['groupId'], $open[0]['groupId']);
+        self::assertSame(1, $open[0]['recordedMessages']);
+        $first->getGateway(GatheredGroups::class)->requestRelease($open[0]['groupId']);
+        $first->run('release_race');
+        self::assertCount(2, $handler->batches);
+        self::assertSame(['arriving'], array_column(array_column($handler->batches[1]->messages, 'payload'), 'value'));
+    }
+
+    public function test_max_size_plus_one_concurrent_messages_keep_the_next_partial_batch_in_a_real_database_race(): void
+    {
+        $this->proveConcurrentBatch(alreadyOpen: false, overflow: true);
+    }
+
+    private function proveConcurrentBatch(bool $alreadyOpen, bool $replayOriginals = false, bool $nonTransactional = false, bool $overflow = false): void
     {
         if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
@@ -171,12 +263,21 @@ final class CollectingConcurrencyTest extends TestCase
             $application->run('collecting_concurrency');
         }
         $originalIds = [];
-        foreach (range($alreadyOpen ? 2 : 1, 8) as $value) {
+        $messageCount = $overflow ? 9 : 8;
+        foreach (range($alreadyOpen ? 2 : 1, $messageCount) as $value) {
             $originalIds[$value] = bin2hex(random_bytes(16));
             $application->sendCommandWithRouting('collect.concurrent', ['testId' => $testId, 'value' => $value], metadata: ['testId' => $testId, MessageHeaders::MESSAGE_ID => $originalIds[$value]]);
         }
-        $this->runConcurrentConsumers(numberOfConsumers: $alreadyOpen ? 7 : 8, testFile: __FILE__, consumerMethod: $nonTransactional ? 'consumeConcurrentMessageFromNonTransactionalChannel' : 'consumeConcurrentMessage');
+        $this->runConcurrentConsumers(numberOfConsumers: $alreadyOpen ? $messageCount - 1 : $messageCount, testFile: __FILE__, consumerMethod: $nonTransactional ? 'consumeConcurrentMessageFromNonTransactionalChannel' : 'consumeConcurrentMessage');
         $application->run('collecting_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+
+        if ($overflow) {
+            $partial = array_values(array_filter($application->getGateway(GatheredGroups::class)->listOpenBatches('collect.concurrent.handler'), static fn (array $batch): bool => $batch['groupKey'] === $testId));
+            self::assertCount(1, $partial);
+            self::assertSame(1, $partial[0]['recordedMessages']);
+            $application->getGateway(GatheredGroups::class)->requestRelease($partial[0]['groupId']);
+            $application->run('collecting_concurrency');
+        }
 
         if ($replayOriginals) {
             foreach ($originalIds as $value => $messageId) {
@@ -186,18 +287,21 @@ final class CollectingConcurrencyTest extends TestCase
         }
 
         $results = array_values(array_filter($application->getGateway(DocumentStore::class)->getAllDocuments('collecting_concurrent_results'), static fn (string $document): bool => json_decode($document, true, flags: JSON_THROW_ON_ERROR)['testId'] === $testId));
-        self::assertCount(1, $results);
-        $result = json_decode($results[0], true, flags: JSON_THROW_ON_ERROR);
-        sort($result['values']);
-        self::assertSame(range(1, 8), $result['values']);
+        self::assertCount($overflow ? 2 : 1, $results);
+        $values = [];
+        foreach ($results as $document) {
+            $values = [...$values, ...json_decode($document, true, flags: JSON_THROW_ON_ERROR)['values']];
+        }
+        sort($values);
+        self::assertSame(range(1, $messageCount), $values);
         $open = array_filter($application->getGateway(GatheredGroups::class)->listOpenBatches('collect.concurrent.handler'), static fn (array $batch): bool => $batch['groupKey'] === $testId);
         self::assertSame([], $open);
         $closed = array_filter($application->getGateway(GatheredGroups::class)->listClosedBatches('collect.concurrent.handler'), static fn (array $batch): bool => $batch['groupKey'] === $testId);
-        self::assertCount(1, $closed);
+        self::assertCount($overflow ? 2 : 1, $closed);
         $failures = array_filter($application->getGateway(DeadLetterGateway::class)->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previousFailures, true));
         self::assertSame([], $failures);
         $deliveries = array_filter($application->getGateway(DocumentStore::class)->getAllDocuments('collecting_concurrent_deliveries'), static fn (string $document): bool => json_decode($document, true, flags: JSON_THROW_ON_ERROR)['testId'] === $testId);
-        self::assertGreaterThan(8, count($deliveries));
+        self::assertGreaterThan($messageCount, count($deliveries));
     }
 
     public static function consumeConcurrentMessage(): void
@@ -223,10 +327,12 @@ final class CollectingConcurrencyTest extends TestCase
         };
         $deliveries = new class () {
             #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 102, pointcut: AsynchronousRunningEndpoint::class)]
-            public function recordDelivery(MethodInvocation $invocation, Message $message, #[Header('testId')] string $testId, #[Reference] DocumentStore $documents): mixed
+            public function recordDelivery(MethodInvocation $invocation, Message $message, #[Reference] DocumentStore $documents, #[Header('testId')] ?string $testId = null): mixed
             {
                 $result = $invocation->proceed();
-                $documents->addDocument('collecting_concurrent_deliveries', bin2hex(random_bytes(16)), json_encode(['testId' => $testId, 'messageId' => $message->getHeaders()->getMessageId()], JSON_THROW_ON_ERROR));
+                if ($testId !== null) {
+                    $documents->addDocument('collecting_concurrent_deliveries', bin2hex(random_bytes(16)), json_encode(['testId' => $testId, 'messageId' => $message->getHeaders()->getMessageId()], JSON_THROW_ON_ERROR));
+                }
                 return $result;
             }
         };

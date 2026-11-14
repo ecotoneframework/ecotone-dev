@@ -1075,6 +1075,29 @@ final class CollectingConformanceTest extends TestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_each_collected_message_carries_the_same_header_names_from_every_store(bool $durable): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 1)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting('collect', 'first', metadata: ['label' => 'one']);
+        $ecotone->run('batches');
+
+        $headerNames = array_keys($handler->batches[0]->messages[0]->headers);
+        sort($headerNames);
+        self::assertSame([MessageHeaders::CONTENT_TYPE, MessageHeaders::MESSAGE_CORRELATION_ID, 'ecotone_modelling_bus_routing_key', MessageHeaders::MESSAGE_ID, 'label', MessageHeaders::TIMESTAMP], $headerNames);
+    }
+
+    #[DataProvider('implementations')]
     public function test_batch_contains_ordered_message_objects_with_their_own_payload_and_headers(bool $durable): void
     {
         $handler = new class () {

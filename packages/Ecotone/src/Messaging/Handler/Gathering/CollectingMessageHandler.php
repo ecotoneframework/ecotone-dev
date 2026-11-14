@@ -18,6 +18,7 @@ use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Messaging\Support\FrameworkHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Stringable;
 use Throwable;
@@ -84,7 +85,7 @@ final class CollectingMessageHandler implements MessageHandler
             groupKey: $this->groupKeyFor($message),
             gatherChannelName: $this->channelName,
             maxSize: $this->maxSize,
-            message: $message,
+            message: $this->recordedFormOf($message),
             deadline: $this->maxWait === null ? null : $this->clock->now()->unixTime()->inMilliseconds() + $this->maxWait,
             whenOpened: fn (string $groupId) => $this->scheduleTimeout($groupId, $message),
             whenReleased: $whenReleased,
@@ -138,6 +139,17 @@ final class CollectingMessageHandler implements MessageHandler
             ->setHeader(MessageHeaders::DELIVERY_DELAY, $this->maxWait)
             ->build();
         $this->channelResolver->resolve($this->channelName)->send($trigger);
+    }
+
+    private function recordedFormOf(Message $message): Message
+    {
+        $headers = $message->getHeaders()->headers();
+        $recorded = FrameworkHeaders::unsetEnqueueMetadata(FrameworkHeaders::unsetAggregateKeys($headers));
+        if (array_key_exists(MessageHeaders::CONTENT_TYPE, $headers)) {
+            $recorded[MessageHeaders::CONTENT_TYPE] = $headers[MessageHeaders::CONTENT_TYPE];
+        }
+
+        return $this->messageBuilder->fromMessage($message)->removeHeaders(array_keys(array_diff_key($headers, $recorded)))->build();
     }
 
     private function contextOf(Message $message): array

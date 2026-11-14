@@ -25,6 +25,9 @@ Set an explicit `endpointId` and subscription: `listenTo` for `#[EventHandler]`,
 original message subscription. Aggregates, sagas, queries and handlers also marked `#[Gathered]` are refused
 at bootstrap. A handler without `#[Collected]` keeps its ordinary behavior.
 
+Keep endpoint ids stable. Renaming an endpoint leaves its open batches under the old identity: list them and
+release or discard them before deploying the rename.
+
 At least one limit is required. `maxSize` must be at least one and `maxWait` must be greater than zero.
 With only `maxSize`, an incomplete batch waits indefinitely until it fills or an operator releases it.
 With only `maxWait`, the batch has no size limit. The waiting period starts with the first recorded message;
@@ -62,8 +65,11 @@ public function digest(CollectedMessages $events): void
 }
 ```
 
-Closure parameters follow the existing expression rules: put the payload first, or annotate a later parameter
-with `#[Payload]`. Header parameters use `#[Header]`; an unannotated object after the first parameter is resolved
+Closures in attributes require PHP 8.5. On PHP 8.2 to 8.4, PHP reports "Constant expression contains invalid
+operations"; use a string expression such as `groupBy: 'payload.userId'` on those versions.
+
+Put the message payload first in the closure's parameter list. If a header comes first, mark the later payload
+parameter with `#[Payload]`. Header parameters use `#[Header]`; an unannotated object after the first parameter is resolved
 as a service. A typed payload parameter specifies the conversion type for each message. With a string expression,
 the message's type header specifies that type; without a type header the payload is exposed as it arrived.
 
@@ -99,14 +105,21 @@ which can differ from send order. A batch never exceeds `maxSize`. Redelivery of
 for that endpoint while its recorded batch remains retained, including after release.
 
 The message that fills the batch or its timeout trigger runs the handler. With DBAL, recording, release, handler
-work and deferred timeout publication participate in the message transaction. A failure rolls back and retries
-the releasing message with the same batch. Keep transactional application work and gathering storage on the same
-connection, and use an outbox / combined channel for external publication that must follow the commit.
+work and sending its timeout participate in the message transaction. A failure rolls back and retries
+the releasing message. Keep transactional application work and gathering storage on the same connection, and
+use an outbox / combined channel for external publication that must follow the commit.
+
+If a size-filling message reaches the dead letter, its recording was rolled back. The next message can fill that
+slot and release the batch; replay of the failed message then starts or joins a later batch. With only maxWait,
+a failed timeout leaves its batch open past the deadline, collecting more messages until a release succeeds.
+Manual release behaves the same way. A delayed retry can therefore see more messages than the first attempt.
 
 ## Storage and channel setup
 
 Install `ecotone/dbal`, configure its connection and enable `ModulePackageList::DBAL_PACKAGE` (or `dbal` in your
-integration's `enabledModulePackageNames`). Provide an Enterprise licence. Collecting reuses gathering storage:
+integration's `enabledModulePackageNames`). Pass the licence as `licenceKey` to `EcotoneLite::bootstrap()`.
+In Symfony, set the bundle's `licenceKey`; in Laravel set `licenceKey` in `config/ecotone.php`; in Tempest pass
+`licenceKey` to `EcotoneConfig`. Collecting reuses gathering storage:
 
 ```text
 ecotone:migration:database:setup --initialize --feature=gathering
@@ -122,19 +135,67 @@ For a channel chain or combined channel, its first physical channel must support
 [gathering channel limits](message-gathering.md#operations) for transport-specific limits and unknown maxima.
 A stale timeout for an already closed batch has no effect on a later batch of the same key.
 
-Concurrent writes use gathering's versioned group row and conflict re-send. A lost race writes nothing and queues
-a replacement message for a fresh transaction. Hot keys can cause frequent conflicts; one consumer avoids those
-conflicts. Measure your workload before increasing consumer count.
+Several consumers adding to one key race; the loser is re-queued. For a hot key, run one consumer.
+Re-queuing preserves the original message identity, so later redelivery cannot add it twice while its batch is
+retained. Measure your workload before increasing consumer count.
 
-Flow tests without DBAL use the test-only in-memory store. It has no transaction: failures raised after a store
-call returns, such as a deferred channel send, do not roll back its recorded state. DBAL does roll back those
-failures through the message transaction. Gathering timeout sends have the same in-memory limitation.
+Flow tests without DBAL keep batches in memory. If sending a timeout fails after a message has been recorded,
+the test store keeps that message. A DBAL-backed application rolls it back with the transaction. Gathering has
+the same test-store limitation.
+
+## Test it
+
+Supply your Enterprise `$licenceKey`. Flow tests provide an in-memory queue and a clock you control. Sending
+messages does not invoke an asynchronous handler; consuming its channel does.
+
+```php
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Collected;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\CollectedMessages;
+use Ecotone\Api\Scheduling\TimeSpan;
+
+$handler = new class () {
+    public array $batches = [];
+
+    #[Collected(maxSize: 2, maxWait: new TimeSpan(seconds: 10))]
+    #[Asynchronous('search')]
+    #[CommandHandler(routingKey: 'index', endpointId: 'index.handler')]
+    public function index(CollectedMessages $batch): void
+    {
+        $this->batches[] = $batch;
+    }
+};
+$ecotone = EcotoneLite::bootstrapFlowTesting(
+    classesToResolve: [$handler::class],
+    containerOrAvailableServices: [$handler],
+    licenceKey: $licenceKey,
+    enabledModules: [],
+    initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+);
+$ecotone->sendCommandWithRouting('index', 'first');
+$ecotone->sendCommandWithRouting('index', 'second');
+assert($handler->batches === []);
+$ecotone->run('search');
+assert(count($handler->batches) === 1);
+
+$ecotone->sendCommandWithRouting('index', 'third');
+$ecotone->run('search');
+assert(count($handler->batches) === 1);
+$ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
+$ecotone->run('search');
+assert(array_column($handler->batches[1]->messages, 'payload') === ['third']);
+```
 
 ## Inspect, release and discard
 
-Use the existing `Ecotone\Api\Gateway\GatheredGroups` gateway:
+Obtain `Ecotone\Api\Gateway\GatheredGroups` from your application container (or the flow test):
 
 ```php
+use Ecotone\Api\Gateway\GatheredGroups;
+
+$groups = $ecotone->getGateway(GatheredGroups::class);
 $open = $groups->listOpenBatches('search.index');
 $closed = $groups->listClosedBatches('search.index');
 $groups->requestRelease($open[0]['groupId']);
@@ -165,5 +226,5 @@ Closed batches and their message identities follow `GatheringConfiguration` rete
 `#[ServiceContext]` method changes that period. Cleanup removes expired closed batches and preserves open ones.
 After cleanup, replayed message ids can be collected again.
 
-Keep endpoint ids stable. Renaming an endpoint leaves its open batches under the old identity: list them and
-release or discard them before deploying the rename. Upgrade every consumer before adding the marker to a flow.
+Upgrade every consumer before adding the marker. An older consumer invokes the method once per ordinary
+message and cannot supply the collected batch object.

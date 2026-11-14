@@ -3974,6 +3974,33 @@ a message carrying a gathering group header: give that nested splitter its own g
 flow through a command/event bus hop.
 
 
+### Collect ordinary messages into a batch (Enterprise)
+
+**Before:** Ordinary asynchronous service handlers ran once per message. Gathering tables created before this change
+held split groups and parts only.
+
+**Now:** Opt-in `#[Collected]` handlers receive a typed batch. Unmarked handlers retain their behavior. Gathering's
+unreleased tables gain nullable endpoint_id, group_key, group_key_hash, open_slot, opened_at and release_reason columns on groups and
+endpoint_id/message_id columns on parts. A unique (endpoint_id, group_key_hash, open_slot) index enforces one
+open batch per key, and a unique (endpoint_id, message_id) index deduplicates retained messages; setup creates new tables
+but does not alter existing ones.
+
+**How to adapt:** No application change is required unless enabling collecting or using gathering tables created before this change. For collecting, follow [the guide](docs/message-collecting.md), use explicit subscriptions and
+stable endpoint ids, configure DBAL and an Enterprise licence, and upgrade all consumers before adding the marker.
+For gathering tables created before this change, drain its open groups and stop consumers, then migrate the new
+columns/indexes through your application migrations (compare generated `--sql --feature=gathering` output), or
+recreate only the gathering tables if their retained history can be discarded:
+`ecotone:migration:database:delete --feature=gathering --force`, then
+`ecotone:migration:database:setup --initialize --feature=gathering`. Restart consumers after the schema is ready.
+
+Gathering listings also use the new endpoint_id column. Tables created before this change produce a "column does
+not exist" error (or the engine's "unknown column" equivalent) until migrated, even without a collected handler.
+The feature reserves `ecotone_collecting_*` headers and `ecotone.collecting.*` container service identifiers.
+Listing is `ecotone:gathering:list-batches`; batches share `ecotone:gathering:release`, `discard` and `cleanup`.
+Upgrade every consumer before adding the marker: an older consumer invokes the handler with one ordinary payload
+and cannot supply the collected batch object.
+
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them
@@ -4335,23 +4362,3 @@ normal section with "How to adapt" steps when it ships.
 15. Add `ecotone:projection:init --all` to your deployment, after the database setup (§8). Add the `version` column to `ecotone_projection_state` (`ALTER TABLE ecotone_projection_state ADD COLUMN version INTEGER NOT NULL DEFAULT 0`), and check which commands and asynchronous endpoints now retry by default (§9, §14).
 16. Add `ecotone:migration:database:setup --initialize` (or its `--sql` output, fed to your migration tool) to your deployment (§8).
 17. Once it ships: move framework YAML/PHP config options into `#[ServiceContext]` (§12).
-
-## Collecting ordinary messages (Enterprise)
-
-**Before:** Ordinary asynchronous service handlers ran once per message. The unreleased message-gathering tables
-held split groups and parts only.
-
-**Now:** Opt-in `#[Collected]` handlers receive a typed batch. Unmarked handlers retain their behavior. Gathering's
-unreleased tables gain nullable endpoint_id, group_key, group_key_hash, open_slot, opened_at and release_reason columns on groups and
-endpoint_id/message_id columns on parts. A unique (endpoint_id, group_key_hash, open_slot) index enforces one
-open batch per key, and a unique (endpoint_id, message_id) index deduplicates retained messages; setup creates new tables
-but does not alter existing ones.
-
-**How to adapt:** No application change is required unless enabling collecting or using an earlier prerelease
-gathering schema. For collecting, follow [the guide](docs/message-collecting.md), use explicit subscriptions and
-stable endpoint ids, configure DBAL and an Enterprise licence, and upgrade all consumers before adding the marker.
-For an existing prerelease gathering database, drain its open groups and stop consumers, then migrate the new
-columns/indexes through your application migrations (compare generated `--sql --feature=gathering` output), or
-recreate only the gathering tables if their retained history can be discarded:
-`ecotone:migration:database:delete --feature=gathering --force`, then
-`ecotone:migration:database:setup --initialize --feature=gathering`. Restart consumers after the schema is ready.

@@ -51,11 +51,11 @@ final class GatheringPulseTest extends TestCase
     {
         $this->bootstrap($durable);
         $groups = $this->service->getGateway(GatheredGroups::class);
-        $before = $groups->listOpenGroups('pulse.summary');
+        $before = $groups->listOpenGroups('pulse.summary.handler');
         $this->service->sendCommandWithRouting('split', [10, 20]);
         $this->service->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->service->run('summaries');
-        $opened = array_values(array_filter($groups->listOpenGroups('pulse.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $opened = array_values(array_filter($groups->listOpenGroups('pulse.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
         $groupId = $opened[0]['groupId'];
 
         $snapshot = $this->request('ecotone.pulse.snapshot', []);
@@ -63,7 +63,7 @@ final class GatheringPulseTest extends TestCase
         $open = array_values(array_filter($snapshot['gathering']['groups'], static fn (array $group): bool => $group['groupId'] === $groupId));
         self::assertCount(1, $open);
         self::assertSame('open', $open[0]['state']);
-        self::assertSame([1], $open[0]['accountedPartNumbers']);
+        self::assertSame(1, $open[0]['recorded']);
         self::assertSame([2], $open[0]['missingPartNumbers']);
         $groups->requestRelease($groupId);
         $this->service->run('summaries');
@@ -75,7 +75,7 @@ final class GatheringPulseTest extends TestCase
         self::assertCount(1, $closed);
         self::assertSame('released', $closed[0]['state']);
         self::assertSame(1, $closed[0]['latePartCount']);
-        self::assertSame([1], $closed[0]['accountedPartNumbers']);
+        self::assertSame(1, $closed[0]['recorded']);
         self::assertSame([2], $closed[0]['missingPartNumbers']);
     }
 
@@ -84,15 +84,15 @@ final class GatheringPulseTest extends TestCase
     {
         $this->bootstrap($durable);
         $groups = $this->service->getGateway(GatheredGroups::class);
-        $before = $groups->listOpenGroups('pulse.summary');
+        $before = $groups->listOpenGroups('pulse.summary.handler');
         $this->service->sendCommandWithRouting('split', [10, 20]);
-        $opened = array_values(array_filter($groups->listOpenGroups('pulse.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $opened = array_values(array_filter($groups->listOpenGroups('pulse.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
         $groupId = $opened[0]['groupId'];
 
         $reply = $this->request('ecotone.pulse.gathering.release', ['groupId' => $groupId]);
         self::assertSame(['groupId' => $groupId, 'status' => 'release requested'], $reply['gatheringAction']);
         self::assertSame([], $this->handler->gathered);
-        self::assertContains($groupId, array_column($groups->listOpenGroups('pulse.summary'), 'groupId'));
+        self::assertContains($groupId, array_column($groups->listOpenGroups('pulse.summary.handler'), 'groupId'));
         $this->request('ecotone.pulse.gathering.release', ['groupId' => $groupId]);
         $this->service->run('summaries');
 
@@ -106,17 +106,17 @@ final class GatheringPulseTest extends TestCase
     {
         $this->bootstrap($durable);
         $groups = $this->service->getGateway(GatheredGroups::class);
-        $before = $groups->listOpenGroups('pulse.summary');
+        $before = $groups->listOpenGroups('pulse.summary.handler');
         $this->service->sendCommandWithRouting('split', [10, 20]);
-        $opened = array_values(array_filter($groups->listOpenGroups('pulse.summary'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        $opened = array_values(array_filter($groups->listOpenGroups('pulse.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
         $groupId = $opened[0]['groupId'];
 
         $reply = $this->request('ecotone.pulse.gathering.discard', ['groupId' => $groupId]);
         self::assertSame(['groupId' => $groupId, 'status' => 'discarded'], $reply['gatheringAction']);
-        self::assertNotContains($groupId, array_column($groups->listOpenGroups('pulse.summary'), 'groupId'));
+        self::assertNotContains($groupId, array_column($groups->listOpenGroups('pulse.summary.handler'), 'groupId'));
         $this->service->run('workers');
         $this->service->run('summaries');
-        $closed = array_values(array_filter($groups->listClosedGroups('pulse.summary'), static fn (array $group): bool => $group['groupId'] === $groupId));
+        $closed = array_values(array_filter($groups->listClosedGroups('pulse.summary.handler'), static fn (array $group): bool => $group['groupId'] === $groupId));
 
         self::assertSame([], $this->handler->gathered);
         self::assertSame('discarded', $closed[0]['state']);
@@ -140,7 +140,7 @@ final class GatheringPulseTest extends TestCase
         $reply = $this->request('ecotone.pulse.gathering.' . $action, $body);
 
         self::assertSame('Pulse gathering actions require a JSON object containing only a non-empty string groupId. Send {"groupId":"id"}, taking id from gathering.groups in the Pulse snapshot.', $reply['message']);
-        self::assertSame([], $this->service->getGateway(GatheredGroups::class)->listOpenGroups('pulse.summary'));
+        self::assertSame([], $this->service->getGateway(GatheredGroups::class)->listOpenGroups('pulse.summary.handler'));
         self::assertSame([], $this->handler->gathered);
     }
 
@@ -156,7 +156,7 @@ final class GatheringPulseTest extends TestCase
         $this->bootstrap(false, 'intruder');
         $this->service->sendCommandWithRouting('split', [10]);
         $groups = $this->service->getGateway(GatheredGroups::class);
-        $groupId = $groups->listOpenGroups('pulse.summary')[0]['groupId'];
+        $groupId = $groups->listOpenGroups('pulse.summary.handler')[0]['groupId'];
 
         try {
             $this->request('ecotone.pulse.gathering.' . $action, ['groupId' => $groupId]);
@@ -164,7 +164,7 @@ final class GatheringPulseTest extends TestCase
         } catch (Exception $exception) {
             self::assertSame("Service gathering_service was asked for its Pulse snapshot by intruder, but it only answers the configured Pulse service ecotone_pulse. Send the request from the Pulse service, or change the accepted service with PulseConfiguration::createWithDefaults(pulseServiceName: 'intruder') in a #[ServiceContext].", $exception->getMessage());
         }
-        self::assertSame($groupId, $groups->listOpenGroups('pulse.summary')[0]['groupId']);
+        self::assertSame($groupId, $groups->listOpenGroups('pulse.summary.handler')[0]['groupId']);
         $this->service->run('summaries');
         self::assertSame([], $this->handler->gathered);
     }

@@ -126,8 +126,16 @@ has been cleaned up is refused with a message naming this retention setting.
 
 ## Operations
 
-Use the `Ecotone\Api\Gateway\GatheredGroups` gateway to `listOpenGroups(gatherChannelName)`,
-`listClosedGroups(gatherChannelName)`, `requestRelease(groupId)`, `discard(groupId)` or `cleanupClosedGroups()`.
+Use the `Ecotone\Api\Gateway\GatheredGroups` gateway to `listOpenGroups(endpointId)`,
+`listClosedGroups(endpointId)`, `requestRelease(groupId)`, `discard(groupId)` or `cleanupClosedGroups()`. Groups
+are listed by the gathered handler's `endpointId`, the same listing that shows
+[collected batches](message-collecting.md). A gathered handler therefore needs an explicit, stable `endpointId`;
+bootstrap refuses one without it.
+
+Each row contains `groupId`, `endpointId`, `groupKey` (null for a gathered group), `state`, `expectedSize` (the
+number of split parts), `recorded` (parts recorded so far), `missingPartNumbers`, `latePartCount`, `openedAt`,
+`deadline` (null without a timeout), `closedAt` and `releaseReason` (a `GatheredReleaseReason` value; null while open
+and for a discarded group). Times are Unix milliseconds.
 
 `requestRelease()` queues a trigger and returns no value. The console and Pulse display `release requested`.
 Consume the gathered handler's asynchronous channel to run the handler. A duplicate request or trigger for a
@@ -144,8 +152,8 @@ ecotone:gathering:discard <groupId>
 ecotone:gathering:cleanup
 ```
 
-Pulse's Gathering tab shows open and retained closed groups, accounted/missing parts, deadlines and late
-arrivals. Open groups offer Request release and Discard. The page reports `Release requested` while the
+Pulse's Gathering tab shows open and retained closed groups and collected batches in one table, with the fields
+above. Open groups offer Request release and Discard. The page reports `Release requested` while the
 handler is still waiting for its trigger; a service refusal is shown with its explanation.
 
 Timeouts require an asynchronous channel builder implementing `DelayedMessageChannelBuilder`. Bootstrap refuses

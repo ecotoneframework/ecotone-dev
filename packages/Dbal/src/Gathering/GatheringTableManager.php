@@ -125,7 +125,7 @@ final class GatheringTableManager implements DbalTableManager
         $group->addColumn(name: 'state', typeName: Types::STRING, options: ['length' => 16]);
         $group->addColumn('original_message', Types::TEXT);
         $group->setPrimaryKey(['group_id']);
-        $group->addIndex(['gather_channel_name', 'state']);
+        $group->addIndex(['endpoint_id', 'state']);
         $part = new Table(DbalGatheredGroupStore::PART_TABLE);
         $part->addColumn(name: 'group_id', typeName: Types::STRING, options: ['length' => 64]);
         $part->addColumn('part_number', Types::INTEGER);

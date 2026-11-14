@@ -338,6 +338,40 @@ final class GatheringTest extends TestCase
         );
     }
 
+    public function test_gathered_handler_without_an_explicit_endpoint_id_is_refused_at_bootstrap(): void
+    {
+        $handler = new class () {
+            #[Splitter('split', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+        };
+
+        $this->expectExceptionMessage("Gathered handler 'summary' has no explicit endpointId. Its groups are stored and listed under that endpointId, so it must stay stable across deploys. Set #[InternalHandler(inputChannelName: 'summary', endpointId: 'your.stable.id')], or remove #[Gathered] and the splitter's gatherChannelName.");
+
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+        );
+    }
+
     public function test_gathered_splitter_without_explicit_endpoint_id_is_refused_at_bootstrap(): void
     {
         $handler = new class () {
@@ -756,10 +790,10 @@ final class GatheringTest extends TestCase
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
 
-        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary');
+        $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler');
         self::assertCount(1, $groups);
-        self::assertSame(2, $groups[0]['size']);
-        self::assertSame([], $groups[0]['accountedPartNumbers']);
+        self::assertSame(2, $groups[0]['expectedSize']);
+        self::assertSame(0, $groups[0]['recorded']);
         self::assertSame([1, 2], $groups[0]['missingPartNumbers']);
     }
 
@@ -872,9 +906,9 @@ final class GatheringTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
         $ecotone->sendCommandWithRouting('split', [10, 20]);
-        $groupId = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary')[0]['groupId'];
+        $groupId = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler')[0]['groupId'];
 
-        $ecotone->runConsoleCommand('ecotone:gathering:list', ['gatherChannelName' => 'summary']);
+        $ecotone->runConsoleCommand('ecotone:gathering:list', ['endpointId' => 'summary.handler']);
         $ecotone->runConsoleCommand('ecotone:gathering:release', ['groupId' => $groupId]);
         $ecotone->runConsoleCommand('ecotone:gathering:discard', ['groupId' => $groupId]);
         $ecotone->runConsoleCommand('ecotone:gathering:cleanup');

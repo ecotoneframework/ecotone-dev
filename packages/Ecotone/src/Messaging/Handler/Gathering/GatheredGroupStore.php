@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gathering;
 
 use Ecotone\Api\Messaging\CollectedReleaseReason;
+use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Api\Messaging\Message;
 
 /**
@@ -30,25 +31,23 @@ interface GatheredGroupStore
 {
     public const UNKNOWN_SIZE = -1;
 
-    public function listOpenBatches(string $endpointId): array;
-
-    public function listClosedBatches(string $endpointId): array;
-
     public function collectMessage(string $endpointId, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): void;
 
-    public function openGroup(string $groupId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void;
+    public function openGroup(string $groupId, string $endpointId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void;
 
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void;
 
     public function gatherChannelNameFor(string $groupId): string;
 
-    public function releaseGroup(string $groupId, callable $whenReleased, ?CollectedReleaseReason $releaseReason): void;
+    public function releaseGroup(string $groupId, callable $whenReleased, GatheredReleaseReason|CollectedReleaseReason|null $releaseReason): void;
 
     public function discard(string $groupId): void;
 
     public function cleanupClosedGroups(int $closedAtOrBefore): void;
 
-    public function listClosedGroups(string $gatherChannelName): array;
+    /** @return list<array{groupId: string, endpointId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, latePartCount: int, openedAt: int, deadline: ?int, closedAt: ?int, releaseReason: ?string}> */
+    public function listOpenGroups(string $endpointId): array;
 
-    public function listOpenGroups(string $gatherChannelName): array;
+    /** @return list<array{groupId: string, endpointId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, latePartCount: int, openedAt: int, deadline: ?int, closedAt: ?int, releaseReason: ?string}> */
+    public function listClosedGroups(string $endpointId): array;
 }

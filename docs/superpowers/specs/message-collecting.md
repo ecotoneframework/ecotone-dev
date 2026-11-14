@@ -92,19 +92,23 @@ that reason and runs on PostgreSQL, MySQL and MariaDB. No collector-specific tra
 
 ## Operations and deployment
 
-The existing `GatheredGroups` gateway adds `listOpenBatches(endpointId)` and `listClosedBatches(endpointId)`;
-ordinary group listings remain separate. Shared requestRelease(groupId), discard(groupId) and cleanup apply to
-both. Manual release queues a trigger on the recorded pre-execution routing channel, so it enters the async
+Maintainer decision C33 (2026-11-14): a collected batch is a group whose size is not known up front, so groups and
+batches share one listing flow selected by the handler's endpointId: `GatheredGroups::listOpenGroups(endpointId)`
+and `listClosedGroups(endpointId)` return both kinds. A gathered group records its gathered handler's endpointId
+when it opens, so one indexed read path, (endpoint_id, state), serves both. Shared requestRelease(groupId),
+discard(groupId) and cleanup apply to both. Manual release queues a trigger on the recorded pre-execution routing channel, so it enters the async
 queue rather than invoking the handler synchronously. A discard never invokes it. Slot clearing is part of the same versioned release or discard write, and the in-memory twin enforces the same
 open-slot rule. Cleanup still removes every expired closed batch. Closed batches follow
 `GatheringConfiguration` retention (seven days by default); cleanup leaves open batches intact.
 
-`ecotone:gathering:list-batches <endpointId> [--closed]` lists batches; existing gathering release/discard/cleanup
-commands act by group id. Pulse's Gathering page adds separate batch rows and shares the existing actions.
-Listings expose groupId, endpointId, groupKey, state, maxSize, recordedMessages, openedAt and deadline; closed
-rows add releaseReason (null for discard). openedAt records the first successful recording time in milliseconds.
-Unknown maximum size/wait is explicit in the console and Pulse; the internal sentinel
-never appears in the API or UI.
+`ecotone:gathering:list <endpointId> [--closed]` lists both kinds; release/discard/cleanup commands act by group
+id. Pulse's Gathering page shows both kinds in one table and shares the actions. A row is groupId, endpointId,
+groupKey (null for a gathered group), state, expectedSize (split part count or maxSize; null without maxSize),
+recorded (count), missingPartNumbers (empty for a batch), latePartCount (0 for a batch), openedAt, deadline,
+closedAt and releaseReason (null while open and for a discard). Release reasons stay per kind,
+`GatheredReleaseReason` and `CollectedReleaseReason`, because their cases name each attribute's own limits.
+openedAt records the first successful recording time in milliseconds. An unknown maximum size or wait is explicit
+in the console and Pulse; the internal sentinel never appears in the API or UI.
 
 Endpoint identity is durable: renaming an endpoint orphans its open batches under the old id. List and release
 or discard them before deploying a rename. All consumers must be upgraded before enabling the marker.
@@ -137,7 +141,7 @@ and DBAL; the database branch and concurrency tests run on PostgreSQL, MySQL and
 | Return value | return_value_flows_once_per_batch |
 | Concurrency | batch_is_released_once_when_last_messages_are_recorded_in_a_real_database_race; consumers_opening_the_same_open_slot_in_a_real_database_race_retry_and_keep_one_batch |
 | Storage and retention | collected_handler_requires_durable_storage_outside_flow_testing; closed_batches_follow_gathering_retention_and_open_batches_are_kept |
-| Gateway, console and Pulse | open_batches_are_listed_by_collected_endpoint_id; released_batches_are_listed_by_collected_endpoint_id; open_batch_can_be_released_by_hand_without_collecting_the_release_message; group_listings_remain_separate_from_collected_batch_listings; batch_console_listing_uses_endpoint_id_and_hides_an_unknown_size; pulse_lists_open_batches_by_collected_endpoint_and_hides_unknown_size; pulse_requests_batch_release_on_its_asynchronous_channel; pulse_discards_a_batch_without_invoking_its_handler |
+| Gateway, console and Pulse | open_batches_are_listed_by_collected_endpoint_id; batch_listing_rows_use_the_shared_group_shape; batches_are_listed_by_endpoint_id_and_not_by_channel_name; released_batches_are_listed_by_collected_endpoint_id; open_batch_can_be_released_by_hand_without_collecting_the_release_message; group_listings_remain_separate_from_collected_batch_listings; batch_console_listing_uses_endpoint_id_and_hides_an_unknown_size; pulse_lists_open_batches_by_collected_endpoint_and_hides_unknown_size; pulse_requests_batch_release_on_its_asynchronous_channel; pulse_discards_a_batch_without_invoking_its_handler |
 
 Existing gathering suites remain the regression proof for zero-size splits, late parts, timeouts, operations,
 transaction behavior, delay validation and conflicts. The shared concurrent-consumer barrier is reused rather

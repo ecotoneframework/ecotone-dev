@@ -39,20 +39,20 @@ final class CollectingPulseTest extends TestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_pulse_lists_open_batches_by_collected_endpoint_and_hides_unknown_size(bool $durable): void
+    public function test_pulse_lists_open_batches_with_gathered_groups_by_endpoint_id(bool $durable): void
     {
         [$handler, $service, $pulse, $pulseService] = $this->bootstrap($durable);
         $service->sendCommandWithRouting('collect', ['tenant' => 'one']);
         $service->run('batches');
-        $batchId = $service->getGateway(GatheredGroups::class)->listOpenBatches('pulse.collect.handler')[0]['groupId'];
+        $batchId = $service->getGateway(GatheredGroups::class)->listOpenGroups('pulse.collect.handler')[0]['groupId'];
         $snapshot = $this->request(service: $service, pulseService: $pulseService, pulse: $pulse, routingKey: 'ecotone.pulse.snapshot', payload: []);
 
         self::assertArrayHasKey('gathering', $snapshot);
-        $batches = array_values(array_filter($snapshot['gathering']['batches'], static fn (array $batch): bool => $batch['groupId'] === $batchId));
+        $batches = array_values(array_filter($snapshot['gathering']['groups'], static fn (array $batch): bool => $batch['groupId'] === $batchId));
         self::assertCount(1, $batches);
         self::assertSame('pulse.collect.handler', $batches[0]['endpointId']);
         self::assertSame('one', $batches[0]['groupKey']);
-        self::assertNull($batches[0]['maxSize']);
+        self::assertNull($batches[0]['expectedSize']);
         self::assertSame('open', $batches[0]['state']);
     }
 
@@ -62,14 +62,14 @@ final class CollectingPulseTest extends TestCase
         [$handler, $service, $pulse, $pulseService] = $this->bootstrap($durable);
         $service->sendCommandWithRouting('collect', ['tenant' => 'one']);
         $service->run('batches');
-        $batchId = $service->getGateway(GatheredGroups::class)->listOpenBatches('pulse.collect.handler')[0]['groupId'];
+        $batchId = $service->getGateway(GatheredGroups::class)->listOpenGroups('pulse.collect.handler')[0]['groupId'];
         $reply = $this->request(service: $service, pulseService: $pulseService, pulse: $pulse, routingKey: 'ecotone.pulse.gathering.release', payload: ['groupId' => $batchId]);
         self::assertSame(['groupId' => $batchId, 'status' => 'release requested'], $reply['gatheringAction']);
         self::assertSame([], $handler->batches);
         $service->run('batches');
         self::assertCount(1, $handler->batches);
         self::assertSame([['tenant' => 'one']], array_column($handler->batches[0]->messages, 'payload'));
-        self::assertSame([], $service->getGateway(GatheredGroups::class)->listOpenBatches('pulse.collect.handler'));
+        self::assertSame([], $service->getGateway(GatheredGroups::class)->listOpenGroups('pulse.collect.handler'));
     }
 
     #[DataProvider('implementations')]
@@ -78,13 +78,13 @@ final class CollectingPulseTest extends TestCase
         [$handler, $service, $pulse, $pulseService] = $this->bootstrap($durable);
         $service->sendCommandWithRouting('collect', ['tenant' => 'one']);
         $service->run('batches');
-        $batchId = $service->getGateway(GatheredGroups::class)->listOpenBatches('pulse.collect.handler')[0]['groupId'];
+        $batchId = $service->getGateway(GatheredGroups::class)->listOpenGroups('pulse.collect.handler')[0]['groupId'];
         $reply = $this->request(service: $service, pulseService: $pulseService, pulse: $pulse, routingKey: 'ecotone.pulse.gathering.discard', payload: ['groupId' => $batchId]);
         self::assertSame(['groupId' => $batchId, 'status' => 'discarded'], $reply['gatheringAction']);
         $service->advanceTimeBy(new TimeSpan(seconds: 10));
         $service->run('batches');
         self::assertSame([], $handler->batches);
-        self::assertSame([], $service->getGateway(GatheredGroups::class)->listOpenBatches('pulse.collect.handler'));
+        self::assertSame([], $service->getGateway(GatheredGroups::class)->listOpenGroups('pulse.collect.handler'));
     }
 
     private function bootstrap(bool $durable): array
@@ -124,7 +124,7 @@ final class CollectingPulseTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
-        foreach ($service->getGateway(GatheredGroups::class)->listOpenBatches('pulse.collect.handler') as $batch) {
+        foreach ($service->getGateway(GatheredGroups::class)->listOpenGroups('pulse.collect.handler') as $batch) {
             $service->getGateway(GatheredGroups::class)->discard($batch['groupId']);
         }
         $pulseService = EcotoneLite::bootstrapFlowTesting(

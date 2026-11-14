@@ -153,8 +153,8 @@ final class CollectingConcurrencyTest extends TestCase
 
         self::assertSame([['duplicate']], $handler->batches);
         self::assertSame([], array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => $failure->getMessageId() === $messageId)));
-        self::assertSame([], array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenBatches('collect.duplicate.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key)));
-        self::assertCount(1, array_filter($first->getGateway(GatheredGroups::class)->listClosedBatches('collect.duplicate.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key));
+        self::assertSame([], array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenGroups('collect.duplicate.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key)));
+        self::assertCount(1, array_filter($first->getGateway(GatheredGroups::class)->listClosedGroups('collect.duplicate.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key));
     }
 
     public function test_lock_wait_timeout_surfaces_as_itself_rather_than_as_a_lost_optimistic_write(): void
@@ -286,7 +286,7 @@ final class CollectingConcurrencyTest extends TestCase
         };
         $messageId = bin2hex(random_bytes(16));
         if ($release) {
-            $seed = array_values(array_filter($second->getGateway(GatheredGroups::class)->listOpenBatches('collect.exhaustion.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key))[0];
+            $seed = array_values(array_filter($second->getGateway(GatheredGroups::class)->listOpenGroups('collect.exhaustion.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key))[0];
             $first->getGateway(GatheredGroups::class)->requestRelease($seed['groupId']);
         } else {
             $first->sendCommandWithRouting('collect.exhaustion', ['key' => $key, 'value' => 'original'], metadata: [MessageHeaders::MESSAGE_ID => $messageId]);
@@ -304,12 +304,12 @@ final class CollectingConcurrencyTest extends TestCase
         $deadLetters->replay($messageId);
         $first->run('exhausted_collecting');
         self::assertSame([], array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => $failure->getMessageId() === $messageId)));
-        $open = array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenBatches('collect.exhaustion.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key));
+        $open = array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenGroups('collect.exhaustion.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key));
         if ($release) {
             self::assertSame([], $open);
         } else {
             self::assertCount(1, $open);
-            self::assertSame(4, $open[0]['recordedMessages']);
+            self::assertSame(4, $open[0]['recorded']);
             $first->getGateway(GatheredGroups::class)->requestRelease($open[0]['groupId']);
             $first->run('exhausted_collecting');
         }
@@ -365,7 +365,7 @@ final class CollectingConcurrencyTest extends TestCase
         }
         $first->run('cleanup_race');
         self::assertCount($cleanup ? 1 : 0, $handler->batches);
-        $discardId = $cleanup ? null : array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenBatches('collect.cleanup.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key))[0]['groupId'];
+        $discardId = $cleanup ? null : array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenGroups('collect.cleanup.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key))[0]['groupId'];
         $first->advanceTimeBy(new TimeSpan(days: 8));
         $second = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
@@ -386,7 +386,7 @@ final class CollectingConcurrencyTest extends TestCase
         };
         $first->sendCommandWithRouting('collect.cleanup.race', ['key' => $key, 'value' => 'first-connection']);
         $first->run('cleanup_race', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 5)->withExecutionAmountLimit(5));
-        $open = array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenBatches('collect.cleanup.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key));
+        $open = array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenGroups('collect.cleanup.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key));
         self::assertSame([], $open);
         self::assertCount($cleanup ? 2 : 1, $handler->batches);
         self::assertSame(['second-connection', 'first-connection'], array_column(array_column($handler->batches[$cleanup ? 1 : 0]->messages, 'payload'), 'value'));
@@ -517,7 +517,7 @@ final class CollectingConcurrencyTest extends TestCase
         $key = bin2hex(random_bytes(16));
         $second->sendCommandWithRouting('collect.release.race', ['key' => $key, 'value' => 'seed']);
         $second->run('release_race');
-        $seed = array_values(array_filter($second->getGateway(GatheredGroups::class)->listOpenBatches('collect.release.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key))[0];
+        $seed = array_values(array_filter($second->getGateway(GatheredGroups::class)->listOpenGroups('collect.release.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key))[0];
         $interleaving->releaseOnOtherConnection = static function () use ($second, $seed, $manualRelease): void {
             if ($manualRelease) {
                 $second->getGateway(GatheredGroups::class)->requestRelease($seed['groupId']);
@@ -533,10 +533,10 @@ final class CollectingConcurrencyTest extends TestCase
         self::assertCount(1, $handler->batches);
         self::assertSame(['seed'], array_column(array_column($handler->batches[0]->messages, 'payload'), 'value'));
         self::assertSame($manualRelease ? CollectedReleaseReason::MANUAL_RELEASE : CollectedReleaseReason::MAX_WAIT_REACHED, $handler->batches[0]->releaseReason);
-        $open = array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenBatches('collect.release.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key));
+        $open = array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenGroups('collect.release.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key));
         self::assertCount(1, $open);
         self::assertNotSame($seed['groupId'], $open[0]['groupId']);
-        self::assertSame(1, $open[0]['recordedMessages']);
+        self::assertSame(1, $open[0]['recorded']);
         $first->getGateway(GatheredGroups::class)->requestRelease($open[0]['groupId']);
         $first->run('release_race');
         self::assertCount(2, $handler->batches);
@@ -581,9 +581,9 @@ final class CollectingConcurrencyTest extends TestCase
         self::assertSame([], array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previousFailures, true))));
 
         if ($overflow) {
-            $partial = array_values(array_filter($application->getGateway(GatheredGroups::class)->listOpenBatches('collect.concurrent.handler'), static fn (array $batch): bool => $batch['groupKey'] === $testId));
+            $partial = array_values(array_filter($application->getGateway(GatheredGroups::class)->listOpenGroups('collect.concurrent.handler'), static fn (array $batch): bool => $batch['groupKey'] === $testId));
             self::assertCount(1, $partial);
-            self::assertSame(1, $partial[0]['recordedMessages']);
+            self::assertSame(1, $partial[0]['recorded']);
             $application->getGateway(GatheredGroups::class)->requestRelease($partial[0]['groupId']);
             $application->run('collecting_concurrency');
         }
@@ -604,9 +604,9 @@ final class CollectingConcurrencyTest extends TestCase
         }
         sort($values);
         self::assertSame(range(1, $messageCount), $values);
-        $open = array_filter($application->getGateway(GatheredGroups::class)->listOpenBatches('collect.concurrent.handler'), static fn (array $batch): bool => $batch['groupKey'] === $testId);
+        $open = array_filter($application->getGateway(GatheredGroups::class)->listOpenGroups('collect.concurrent.handler'), static fn (array $batch): bool => $batch['groupKey'] === $testId);
         self::assertSame([], $open);
-        $closed = array_filter($application->getGateway(GatheredGroups::class)->listClosedBatches('collect.concurrent.handler'), static fn (array $batch): bool => $batch['groupKey'] === $testId);
+        $closed = array_filter($application->getGateway(GatheredGroups::class)->listClosedGroups('collect.concurrent.handler'), static fn (array $batch): bool => $batch['groupKey'] === $testId);
         self::assertCount($overflow ? 2 : 1, $closed);
         $failures = array_filter($application->getGateway(DeadLetterGateway::class)->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previousFailures, true));
         self::assertSame([], $failures);

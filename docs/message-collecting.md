@@ -220,30 +220,33 @@ Obtain `Ecotone\Api\Gateway\GatheredGroups` from your application container (or 
 use Ecotone\Api\Gateway\GatheredGroups;
 
 $groups = $ecotone->getGateway(GatheredGroups::class);
-$open = $groups->listOpenBatches('search.index');
-$closed = $groups->listClosedBatches('search.index');
+$open = $groups->listOpenGroups('search.index');
+$closed = $groups->listClosedGroups('search.index');
 $groups->requestRelease($open[0]['groupId']);
 $groups->discard($anotherGroupId);
 $groups->cleanupClosedGroups();
 ```
 
-Listings use the collected endpoint id. Each open row contains `groupId`, `endpointId`, `groupKey`, `state`,
-`maxSize` (null when omitted), `recordedMessages`, `openedAt` and `deadline` (null without maxWait). Times are Unix
-milliseconds. Closed rows also contain `releaseReason`, with a release enum value or null for a discarded batch.
-Ordinary gathered-group listings stay separate. `requestRelease()` queues a trigger: consume the handler's
+Batches are listed by the collected handler's endpoint id, through the same listing as
+[gathered groups](message-gathering.md#operations). Each row contains `groupId`, `endpointId`, `groupKey`, `state`,
+`expectedSize` (`maxSize`, null when omitted), `recorded` (messages recorded so far), `missingPartNumbers` (always
+empty for a batch), `latePartCount` (always 0), `openedAt` (the first recording), `deadline` (null without
+maxWait), `closedAt` and `releaseReason` (a `CollectedReleaseReason` value; null while open and for a discarded
+batch). Times are Unix milliseconds.
+`requestRelease()` queues a trigger: consume the handler's
 asynchronous channel to invoke it. Discard closes a batch without running the handler. Duplicate release
 triggers do not run it again.
 
 ```text
-ecotone:gathering:list-batches search.index
-ecotone:gathering:list-batches search.index --closed
+ecotone:gathering:list search.index
+ecotone:gathering:list search.index --closed
 ecotone:gathering:release <groupId>
 ecotone:gathering:discard <groupId>
 ecotone:gathering:cleanup
 ```
 
-Pulse's Gathering tab has separate collected-batch rows with endpoint id, key, size, count, deadline and the
-existing Request release / Discard actions. A batch without `maxSize` displays no maximum size.
+Pulse's Gathering tab lists batches and gathered groups in one table with the fields above and the Request
+release / Discard actions. A batch without `maxSize` displays no expected size.
 
 Closed batches and their message identities follow `GatheringConfiguration` retention, seven days by default.
 `GatheringConfiguration::createWithDefaults()->withRetention(new TimeSpan(days: 14))` returned from a

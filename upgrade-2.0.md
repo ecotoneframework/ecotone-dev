@@ -3993,6 +3993,24 @@ or `#[WithoutDatabaseTransaction]`) gets no default instant retries, so a confli
 error channel instead of being re-sent. Turn the endpoint transaction back on for gathered handlers, or configure
 delayed retries with `ErrorHandlerConfiguration`.
 
+### Gathering groups are listed by the gathered handler's endpointId
+
+**Before:** `GatheredGroups::listOpenGroups()` / `listClosedGroups()` and `ecotone:gathering:list` selected groups
+by gather channel name. Rows held `gatherChannelName`, `size` and `accountedPartNumbers`. A gathered handler could
+leave its `endpointId` to be generated.
+
+**Now:** Groups are selected by the gathered handler's `endpointId`, through the same listing as collected batches.
+Rows share one shape: `groupId`, `endpointId`, `groupKey`, `state`, `expectedSize`, `recorded`,
+`missingPartNumbers`, `latePartCount`, `openedAt`, `deadline`, `closedAt` and `releaseReason`. Pulse shows both kinds
+in one table. A gathered handler without an explicit `endpointId` is refused at bootstrap, because its groups are
+stored and listed under it. Groups record their endpoint id, opening time and release reason, and the gathering
+table's (gather_channel_name, state) index becomes (endpoint_id, state).
+
+**How to adapt:** pass the gathered handler's `endpointId` to `listOpenGroups()`, `listClosedGroups()` and
+`ecotone:gathering:list` instead of the gather channel name, and read `expectedSize` and `recorded` instead of
+`size` and `accountedPartNumbers`. Add `endpointId` to any `#[Gathered]` handler that has none. Gathering tables
+created before this change are migrated as the next entry describes.
+
 ### Collect ordinary messages into a batch (Enterprise)
 
 **Before:** Ordinary asynchronous service handlers ran once per message. Gathering tables created before this change
@@ -4015,7 +4033,7 @@ recreate only the gathering tables if their retained history can be discarded:
 Gathering listings also use the new endpoint_id column. Tables created before this change produce a "column does
 not exist" error (or the engine's "unknown column" equivalent) until migrated, even without a collected handler.
 The feature reserves `ecotone.collecting.*` container service identifiers.
-Listing is `ecotone:gathering:list-batches`; batches share `ecotone:gathering:release`, `discard` and `cleanup`.
+Batches are listed with `ecotone:gathering:list <endpointId>` and share `ecotone:gathering:release`, `discard` and `cleanup`.
 Upgrade every consumer before adding the marker: an older consumer invokes the handler with one ordinary payload
 and cannot supply the collected batch object.
 

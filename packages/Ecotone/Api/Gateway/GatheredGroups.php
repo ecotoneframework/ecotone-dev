@@ -11,21 +11,15 @@ namespace Ecotone\Api\Gateway;
  */
 interface GatheredGroups
 {
-    /** @return list<array{groupId: string, endpointId: string, groupKey: ?string, state: string, maxSize: ?int, recordedMessages: int, openedAt: int, deadline: ?int}> */
-    public function listOpenBatches(string $endpointId): array;
+    /** @return list<array{groupId: string, endpointId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, latePartCount: int, openedAt: int, deadline: ?int, closedAt: ?int, releaseReason: ?string}> */
+    public function listOpenGroups(string $endpointId): array;
 
-    /** @return list<array{groupId: string, endpointId: string, groupKey: ?string, state: string, maxSize: ?int, recordedMessages: int, openedAt: int, deadline: ?int, releaseReason: ?string}> */
-    public function listClosedBatches(string $endpointId): array;
+    /** @return list<array{groupId: string, endpointId: string, groupKey: ?string, state: string, expectedSize: ?int, recorded: int, missingPartNumbers: list<int>, latePartCount: int, openedAt: int, deadline: ?int, closedAt: ?int, releaseReason: ?string}> */
+    public function listClosedGroups(string $endpointId): array;
 
     public function requestRelease(string $groupId): void;
 
     public function discard(string $groupId): void;
 
     public function cleanupClosedGroups(): void;
-
-    /** @return array<array{groupId: string, gatherChannelName: string, size: int, state: string, deadline: ?int, closedAt: ?int, latePartCount: int, accountedPartNumbers: array<int>, missingPartNumbers: array<int>}> */
-    public function listClosedGroups(string $gatherChannelName): array;
-
-    /** @return array<array{groupId: string, gatherChannelName: string, size: int, state: string, deadline: ?int, closedAt: ?int, latePartCount: int, accountedPartNumbers: array<int>, missingPartNumbers: array<int>}> */
-    public function listOpenGroups(string $gatherChannelName): array;
 }

@@ -60,7 +60,7 @@ final class GatheringTimeoutTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary'));
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler'));
     }
 
 }

@@ -80,7 +80,7 @@ final class GatheringMessageHandler implements MessageHandler
         };
         $groupId = $message->getHeaders()->get(GatheringHeaders::GROUP_ID);
         if ($timeout || $manualRelease) {
-            $this->store->releaseGroup(groupId: $groupId, whenReleased: $whenReleased, releaseReason: null);
+            $this->store->releaseGroup(groupId: $groupId, whenReleased: $whenReleased, releaseReason: $releaseReason);
 
             return;
         }

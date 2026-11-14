@@ -47,40 +47,31 @@ final class GatheringConsoleCommands
         return ConsoleCommandResultSet::create(['Group id', 'Status'], [[$groupId, 'discarded']]);
     }
 
-    public function listBatches(string $endpointId, bool $closed = false): ConsoleCommandResultSet
+    public function listGroups(string $endpointId, bool $closed = false): ConsoleCommandResultSet
     {
-        $batches = $closed ? $this->groups->listClosedBatches($endpointId) : $this->groups->listOpenBatches($endpointId);
+        $groups = $closed ? $this->groups->listClosedGroups($endpointId) : $this->groups->listOpenGroups($endpointId);
+
         return ConsoleCommandResultSet::create(
-            columnHeaders: ['Group id', 'Endpoint id', 'Group key', 'State', 'Maximum size', 'Recorded messages', 'Opened at', 'Deadline', 'Release reason'],
-            rows: array_map(static fn (array $batch): array => [
-                $batch['groupId'],
-                $batch['endpointId'],
-                $batch['groupKey'] ?? '',
-                $batch['state'],
-                $batch['maxSize'] ?? 'no maximum size',
-                $batch['recordedMessages'],
-                DatePoint::createFromTimestamp($batch['openedAt'] / 1000)->format(DATE_ATOM),
-                $batch['deadline'] === null ? 'no maximum wait' : DatePoint::createFromTimestamp($batch['deadline'] / 1000)->format(DATE_ATOM),
-                $batch['releaseReason'] ?? '',
-            ], $batches),
+            columnHeaders: ['Group id', 'Endpoint id', 'Group key', 'State', 'Expected size', 'Recorded', 'Missing parts', 'Late parts', 'Opened at', 'Deadline', 'Closed at', 'Release reason'],
+            rows: array_map(static fn (array $group): array => [
+                $group['groupId'],
+                $group['endpointId'],
+                $group['groupKey'] ?? '',
+                $group['state'],
+                $group['expectedSize'] ?? 'no expected size',
+                $group['recorded'],
+                implode(', ', $group['missingPartNumbers']),
+                $group['latePartCount'],
+                self::formatted($group['openedAt']),
+                $group['deadline'] === null ? 'no deadline' : self::formatted($group['deadline']),
+                $group['closedAt'] === null ? '' : self::formatted($group['closedAt']),
+                $group['releaseReason'] ?? '',
+            ], $groups),
         );
     }
 
-    public function listGroups(string $gatherChannelName, bool $closed = false): ConsoleCommandResultSet
+    private static function formatted(int $milliseconds): string
     {
-        $groups = $closed ? $this->groups->listClosedGroups($gatherChannelName) : $this->groups->listOpenGroups($gatherChannelName);
-
-        return ConsoleCommandResultSet::create(
-            columnHeaders: ['Group id', 'State', 'Size', 'Accounted parts', 'Missing parts', 'Deadline', 'Late parts'],
-            rows: array_map(static fn (array $group): array => [
-                $group['groupId'],
-                $group['state'],
-                $group['size'],
-                implode(', ', $group['accountedPartNumbers']),
-                implode(', ', $group['missingPartNumbers']),
-                $group['deadline'] === null ? '' : DatePoint::createFromTimestamp($group['deadline'] / 1000)->format(DATE_ATOM),
-                $group['latePartCount'],
-            ], $groups),
-        );
+        return DatePoint::createFromTimestamp($milliseconds / 1000)->format(DATE_ATOM);
     }
 }

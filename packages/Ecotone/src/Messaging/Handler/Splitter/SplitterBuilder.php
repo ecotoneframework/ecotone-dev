@@ -14,6 +14,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
+use Ecotone\Messaging\Handler\Gathering\GatheredHandlerEndpoints;
 use Ecotone\Messaging\Handler\Gathering\GatheringSplitterProcessor;
 use Ecotone\Messaging\Handler\Gathering\GatheringTimeouts;
 use Ecotone\Messaging\Handler\Gathering\UngatheredSplitterProcessor;
@@ -141,6 +142,7 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
                 $this->getEndpointId(),
                 new Reference(GatheredGroupStore::class),
                 new Reference(GatheringTimeouts::class),
+                new Reference(GatheredHandlerEndpoints::class),
                 new Reference(EcotoneClockInterface::class),
             ]);
         $builder->register($enterpriseProcessorReference, $enterpriseProcessor);

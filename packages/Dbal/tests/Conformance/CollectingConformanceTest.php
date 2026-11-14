@@ -179,18 +179,18 @@ final class CollectingConformanceTest extends TestCase
         $ecotone = $this->bootstrap($handler, $durable);
 
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        foreach ($groups->listOpenBatches('listing.handler') as $batch) {
+        foreach ($groups->listOpenGroups('listing.handler') as $batch) {
             $groups->discard($batch['groupId']);
         }
         $ecotone->sendCommandWithRouting('collect.listing', ['tenant' => 'one']);
         $ecotone->run('batches');
 
-        $batches = $groups->listOpenBatches('listing.handler');
+        $batches = $groups->listOpenGroups('listing.handler');
         self::assertCount(1, $batches);
         self::assertSame('one', $batches[0]['groupKey']);
         self::assertSame('listing.handler', $batches[0]['endpointId']);
-        self::assertSame(2, $batches[0]['maxSize']);
-        self::assertSame([], $groups->listOpenBatches('another.handler'));
+        self::assertSame(2, $batches[0]['expectedSize']);
+        self::assertSame([], $groups->listOpenGroups('another.handler'));
     }
 
     #[DataProvider('implementations')]
@@ -243,7 +243,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect', ['tenant' => 'one']);
         $ecotone->run('batches');
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $groups->requestRelease($groups->listOpenBatches('collect.handler')[0]['groupId']);
+        $groups->requestRelease($groups->listOpenGroups('collect.handler')[0]['groupId']);
         self::assertSame([], $handler->batches);
         $ecotone->run('batches');
 
@@ -251,7 +251,7 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame([['tenant' => 'one']], array_column($handler->batches[0]->messages, 'payload'));
         self::assertSame('one', $handler->batches[0]->groupKey);
         self::assertSame(CollectedReleaseReason::MANUAL_RELEASE, $handler->batches[0]->releaseReason);
-        self::assertSame([], $groups->listOpenBatches('collect.handler'));
+        self::assertSame([], $groups->listOpenGroups('collect.handler'));
     }
 
     #[DataProvider('implementations')]
@@ -269,15 +269,15 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect', 'first');
         $ecotone->run('batches');
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $groupId = $groups->listOpenBatches('collect.handler')[0]['groupId'];
+        $groupId = $groups->listOpenGroups('collect.handler')[0]['groupId'];
         $ecotone->sendCommandWithRouting('collect', 'second');
         $ecotone->run('batches');
 
-        $closed = array_values(array_filter($groups->listClosedBatches('collect.handler'), static fn (array $batch): bool => $batch['groupId'] === $groupId));
+        $closed = array_values(array_filter($groups->listClosedGroups('collect.handler'), static fn (array $batch): bool => $batch['groupId'] === $groupId));
         self::assertCount(1, $closed);
         self::assertSame('released', $closed[0]['state']);
         self::assertSame('collect.handler', $closed[0]['endpointId']);
-        self::assertSame([], $groups->listClosedBatches('another.handler'));
+        self::assertSame([], $groups->listClosedGroups('another.handler'));
     }
 
     #[DataProvider('implementations')]
@@ -426,7 +426,7 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame([['first', 'second']], $handler->attempts);
         $ecotone->run('batches');
         self::assertSame([['first', 'second'], ['first', 'second']], $handler->attempts);
-        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler'));
     }
 
     public static function releaseFailures(): iterable
@@ -461,7 +461,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         $groups = $ecotone->getGateway(GatheredGroups::class);
         if ($manual) {
-            $groups->requestRelease($groups->listOpenBatches('collect.handler')[0]['groupId']);
+            $groups->requestRelease($groups->listOpenGroups('collect.handler')[0]['groupId']);
         } else {
             $ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
         }
@@ -471,12 +471,12 @@ final class CollectingConformanceTest extends TestCase
             self::assertStringContainsString('temporarily unavailable', $failure->getMessage());
         }
         self::assertSame([['first']], $handler->attempts);
-        self::assertCount(1, $groups->listOpenBatches('collect.handler'));
+        self::assertCount(1, $groups->listOpenGroups('collect.handler'));
         $ecotone->run('batches');
         self::assertSame([['first'], ['first']], $handler->attempts);
         $reason = $manual ? CollectedReleaseReason::MANUAL_RELEASE : CollectedReleaseReason::MAX_WAIT_REACHED;
         self::assertSame([$reason, $reason], $handler->reasons);
-        self::assertSame([], $groups->listOpenBatches('collect.handler'));
+        self::assertSame([], $groups->listOpenGroups('collect.handler'));
     }
 
     public static function deadLetteredReleases(): iterable
@@ -510,17 +510,17 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect', 'first');
         $ecotone->run('batches');
         if ($manual) {
-            $groups->requestRelease($groups->listOpenBatches('collect.handler')[0]['groupId']);
+            $groups->requestRelease($groups->listOpenGroups('collect.handler')[0]['groupId']);
         }
         $ecotone->advanceTimeBy(new TimeSpan(seconds: 11));
         $ecotone->run('batches', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
         self::assertSame($manual ? [['first'], ['first']] : [['first']], $handler->attempts);
         $failed = array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previous, true)));
         self::assertCount($manual ? 2 : 1, $failed);
-        self::assertCount(1, $groups->listOpenBatches('collect.handler'));
+        self::assertCount(1, $groups->listOpenGroups('collect.handler'));
         $ecotone->sendCommandWithRouting('collect', 'second');
         $ecotone->run('batches');
-        self::assertSame(2, $groups->listOpenBatches('collect.handler')[0]['recordedMessages']);
+        self::assertSame(2, $groups->listOpenGroups('collect.handler')[0]['recorded']);
         $handler->available = true;
         foreach ($failed as $failure) {
             $deadLetters->replay($failure->getMessageId());
@@ -528,7 +528,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         self::assertSame(['first', 'second'], $handler->attempts[array_key_last($handler->attempts)]);
         self::assertCount($manual ? 3 : 2, $handler->attempts);
-        self::assertSame([], $groups->listOpenBatches('collect.handler'));
+        self::assertSame([], $groups->listOpenGroups('collect.handler'));
         self::assertSame([], array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previous, true))));
     }
 
@@ -564,7 +564,7 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame([['first', 'second'], ['first', 'third']], $handler->attempts);
         $deadLetters->replay($failed[0]->getMessageId());
         $ecotone->run('batches');
-        self::assertSame(1, $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler')[0]['recordedMessages']);
+        self::assertSame(1, $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler')[0]['recorded']);
         $ecotone->sendCommandWithRouting('collect', 'fourth');
         $ecotone->run('batches');
         self::assertSame([['first', 'second'], ['first', 'third'], ['second', 'fourth']], $handler->attempts);
@@ -656,7 +656,7 @@ final class CollectingConformanceTest extends TestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_batch_console_listing_uses_endpoint_id_and_hides_an_unknown_size(bool $durable): void
+    public function test_console_lists_a_batch_by_endpoint_id_in_the_shared_group_columns(bool $durable): void
     {
         $handler = new class () {
             #[Collected(maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["tenant"]')]
@@ -669,13 +669,13 @@ final class CollectingConformanceTest extends TestCase
         $ecotone = $this->bootstrap($handler, $durable);
         $ecotone->sendCommandWithRouting('collect', ['tenant' => 'one']);
         $ecotone->run('batches');
-        $batch = $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler')[0];
-        self::assertNull($batch['maxSize']);
+        $batch = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler')[0];
+        self::assertNull($batch['expectedSize']);
 
-        $result = $ecotone->getServiceFromContainer(ConfiguredMessagingSystem::class)->runConsoleCommand('ecotone:gathering:list-batches', ['endpointId' => 'collect.handler']);
-        self::assertSame(['Group id', 'Endpoint id', 'Group key', 'State', 'Maximum size', 'Recorded messages', 'Opened at', 'Deadline', 'Release reason'], $result->columnHeaders);
+        $result = $ecotone->getServiceFromContainer(ConfiguredMessagingSystem::class)->runConsoleCommand('ecotone:gathering:list', ['endpointId' => 'collect.handler']);
+        self::assertSame(['Group id', 'Endpoint id', 'Group key', 'State', 'Expected size', 'Recorded', 'Missing parts', 'Late parts', 'Opened at', 'Deadline', 'Closed at', 'Release reason'], $result->columnHeaders);
         self::assertCount(1, $result->rows);
-        self::assertSame([$batch['groupId'], 'collect.handler', 'one', 'open', 'no maximum size', 1, '2026-01-01T12:00:00+00:00', '2026-01-01T12:00:10+00:00', ''], $result->rows[0]);
+        self::assertSame([$batch['groupId'], 'collect.handler', 'one', 'open', 'no expected size', 1, '', 0, '2026-01-01T12:00:00+00:00', '2026-01-01T12:00:10+00:00', '', ''], $result->rows[0]);
     }
 
     #[DataProvider('implementations')]
@@ -755,7 +755,7 @@ final class CollectingConformanceTest extends TestCase
         };
         $ecotone = $this->bootstrap($handler, $durable);
         foreach (['collect.event.first', 'collect.event.second'] as $endpointId) {
-            foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenBatches($endpointId) as $batch) {
+            foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenGroups($endpointId) as $batch) {
                 $ecotone->getGateway(GatheredGroups::class)->discard($batch['groupId']);
             }
         }
@@ -773,7 +773,7 @@ final class CollectingConformanceTest extends TestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_group_listings_remain_separate_from_collected_batch_listings(bool $durable): void
+    public function test_batches_are_listed_by_endpoint_id_and_not_by_channel_name(bool $durable): void
     {
         $handler = new class () {
             #[Collected(maxWait: new TimeSpan(seconds: 10))]
@@ -787,12 +787,13 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect', 'first');
         $ecotone->run('batches');
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $batch = $groups->listOpenBatches('collect.handler')[0];
-        self::assertNull($batch['maxSize']);
+        $batch = $groups->listOpenGroups('collect.handler')[0];
+        self::assertNull($batch['expectedSize']);
         self::assertSame([], $groups->listOpenGroups('collect'));
         $groups->requestRelease($batch['groupId']);
         $ecotone->run('batches');
         self::assertSame([], $groups->listClosedGroups('collect'));
+        self::assertContains($batch['groupId'], array_column($groups->listClosedGroups('collect.handler'), 'groupId'));
     }
 
     #[DataProvider('implementations')]
@@ -878,7 +879,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         self::assertSame([], $handler->batches);
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $batch = $groups->listOpenBatches('collect.handler')[0];
+        $batch = $groups->listOpenGroups('collect.handler')[0];
         self::assertNull($batch['deadline']);
         $groups->requestRelease($batch['groupId']);
         $ecotone->run('batches');
@@ -919,7 +920,7 @@ final class CollectingConformanceTest extends TestCase
         } catch (RuntimeException $failure) {
             self::assertStringContainsString('timeout transport unavailable', $failure->getMessage());
         }
-        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler'));
         $handler->failTimeout = false;
         $ecotone->run('batches');
         $ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
@@ -963,20 +964,20 @@ final class CollectingConformanceTest extends TestCase
         };
         $ecotone = $this->bootstrap($handler, $durable);
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $before = array_column($groups->listClosedBatches('collect.handler'), 'groupId');
+        $before = array_column($groups->listClosedGroups('collect.handler'), 'groupId');
         $ecotone->sendCommandWithRouting('collect', ['key' => 'closed']);
         $ecotone->sendCommandWithRouting('collect', ['key' => 'closed']);
         $ecotone->sendCommandWithRouting('collect', ['key' => 'open']);
         $ecotone->run('batches');
-        $closedId = array_values(array_diff(array_column($groups->listClosedBatches('collect.handler'), 'groupId'), $before))[0];
-        $openId = $groups->listOpenBatches('collect.handler')[0]['groupId'];
+        $closedId = array_values(array_diff(array_column($groups->listClosedGroups('collect.handler'), 'groupId'), $before))[0];
+        $openId = $groups->listOpenGroups('collect.handler')[0]['groupId'];
         $ecotone->advanceTimeBy(new TimeSpan(days: 6));
         $groups->cleanupClosedGroups();
-        self::assertContains($closedId, array_column($groups->listClosedBatches('collect.handler'), 'groupId'));
+        self::assertContains($closedId, array_column($groups->listClosedGroups('collect.handler'), 'groupId'));
         $ecotone->advanceTimeBy(new TimeSpan(days: 1));
         $groups->cleanupClosedGroups();
-        self::assertNotContains($closedId, array_column($groups->listClosedBatches('collect.handler'), 'groupId'));
-        self::assertContains($openId, array_column($groups->listOpenBatches('collect.handler'), 'groupId'));
+        self::assertNotContains($closedId, array_column($groups->listClosedGroups('collect.handler'), 'groupId'));
+        self::assertContains($openId, array_column($groups->listOpenGroups('collect.handler'), 'groupId'));
     }
 
     #[DataProvider('implementations')]
@@ -1001,7 +1002,7 @@ final class CollectingConformanceTest extends TestCase
         self::assertNotNull($failure);
         self::assertStringContainsString('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') groupBy 'payload[\"tenant\"]'", $failure->getMessage());
         self::assertStringContainsString('non-empty string, an integer or a stringable object', $failure->getMessage());
-        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler'));
     }
 
     #[DataProvider('implementations')]
@@ -1025,7 +1026,7 @@ final class CollectingConformanceTest extends TestCase
         }
         self::assertNotNull($failure);
         self::assertSame('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') groupBy 'payload.missingMethod()' failed to evaluate. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.", $failure->getMessage());
-        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler'));
     }
 
     public function test_max_wait_timer_keeps_the_first_messages_tenant_for_its_database_connection(): void
@@ -1247,7 +1248,7 @@ final class CollectingConformanceTest extends TestCase
         }
         self::assertNotNull($failure);
         self::assertStringContainsString('must return a non-empty string, an integer or a stringable object', $failure);
-        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler'));
     }
 
     #[DataProvider('implementations')]
@@ -1301,7 +1302,7 @@ final class CollectingConformanceTest extends TestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_batch_listings_name_the_maximum_recorded_count_and_first_recording_time(bool $durable): void
+    public function test_batch_listing_rows_use_the_shared_group_shape(bool $durable): void
     {
         $handler = new class () {
             #[Collected(maxWait: new TimeSpan(seconds: 10))]
@@ -1318,22 +1319,27 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect', 'two');
         $ecotone->run('batches');
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $batch = $groups->listOpenBatches('collect.handler')[0];
+        $batch = $groups->listOpenGroups('collect.handler')[0];
         $expected = [
             'groupId' => $batch['groupId'],
             'endpointId' => 'collect.handler',
             'groupKey' => null,
             'state' => 'open',
-            'maxSize' => null,
-            'recordedMessages' => 2,
+            'expectedSize' => null,
+            'recorded' => 2,
+            'missingPartNumbers' => [],
+            'latePartCount' => 0,
             'openedAt' => 1767268800000,
             'deadline' => 1767268810000,
+            'closedAt' => null,
+            'releaseReason' => null,
         ];
         self::assertSame($expected, $batch);
         $groups->requestRelease($batch['groupId']);
         $ecotone->run('batches');
-        $closed = array_values(array_filter($groups->listClosedBatches('collect.handler'), static fn (array $candidate): bool => $candidate['groupId'] === $batch['groupId']))[0];
+        $closed = array_values(array_filter($groups->listClosedGroups('collect.handler'), static fn (array $candidate): bool => $candidate['groupId'] === $batch['groupId']))[0];
         $expected['state'] = 'released';
+        $expected['closedAt'] = 1767268802000;
         $expected['releaseReason'] = 'manual_release';
         self::assertSame($expected, $closed);
     }
@@ -1361,7 +1367,7 @@ final class CollectingConformanceTest extends TestCase
         }
         $owner = $handler::class . '::' . $method;
         self::assertSame("Collected handler {$owner} (endpointId '{$endpointId}') groupBy '{$owner} groupBy closure' {$reason}. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.", $failure);
-        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches($endpointId));
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups($endpointId));
     }
 
     #[DataProvider('implementations')]
@@ -1382,13 +1388,13 @@ final class CollectingConformanceTest extends TestCase
         $groups = $ecotone->getGateway(GatheredGroups::class);
         $ecotone->sendCommandWithRouting('collect', 'first');
         $ecotone->run('batches');
-        $groupId = $groups->listOpenBatches('collect.handler')[0]['groupId'];
+        $groupId = $groups->listOpenGroups('collect.handler')[0]['groupId'];
         $groups->requestRelease($groupId);
         $groups->requestRelease($groupId);
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
         self::assertSame(['first'], array_column($handler->batches[0]->messages, 'payload'));
-        self::assertSame([], $groups->listOpenBatches('collect.handler'));
+        self::assertSame([], $groups->listOpenGroups('collect.handler'));
     }
 
     #[DataProvider('implementations')]
@@ -1409,15 +1415,15 @@ final class CollectingConformanceTest extends TestCase
         $groups = $ecotone->getGateway(GatheredGroups::class);
         $ecotone->sendCommandWithRouting('collect', 'first');
         $ecotone->run('batches');
-        $groupId = $groups->listOpenBatches('collect.handler')[0]['groupId'];
+        $groupId = $groups->listOpenGroups('collect.handler')[0]['groupId'];
         $groups->discard($groupId);
         $groups->discard($groupId);
         $ecotone->sendCommandWithRouting('collect', 'second');
         $ecotone->run('batches');
-        $next = $groups->listOpenBatches('collect.handler');
+        $next = $groups->listOpenGroups('collect.handler');
         self::assertCount(1, $next);
         self::assertNotSame($groupId, $next[0]['groupId']);
-        self::assertSame(1, $next[0]['recordedMessages']);
+        self::assertSame(1, $next[0]['recorded']);
         $groups->requestRelease($next[0]['groupId']);
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
@@ -1442,16 +1448,16 @@ final class CollectingConformanceTest extends TestCase
         $groups = $ecotone->getGateway(GatheredGroups::class);
         $ecotone->sendCommandWithRouting('collect', 'first');
         $ecotone->run('batches');
-        $groupId = $groups->listOpenBatches('collect.handler')[0]['groupId'];
+        $groupId = $groups->listOpenGroups('collect.handler')[0]['groupId'];
         $groups->requestRelease($groupId);
         $ecotone->run('batches');
         $ecotone->advanceTimeBy(new TimeSpan(days: 7));
         $groups->cleanupClosedGroups();
-        self::assertNotContains($groupId, array_column($groups->listClosedBatches('collect.handler'), 'groupId'));
+        self::assertNotContains($groupId, array_column($groups->listClosedGroups('collect.handler'), 'groupId'));
         $ecotone->advanceTimeBy(new TimeSpan(days: 1));
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
-        self::assertSame([], $groups->listOpenBatches('collect.handler'));
+        self::assertSame([], $groups->listOpenGroups('collect.handler'));
     }
 
     #[DataProvider('implementations')]
@@ -1472,7 +1478,7 @@ final class CollectingConformanceTest extends TestCase
         $groups = $ecotone->getGateway(GatheredGroups::class);
         $ecotone->sendCommandWithRouting('collect', 'first');
         $ecotone->run('batches');
-        $groupId = $groups->listOpenBatches('collect.handler')[0]['groupId'];
+        $groupId = $groups->listOpenGroups('collect.handler')[0]['groupId'];
         $console = $ecotone->getServiceFromContainer(ConfiguredMessagingSystem::class);
         $release = $console->runConsoleCommand('ecotone:gathering:release', ['groupId' => $groupId]);
         self::assertSame([[$groupId, 'release requested']], $release->rows);
@@ -1481,10 +1487,10 @@ final class CollectingConformanceTest extends TestCase
         self::assertCount(1, $handler->batches);
         $ecotone->sendCommandWithRouting('collect', 'second');
         $ecotone->run('batches');
-        $discardId = $groups->listOpenBatches('collect.handler')[0]['groupId'];
+        $discardId = $groups->listOpenGroups('collect.handler')[0]['groupId'];
         $discard = $console->runConsoleCommand('ecotone:gathering:discard', ['groupId' => $discardId]);
         self::assertSame([[$discardId, 'discarded']], $discard->rows);
-        self::assertSame([], $groups->listOpenBatches('collect.handler'));
+        self::assertSame([], $groups->listOpenGroups('collect.handler'));
         self::assertCount(1, $handler->batches);
     }
 
@@ -1510,7 +1516,7 @@ final class CollectingConformanceTest extends TestCase
         self::assertCount(1, $handler->batches);
         self::assertSame('one', $handler->batches[0]->groupKey);
         self::assertSame(['one-first', 'one-second'], array_column($handler->batches[0]->messages, 'payload'));
-        self::assertSame('two', $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler')[0]['groupKey']);
+        self::assertSame('two', $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler')[0]['groupKey']);
     }
 
     #[DataProvider('implementations')]
@@ -1588,7 +1594,7 @@ final class CollectingConformanceTest extends TestCase
         };
         $ecotone = $this->bootstrapWithoutTransaction(handler: $handler, connectionFactory: new DbalConnectionFactory(getenv('DATABASE_DSN')));
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $previous = array_column($groups->listClosedBatches('collect.handler'), 'groupId');
+        $previous = array_column($groups->listClosedGroups('collect.handler'), 'groupId');
 
         $ecotone->sendCommandWithRouting('collect', 'first');
         $ecotone->run('batches');
@@ -1602,8 +1608,8 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
 
         self::assertSame([['first', 'second']], $handler->attempts);
-        self::assertSame([], $groups->listOpenBatches('collect.handler'));
-        $closed = array_values(array_filter($groups->listClosedBatches('collect.handler'), static fn (array $batch): bool => ! in_array($batch['groupId'], $previous, true)));
+        self::assertSame([], $groups->listOpenGroups('collect.handler'));
+        $closed = array_values(array_filter($groups->listClosedGroups('collect.handler'), static fn (array $batch): bool => ! in_array($batch['groupId'], $previous, true)));
         self::assertCount(1, $closed);
         self::assertSame(CollectedReleaseReason::MAX_SIZE_REACHED->value, $closed[0]['releaseReason']);
     }
@@ -1622,7 +1628,7 @@ final class CollectingConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
-        foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler') as $batch) {
+        foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler') as $batch) {
             $ecotone->getGateway(GatheredGroups::class)->discard($batch['groupId']);
         }
         return $ecotone;
@@ -1638,7 +1644,7 @@ final class CollectingConformanceTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
-        foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler') as $batch) {
+        foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler') as $batch) {
             $ecotone->getGateway(GatheredGroups::class)->discard($batch['groupId']);
         }
         return $ecotone;
@@ -1655,7 +1661,7 @@ final class CollectingConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
         );
-        foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler') as $batch) {
+        foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler') as $batch) {
             $ecotone->getGateway(GatheredGroups::class)->discard($batch['groupId']);
         }
         return $ecotone;
@@ -1672,7 +1678,7 @@ final class CollectingConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries($instantRetries),
         );
-        foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler') as $batch) {
+        foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler') as $batch) {
             $ecotone->getGateway(GatheredGroups::class)->discard($batch['groupId']);
         }
         return $ecotone;

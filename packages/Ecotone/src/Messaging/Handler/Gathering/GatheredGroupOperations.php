@@ -34,16 +34,6 @@ final class GatheredGroupOperations implements GatheredGroups
     {
     }
 
-    public function listClosedBatches(string $endpointId): array
-    {
-        return $this->store->listClosedBatches($endpointId);
-    }
-
-    public function listOpenBatches(string $endpointId): array
-    {
-        return $this->store->listOpenBatches($endpointId);
-    }
-
     public function requestRelease(string $groupId): void
     {
         $gatherChannelName = $this->store->gatherChannelNameFor($groupId);
@@ -65,13 +55,13 @@ final class GatheredGroupOperations implements GatheredGroups
         $this->store->cleanupClosedGroups($this->clock->now()->unixTime()->inMilliseconds() - $this->retention);
     }
 
-    public function listClosedGroups(string $gatherChannelName): array
+    public function listOpenGroups(string $endpointId): array
     {
-        return $this->store->listClosedGroups($gatherChannelName);
+        return $this->store->listOpenGroups($endpointId);
     }
 
-    public function listOpenGroups(string $gatherChannelName): array
+    public function listClosedGroups(string $endpointId): array
     {
-        return $this->store->listOpenGroups($gatherChannelName);
+        return $this->store->listClosedGroups($endpointId);
     }
 }

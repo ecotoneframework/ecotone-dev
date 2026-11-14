@@ -135,3 +135,17 @@ Items marked HELD wait for the maintainer; do not start them.
   in existing state/version writes; ordinary gathered rows keep NULL. Generation and its index are removed when
   they add no independent guarantee. Retention continues deleting every expired closed batch. Prove cleanup and
   discard/arrival races and list the schema additions in the upgrade note.
+
+- C31 (maintainer, 2026-11-14): lost optimistic writes in gathering and collecting throw
+  `ConcurrencyException`. Asynchronous endpoints under a database transaction use their default instant retries
+  (three attempts, each in a new transaction). Remove conflict re-sending and the C1 replacement identity header;
+  C8 is obsolete. Exhaustion follows the normal error channel and dead letter, with replay supported. Use one
+  retry mechanism for every optimistic lock: replacement messages required separate identity handling and caused
+  the C1 duplicate-collect bug. Prove the real-database races, automatic retry, exhaustion and replay; rewrite and
+  report the existing gathering tests that asserted re-sending.
+
+- C31 clarification: deterministic one-conflict interleavings prove default automatic retries. Free-running
+  contention asserts invariants after replay through one consumer, without asserting a probabilistic failure
+  count. A controlled exhaustion test asserts the exception in the dead letter and replay completion.
+- C32: add the framework retry rule beside optimistic locking, with evidence and an eval, in a separate
+  docs(skills) commit. No user-facing application skills change.

@@ -487,6 +487,20 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertCount(0, $row->filter('[data-rebuild-missing]'));
     }
 
+    public function test_recent_operations_show_the_state_as_a_pill_and_a_short_start_time_with_the_full_one_in_its_datetime(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('per_ticket', partitioned: true)];
+        $this->orders->trackings = [[...$this->tracking('per_ticket', 'failed', batchesDone: 2, batchCount: 3, deadLetterMessageId: 'dead-2', missingBatches: [2], failedBatches: [['batch' => 2, 'deadLetterMessageId' => 'dead-2']], groupId: 'group-1'), 'startedAt' => '2026-11-14T14:47:27.998750+00:00']];
+
+        $crawler = $this->observe($client);
+
+        $recent = $crawler->filter('[data-recent-rebuilds] tr[data-rebuild="group-1"]');
+        self::assertSame('failed', $recent->filter('[data-rebuild-state-cell] .pill')->text());
+        self::assertSame('2026-11-14 14:47 UTC', $recent->filter('time[data-rebuild-started]')->text());
+        self::assertSame('2026-11-14T14:47:27.998750+00:00', $recent->filter('time[data-rebuild-started]')->attr('datetime'));
+    }
+
     public function test_a_failed_console_rebuild_of_one_batch_links_its_failed_batch(): void
     {
         $client = $this->pulseWithOrders();

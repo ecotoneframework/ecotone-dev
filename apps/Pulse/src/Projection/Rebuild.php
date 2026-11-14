@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Projection;
 
+use DateTimeImmutable;
+use DateTimeZone;
+use Exception;
+
 final readonly class Rebuild
 {
     public const REBUILD = 'rebuild';
@@ -74,6 +78,18 @@ final readonly class Rebuild
     public function key(): string
     {
         return $this->groupId ?? $this->tracingId ?? '';
+    }
+
+    public function startedAtShort(): string
+    {
+        if ($this->startedAt === '') {
+            return '';
+        }
+        try {
+            return (new DateTimeImmutable($this->startedAt))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i') . ' UTC';
+        } catch (Exception) {
+            return $this->startedAt;
+        }
     }
 
     public function hasTrace(): bool

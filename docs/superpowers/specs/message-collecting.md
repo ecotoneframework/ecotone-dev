@@ -21,7 +21,7 @@ An Enterprise licence is required; container selection uses the existing licence
 `Collected` exposes readonly `?int $maxSize`, `?TimeSpan $maxWait` and `string|Closure|null $groupBy`.
 At least one limit is required: maxSize >= 1, maxWait > 0. Size alone can wait indefinitely for manual release.
 The first recorded message fixes the deadline. A size release closes that specific batch and a later message
-opens another generation. Its stale delayed timeout cannot release the new generation.
+opens another batch. Its stale delayed timeout cannot release the new batch.
 
 Expressions reuse `AttributeExpressionExecutorCompiler` unchanged, including payload/header/service parameter
 resolution. PHP 8.5 permits static closures in attributes. A closure payload parameter is first or explicitly
@@ -51,17 +51,22 @@ collecting maximum; internally an unknown maximum uses -1, exposed as null every
 
 Existing read paths considered before adding indexes:
 
-- The primary group-id lookup cannot locate the current batch for an endpoint/key. The group row gains nullable
-  handler, readable group key, fixed-size key hash and generation fields. A unique index on
-  `(handler, group_key_hash, generation)` supports current-generation lookup and rejects simultaneous opens of
-  the same generation. Its handler prefix also supports endpoint batch listings. Each group id is random and
-  never reused, so retained delayed triggers always identify their original batch.
+- The primary group-id lookup cannot locate the open batch for an endpoint/key. The group row gains nullable
+  endpoint_id, readable group key, fixed-size key hash and open_slot fields. A unique index on
+  `(endpoint_id, group_key_hash, open_slot)` allows only one open slot (1) for each endpoint/key; closed rows have
+  NULL, so any number of retained closed batches is allowed. Its endpoint prefix also supports batch listings.
+  Every group id is random and never reused, so delayed triggers identify their original batch.
+- The initially considered `(endpoint_id, group_key_hash, generation)` constraint is insufficient when cleanup
+  deletes the latest closed generation: concurrent snapshots can insert different generations and leave two open
+  batches. The open-slot constraint closes that race. Generation and its index are removed because they provide
+  no additional identity, ordering or concurrency guarantee; listing order can use the first recording time.
 - The existing part primary key `(group_id, part_number)` prevents duplicate part numbers but cannot detect the
-  same ordinary message after a batch release. Nullable handler and message-id fields plus a unique
-  `(handler, message_id)` index provide one indexed deduplication lookup across retained batches of that handler.
-  Cleanup removes those identities together with retained parts.
+  same ordinary message after a batch release. Nullable endpoint_id and message-id fields plus a unique
+  `(endpoint_id, message_id)` index provide one indexed deduplication lookup across retained batches of that endpoint.
+  A conflict replacement preserves the first message identity in a framework header, including through a chain
+  of replacements. Cleanup removes those identities together with retained parts.
 
-Open/append/release use the same optimistic group version as gathering. A lost version check or lost generation
+Open/append/release use the same optimistic group version as gathering. A lost version check or lost open-slot
 insert writes nothing and re-sends through the existing conflict-redelivery collaborator to the handler's own
 asynchronous channel. A new transaction consumes it. No locking loop, new locking scheme or runtime DDL is added.
 Hot-key throughput depends on conflict rate; one consumer avoids inter-consumer conflicts.
@@ -78,7 +83,8 @@ that reason and runs on PostgreSQL, MySQL and MariaDB. No collector or gathering
 The existing `GatheredGroups` gateway adds `listOpenBatches(endpointId)` and `listClosedBatches(endpointId)`;
 ordinary group listings remain separate. Shared requestRelease(groupId), discard(groupId) and cleanup apply to
 both. Manual release queues a trigger on the recorded pre-execution routing channel, so it enters the async
-queue rather than invoking the handler synchronously. A discard never invokes it. Closed batches follow
+queue rather than invoking the handler synchronously. A discard never invokes it. Slot clearing is part of the same versioned release or discard write, and the in-memory twin enforces the same
+open-slot rule. Cleanup still removes every expired closed batch. Closed batches follow
 `GatheringConfiguration` retention (seven days by default); cleanup leaves open batches intact.
 
 `ecotone:collecting:list <endpointId> [--closed]` lists batches; existing gathering release/discard/cleanup

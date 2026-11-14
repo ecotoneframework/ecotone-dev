@@ -49,19 +49,18 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
     private function listBatches(string $endpointId, bool $closed): array
     {
         return array_values(array_map(static function (array $group): array {
-            $details = array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true, 'handler' => true]);
-            $details['endpointId'] = $group['handler'];
+            $details = array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true, 'endpointId' => true, 'openSlot' => true]);
+            $details['endpointId'] = $group['endpointId'];
             $details['size'] = $group['size'] < 0 ? null : $group['size'];
             return $details;
-        }, array_filter($this->groups, static fn (array $group): bool => ($group['handler'] ?? null) === $endpointId && ($closed ? $group['state'] !== 'open' : $group['state'] === 'open'))));
+        }, array_filter($this->groups, static fn (array $group): bool => ($group['endpointId'] ?? null) === $endpointId && ($closed ? $group['state'] !== 'open' : $group['state'] === 'open'))));
     }
 
-    public function collectMessage(string $handler, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): bool
+    public function collectMessage(string $endpointId, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): bool
     {
         $groupId = null;
-        $generation = 0;
         foreach ($this->groups as $id => $group) {
-            if (($group['handler'] ?? null) !== $handler) {
+            if (($group['endpointId'] ?? null) !== $endpointId) {
                 continue;
             }
             foreach ($group['parts'] as $part) {
@@ -69,9 +68,8 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
                     return true;
                 }
             }
-            if ($group['groupKey'] === $groupKey && $group['generation'] > $generation) {
-                $generation = $group['generation'];
-                $groupId = $group['state'] === 'open' ? $id : null;
+            if ($group['groupKey'] === $groupKey && $group['openSlot'] === 1) {
+                $groupId = $id;
             }
         }
         $previousGroups = $this->groups;
@@ -79,9 +77,9 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             if ($groupId === null) {
                 $groupId = bin2hex(random_bytes(32));
                 $this->openGroup($groupId, $gatherChannelName, $maxSize ?? -1, $message, $deadline, static fn () => null);
-                $this->groups[$groupId]['handler'] = $handler;
+                $this->groups[$groupId]['endpointId'] = $endpointId;
                 $this->groups[$groupId]['groupKey'] = $groupKey;
-                $this->groups[$groupId]['generation'] = $generation + 1;
+                $this->groups[$groupId]['openSlot'] = 1;
                 $whenOpened($groupId);
             }
             return $this->completePart($groupId, count($this->groups[$groupId]['parts']) + 1, $message, $whenReleased);
@@ -136,7 +134,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             return false;
         }
         $this->groups[$groupId]['version']++;
-        if ($previous['size'] > 0 || isset($previous['handler'])) {
+        if ($previous['size'] > 0 || isset($previous['endpointId'])) {
             $this->groups[$groupId]['parts'][$partNumber] = $report;
             $this->groups[$groupId]['accountedPartNumbers'][] = $partNumber;
             sort($this->groups[$groupId]['accountedPartNumbers'], SORT_NUMERIC);
@@ -146,6 +144,9 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             return true;
         }
         $this->groups[$groupId]['state'] = 'released';
+        if (isset($previous['endpointId'])) {
+            $this->groups[$groupId]['openSlot'] = null;
+        }
         $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
         try {
             $whenComplete($previous['original'], $this->groups[$groupId]['parts'], $previous['size'], $previous['groupKey'] ?? null);
@@ -174,6 +175,9 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         }
         $this->groups[$groupId]['version']++;
         $this->groups[$groupId]['state'] = 'released';
+        if (isset($previous['endpointId'])) {
+            $this->groups[$groupId]['openSlot'] = null;
+        }
         $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
         try {
             $whenReleased($previous['original'], $previous['parts'], $previous['size'], $previous['groupKey'] ?? null);
@@ -192,6 +196,9 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         }
         $this->groups[$groupId]['version']++;
         $this->groups[$groupId]['state'] = 'discarded';
+        if (isset($group['endpointId'])) {
+            $this->groups[$groupId]['openSlot'] = null;
+        }
         $this->groups[$groupId]['closedAt'] = $this->clock->now()->unixTime()->inMilliseconds();
     }
 
@@ -202,11 +209,11 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
 
     public function listClosedGroups(string $gatherChannelName): array
     {
-        return array_values(array_map(static fn (array $group): array => array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true]), array_filter($this->groups, static fn (array $group): bool => ! isset($group['handler']) && $group['gatherChannelName'] === $gatherChannelName && $group['state'] !== 'open')));
+        return array_values(array_map(static fn (array $group): array => array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true]), array_filter($this->groups, static fn (array $group): bool => ! isset($group['endpointId']) && $group['gatherChannelName'] === $gatherChannelName && $group['state'] !== 'open')));
     }
 
     public function listOpenGroups(string $gatherChannelName): array
     {
-        return array_values(array_map(static fn (array $group): array => array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true]), array_filter($this->groups, static fn (array $group): bool => ! isset($group['handler']) && $group['gatherChannelName'] === $gatherChannelName && $group['state'] === 'open')));
+        return array_values(array_map(static fn (array $group): array => array_diff_key($group, ['original' => true, 'parts' => true, 'version' => true]), array_filter($this->groups, static fn (array $group): bool => ! isset($group['endpointId']) && $group['gatherChannelName'] === $gatherChannelName && $group['state'] === 'open')));
     }
 }

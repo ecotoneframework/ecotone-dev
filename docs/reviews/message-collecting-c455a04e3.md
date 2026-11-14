@@ -129,3 +129,9 @@ Items marked HELD wait for the maintainer; do not start them.
 - C30 (H3): the batch message carries the headers of the batch's first message, minus the headers that must not
   cross the boundary (routing slip, reply channel, delivery delay, time to live, priority, framework gathering
   headers, message id and timestamp). The timer uses the same exclusions.
+
+- C6: open-slot guard approved after reproduction on PostgreSQL, MySQL and MariaDB. Nullable open_slot is 1
+  while open and NULL when closed, unique with endpoint_id and group_key_hash. Release/discard clear it atomically
+  in existing state/version writes; ordinary gathered rows keep NULL. Generation and its index are removed when
+  they add no independent guarantee. Retention continues deleting every expired closed batch. Prove cleanup and
+  discard/arrival races and list the schema additions in the upgrade note.

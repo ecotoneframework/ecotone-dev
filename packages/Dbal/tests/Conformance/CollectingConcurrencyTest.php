@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Conformance;
 
+use Closure;
 use DateTimeImmutable;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Doctrine\DBAL\TransactionIsolationLevel;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Amqp\AmqpConnectionReference;
 use Ecotone\Api\Amqp\AmqpLibConnectionFactory;
@@ -23,6 +25,7 @@ use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Gateway\GatheredGroups;
@@ -33,6 +36,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -66,6 +70,91 @@ final class CollectingConcurrencyTest extends TestCase
             self::markTestSkipped('The non-transactional conflict path requires the optional AMQP package.');
         }
         $this->proveConcurrentBatch(alreadyOpen: false, replayOriginals: true, nonTransactional: true);
+    }
+
+    public function test_cleanup_racing_two_arriving_messages_keeps_one_open_batch_in_a_real_database_race(): void
+    {
+        $this->proveOpenSlotRace(cleanup: true);
+    }
+
+    public function test_discard_racing_an_arriving_message_frees_the_slot_atomically_in_a_real_database_race(): void
+    {
+        $this->proveOpenSlotRace(cleanup: false);
+    }
+
+    private function proveOpenSlotRace(bool $cleanup): void
+    {
+        $connection = new DbalConnectionFactory(getenv('DATABASE_DSN'));
+        if ($connection->establishConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
+        }
+        $connection->establishConnection()->setTransactionIsolation(TransactionIsolationLevel::REPEATABLE_READ);
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 2, groupBy: 'payload["key"]')]
+            #[Asynchronous('cleanup_race')]
+            #[CommandHandler('collect.cleanup.race', endpointId: 'collect.cleanup.race.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+                $this->batches[] = $batch;
+            }
+        };
+        $interleaving = new class () {
+            public ?Closure $betweenConsumers = null;
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 101, pointcut: AsynchronousRunningEndpoint::class)]
+            public function interleave(MethodInvocation $invocation, #[Reference] DocumentStore $documents): mixed
+            {
+                if ($this->betweenConsumers !== null) {
+                    $documents->getAllDocuments('collecting_cleanup_race_snapshot');
+                    $betweenConsumers = $this->betweenConsumers;
+                    $this->betweenConsumers = null;
+                    $betweenConsumers();
+                }
+                return $invocation->proceed();
+            }
+        };
+        $first = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, $interleaving::class],
+            containerOrAvailableServices: [$handler, $interleaving, DbalConnectionFactory::class => $connection],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('cleanup_race'), DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $key = bin2hex(random_bytes(16));
+        $first->sendCommandWithRouting('collect.cleanup.race', ['key' => $key, 'value' => 'seed-one']);
+        if ($cleanup) {
+            $first->sendCommandWithRouting('collect.cleanup.race', ['key' => $key, 'value' => 'seed-two']);
+        }
+        $first->run('cleanup_race');
+        self::assertCount($cleanup ? 1 : 0, $handler->batches);
+        $discardId = $cleanup ? null : array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenBatches('collect.cleanup.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key))[0]['groupId'];
+        $first->advanceTimeBy(new TimeSpan(days: 8));
+        $second = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('cleanup_race'), DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-09 12:00:00 UTC'),
+        );
+        $interleaving->betweenConsumers = static function () use ($second, $key, $cleanup, $discardId): void {
+            if ($cleanup) {
+                $second->getGateway(GatheredGroups::class)->cleanupClosedGroups();
+            } else {
+                $second->getGateway(GatheredGroups::class)->discard($discardId);
+            }
+            $second->sendCommandWithRouting('collect.cleanup.race', ['key' => $key, 'value' => 'second-connection']);
+            $second->run('cleanup_race', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 5)->withExecutionAmountLimit(5));
+        };
+        $first->sendCommandWithRouting('collect.cleanup.race', ['key' => $key, 'value' => 'first-connection']);
+        $first->run('cleanup_race', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 5)->withExecutionAmountLimit(5));
+        $open = array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenBatches('collect.cleanup.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key));
+        self::assertSame([], $open);
+        self::assertCount($cleanup ? 2 : 1, $handler->batches);
+        self::assertSame(['second-connection', 'first-connection'], array_column(array_column($handler->batches[$cleanup ? 1 : 0]->messages, 'payload'), 'value'));
     }
 
     private function proveConcurrentBatch(bool $alreadyOpen, bool $replayOriginals = false, bool $nonTransactional = false): void

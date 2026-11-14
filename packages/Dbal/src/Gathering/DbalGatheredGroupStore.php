@@ -61,15 +61,14 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     private function listBatches(string $endpointId, bool $closed): array
     {
         try {
-            $groups = $this->connection()->fetchAllAssociative('SELECT group_id, handler, group_key, generation, gather_channel_name, size, state, deadline, closed_at, late_part_count FROM ' . self::GROUP_TABLE . ' WHERE handler = ? AND state ' . ($closed ? '<>' : '=') . " 'open'", [$endpointId]);
+            $groups = $this->connection()->fetchAllAssociative('SELECT group_id, endpoint_id, group_key, gather_channel_name, size, state, deadline, closed_at, late_part_count FROM ' . self::GROUP_TABLE . ' WHERE endpoint_id = ? AND state ' . ($closed ? '<>' : '=') . " 'open'", [$endpointId]);
             return array_map(function (array $group): array {
                 $accounted = array_map('intval', $this->connection()->fetchFirstColumn('SELECT part_number FROM ' . self::PART_TABLE . ' WHERE group_id = ? ORDER BY part_number', [$group['group_id']]));
                 $size = (int) $group['size'];
                 return [
                     'groupId' => $group['group_id'],
-                    'endpointId' => $group['handler'],
+                    'endpointId' => $group['endpoint_id'],
                     'groupKey' => $group['group_key'],
-                    'generation' => (int) $group['generation'],
                     'gatherChannelName' => $group['gather_channel_name'],
                     'size' => $size < 0 ? null : $size,
                     'state' => $group['state'],
@@ -85,21 +84,20 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         }
     }
 
-    public function collectMessage(string $handler, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): bool
+    public function collectMessage(string $endpointId, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): bool
     {
         $connection = $this->connection();
         try {
-            if ($connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE handler = ? AND message_id = ?', [$handler, CollectingMessageIdentity::of($message)]) !== false) {
+            if ($connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE endpoint_id = ? AND message_id = ?', [$endpointId, CollectingMessageIdentity::of($message)]) !== false) {
                 return true;
             }
             $keyHash = hash('sha256', $groupKey ?? '');
-            $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE handler = ? AND group_key_hash = ? ORDER BY generation DESC LIMIT 1', [$handler, $keyHash]);
-            if (! $group || $group['state'] !== 'open') {
+            $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE endpoint_id = ? AND group_key_hash = ? AND open_slot = 1', [$endpointId, $keyHash]);
+            if (! $group) {
                 $groupId = bin2hex(random_bytes(32));
-                $generation = $group ? (int) $group['generation'] + 1 : 1;
-                $sql = 'INSERT INTO ' . self::GROUP_TABLE . ' (group_id, gather_channel_name, size, arrived, version, state, original_message, handler, group_key, group_key_hash, generation, deadline) VALUES (?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?)';
-                $sql .= $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform ? ' ON DUPLICATE KEY UPDATE group_id = group_id' : ' ON CONFLICT (handler, group_key_hash, generation) DO NOTHING';
-                $connection->executeStatement($sql, [$groupId, $gatherChannelName, $maxSize ?? -1, 'open', $this->messages->encode($message), $handler, $groupKey, $keyHash, $generation, $deadline]);
+                $sql = 'INSERT INTO ' . self::GROUP_TABLE . ' (group_id, gather_channel_name, size, arrived, version, state, original_message, endpoint_id, group_key, group_key_hash, open_slot, deadline) VALUES (?, ?, ?, 0, 0, ?, ?, ?, ?, ?, 1, ?)';
+                $sql .= $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform ? ' ON DUPLICATE KEY UPDATE group_id = group_id' : ' ON CONFLICT DO NOTHING';
+                $connection->executeStatement($sql, [$groupId, $gatherChannelName, $maxSize ?? -1, 'open', $this->messages->encode($message), $endpointId, $groupKey, $keyHash, $deadline]);
                 $group = $connection->fetchAssociative('SELECT * FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
                 if (! $group) {
                     return false;
@@ -108,11 +106,11 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             }
             $arrived = (int) $group['arrived'] + 1;
             $completed = $arrived === (int) $group['size'];
-            $updated = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET arrived = ?, version = version + 1, state = ?, closed_at = ? WHERE group_id = ? AND version = ? AND state = 'open'", [$arrived, $completed ? 'released' : 'open', $completed ? $this->clock->now()->unixTime()->inMilliseconds() : null, $group['group_id'], $group['version']]);
+            $updated = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET arrived = ?, version = version + 1, state = ?, closed_at = ?, open_slot = ? WHERE group_id = ? AND version = ? AND state = 'open'", [$arrived, $completed ? 'released' : 'open', $completed ? $this->clock->now()->unixTime()->inMilliseconds() : null, $completed ? null : 1, $group['group_id'], $group['version']]);
             if ($updated === 0) {
                 return false;
             }
-            $connection->insert(self::PART_TABLE, ['group_id' => $group['group_id'], 'part_number' => $arrived, 'report' => $this->messages->encode($message), 'handler' => $handler, 'message_id' => CollectingMessageIdentity::of($message)]);
+            $connection->insert(self::PART_TABLE, ['group_id' => $group['group_id'], 'part_number' => $arrived, 'report' => $this->messages->encode($message), 'endpoint_id' => $endpointId, 'message_id' => CollectingMessageIdentity::of($message)]);
             if ($completed) {
                 $parts = [];
                 foreach ($this->loadPartsForRelease($group['group_id']) as $part) {
@@ -226,7 +224,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
                 return true;
             }
             $version = (int) $group['version'];
-            $released = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'released', closed_at = ?, version = ? WHERE group_id = ? AND version = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $version + 1, $groupId, $version]);
+            $released = $connection->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'released', closed_at = ?, open_slot = NULL, version = ? WHERE group_id = ? AND version = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $version + 1, $groupId, $version]);
             if ($released === 0) {
                 return false;
             }
@@ -246,7 +244,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     {
         $this->gatherChannelNameFor($groupId);
         try {
-            $this->connection()->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'discarded', closed_at = ?, version = version + 1 WHERE group_id = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $groupId]);
+            $this->connection()->executeStatement('UPDATE ' . self::GROUP_TABLE . " SET state = 'discarded', closed_at = ?, open_slot = NULL, version = version + 1 WHERE group_id = ? AND state = 'open'", [$this->clock->now()->unixTime()->inMilliseconds(), $groupId]);
         } catch (Throwable $failure) {
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
@@ -277,7 +275,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     {
         try {
             $rows = $this->connection()->fetchAllAssociative(
-                'SELECT group_id, gather_channel_name, size, state, late_part_count, closed_at, deadline FROM ' . self::GROUP_TABLE . ' WHERE gather_channel_name = ? AND handler IS NULL AND state ' . ($closed ? '<>' : '=') . " 'open'",
+                'SELECT group_id, gather_channel_name, size, state, late_part_count, closed_at, deadline FROM ' . self::GROUP_TABLE . ' WHERE gather_channel_name = ? AND endpoint_id IS NULL AND state ' . ($closed ? '<>' : '=') . " 'open'",
                 [$gatherChannelName],
             );
         } catch (Throwable $failure) {

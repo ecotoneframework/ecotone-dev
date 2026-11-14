@@ -141,7 +141,7 @@ $groups->discard($anotherGroupId);
 $groups->cleanupClosedGroups();
 ```
 
-Listings use the collected endpoint id and include the group id, readable key, generation, state, configured
+Listings use the collected endpoint id and include the group id, readable key, state, configured
 maximum size (null if omitted), recorded message numbers and deadline. Ordinary gathered-group listings stay
 separate. `requestRelease()` queues a trigger: consume the handler's asynchronous channel to invoke it.
 Discard closes a batch without running the handler. Duplicate release triggers do not run it again.

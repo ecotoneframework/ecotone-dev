@@ -82,7 +82,7 @@ final class CollectingMessageHandler implements MessageHandler
             return;
         }
         $recorded = $this->store->collectMessage(
-            handler: $this->endpointId,
+            endpointId: $this->endpointId,
             groupKey: $this->groupKeyFor($message),
             gatherChannelName: $this->channelName,
             maxSize: $this->maxSize,

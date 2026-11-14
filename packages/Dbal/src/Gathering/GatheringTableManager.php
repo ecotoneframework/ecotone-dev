@@ -109,11 +109,11 @@ final class GatheringTableManager implements DbalTableManager
         $group = new Table(DbalGatheredGroupStore::GROUP_TABLE);
         $group->addColumn(name: 'group_id', typeName: Types::STRING, options: ['length' => 64]);
         $group->addColumn(name: 'gather_channel_name', typeName: Types::STRING, options: ['length' => 255]);
-        $group->addColumn(name: 'handler', typeName: Types::STRING, options: ['length' => 255, 'notnull' => false]);
+        $group->addColumn(name: 'endpoint_id', typeName: Types::STRING, options: ['length' => 255, 'notnull' => false]);
         $group->addColumn(name: 'group_key', typeName: Types::TEXT, options: ['notnull' => false]);
         $group->addColumn(name: 'group_key_hash', typeName: Types::STRING, options: ['length' => 64, 'notnull' => false]);
-        $group->addColumn(name: 'generation', typeName: Types::INTEGER, options: ['notnull' => false]);
-        $group->addUniqueIndex(['handler', 'group_key_hash', 'generation']);
+        $group->addColumn(name: 'open_slot', typeName: Types::SMALLINT, options: ['notnull' => false]);
+        $group->addUniqueIndex(['endpoint_id', 'group_key_hash', 'open_slot']);
         $group->addColumn('size', Types::INTEGER);
         $group->addColumn('arrived', Types::INTEGER);
         $group->addColumn('version', Types::INTEGER);
@@ -127,9 +127,9 @@ final class GatheringTableManager implements DbalTableManager
         $part = new Table(DbalGatheredGroupStore::PART_TABLE);
         $part->addColumn(name: 'group_id', typeName: Types::STRING, options: ['length' => 64]);
         $part->addColumn('part_number', Types::INTEGER);
-        $part->addColumn(name: 'handler', typeName: Types::STRING, options: ['length' => 255, 'notnull' => false]);
+        $part->addColumn(name: 'endpoint_id', typeName: Types::STRING, options: ['length' => 255, 'notnull' => false]);
         $part->addColumn(name: 'message_id', typeName: Types::STRING, options: ['length' => 255, 'notnull' => false]);
-        $part->addUniqueIndex(['handler', 'message_id']);
+        $part->addUniqueIndex(['endpoint_id', 'message_id']);
         $part->addColumn('report', Types::TEXT);
         $part->setPrimaryKey(['group_id', 'part_number']);
 

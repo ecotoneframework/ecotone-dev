@@ -4342,7 +4342,9 @@ normal section with "How to adapt" steps when it ships.
 held split groups and parts only.
 
 **Now:** Opt-in `#[Collected]` handlers receive a typed batch. Unmarked handlers retain their behavior. Gathering's
-unreleased tables gain nullable batch identity and message identity columns and indexes; setup creates new tables
+unreleased tables gain nullable endpoint_id, group_key, group_key_hash and open_slot columns on groups and
+endpoint_id/message_id columns on parts. A unique (endpoint_id, group_key_hash, open_slot) index enforces one
+open batch per key, and a unique (endpoint_id, message_id) index deduplicates retained messages; setup creates new tables
 but does not alter existing ones.
 
 **How to adapt:** No application change is required unless enabling collecting or using an earlier prerelease

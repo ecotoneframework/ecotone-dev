@@ -6,12 +6,15 @@ namespace App\Trace;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use stdClass;
 
 final readonly class TraceQuery
 {
     public const LIST_ROUTING_KEY = 'ecotone.pulse.traces.list';
     public const TRACE_ROUTING_KEY = 'ecotone.pulse.traces.trace';
     public const TRACKINGS_ROUTING_KEY = 'ecotone.pulse.trackings.list';
+    public const FLOW_VERSIONS_ROUTING_KEY = 'ecotone.pulse.flow_versions.list';
+    public const FLOW_VERSION_ROUTING_KEY = 'ecotone.pulse.flow_versions.version';
     public const TRACKINGS_FRESHNESS_SECONDS = 2;
     public const PER_PAGE = 25;
 
@@ -37,6 +40,16 @@ final readonly class TraceQuery
         return new self(self::TRACE_ROUTING_KEY, ['traceId' => $traceId]);
     }
 
+    public static function flowVersions(): self
+    {
+        return new self(self::FLOW_VERSIONS_ROUTING_KEY, []);
+    }
+
+    public static function flowVersion(string $label): self
+    {
+        return new self(self::FLOW_VERSION_ROUTING_KEY, ['label' => $label]);
+    }
+
     public function key(): string
     {
         return sha1($this->routingKey . json_encode($this->identity ?? $this->payload, JSON_THROW_ON_ERROR));
@@ -44,6 +57,6 @@ final readonly class TraceQuery
 
     public function json(): string
     {
-        return json_encode($this->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        return json_encode($this->payload === [] ? new stdClass() : $this->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
     }
 }

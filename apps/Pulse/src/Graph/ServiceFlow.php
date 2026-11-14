@@ -46,6 +46,18 @@ final readonly class ServiceFlow
 
     /**
      * @param array<string, mixed> $flowGraph
+     */
+    public static function graphOf(array $flowGraph): ?MessageFlowGraph
+    {
+        try {
+            return MessageFlowGraph::fromArray(self::withKnownKinds($flowGraph));
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $flowGraph
      * @return array<string, mixed>
      */
     private static function withKnownKinds(array $flowGraph): array

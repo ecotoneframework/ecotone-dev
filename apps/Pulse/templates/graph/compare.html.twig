@@ -1,0 +1,86 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Compare flow versions · Ecotone Pulse{% endblock %}
+
+{% block head %}
+    {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+
+{% block importmap %}{{ importmap(['app', 'graph']) }}{% endblock %}
+
+{% block crumbs %}
+    {% include '_breadcrumbs.html.twig' with {service: service, trail: [{label: 'Flow graph', href: path('flow_graph')}, {label: 'Compare versions'}]} only %}
+{% endblock %}
+
+{% block body %}
+    <h1>Compare flow versions</h1>
+
+    {% if service is null %}
+        {% if services is empty %}
+            {% include '_empty.html.twig' with {cause: 'nothing-yet', hook: 'compare-no-services', sentence: 'No service has answered with its flow graph yet, so there is nothing to compare: the versions appear once a service running PulseConfiguration answers Pulse.', action: {label: 'See which services Pulse asks and how they answer', href: path('services')}} only %}
+        {% else %}
+            <p class="muted">A flow version is the flow graph a service stored with <code>ecotone:flow:store</code>. Choose the service whose versions to compare.</p>
+            <ul class="graph-goto" aria-label="Services to compare the flow versions of">
+                {% for name in services %}<li><a data-compare-service="{{ name }}" href="{{ path('flow_compare', {service: name}) }}">Compare the versions of {{ name }}</a></li>{% endfor %}
+            </ul>
+        {% endif %}
+    {% elseif not list.hasResult %}
+        {% if list.state.value == 'waiting' %}
+            <p class="muted" data-waiting="{{ service }}">Waiting for {{ service }} to list its flow versions…</p>
+        {% else %}
+            <p class="notice" data-compare-refused>{{ list.failure ?? service ~ ' is not answering for its flow versions. A service answers them from the Ecotone version that introduced flow versions on: upgrade Ecotone in ' ~ service ~ ', or check that it is running and consuming its channel.' }}</p>
+        {% endif %}
+    {% elseif not configured %}
+        {% include '_empty.html.twig' with {cause: 'not-enabled', hook: 'compare-not-configured', hook_value: service, sentence: service ~ ' keeps no flow versions, because no location is configured there. Point it at a directory committed with the application, then store a version from the command line or a CI job.', snippet: {label: 'Show how to keep flow versions', code: "use Ecotone\\Api\\Messaging\\Flow\\FlowVersionsConfiguration;\n\n#[ServiceContext]\npublic function flowVersions(): FlowVersionsConfiguration\n{\n    return FlowVersionsConfiguration::createWithLocation(__DIR__ . '/../flow-versions');\n}\n\n# then, for example on every release:\nbin/console ecotone:flow:store 1.4.0   # Symfony\nphp artisan ecotone:flow:store 1.4.0   # Laravel"}} only %}
+    {% elseif versions is empty %}
+        {% include '_empty.html.twig' with {cause: 'nothing-yet', hook: 'compare-no-versions', hook_value: service, sentence: service ~ ' has a location for flow versions, but stored none yet. Store the current flow with ecotone:flow:store <label> (bin/console in Symfony, php artisan in Laravel), for example on every release, and commit the file so the deployed service can list it.'} only %}
+    {% else %}
+        <form method="get" action="{{ path('flow_compare') }}" class="flow-toolbar compare-form" data-compare-form>
+            <input type="hidden" name="service" value="{{ service }}">
+            <label for="compare-from">From version</label>
+            <select id="compare-from" name="from">
+                {% for version in versions|reverse %}<option value="{{ version.label }}"{% if version.label == from %} selected{% endif %}>{{ version.label }} · stored {{ version.storedAt|slice(0, 10) }}</option>{% endfor %}
+            </select>
+            <label for="compare-to">to</label>
+            <select id="compare-to" name="to">
+                <option value=""{% if to == '' %} selected{% endif %}>the live flow</option>
+                {% for version in versions|reverse %}<option value="{{ version.label }}"{% if version.label == to %} selected{% endif %}>{{ version.label }} · stored {{ version.storedAt|slice(0, 10) }}</option>{% endfor %}
+            </select>
+            <button type="submit">Compare</button>
+            {% if services|length > 1 %}<a href="{{ path('flow_compare') }}">Choose another service</a>{% endif %}
+        </form>
+
+        {% if refusal %}
+            <p class="notice" data-compare-refused>{{ refusal }}</p>
+        {% elseif compared is null %}
+            <p class="muted" data-waiting="{{ service }}">Waiting for {{ service }} to answer with version {{ from }}{% if to != '' %} and version {{ to }}{% endif %}…</p>
+        {% else %}
+            {% set sides = 'From version ' ~ from ~ ' to ' ~ (to == '' ? 'the live flow' : 'version ' ~ to) ~ ' of ' ~ service %}
+            {% embed '_verdict.html.twig' with {status: compared.hasChanges ? 'info' : 'ok', reason: null, sentence: sides ~ ': ' ~ (compared.hasChanges ? compared.added ~ ' added, ' ~ compared.removed ~ ' removed, ' ~ compared.changed ~ ' changed.' : 'nothing changed.')} only %}
+                {% block sentence %}<span data-compare-summary>{{ sentence }}</span>{% endblock %}
+                {% block meta %}<p class="verdict-meta" data-verdict-meta>Both versions are drawn as one graph. A part only the later one has is marked added, a part only the earlier one has is marked removed, and a part whose attributes differ is marked changed. A renamed class or method shows as one removal and one addition.</p>{% endblock %}
+            {% endembed %}
+            <ul class="legend-items compare-legend" data-compare-legend>
+                <li><span class="pill sq cmp-added">added</span> only in {{ to == '' ? 'the live flow' : 'version ' ~ to }}</li>
+                <li><span class="pill sq cmp-removed">removed</span> only in version {{ from }}</li>
+                <li><span class="pill sq cmp-changed">changed</span> in both, with different attributes</li>
+            </ul>
+            {% include 'graph/_diagram.html.twig' with {diagram: compared.diagram, hook: 'compare-graph', label: 'Compared flow graph'} only %}
+            {% if compared.hasChanges %}
+                <details class="card flush compare-changes" data-compare-changes data-disclosure="compare.changes" open>
+                    <summary><b>Changes</b> <span class="summary-state">{{ compared.added }} added · {{ compared.removed }} removed · {{ compared.changed }} changed</span></summary>
+                    <ul>
+                        {% for change in compared.changes %}
+                            <li data-compare-change="{{ change.change }}">
+                                <span class="pill sq cmp-{{ change.change }}">{{ change.change }}</span>
+                                <span class="muted">{{ change.kind }}</span>
+                                {% if change.show %}<button type="button" class="link" data-compare-show="{{ change.show }}" title="{{ change.title }}" aria-label="Show {{ change.label }} on the graph">{{ change.label }}</button>{% else %}<span title="{{ change.title }}">{{ change.label }}</span>{% endif %}
+                                {% if change.differences %}<ul class="compare-differences">{% for difference in change.differences %}<li class="mono">{{ difference }}</li>{% endfor %}</ul>{% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </details>
+            {% endif %}
+        {% endif %}
+    {% endif %}
+{% endblock %}

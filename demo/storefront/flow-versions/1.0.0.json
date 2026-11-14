@@ -1,0 +1,2182 @@
+{
+    "formatVersion": 1,
+    "label": "1.0.0",
+    "storedAt": "2026-11-14T16:08:26+00:00",
+    "graph": {
+        "nodes": [
+            {
+                "id": "aggregate:App\\Customer\\Customer",
+                "kind": "aggregate",
+                "label": "Customer",
+                "attributes": {
+                    "class": "App\\Customer\\Customer",
+                    "eventSourced": false
+                }
+            },
+            {
+                "id": "aggregate:App\\Ordering\\Order",
+                "kind": "aggregate",
+                "label": "Order",
+                "attributes": {
+                    "class": "App\\Ordering\\Order",
+                    "eventSourced": false
+                }
+            },
+            {
+                "id": "channel:demo.pong",
+                "kind": "channel",
+                "label": "demo.pong",
+                "attributes": {
+                    "name": "demo.pong",
+                    "pollable": false
+                }
+            },
+            {
+                "id": "channel:ecotone_pulse",
+                "kind": "channel",
+                "label": "ecotone_pulse",
+                "attributes": {
+                    "name": "ecotone_pulse",
+                    "pollable": true
+                }
+            },
+            {
+                "id": "channel:storefront_async",
+                "kind": "channel",
+                "label": "storefront_async",
+                "attributes": {
+                    "name": "storefront_async",
+                    "pollable": true
+                }
+            },
+            {
+                "id": "channel:ticketing",
+                "kind": "channel",
+                "label": "ticketing",
+                "attributes": {
+                    "name": "ticketing",
+                    "pollable": true
+                }
+            },
+            {
+                "id": "channel:tickets.confirm.result",
+                "kind": "channel",
+                "label": "tickets.confirm.result",
+                "attributes": {
+                    "name": "tickets.confirm.result",
+                    "pollable": false
+                }
+            },
+            {
+                "id": "channel:tickets.hold.result",
+                "kind": "channel",
+                "label": "tickets.hold.result",
+                "attributes": {
+                    "name": "tickets.hold.result",
+                    "pollable": false
+                }
+            },
+            {
+                "id": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "distributedBus",
+                "label": "Distributed Bus",
+                "attributes": {
+                    "commandMapping": {
+                        "ticketing": "ticketing"
+                    },
+                    "eventSubscriptions": [],
+                    "reference": "Ecotone\\Api\\Gateway\\DistributedBus"
+                }
+            },
+            {
+                "id": "distributed:ecotone.pulse.distributed_bus",
+                "kind": "distributedBus",
+                "label": "Distributed Bus: ecotone.pulse.distributed_bus",
+                "attributes": {
+                    "commandMapping": {
+                        "ecotone_pulse": "ecotone_pulse"
+                    },
+                    "eventSubscriptions": [],
+                    "reference": "ecotone.pulse.distributed_bus"
+                }
+            },
+            {
+                "id": "handler:App\\Concert\\ConcertProjector::detail",
+                "kind": "queryHandler",
+                "label": "ConcertProjector::detail",
+                "attributes": {
+                    "class": "App\\Concert\\ConcertProjector",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "detail",
+                    "owner": null,
+                    "routingKeys": [
+                        "concert.detail"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Concert\\ConcertProjector::list",
+                "kind": "queryHandler",
+                "label": "ConcertProjector::list",
+                "attributes": {
+                    "class": "App\\Concert\\ConcertProjector",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "list",
+                    "owner": null,
+                    "routingKeys": [
+                        "concerts.list"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Concert\\ConcertProjector::whenCancelled",
+                "kind": "eventHandler",
+                "label": "ConcertProjector::whenCancelled",
+                "attributes": {
+                    "class": "App\\Concert\\ConcertProjector",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "whenCancelled",
+                    "owner": null,
+                    "routingKeys": [
+                        "concert.cancelled"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Concert\\ConcertProjector::whenPricesChanged",
+                "kind": "eventHandler",
+                "label": "ConcertProjector::whenPricesChanged",
+                "attributes": {
+                    "class": "App\\Concert\\ConcertProjector",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "whenPricesChanged",
+                    "owner": null,
+                    "routingKeys": [
+                        "concert.prices_changed"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Concert\\ConcertProjector::whenSalesOpened",
+                "kind": "eventHandler",
+                "label": "ConcertProjector::whenSalesOpened",
+                "attributes": {
+                    "class": "App\\Concert\\ConcertProjector",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "whenSalesOpened",
+                    "owner": null,
+                    "routingKeys": [
+                        "concert.sales_opened"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Concert\\ConcertProjector::whenScheduled",
+                "kind": "eventHandler",
+                "label": "ConcertProjector::whenScheduled",
+                "attributes": {
+                    "class": "App\\Concert\\ConcertProjector",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "whenScheduled",
+                    "owner": null,
+                    "routingKeys": [
+                        "concert.scheduled"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Concert\\ConcertProjector::whenSoldOut",
+                "kind": "eventHandler",
+                "label": "ConcertProjector::whenSoldOut",
+                "attributes": {
+                    "class": "App\\Concert\\ConcertProjector",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "whenSoldOut",
+                    "owner": null,
+                    "routingKeys": [
+                        "concert.sold_out"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Concert\\SeatStateProjector::seatStates",
+                "kind": "queryHandler",
+                "label": "SeatStateProjector::seatStates",
+                "attributes": {
+                    "class": "App\\Concert\\SeatStateProjector",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "seatStates",
+                    "owner": null,
+                    "routingKeys": [
+                        "concert.seat_states"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Concert\\SeatStateProjector::takenSeats",
+                "kind": "queryHandler",
+                "label": "SeatStateProjector::takenSeats",
+                "attributes": {
+                    "class": "App\\Concert\\SeatStateProjector",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "takenSeats",
+                    "owner": null,
+                    "routingKeys": [
+                        "concert.taken_seats"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Concert\\SeatStateProjector::whenSeatHeld",
+                "kind": "eventHandler",
+                "label": "SeatStateProjector::whenSeatHeld",
+                "attributes": {
+                    "class": "App\\Concert\\SeatStateProjector",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "whenSeatHeld",
+                    "owner": null,
+                    "routingKeys": [
+                        "tickets.seat_held"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Concert\\SeatStateProjector::whenSeatReleased",
+                "kind": "eventHandler",
+                "label": "SeatStateProjector::whenSeatReleased",
+                "attributes": {
+                    "class": "App\\Concert\\SeatStateProjector",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "whenSeatReleased",
+                    "owner": null,
+                    "routingKeys": [
+                        "tickets.seat_released"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Concert\\SeatStateProjector::whenSeatSold",
+                "kind": "eventHandler",
+                "label": "SeatStateProjector::whenSeatSold",
+                "attributes": {
+                    "class": "App\\Concert\\SeatStateProjector",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "whenSeatSold",
+                    "owner": null,
+                    "routingKeys": [
+                        "tickets.seat_sold"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Customer\\Customer::register",
+                "kind": "commandHandler",
+                "label": "Customer::register",
+                "attributes": {
+                    "class": "App\\Customer\\Customer",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "register",
+                    "owner": "aggregate:App\\Customer\\Customer",
+                    "routingKeys": [
+                        "App\\Customer\\RegisterCustomer"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Customer\\CustomerDirectory::detail",
+                "kind": "queryHandler",
+                "label": "CustomerDirectory::detail",
+                "attributes": {
+                    "class": "App\\Customer\\CustomerDirectory",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "detail",
+                    "owner": null,
+                    "routingKeys": [
+                        "customer.detail"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Customer\\CustomerDirectory::list",
+                "kind": "queryHandler",
+                "label": "CustomerDirectory::list",
+                "attributes": {
+                    "class": "App\\Customer\\CustomerDirectory",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "list",
+                    "owner": null,
+                    "routingKeys": [
+                        "customers.list"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\Order::beginPayment",
+                "kind": "commandHandler",
+                "label": "Order::beginPayment",
+                "attributes": {
+                    "class": "App\\Ordering\\Order",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "beginPayment",
+                    "owner": "aggregate:App\\Ordering\\Order",
+                    "routingKeys": [
+                        "App\\Ordering\\BeginPayment"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\Order::dropExpiredSeat",
+                "kind": "commandHandler",
+                "label": "Order::dropExpiredSeat",
+                "attributes": {
+                    "class": "App\\Ordering\\Order",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "dropExpiredSeat",
+                    "owner": "aggregate:App\\Ordering\\Order",
+                    "routingKeys": [
+                        "App\\Ordering\\DropExpiredSeat"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\Order::fail",
+                "kind": "commandHandler",
+                "label": "Order::fail",
+                "attributes": {
+                    "class": "App\\Ordering\\Order",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "fail",
+                    "owner": "aggregate:App\\Ordering\\Order",
+                    "routingKeys": [
+                        "App\\Ordering\\FailOrder"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\Order::markPaid",
+                "kind": "commandHandler",
+                "label": "Order::markPaid",
+                "attributes": {
+                    "class": "App\\Ordering\\Order",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "markPaid",
+                    "owner": "aggregate:App\\Ordering\\Order",
+                    "routingKeys": [
+                        "App\\Ordering\\MarkPaid"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\Order::markSeatHeld",
+                "kind": "commandHandler",
+                "label": "Order::markSeatHeld",
+                "attributes": {
+                    "class": "App\\Ordering\\Order",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "markSeatHeld",
+                    "owner": "aggregate:App\\Ordering\\Order",
+                    "routingKeys": [
+                        "App\\Ordering\\MarkSeatHeld"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\Order::markSeatsSold",
+                "kind": "commandHandler",
+                "label": "Order::markSeatsSold",
+                "attributes": {
+                    "class": "App\\Ordering\\Order",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "markSeatsSold",
+                    "owner": "aggregate:App\\Ordering\\Order",
+                    "routingKeys": [
+                        "App\\Ordering\\MarkSeatsSold"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\Order::markTicketsIssued",
+                "kind": "commandHandler",
+                "label": "Order::markTicketsIssued",
+                "attributes": {
+                    "class": "App\\Ordering\\Order",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "markTicketsIssued",
+                    "owner": "aggregate:App\\Ordering\\Order",
+                    "routingKeys": [
+                        "App\\Ordering\\MarkTicketsIssued"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\Order::recordConfirmationRefusal",
+                "kind": "commandHandler",
+                "label": "Order::recordConfirmationRefusal",
+                "attributes": {
+                    "class": "App\\Ordering\\Order",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "recordConfirmationRefusal",
+                    "owner": "aggregate:App\\Ordering\\Order",
+                    "routingKeys": [
+                        "App\\Ordering\\RecordConfirmationRefusal"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\Order::recordSeatRefusal",
+                "kind": "commandHandler",
+                "label": "Order::recordSeatRefusal",
+                "attributes": {
+                    "class": "App\\Ordering\\Order",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "recordSeatRefusal",
+                    "owner": "aggregate:App\\Ordering\\Order",
+                    "routingKeys": [
+                        "App\\Ordering\\RecordSeatRefusal"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\Order::releaseSeat",
+                "kind": "commandHandler",
+                "label": "Order::releaseSeat",
+                "attributes": {
+                    "class": "App\\Ordering\\Order",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "releaseSeat",
+                    "owner": "aggregate:App\\Ordering\\Order",
+                    "routingKeys": [
+                        "App\\Ordering\\ReleaseSeat"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\Order::requestSeat",
+                "kind": "commandHandler",
+                "label": "Order::requestSeat",
+                "attributes": {
+                    "class": "App\\Ordering\\Order",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "requestSeat",
+                    "owner": "aggregate:App\\Ordering\\Order",
+                    "routingKeys": [
+                        "App\\Ordering\\RequestSeat"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\Order::start",
+                "kind": "commandHandler",
+                "label": "Order::start",
+                "attributes": {
+                    "class": "App\\Ordering\\Order",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "start",
+                    "owner": "aggregate:App\\Ordering\\Order",
+                    "routingKeys": [
+                        "App\\Ordering\\StartOrder"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\OrderQueries::detail",
+                "kind": "queryHandler",
+                "label": "OrderQueries::detail",
+                "attributes": {
+                    "class": "App\\Ordering\\OrderQueries",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "detail",
+                    "owner": null,
+                    "routingKeys": [
+                        "order.detail"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\OrderQueries::openOrderOf",
+                "kind": "queryHandler",
+                "label": "OrderQueries::openOrderOf",
+                "attributes": {
+                    "class": "App\\Ordering\\OrderQueries",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "openOrderOf",
+                    "owner": null,
+                    "routingKeys": [
+                        "customer.open_order"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\OrderQueries::ordersOf",
+                "kind": "queryHandler",
+                "label": "OrderQueries::ordersOf",
+                "attributes": {
+                    "class": "App\\Ordering\\OrderQueries",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "ordersOf",
+                    "owner": null,
+                    "routingKeys": [
+                        "customer.orders"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\OrderQueries::seatsTakenByOtherOrders",
+                "kind": "queryHandler",
+                "label": "OrderQueries::seatsTakenByOtherOrders",
+                "attributes": {
+                    "class": "App\\Ordering\\OrderQueries",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "seatsTakenByOtherOrders",
+                    "owner": null,
+                    "routingKeys": [
+                        "concert.seats_claimed_by_orders"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\TicketingReplies::whenConfirmationAnswered",
+                "kind": "internalHandler",
+                "label": "TicketingReplies::whenConfirmationAnswered",
+                "attributes": {
+                    "class": "App\\Ordering\\TicketingReplies",
+                    "endpointId": null,
+                    "inputChannel": "tickets.confirm.result",
+                    "method": "whenConfirmationAnswered",
+                    "owner": null
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\TicketingReplies::whenHoldAnswered",
+                "kind": "internalHandler",
+                "label": "TicketingReplies::whenHoldAnswered",
+                "attributes": {
+                    "class": "App\\Ordering\\TicketingReplies",
+                    "endpointId": null,
+                    "inputChannel": "tickets.hold.result",
+                    "method": "whenHoldAnswered",
+                    "owner": null
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\TicketingReplies::whenHoldExpired",
+                "kind": "eventHandler",
+                "label": "TicketingReplies::whenHoldExpired",
+                "attributes": {
+                    "class": "App\\Ordering\\TicketingReplies",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "whenHoldExpired",
+                    "owner": null,
+                    "routingKeys": [
+                        "tickets.hold_expired"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\TicketingReplies::whenTicketsIssued",
+                "kind": "eventHandler",
+                "label": "TicketingReplies::whenTicketsIssued",
+                "attributes": {
+                    "class": "App\\Ordering\\TicketingReplies",
+                    "distributed": true,
+                    "endpointId": null,
+                    "method": "whenTicketsIssued",
+                    "owner": null,
+                    "routingKeys": [
+                        "tickets.issued"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\TicketingRequests::confirmPaidSeats",
+                "kind": "eventHandler",
+                "label": "TicketingRequests::confirmPaidSeats",
+                "attributes": {
+                    "class": "App\\Ordering\\TicketingRequests",
+                    "distributed": false,
+                    "endpointId": "confirm_paid_seats",
+                    "method": "confirmPaidSeats",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Ordering\\OrderPaid"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\TicketingRequests::holdRequestedSeat",
+                "kind": "eventHandler",
+                "label": "TicketingRequests::holdRequestedSeat",
+                "attributes": {
+                    "class": "App\\Ordering\\TicketingRequests",
+                    "distributed": false,
+                    "endpointId": "hold_requested_seat",
+                    "method": "holdRequestedSeat",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Ordering\\SeatRequested"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\TicketingRequests::releaseSeat",
+                "kind": "eventHandler",
+                "label": "TicketingRequests::releaseSeat",
+                "attributes": {
+                    "class": "App\\Ordering\\TicketingRequests",
+                    "distributed": false,
+                    "endpointId": "release_seat",
+                    "method": "releaseSeat",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Ordering\\SeatReleased"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ordering\\TicketingRequests::releaseSeatsOfFailedOrder",
+                "kind": "eventHandler",
+                "label": "TicketingRequests::releaseSeatsOfFailedOrder",
+                "attributes": {
+                    "class": "App\\Ordering\\TicketingRequests",
+                    "distributed": false,
+                    "endpointId": "release_seats_of_failed_order",
+                    "method": "releaseSeatsOfFailedOrder",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Ordering\\OrderFailed"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Payment\\Checkout::charge",
+                "kind": "commandHandler",
+                "label": "Checkout::charge",
+                "attributes": {
+                    "class": "App\\Payment\\Checkout",
+                    "distributed": false,
+                    "endpointId": "charge_card",
+                    "method": "charge",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Payment\\ChargeCard"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Payment\\Checkout::pay",
+                "kind": "commandHandler",
+                "label": "Checkout::pay",
+                "attributes": {
+                    "class": "App\\Payment\\Checkout",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "pay",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Payment\\Pay"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Payment\\Checkout::refundFailedOrder",
+                "kind": "eventHandler",
+                "label": "Checkout::refundFailedOrder",
+                "attributes": {
+                    "class": "App\\Payment\\Checkout",
+                    "distributed": false,
+                    "endpointId": "refund_failed_order",
+                    "method": "refundFailedOrder",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Ordering\\OrderFailed"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Payment\\PaymentProvider::status",
+                "kind": "queryHandler",
+                "label": "PaymentProvider::status",
+                "attributes": {
+                    "class": "App\\Payment\\PaymentProvider",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "status",
+                    "owner": null,
+                    "routingKeys": [
+                        "payment.status"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Ping\\DemoPing::pong",
+                "kind": "internalHandler",
+                "label": "DemoPing::pong",
+                "attributes": {
+                    "class": "App\\Ping\\DemoPing",
+                    "endpointId": null,
+                    "inputChannel": "demo.pong",
+                    "method": "pong",
+                    "owner": null
+                }
+            },
+            {
+                "id": "handler:App\\Rush\\ContentionSimulator::failRefusedBuyer",
+                "kind": "eventHandler",
+                "label": "ContentionSimulator::failRefusedBuyer",
+                "attributes": {
+                    "class": "App\\Rush\\ContentionSimulator",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "failRefusedBuyer",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Ordering\\SeatRefused"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Rush\\ContentionSimulator::start",
+                "kind": "commandHandler",
+                "label": "ContentionSimulator::start",
+                "attributes": {
+                    "class": "App\\Rush\\ContentionSimulator",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "start",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Rush\\StartContention"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Rush\\ContentionSimulator::state",
+                "kind": "queryHandler",
+                "label": "ContentionSimulator::state",
+                "attributes": {
+                    "class": "App\\Rush\\ContentionSimulator",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "state",
+                    "owner": null,
+                    "routingKeys": [
+                        "contention.state"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Rush\\RushSimulator::advance",
+                "kind": "commandHandler",
+                "label": "RushSimulator::advance",
+                "attributes": {
+                    "class": "App\\Rush\\RushSimulator",
+                    "distributed": false,
+                    "endpointId": "advance_rush",
+                    "method": "advance",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Rush\\AdvanceRush"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Rush\\RushSimulator::buyers",
+                "kind": "queryHandler",
+                "label": "RushSimulator::buyers",
+                "attributes": {
+                    "class": "App\\Rush\\RushSimulator",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "buyers",
+                    "owner": null,
+                    "routingKeys": [
+                        "rush.buyers"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Rush\\RushSimulator::start",
+                "kind": "commandHandler",
+                "label": "RushSimulator::start",
+                "attributes": {
+                    "class": "App\\Rush\\RushSimulator",
+                    "distributed": false,
+                    "endpointId": "start_rush",
+                    "method": "start",
+                    "owner": null,
+                    "routingKeys": [
+                        "App\\Rush\\StartRush"
+                    ]
+                }
+            },
+            {
+                "id": "handler:App\\Rush\\RushSimulator::state",
+                "kind": "queryHandler",
+                "label": "RushSimulator::state",
+                "attributes": {
+                    "class": "App\\Rush\\RushSimulator",
+                    "distributed": false,
+                    "endpointId": null,
+                    "method": "state",
+                    "owner": null,
+                    "routingKeys": [
+                        "rush.state"
+                    ]
+                }
+            },
+            {
+                "id": "message:App\\Customer\\RegisterCustomer",
+                "kind": "command",
+                "label": "RegisterCustomer",
+                "attributes": {
+                    "class": "App\\Customer\\RegisterCustomer",
+                    "handled": true,
+                    "routingKey": "App\\Customer\\RegisterCustomer"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\BeginPayment",
+                "kind": "command",
+                "label": "BeginPayment",
+                "attributes": {
+                    "class": "App\\Ordering\\BeginPayment",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\BeginPayment"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\DropExpiredSeat",
+                "kind": "command",
+                "label": "DropExpiredSeat",
+                "attributes": {
+                    "class": "App\\Ordering\\DropExpiredSeat",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\DropExpiredSeat"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\FailOrder",
+                "kind": "command",
+                "label": "FailOrder",
+                "attributes": {
+                    "class": "App\\Ordering\\FailOrder",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\FailOrder"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\MarkPaid",
+                "kind": "command",
+                "label": "MarkPaid",
+                "attributes": {
+                    "class": "App\\Ordering\\MarkPaid",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\MarkPaid"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\MarkSeatHeld",
+                "kind": "command",
+                "label": "MarkSeatHeld",
+                "attributes": {
+                    "class": "App\\Ordering\\MarkSeatHeld",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\MarkSeatHeld"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\MarkSeatsSold",
+                "kind": "command",
+                "label": "MarkSeatsSold",
+                "attributes": {
+                    "class": "App\\Ordering\\MarkSeatsSold",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\MarkSeatsSold"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\MarkTicketsIssued",
+                "kind": "command",
+                "label": "MarkTicketsIssued",
+                "attributes": {
+                    "class": "App\\Ordering\\MarkTicketsIssued",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\MarkTicketsIssued"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\OrderFailed",
+                "kind": "event",
+                "label": "OrderFailed",
+                "attributes": {
+                    "class": "App\\Ordering\\OrderFailed",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\OrderFailed"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\OrderPaid",
+                "kind": "event",
+                "label": "OrderPaid",
+                "attributes": {
+                    "class": "App\\Ordering\\OrderPaid",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\OrderPaid"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\OrderTicketsIssued",
+                "kind": "event",
+                "label": "OrderTicketsIssued",
+                "attributes": {
+                    "class": "App\\Ordering\\OrderTicketsIssued",
+                    "handled": false,
+                    "routingKey": "App\\Ordering\\OrderTicketsIssued"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\RecordConfirmationRefusal",
+                "kind": "command",
+                "label": "RecordConfirmationRefusal",
+                "attributes": {
+                    "class": "App\\Ordering\\RecordConfirmationRefusal",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\RecordConfirmationRefusal"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\RecordSeatRefusal",
+                "kind": "command",
+                "label": "RecordSeatRefusal",
+                "attributes": {
+                    "class": "App\\Ordering\\RecordSeatRefusal",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\RecordSeatRefusal"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\ReleaseSeat",
+                "kind": "command",
+                "label": "ReleaseSeat",
+                "attributes": {
+                    "class": "App\\Ordering\\ReleaseSeat",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\ReleaseSeat"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\RequestSeat",
+                "kind": "command",
+                "label": "RequestSeat",
+                "attributes": {
+                    "class": "App\\Ordering\\RequestSeat",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\RequestSeat"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\SeatRefused",
+                "kind": "event",
+                "label": "SeatRefused",
+                "attributes": {
+                    "class": "App\\Ordering\\SeatRefused",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\SeatRefused"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\SeatReleased",
+                "kind": "event",
+                "label": "SeatReleased",
+                "attributes": {
+                    "class": "App\\Ordering\\SeatReleased",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\SeatReleased"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\SeatRequested",
+                "kind": "event",
+                "label": "SeatRequested",
+                "attributes": {
+                    "class": "App\\Ordering\\SeatRequested",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\SeatRequested"
+                }
+            },
+            {
+                "id": "message:App\\Ordering\\StartOrder",
+                "kind": "command",
+                "label": "StartOrder",
+                "attributes": {
+                    "class": "App\\Ordering\\StartOrder",
+                    "handled": true,
+                    "routingKey": "App\\Ordering\\StartOrder"
+                }
+            },
+            {
+                "id": "message:App\\Payment\\ChargeCard",
+                "kind": "command",
+                "label": "ChargeCard",
+                "attributes": {
+                    "class": "App\\Payment\\ChargeCard",
+                    "handled": true,
+                    "routingKey": "App\\Payment\\ChargeCard"
+                }
+            },
+            {
+                "id": "message:App\\Payment\\Pay",
+                "kind": "command",
+                "label": "Pay",
+                "attributes": {
+                    "class": "App\\Payment\\Pay",
+                    "handled": true,
+                    "routingKey": "App\\Payment\\Pay"
+                }
+            },
+            {
+                "id": "message:App\\Rush\\AdvanceRush",
+                "kind": "command",
+                "label": "AdvanceRush",
+                "attributes": {
+                    "class": "App\\Rush\\AdvanceRush",
+                    "handled": true,
+                    "routingKey": "App\\Rush\\AdvanceRush"
+                }
+            },
+            {
+                "id": "message:App\\Rush\\StartContention",
+                "kind": "command",
+                "label": "StartContention",
+                "attributes": {
+                    "class": "App\\Rush\\StartContention",
+                    "handled": true,
+                    "routingKey": "App\\Rush\\StartContention"
+                }
+            },
+            {
+                "id": "message:App\\Rush\\StartRush",
+                "kind": "command",
+                "label": "StartRush",
+                "attributes": {
+                    "class": "App\\Rush\\StartRush",
+                    "handled": true,
+                    "routingKey": "App\\Rush\\StartRush"
+                }
+            },
+            {
+                "id": "message:concert.cancelled",
+                "kind": "event",
+                "label": "concert.cancelled",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "concert.cancelled"
+                }
+            },
+            {
+                "id": "message:concert.detail",
+                "kind": "query",
+                "label": "concert.detail",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "concert.detail"
+                }
+            },
+            {
+                "id": "message:concert.prices_changed",
+                "kind": "event",
+                "label": "concert.prices_changed",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "concert.prices_changed"
+                }
+            },
+            {
+                "id": "message:concert.sales_opened",
+                "kind": "event",
+                "label": "concert.sales_opened",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "concert.sales_opened"
+                }
+            },
+            {
+                "id": "message:concert.scheduled",
+                "kind": "event",
+                "label": "concert.scheduled",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "concert.scheduled"
+                }
+            },
+            {
+                "id": "message:concert.seat_states",
+                "kind": "query",
+                "label": "concert.seat_states",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "concert.seat_states"
+                }
+            },
+            {
+                "id": "message:concert.seats_claimed_by_orders",
+                "kind": "query",
+                "label": "concert.seats_claimed_by_orders",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "concert.seats_claimed_by_orders"
+                }
+            },
+            {
+                "id": "message:concert.sold_out",
+                "kind": "event",
+                "label": "concert.sold_out",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "concert.sold_out"
+                }
+            },
+            {
+                "id": "message:concert.taken_seats",
+                "kind": "query",
+                "label": "concert.taken_seats",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "concert.taken_seats"
+                }
+            },
+            {
+                "id": "message:concerts.list",
+                "kind": "query",
+                "label": "concerts.list",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "concerts.list"
+                }
+            },
+            {
+                "id": "message:contention.state",
+                "kind": "query",
+                "label": "contention.state",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "contention.state"
+                }
+            },
+            {
+                "id": "message:customer.detail",
+                "kind": "query",
+                "label": "customer.detail",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "customer.detail"
+                }
+            },
+            {
+                "id": "message:customer.open_order",
+                "kind": "query",
+                "label": "customer.open_order",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "customer.open_order"
+                }
+            },
+            {
+                "id": "message:customer.orders",
+                "kind": "query",
+                "label": "customer.orders",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "customer.orders"
+                }
+            },
+            {
+                "id": "message:customers.list",
+                "kind": "query",
+                "label": "customers.list",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "customers.list"
+                }
+            },
+            {
+                "id": "message:order.detail",
+                "kind": "query",
+                "label": "order.detail",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "order.detail"
+                }
+            },
+            {
+                "id": "message:payment.status",
+                "kind": "query",
+                "label": "payment.status",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "payment.status"
+                }
+            },
+            {
+                "id": "message:rush.buyers",
+                "kind": "query",
+                "label": "rush.buyers",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "rush.buyers"
+                }
+            },
+            {
+                "id": "message:rush.state",
+                "kind": "query",
+                "label": "rush.state",
+                "attributes": {
+                    "class": null,
+                    "handled": true,
+                    "routingKey": "rush.state"
+                }
+            },
+            {
+                "id": "message:tickets.hold_expired",
+                "kind": "event",
+                "label": "tickets.hold_expired",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "tickets.hold_expired"
+                }
+            },
+            {
+                "id": "message:tickets.issued",
+                "kind": "event",
+                "label": "tickets.issued",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "tickets.issued"
+                }
+            },
+            {
+                "id": "message:tickets.seat_held",
+                "kind": "event",
+                "label": "tickets.seat_held",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "tickets.seat_held"
+                }
+            },
+            {
+                "id": "message:tickets.seat_released",
+                "kind": "event",
+                "label": "tickets.seat_released",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "tickets.seat_released"
+                }
+            },
+            {
+                "id": "message:tickets.seat_sold",
+                "kind": "event",
+                "label": "tickets.seat_sold",
+                "attributes": {
+                    "class": null,
+                    "distributed": true,
+                    "handled": true,
+                    "routingKey": "tickets.seat_sold"
+                }
+            }
+        ],
+        "edges": [
+            {
+                "from": "channel:storefront_async",
+                "to": "handler:App\\Ordering\\TicketingRequests::confirmPaidSeats",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:storefront_async",
+                "to": "handler:App\\Ordering\\TicketingRequests::holdRequestedSeat",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:storefront_async",
+                "to": "handler:App\\Ordering\\TicketingRequests::releaseSeatsOfFailedOrder",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:storefront_async",
+                "to": "handler:App\\Ordering\\TicketingRequests::releaseSeat",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:storefront_async",
+                "to": "handler:App\\Payment\\Checkout::charge",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:storefront_async",
+                "to": "handler:App\\Payment\\Checkout::refundFailedOrder",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:storefront_async",
+                "to": "handler:App\\Rush\\RushSimulator::advance",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "channel:storefront_async",
+                "to": "handler:App\\Rush\\RushSimulator::start",
+                "kind": "asynchronous",
+                "attributes": []
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:concert.cancelled",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:concert.prices_changed",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:concert.sales_opened",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:concert.scheduled",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:concert.sold_out",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:tickets.hold_expired",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:tickets.issued",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:tickets.seat_held",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:tickets.seat_released",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "message:tickets.seat_sold",
+                "kind": "distributes",
+                "attributes": []
+            },
+            {
+                "from": "handler:App\\Ordering\\Order::fail",
+                "to": "message:App\\Ordering\\OrderFailed",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Payment\\Checkout::pay",
+                "to": "message:App\\Ordering\\BeginPayment",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Payment\\Checkout::pay",
+                "to": "message:App\\Payment\\ChargeCard",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\Order::markPaid",
+                "to": "message:App\\Ordering\\OrderPaid",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Payment\\Checkout::charge",
+                "to": "message:App\\Ordering\\FailOrder",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Payment\\Checkout::charge",
+                "to": "message:App\\Ordering\\MarkPaid",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\RushSimulator::start",
+                "to": "message:App\\Rush\\AdvanceRush",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\RushSimulator::start",
+                "to": "message:concert.detail",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "sendWithRouting"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\Order::releaseSeat",
+                "to": "message:App\\Ordering\\SeatReleased",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\Order::requestSeat",
+                "to": "message:App\\Ordering\\SeatRequested",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\RushSimulator::advance",
+                "to": "message:App\\Customer\\RegisterCustomer",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\RushSimulator::advance",
+                "to": "message:App\\Ordering\\FailOrder",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\RushSimulator::advance",
+                "to": "message:App\\Ordering\\RequestSeat",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\RushSimulator::advance",
+                "to": "message:App\\Ordering\\StartOrder",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\RushSimulator::advance",
+                "to": "message:App\\Payment\\Pay",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\RushSimulator::advance",
+                "to": "message:App\\Rush\\AdvanceRush",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\RushSimulator::advance",
+                "to": "message:concert.detail",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "sendWithRouting"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\RushSimulator::advance",
+                "to": "message:concert.taken_seats",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "sendWithRouting"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\Order::markSeatHeld",
+                "to": "message:App\\Ordering\\SeatReleased",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\Order::markSeatHeld",
+                "to": "message:App\\Ordering\\SeatRequested",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\ContentionSimulator::start",
+                "to": "message:App\\Customer\\RegisterCustomer",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\ContentionSimulator::start",
+                "to": "message:App\\Ordering\\RequestSeat",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\ContentionSimulator::start",
+                "to": "message:App\\Ordering\\StartOrder",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\ContentionSimulator::start",
+                "to": "message:concert.detail",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "sendWithRouting"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\ContentionSimulator::start",
+                "to": "message:concert.seat_states",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "sendWithRouting"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\Order::markTicketsIssued",
+                "to": "message:App\\Ordering\\OrderTicketsIssued",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\Order::recordSeatRefusal",
+                "to": "message:App\\Ordering\\SeatRefused",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\Order::recordSeatRefusal",
+                "to": "message:App\\Ordering\\SeatRequested",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Concert\\SeatStateProjector::seatStates",
+                "to": "message:concert.seats_claimed_by_orders",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "sendWithRouting"
+                }
+            },
+            {
+                "from": "handler:App\\Concert\\SeatStateProjector::takenSeats",
+                "to": "message:concert.seat_states",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "sendWithRouting"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\Order::recordConfirmationRefusal",
+                "to": "message:App\\Ordering\\FailOrder",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "fail"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\Order::recordConfirmationRefusal",
+                "to": "message:App\\Ordering\\OrderFailed",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "recordThat"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\TicketingReplies::whenHoldExpired",
+                "to": "message:App\\Ordering\\DropExpiredSeat",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Rush\\ContentionSimulator::failRefusedBuyer",
+                "to": "message:App\\Ordering\\FailOrder",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\TicketingReplies::whenHoldAnswered",
+                "to": "message:App\\Ordering\\MarkSeatHeld",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\TicketingReplies::whenHoldAnswered",
+                "to": "message:App\\Ordering\\RecordSeatRefusal",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\TicketingReplies::whenTicketsIssued",
+                "to": "message:App\\Ordering\\MarkTicketsIssued",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\TicketingReplies::whenConfirmationAnswered",
+                "to": "message:App\\Ordering\\MarkSeatsSold",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\TicketingReplies::whenConfirmationAnswered",
+                "to": "message:App\\Ordering\\RecordConfirmationRefusal",
+                "kind": "emits",
+                "attributes": {
+                    "inferred": true,
+                    "via": "send"
+                }
+            },
+            {
+                "from": "channel:demo.pong",
+                "to": "handler:App\\Ping\\DemoPing::pong",
+                "kind": "input",
+                "attributes": []
+            },
+            {
+                "from": "channel:tickets.hold.result",
+                "to": "handler:App\\Ordering\\TicketingReplies::whenHoldAnswered",
+                "kind": "input",
+                "attributes": []
+            },
+            {
+                "from": "channel:tickets.confirm.result",
+                "to": "handler:App\\Ordering\\TicketingReplies::whenConfirmationAnswered",
+                "kind": "input",
+                "attributes": []
+            },
+            {
+                "from": "message:rush.state",
+                "to": "handler:App\\Rush\\RushSimulator::state",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:rush.buyers",
+                "to": "handler:App\\Rush\\RushSimulator::buyers",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:order.detail",
+                "to": "handler:App\\Ordering\\OrderQueries::detail",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concerts.list",
+                "to": "handler:App\\Concert\\ConcertProjector::list",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concert.detail",
+                "to": "handler:App\\Concert\\ConcertProjector::detail",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:customers.list",
+                "to": "handler:App\\Customer\\CustomerDirectory::list",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:payment.status",
+                "to": "handler:App\\Payment\\PaymentProvider::status",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:tickets.issued",
+                "to": "handler:App\\Ordering\\TicketingReplies::whenTicketsIssued",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Payment\\Pay",
+                "to": "handler:App\\Payment\\Checkout::pay",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:customer.detail",
+                "to": "handler:App\\Customer\\CustomerDirectory::detail",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:customer.orders",
+                "to": "handler:App\\Ordering\\OrderQueries::ordersOf",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concert.sold_out",
+                "to": "handler:App\\Concert\\ConcertProjector::whenSoldOut",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:contention.state",
+                "to": "handler:App\\Rush\\ContentionSimulator::state",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concert.cancelled",
+                "to": "handler:App\\Concert\\ConcertProjector::whenCancelled",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concert.scheduled",
+                "to": "handler:App\\Concert\\ConcertProjector::whenScheduled",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:tickets.seat_held",
+                "to": "handler:App\\Concert\\SeatStateProjector::whenSeatHeld",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:tickets.seat_sold",
+                "to": "handler:App\\Concert\\SeatStateProjector::whenSeatSold",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Rush\\StartRush",
+                "to": "handler:App\\Rush\\RushSimulator::start",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concert.seat_states",
+                "to": "handler:App\\Concert\\SeatStateProjector::seatStates",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concert.taken_seats",
+                "to": "handler:App\\Concert\\SeatStateProjector::takenSeats",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:customer.open_order",
+                "to": "handler:App\\Ordering\\OrderQueries::openOrderOf",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Rush\\AdvanceRush",
+                "to": "handler:App\\Rush\\RushSimulator::advance",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concert.sales_opened",
+                "to": "handler:App\\Concert\\ConcertProjector::whenSalesOpened",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:tickets.hold_expired",
+                "to": "handler:App\\Ordering\\TicketingReplies::whenHoldExpired",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\MarkPaid",
+                "to": "handler:App\\Ordering\\Order::markPaid",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:tickets.seat_released",
+                "to": "handler:App\\Concert\\SeatStateProjector::whenSeatReleased",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\FailOrder",
+                "to": "handler:App\\Ordering\\Order::fail",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\OrderPaid",
+                "to": "handler:App\\Ordering\\TicketingRequests::confirmPaidSeats",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Payment\\ChargeCard",
+                "to": "handler:App\\Payment\\Checkout::charge",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concert.prices_changed",
+                "to": "handler:App\\Concert\\ConcertProjector::whenPricesChanged",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\StartOrder",
+                "to": "handler:App\\Ordering\\Order::start",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\OrderFailed",
+                "to": "handler:App\\Ordering\\TicketingRequests::releaseSeatsOfFailedOrder",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\OrderFailed",
+                "to": "handler:App\\Payment\\Checkout::refundFailedOrder",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\ReleaseSeat",
+                "to": "handler:App\\Ordering\\Order::releaseSeat",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\RequestSeat",
+                "to": "handler:App\\Ordering\\Order::requestSeat",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\SeatRefused",
+                "to": "handler:App\\Rush\\ContentionSimulator::failRefusedBuyer",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Rush\\StartContention",
+                "to": "handler:App\\Rush\\ContentionSimulator::start",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\BeginPayment",
+                "to": "handler:App\\Ordering\\Order::beginPayment",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\MarkSeatHeld",
+                "to": "handler:App\\Ordering\\Order::markSeatHeld",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\SeatReleased",
+                "to": "handler:App\\Ordering\\TicketingRequests::releaseSeat",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\MarkSeatsSold",
+                "to": "handler:App\\Ordering\\Order::markSeatsSold",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\SeatRequested",
+                "to": "handler:App\\Ordering\\TicketingRequests::holdRequestedSeat",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\DropExpiredSeat",
+                "to": "handler:App\\Ordering\\Order::dropExpiredSeat",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Customer\\RegisterCustomer",
+                "to": "handler:App\\Customer\\Customer::register",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\MarkTicketsIssued",
+                "to": "handler:App\\Ordering\\Order::markTicketsIssued",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\RecordSeatRefusal",
+                "to": "handler:App\\Ordering\\Order::recordSeatRefusal",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:concert.seats_claimed_by_orders",
+                "to": "handler:App\\Ordering\\OrderQueries::seatsTakenByOtherOrders",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "message:App\\Ordering\\RecordConfirmationRefusal",
+                "to": "handler:App\\Ordering\\Order::recordConfirmationRefusal",
+                "kind": "routedTo",
+                "attributes": []
+            },
+            {
+                "from": "distributed:ecotone.pulse.distributed_bus",
+                "to": "channel:ecotone_pulse",
+                "kind": "sendsTo",
+                "attributes": {
+                    "targetService": "ecotone_pulse"
+                }
+            },
+            {
+                "from": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "to": "channel:ticketing",
+                "kind": "sendsTo",
+                "attributes": {
+                    "targetService": "ticketing"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\TicketingRequests::releaseSeat",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true,
+                    "targetChannel": "tickets.release",
+                    "targetService": "ticketing",
+                    "via": "sendMessage",
+                    "withoutReply": true
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\TicketingRequests::confirmPaidSeats",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true,
+                    "replyChannel": "tickets.confirm.result",
+                    "targetChannel": "tickets.confirm",
+                    "targetService": "ticketing",
+                    "via": "sendMessage"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\TicketingRequests::holdRequestedSeat",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true,
+                    "replyChannel": "tickets.hold.result",
+                    "targetChannel": "tickets.hold",
+                    "targetService": "ticketing",
+                    "via": "sendMessage"
+                }
+            },
+            {
+                "from": "handler:App\\Ordering\\TicketingRequests::releaseSeatsOfFailedOrder",
+                "to": "distributed:Ecotone\\Api\\Gateway\\DistributedBus",
+                "kind": "sendsTo",
+                "attributes": {
+                    "inferred": true,
+                    "targetChannel": "tickets.release",
+                    "targetService": "ticketing",
+                    "via": "sendMessage",
+                    "withoutReply": true
+                }
+            }
+        ]
+    }
+}

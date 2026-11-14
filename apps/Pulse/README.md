@@ -170,6 +170,41 @@ A parameter Pulse cannot read, such as `collapse=ticketing` for `collapse[]=tick
 refused with the shape it takes; an empty single value counts as absent. `focus` decides the services itself, so it is
 refused together with `services[]` or `view`.
 
+## Comparing flow versions
+
+A service keeps versions of its flow graph in a directory of its own, and Pulse asks the service for them; Pulse stores
+none. In the service, point Ecotone at the directory and store a version, for example on every release:
+
+```php
+#[ServiceContext]
+public function flowVersions(): FlowVersionsConfiguration
+{
+    return FlowVersionsConfiguration::createWithLocation(__DIR__ . '/../flow-versions');
+}
+```
+
+```bash
+bin/console ecotone:flow:store 1.4.0     # writes flow-versions/1.4.0.json, sorted so its git diff stays readable
+bin/console ecotone:flow:versions        # lists the stored versions, earliest first
+bin/console ecotone:flow:compare         # the version stored most recently against the current code
+bin/console ecotone:flow:store next --replace   # keeps one rolling version up to date
+bin/console ecotone:flow:compare --from=1.3.0 --to=1.4.0 --format=mermaid
+```
+
+Commit the directory with the application, so the deployed service can list what it holds. In CI,
+`ecotone:flow:compare` prints the added, removed and changed nodes and arrows as text, as JSON (`--format=json`) or as a
+Mermaid flowchart with the changes coloured (`--format=mermaid`), ready for a pull request comment; `--failOnChange`
+makes the command fail when anything differs, until the new flow is stored. The framework derives the graph, so store a
+new version after upgrading Ecotone too: a release that reads more of the flow shows as changes the application did not make.
+
+`/flow/compare?service={service}` (**Compare versions of {service}** under the flow graph) draws two versions as one
+graph: the version stored most recently against the live flow by default, or any two stored versions (`from`, `to`). A part only
+the later version has is marked **added**, a part only the earlier one has is marked **removed** and stays drawn where it
+sat, and a part whose attributes differ is marked **changed**. The **Changes** list under the graph names every one of
+them with the attributes that differ, and pressing an entry brings its node into view. A node is matched by its id (the
+handler's class and method, the routing key, the channel name), so a renamed class or method shows as one removal and one
+addition. A service without a location, or with no stored version yet, is told how to set one up.
+
 ## Catalogue pages and search
 
 Every node of the flow graph has its own page, `/catalogue/{service}/node?id={node id}`, linked from the message

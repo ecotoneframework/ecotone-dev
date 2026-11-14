@@ -111,13 +111,14 @@ const layout = (diagram, onlyTrace = false) => {
     svg.append(defs);
     const draw = (edge, points, extra = '', labelAt = null) => {
         const highlighted = edge.hasAttribute('data-highlighted');
-        const path = element('path', {class: `da da-${edge.dataset.arrow}${highlighted ? ' da-crossed' : ''}${extra}`, d: pathThrough(points), 'marker-end': `url(#${marker.id})`, 'data-from': edge.dataset.from, 'data-to': edge.dataset.to});
+        const change = edge.dataset.change ? ` da-${edge.dataset.change}` : '';
+        const path = element('path', {class: `da da-${edge.dataset.arrow}${highlighted ? ' da-crossed' : ''}${change}${extra}`, d: pathThrough(points), 'marker-end': `url(#${marker.id})`, 'data-from': edge.dataset.from, 'data-to': edge.dataset.to});
         svg.append(path);
         if (edge.dataset.label !== '') {
             const middle = points[Math.floor(points.length / 2)];
             const before = points[Math.max(0, Math.floor(points.length / 2) - 1)];
             const at = labelAt || (points.length % 2 === 0 ? {x: (middle.x + before.x) / 2, y: (middle.y + before.y) / 2} : middle);
-            svg.append(element('text', {class: 'da-label' + (highlighted ? ' da-crossed' : '') + extra, x: at.x, y: labelAt ? at.y + 4 : at.y - 5, 'data-from': edge.dataset.from, 'data-to': edge.dataset.to}, edge.dataset.label));
+            svg.append(element('text', {class: 'da-label' + (highlighted ? ' da-crossed' : '') + change + extra, x: at.x, y: labelAt ? at.y + 4 : at.y - 5, 'data-from': edge.dataset.from, 'data-to': edge.dataset.to}, edge.dataset.label));
         }
     };
     graph.edges().forEach((key) => { const placed = graph.edge(key); draw(edges[placed.index], placed.points, '', Number.isFinite(placed.x) && Number.isFinite(placed.y) ? {x: placed.x, y: placed.y} : null); });
@@ -161,7 +162,7 @@ const zoomable = (diagram, firstSize) => {
         view.style.height = Math.min(Math.ceil(size.height * scale) + 8, Math.round(window.innerHeight * 0.72)) + 'px';
         x = scale * size.width < view.clientWidth ? (view.clientWidth - scale * size.width) / 2 : 0;
         y = 0;
-        const anchor = stage.querySelector('[data-focused]:not([hidden])') || stage.querySelector('[aria-current]:not([hidden])') || stage.querySelector('[data-trace-state="traceFailed"]:not([hidden])') || stage.querySelector('[data-step="1"]:not([hidden])');
+        const anchor = stage.querySelector('[data-focused]:not([hidden])') || stage.querySelector('[aria-current]:not([hidden])') || stage.querySelector('[data-trace-state="traceFailed"]:not([hidden])') || stage.querySelector('[data-step="1"]:not([hidden])') || stage.querySelector('[data-change]:not([hidden])');
         if (anchor && (scale * size.width > view.clientWidth || scale * size.height > view.clientHeight)) {
             centreOn(anchor);
             x = Math.min(0, x);
@@ -228,6 +229,15 @@ const zoomable = (diagram, firstSize) => {
         setTimeout(() => node.classList.remove('dn-pointed'), 2500);
         view.scrollIntoView({block: 'nearest'});
     });
+    diagram.addEventListener('pulse:show-node', (event) => {
+        const node = stage.querySelector(`[data-diagram-node="${CSS.escape(String(event.detail))}"]:not([hidden])`);
+        if (!node) { return; }
+        centreOn(node);
+        apply();
+        node.classList.add('dn-pointed');
+        setTimeout(() => node.classList.remove('dn-pointed'), 2500);
+        view.scrollIntoView({block: 'nearest'});
+    });
     view.addEventListener('click', (event) => {
         if (dragged) {
             event.preventDefault();
@@ -282,4 +292,7 @@ document.querySelectorAll('[data-trace-step]').forEach((row) => {
     row.addEventListener('mouseleave', () => mark(false));
     row.addEventListener('focusin', () => mark(true));
     row.addEventListener('focusout', () => mark(false));
+});
+document.querySelectorAll('[data-compare-show]').forEach((button) => {
+    button.addEventListener('click', () => document.querySelectorAll('[data-diagram]').forEach((diagram) => diagram.dispatchEvent(new CustomEvent('pulse:show-node', {detail: button.dataset.compareShow}))));
 });

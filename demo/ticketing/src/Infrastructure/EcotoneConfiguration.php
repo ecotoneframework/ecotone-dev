@@ -12,6 +12,7 @@ use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\Flow\FlowVersionsConfiguration;
 use Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Tracing\TracingConfiguration;
@@ -46,6 +47,12 @@ final class EcotoneConfiguration
     public function pulse(): PulseConfiguration
     {
         return PulseConfiguration::createWithDefaults(pulseServiceName: 'ecotone_pulse');
+    }
+
+    #[ServiceContext]
+    public function flowVersions(): FlowVersionsConfiguration
+    {
+        return FlowVersionsConfiguration::createWithLocation(__DIR__ . '/../../flow-versions');
     }
 
     #[ServiceContext]

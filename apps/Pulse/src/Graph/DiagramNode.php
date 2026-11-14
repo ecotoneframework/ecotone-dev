@@ -19,6 +19,7 @@ final readonly class DiagramNode
         public ?string $href = null,
         public ?string $title = null,
         public bool $current = false,
+        public ?string $change = null,
     ) {
     }
 
@@ -40,6 +41,7 @@ final readonly class DiagramNode
             href: $link['href'] ?? null,
             title: $link['title'] ?? null,
             current: $link['current'] ?? false,
+            change: $this->change,
         );
     }
 

@@ -147,9 +147,10 @@ final class MessageFlowRoutingTest extends TestCase
         };
         $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
-        $id = 'handler:' . $service::class . '::handle';
-        self::assertEqualsCanonicalizing(['event.first', 'event.second'], $graph->node($id)->attributes['routingKeys']);
-        self::assertCount(2, $graph->edgesTo($id));
+        self::assertSame(['event.first'], $graph->node('handler:first')->attributes['routingKeys']);
+        self::assertSame(['event.second'], $graph->node('handler:second')->attributes['routingKeys']);
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:event.first', 'handler:first'));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:event.second', 'handler:second'));
     }
 
     public function test_command_and_event_attributes_show_both_handler_roles(): void

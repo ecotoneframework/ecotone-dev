@@ -96,13 +96,25 @@ final class MessageFlowGraphVerifier
             in_array($span->name, ['send command', 'send event', 'send query'], true) => self::messageNodeOf((string) $destination, $graph),
             $span->name === 'send distributed' => 'distributed:' . DistributedBus::class,
             isset($span->attributes[SpanAttribute::PROJECTION_NAME]) && (str_starts_with($span->name, 'process ') || isset($span->attributes[SpanAttribute::PROJECTION_OPERATION])) => 'projection:' . $span->attributes[SpanAttribute::PROJECTION_NAME],
-            isset($span->attributes[SpanAttribute::CODE_FUNCTION_NAME]) => 'handler:' . $span->attributes[SpanAttribute::CODE_FUNCTION_NAME],
+            isset($span->attributes[SpanAttribute::CODE_FUNCTION_NAME]) => self::handlerNodeOf($span->attributes[SpanAttribute::CODE_FUNCTION_NAME], $graph),
             str_starts_with($span->name, 'send ') => 'channel:' . substr($span->name, 5),
             str_starts_with($span->name, 'receive ') => 'channel:' . substr($span->name, 8),
             default => null,
         };
 
         return $node !== null && $graph->hasNode($node) ? $node : null;
+    }
+
+    private static function handlerNodeOf(string $function, MessageFlowGraph $graph): ?string
+    {
+        foreach ($graph->nodes() as $node) {
+            if (isset($node->attributes['class'], $node->attributes['method'])
+                && $node->attributes['class'] . '::' . $node->attributes['method'] === $function) {
+                return $node->id;
+            }
+        }
+
+        return null;
     }
 
     private static function messageNodeOf(string $destination, MessageFlowGraph $graph): ?string

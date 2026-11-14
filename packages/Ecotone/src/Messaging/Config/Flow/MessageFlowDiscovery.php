@@ -140,9 +140,10 @@ final class MessageFlowDiscovery
         $this->discoverGateways();
         $this->discoverScheduled();
         foreach (DecisionModelHandlers::scan($this->annotationFinder, $this->interfaceToCallRegistry)->appendingTheirResult() as $handler) {
-            $id = 'handler:' . $handler->className() . '::' . $handler->methodName();
-            if (isset($this->nodes[$id])) {
-                $this->nodes[$id] = $this->nodes[$id]->withAttributes(['returnsEvents' => true]);
+            foreach ($this->nodes as $id => $node) {
+                if (($node->attributes['class'] ?? null) === $handler->className() && ($node->attributes['method'] ?? null) === $handler->methodName()) {
+                    $this->nodes[$id] = $node->withAttributes(['returnsEvents' => true]);
+                }
             }
         }
 
@@ -455,7 +456,7 @@ final class MessageFlowDiscovery
         foreach ($this->applicationMethods(Scheduled::class) as $registration) {
             /** @var Scheduled $annotation */
             $annotation = $registration->getAnnotationForMethod();
-            $id = 'scheduled:' . $registration->getClassName() . '::' . $registration->getMethodName();
+            $id = 'scheduled:' . ($annotation->isEndpointIdGenerated() ? $registration->getClassName() . '::' . $registration->getMethodName() : $annotation->getEndpointId());
             $this->collaborators[$id] = $this->collaboratorsOf($registration);
             $this->nodes[$id] = new FlowNode($id, FlowNodeKind::SCHEDULED, $this->shortName($registration->getClassName()) . '::' . $registration->getMethodName(), [
                 'class' => $registration->getClassName(),
@@ -475,8 +476,8 @@ final class MessageFlowDiscovery
     {
         /** @var EndpointAnnotation $annotation */
         $annotation = $registration->getAnnotationForMethod();
-        $id = 'handler:' . $registration->getClassName() . '::' . $registration->getMethodName();
-        if (isset($this->nodes[$id]) && $this->nodes[$id]->kind !== $kind) {
+        $id = 'handler:' . ($annotation->isEndpointIdGenerated() ? $registration->getClassName() . '::' . $registration->getMethodName() : $annotation->getEndpointId());
+        if ($annotation->isEndpointIdGenerated() && isset($this->nodes[$id]) && $this->nodes[$id]->kind !== $kind) {
             $id .= ':' . $kind->value;
         }
         if (isset($this->nodes[$id]->attributes['routingKeys'], $attributes['routingKeys'])) {

@@ -51,7 +51,7 @@ final class CollectingMessageHandler implements MessageHandler
         private string $channelName,
         private ?int $maxSize,
         private AttributeExpressionExecutor $groupBy,
-        private string $groupByDescription,
+        private CollectedHandlerContext $context,
         private ?int $maxWait,
         private EcotoneClockInterface $clock,
         private ChannelResolver $channelResolver,
@@ -120,7 +120,7 @@ final class CollectingMessageHandler implements MessageHandler
         if ($this->groupBy->hasExpression()) {
             $key = $this->groupBy->execute($this->messageBuilder->fromMessage($message)->setPayload($this->payloadOf($message))->setContentType(MediaType::createApplicationXPHP())->build());
             if ((! is_string($key) && ! is_int($key) && ! $key instanceof Stringable) || (string) $key === '') {
-                throw InvalidArgumentException::create("Collected handler '{$this->endpointId}' groupBy '{$this->groupByDescription}' must return a non-empty string, an integer or a stringable object. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.");
+                throw InvalidArgumentException::create("Collected handler {$this->context->description} groupBy '{$this->context->groupByDescription}' must return a non-empty string, an integer or a stringable object. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.");
             }
             $groupKey = (string) $key;
         }

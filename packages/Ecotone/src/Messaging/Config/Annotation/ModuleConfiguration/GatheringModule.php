@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Collected;
+use Ecotone\Messaging\Handler\Gathering\CollectedHandlerContext;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Gathered;
@@ -191,19 +192,21 @@ final class GatheringModule extends NoExternalConfigurationModule
             $interface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
             $asynchronous = $interface->getSingleAnnotation(Type::create(Asynchronous::class));
             $handler = array_values(array_filter($interface->getMethodAnnotations(), static fn (object $annotation): bool => $annotation instanceof InternalHandler || $annotation instanceof CommandHandler || $annotation instanceof EventHandler))[0];
+            $handlerChannel = $handler instanceof EventHandler ? $handler->listenTo : $handler->getInputChannelName();
+            $handlerDescription = $collecting ? (new CollectedHandlerContext(className: $registration->getClassName(), methodName: $registration->getMethodName(), endpointId: $handler->getEndpointId(), groupByDescription: ''))->description : "'{$handlerChannel}'";
             $channelName = $asynchronous->getChannelName()[0];
             $channelName = $combinedChannels[$channelName][0] ?? $channelName;
             $builder = $channels[$channelName] ?? null;
             if (! $builder instanceof DelayedMessageChannelBuilder || ! $builder->supportsDelayedMessages()) {
                 $handlerChannel = $handler instanceof EventHandler ? $handler->listenTo : $handler->getInputChannelName();
-                throw ConfigurationException::create("{$kind} handler '{$handlerChannel}' {$hasTimeout} but asynchronous channel '{$channelName}' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove {$setting} from #[{$kind}].");
+                throw ConfigurationException::create("{$kind} handler {$handlerDescription} {$hasTimeout} but asynchronous channel '{$channelName}' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove {$setting} from #[{$kind}].");
             }
             $maximumDelay = $builder->maximumDelay();
             if ($maximumDelay !== null && $timeout->toMilliseconds() > $maximumDelay->toMilliseconds()) {
                 $handlerChannel = $handler instanceof EventHandler ? $handler->listenTo : $handler->getInputChannelName();
                 $timeoutMilliseconds = $timeout->toMilliseconds();
                 $maximumMilliseconds = $maximumDelay->toMilliseconds();
-                throw ConfigurationException::create("{$kind} handler '{$handlerChannel}' {$setting} of {$timeoutMilliseconds} milliseconds exceeds asynchronous channel '{$channelName}' maximum delay of {$maximumMilliseconds} milliseconds. Reduce {$setting} in #[{$kind}], use a channel with a longer maximum delay, or remove {$setting}.");
+                throw ConfigurationException::create("{$kind} handler {$handlerDescription} {$setting} of {$timeoutMilliseconds} milliseconds exceeds asynchronous channel '{$channelName}' maximum delay of {$maximumMilliseconds} milliseconds. Reduce {$setting} in #[{$kind}], use a channel with a longer maximum delay, or remove {$setting}.");
             }
         }
     }
@@ -234,8 +237,9 @@ final class GatheringModule extends NoExternalConfigurationModule
             $store = ExtensionObjectResolver::resolveUnique(className: GatheredGroupStoreRegistration::class, extensionObjects: $extensionObjects, default: new GatheredGroupStoreRegistration(InMemoryGatheredGroupStore::class));
             if ($store->serviceReference === InMemoryGatheredGroupStore::class && ! $messagingConfiguration->isRunningForTest()) {
                 if ($this->gatherChannelNames === []) {
-                    $endpointId = $this->collectedEndpointIds[0];
-                    throw ConfigurationException::create("Collected handler '{$endpointId}' requires durable storage outside flow testing: batches must survive restarts and be shared between consumers. Install ecotone/dbal, enable ModulePackageList::DBAL_PACKAGE, and run ecotone:migration:database:setup --initialize --feature=gathering before consuming messages. Use EcotoneLite::bootstrapFlowTesting() for in-memory tests, or remove #[Collected].");
+                    $registration = $this->annotationFinder->findAnnotatedMethods(Collected::class)[0];
+                    $handlerDescription = (new CollectedHandlerContext(className: $registration->getClassName(), methodName: $registration->getMethodName(), endpointId: $this->collectedEndpointIds[0], groupByDescription: ''))->description;
+                    throw ConfigurationException::create("Collected handler {$handlerDescription} requires durable storage outside flow testing: batches must survive restarts and be shared between consumers. Install ecotone/dbal, enable ModulePackageList::DBAL_PACKAGE, and run ecotone:migration:database:setup --initialize --feature=gathering before consuming messages. Use EcotoneLite::bootstrapFlowTesting() for in-memory tests, or remove #[Collected].");
                 }
                 $gatherChannelName = $this->gatherChannelNames[0];
                 throw ConfigurationException::create("Gather channel '{$gatherChannelName}' requires durable storage when bootstrapping without test configuration: in-memory groups cannot survive restarts or be shared between workers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove gatherChannelName from #[Splitter].");

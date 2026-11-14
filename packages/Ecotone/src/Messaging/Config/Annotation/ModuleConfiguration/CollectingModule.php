@@ -20,6 +20,7 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
+use Ecotone\Messaging\Handler\Gathering\CollectedHandlerContext;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
@@ -60,83 +61,79 @@ final class CollectingModule extends NoExternalConfigurationModule
         foreach ($this->annotationFinder->findAnnotatedMethods(Collected::class) as $registration) {
             $interface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
             $handlers = array_values(array_filter($interface->getMethodAnnotations(), static fn (object $attribute): bool => $attribute instanceof InternalHandler || $attribute instanceof CommandHandler || $attribute instanceof EventHandler));
-            $channel = $handlers === [] ? $registration->getMethodName() : ($handlers[0] instanceof EventHandler ? $handlers[0]->listenTo : $handlers[0]->getInputChannelName());
-            $this->validateHandlerKind(interface: $interface, handlers: $handlers, channel: $channel);
-            $this->validateSubscriptionAndAsynchronous(interface: $interface, handlers: $handlers, channel: $channel);
-            $this->validateReleaseLimits($registration->getAnnotationForMethod(), $channel);
-            $this->validateLicence($messagingConfiguration->isRunningForEnterpriseLicence(), $channel);
-            $this->validateBatchParameter($interface, $channel);
+            $context = new CollectedHandlerContext(className: $registration->getClassName(), methodName: $registration->getMethodName(), endpointId: $handlers === [] ? '' : $handlers[0]->getEndpointId(), groupByDescription: '');
+            $handlerDescription = $context->description;
+            $this->validateHandlerKind(interface: $interface, handlers: $handlers, handlerDescription: $handlerDescription);
+            $this->validateSubscriptionAndAsynchronous(interface: $interface, handlers: $handlers, handlerDescription: $handlerDescription);
+            $this->validateReleaseLimits($registration->getAnnotationForMethod(), $handlerDescription);
+            $this->validateLicence($messagingConfiguration->isRunningForEnterpriseLicence(), $handlerDescription);
+            $this->validateBatchParameter($interface, $handlerDescription);
         }
     }
 
-    private function validateHandlerKind(InterfaceToCall $interface, array $handlers, string $channel): void
+    private function validateHandlerKind(InterfaceToCall $interface, array $handlers, string $handlerDescription): void
     {
         if ($interface->hasMethodAnnotation(Gathered::class)) {
-            throw ConfigurationException::create("Collected handler '{$channel}' also has #[Gathered]: collecting ordinary messages and gathering split parts cannot share a handler. Remove #[Gathered] to collect ordinary messages, or remove #[Collected] to gather split parts.");
+            throw ConfigurationException::create("Collected handler {$handlerDescription} also has #[Gathered]: collecting ordinary messages and gathering split parts cannot share a handler. Remove #[Gathered] to collect ordinary messages, or remove #[Collected] to gather split parts.");
         }
         if ($interface->hasClassAnnotation(Aggregate::class)) {
-            throw ConfigurationException::create("Collected handler '{$channel}' belongs to an aggregate or saga, but a batch has no single instance to load. Move #[Collected] to a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
+            throw ConfigurationException::create("Collected handler {$handlerDescription} belongs to an aggregate or saga, but a batch has no single instance to load. Move #[Collected] to a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
         }
         if ($interface->hasAnnotation(QueryHandler::class)) {
-            $method = $interface->getMethodName();
-            throw ConfigurationException::create("Method '{$method}' is marked #[Collected] but is not an allowed message handler: a query caller waits for an answer. Stack #[Collected] on a service #[CommandHandler], #[EventHandler] or #[InternalHandler] with #[Asynchronous], or remove #[Collected].");
+            throw ConfigurationException::create("Collected handler {$handlerDescription} is not an allowed message handler: a query caller waits for an answer. Stack #[Collected] on a service #[CommandHandler], #[EventHandler] or #[InternalHandler] with #[Asynchronous], or remove #[Collected].");
         }
         if ($handlers === []) {
-            $method = $interface->getMethodName();
-            throw ConfigurationException::create("Method '{$method}' is marked #[Collected] but has no ordinary message handler attribute. Stack it on a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
+            throw ConfigurationException::create("Collected handler {$handlerDescription} has no ordinary message handler attribute. Stack it on a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
         }
 
     }
 
-    private function validateSubscriptionAndAsynchronous(InterfaceToCall $interface, array $handlers, string $channel): void
+    private function validateSubscriptionAndAsynchronous(InterfaceToCall $interface, array $handlers, string $handlerDescription): void
     {
         foreach ($handlers as $handler) {
             if ($handler instanceof InternalHandler && $handler->getInputChannelName() === '') {
-                $endpointId = $handler->getEndpointId();
-                throw ConfigurationException::create("Collected handler '{$endpointId}' cannot infer its subscription from the batch parameter. Set inputChannelName on #[InternalHandler], or remove #[Collected].");
+                throw ConfigurationException::create("Collected handler {$handlerDescription} cannot infer its subscription from the batch parameter. Set inputChannelName on #[InternalHandler], or remove #[Collected].");
             }
             if ($handler instanceof CommandHandler && $handler->getInputChannelName() === '') {
-                $endpointId = $handler->getEndpointId();
-                throw ConfigurationException::create("Collected handler '{$endpointId}' cannot infer its subscription from the batch parameter. Set routingKey on #[CommandHandler], or remove #[Collected].");
+                throw ConfigurationException::create("Collected handler {$handlerDescription} cannot infer its subscription from the batch parameter. Set routingKey on #[CommandHandler], or remove #[Collected].");
             }
             if ($handler instanceof EventHandler && $handler->listenTo === '') {
-                $endpointId = $handler->getEndpointId();
-                throw ConfigurationException::create("Collected handler '{$endpointId}' cannot infer its subscription from the batch parameter. Set listenTo on #[EventHandler], or remove #[Collected].");
+                throw ConfigurationException::create("Collected handler {$handlerDescription} cannot infer its subscription from the batch parameter. Set listenTo on #[EventHandler], or remove #[Collected].");
             }
         }
         if (! $interface->hasAnnotation(Asynchronous::class)) {
-            throw ConfigurationException::create("Collected handler '{$channel}' requires an asynchronous channel. Add #[Asynchronous('channelName')] to the handler, or remove #[Collected].");
+            throw ConfigurationException::create("Collected handler {$handlerDescription} requires an asynchronous channel. Add #[Asynchronous('channelName')] to the handler, or remove #[Collected].");
         }
 
     }
 
-    private function validateReleaseLimits(Collected $collected, string $channel): void
+    private function validateReleaseLimits(Collected $collected, string $handlerDescription): void
     {
         if ($collected->maxSize === null && $collected->maxWait === null) {
-            throw ConfigurationException::create("Collected handler '{$channel}' needs a release limit. Set maxSize or maxWait on #[Collected], or remove #[Collected].");
+            throw ConfigurationException::create("Collected handler {$handlerDescription} needs a release limit. Set maxSize or maxWait on #[Collected], or remove #[Collected].");
         }
         if ($collected->maxSize !== null && $collected->maxSize < 1) {
-            throw ConfigurationException::create("Collected handler '{$channel}' maxSize is {$collected->maxSize}; maxSize must be at least 1. Set maxSize to a positive integer, omit maxSize and set maxWait, or remove #[Collected].");
+            throw ConfigurationException::create("Collected handler {$handlerDescription} maxSize is {$collected->maxSize}; maxSize must be at least 1. Set maxSize to a positive integer, omit maxSize and set maxWait, or remove #[Collected].");
         }
         if ($collected->maxWait !== null && $collected->maxWait->toMilliseconds() <= 0) {
             $milliseconds = $collected->maxWait->toMilliseconds();
-            throw ConfigurationException::create("Collected handler '{$channel}' maxWait is {$milliseconds} milliseconds; maxWait must be greater than 0. Set a positive TimeSpan, omit maxWait and set maxSize, or remove #[Collected].");
+            throw ConfigurationException::create("Collected handler {$handlerDescription} maxWait is {$milliseconds} milliseconds; maxWait must be greater than 0. Set a positive TimeSpan, omit maxWait and set maxSize, or remove #[Collected].");
         }
 
     }
 
-    private function validateLicence(bool $enterprise, string $channel): void
+    private function validateLicence(bool $enterprise, string $handlerDescription): void
     {
         if (! $enterprise) {
-            throw LicensingException::create("Collected handler '{$channel}' requires an Ecotone Enterprise licence. Provide licenceKey in the framework configuration or EcotoneLite, start a trial at https://ecotone.tech/pricing, or remove #[Collected].");
+            throw LicensingException::create("Collected handler {$handlerDescription} requires an Ecotone Enterprise licence. Provide licenceKey in the framework configuration or EcotoneLite, start a trial at https://ecotone.tech/pricing, or remove #[Collected].");
         }
 
     }
 
-    private function validateBatchParameter(InterfaceToCall $interface, string $channel): void
+    private function validateBatchParameter(InterfaceToCall $interface, string $handlerDescription): void
     {
         if (! $interface->hasFirstParameter() || ! $interface->getFirstParameter()->getTypeDescriptor()->equals(Type::create(CollectedMessages::class))) {
-            throw ConfigurationException::create("Collected handler '{$channel}' must receive Ecotone\\Api\\Messaging\\CollectedMessages as its first payload parameter. Change that parameter type to CollectedMessages, or remove #[Collected].");
+            throw ConfigurationException::create("Collected handler {$handlerDescription} must receive Ecotone\\Api\\Messaging\\CollectedMessages as its first payload parameter. Change that parameter type to CollectedMessages, or remove #[Collected].");
         }
     }
 

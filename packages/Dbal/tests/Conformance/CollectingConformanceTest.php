@@ -119,7 +119,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone = $this->bootstrap($handler, $durable);
 
         $ecotone->sendCommandWithRouting('collect', ['tenant' => null]);
-        $this->expectExceptionMessage("Collected handler 'collect.handler' groupBy 'payload[\"tenant\"]' must return a non-empty string, an integer or a stringable object. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.");
+        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') groupBy 'payload[\"tenant\"]' must return a non-empty string, an integer or a stringable object. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.");
         $ecotone->run('batches');
     }
 
@@ -805,7 +805,7 @@ final class CollectingConformanceTest extends TestCase
             $failure = $caught;
         }
         self::assertNotNull($failure);
-        self::assertStringContainsString("Collected handler 'collect.handler' groupBy 'payload[\"tenant\"]'", $failure->getMessage());
+        self::assertStringContainsString("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') groupBy 'payload[\"tenant\"]'", $failure->getMessage());
         self::assertStringContainsString('non-empty string, an integer or a stringable object', $failure->getMessage());
         self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
     }

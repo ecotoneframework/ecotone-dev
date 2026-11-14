@@ -202,7 +202,7 @@ choices; no held item remains. Test names below omit their `test_` prefix.
 | C19 / H2 | `3a527ee98` | Enterprise GatheringHandlerCompiler; collecting licence/bootstrap and gathering regression tests |
 | C20 | `8c35ee273`, `815b4fc07`, `398fae2a2` | Named-argument/spacing sweep; DbalGatheringModule flag renamed usesGatheringStorage; php-cs-fixer run over every changed file in packages and apps/Pulse; existing suites unchanged |
 | C21 | `f825d9955` | group_key_can_be_a_closure_with_payload_first_or_explicit_after_a_header; compiler exposes no reusable payload-type query |
-| C22 | `192269028`, `5ef988066` | Upgrade entry alongside gathering: schema migration, reserved services/commands and consumer rollout; C31 recovery change included |
+| C22 | `192269028`, `5ef988066` | Upgrade entry alongside gathering: reserved services/commands and consumer rollout. The prerelease-table parts (migrating or recreating gathering tables created before this change, the "column does not exist" note) are withdrawn by maintainer decision C34 |
 | C23 | `3d296a813` | endpoint_ids_with_core_suffixes_compile_independent_collected_handlers |
 | C24 | `192269028` | Guide Test it example executed with licence, pinned time and run() |
 | C25 | `192269028` | Guide specifies PHP 8.5 closure syntax, older-version error and string alternative; closure tests use RequiresPhp |
@@ -308,6 +308,18 @@ rows now that they carry an endpoint id; one meaning and one time unit per row f
 |---|---|---|
 | S1 | `b4dc636c8` | listing_a_gather_channel_name_names_its_gathered_handler_endpoint_id and listing_an_unknown_endpoint_id_names_the_known_endpoint_ids (gateway open and closed listings and the console command, both stores); batches_stored_under_an_endpoint_id_without_a_current_handler_are_still_listed (DBAL, discard works under the old id) |
 | S2 | `39db8f654` | Upgrade note no longer claims a generated gathered endpoint id was accepted; the adaptation step is removed |
-| S3 | `39db8f654` | Upgrade note and gathering guide: groups opened before the change still complete but are not listed; a renamed endpoint's groups stay under the old id |
-| S4 | `8854434e3` | group_from_a_service_built_before_the_shared_listing_shows_a_dash_for_missing_fields (reproduced: the page failed with HTTP 500 on the old row shape) |
+| S3 | — | Withdrawn by maintainer decision C34; the note that a renamed endpoint's open groups stay listed under the old id is kept in the gathering guide |
+| S4 | — | Withdrawn by maintainer decision C34: the dash guards and their test are removed |
 | S5 | `39db8f654` | Guide example handler endpointId `import.summary.handler`, used by the list example |
+
+### Maintainer decision C34 (2026-11-14)
+
+Ecotone 2.0 is a beta and gathering has never been in a tagged release, so nothing in this pull request stays
+compatible with the gathering merged to main on 2026-11-14 (#765). Removed: the Pulse dash guards for rows in the
+pre-unification shape and their test; the upgrade entries comparing unreleased states ("Gathering conflicts use
+the framework retry strategy", "Gathering groups are listed by the gathered handler's endpointId") and every
+sentence about gathering tables or groups created before this change; the matching guide and spec sentences; the
+nullable `endpoint_id` and `opened_at` group columns, which existed only for rows written without them, and the
+in-memory `groupKey` fallbacks. The still-true facts (conflicts throw `ConcurrencyException` and use the default
+retries; listings are selected by endpointId) are folded into the feature entries. S3, S4 and the prerelease-table
+parts of C22 are withdrawn.

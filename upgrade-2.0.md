@@ -3963,8 +3963,16 @@ without the DBAL module, including framework kernels running in a test environme
 Run the gathered handler's consumer to process empty splits and release requests too. See
 [Message gathering](docs/message-gathering.md) for timeout, replay, nesting, retention and operations.
 
+Groups are listed by the gathered handler's `endpointId`, which must be explicit and stable:
+`GatheredGroups::listOpenGroups(endpointId)` / `listClosedGroups(endpointId)` and
+`ecotone:gathering:list <endpointId> [--closed]`, the same listing as collected batches.
 `GatheredGroups::requestRelease(groupId)` queues a manual release and returns no value; the group stays open
 until its gathered handler's consumer processes the trigger. Console and Pulse show `release requested`.
+
+Several consumers recording reports for one group can conflict. A lost optimistic write throws
+`ConcurrencyException`, and the default instant retries of an asynchronous endpoint running in a database
+transaction handle it, each attempt in a new transaction; after them it follows the configured error channel,
+delayed retries and dead letter. An endpoint without that transaction gets no default retry.
 
 Upgrade every consumer participating in a gathered flow before enabling `gatherChannelName`. Older workers
 acknowledge completed parts without reporting them to gathering, so mixed-version gathered flows remain incomplete.
@@ -3973,72 +3981,24 @@ The feature reserves `ecotone_gathering_*` message headers, `ecotone:gathering:*
 a message carrying a gathering group header: give that nested splitter its own gather channel, or start a separate
 flow through a command/event bus hop.
 
-
-### Gathering conflicts use the framework retry strategy
-
-**Before:** A gathering conflict created a replacement report with a new id and did not use the failure retry budget,
-on every endpoint, including one running without a database transaction.
-
-**Now:** A lost optimistic write throws `ConcurrencyException`. Transactional asynchronous endpoints use their
-existing default instant retries in fresh transactions. Exhaustion follows the configured error channel, delayed
-retries and dead letter; replay retries the original message. Collecting uses the same path.
-
-**How to adapt:** The default retries need no configuration. For a hot group or key whose messages exhaust retries,
-raise attempts with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 5)`, or
-run one consumer on the gathered/collected handler's channel, giving that handler its own channel when needed.
-Replay messages waiting in the dead letter once contention clears.
-
-An endpoint running without a database transaction (`DbalConfiguration::withTransactionOnAsynchronousEndpoints(false)`
-or `#[WithoutDatabaseTransaction]`) gets no default instant retries, so a conflict there now goes straight to the
-error channel instead of being re-sent. Turn the endpoint transaction back on for gathered handlers, or configure
-delayed retries with `ErrorHandlerConfiguration`.
-
-### Gathering groups are listed by the gathered handler's endpointId
-
-**Before:** `GatheredGroups::listOpenGroups()` / `listClosedGroups()` and `ecotone:gathering:list` selected groups
-by gather channel name. Rows held `gatherChannelName`, `size` and `accountedPartNumbers`.
-
-**Now:** Groups are selected by the gathered handler's `endpointId`, through the same listing as collected batches.
-Rows share one shape: `groupId`, `endpointId`, `groupKey`, `state`, `expectedSize`, `recorded`,
-`missingPartNumbers`, `latePartCount`, `openedAt`, `deadline`, `closedAt` and `releaseReason`. Pulse shows both kinds
-in one table. Listing an id that is neither a gathered nor a collected endpoint id and holds no stored groups is
-refused: a gather channel name is answered with its handler's endpoint id, any other id with the known endpoint
-ids. An id that still holds groups is listed even without a current handler, so a renamed endpoint's groups can be
-released or discarded under the old id. A gathered handler without an explicit `endpointId` was already refused at
-bootstrap; the refusal now says its groups are stored and listed under it. Groups record their endpoint id, opening
-time and release reason, and the gathering table's (gather_channel_name, state) index becomes (endpoint_id, state).
-
-**How to adapt:** pass the gathered handler's `endpointId` to `listOpenGroups()`, `listClosedGroups()` and
-`ecotone:gathering:list` instead of the gather channel name, and read `expectedSize` and `recorded` instead of
-`size` and `accountedPartNumbers`. Gathering tables created before this change are migrated as the next entry
-describes. Groups opened before this change have no endpoint id: they still complete, release, discard and clean
-up, but are not listed.
-
 ### Collect ordinary messages into a batch (Enterprise)
 
-**Before:** Ordinary asynchronous service handlers ran once per message. Gathering tables created before this change
-held split groups and parts only.
+**Before:** Ordinary asynchronous service handlers ran once per message.
 
-**Now:** Opt-in `#[Collected]` handlers receive a typed batch. Unmarked handlers retain their behavior. Gathering's
-unreleased tables gain nullable endpoint_id, group_key, group_key_hash, open_slot, opened_at and release_reason columns on groups and
-endpoint_id/message_id columns on parts. A unique (endpoint_id, group_key_hash, open_slot) index enforces one
-open batch per key, and a unique (endpoint_id, message_id) index deduplicates retained messages; setup creates new tables
-but does not alter existing ones.
+**Now:** Opt-in `#[Collected]` handlers receive a typed batch when it reaches its size limit or its first message
+reaches the waiting limit. Unmarked handlers retain their behavior. Batches are kept in the gathering tables, one
+open batch per endpoint and key, and a message already recorded for an endpoint is not recorded twice. Conflicts
+throw `ConcurrencyException` and use the default retries, as for gathering.
 
-**How to adapt:** No application change is required unless enabling collecting or using gathering tables created before this change. For collecting, follow [the guide](docs/message-collecting.md), use explicit subscriptions and
-stable endpoint ids, configure DBAL and an Enterprise licence, and upgrade all consumers before adding the marker.
-For gathering tables created before this change, drain its open groups and stop consumers, then migrate the new
-columns/indexes through your application migrations (compare generated `--sql --feature=gathering` output), or
-recreate only the gathering tables if their retained history can be discarded:
-`ecotone:migration:database:delete --feature=gathering --force`, then
-`ecotone:migration:database:setup --initialize --feature=gathering`. Restart consumers after the schema is ready.
+**How to adapt:** No application change is required unless enabling collecting. Follow
+[the guide](docs/message-collecting.md): use explicit subscriptions and stable endpoint ids, configure DBAL and an
+Enterprise licence, and run `ecotone:migration:database:setup --initialize --feature=gathering` before the first
+message.
 
-Gathering listings also use the new endpoint_id column. Tables created before this change produce a "column does
-not exist" error (or the engine's "unknown column" equivalent) until migrated, even without a collected handler.
-The feature reserves `ecotone.collecting.*` container service identifiers.
-Batches are listed with `ecotone:gathering:list <endpointId>` and share `ecotone:gathering:release`, `discard` and `cleanup`.
-Upgrade every consumer before adding the marker: an older consumer invokes the handler with one ordinary payload
-and cannot supply the collected batch object.
+The feature reserves `ecotone.collecting.*` container service identifiers. Batches are listed with
+`ecotone:gathering:list <endpointId>` and share `ecotone:gathering:release`, `discard` and `cleanup`. Upgrade every
+consumer before adding the marker: an older consumer invokes the handler with one ordinary payload and cannot supply
+the collected batch object.
 
 
 ## 15. Testing and developer-experience changes

@@ -131,9 +131,7 @@ Use the `Ecotone\Api\Gateway\GatheredGroups` gateway to `listOpenGroups(endpoint
 are listed by the gathered handler's `endpointId`, the same listing that shows
 [collected batches](message-collecting.md). A gathered handler therefore needs an explicit, stable `endpointId`;
 bootstrap refuses one without it. Listing a gather channel name instead is refused with the handler's endpoint
-id. Groups stored by a version that listed by gather channel name carry no endpoint id: they still complete,
-release, discard and clean up, but are not listed. Renaming the endpointId leaves its open groups listed only under
-the old id; release or discard them there.
+id. Renaming the endpointId leaves its open groups listed only under the old id; release or discard them there.
 
 Each row contains `groupId`, `endpointId`, `groupKey` (null for a gathered group), `state`, `expectedSize` (the
 number of split parts), `recorded` (parts recorded so far), `missingPartNumbers`, `latePartCount`, `openedAt`,
@@ -186,7 +184,7 @@ With several consumers on one hot group, the default three retries can run out. 
 configured error channel and delayed retries and can wait in the dead letter until replayed. Raise the instant
 retry count with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 5)`,
 or run one consumer on the gathered handler's channel; give that handler its own channel when other handlers
-need more consumers. No replacement message is created. A redelivered original keeps its own message id, and
+need more consumers. A redelivered original keeps its own message id, and
 the retained group-id/part-number identity prevents recording the same report twice.
 
 ## Deployment and connection selection

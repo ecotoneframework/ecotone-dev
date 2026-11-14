@@ -112,8 +112,6 @@ in the console and Pulse; the internal sentinel never appears in the API or UI.
 
 Endpoint identity is durable: renaming an endpoint orphans its open batches under the old id. List and release
 or discard them before deploying a rename. All consumers must be upgraded before enabling the marker.
-Gathering tables are unreleased; existing prerelease installations must migrate the added columns/indexes or
-drain and recreate the gathering tables before upgrading. Setup does not alter existing tables.
 
 ## Acceptance evidence
 

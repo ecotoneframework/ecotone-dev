@@ -139,23 +139,31 @@ final class InternalFlowComparisonTest extends TestCase
         self::assertGreaterThan(0, $group['wiringParts'][0]['unchangedNeighboursLeftOut']);
     }
 
-    public function test_trace_is_cut_to_the_changed_steps_with_one_step_of_context_on_each_side(): void
+    public function test_a_long_trace_is_cut_to_the_changed_steps_with_one_step_of_context_on_each_side(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering());
-        $this->record('Placing an order', 'after', $this->orderingWithAudit());
+        $this->record('Placing three orders', 'before', $this->ordering(), times: 3);
+        $this->record('Placing three orders', 'after', $this->orderingWithAudit(), times: 3);
 
         $trace = $this->comparison()['groups'][0]['trace'];
 
         self::assertSame(
-            [
-                ['change' => 'left out', 'steps' => 2],
-                ['change' => 'unchanged', 'step' => ['depth' => 2, 'name' => 'send event', 'destination' => 'order.placed', 'kind' => 'Server', 'status' => 'Ok']],
-                ['change' => 'added', 'step' => ['depth' => 3, 'name' => 'route audit', 'destination' => 'audit.target', 'kind' => 'Producer', 'status' => 'Ok']],
-                ['change' => 'added', 'step' => ['depth' => 4, 'name' => 'process class@anonymous::audit', 'kind' => 'Server', 'status' => 'Ok']],
-                ['change' => 'unchanged', 'step' => ['depth' => 3, 'name' => 'route whenOrderWasPlaced', 'destination' => 'whenOrderWasPlaced.target', 'kind' => 'Producer', 'status' => 'Ok']],
-                ['change' => 'left out', 'steps' => 3],
-            ],
-            $trace,
+            ['left out', 'unchanged', 'added', 'added', 'unchanged', 'left out', 'unchanged', 'added', 'added', 'unchanged', 'left out', 'unchanged', 'added', 'added', 'unchanged', 'left out'],
+            array_column($trace, 'change'),
+        );
+        self::assertSame([2, 5, 5, 3], array_column($trace, 'steps'));
+        self::assertSame(['depth' => 2, 'name' => 'send event', 'destination' => 'order.placed', 'kind' => 'Server', 'status' => 'Ok'], $trace[1]['step']);
+        self::assertSame(['depth' => 3, 'name' => 'route audit', 'destination' => 'audit.target', 'kind' => 'Producer', 'status' => 'Ok'], $trace[2]['step']);
+        self::assertSame(['depth' => 4, 'name' => 'process class@anonymous::audit', 'kind' => 'Server', 'status' => 'Ok'], $trace[3]['step']);
+    }
+
+    public function test_a_short_trace_keeps_every_unchanged_step_as_context(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->orderingWithAudit());
+
+        self::assertSame(
+            ['unchanged', 'unchanged', 'unchanged', 'added', 'added', 'unchanged', 'unchanged', 'unchanged', 'unchanged'],
+            array_column($this->comparison()['groups'][0]['trace'], 'change'),
         );
     }
 
@@ -364,11 +372,13 @@ final class InternalFlowComparisonTest extends TestCase
         };
     }
 
-    private function record(string $scenario, string $side, object $ordering): void
+    private function record(string $scenario, string $side, object $ordering, int $times = 1): void
     {
         $ecotone = $this->application([$ordering::class], [$ordering]);
-        $ecotone->sendCommandWithRouting('order.place', []);
-        $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+        for ($sent = 0; $sent < $times; $sent++) {
+            $ecotone->sendCommandWithRouting('order.place', []);
+            $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+        }
 
         $ecotone->runConsoleCommand('ecotone:internal-flow:record', ['scenario' => $scenario, 'location' => $this->location . '/' . $side]);
     }

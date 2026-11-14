@@ -7,7 +7,7 @@ namespace Ecotone\Test\Flow\Snapshot;
 use Ecotone\Api\Messaging\Flow\FlowEdge;
 use Ecotone\Api\Messaging\Flow\FlowEdgeChange;
 use Ecotone\Api\Messaging\Flow\FlowNode;
-use Ecotone\Api\Messaging\Flow\FlowNodeChange;
+use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
@@ -19,8 +19,10 @@ final class FlowComparisonMarkdown
     public const MARKED_DIAGRAM = 'B';
     public const MESSAGE_PATH = 'C';
     private const STEPS_PER_LIST = 40;
-    private const NAMES_PER_SENTENCE = 4;
+    private const SCENARIOS_PER_LINE = 6;
     private const EMPTY_FLOWCHART = "flowchart LR\n";
+    private const OUTLINES = 'dotted outline = registered by Ecotone, solid outline = declared by the application; `then sends to` = the handler\'s result goes to that channel, `routed to` = chosen at runtime by a bus or a routing slip, an unlabelled arrow out of a channel = consumed by';
+    private const DERIVED_STEP = ' (from the wiring: no span is recorded)';
 
     public static function of(FlowSnapshotComparison $comparison, string $presentation): string
     {
@@ -33,11 +35,14 @@ final class FlowComparisonMarkdown
         }
         $changed = array_sum(array_map(fn (array $group): int => count($group['scenarios']), $comparison->groups));
         $sections = array_map(
-            fn (array $group): string => self::headingOf($group['scenarios']) . match ($presentation) {
-                self::BEFORE_AFTER_PAIR => self::beforeAfterPair($group['change']),
-                self::MARKED_DIAGRAM => self::markedDiagram($group['change']),
-                default => self::messagePath($group['change']),
-            },
+            fn (array $group): string => self::headingOf($group['scenarios'], $group['varyingNames'])
+                . implode("\n\n", $group['change']->summary()) . "\n\n"
+                . match ($presentation) {
+                    self::BEFORE_AFTER_PAIR => self::beforeAfterPair($group['change']),
+                    self::MARKED_DIAGRAM => self::markedDiagram($group['change']),
+                    default => self::messagePath($group['change']),
+                }
+            . self::offThePathLine($group['change']),
             $comparison->groups,
         );
 
@@ -46,16 +51,22 @@ final class FlowComparisonMarkdown
 
     /**
      * @param list<string> $scenarios
+     * @param list<string> $varyingNames
      */
-    private static function headingOf(array $scenarios): string
+    private static function headingOf(array $scenarios, array $varyingNames): string
     {
         if (count($scenarios) === 1) {
             return "### `{$scenarios[0]}`\n\n";
         }
+        $names = array_map(fn (string $scenario): string => "`{$scenario}`", $scenarios);
+        $shownFor = $varyingNames === [] ? '' : " Shown for `{$varyingNames[0]}`; the same holds with "
+            . implode(' or ', array_map(fn (string $name): string => "`{$name}`", array_slice($varyingNames, 1))) . ' in its place.';
 
-        return '### ' . count($scenarios) . " scenarios with the same change\n\n<details><summary>Scenarios</summary>\n\n"
-            . implode("\n", array_map(fn (string $scenario): string => "- `{$scenario}`", $scenarios))
-            . "\n\n</details>\n\n";
+        return '### ' . count($scenarios) . " scenarios with the same change\n\n" . (
+            count($scenarios) <= self::SCENARIOS_PER_LINE
+                ? 'Applies to: ' . implode(', ', $names) . '.' . $shownFor . "\n\n"
+                : "<details><summary>Applies to</summary>\n\n" . implode("\n", array_map(fn (string $name): string => '- ' . $name, $names)) . "\n\n</details>\n\n" . ($shownFor === '' ? '' : trim($shownFor) . "\n\n")
+        );
     }
 
     private static function beforeAfterPair(FlowScenarioChange $change): string
@@ -63,17 +74,18 @@ final class FlowComparisonMarkdown
         $markdown = self::wiringHeading($change);
         foreach ($change->wiringParts() as $position => $part) {
             $markdown .= self::partHeading($change, $position)
-                . "Before:\n\n" . self::flowchart($change->wiringPartBefore($position)->toMermaid())
-                . "After:\n\n" . self::flowchart($change->wiringPartAfter($position)->toMermaid())
+                . "Before:\n\n" . self::flowchart(self::readable($change->wiringPartBefore($position), $change->before->wiring)->toMermaid())
+                . "After:\n\n" . self::flowchart(self::readable($change->wiringPartAfter($position), $change->after->wiring)->toMermaid())
                 . self::leftOutLine($part['unchangedNeighboursLeftOut']);
         }
+        $markdown .= $change->wiringParts() === [] ? '' : '_Legend: ' . self::OUTLINES . "._\n\n";
         if (! $change->hasTraceChanges()) {
             return $markdown . "#### Traced steps\n\nUnchanged.\n";
         }
 
         return $markdown . "#### Traced steps\n\n"
-            . "Before:\n\n" . self::stepList($change, FlowScenarioChange::ADDED)
-            . "After:\n\n" . self::stepList($change, FlowScenarioChange::REMOVED);
+            . "Before:\n\n" . self::stepList($change, FlowScenarioChange::ADDED, $change->before->wiring)
+            . "After:\n\n" . self::stepList($change, FlowScenarioChange::REMOVED, $change->after->wiring);
     }
 
     private static function markedDiagram(FlowScenarioChange $change): string
@@ -81,9 +93,10 @@ final class FlowComparisonMarkdown
         $markdown = self::wiringHeading($change);
         foreach ($change->wiringParts() as $position => $part) {
             $markdown .= self::partHeading($change, $position)
-                . self::flowchart($change->wiringPartOfBothSides($position)->toMermaidWithChangesOf($change->wiring))
+                . self::flowchart(self::readable($change->wiringPartOfBothSides($position), $change->wiring->combinedGraph(), $change->after->wiring)->toMermaidWithChangesOf($change->wiring))
                 . self::leftOutLine($part['unchangedNeighboursLeftOut']);
         }
+        $markdown .= $change->wiringParts() === [] ? '' : '_Legend: green = added, red dashed = removed, yellow = changed; ' . self::OUTLINES . "._\n\n";
         if (! $change->hasTraceChanges()) {
             return $markdown . "#### Traced steps\n\nUnchanged.\n";
         }
@@ -91,9 +104,9 @@ final class FlowComparisonMarkdown
         foreach ($change->scopedTrace() as $entry) {
             $lines[] = match ($entry['change']) {
                 FlowScenarioChange::LEFT_OUT => "@@ {$entry['steps']} steps unchanged @@",
-                FlowScenarioChange::ADDED => '+' . self::stepLine($entry['step']),
-                FlowScenarioChange::REMOVED => '-' . self::stepLine($entry['step']),
-                default => ' ' . self::stepLine($entry['step']),
+                FlowScenarioChange::ADDED => '+' . self::stepLine($entry['step'], $change->after->wiring),
+                FlowScenarioChange::REMOVED => '-' . self::stepLine($entry['step'], $change->before->wiring),
+                default => ' ' . self::stepLine($entry['step'], $change->after->wiring),
             };
         }
 
@@ -109,7 +122,7 @@ final class FlowComparisonMarkdown
             $after = self::arrowsAsPath([...$change->wiring->addedEdges, ...array_map(fn (FlowEdgeChange $changed): FlowEdge => $changed->after, $change->wiring->changedEdges)], '+ ', $change);
         }
         $participants = [];
-        $lines = [];
+        $sides = [];
         foreach (['Before' => ['255, 235, 233', $before], 'After' => ['218, 251, 225', $after]] as $side => [$colour, $path]) {
             $arrows = [];
             foreach ($path as $position => $arrow) {
@@ -120,101 +133,82 @@ final class FlowComparisonMarkdown
                 }
                 $participants[$arrow['from']] ??= 'p' . count($participants);
                 $participants[$arrow['to']] ??= 'p' . count($participants);
-                $arrows[] = "    {$participants[$arrow['from']]}->>{$participants[$arrow['to']]}: " . self::sequenceText($arrow['label']);
+                $arrows[] = "    {$participants[$arrow['from']]}" . ($arrow['derived'] ? '-->>' : '->>') . "{$participants[$arrow['to']]}: " . self::sequenceText($arrow['label']);
             }
-            if ($arrows === []) {
-                continue;
+            if ($arrows !== []) {
+                $sides[] = [$side, $colour, $arrows];
             }
-            $firstArrow = $path[0];
-            $lines = [...$lines, "    rect rgb({$colour})", "    Note over {$participants[$firstArrow['from']]}: {$side}", ...$arrows, '    end'];
+        }
+        $lines = [];
+        foreach ($sides as [$side, $colour, $arrows]) {
+            $width = count($participants) === 1 ? 'p0' : 'p0,p' . (count($participants) - 1);
+            $lines = [...$lines, "    rect rgb({$colour})", "    Note over {$width}: {$side}", ...$arrows, '    end'];
         }
         $declared = array_map(fn (string $place, string $id): string => "    participant {$id} as " . self::sequenceText($place), array_keys($participants), $participants);
 
-        return "#### The message's path\n\n"
-            . ($lines === [] ? '' : "```mermaid\nsequenceDiagram\n" . implode("\n", [...$declared, ...$lines]) . "\n```\n\n")
-            . implode("\n", self::sentencesOf($change)) . "\n";
+        return "#### The message's path\n\n" . ($lines === [] ? "Nothing to follow: neither the traced steps nor an arrow changed.\n" : "```mermaid\nsequenceDiagram\n" . implode("\n", [...$declared, ...$lines]) . "\n```\n\n"
+            . "_Legend: solid arrow = a traced step, dashed arrow = taken from the wiring because no span is recorded; `+` = new, `-` = gone._\n");
+    }
+
+    private static function offThePathLine(FlowScenarioChange $change): string
+    {
+        $offThePath = $change->registeredOffThePath();
+        $lines = [];
+        foreach (['added' => ['Also registered now, not on this path: ', $change->after->wiring], 'removed' => ['No longer registered, not on this path: ', $change->before->wiring]] as $side => [$opening, $wiring]) {
+            $names = [];
+            foreach ($offThePath[$side] as $node) {
+                if (! in_array($node->kind->value, ['channel', 'interceptor'], true) || count($offThePath[$side]) === 1) {
+                    $names[] = '`' . FlowWording::ofNode($node, $wiring) . '`';
+                }
+            }
+            sort($names, SORT_STRING);
+            if ($names !== []) {
+                $lines[] = "\n" . $opening . implode(', ', array_slice($names, 0, 8)) . (count($names) > 8 ? ' and ' . (count($names) - 8) . ' more' : '') . ".\n";
+            }
+        }
+
+        return implode('', $lines);
     }
 
     /**
      * @param list<FlowEdge> $arrows
-     * @return list<array{from: string, to: string, label: string}>
+     * @return list<array{from: string, to: string, label: string, derived: bool}>
      */
     private static function arrowsAsPath(array $arrows, string $mark, FlowScenarioChange $change): array
     {
         $combined = $change->wiring->combinedGraph();
-
-        return array_map(
-            fn (FlowEdge $arrow): array => ['from' => self::nameOf($combined->node($arrow->from)), 'to' => self::nameOf($combined->node($arrow->to)), 'label' => $mark . $arrow->kind->value],
-            $arrows,
-        );
-    }
-
-    /**
-     * @return list<string>
-     */
-    private static function sentencesOf(FlowScenarioChange $change): array
-    {
-        if ($change->state !== FlowScenarioChange::CHANGED) {
-            return ['- The scenario was ' . $change->state . ': all ' . count($change->trace) . ' of its traced steps are ' . ($change->state === FlowScenarioChange::ADDED ? 'new' : 'gone') . '. Its whole wiring is in its snapshot file.'];
-        }
-        $wiring = array_filter([
-            self::counted($change->wiring->addedNodes, 'node', 'added', self::nameOf(...)),
-            self::counted($change->wiring->removedNodes, 'node', 'removed', self::nameOf(...)),
-            self::counted($change->wiring->changedNodes, 'node', 'changed', fn (FlowNodeChange $changed): string => self::nameOf($changed->after)),
-            self::counted($change->wiring->addedEdges, 'arrow', 'added', null),
-            self::counted($change->wiring->removedEdges, 'arrow', 'removed', null),
-            self::counted($change->wiring->changedEdges, 'arrow', 'changed', null),
-        ]);
-        $steps = ['added' => [], 'removed' => []];
-        foreach ($change->trace as $entry) {
-            if ($entry['change'] !== FlowScenarioChange::UNCHANGED) {
-                $steps[$entry['change']][] = '`' . trim(self::stepLine(['depth' => 0] + $entry['step'])) . '`';
+        $offThePath = [];
+        foreach ($change->registeredOffThePath() as $nodes) {
+            foreach ($nodes as $node) {
+                $offThePath[$node->id] = true;
             }
         }
-        $trace = array_filter([
-            $steps['added'] === [] ? null : 'the message now also takes ' . self::listed($steps['added']),
-            $steps['removed'] === [] ? null : 'the message no longer takes ' . self::listed($steps['removed']),
-        ]);
-
-        return [
-            '- Wiring: ' . ($wiring === [] ? 'unchanged' : implode(', ', $wiring)) . '.',
-            '- Traced steps: ' . ($trace === [] ? 'unchanged' : implode('; ', $trace)) . '.',
-        ];
-    }
-
-    /**
-     * @param list<mixed> $elements
-     */
-    private static function counted(array $elements, string $what, string $change, ?callable $nameOf): ?string
-    {
-        if ($elements === []) {
-            return null;
+        $path = [];
+        foreach ($arrows as $arrow) {
+            if (! isset($offThePath[$arrow->from]) && ! isset($offThePath[$arrow->to])) {
+                $path[] = ['from' => FlowWording::ofNode($combined->node($arrow->from), $combined), 'to' => FlowWording::ofNode($combined->node($arrow->to), $combined), 'label' => $mark . FlowWording::ofArrow($arrow->kind), 'derived' => true];
+            }
         }
-        $sentence = count($elements) . ' ' . $what . (count($elements) === 1 ? '' : 's') . ' ' . $change;
 
-        return $nameOf === null ? $sentence : $sentence . ' (' . self::listed(array_map(fn (mixed $element): string => '`' . $nameOf($element) . '`', $elements)) . ')';
+        return $path;
     }
 
-    /**
-     * @param list<string> $names
-     */
-    private static function listed(array $names): string
+    private static function readable(MessageFlowGraph $part, MessageFlowGraph $whole, ?MessageFlowGraph $entryPointsOf = null): MessageFlowGraph
     {
-        $shown = array_slice($names, 0, self::NAMES_PER_SENTENCE);
+        $nodes = array_map(
+            fn (FlowNode $node): FlowNode => new FlowNode($node->id, $node->kind, FlowWording::ofNode($node, $entryPointsOf !== null && $entryPointsOf->hasNode($node->id) ? $entryPointsOf : $whole), $node->attributes),
+            $part->nodes(),
+        );
+        usort($nodes, fn (FlowNode $first, FlowNode $second): int => strcmp($first->id, $second->id));
 
-        return implode(', ', $shown) . (count($names) > count($shown) ? ' and ' . (count($names) - count($shown)) . ' more' : '');
-    }
-
-    private static function nameOf(FlowNode $node): string
-    {
-        return ucwords((string) preg_replace('/(?<=[a-z])(?=[A-Z])/', ' ', $node->kind->value)) . ' ' . $node->label;
+        return MessageFlowGraph::create($nodes, $part->edges());
     }
 
     private static function wiringHeading(FlowScenarioChange $change): string
     {
         return "#### Wiring\n\n" . match (true) {
             $change->state !== FlowScenarioChange::CHANGED => "The scenario was {$change->state}; its whole wiring is in its snapshot file.\n\n",
-            $change->wiringParts() === [] => "Unchanged.\n\n",
+            $change->wiringParts() === [] => ($change->wiring->hasChanges() ? 'Nothing on the path changed.' : 'Unchanged.') . "\n\n",
             default => '',
         };
     }
@@ -226,7 +220,9 @@ final class FlowComparisonMarkdown
 
     private static function flowchart(string $mermaid): string
     {
-        return $mermaid === self::EMPTY_FLOWCHART ? "Nothing of this part exists on this side.\n\n" : "```mermaid\n{$mermaid}```\n\n";
+        return $mermaid === self::EMPTY_FLOWCHART
+            ? "Nothing of this part exists on this side.\n\n"
+            : "```mermaid\n" . str_replace(['|"output"|', '|"routes"|'], ['|"then sends to"|', '|"routed to"|'], $mermaid) . "```\n\n";
     }
 
     private static function leftOutLine(int $unchangedNeighboursLeftOut): string
@@ -234,18 +230,19 @@ final class FlowComparisonMarkdown
         return $unchangedNeighboursLeftOut === 0 ? '' : "_and {$unchangedNeighboursLeftOut} more unchanged neighbours_\n\n";
     }
 
-    private static function stepList(FlowScenarioChange $change, string $skippedChange): string
+    private static function stepList(FlowScenarioChange $change, string $skippedChange, MessageFlowGraph $wiring): string
     {
         $lines = [];
         foreach ($change->scopedTrace() as $entry) {
             if ($entry['change'] === $skippedChange) {
                 continue;
             }
-            if ($entry['change'] === FlowScenarioChange::LEFT_OUT) {
-                $lines[] = "… {$entry['steps']} steps unchanged";
-                continue;
-            }
-            $lines[] = self::stepLine($entry['step']);
+            $lines[] = match ($entry['change']) {
+                FlowScenarioChange::LEFT_OUT => "… {$entry['steps']} steps unchanged",
+                FlowScenarioChange::ADDED => self::stepLine($entry['step'], $wiring) . '   ← new',
+                FlowScenarioChange::REMOVED => self::stepLine($entry['step'], $wiring) . '   ← gone',
+                default => self::stepLine($entry['step'], $wiring),
+            };
         }
 
         return "```text\n" . implode("\n", self::capped($lines)) . "\n```\n\n";
@@ -254,11 +251,12 @@ final class FlowComparisonMarkdown
     /**
      * @param array<string, mixed> $step
      */
-    private static function stepLine(array $step): string
+    private static function stepLine(array $step, MessageFlowGraph $wiring): string
     {
-        return str_repeat('  ', (int) $step['depth']) . $step['name']
-            . (isset($step['destination']) ? ' → ' . $step['destination'] : '')
-            . ($step['status'] === 'Ok' ? '' : " ({$step['status']})");
+        return str_repeat('  ', (int) $step['depth']) . FlowWording::ofStep($step, $wiring)
+            . (isset($step['destination']) && ! str_ends_with(FlowWording::ofStep($step, $wiring), ' ' . $step['destination']) ? ' → ' . $step['destination'] : '')
+            . ($step['status'] === 'Ok' ? '' : " ({$step['status']})")
+            . (isset($step['derivedFromWiring']) ? self::DERIVED_STEP : '');
     }
 
     /**

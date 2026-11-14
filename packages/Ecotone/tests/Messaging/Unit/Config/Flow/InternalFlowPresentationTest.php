@@ -52,15 +52,15 @@ final class InternalFlowPresentationTest extends TestCase
 
         $markdown = $this->presentation('A');
 
-        self::assertStringStartsWith("## Message flow: what changed\n\n1 of 1 scenarios changed.\n\n### `Placing an order`\n\n#### Wiring\n\nBefore:\n\n```mermaid\nflowchart LR\n", $markdown);
+        self::assertStringStartsWith("## Message flow: what changed\n\n1 of 1 scenarios changed.\n\n### `Placing an order`\n\nBefore: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### Wiring\n\nBefore:\n\n```mermaid\nflowchart LR\n", $markdown);
         [$before, $after] = $this->mermaidBlocksOf($markdown);
         self::assertStringNotContainsString('audit', $before);
-        self::assertStringContainsString('Event Handler<br/>class@anonymous#1::audit', $after);
+        self::assertStringContainsString('Event Handler<br/>audit', $after);
         self::assertStringContainsString('Channel<br/>audit.target', $after);
         self::assertStringNotContainsString('classDef added', $after);
         self::assertStringContainsString(
-            "#### Traced steps\n\nBefore:\n\n```text\n… 2 steps unchanged\n    send event → order.placed\n      route whenOrderWasPlaced → whenOrderWasPlaced.target\n… 3 steps unchanged\n```\n\n"
-            . "After:\n\n```text\n… 2 steps unchanged\n    send event → order.placed\n      route audit → audit.target\n        process class@anonymous::audit\n      route whenOrderWasPlaced → whenOrderWasPlaced.target\n… 3 steps unchanged\n```\n",
+            "#### Traced steps\n\nBefore:\n\n```text\nsend command order.place\n  process command handler place\n    send event order.placed\n      route whenOrderWasPlaced → whenOrderWasPlaced.target\n  send notifications\n    receive notifications\n      process event handler whenPlaced\n```\n\n"
+            . "After:\n\n```text\nsend command order.place\n  process command handler place\n    send event order.placed\n      route audit → audit.target   ← new\n        process event handler audit   ← new\n      route whenOrderWasPlaced → whenOrderWasPlaced.target\n  send notifications\n    receive notifications\n      process event handler whenPlaced\n```\n",
             $markdown,
         );
     }
@@ -74,9 +74,9 @@ final class InternalFlowPresentationTest extends TestCase
         $diagrams = $this->mermaidBlocksOf($markdown);
         self::assertCount(1, $diagrams);
         self::assertStringContainsString('    classDef added fill:#dafbe1,stroke:#2da44e,color:#1f2328', $diagrams[0]);
-        self::assertStringContainsString('Event Handler<br/>class@anonymous#1::audit', $diagrams[0]);
+        self::assertStringContainsString('Event Handler<br/>audit', $diagrams[0]);
         self::assertStringContainsString(
-            "#### Traced steps\n\n```diff\n@@ 2 steps unchanged @@\n     send event → order.placed\n+      route audit → audit.target\n+        process class@anonymous::audit\n       route whenOrderWasPlaced → whenOrderWasPlaced.target\n@@ 3 steps unchanged @@\n```\n",
+            "#### Traced steps\n\n```diff\n send command order.place\n   process command handler place\n     send event order.placed\n+      route audit → audit.target\n+        process event handler audit\n       route whenOrderWasPlaced → whenOrderWasPlaced.target\n   send notifications\n     receive notifications\n       process event handler whenPlaced\n```\n",
             $markdown,
         );
     }
@@ -88,7 +88,7 @@ final class InternalFlowPresentationTest extends TestCase
         $markdown = $this->presentation('B', from: 'after', to: 'before');
 
         self::assertStringContainsString('    classDef removed fill:#ffebe9,stroke:#cf222e,color:#1f2328,stroke-dasharray:5 5', $markdown);
-        self::assertStringContainsString("-      route audit → audit.target\n-        process class@anonymous::audit\n", $markdown);
+        self::assertStringContainsString("-      route audit → audit.target\n-        process event handler audit\n", $markdown);
     }
 
     public function test_message_path_follows_the_message_before_and_after_as_one_sequence_diagram_with_sentences(): void
@@ -104,10 +104,9 @@ final class InternalFlowPresentationTest extends TestCase
         self::assertStringContainsString('Before', $before);
         self::assertStringNotContainsString('audit', $before);
         self::assertStringContainsString('After', $after);
-        self::assertMatchesRegularExpression('/^    p\d+->>p\d+: \+ route audit$/m', $after);
-        self::assertMatchesRegularExpression('/^    p\d+->>p\d+: \+ process class@anonymous::audit$/m', $after);
-        self::assertStringContainsString('- Wiring: 2 nodes added (`Channel audit.target`, `Event Handler class@anonymous#1::audit`)', $markdown);
-        self::assertStringContainsString('- Traced steps: the message now also takes `route audit → audit.target`, `process class@anonymous::audit`.', $markdown);
+        self::assertMatchesRegularExpression('/^    p\d+->>p\d+: \+ handles$/m', $after);
+        self::assertMatchesRegularExpression('/^    participant p\d+ as event handler audit$/m', $diagrams[0]);
+        self::assertStringContainsString("Before: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### The message's path\n", $markdown);
     }
 
     public function test_every_presentation_keeps_each_diagram_within_fifteen_nodes_and_says_what_it_left_out(): void
@@ -132,7 +131,7 @@ final class InternalFlowPresentationTest extends TestCase
 
         $markdown = $this->presentation('B');
 
-        self::assertStringContainsString("2 of 2 scenarios changed.\n\n### 2 scenarios with the same change\n\n<details><summary>Scenarios</summary>\n\n- `First ordering`\n- `Second ordering`\n\n</details>\n", $markdown);
+        self::assertStringContainsString("2 of 2 scenarios changed.\n\n### 2 scenarios with the same change\n\nApplies to: `First ordering`, `Second ordering`.\n\n", $markdown);
         self::assertCount(1, $this->mermaidBlocksOf($markdown));
     }
 

@@ -10,7 +10,7 @@ namespace Ecotone\Test\Flow\Snapshot;
 final class FlowSnapshotComparison
 {
     /**
-     * @param list<array{scenarios: list<string>, change: FlowScenarioChange}> $groups
+     * @param list<array{scenarios: list<string>, varyingNames: list<string>, change: FlowScenarioChange}> $groups
      */
     private function __construct(public readonly int $scenariosCompared, public readonly array $groups)
     {
@@ -32,9 +32,27 @@ final class FlowSnapshotComparison
         ksort($changes, SORT_STRING);
         $groups = [];
         foreach ($changes as $change) {
-            $groups[$change->identity()] ??= ['scenarios' => [], 'change' => $change];
+            $groups[$change->identity()] ??= ['scenarios' => [], 'varyingNames' => [], 'change' => $change];
             $groups[$change->identity()]['scenarios'][] = $change->scenario;
         }
+        $merged = [];
+        foreach ($groups as $group) {
+            foreach ($merged as $position => $earlier) {
+                $ownNames = array_values(array_diff($earlier['change']->namesIn(), $group['change']->namesIn()));
+                $otherNames = array_values(array_diff($group['change']->namesIn(), $earlier['change']->namesIn()));
+                usort($ownNames, fn (string $first, string $second): int => [strlen($first), $first] <=> [strlen($second), $second]);
+                usort($otherNames, fn (string $first, string $second): int => [strlen($first), $first] <=> [strlen($second), $second]);
+                $ownName = $earlier['varyingNames'][0] ?? $ownNames[0] ?? null;
+                if ($ownName === null || $otherNames === [] || $earlier['change']->identity($ownName) !== $group['change']->identity($otherNames[0])) {
+                    continue;
+                }
+                $merged[$position]['scenarios'] = [...$earlier['scenarios'], ...$group['scenarios']];
+                $merged[$position]['varyingNames'] = [...($earlier['varyingNames'] === [] ? [$ownName] : $earlier['varyingNames']), $otherNames[0]];
+                continue 2;
+            }
+            $merged[] = $group;
+        }
+        $groups = $merged;
 
         return new self(count($before + $after), array_values($groups));
     }
@@ -46,7 +64,7 @@ final class FlowSnapshotComparison
     {
         return [
             'scenariosCompared' => $this->scenariosCompared,
-            'groups' => array_map(fn (array $group): array => ['scenarios' => $group['scenarios'], ...$group['change']->toArray()], $this->groups),
+            'groups' => array_map(fn (array $group): array => ['scenarios' => $group['scenarios'], 'varyingNames' => $group['varyingNames'], ...$group['change']->toArray()], $this->groups),
         ];
     }
 

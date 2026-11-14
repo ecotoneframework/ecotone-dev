@@ -204,8 +204,8 @@ final class MessageFlowChannelTest extends TestCase
         };
         $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], [SimpleMessageChannelBuilder::createQueueChannel('reviews')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
-        foreach (['validate' => 'review', 'review' => 'notify'] as $step => $next) {
-            self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::ROUTES_TO, ($step === 'review' ? 'handler:approval.reviewing' : 'handler:' . $service::class . '::' . $step), 'channel:approval.' . $next));
+        foreach (['handler:' . $service::class . '::validate' => 'review', 'handler:approval.reviewing' => 'notify'] as $handler => $next) {
+            self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::ROUTES_TO, $handler, 'channel:approval.' . $next));
             self::assertTrue($edges[0]->isInferred());
         }
         self::assertCount(0, $graph->edgesFrom('handler:' . $service::class . '::notify'));

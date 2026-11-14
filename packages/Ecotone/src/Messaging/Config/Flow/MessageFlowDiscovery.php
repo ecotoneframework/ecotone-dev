@@ -64,6 +64,7 @@ use Ecotone\Api\Projecting\ProjectionBackfill;
 use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
+use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -456,7 +457,7 @@ final class MessageFlowDiscovery
         foreach ($this->applicationMethods(Scheduled::class) as $registration) {
             /** @var Scheduled $annotation */
             $annotation = $registration->getAnnotationForMethod();
-            $id = 'scheduled:' . ($annotation->isEndpointIdGenerated() ? $registration->getClassName() . '::' . $registration->getMethodName() : $annotation->getEndpointId());
+            $id = $this->endpointNodeId($registration, $annotation, 'scheduled');
             $this->collaborators[$id] = $this->collaboratorsOf($registration);
             $this->nodes[$id] = new FlowNode($id, FlowNodeKind::SCHEDULED, $this->shortName($registration->getClassName()) . '::' . $registration->getMethodName(), [
                 'class' => $registration->getClassName(),
@@ -476,7 +477,7 @@ final class MessageFlowDiscovery
     {
         /** @var EndpointAnnotation $annotation */
         $annotation = $registration->getAnnotationForMethod();
-        $id = 'handler:' . ($annotation->isEndpointIdGenerated() ? $registration->getClassName() . '::' . $registration->getMethodName() : $annotation->getEndpointId());
+        $id = $this->endpointNodeId($registration, $annotation, 'handler');
         if ($annotation->isEndpointIdGenerated() && isset($this->nodes[$id]) && $this->nodes[$id]->kind !== $kind) {
             $id .= ':' . $kind->value;
         }
@@ -497,6 +498,11 @@ final class MessageFlowDiscovery
         }
 
         return $id;
+    }
+
+    private function endpointNodeId(AnnotatedFinding $registration, IdentifiedAnnotation $annotation, string $prefix): string
+    {
+        return $prefix . ':' . ($annotation->isEndpointIdGenerated() ? $registration->getClassName() . '::' . $registration->getMethodName() : $annotation->getEndpointId());
     }
 
     private function registerOutput(string $handlerId, string $outputChannelName): void

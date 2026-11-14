@@ -36,6 +36,11 @@ final class GatheringConflictRedelivery
     {
     }
 
+    public function resendCollected(Message $message, string $channelName): void
+    {
+        $this->resend($this->messageBuilder->fromMessage($message)->setHeader(CollectingMessageIdentity::ORIGINAL_MESSAGE_ID, CollectingMessageIdentity::of($message))->build(), $channelName);
+    }
+
     public function resend(Message $message, string $channelName): void
     {
         $headers = FrameworkHeaders::unsetNonUserKeys($message->getHeaders()->headers());

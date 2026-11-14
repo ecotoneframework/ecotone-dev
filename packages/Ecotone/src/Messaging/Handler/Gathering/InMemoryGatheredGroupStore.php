@@ -65,7 +65,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
                 continue;
             }
             foreach ($group['parts'] as $part) {
-                if ($part->getHeaders()->getMessageId() === $message->getHeaders()->getMessageId()) {
+                if (CollectingMessageIdentity::of($part) === CollectingMessageIdentity::of($message)) {
                     return true;
                 }
             }

@@ -6,6 +6,9 @@ namespace Test\Ecotone\Dbal\Conformance;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Amqp\AmqpConnectionReference;
+use Ecotone\Api\Amqp\AmqpLibConnectionFactory;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
@@ -15,6 +18,7 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -28,6 +32,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -50,12 +55,25 @@ final class CollectingConcurrencyTest extends TestCase
     }
 
 
-    private function proveConcurrentBatch(bool $alreadyOpen): void
+    public function test_original_message_redelivery_after_a_real_database_conflict_is_not_collected_twice(): void
+    {
+        $this->proveConcurrentBatch(alreadyOpen: false, replayOriginals: true);
+    }
+
+    public function test_original_message_redelivery_after_a_real_database_conflict_on_a_non_transactional_channel_is_not_collected_twice(): void
+    {
+        if (! class_exists(AmqpBackedMessageChannelBuilder::class)) {
+            self::markTestSkipped('The non-transactional conflict path requires the optional AMQP package.');
+        }
+        $this->proveConcurrentBatch(alreadyOpen: false, replayOriginals: true, nonTransactional: true);
+    }
+
+    private function proveConcurrentBatch(bool $alreadyOpen, bool $replayOriginals = false, bool $nonTransactional = false): void
     {
         if ((new DbalConnectionFactory(getenv('DATABASE_DSN')))->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite serialises writers with a database-wide lock, so this two-connection race is proved on PostgreSQL, MySQL and MariaDB only.');
         }
-        $application = self::concurrentApplication();
+        $application = self::concurrentApplication(nonTransactional: $nonTransactional);
         $application->run('collecting_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
         $testId = bin2hex(random_bytes(16));
         $previousFailures = array_map(static fn ($failure): string => $failure->getMessageId(), $application->getGateway(DeadLetterGateway::class)->list(1000, 0));
@@ -63,11 +81,20 @@ final class CollectingConcurrencyTest extends TestCase
             $application->sendCommandWithRouting('collect.concurrent', ['testId' => $testId, 'value' => 1], metadata: ['testId' => $testId]);
             $application->run('collecting_concurrency');
         }
+        $originalIds = [];
         foreach (range($alreadyOpen ? 2 : 1, 8) as $value) {
-            $application->sendCommandWithRouting('collect.concurrent', ['testId' => $testId, 'value' => $value], metadata: ['testId' => $testId]);
+            $originalIds[$value] = bin2hex(random_bytes(16));
+            $application->sendCommandWithRouting('collect.concurrent', ['testId' => $testId, 'value' => $value], metadata: ['testId' => $testId, MessageHeaders::MESSAGE_ID => $originalIds[$value]]);
         }
-        $this->runConcurrentConsumers($alreadyOpen ? 7 : 8, __FILE__, 'consumeConcurrentMessage');
+        $this->runConcurrentConsumers(numberOfConsumers: $alreadyOpen ? 7 : 8, testFile: __FILE__, consumerMethod: $nonTransactional ? 'consumeConcurrentMessageFromNonTransactionalChannel' : 'consumeConcurrentMessage');
         $application->run('collecting_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+
+        if ($replayOriginals) {
+            foreach ($originalIds as $value => $messageId) {
+                $application->sendCommandWithRouting('collect.concurrent', ['testId' => $testId, 'value' => $value], metadata: ['testId' => $testId, MessageHeaders::MESSAGE_ID => $messageId]);
+            }
+            $application->run('collecting_concurrency', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+        }
 
         $results = array_values(array_filter($application->getGateway(DocumentStore::class)->getAllDocuments('collecting_concurrent_results'), static fn (string $document): bool => json_decode($document, true, flags: JSON_THROW_ON_ERROR)['testId'] === $testId));
         self::assertCount(1, $results);
@@ -89,7 +116,12 @@ final class CollectingConcurrencyTest extends TestCase
         self::concurrentApplication([self::concurrentConsumerBarrier()])->run('collecting_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false)->withExecutionAmountLimit(1));
     }
 
-    private static function concurrentApplication(array $additionalServices = []): FlowTestSupport
+    public static function consumeConcurrentMessageFromNonTransactionalChannel(): void
+    {
+        self::concurrentApplication(additionalServices: [self::concurrentConsumerBarrier()], nonTransactional: true)->run('collecting_concurrency', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false)->withExecutionAmountLimit(1));
+    }
+
+    private static function concurrentApplication(array $additionalServices = [], bool $nonTransactional = false): FlowTestSupport
     {
         $handler = new class () {
             #[Collected(maxSize: 8, groupBy: 'payload["testId"]')]
@@ -105,15 +137,15 @@ final class CollectingConcurrencyTest extends TestCase
             public function recordDelivery(MethodInvocation $invocation, Message $message, #[Header('testId')] string $testId, #[Reference] DocumentStore $documents): mixed
             {
                 $result = $invocation->proceed();
-                $documents->addDocument('collecting_concurrent_deliveries', $message->getHeaders()->getMessageId(), json_encode(['testId' => $testId], JSON_THROW_ON_ERROR));
+                $documents->addDocument('collecting_concurrent_deliveries', bin2hex(random_bytes(16)), json_encode(['testId' => $testId, 'messageId' => $message->getHeaders()->getMessageId()], JSON_THROW_ON_ERROR));
                 return $result;
             }
         };
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, $deliveries::class, ...array_map(static fn (object $service): string => $service::class, $additionalServices)],
-            containerOrAvailableServices: [$handler, $deliveries, ...$additionalServices, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
-            extensionObjects: [DbalBackedMessageChannelBuilder::create('collecting_concurrency'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter')],
-            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            containerOrAvailableServices: [$handler, $deliveries, ...$additionalServices, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN')), ...($nonTransactional ? [AmqpConnectionReference::defaultConnection()->getReferenceName() => new AmqpLibConnectionFactory(getenv('RABBIT_HOST'))] : [])],
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false), ($nonTransactional ? AmqpBackedMessageChannelBuilder::create('collecting_concurrency') : DbalBackedMessageChannelBuilder::create('collecting_concurrency')), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter')],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ...($nonTransactional ? [ModulePackageList::AMQP_PACKAGE] : [])],
             licenceKey: LicenceTesting::VALID_LICENCE,
             testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),

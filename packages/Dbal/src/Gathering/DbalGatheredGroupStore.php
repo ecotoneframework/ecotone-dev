@@ -11,6 +11,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Handler\Gathering\CollectingMessageIdentity;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupNotFound;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Throwable;
@@ -88,7 +89,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
     {
         $connection = $this->connection();
         try {
-            if ($connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE handler = ? AND message_id = ?', [$handler, $message->getHeaders()->getMessageId()]) !== false) {
+            if ($connection->fetchOne('SELECT 1 FROM ' . self::PART_TABLE . ' WHERE handler = ? AND message_id = ?', [$handler, CollectingMessageIdentity::of($message)]) !== false) {
                 return true;
             }
             $keyHash = hash('sha256', $groupKey ?? '');
@@ -111,7 +112,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             if ($updated === 0) {
                 return false;
             }
-            $connection->insert(self::PART_TABLE, ['group_id' => $group['group_id'], 'part_number' => $arrived, 'report' => $this->messages->encode($message), 'handler' => $handler, 'message_id' => $message->getHeaders()->getMessageId()]);
+            $connection->insert(self::PART_TABLE, ['group_id' => $group['group_id'], 'part_number' => $arrived, 'report' => $this->messages->encode($message), 'handler' => $handler, 'message_id' => CollectingMessageIdentity::of($message)]);
             if ($completed) {
                 $parts = [];
                 foreach ($this->loadPartsForRelease($group['group_id']) as $part) {

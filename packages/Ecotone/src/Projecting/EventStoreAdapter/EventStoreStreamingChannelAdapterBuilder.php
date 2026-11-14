@@ -97,6 +97,16 @@ class EventStoreStreamingChannelAdapterBuilder implements ProjectionExecutorBuil
         return null;
     }
 
+    public function backfillCompletionChannelName(): ?string
+    {
+        return null;
+    }
+
+    public function rebuildCompletionChannelName(): ?string
+    {
+        return null;
+    }
+
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
         return new Definition(

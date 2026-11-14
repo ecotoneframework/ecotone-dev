@@ -36,9 +36,10 @@ A run is listed under the endpoint id `<projection>.rebuild` or `<projection>.ba
   `ecotone:gathering:list ticket_sales.rebuild`, show the batch count, the batches recorded, the batch numbers not
   done yet, and when the run opened and closed.
 - Ecotone Pulse shows the run on the projection page: batches done out of the batch count, a failed batch with a
-  link to its dead letter, the batches not done yet, and done with its duration. It reads this from the run, so it
-  is right also when no traces are stored. Runs started from the console are listed too. The run is also listed
-  on the service's Gathering tab.
+  link to its dead letter (the run waits for its replay), the batches not done yet, and done with its duration. A
+  run whose group was discarded or released by hand is shown as discarded or released, with the batches not done.
+  Pulse reads this from the run, so it is right also when no traces are stored. Runs started from the console are
+  listed too. The run is also listed on the service's Gathering tab.
 
 An application handler may not use `<projection>.rebuild` or `<projection>.backfill` as its `endpointId`;
 the application is refused at bootstrap with the names of both.
@@ -53,28 +54,29 @@ named in `asyncChannelName` must be registered, or the application is refused at
 
 ## Completion channel
 
-Each batch reports itself with a small message. By default that message goes to the same `asyncChannelName` as
-the batches, so the consumers you already run complete the run. Name a separate channel to consume the reports on
-their own:
+When you watch a run's progress in Ecotone Pulse, or run several consumers on the batch channel, name a completion
+channel and run one consumer on it:
 
 ```php
 #[ProjectionRebuild(partitionBatchSize: 100, asyncChannelName: 'projection_runs', completionChannelName: 'projection_run_completions')]
 ```
 
-`completionChannelName` needs `asyncChannelName`; naming it alone is refused.
+Each batch reports itself with a small message when it has projected its partitions. Without
+`completionChannelName`, that message goes to the same `asyncChannelName` as the batches, so the consumers you
+already run complete the run. The reports then queue behind the batches that are not executed yet: the run shows
+no batch done until every batch has run, and then advances as the reports are consumed. Pulse shows such a run
+with its running time and says so. With a separate completion channel and its consumer running, the run advances
+as each batch finishes. `completionChannelName` needs `asyncChannelName`; naming it alone is refused.
 
 Two reports of the same run recorded at the same moment conflict. The conflict is retried by the framework's
-instant retries, and a report whose retries run out waits in the dead letter; replaying it records the batch.
-Measured on PostgreSQL with 40 batches and the default retry configuration, the reports that reached the dead
-letter were: 0 with 1 consumer on the shared channel, 1 with 4 consumers, 6 with 8 consumers, and 0 with a
-separate completion channel consumed by one consumer (with 1, 4 or 8 consumers on the batches). One consumer on
-the completion channel records the reports one after another. The attempts can be raised with
+instant retries, and a report whose retries run out waits in the dead letter; replaying it records the batch, and
+Pulse shows that batch as done with its record waiting. Measured on PostgreSQL with 40 batches and the default
+retry configuration, the reports that reached the dead letter were: 0 with 1 consumer on the shared channel, 1
+with 4 consumers, 6 with 8 consumers, and 0 with a separate completion channel consumed by one consumer (with 1,
+4 or 8 consumers on the batches). One consumer on the completion channel records the reports one after another.
+The attempts can be raised with
 `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 5)`; that setting was not
 part of the measurement.
-
-On the shared channel the reports queue behind the batches that are not executed yet, so the run shows
-`0 of N batches` until every batch has run and then advances as the reports are consumed. With a separate
-completion channel and its consumer running, the run advances as each batch finishes.
 
 ## Failure and replay
 

@@ -13,6 +13,7 @@ final readonly class Rebuild
     /**
      * @param list<int> $missingBatches
      * @param list<array{batch: int, deadLetterMessageId: string}> $failedBatches
+     * @param list<array{batch: int, deadLetterMessageId: string}> $batchesWaitingToBeRecorded
      */
     public function __construct(
         public ?string $tracingId,
@@ -28,6 +29,7 @@ final readonly class Rebuild
         public array $missingBatches = [],
         public array $failedBatches = [],
         public ?string $groupId = null,
+        public array $batchesWaitingToBeRecorded = [],
     ) {
     }
 
@@ -39,7 +41,7 @@ final readonly class Rebuild
         $kind = self::KINDS[$tracking['type'] ?? null] ?? null;
         $tracingId = is_string($tracking['tracingId'] ?? null) ? $tracking['tracingId'] : null;
         $groupId = is_string($tracking['groupId'] ?? null) ? $tracking['groupId'] : null;
-        if ($kind === null || ($tracingId === null && $groupId === null) || ! is_string($tracking['reference'] ?? null) || ! in_array($tracking['state'] ?? null, ['running', 'done', 'failed'], true)) {
+        if ($kind === null || ($tracingId === null && $groupId === null) || ! is_string($tracking['reference'] ?? null) || ! in_array($tracking['state'] ?? null, ['running', 'done', 'failed', 'discarded', 'released'], true)) {
             return null;
         }
 
@@ -55,9 +57,18 @@ final readonly class Rebuild
             is_int($tracking['durationMs'] ?? null) ? $tracking['durationMs'] : null,
             ($tracking['startedFrom'] ?? null) === 'console' ? 'console' : 'pulse',
             is_array($tracking['missingBatches'] ?? null) ? array_values(array_filter($tracking['missingBatches'], is_int(...))) : [],
-            is_array($tracking['failedBatches'] ?? null) ? array_values(array_filter($tracking['failedBatches'], static fn (mixed $failed): bool => is_array($failed) && is_int($failed['batch'] ?? null) && is_string($failed['deadLetterMessageId'] ?? null))) : [],
+            self::batchesOf($tracking['failedBatches'] ?? null),
             $groupId,
+            self::batchesOf($tracking['batchesWaitingToBeRecorded'] ?? null),
         );
+    }
+
+    /**
+     * @return list<array{batch: int, deadLetterMessageId: string}>
+     */
+    private static function batchesOf(mixed $batches): array
+    {
+        return is_array($batches) ? array_values(array_filter($batches, static fn (mixed $batch): bool => is_array($batch) && is_int($batch['batch'] ?? null) && is_string($batch['deadLetterMessageId'] ?? null))) : [];
     }
 
     public function key(): string
@@ -82,11 +93,29 @@ final readonly class Rebuild
 
     public function missingBatchesLabel(): ?string
     {
-        if ($this->missingBatches === [] || $this->state === 'done') {
+        $accounted = [...array_column($this->failedBatches, 'batch'), ...array_column($this->batchesWaitingToBeRecorded, 'batch')];
+        $notDone = array_values(array_diff($this->missingBatches, $accounted));
+        if ($notDone === [] || $this->state === 'done' || count($notDone) >= $this->batchesDone) {
             return null;
         }
 
-        return sprintf('%s %s not done yet', count($this->missingBatches) === 1 ? 'batch' : 'batches', implode(', ', $this->missingBatches));
+        return sprintf('%s %s not done yet', count($notDone) === 1 ? 'batch' : 'batches', implode(', ', $notDone));
+    }
+
+    public function stateLabel(): string
+    {
+        return match ($this->state) {
+            'done' => $this->doneLabel(),
+            'failed' => $this->label() . ' waiting',
+            'discarded' => $this->label() . ' discarded',
+            'released' => $this->label() . ' released by hand',
+            default => $this->label() . ' running',
+        };
+    }
+
+    public function isClosedEarly(): bool
+    {
+        return in_array($this->state, ['discarded', 'released'], true);
     }
 
     public function label(): string

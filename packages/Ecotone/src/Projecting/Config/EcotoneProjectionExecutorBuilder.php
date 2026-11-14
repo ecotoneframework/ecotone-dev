@@ -60,6 +60,8 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
         private bool    $hasDeployment = false,
         private bool    $polling = false,
         private ?string $partitionTag = null,
+        private ?string $backfillCompletionChannelName = null,
+        private ?string $rebuildCompletionChannelName = null,
     ) {
         if ($this->partitionHeader && ! $this->automaticInitialization) {
             throw new ConfigurationException("Cannot set partition header for projection {$this->projectionName} with automatic initialization disabled");
@@ -159,6 +161,11 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
         return $this->backfillAsyncChannelName;
     }
 
+    public function backfillCompletionChannelName(): ?string
+    {
+        return $this->backfillCompletionChannelName ?? $this->backfillAsyncChannelName;
+    }
+
     public function rebuildPartitionBatchSize(): int
     {
         return $this->rebuildPartitionBatchSize ?? self::DEFAULT_REBUILD_PARTITION_BATCH_SIZE;
@@ -167,6 +174,11 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
     public function rebuildAsyncChannelName(): ?string
     {
         return $this->rebuildAsyncChannelName;
+    }
+
+    public function rebuildCompletionChannelName(): ?string
+    {
+        return $this->rebuildCompletionChannelName ?? $this->rebuildAsyncChannelName;
     }
 
     public function isOpenSourceEligible(): bool

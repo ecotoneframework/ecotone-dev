@@ -29,6 +29,8 @@ final readonly class ProjectionStatus
         public ?string $initializeCommand,
         public ?string $asyncChannel,
         public ?array $partitions,
+        public ?string $rebuildCompletionChannel,
+        public ?string $backfillCompletionChannel,
     ) {
     }
 
@@ -128,11 +130,33 @@ final readonly class ProjectionStatus
         return $this->changedSecondsAgo === null ? null : self::spoken($this->changedSecondsAgo) . ' ago';
     }
 
+    public function recordsQueueBehindBatches(): bool
+    {
+        $operation = $this->latestRebuild;
+        if ($operation === null || ! $operation->isRunning() || $operation->batchesDone > 0 || ($operation->batchCount ?? 0) === 0) {
+            return false;
+        }
+        [$batches, $completions] = $operation->kind === Rebuild::BACKFILL ? [$this->backfillAsyncChannel, $this->backfillCompletionChannel] : [$this->rebuildAsyncChannel, $this->rebuildCompletionChannel];
+
+        return $batches !== null && $batches === $completions;
+    }
+
+    public function queuedRecordsSentence(): string
+    {
+        $operation = $this->latestRebuild;
+        [$channel, $attribute] = $operation?->kind === Rebuild::BACKFILL ? [$this->backfillAsyncChannel, '#[ProjectionBackfill]'] : [$this->rebuildAsyncChannel, '#[ProjectionRebuild]'];
+
+        return sprintf('Batches are counted after the batches queued before them on %s; completionChannelName on %s shows them as they finish.', $channel, $attribute);
+    }
+
     private function runningExplanation(): string
     {
         $operation = $this->latestRebuild;
         if ($operation === null) {
             return 'it is running.';
+        }
+        if ($this->recordsQueueBehindBatches()) {
+            return sprintf('running for %s. %s', $operation->elapsed() ?? '0s', $this->queuedRecordsSentence());
         }
         if ($this->partitioned && $operation->hasBatchCount()) {
             return sprintf('%d%% done, %d of %d batches.', $operation->percent(), $operation->batchesDone, $operation->batchCount);

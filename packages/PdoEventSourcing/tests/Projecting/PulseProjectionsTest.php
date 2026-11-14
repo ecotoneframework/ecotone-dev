@@ -86,7 +86,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
             {
             }
         };
-        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel'), ProjectionBackfill(asyncChannelName: 'tickets_backfill_channel'), FromAggregateStream(Ticket::class)] class () {
+        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel', completionChannelName: 'tickets_completion_channel'), ProjectionBackfill(asyncChannelName: 'tickets_backfill_channel'), FromAggregateStream(Ticket::class)] class () {
             #[EventHandler]
             public function when(TicketWasRegistered $event): void
             {
@@ -106,12 +106,12 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
 
         self::assertSame(
             [
-                ['name' => 'tickets_async', 'mode' => 'asynchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => 'tickets_async_channel', 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null],
-                ['name' => 'tickets_partitioned', 'mode' => 'synchronous', 'partitioned' => true, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => 'tickets_rebuild_channel', 'backfillAsyncChannel' => 'tickets_backfill_channel'],
-                ['name' => 'tickets_polling', 'mode' => 'polling', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null],
-                ['name' => 'tickets_sync', 'mode' => 'synchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null],
+                ['name' => 'tickets_async', 'mode' => 'asynchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => 'tickets_async_channel', 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildCompletionChannel' => null, 'backfillCompletionChannel' => null],
+                ['name' => 'tickets_partitioned', 'mode' => 'synchronous', 'partitioned' => true, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => 'tickets_rebuild_channel', 'backfillAsyncChannel' => 'tickets_backfill_channel', 'rebuildCompletionChannel' => 'tickets_completion_channel', 'backfillCompletionChannel' => 'tickets_backfill_channel'],
+                ['name' => 'tickets_polling', 'mode' => 'polling', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildCompletionChannel' => null, 'backfillCompletionChannel' => null],
+                ['name' => 'tickets_sync', 'mode' => 'synchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null, 'rebuildCompletionChannel' => null, 'backfillCompletionChannel' => null],
             ],
-            array_map(fn (array $projection): array => array_intersect_key($projection, array_flip(['name', 'mode', 'partitioned', 'manualKickOff', 'asyncChannel', 'rebuildAsyncChannel', 'backfillAsyncChannel'])), $before),
+            array_map(fn (array $projection): array => array_intersect_key($projection, array_flip(['name', 'mode', 'partitioned', 'manualKickOff', 'asyncChannel', 'rebuildAsyncChannel', 'backfillAsyncChannel', 'rebuildCompletionChannel', 'backfillCompletionChannel'])), $before),
         );
         self::assertSame(
             ['tickets_async' => 'prepared', 'tickets_partitioned' => 'uninitialized', 'tickets_polling' => 'prepared', 'tickets_sync' => 'prepared'],
@@ -404,6 +404,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
             SimpleMessageChannelBuilder::createQueueChannel('tickets_async_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('tickets_partitioned_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('tickets_rebuild_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('tickets_completion_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('tickets_backfill_channel'),
         ];
         $dbal = $storage === 'dbal';

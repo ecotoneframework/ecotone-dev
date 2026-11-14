@@ -301,3 +301,13 @@ rows now that they carry an endpoint id; one meaning and one time unit per row f
   an opened-at of 1970. Guard missing fields in the template (show a dash), tested with an old-shape snapshot.
 - S5 (nit). In docs/message-gathering.md give the example's gathered handler an endpointId different from its
   input channel, so the list example shows that the argument is the endpointId.
+
+### Resolution of S1-S5
+
+| Finding | Resolution commit | Verification |
+|---|---|---|
+| S1 | `b4dc636c8` | listing_a_gather_channel_name_names_its_gathered_handler_endpoint_id and listing_an_unknown_endpoint_id_names_the_known_endpoint_ids (gateway open and closed listings and the console command, both stores); batches_stored_under_an_endpoint_id_without_a_current_handler_are_still_listed (DBAL, discard works under the old id) |
+| S2 | `39db8f654` | Upgrade note no longer claims a generated gathered endpoint id was accepted; the adaptation step is removed |
+| S3 | `39db8f654` | Upgrade note and gathering guide: groups opened before the change still complete but are not listed; a renamed endpoint's groups stay under the old id |
+| S4 | `8854434e3` | group_from_a_service_built_before_the_shared_listing_shows_a_dash_for_missing_fields (reproduced: the page failed with HTTP 500 on the old row shape) |
+| S5 | `39db8f654` | Guide example handler endpointId `import.summary.handler`, used by the list example |

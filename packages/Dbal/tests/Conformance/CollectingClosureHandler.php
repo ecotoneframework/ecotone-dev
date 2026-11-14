@@ -38,6 +38,24 @@ return new class () {
         $this->batches[] = $batch;
     }
 
+    #[Collected(maxSize: 2, groupBy: static function (CollectedEventForConformance $event): string {
+        throw new \RuntimeException('group key unavailable');
+    })]
+    #[Asynchronous('batches')]
+    #[CommandHandler('collect.failing', endpointId: 'collect.failing.handler')]
+    public function failingKey(CollectedMessages $batch): void
+    {
+    }
+
+    #[Collected(maxSize: 2, groupBy: static function (CollectedEventForConformance $event): ?string {
+        return null;
+    })]
+    #[Asynchronous('batches')]
+    #[CommandHandler('collect.missing', endpointId: 'collect.missing.handler')]
+    public function missingKey(CollectedMessages $batch): void
+    {
+    }
+
     #[Converter]
     public function convert(string $payload): CollectedEventForConformance
     {

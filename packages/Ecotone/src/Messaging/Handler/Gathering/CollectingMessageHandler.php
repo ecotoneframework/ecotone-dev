@@ -20,6 +20,7 @@ use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Stringable;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -116,13 +117,17 @@ final class CollectingMessageHandler implements MessageHandler
 
     private function groupKeyFor(Message $message): ?string
     {
-        $groupKey = null;
-        if ($this->groupBy->hasExpression()) {
+        if (! $this->groupBy->hasExpression()) {
+            return null;
+        }
+        try {
             $key = $this->groupBy->execute($this->messageBuilder->fromMessage($message)->setPayload($this->payloadOf($message))->setContentType(MediaType::createApplicationXPHP())->build());
-            if ((! is_string($key) && ! is_int($key) && ! $key instanceof Stringable) || (string) $key === '') {
-                throw InvalidArgumentException::create("Collected handler {$this->context->description} groupBy '{$this->context->groupByDescription}' must return a non-empty string, an integer or a stringable object. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.");
-            }
-            $groupKey = (string) $key;
+            $groupKey = is_string($key) || is_int($key) || $key instanceof Stringable ? (string) $key : null;
+        } catch (Throwable $failure) {
+            throw InvalidArgumentException::createFromPreviousException("Collected handler {$this->context->description} groupBy '{$this->context->groupByDescription}' failed to evaluate. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.", $failure);
+        }
+        if ($groupKey === null || $groupKey === '') {
+            throw InvalidArgumentException::create("Collected handler {$this->context->description} groupBy '{$this->context->groupByDescription}' must return a non-empty string, an integer or a stringable object. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.");
         }
         return $groupKey;
     }

@@ -426,36 +426,27 @@ final class CollectingConformanceTest extends TestCase
     }
 
 
+    public static function closurePayloadForms(): iterable
+    {
+        foreach (self::implementations() as $implementation => [$durable]) {
+            yield $implementation . '_payload_first' => [$durable, 'collect'];
+            yield $implementation . '_explicit_payload_after_header' => [$durable, 'collect.explicit'];
+        }
+    }
+
     #[RequiresPhp('>= 8.5.0')]
-    #[DataProvider('implementations')]
-    public function test_group_key_can_be_a_closure_and_its_payload_type_deserializes_each_message(bool $durable): void
+    #[DataProvider('closurePayloadForms')]
+    public function test_group_key_can_be_a_closure_with_payload_first_or_explicit_after_a_header(bool $durable, string $routingKey): void
     {
         $handler = require __DIR__ . '/CollectingClosureHandler.php';
         $ecotone = $this->bootstrap($handler, $durable);
-        $ecotone->sendCommandWithRouting('collect', 'one:first', metadata: ['tenant' => 'header']);
-        $ecotone->sendCommandWithRouting('collect', 'one:second', metadata: ['tenant' => 'header']);
+        $ecotone->sendCommandWithRouting($routingKey, 'one:first', metadata: ['tenant' => 'header']);
+        $ecotone->sendCommandWithRouting($routingKey, 'one:second', metadata: ['tenant' => 'header']);
         $ecotone->run('batches');
-
         self::assertCount(1, $handler->batches);
         self::assertSame('header:one', $handler->batches[0]->groupKey);
         self::assertEquals([new CollectedEventForConformance('one', 'first'), new CollectedEventForConformance('one', 'second')], array_column($handler->batches[0]->messages, 'payload'));
     }
-
-    #[RequiresPhp('>= 8.5.0')]
-    #[DataProvider('implementations')]
-    public function test_group_key_closure_resolves_an_explicit_payload_after_a_header(bool $durable): void
-    {
-        $handler = require __DIR__ . '/CollectingClosureHandler.php';
-        $ecotone = $this->bootstrap($handler, $durable);
-        $ecotone->sendCommandWithRouting('collect.explicit', 'one:first', metadata: ['tenant' => 'header']);
-        $ecotone->sendCommandWithRouting('collect.explicit', 'one:second', metadata: ['tenant' => 'header']);
-        $ecotone->run('batches');
-
-        self::assertCount(1, $handler->batches);
-        self::assertSame('header:one', $handler->batches[0]->groupKey);
-        self::assertEquals([new CollectedEventForConformance('one', 'first'), new CollectedEventForConformance('one', 'second')], array_column($handler->batches[0]->messages, 'payload'));
-    }
-
 
     #[DataProvider('implementations')]
     public function test_batch_console_listing_uses_endpoint_id_and_hides_an_unknown_size(bool $durable): void
@@ -830,8 +821,7 @@ final class CollectingConformanceTest extends TestCase
             $failure = $caught;
         }
         self::assertNotNull($failure);
-        self::assertStringContainsString($handler::class . '::collect', $failure->getMessage());
-        self::assertStringContainsString('payload.missingMethod()', $failure->getMessage());
+        self::assertSame("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') groupBy 'payload.missingMethod()' failed to evaluate. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.", $failure->getMessage());
         self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches('collect.handler'));
     }
 
@@ -1077,6 +1067,32 @@ final class CollectingConformanceTest extends TestCase
         $expected['state'] = 'released';
         $expected['releaseReason'] = 'manual_release';
         self::assertSame($expected, $closed);
+    }
+
+    public static function failingClosureGroupKeys(): iterable
+    {
+        foreach (self::implementations() as $implementation => [$durable]) {
+            yield $implementation . '_throws' => [$durable, 'collect.failing', 'failingKey', 'collect.failing.handler', 'failed to evaluate'];
+            yield $implementation . '_returns_null' => [$durable, 'collect.missing', 'missingKey', 'collect.missing.handler', 'must return a non-empty string, an integer or a stringable object'];
+        }
+    }
+
+    #[RequiresPhp('>= 8.5.0')]
+    #[DataProvider('failingClosureGroupKeys')]
+    public function test_failing_or_null_group_closure_names_its_owner_and_the_way_out(bool $durable, string $routingKey, string $method, string $endpointId, string $reason): void
+    {
+        $handler = require __DIR__ . '/CollectingClosureHandler.php';
+        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone->sendCommandWithRouting($routingKey, 'one:first');
+        $failure = null;
+        try {
+            $ecotone->run('batches');
+        } catch (\Throwable $caught) {
+            $failure = $caught->getMessage();
+        }
+        $owner = $handler::class . '::' . $method;
+        self::assertSame("Collected handler {$owner} (endpointId '{$endpointId}') groupBy '{$owner} groupBy closure' {$reason}. Correct groupBy or the message payload/headers, or remove groupBy to collect every message together.", $failure);
+        self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenBatches($endpointId));
     }
 
     private function bootstrap(object $handler, bool $durable, bool $instantRetries = true): FlowTestSupport

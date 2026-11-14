@@ -26,7 +26,10 @@ opens another batch. Its stale delayed timeout cannot release the new batch.
 Expressions reuse `AttributeExpressionExecutorCompiler` unchanged, including payload/header/service parameter
 resolution. PHP 8.5 permits static closures in attributes. A closure payload parameter is first or explicitly
 marked `#[Payload]`; an unannotated object later in the list is a service reference. The closure's payload type
-selects per-message deserialization. String expressions use the type header, with unchanged payloads if absent.
+selects per-message deserialization. The expression compiler exposes no resolved-payload-type query, so
+CollectingPayloadType mirrors its payload-first/explicit-Payload rule at build time. One shared test drives
+both forms through grouping and restored payloads, detecting drift between them. String expressions use the type
+header, with unchanged payloads if absent.
 Null, empty strings, booleans, floats and non-stringable objects are refused; expression failures use ordinary retry/dead-letter handling.
 Keys normalize to strings. Without groupBy the public key is null and all messages for the endpoint share a batch.
 
@@ -113,7 +116,7 @@ and DBAL; the database branch and concurrency tests run on PostgreSQL, MySQL and
 | Limits and delay support | collected_handler_without_max_size_or_max_wait_is_refused_at_bootstrap; collected_handler_refuses_zero_max_size_at_bootstrap; collected_handler_refuses_zero_max_wait_at_bootstrap; collected_handler_refuses_negative_max_size_at_bootstrap; collected_handler_refuses_negative_max_wait_at_bootstrap; collected_max_wait_requires_a_delayable_asynchronous_channel |
 | Size release and no groupBy | collected_handler_runs_once_when_the_batch_reaches_max_size |
 | Keys and independent handlers | messages_are_batched_separately_per_group_key; message_without_a_group_key_is_refused; non_scalar_group_key_is_refused_without_opening_a_fallback_batch; failing_group_expression_names_the_handler_and_expression_without_opening_a_batch; two_collected_handlers_of_one_event_keep_separate_batches |
-| Closure conversion and explicit payload | group_key_can_be_a_closure_and_its_payload_type_deserializes_each_message; group_key_closure_resolves_an_explicit_payload_after_a_header |
+| Closure conversion and explicit payload | group_key_can_be_a_closure_with_payload_first_or_explicit_after_a_header; failing_or_null_group_closure_names_its_owner_and_the_way_out |
 | First-message deadline and size-only wait | collected_handler_runs_with_a_partial_batch_after_max_wait_from_the_first_message; later_messages_do_not_postpone_the_release; max_size_only_batch_waits_until_full_or_released_by_hand; max_wait_only_collects_a_batch_without_a_known_size |
 | Generation and stale timeout | message_after_a_release_opens_a_new_batch; timeout_of_a_released_batch_does_not_release_the_next_batch |
 | Per-message API | batch_contains_ordered_message_objects_with_their_own_payload_and_headers |

@@ -19,7 +19,11 @@ class ProjectionBackfill
     public function __construct(
         public readonly int $backfillPartitionBatchSize = 100,
         public readonly ?string $asyncChannelName = null,
+        public readonly ?string $completionChannelName = null,
     ) {
+        if ($this->completionChannelName !== null && $this->asyncChannelName === null) {
+            throw new InvalidArgumentException("#[ProjectionBackfill] names completionChannelName '{$this->completionChannelName}' but no asyncChannelName, so the backfill runs in the calling process and there is no asynchronous completion to consume. Add asyncChannelName to run the backfill asynchronously, or remove completionChannelName.");
+        }
         if ($this->backfillPartitionBatchSize < 1) {
             throw new InvalidArgumentException('Backfill partition batch size must be at least 1');
         }

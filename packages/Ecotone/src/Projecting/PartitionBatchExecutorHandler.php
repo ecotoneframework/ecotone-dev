@@ -7,15 +7,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting;
 
-use Ecotone\Messaging\Endpoint\Interceptor\TerminationListener;
-
 class PartitionBatchExecutorHandler
 {
     public const PARTITION_BATCH_EXECUTOR_CHANNEL = 'ecotone.projection.partition_batch.executor';
 
     public function __construct(
         private ProjectionRegistry $projectionRegistry,
-        private TerminationListener $terminationListener,
     ) {
     }
 
@@ -41,10 +38,7 @@ class PartitionBatchExecutorHandler
             if ($shouldReset) {
                 $projectingManager->executeWithReset($partition);
             } else {
-                $projectingManager->execute($partition, true);
-            }
-            if ($this->terminationListener->shouldTerminate()) {
-                break;
+                $projectingManager->executeUntilCaughtUp($partition);
             }
         }
     }

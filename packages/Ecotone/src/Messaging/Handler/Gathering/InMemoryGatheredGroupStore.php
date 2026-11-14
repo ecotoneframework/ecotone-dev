@@ -87,7 +87,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         try {
             if ($groupId === null) {
                 $groupId = bin2hex(random_bytes(32));
-                $this->openGroup(groupId: $groupId, endpointId: $endpointId, gatherChannelName: $gatherChannelName, size: $maxSize ?? GatheredGroupStore::UNKNOWN_SIZE, original: $message, deadline: $deadline, whenOpened: static fn () => null);
+                $this->openGroup(groupId: $groupId, endpointId: $endpointId, gatherChannelName: $gatherChannelName, size: $maxSize ?? GatheredGroupStore::UNKNOWN_SIZE, original: $message, deadline: $deadline, whenOpened: static fn () => null, groupKey: null);
                 $this->groups[$groupId]['collected'] = true;
                 $this->groups[$groupId]['groupKey'] = $groupKey;
                 $this->groups[$groupId]['openSlot'] = 1;
@@ -100,7 +100,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         }
     }
 
-    public function openGroup(string $groupId, string $endpointId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened): void
+    public function openGroup(string $groupId, string $endpointId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened, ?string $groupKey): void
     {
         if (isset($this->groups[$groupId])) {
             return;
@@ -118,7 +118,7 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
             'gatherChannelName' => $gatherChannelName,
             'size' => $size,
             'collected' => false,
-            'groupKey' => null,
+            'groupKey' => $groupKey,
             'openSlot' => null,
             'openedAt' => $this->clock->now()->unixTime()->inMilliseconds(),
             'releaseReason' => null,

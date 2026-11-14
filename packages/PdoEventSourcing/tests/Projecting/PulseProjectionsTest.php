@@ -403,6 +403,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
             SimpleMessageChannelBuilder::createQueueChannel('pulse_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('tickets_async_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('tickets_partitioned_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('tickets_rebuild_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('tickets_backfill_channel'),
         ];
         $dbal = $storage === 'dbal';

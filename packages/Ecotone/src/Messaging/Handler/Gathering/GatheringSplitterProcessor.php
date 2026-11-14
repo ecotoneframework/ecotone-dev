@@ -79,6 +79,7 @@ final class GatheringSplitterProcessor implements MessageProcessor
                     $this->channelResolver->resolve($this->gatherChannelName)->send($trigger);
                 }
             },
+            groupKey: null,
         );
         if ($size === 0) {
             return $reply;

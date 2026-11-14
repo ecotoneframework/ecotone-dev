@@ -51,7 +51,9 @@ use Ecotone\Messaging\Handler\Gathering\UngatheredSplitterProcessor;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
@@ -59,6 +61,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseRequestBodyBuilder;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
+use Ecotone\Projecting\Config\ProjectionRuns;
+use Ecotone\Projecting\ProjectionRun;
+use Ecotone\Projecting\ProjectionRunCompletion;
 
 #[ModuleAnnotation]
 /**
@@ -82,7 +87,10 @@ use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionReg
  */
 final class GatheringModule extends NoExternalConfigurationModule
 {
-    public function __construct(private array $gatherChannelNames, private AnnotationFinder $annotationFinder, private array $collectedEndpointIds, private array $gatheredEndpointIds)
+    /**
+     * @param list<ProjectionRun> $projectionRuns
+     */
+    public function __construct(private array $gatherChannelNames, private AnnotationFinder $annotationFinder, private array $collectedEndpointIds, private array $gatheredEndpointIds, private array $projectionRuns)
     {
     }
 
@@ -120,7 +128,11 @@ final class GatheringModule extends NoExternalConfigurationModule
                 $gatheredEndpointIds[$channel] = $handler->getEndpointId();
             }
         }
-        return new self(gatherChannelNames: $gatherChannelNames, annotationFinder: $annotationRegistrationService, collectedEndpointIds: $collectedEndpointIds, gatheredEndpointIds: $gatheredEndpointIds);
+        $projectionRuns = ProjectionRuns::fromAnnotations($annotationRegistrationService);
+        foreach ($projectionRuns as $run) {
+            $gatheredEndpointIds[$run->gatherChannelName()] = $run->endpointId();
+        }
+        return new self(gatherChannelNames: $gatherChannelNames, annotationFinder: $annotationRegistrationService, collectedEndpointIds: $collectedEndpointIds, gatheredEndpointIds: $gatheredEndpointIds, projectionRuns: $projectionRuns);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -131,6 +143,7 @@ final class GatheringModule extends NoExternalConfigurationModule
         $this->refuseStaticallyUngatheredSplitters();
         $this->registerPartCompletion($messagingConfiguration);
         $this->registerStore(messagingConfiguration: $messagingConfiguration, extensionObjects: $extensionObjects, interfaceToCallRegistry: $interfaceToCallRegistry);
+        $this->registerProjectionRunCompletions($messagingConfiguration);
         $this->registerPulse(configuration: $messagingConfiguration, extensionObjects: $extensionObjects, interfaceToCallRegistry: $interfaceToCallRegistry);
     }
 
@@ -236,7 +249,7 @@ final class GatheringModule extends NoExternalConfigurationModule
 
     private function registerStore(Configuration $messagingConfiguration, array $extensionObjects, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if ($this->gatherChannelNames !== [] || $this->annotationFinder->findAnnotatedMethods(Collected::class) !== []) {
+        if ($this->gatherChannelNames !== [] || $this->projectionRuns !== [] || $this->annotationFinder->findAnnotatedMethods(Collected::class) !== []) {
             $configuration = ExtensionObjectResolver::resolveUnique(className: GatheringConfiguration::class, extensionObjects: $extensionObjects, default: GatheringConfiguration::createWithDefaults());
             $timeouts = [];
             foreach ($this->annotationFinder->findAnnotatedMethods(Gathered::class) as $registration) {
@@ -260,6 +273,11 @@ final class GatheringModule extends NoExternalConfigurationModule
                     $removal = $this->gatherChannelNames === [] ? '#[Collected]' : 'gatherChannelName from #[Splitter] and #[Collected] from the service handler';
                     throw ConfigurationException::create("{$scope} durable storage outside flow testing: {$entities} must survive restarts and be shared between consumers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove {$removal}.");
                 }
+                if ($this->gatherChannelNames === []) {
+                    $run = $this->projectionRuns[0];
+                    $attribute = $run->operation === 'rebuild' ? '#[ProjectionRebuild]' : '#[ProjectionBackfill]';
+                    throw ConfigurationException::create("Projection '{$run->projectionName}' runs its {$run->operation} asynchronously on '{$run->asynchronousChannelName}', so the run is tracked as a gathering group that must survive restarts and be shared between consumers, which needs durable storage when bootstrapping without test configuration. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first {$run->operation}, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove asyncChannelName from {$attribute} to run the {$run->operation} in the calling process.");
+                }
                 $gatherChannelName = $this->gatherChannelNames[0];
                 throw ConfigurationException::create("Gather channel '{$gatherChannelName}' requires durable storage when bootstrapping without test configuration: in-memory groups cannot survive restarts or be shared between workers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove gatherChannelName from #[Splitter].");
             }
@@ -273,16 +291,34 @@ final class GatheringModule extends NoExternalConfigurationModule
         }
     }
 
+    private function registerProjectionRunCompletions(Configuration $messagingConfiguration): void
+    {
+        if ($this->projectionRuns === []) {
+            return;
+        }
+        $messagingConfiguration->registerServiceDefinition(ProjectionRunCompletion::class, new Definition(ProjectionRunCompletion::class));
+        foreach ($this->projectionRuns as $run) {
+            $messagingConfiguration
+                ->registerMessageHandler(
+                    MessageProcessorActivatorBuilder::create()
+                        ->chainInterceptedProcessor(MethodInvokerBuilder::create(ProjectionRunCompletion::class, InterfaceToCallReference::create(ProjectionRunCompletion::class, 'complete'), [PayloadBuilder::create('parts')]))
+                        ->withEndpointId($run->endpointId())
+                        ->withInputChannelName($run->gatherChannelName())
+                )
+                ->registerAsynchronousEndpoint($run->completionChannelName, $run->endpointId());
+        }
+    }
+
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return ($this->gatherChannelNames !== [] || $this->collectedEndpointIds !== []) && ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []
+        return ($this->gatherChannelNames !== [] || $this->collectedEndpointIds !== [] || $this->projectionRuns !== []) && ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []
             ? [new PulseSnapshotSectionRegistration(sectionName: 'gathering', serviceReference: PulseGathering::class, tenantScoped: true)]
             : [];
     }
 
     private function registerPulse(Configuration $configuration, array $extensionObjects, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if (($this->gatherChannelNames === [] && $this->collectedEndpointIds === []) || ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) === []) {
+        if (($this->gatherChannelNames === [] && $this->collectedEndpointIds === [] && $this->projectionRuns === []) || ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) === []) {
             return;
         }
         $configuration->registerServiceDefinition(PulseGathering::class, new Definition(PulseGathering::class, [new Reference(GatheredGroups::class), array_values(array_unique([...array_values($this->gatheredEndpointIds), ...$this->collectedEndpointIds]))]));

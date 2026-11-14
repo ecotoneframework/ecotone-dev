@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\ChannelInterceptor;
 use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
@@ -600,19 +601,21 @@ final class CollectingConformanceTest extends TestCase
 
 
     #[DataProvider('implementations')]
-    public function test_each_messages_headers_stay_inside_the_batch_and_do_not_become_batch_headers(bool $durable): void
+    public function test_batch_inherits_the_first_messages_user_headers_and_retains_each_messages_own_headers(bool $durable): void
     {
         $handler = new class () {
             public array $batches = [];
             public array $headers = [];
+            public array $labels = [];
 
             #[Collected(maxSize: 2)]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
-            public function collect(CollectedMessages $batch, #[Headers] array $headers): void
+            public function collect(CollectedMessages $batch, #[Headers] array $headers, #[Header('label')] ?string $label = null): void
             {
                 $this->batches[] = $batch;
                 $this->headers[] = $headers;
+                $this->labels[] = $label;
             }
         };
         $ecotone = $this->bootstrap($handler, $durable);
@@ -622,7 +625,8 @@ final class CollectingConformanceTest extends TestCase
 
         self::assertSame('first-label', $handler->batches[0]->messages[0]->headers['label']);
         self::assertSame('second-label', $handler->batches[0]->messages[1]->headers['label']);
-        self::assertArrayNotHasKey('label', $handler->headers[0]);
+        self::assertSame('first-label', $handler->headers[0]['label'] ?? null);
+        self::assertSame(['first-label'], $handler->labels);
         self::assertArrayHasKey(MessageHeaders::MESSAGE_ID, $handler->headers[0]);
     }
 
@@ -835,13 +839,15 @@ final class CollectingConformanceTest extends TestCase
     {
         $handler = new class () {
             public array $batches = [];
+            public array $tenants = [];
 
             #[Collected(maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["key"]')]
             #[Asynchronous('tenant_batches')]
             #[CommandHandler('collect.tenant', endpointId: 'collect.tenant.handler')]
-            public function collect(CollectedMessages $batch): void
+            public function collect(CollectedMessages $batch, #[Header('tenant')] ?string $tenant = null): void
             {
                 $this->batches[] = $batch;
+                $this->tenants[] = $tenant;
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
@@ -872,6 +878,7 @@ final class CollectingConformanceTest extends TestCase
         self::assertCount(1, $handler->batches);
         self::assertSame([['key' => $key, 'value' => 'first']], array_column($handler->batches[0]->messages, 'payload'));
         self::assertSame('collecting_tenant', $handler->batches[0]->messages[0]->headers['tenant']);
+        self::assertSame(['collecting_tenant'], $handler->tenants);
     }
 
     #[DataProvider('implementations')]
@@ -900,6 +907,55 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame('one', $batch->messages[0]->headers['label']);
         self::assertSame('second', $batch->messages[1]->payload);
         self::assertSame('two', $batch->messages[1]->headers['label']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_first_messages_delivery_headers_do_not_cross_the_batch_or_output_boundary(bool $durable): void
+    {
+        $handler = new class () {
+            public array $batchHeaders = [];
+            public array $outputHeaders = [];
+            public array $messages = [];
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.handler', outputChannelName: 'batch.output')]
+            public function collect(CollectedMessages $batch, #[Headers] array $headers): string
+            {
+                $this->batchHeaders[] = $headers;
+                $this->messages = $batch->messages;
+                return 'completed';
+            }
+
+            #[InternalHandler('batch.output', endpointId: 'batch.output.handler')]
+            public function output(string $result, #[Headers] array $headers): void
+            {
+                $this->outputHeaders[] = $headers;
+            }
+        };
+        $ecotone = $this->bootstrap($handler, $durable);
+        $originalId = bin2hex(random_bytes(16));
+        $ecotone->sendCommandWithRouting('collect', 'first', metadata: [
+            MessageHeaders::MESSAGE_ID => $originalId,
+            MessageHeaders::DELIVERY_DELAY => 1000,
+            MessageHeaders::TIME_TO_LIVE => 60000,
+            MessageHeaders::PRIORITY => 5,
+            'label' => 'first',
+        ]);
+        $ecotone->advanceTimeBy(new TimeSpan(seconds: 1));
+        $ecotone->run('batches');
+        $ecotone->sendCommandWithRouting('collect', 'second', metadata: ['label' => 'second']);
+        $ecotone->run('batches');
+        self::assertCount(1, $handler->batchHeaders);
+        self::assertCount(1, $handler->outputHeaders);
+        self::assertSame($originalId, $handler->messages[0]->headers[MessageHeaders::MESSAGE_ID]);
+        foreach ([$handler->batchHeaders[0], $handler->outputHeaders[0]] as $headers) {
+            self::assertSame('first', $headers['label']);
+            self::assertNotSame($originalId, $headers[MessageHeaders::MESSAGE_ID]);
+            foreach ([MessageHeaders::ROUTING_SLIP, MessageHeaders::DELIVERY_DELAY, MessageHeaders::TIME_TO_LIVE, MessageHeaders::PRIORITY, MessageHeaders::REPLY_CHANNEL] as $excluded) {
+                self::assertArrayNotHasKey($excluded, $headers);
+            }
+        }
     }
 
     private function bootstrap(object $handler, bool $durable, bool $instantRetries = true): FlowTestSupport

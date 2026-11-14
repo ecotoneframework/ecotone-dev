@@ -99,11 +99,11 @@ final class CollectingMessageHandler implements MessageHandler
     private function whenReleased(CollectedReleaseReason $reason): Closure
     {
         return function (Message $original, array $parts, ?int $size, ?string $groupKey) use ($reason): void {
-            $this->invokeHandler(parts: $parts, groupKey: $groupKey, reason: $reason);
+            $this->invokeHandler(firstMessage: $original, parts: $parts, groupKey: $groupKey, reason: $reason);
         };
     }
 
-    private function invokeHandler(array $parts, ?string $groupKey, CollectedReleaseReason $reason): void
+    private function invokeHandler(Message $firstMessage, array $parts, ?string $groupKey, CollectedReleaseReason $reason): void
     {
         ksort($parts);
         $messages = [];
@@ -111,7 +111,7 @@ final class CollectingMessageHandler implements MessageHandler
             $messages[] = new CollectedMessage(payload: $this->payloadOf($part), headers: $part->getHeaders()->headers());
         }
         $batch = new CollectedMessages(messages: $messages, groupKey: $groupKey, releaseReason: $reason);
-        $this->handler->handle($this->messageBuilder->withPayload($batch)->setContentType(MediaType::createApplicationXPHPWithTypeParameter(CollectedMessages::class))->build());
+        $this->handler->handle($this->messageBuilder->withPayload($batch)->setMultipleHeaders($this->contextOf($firstMessage))->setContentType(MediaType::createApplicationXPHPWithTypeParameter(CollectedMessages::class))->build());
     }
 
     private function groupKeyFor(Message $message): ?string
@@ -132,15 +132,18 @@ final class CollectingMessageHandler implements MessageHandler
         if ($this->maxWait === null) {
             return;
         }
-        $trigger = $this->messageBuilder->fromParentMessage($firstMessage)
-            ->setPayload($groupId)
-            ->removeHeader(MessageHeaders::TIME_TO_LIVE)
-            ->removeHeader(MessageHeaders::DELIVERY_DELAY)
+        $trigger = $this->messageBuilder->withPayload($groupId)
+            ->setMultipleHeaders($this->contextOf($firstMessage))
             ->setHeader(GatheringHeaders::GROUP_ID, $groupId)
             ->setHeader(GatheringHeaders::TIMEOUT, true)
             ->setHeader(MessageHeaders::DELIVERY_DELAY, $this->maxWait)
             ->build();
         $this->channelResolver->resolve($this->channelName)->send($trigger);
+    }
+
+    private function contextOf(Message $message): array
+    {
+        return array_diff_key(GatheringMessageContext::from($message), [CollectingMessageIdentity::ORIGINAL_MESSAGE_ID => true]);
     }
 
     private function payloadOf(Message $message): mixed

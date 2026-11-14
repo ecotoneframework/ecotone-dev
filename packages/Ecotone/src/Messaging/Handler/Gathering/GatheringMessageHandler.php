@@ -12,7 +12,6 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHandler;
-use Ecotone\Messaging\Support\FrameworkHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -65,8 +64,8 @@ final class GatheringMessageHandler implements MessageHandler
             foreach ($parts as $number => $part) {
                 $results[$number] = $part->getHeaders()->get(GatheringHeaders::NO_RESULT) ? null : $this->resultOf($part);
             }
-            $headers = FrameworkHeaders::unsetAllFrameworkHeaders($original->getHeaders()->headers());
-            foreach ([GatheringHeaders::GROUP_ID, GatheringHeaders::PART_NUMBER, GatheringHeaders::SIZE, GatheringHeaders::CHANNEL_NAME, MessageHeaders::MESSAGE_CORRELATION_ID, MessageHeaders::PARENT_MESSAGE_ID, MessageHeaders::TRACING_ID, MessageHeaders::TRACEPARENT, MessageHeaders::TRACESTATE] as $header) {
+            $headers = GatheringMessageContext::from($original);
+            foreach ([GatheringHeaders::GROUP_ID, GatheringHeaders::PART_NUMBER, GatheringHeaders::SIZE, GatheringHeaders::CHANNEL_NAME] as $header) {
                 if ($original->getHeaders()->containsKey($header)) {
                     $headers[$header] = $original->getHeaders()->get($header);
                 }

@@ -84,8 +84,13 @@ fallback batch. Two collected handlers subscribing to the same event keep indepe
 `count($batch->messages)` gives the number of recorded messages. For example, `$batch->messages[0]->payload`
 and `$batch->messages[0]->headers` describe the first recorded message.
 
-The outer batch message has framework headers; user headers remain inside `$batch->messages[0]->headers`. Use those per-message
-headers for tenant or business metadata. The handler's return value flows once per batch; an `outputChannelName`
+The batch message inherits user, tenant and tracing context from the first recorded message. `#[Header]`
+parameters can read that context. A header that differs between messages shows the first message's value;
+read each value from `$batch->messages`. Delivery and flow headers (including routing slip, reply channel,
+priority, delay and time to live) do not cross into the batch or its output. The batch has a new message id
+and timestamp. The timeout uses the same context exclusions.
+
+The handler's return value flows once per batch; an `outputChannelName`
 receives one result for the whole batch.
 
 Recording order equals queue order with one consumer. With several consumers it follows successful recording,

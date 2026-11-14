@@ -16,11 +16,14 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
+use Ecotone\Api\Sqs\SqsConnectionFactory;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -40,7 +43,7 @@ final class CollectingTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') requires an asynchronous channel. Add #[Asynchronous('channelName')] to the handler, or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') requires an asynchronous channel. Add #[Asynchronous('channelName')] to the handler, or remove #[Collected].");
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
@@ -61,7 +64,7 @@ final class CollectingTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') needs a release limit. Set maxSize or maxWait on #[Collected], or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') needs a release limit. Set maxSize or maxWait on #[Collected], or remove #[Collected].");
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
@@ -83,7 +86,7 @@ final class CollectingTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') requires an Ecotone Enterprise licence. Provide licenceKey in the framework configuration or EcotoneLite, start a trial at https://ecotone.tech/pricing, or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') requires an Ecotone Enterprise licence. Provide licenceKey in the framework configuration or EcotoneLite, start a trial at https://ecotone.tech/pricing, or remove #[Collected].");
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
@@ -105,7 +108,7 @@ final class CollectingTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') cannot infer its subscription because the first parameter is CollectedMessages. Set #[EventHandler(listenTo: YourEvent::class, endpointId: 'collect.handler')], or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') cannot infer its subscription because the first parameter is CollectedMessages. Set #[EventHandler(listenTo: YourEvent::class, endpointId: 'collect.handler')], or remove #[Collected].");
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
@@ -128,7 +131,7 @@ final class CollectingTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') cannot infer its subscription because the first parameter is CollectedMessages. Set #[CommandHandler(routingKey: 'your.routing.key', endpointId: 'collect.handler')], or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') cannot infer its subscription because the first parameter is CollectedMessages. Set #[CommandHandler(routingKey: 'your.routing.key', endpointId: 'collect.handler')], or remove #[Collected].");
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
@@ -151,7 +154,7 @@ final class CollectingTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId '') is not an allowed message handler: a query caller waits for an answer. Stack #[Collected] on a service #[CommandHandler], #[EventHandler] or #[InternalHandler] with #[Asynchronous], or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId '') is not an allowed message handler: a query caller waits for an answer. Stack #[Collected] on a service #[CommandHandler], #[EventHandler] or #[InternalHandler] with #[Asynchronous], or remove #[Collected].");
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
@@ -177,7 +180,7 @@ final class CollectingTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') belongs to an aggregate or saga, but a batch has no single instance to load. Move #[Collected] to a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') belongs to an aggregate or saga, but a batch has no single instance to load. Move #[Collected] to a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
@@ -203,7 +206,7 @@ final class CollectingTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') belongs to an aggregate or saga, but a batch has no single instance to load. Move #[Collected] to a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') belongs to an aggregate or saga, but a batch has no single instance to load. Move #[Collected] to a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
@@ -226,7 +229,7 @@ final class CollectingTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') also has #[Gathered]: collecting ordinary messages and gathering split parts cannot share a handler. Remove #[Gathered] to collect ordinary messages, or remove #[Collected] to gather split parts.");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') also has #[Gathered]: collecting ordinary messages and gathering split parts cannot share a handler. Remove #[Gathered] to collect ordinary messages, or remove #[Collected] to gather split parts.");
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
@@ -248,7 +251,7 @@ final class CollectingTest extends TestCase
             }
         };
 
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId '') has no ordinary message handler attribute. Stack it on a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId '') has no ordinary message handler attribute. Stack it on a service #[CommandHandler], #[EventHandler] or #[InternalHandler], or remove #[Collected].");
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
@@ -305,7 +308,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') must receive Ecotone\\Api\\Messaging\\CollectedMessages as its first payload parameter. Change that parameter type to CollectedMessages, or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') must receive Ecotone\\Api\\Messaging\\CollectedMessages as its first payload parameter. Change that parameter type to CollectedMessages, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],
@@ -326,7 +329,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') has maxWait but asynchronous channel 'batches' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove maxWait from #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') has maxWait but asynchronous channel 'batches' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove maxWait from #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],
@@ -334,6 +337,30 @@ final class CollectingTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches', delayable: false)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_collected_max_wait_exceeding_the_channels_maximum_names_the_handler_and_ways_out(): void
+    {
+        if (! class_exists(SqsBackedMessageChannelBuilder::class)) {
+            self::markTestSkipped('A bounded-delay public channel builder requires the optional SQS package.');
+        }
+        $handler = new class () {
+            #[Collected(maxWait: new TimeSpan(minutes: 15, milliseconds: 1))]
+            #[Asynchronous('batches')]
+            #[InternalHandler('collect', endpointId: 'collect.handler')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxWait of 900001 milliseconds exceeds asynchronous channel 'batches' maximum delay of 900000 milliseconds. Reduce maxWait in #[Collected], use a channel with a longer maximum delay, or remove maxWait.");
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, SqsConnectionFactory::class => new SqsConnectionFactory(getenv('SQS_DSN'))],
+            extensionObjects: [SqsBackedMessageChannelBuilder::create('batches')],
+            enabledModules: [ModulePackageList::SQS_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
     }
 
@@ -347,7 +374,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') maxSize is 0; maxSize must be at least 1. Set maxSize to a positive integer, omit maxSize and set maxWait, or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxSize is 0; maxSize must be at least 1. Set maxSize to a positive integer, omit maxSize and set maxWait, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],
@@ -368,7 +395,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') maxWait is 0 milliseconds; maxWait must be greater than 0. Set a positive TimeSpan, omit maxWait and set maxSize, or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxWait is 0 milliseconds; maxWait must be greater than 0. Set a positive TimeSpan, omit maxWait and set maxSize, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],
@@ -389,7 +416,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') cannot infer its subscription because the first parameter is CollectedMessages. Set #[InternalHandler(inputChannelName: 'your.input.channel', endpointId: 'collect.handler')], or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') cannot infer its subscription because the first parameter is CollectedMessages. Set #[InternalHandler(inputChannelName: 'your.input.channel', endpointId: 'collect.handler')], or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],
@@ -410,7 +437,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') requires durable storage outside flow testing: batches must survive restarts and be shared between consumers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') requires durable storage outside flow testing: batches must survive restarts and be shared between consumers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove #[Collected].");
         EcotoneLite::bootstrap(
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
@@ -431,7 +458,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId '') has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set #[InternalHandler(inputChannelName: 'collect', endpointId: 'your.stable.id')], or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId '') has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set #[InternalHandler(inputChannelName: 'collect', endpointId: 'your.stable.id')], or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],
@@ -452,7 +479,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId '') has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set #[CommandHandler(routingKey: 'collect', endpointId: 'your.stable.id')], or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId '') has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set #[CommandHandler(routingKey: 'collect', endpointId: 'your.stable.id')], or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],
@@ -473,7 +500,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId '') has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set #[EventHandler(listenTo: 'collect.event', endpointId: 'your.stable.id')], or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId '') has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set #[EventHandler(listenTo: 'collect.event', endpointId: 'your.stable.id')], or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],
@@ -493,7 +520,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') maxSize is -1; maxSize must be at least 1. Set maxSize to a positive integer, omit maxSize and set maxWait, or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxSize is -1; maxSize must be at least 1. Set maxSize to a positive integer, omit maxSize and set maxWait, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],
@@ -514,7 +541,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.handler') maxWait is -1 milliseconds; maxWait must be greater than 0. Set a positive TimeSpan, omit maxWait and set maxSize, or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxWait is -1 milliseconds; maxWait must be greater than 0. Set a positive TimeSpan, omit maxWait and set maxSize, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],
@@ -573,7 +600,7 @@ final class CollectingTest extends TestCase
             {
             }
         };
-        $this->expectExceptionMessage("Collected handler " . $handler::class . "::collect (endpointId 'collect.command.handler') has 2 handler attributes. A collected method must have exactly one #[CommandHandler], #[EventHandler] or #[InternalHandler]. Keep one handler attribute, move the other handler to a separate method, or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.command.handler') has 2 handler attributes. A collected method must have exactly one #[CommandHandler], #[EventHandler] or #[InternalHandler]. Keep one handler attribute, move the other handler to a separate method, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],

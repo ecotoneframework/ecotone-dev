@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Handler\Gathering;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
@@ -30,7 +31,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 final class GatheredGroupOperations implements GatheredGroups
 {
-    public function __construct(private GatheredGroupStore $store, private EcotoneClockInterface $clock, private int $retention, private ChannelResolver $channelResolver, private MessageBuilder $messageBuilder)
+    public function __construct(private GatheredGroupStore $store, private EcotoneClockInterface $clock, private int $retention, private ChannelResolver $channelResolver, private MessageBuilder $messageBuilder, private array $gatheredEndpointIds, private array $collectedEndpointIds)
     {
     }
 
@@ -57,11 +58,35 @@ final class GatheredGroupOperations implements GatheredGroups
 
     public function listOpenGroups(string $endpointId): array
     {
-        return $this->store->listOpenGroups($endpointId);
+        $groups = $this->store->listOpenGroups($endpointId);
+        if ($groups === []) {
+            $this->refuseUnknownEndpointId($endpointId);
+        }
+
+        return $groups;
     }
 
     public function listClosedGroups(string $endpointId): array
     {
-        return $this->store->listClosedGroups($endpointId);
+        $groups = $this->store->listClosedGroups($endpointId);
+        if ($groups === []) {
+            $this->refuseUnknownEndpointId($endpointId);
+        }
+
+        return $groups;
+    }
+
+    private function refuseUnknownEndpointId(string $endpointId): void
+    {
+        $known = array_values(array_unique([...array_values($this->gatheredEndpointIds), ...$this->collectedEndpointIds]));
+        if (in_array($endpointId, $known, true) || $this->store->listOpenGroups($endpointId) !== [] || $this->store->listClosedGroups($endpointId) !== []) {
+            return;
+        }
+        if (isset($this->gatheredEndpointIds[$endpointId])) {
+            $handlerEndpointId = $this->gatheredEndpointIds[$endpointId];
+            throw InvalidArgumentException::create("'{$endpointId}' is the gather channel of the gathered handler with endpointId '{$handlerEndpointId}'. Groups are listed by the handler's endpointId: pass '{$handlerEndpointId}'.");
+        }
+        $knownList = $known === [] ? 'none' : implode(', ', array_map(static fn (string $id): string => "'{$id}'", $known));
+        throw InvalidArgumentException::create("No gathered or collected handler has endpointId '{$endpointId}' and no groups are stored under it. Known endpoint ids: {$knownList}. Pass one of them to list its groups.");
     }
 }

@@ -176,7 +176,7 @@ final class CollectingConformanceTest extends TestCase
             }
         };
 
-        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone = $this->bootstrap(handler: $handler, durable: $durable, endpointId: 'listing.handler');
 
         $groups = $ecotone->getGateway(GatheredGroups::class);
         foreach ($groups->listOpenGroups('listing.handler') as $batch) {
@@ -190,7 +190,7 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame('one', $batches[0]['groupKey']);
         self::assertSame('listing.handler', $batches[0]['endpointId']);
         self::assertSame(2, $batches[0]['expectedSize']);
-        self::assertSame([], $groups->listOpenGroups('another.handler'));
+        self::assertUnknownEndpointId(fn () => $groups->listOpenGroups('another.handler'));
     }
 
     #[DataProvider('implementations')]
@@ -277,7 +277,7 @@ final class CollectingConformanceTest extends TestCase
         self::assertCount(1, $closed);
         self::assertSame('released', $closed[0]['state']);
         self::assertSame('collect.handler', $closed[0]['endpointId']);
-        self::assertSame([], $groups->listClosedGroups('another.handler'));
+        self::assertUnknownEndpointId(fn () => $groups->listClosedGroups('another.handler'));
     }
 
     #[DataProvider('implementations')]
@@ -753,7 +753,7 @@ final class CollectingConformanceTest extends TestCase
                 $this->second[] = $batch;
             }
         };
-        $ecotone = $this->bootstrap($handler, $durable);
+        $ecotone = $this->bootstrap(handler: $handler, durable: $durable, endpointId: 'collect.event.first');
         foreach (['collect.event.first', 'collect.event.second'] as $endpointId) {
             foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenGroups($endpointId) as $batch) {
                 $ecotone->getGateway(GatheredGroups::class)->discard($batch['groupId']);
@@ -773,7 +773,7 @@ final class CollectingConformanceTest extends TestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_batches_are_listed_by_endpoint_id_and_not_by_channel_name(bool $durable): void
+    public function test_listing_an_unknown_endpoint_id_names_the_known_endpoint_ids(bool $durable): void
     {
         $handler = new class () {
             #[Collected(maxWait: new TimeSpan(seconds: 10))]
@@ -784,16 +784,53 @@ final class CollectingConformanceTest extends TestCase
             }
         };
         $ecotone = $this->bootstrap($handler, $durable);
-        $ecotone->sendCommandWithRouting('collect', 'first');
-        $ecotone->run('batches');
         $groups = $ecotone->getGateway(GatheredGroups::class);
-        $batch = $groups->listOpenGroups('collect.handler')[0];
-        self::assertNull($batch['expectedSize']);
-        self::assertSame([], $groups->listOpenGroups('collect'));
-        $groups->requestRelease($batch['groupId']);
-        $ecotone->run('batches');
-        self::assertSame([], $groups->listClosedGroups('collect'));
-        self::assertContains($batch['groupId'], array_column($groups->listClosedGroups('collect.handler'), 'groupId'));
+        $expected = "No gathered or collected handler has endpointId 'collect' and no groups are stored under it. Known endpoint ids: 'collect.handler'. Pass one of them to list its groups.";
+        $failures = [];
+        foreach ([static fn () => $groups->listOpenGroups('collect'), static fn () => $groups->listClosedGroups('collect'), static fn () => $ecotone->runConsoleCommand('ecotone:gathering:list', ['endpointId' => 'collect'])] as $listing) {
+            try {
+                $listing();
+            } catch (Throwable $failure) {
+                $failures[] = $failure->getMessage();
+            }
+        }
+
+        self::assertSame([$expected, $expected, $expected], $failures);
+    }
+
+    public function test_batches_stored_under_an_endpoint_id_without_a_current_handler_are_still_listed(): void
+    {
+        $before = new class () {
+            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.renamed.before')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $after = new class () {
+            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Asynchronous('batches')]
+            #[CommandHandler('collect', endpointId: 'collect.renamed.after')]
+            public function collect(CollectedMessages $batch): void
+            {
+            }
+        };
+        $old = $this->bootstrap(handler: $before, durable: true);
+        foreach ($old->getGateway(GatheredGroups::class)->listOpenGroups('collect.renamed.before') as $batch) {
+            $old->getGateway(GatheredGroups::class)->discard($batch['groupId']);
+        }
+        $old->sendCommandWithRouting('collect', 'first');
+        $old->run('batches');
+        $batchId = $old->getGateway(GatheredGroups::class)->listOpenGroups('collect.renamed.before')[0]['groupId'];
+
+        $renamed = $this->bootstrap(handler: $after, durable: true);
+        $groups = $renamed->getGateway(GatheredGroups::class);
+
+        self::assertSame([$batchId], array_column($groups->listOpenGroups('collect.renamed.before'), 'groupId'));
+        $groups->discard($batchId);
+        self::assertSame([], $groups->listOpenGroups('collect.renamed.before'));
+        self::assertContains($batchId, array_column($groups->listClosedGroups('collect.renamed.before'), 'groupId'));
     }
 
     #[DataProvider('implementations')]
@@ -1614,6 +1651,16 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame(CollectedReleaseReason::MAX_SIZE_REACHED->value, $closed[0]['releaseReason']);
     }
 
+    private static function assertUnknownEndpointId(callable $listing): void
+    {
+        try {
+            $listing();
+            self::fail();
+        } catch (Throwable $failure) {
+            self::assertStringStartsWith("No gathered or collected handler has endpointId 'another.handler'", $failure->getMessage());
+        }
+    }
+
     private function bootstrapWithoutTransaction(object $handler, DbalConnectionFactory $connectionFactory): FlowTestSupport
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
@@ -1667,7 +1714,7 @@ final class CollectingConformanceTest extends TestCase
         return $ecotone;
     }
 
-    private function bootstrap(object $handler, bool $durable, bool $instantRetries = true): FlowTestSupport
+    private function bootstrap(object $handler, bool $durable, bool $instantRetries = true, string $endpointId = 'collect.handler'): FlowTestSupport
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
@@ -1678,7 +1725,7 @@ final class CollectingConformanceTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries($instantRetries),
         );
-        foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler') as $batch) {
+        foreach ($ecotone->getGateway(GatheredGroups::class)->listOpenGroups($endpointId) as $batch) {
             $ecotone->getGateway(GatheredGroups::class)->discard($batch['groupId']);
         }
         return $ecotone;

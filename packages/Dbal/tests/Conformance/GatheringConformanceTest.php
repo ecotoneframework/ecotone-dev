@@ -1627,6 +1627,51 @@ final class GatheringConformanceTest extends TestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_listing_a_gather_channel_name_names_its_gathered_handler_endpoint_id(bool $durable): void
+    {
+        $handler = new class () {
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work', endpointId: 'work.handler')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: $durable ? [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: $durable ? [ModulePackageList::DBAL_PACKAGE] : [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $groups = $ecotone->getGateway(GatheredGroups::class);
+        $expected = "'summary' is the gather channel of the gathered handler with endpointId 'summary.handler'. Groups are listed by the handler's endpointId: pass 'summary.handler'.";
+        $failures = [];
+        foreach ([static fn () => $groups->listOpenGroups('summary'), static fn () => $groups->listClosedGroups('summary'), static fn () => $ecotone->runConsoleCommand('ecotone:gathering:list', ['endpointId' => 'summary'])] as $listing) {
+            try {
+                $listing();
+            } catch (Throwable $failure) {
+                $failures[] = $failure->getMessage();
+            }
+        }
+
+        self::assertSame([$expected, $expected, $expected], $failures);
+    }
+
+    #[DataProvider('implementations')]
     public function test_gathered_group_listing_rows_use_the_shared_group_shape(bool $durable): void
     {
         $handler = new class () {

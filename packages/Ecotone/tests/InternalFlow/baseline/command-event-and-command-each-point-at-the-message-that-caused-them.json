@@ -1,0 +1,58 @@
+{
+    "formatVersion": 1,
+    "scenario": "command, event and command each point at the message that caused them",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:merchant.create","kind":"channel","label":"merchant.create","attributes":{"internal":true,"name":"merchant.create","pollable":false}},
+            {"id":"channel:merchant.creation.target","kind":"channel","label":"merchant.creation.target","attributes":{"internal":true,"name":"merchant.creation.target","pollable":false}},
+            {"id":"channel:merchant.to.user.target","kind":"channel","label":"merchant.to.user.target","attributes":{"internal":true,"name":"merchant.to.user.target","pollable":false}},
+            {"id":"channel:user.register","kind":"channel","label":"user.register","attributes":{"internal":true,"name":"user.register","pollable":false}},
+            {"id":"channel:user.registration.target","kind":"channel","label":"user.registration.target","attributes":{"internal":true,"name":"user.registration.target","pollable":false}},
+            {"id":"endpoint:merchant.create","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"merchant.create","internal":true,"method":"process"}},
+            {"id":"endpoint:user.register","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"user.register","internal":true,"method":"process"}},
+            {"id":"handler:merchant.creation","kind":"commandHandler","label":"class@anonymous#1::create","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"merchant.creation","method":"create","owner":null,"routingKeys":["merchant.create"]}},
+            {"id":"handler:merchant.to.user","kind":"eventHandler","label":"class@anonymous#3::merchantToUser","attributes":{"class":"class@anonymous#3","distributed":false,"endpointId":"merchant.to.user","method":"merchantToUser","owner":null,"routingKeys":["merchant.created"]}},
+            {"id":"handler:user.registration","kind":"commandHandler","label":"class@anonymous#2::register","attributes":{"class":"class@anonymous#2","distributed":false,"endpointId":"user.registration","method":"register","owner":null,"routingKeys":["user.register"]}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around"}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundEventHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundEventHandler","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"message:merchant.create","kind":"command","label":"merchant.create","attributes":{"class":null,"handled":true,"routingKey":"merchant.create"}},
+            {"id":"message:merchant.created","kind":"event","label":"merchant.created","attributes":{"class":null,"handled":true,"routingKey":"merchant.created"}},
+            {"id":"message:user.register","kind":"command","label":"user.register","attributes":{"class":null,"handled":true,"routingKey":"user.register"}}
+        ],
+        "edges": [
+            {"from":"handler:merchant.to.user","to":"message:user.register","kind":"emits","attributes":{"inferred":true,"via":"sendWithRouting"}},
+            {"from":"handler:merchant.creation","to":"message:merchant.created","kind":"emits","attributes":{"inferred":true,"via":"publishWithRouting"}},
+            {"from":"channel:user.register","to":"endpoint:user.register","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:merchant.create","to":"endpoint:merchant.create","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:merchant.to.user.target","to":"handler:merchant.to.user","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:merchant.creation.target","to":"handler:merchant.creation","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:user.registration.target","to":"handler:user.registration","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"handler:merchant.to.user","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:merchant.to.user","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:merchant.creation","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:merchant.creation","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:user.registration","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:user.registration","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"endpoint:user.register","to":"channel:user.registration.target","kind":"output","attributes":{"internal":true}},
+            {"from":"endpoint:merchant.create","to":"channel:merchant.creation.target","kind":"output","attributes":{"internal":true}},
+            {"from":"message:user.register","to":"handler:user.registration","kind":"routedTo","attributes":[]},
+            {"from":"message:merchant.create","to":"handler:merchant.creation","kind":"routedTo","attributes":[]},
+            {"from":"message:merchant.created","to":"handler:merchant.to.user","kind":"routedTo","attributes":[]},
+            {"from":"endpoint:ecotone.modelling.bus.event_by_name","to":"channel:merchant.to.user.target","kind":"routesTo","attributes":{"internal":true,"routingKeys":["merchant.created"]}},
+            {"from":"endpoint:ecotone.modelling.bus.command_by_name","to":"channel:merchant.creation.target","kind":"routesTo","attributes":{"internal":true,"routingKeys":["merchant.create"]}},
+            {"from":"endpoint:ecotone.modelling.bus.command_by_name","to":"channel:user.registration.target","kind":"routesTo","attributes":{"internal":true,"routingKeys":["user.register"]}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"send command","destination":"merchant.create","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::create","kind":"Server","status":"Ok"},
+        {"depth":2,"name":"send event","destination":"merchant.created","kind":"Server","status":"Ok"},
+        {"depth":3,"name":"route merchant.to.user","destination":"merchant.to.user.target","kind":"Producer","status":"Ok"},
+        {"depth":4,"name":"process class@anonymous::merchantToUser","kind":"Server","status":"Ok"},
+        {"depth":5,"name":"send command","destination":"user.register","kind":"Server","status":"Ok"},
+        {"depth":6,"name":"process class@anonymous::register","kind":"Server","status":"Ok"}
+    ]
+}

@@ -1,0 +1,32 @@
+{
+    "formatVersion": 1,
+    "scenario": "two commands start two separate traces",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:user.register","kind":"channel","label":"user.register","attributes":{"internal":true,"name":"user.register","pollable":false}},
+            {"id":"channel:user.registration.target","kind":"channel","label":"user.registration.target","attributes":{"internal":true,"name":"user.registration.target","pollable":false}},
+            {"id":"endpoint:user.register","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"user.register","internal":true,"method":"process"}},
+            {"id":"handler:user.registration","kind":"commandHandler","label":"class@anonymous#1::register","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"user.registration","method":"register","owner":null,"routingKeys":["user.register"]}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"message:user.register","kind":"command","label":"user.register","attributes":{"class":null,"handled":true,"routingKey":"user.register"}}
+        ],
+        "edges": [
+            {"from":"channel:user.register","to":"endpoint:user.register","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:user.registration.target","to":"handler:user.registration","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"handler:user.registration","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:user.registration","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"endpoint:user.register","to":"channel:user.registration.target","kind":"output","attributes":{"internal":true}},
+            {"from":"message:user.register","to":"handler:user.registration","kind":"routedTo","attributes":[]},
+            {"from":"endpoint:ecotone.modelling.bus.command_by_name","to":"channel:user.registration.target","kind":"routesTo","attributes":{"internal":true,"routingKeys":["user.register"]}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"send command","destination":"user.register","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::register","kind":"Server","status":"Ok"},
+        {"depth":0,"name":"send command","destination":"user.register","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::register","kind":"Server","status":"Ok"}
+    ]
+}

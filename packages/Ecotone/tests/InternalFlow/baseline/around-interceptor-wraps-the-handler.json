@@ -1,0 +1,32 @@
+{
+    "formatVersion": 1,
+    "scenario": "around interceptor wraps the handler",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:order.place","kind":"channel","label":"order.place","attributes":{"internal":true,"name":"order.place","pollable":false}},
+            {"id":"channel:order.placing.target","kind":"channel","label":"order.placing.target","attributes":{"internal":true,"name":"order.placing.target","pollable":false}},
+            {"id":"endpoint:order.place","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"order.place","internal":true,"method":"process"}},
+            {"id":"handler:order.placing","kind":"commandHandler","label":"class@anonymous#1::place","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"order.placing","method":"place","owner":null,"routingKeys":["order.place"]}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"interceptor:class@anonymous#2::time","kind":"interceptor","label":"class@anonymous#2::time","attributes":{"class":"class@anonymous#2","method":"time","pointcut":"Ecotone\\Test\\Flow\\Fixture\\FlowAudited","position":"around"}},
+            {"id":"message:order.place","kind":"command","label":"order.place","attributes":{"class":null,"handled":true,"routingKey":"order.place"}}
+        ],
+        "edges": [
+            {"from":"channel:order.place","to":"endpoint:order.place","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:order.placing.target","to":"handler:order.placing","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"handler:order.placing","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:order.placing","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:order.placing","to":"interceptor:class@anonymous#2::time","kind":"interceptedBy","attributes":[]},
+            {"from":"endpoint:order.place","to":"channel:order.placing.target","kind":"output","attributes":{"internal":true}},
+            {"from":"message:order.place","to":"handler:order.placing","kind":"routedTo","attributes":[]},
+            {"from":"endpoint:ecotone.modelling.bus.command_by_name","to":"channel:order.placing.target","kind":"routesTo","attributes":{"internal":true,"routingKeys":["order.place"]}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"send command","destination":"order.place","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::place","kind":"Server","status":"Ok"}
+    ]
+}

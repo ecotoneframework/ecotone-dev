@@ -1,0 +1,30 @@
+{
+    "formatVersion": 1,
+    "scenario": "handler outside the boundary records no boundary spans",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:enrolment.plain.target","kind":"channel","label":"enrolment.plain.target","attributes":{"internal":true,"name":"enrolment.plain.target","pollable":false}},
+            {"id":"channel:enrolment.without_boundary","kind":"channel","label":"enrolment.without_boundary","attributes":{"internal":true,"name":"enrolment.without_boundary","pollable":false}},
+            {"id":"endpoint:enrolment.without_boundary","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"enrolment.without_boundary","internal":true,"method":"process"}},
+            {"id":"handler:enrolment.plain","kind":"commandHandler","label":"class@anonymous#1::enrol","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"enrolment.plain","method":"enrol","owner":null,"routingKeys":["enrolment.without_boundary"]}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"message:enrolment.without_boundary","kind":"command","label":"enrolment.without_boundary","attributes":{"class":null,"handled":true,"routingKey":"enrolment.without_boundary"}}
+        ],
+        "edges": [
+            {"from":"channel:enrolment.plain.target","to":"handler:enrolment.plain","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:enrolment.without_boundary","to":"endpoint:enrolment.without_boundary","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"handler:enrolment.plain","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:enrolment.plain","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"endpoint:enrolment.without_boundary","to":"channel:enrolment.plain.target","kind":"output","attributes":{"internal":true}},
+            {"from":"message:enrolment.without_boundary","to":"handler:enrolment.plain","kind":"routedTo","attributes":[]},
+            {"from":"endpoint:ecotone.modelling.bus.command_by_name","to":"channel:enrolment.plain.target","kind":"routesTo","attributes":{"internal":true,"routingKeys":["enrolment.without_boundary"]}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"send command","destination":"enrolment.without_boundary","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::enrol","kind":"Server","status":"Ok"}
+    ]
+}

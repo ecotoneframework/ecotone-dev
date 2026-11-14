@@ -1,0 +1,28 @@
+{
+    "formatVersion": 1,
+    "scenario": "message gateway starting the flow",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:notification.send","kind":"channel","label":"notification.send","attributes":{"name":"notification.send","pollable":false}},
+            {"id":"gateway:Ecotone\\Test\\Flow\\Fixture\\FlowNotificationGateway::send","kind":"gateway","label":"FlowNotificationGateway::send","attributes":{"interface":"Ecotone\\Test\\Flow\\Fixture\\FlowNotificationGateway","internal":true,"method":"send","requestChannel":"notification.send"}},
+            {"id":"handler:notification.sending","kind":"internalHandler","label":"class@anonymous#1::send","attributes":{"class":"class@anonymous#1","endpointId":"notification.sending","inputChannel":"notification.send","method":"send","owner":null}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceMessageGateway","kind":"interceptor","label":"TracingInterceptor::traceMessageGateway","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceMessageGateway","position":"around"}}
+        ],
+        "edges": [
+            {"from":"channel:notification.send","to":"handler:notification.sending","kind":"input","attributes":[]},
+            {"from":"handler:notification.sending","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:notification.sending","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Test\\Flow\\Fixture\\FlowNotificationGateway::send","to":"interceptor:Ecotone\\Modelling\\MessageHandling\\MetadataPropagator\\MessageHeadersPropagatorInterceptor::propagateHeaders","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Test\\Flow\\Fixture\\FlowNotificationGateway::send","to":"interceptor:Ecotone\\Modelling\\MessageHandling\\MetadataPropagator\\MessageHeadersPropagatorInterceptor::storeHeaders","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Test\\Flow\\Fixture\\FlowNotificationGateway::send","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceMessageGateway","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Test\\Flow\\Fixture\\FlowNotificationGateway::send","to":"channel:notification.send","kind":"sendsTo","attributes":{"internal":true}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"send notification.send","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::send","kind":"Server","status":"Ok"}
+    ]
+}

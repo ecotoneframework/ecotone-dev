@@ -43,14 +43,48 @@ final class FlowSnapshot
         return new self($scenario, MessageFlowGraph::create($nodes, $edges), self::withStableNames(FlowTrace::stepsOf($spans), $anonymousClasses));
     }
 
-    public static function fromJson(string $json, string $file): self
+    public static function fromJson(string $json, string $file, ?MessageFlowGraph $sharedWiring = null): self
     {
         $stored = json_decode($json, true);
         if (! is_array($stored) || ! is_string($stored['scenario'] ?? null) || ! is_array($stored['wiring']['nodes'] ?? null) || ! is_array($stored['wiring']['edges'] ?? null) || ! is_array($stored['trace'] ?? null)) {
             throw InvalidArgumentException::create("Flow snapshot file {$file} does not hold `scenario`, `wiring` and `trace`, so it was not written by the internal flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
         }
+        $nodes = [];
+        $edges = [];
+        if (isset($stored['wiring']['withoutNodes'], $stored['wiring']['withoutEdges'])) {
+            if ($sharedWiring === null) {
+                throw InvalidArgumentException::create("Flow snapshot file {$file} stores only what its scenario adds to the wiring every application gets, but " . dirname($file) . '/' . FlowSnapshots::SHARED_WIRING_FILE . ' is missing, so its whole wiring cannot be read. Restore that file from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.');
+            }
+            foreach ($sharedWiring->nodes() as $node) {
+                $nodes[$node->id] = $node;
+            }
+            foreach ($sharedWiring->edges() as $edge) {
+                $edges[$edge->identity()] = $edge;
+            }
+            $nodes = array_diff_key($nodes, array_flip($stored['wiring']['withoutNodes']));
+            $edges = array_diff_key($edges, array_flip($stored['wiring']['withoutEdges']));
+        }
+        foreach ($stored['wiring']['nodes'] as $node) {
+            $nodes[$node['id']] = FlowNode::fromArray($node);
+        }
+        foreach ($stored['wiring']['edges'] as $edge) {
+            $edge = FlowEdge::fromArray($edge);
+            $edges[$edge->identity()] = $edge;
+        }
+        ksort($nodes, SORT_STRING);
+        ksort($edges, SORT_STRING);
 
-        return new self($stored['scenario'], MessageFlowGraph::fromArray($stored['wiring']), $stored['trace']);
+        return new self($stored['scenario'], MessageFlowGraph::create(array_values($nodes), array_values($edges)), $stored['trace']);
+    }
+
+    public static function sharedWiringFromJson(string $json, string $file): MessageFlowGraph
+    {
+        $stored = json_decode($json, true);
+        if (! is_array($stored) || ! is_array($stored['wiring']['nodes'] ?? null) || ! is_array($stored['wiring']['edges'] ?? null)) {
+            throw InvalidArgumentException::create("Shared wiring file {$file} does not hold `wiring` with its nodes and edges, so it was not written by the internal flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
+        }
+
+        return MessageFlowGraph::fromArray($stored['wiring']);
     }
 
     public static function emptyFor(string $scenario): self
@@ -70,15 +104,89 @@ final class FlowSnapshot
 
     public function toJson(): string
     {
-        return json_encode([
-            'formatVersion' => self::FORMAT_VERSION,
-            'scenario' => $this->scenario,
-            'wiring' => [
-                'nodes' => array_map(fn (FlowNode $node): array => self::withSortedAttributes($node->toArray()), $this->wiring->nodes()),
-                'edges' => array_map(fn (FlowEdge $edge): array => self::withSortedAttributes($edge->toArray()), $this->wiring->edges()),
-            ],
-            'trace' => $this->trace,
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
+        return $this->encodedWith(self::linesOf($this->wiring->nodes()), self::linesOf($this->wiring->edges()), []);
+    }
+
+    public function toJsonBeside(MessageFlowGraph $sharedWiring): string
+    {
+        $sharedNodes = self::linesOf($sharedWiring->nodes());
+        $sharedEdges = self::linesOf($sharedWiring->edges());
+        $nodes = self::linesOf($this->wiring->nodes());
+        $edges = self::linesOf($this->wiring->edges());
+
+        return $this->encodedWith(array_diff_assoc($nodes, $sharedNodes), array_diff_assoc($edges, $sharedEdges), [
+            '        "withoutNodes": ' . self::encoded(array_keys(array_diff_key($sharedNodes, $nodes))),
+            '        "withoutEdges": ' . self::encoded(array_keys(array_diff_key($sharedEdges, $edges))),
+        ]);
+    }
+
+    public static function sharedWiringJson(MessageFlowGraph $sharedWiring): string
+    {
+        return implode("\n", [
+            '{',
+            '    "formatVersion": ' . self::FORMAT_VERSION . ',',
+            '    "wiring": {',
+            '        "nodes": ' . self::oneLineEach(self::linesOf($sharedWiring->nodes()), '        ') . ',',
+            '        "edges": ' . self::oneLineEach(self::linesOf($sharedWiring->edges()), '        '),
+            '    }',
+            '}',
+            '',
+        ]);
+    }
+
+    /**
+     * @param array<string, string> $nodeLines
+     * @param array<string, string> $edgeLines
+     * @param list<string> $withoutShared
+     */
+    private function encodedWith(array $nodeLines, array $edgeLines, array $withoutShared): string
+    {
+        return implode("\n", [
+            '{',
+            '    "formatVersion": ' . self::FORMAT_VERSION . ',',
+            '    "scenario": ' . self::encoded($this->scenario) . ',',
+            '    "wiring": {',
+            implode(",\n", [
+                '        "nodes": ' . self::oneLineEach($nodeLines, '        '),
+                '        "edges": ' . self::oneLineEach($edgeLines, '        '),
+                ...$withoutShared,
+            ]),
+            '    },',
+            '    "trace": ' . self::oneLineEach(array_map(self::encoded(...), $this->trace), '    '),
+            '}',
+            '',
+        ]);
+    }
+
+    /**
+     * @param list<FlowNode>|list<FlowEdge> $elements
+     * @return array<string, string> node id or edge identity => its stored line
+     */
+    private static function linesOf(array $elements): array
+    {
+        $lines = [];
+        foreach ($elements as $element) {
+            $lines[$element instanceof FlowNode ? $element->id : $element->identity()] = self::encoded(self::withSortedAttributes($element->toArray()));
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @param array<string|int, string> $lines
+     */
+    private static function oneLineEach(array $lines, string $indentation): string
+    {
+        if ($lines === []) {
+            return '[]';
+        }
+
+        return "[\n" . implode(",\n", array_map(fn (string $line): string => $indentation . '    ' . $line, $lines)) . "\n" . $indentation . ']';
+    }
+
+    private static function encoded(mixed $value): string
+    {
+        return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
 
     /**

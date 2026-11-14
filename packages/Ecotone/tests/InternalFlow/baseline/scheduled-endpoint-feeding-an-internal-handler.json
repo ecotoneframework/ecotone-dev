@@ -1,0 +1,27 @@
+{
+    "formatVersion": 1,
+    "scenario": "scheduled endpoint feeding an internal handler",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:add","kind":"channel","label":"add","attributes":{"name":"add","pollable":false}},
+            {"id":"channel:scheduled_handler","kind":"channel","label":"scheduled_handler","attributes":{"internal":true,"name":"scheduled_handler","pollable":false}},
+            {"id":"endpoint:scheduled_handler.target","kind":"internalHandler","label":"class@anonymous#1::produce","attributes":{"class":"class@anonymous#1","inputChannel":"scheduled_handler","internal":true,"method":"produce"}},
+            {"id":"handler:adding","kind":"internalHandler","label":"class@anonymous#1::add","attributes":{"class":"class@anonymous#1","endpointId":"adding","inputChannel":"add","method":"add","owner":null}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"scheduled:scheduled_handler","kind":"scheduled","label":"class@anonymous#1::produce","attributes":{"class":"class@anonymous#1","endpointId":"scheduled_handler","method":"produce"}}
+        ],
+        "edges": [
+            {"from":"channel:add","to":"handler:adding","kind":"input","attributes":[]},
+            {"from":"channel:scheduled_handler","to":"endpoint:scheduled_handler.target","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"handler:adding","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:adding","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"scheduled:scheduled_handler","to":"channel:add","kind":"sendsTo","attributes":[]}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"receive add","kind":"Consumer","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::add","kind":"Server","status":"Ok"}
+    ]
+}

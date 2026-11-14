@@ -1,0 +1,36 @@
+{
+    "formatVersion": 1,
+    "scenario": "asynchronous gateway queues the call until its consumer runs",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:ticket.create","kind":"channel","label":"ticket.create","attributes":{"name":"ticket.create","pollable":false}},
+            {"id":"channel:tickets","kind":"channel","label":"tickets","attributes":{"name":"tickets","pollable":true}},
+            {"id":"endpoint:tickets","kind":"internalHandler","label":"Bridge::handle","attributes":{"class":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge","inputChannel":"tickets","internal":true,"method":"handle"}},
+            {"id":"gateway:Ecotone\\Test\\Flow\\Fixture\\FlowTicketGateway::create","kind":"gateway","label":"FlowTicketGateway::create","attributes":{"interface":"Ecotone\\Test\\Flow\\Fixture\\FlowTicketGateway","internal":true,"method":"create","requestChannel":"ticket.create"}},
+            {"id":"handler:ticket.creating","kind":"internalHandler","label":"class@anonymous#1::create","attributes":{"class":"class@anonymous#1","endpointId":"ticket.creating","inputChannel":"ticket.create","method":"create","owner":null}},
+            {"id":"interceptor:Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor::send","kind":"interceptor","label":"CollectorSenderInterceptor::send","attributes":{"class":"Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor","internal":true,"method":"send","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceMessageGateway","kind":"interceptor","label":"TracingInterceptor::traceMessageGateway","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceMessageGateway","position":"around"}}
+        ],
+        "edges": [
+            {"from":"channel:tickets","to":"endpoint:tickets","kind":"input","attributes":{"consumer":"polling","internal":true}},
+            {"from":"channel:ticket.create","to":"handler:ticket.creating","kind":"input","attributes":[]},
+            {"from":"handler:ticket.creating","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:ticket.creating","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\CommandBus::send","to":"interceptor:Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor::send","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\CommandBus::sendWithRouting","to":"interceptor:Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor::send","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Test\\Flow\\Fixture\\FlowTicketGateway::create","to":"interceptor:Ecotone\\Modelling\\MessageHandling\\MetadataPropagator\\MessageHeadersPropagatorInterceptor::propagateHeaders","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Test\\Flow\\Fixture\\FlowTicketGateway::create","to":"interceptor:Ecotone\\Modelling\\MessageHandling\\MetadataPropagator\\MessageHeadersPropagatorInterceptor::storeHeaders","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Test\\Flow\\Fixture\\FlowTicketGateway::create","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceMessageGateway","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Test\\Flow\\Fixture\\FlowTicketGateway::create","to":"channel:ticket.create","kind":"sendsTo","attributes":{"internal":true}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"send ticket.create","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"send tickets","kind":"Producer","status":"Ok"},
+        {"depth":2,"name":"receive tickets","kind":"Consumer","status":"Ok"},
+        {"depth":3,"name":"process class@anonymous::create","kind":"Server","status":"Ok"}
+    ]
+}

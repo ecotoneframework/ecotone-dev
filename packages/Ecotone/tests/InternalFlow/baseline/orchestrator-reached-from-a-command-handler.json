@@ -1,0 +1,49 @@
+{
+    "formatVersion": 1,
+    "scenario": "orchestrator reached from a command handler",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:approval.notify","kind":"channel","label":"approval.notify","attributes":{"name":"approval.notify","pollable":false}},
+            {"id":"channel:approval.request","kind":"channel","label":"approval.request","attributes":{"internal":true,"name":"approval.request","pollable":false}},
+            {"id":"channel:approval.requesting.target","kind":"channel","label":"approval.requesting.target","attributes":{"internal":true,"name":"approval.requesting.target","pollable":false}},
+            {"id":"channel:approval.validate","kind":"channel","label":"approval.validate","attributes":{"name":"approval.validate","pollable":false}},
+            {"id":"channel:approval.workflow","kind":"channel","label":"approval.workflow","attributes":{"name":"approval.workflow","pollable":false}},
+            {"id":"endpoint:approval.request","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"approval.request","internal":true,"method":"process"}},
+            {"id":"handler:approval.notifying","kind":"internalHandler","label":"class@anonymous#2::notify","attributes":{"class":"class@anonymous#2","endpointId":"approval.notifying","inputChannel":"approval.notify","method":"notify","owner":null}},
+            {"id":"handler:approval.requesting","kind":"commandHandler","label":"class@anonymous#1::request","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"approval.requesting","method":"request","owner":null,"routingKeys":["approval.request"]}},
+            {"id":"handler:approval.validating","kind":"internalHandler","label":"class@anonymous#2::validate","attributes":{"class":"class@anonymous#2","endpointId":"approval.validating","inputChannel":"approval.validate","method":"validate","owner":null}},
+            {"id":"handler:class@anonymous#1::workflow","kind":"orchestrator","label":"class@anonymous#1::workflow","attributes":{"class":"class@anonymous#1","endpointId":null,"inputChannel":"approval.workflow","method":"workflow","owner":null}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"message:approval.request","kind":"command","label":"approval.request","attributes":{"class":null,"handled":true,"routingKey":"approval.request"}}
+        ],
+        "edges": [
+            {"from":"channel:approval.notify","to":"handler:approval.notifying","kind":"input","attributes":[]},
+            {"from":"channel:approval.request","to":"endpoint:approval.request","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:approval.validate","to":"handler:approval.validating","kind":"input","attributes":[]},
+            {"from":"channel:approval.workflow","to":"handler:class@anonymous#1::workflow","kind":"input","attributes":[]},
+            {"from":"channel:approval.requesting.target","to":"handler:approval.requesting","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"handler:approval.notifying","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:approval.notifying","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:approval.requesting","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:approval.requesting","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:approval.validating","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:approval.validating","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"endpoint:approval.request","to":"channel:approval.requesting.target","kind":"output","attributes":{"internal":true}},
+            {"from":"handler:approval.requesting","to":"channel:approval.workflow","kind":"output","attributes":[]},
+            {"from":"message:approval.request","to":"handler:approval.requesting","kind":"routedTo","attributes":[]},
+            {"from":"handler:approval.validating","to":"channel:approval.notify","kind":"routesTo","attributes":{"inferred":true}},
+            {"from":"handler:class@anonymous#1::workflow","to":"channel:approval.notify","kind":"routesTo","attributes":{"inferred":true}},
+            {"from":"handler:class@anonymous#1::workflow","to":"channel:approval.validate","kind":"routesTo","attributes":{"inferred":true}},
+            {"from":"endpoint:ecotone.modelling.bus.command_by_name","to":"channel:approval.requesting.target","kind":"routesTo","attributes":{"internal":true,"routingKeys":["approval.request"]}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"send command","destination":"approval.request","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::request","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::validate","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::notify","kind":"Server","status":"Ok"}
+    ]
+}

@@ -1,0 +1,49 @@
+{
+    "formatVersion": 1,
+    "scenario": "distributed send failing",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","kind":"channel","label":"Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","attributes":{"internal":true,"name":"Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","pollable":false}},
+            {"id":"channel:distributed_channel","kind":"channel","label":"distributed_channel","attributes":{"name":"distributed_channel","pollable":true}},
+            {"id":"distributed:Ecotone\\Api\\Gateway\\DistributedBus","kind":"distributedBus","label":"Distributed Bus","attributes":{"commandMapping":{"ticket_service":"distributed_channel"},"eventSubscriptions":[],"reference":"Ecotone\\Api\\Gateway\\DistributedBus"}},
+            {"id":"endpoint:Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","kind":"router","label":"Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","attributes":{"inputChannel":"Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","internal":true}},
+            {"id":"endpoint:distributed_channel","kind":"internalHandler","label":"Bridge::handle","attributes":{"class":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge","inputChannel":"distributed_channel","internal":true,"method":"handle"}},
+            {"id":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::convertAndPublishEvent","kind":"gateway","label":"DistributedBus::convertAndPublishEvent","attributes":{"interface":"Ecotone\\Api\\Gateway\\DistributedBus","internal":true,"method":"convertAndPublishEvent","requestChannel":"Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution"}},
+            {"id":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::convertAndSendCommand","kind":"gateway","label":"DistributedBus::convertAndSendCommand","attributes":{"interface":"Ecotone\\Api\\Gateway\\DistributedBus","internal":true,"method":"convertAndSendCommand","requestChannel":"Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution"}},
+            {"id":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::publishEvent","kind":"gateway","label":"DistributedBus::publishEvent","attributes":{"interface":"Ecotone\\Api\\Gateway\\DistributedBus","internal":true,"method":"publishEvent","requestChannel":"Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution"}},
+            {"id":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::sendCommand","kind":"gateway","label":"DistributedBus::sendCommand","attributes":{"interface":"Ecotone\\Api\\Gateway\\DistributedBus","internal":true,"method":"sendCommand","requestChannel":"Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution"}},
+            {"id":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::sendMessage","kind":"gateway","label":"DistributedBus::sendMessage","attributes":{"interface":"Ecotone\\Api\\Gateway\\DistributedBus","internal":true,"method":"sendMessage","requestChannel":"Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution"}},
+            {"id":"interceptor:Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor::send","kind":"interceptor","label":"CollectorSenderInterceptor::send","attributes":{"class":"Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor","internal":true,"method":"send","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::provideContextForDistributedBus","kind":"interceptor","label":"TracingInterceptor::provideContextForDistributedBus","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"provideContextForDistributedBus","position":"before"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceDistributedBus","kind":"interceptor","label":"TracingInterceptor::traceDistributedBus","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceDistributedBus","position":"around"}}
+        ],
+        "edges": [
+            {"from":"channel:distributed_channel","to":"endpoint:distributed_channel","kind":"input","attributes":{"consumer":"polling","internal":true}},
+            {"from":"channel:Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","to":"endpoint:Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\CommandBus::send","to":"interceptor:Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor::send","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\CommandBus::sendWithRouting","to":"interceptor:Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor::send","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::sendCommand","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::provideContextForDistributedBus","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::sendCommand","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceDistributedBus","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::sendMessage","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::provideContextForDistributedBus","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::sendMessage","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceDistributedBus","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::publishEvent","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::provideContextForDistributedBus","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::publishEvent","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceDistributedBus","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::convertAndSendCommand","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::provideContextForDistributedBus","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::convertAndSendCommand","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceDistributedBus","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::convertAndPublishEvent","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::provideContextForDistributedBus","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::convertAndPublishEvent","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceDistributedBus","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"distributed:Ecotone\\Api\\Gateway\\DistributedBus","to":"channel:distributed_channel","kind":"sendsTo","attributes":{"targetService":"ticket_service"}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::sendCommand","to":"channel:Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","kind":"sendsTo","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::sendMessage","to":"channel:Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","kind":"sendsTo","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::publishEvent","to":"channel:Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","kind":"sendsTo","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::convertAndSendCommand","to":"channel:Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","kind":"sendsTo","attributes":{"internal":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\DistributedBus::convertAndPublishEvent","to":"channel:Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","kind":"sendsTo","attributes":{"internal":true}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"send distributed","kind":"Producer","status":"Error"},
+        {"depth":1,"name":"send distributed_channel","kind":"Producer","status":"Error"}
+    ]
+}

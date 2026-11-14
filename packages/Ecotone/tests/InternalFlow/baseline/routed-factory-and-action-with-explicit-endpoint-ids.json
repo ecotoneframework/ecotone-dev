@@ -1,0 +1,51 @@
+{
+    "formatVersion": 1,
+    "scenario": "routed factory and action with explicit endpoint ids",
+    "wiring": {
+        "nodes": [
+            {"id":"aggregate:class@anonymous#1","kind":"aggregate","label":"class@anonymous#1","attributes":{"class":"class@anonymous#1","eventSourced":false}},
+            {"id":"channel:class@anonymous#1.will_load.load","kind":"channel","label":"class@anonymous#1.will_load.load","attributes":{"internal":true,"name":"class@anonymous#1.will_load.load","pollable":false}},
+            {"id":"channel:class@anonymous#1.will_load.load.nullable","kind":"channel","label":"class@anonymous#1.will_load.load.nullable","attributes":{"internal":true,"name":"class@anonymous#1.will_load.load.nullable","pollable":false}},
+            {"id":"channel:class@anonymous#1.will_save.save","kind":"channel","label":"class@anonymous#1.will_save.save","attributes":{"internal":true,"name":"class@anonymous#1.will_save.save","pollable":false}},
+            {"id":"channel:class@anonymous#1.will_save.save.test_setup_state","kind":"channel","label":"class@anonymous#1.will_save.save.test_setup_state","attributes":{"internal":true,"name":"class@anonymous#1.will_save.save.test_setup_state","pollable":false}},
+            {"id":"channel:order.factory.target","kind":"channel","label":"order.factory.target","attributes":{"internal":true,"name":"order.factory.target","pollable":false}},
+            {"id":"channel:order.factory.target-connection","kind":"channel","label":"order.factory.target-connection","attributes":{"internal":true,"name":"order.factory.target-connection","pollable":false}},
+            {"id":"channel:order.place","kind":"channel","label":"order.place","attributes":{"internal":true,"name":"order.place","pollable":false}},
+            {"id":"endpoint:class@anonymous#1.will_load.load","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"class@anonymous#1.will_load.load","internal":true,"method":"process"}},
+            {"id":"endpoint:class@anonymous#1.will_load.load.nullable","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"class@anonymous#1.will_load.load.nullable","internal":true,"method":"process"}},
+            {"id":"endpoint:class@anonymous#1.will_save.save","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"class@anonymous#1.will_save.save","internal":true,"method":"process"}},
+            {"id":"endpoint:class@anonymous#1.will_save.save.test_setup_state","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"class@anonymous#1.will_save.save.test_setup_state","internal":true,"method":"process"}},
+            {"id":"endpoint:order.factory.target","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"order.factory.target","internal":true,"method":"process"}},
+            {"id":"endpoint:order.place","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"order.place","internal":true,"method":"process"}},
+            {"id":"handler:order.action","kind":"commandHandler","label":"class@anonymous#1::placeAgain","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"order.action","method":"placeAgain","owner":"aggregate:class@anonymous#1","routingKeys":["order.place"]}},
+            {"id":"handler:order.factory","kind":"commandHandler","label":"class@anonymous#1::place","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"order.factory","method":"place","owner":"aggregate:class@anonymous#1","routingKeys":["order.place"]}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"message:order.place","kind":"command","label":"order.place","attributes":{"class":null,"handled":true,"routingKey":"order.place"}}
+        ],
+        "edges": [
+            {"from":"channel:order.place","to":"endpoint:order.place","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:order.factory.target","to":"endpoint:order.factory.target","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:order.factory.target-connection","to":"handler:order.factory","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:class@anonymous#1.will_load.load","to":"endpoint:class@anonymous#1.will_load.load","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:class@anonymous#1.will_save.save","to":"endpoint:class@anonymous#1.will_save.save","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:class@anonymous#1.will_load.load.nullable","to":"endpoint:class@anonymous#1.will_load.load.nullable","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:class@anonymous#1.will_save.save.test_setup_state","to":"endpoint:class@anonymous#1.will_save.save.test_setup_state","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"handler:order.factory","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:order.factory","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"endpoint:order.place","to":"channel:order.factory.target","kind":"output","attributes":{"internal":true}},
+            {"from":"endpoint:order.factory.target","to":"channel:order.factory.target-connection","kind":"output","attributes":{"internal":true}},
+            {"from":"message:order.place","to":"handler:order.action","kind":"routedTo","attributes":[]},
+            {"from":"message:order.place","to":"handler:order.factory","kind":"routedTo","attributes":[]},
+            {"from":"endpoint:ecotone.modelling.bus.command_by_name","to":"channel:order.factory.target-connection","kind":"routesTo","attributes":{"internal":true,"routingKeys":["order.place"]}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"send command","destination":"order.place","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::place","kind":"Server","status":"Ok"},
+        {"depth":0,"name":"send command","destination":"order.place","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::placeAgain","kind":"Server","status":"Ok"}
+    ]
+}

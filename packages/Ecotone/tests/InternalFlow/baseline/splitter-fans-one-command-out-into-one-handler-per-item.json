@@ -1,0 +1,42 @@
+{
+    "formatVersion": 1,
+    "scenario": "splitter fans one command out into one handler per item",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:batch.import","kind":"channel","label":"batch.import","attributes":{"internal":true,"name":"batch.import","pollable":false}},
+            {"id":"channel:batch.importing.target","kind":"channel","label":"batch.importing.target","attributes":{"internal":true,"name":"batch.importing.target","pollable":false}},
+            {"id":"channel:batch.split","kind":"channel","label":"batch.split","attributes":{"name":"batch.split","pollable":false}},
+            {"id":"channel:item.handle","kind":"channel","label":"item.handle","attributes":{"name":"item.handle","pollable":false}},
+            {"id":"endpoint:batch.import","kind":"internalHandler","label":"ChainedMessageProcessor::process","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"batch.import","internal":true,"method":"process"}},
+            {"id":"handler:batch.importing","kind":"commandHandler","label":"class@anonymous#1::import","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"batch.importing","method":"import","owner":null,"routingKeys":["batch.import"]}},
+            {"id":"handler:class@anonymous#1::split","kind":"splitter","label":"class@anonymous#1::split","attributes":{"class":"class@anonymous#1","endpointId":null,"inputChannel":"batch.split","method":"split","owner":null}},
+            {"id":"handler:item.handling","kind":"internalHandler","label":"class@anonymous#1::handle","attributes":{"class":"class@anonymous#1","endpointId":"item.handling","inputChannel":"item.handle","method":"handle","owner":null}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"message:batch.import","kind":"command","label":"batch.import","attributes":{"class":null,"handled":true,"routingKey":"batch.import"}}
+        ],
+        "edges": [
+            {"from":"channel:batch.split","to":"handler:class@anonymous#1::split","kind":"input","attributes":[]},
+            {"from":"channel:item.handle","to":"handler:item.handling","kind":"input","attributes":[]},
+            {"from":"channel:batch.import","to":"endpoint:batch.import","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:batch.importing.target","to":"handler:batch.importing","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"handler:item.handling","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:item.handling","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:batch.importing","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:batch.importing","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"endpoint:batch.import","to":"channel:batch.importing.target","kind":"output","attributes":{"internal":true}},
+            {"from":"handler:batch.importing","to":"channel:batch.split","kind":"output","attributes":[]},
+            {"from":"handler:class@anonymous#1::split","to":"channel:item.handle","kind":"output","attributes":[]},
+            {"from":"message:batch.import","to":"handler:batch.importing","kind":"routedTo","attributes":[]},
+            {"from":"endpoint:ecotone.modelling.bus.command_by_name","to":"channel:batch.importing.target","kind":"routesTo","attributes":{"internal":true,"routingKeys":["batch.import"]}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"send command","destination":"batch.import","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::import","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::handle","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::handle","kind":"Server","status":"Ok"}
+    ]
+}

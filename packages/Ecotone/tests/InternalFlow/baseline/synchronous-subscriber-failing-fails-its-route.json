@@ -1,0 +1,27 @@
+{
+    "formatVersion": 1,
+    "scenario": "synchronous subscriber failing fails its route",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:merchant.notifying.target","kind":"channel","label":"merchant.notifying.target","attributes":{"internal":true,"name":"merchant.notifying.target","pollable":false}},
+            {"id":"handler:merchant.notifying","kind":"eventHandler","label":"class@anonymous#1::notify","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"merchant.notifying","method":"notify","owner":null,"routingKeys":["merchant.created"]}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundEventHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundEventHandler","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"message:merchant.created","kind":"event","label":"merchant.created","attributes":{"class":null,"handled":true,"routingKey":"merchant.created"}}
+        ],
+        "edges": [
+            {"from":"channel:merchant.notifying.target","to":"handler:merchant.notifying","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"handler:merchant.notifying","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:merchant.notifying","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"message:merchant.created","to":"handler:merchant.notifying","kind":"routedTo","attributes":[]},
+            {"from":"endpoint:ecotone.modelling.bus.event_by_name","to":"channel:merchant.notifying.target","kind":"routesTo","attributes":{"internal":true,"routingKeys":["merchant.created"]}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"send event","destination":"merchant.created","kind":"Server","status":"Error"},
+        {"depth":1,"name":"route merchant.notifying","destination":"merchant.notifying.target","kind":"Producer","status":"Error"},
+        {"depth":2,"name":"process class@anonymous::notify","kind":"Server","status":"Error"}
+    ]
+}

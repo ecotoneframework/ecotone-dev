@@ -1,0 +1,30 @@
+{
+    "formatVersion": 1,
+    "scenario": "query handler",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:order.status","kind":"channel","label":"order.status","attributes":{"internal":true,"name":"order.status","pollable":false}},
+            {"id":"channel:order.status.reading.target","kind":"channel","label":"order.status.reading.target","attributes":{"internal":true,"name":"order.status.reading.target","pollable":false}},
+            {"id":"endpoint:order.status","kind":"internalHandler","label":"Bridge::handle","attributes":{"class":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge","inputChannel":"order.status","internal":true,"method":"handle"}},
+            {"id":"handler:order.status.reading","kind":"queryHandler","label":"class@anonymous#1::status","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"order.status.reading","method":"status","owner":null,"routingKeys":["order.status"]}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundQueryHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundQueryHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundQueryHandler","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"message:order.status","kind":"query","label":"order.status","attributes":{"class":null,"handled":true,"routingKey":"order.status"}}
+        ],
+        "edges": [
+            {"from":"channel:order.status","to":"endpoint:order.status","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"channel:order.status.reading.target","to":"handler:order.status.reading","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"handler:order.status.reading","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundQueryHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:order.status.reading","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"endpoint:order.status","to":"channel:order.status.reading.target","kind":"output","attributes":{"internal":true}},
+            {"from":"message:order.status","to":"handler:order.status.reading","kind":"routedTo","attributes":[]},
+            {"from":"endpoint:ecotone.modelling.bus.query_by_name","to":"channel:order.status.reading.target","kind":"routesTo","attributes":{"internal":true,"routingKeys":["order.status"]}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"send query","destination":"order.status","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::status","kind":"Server","status":"Ok"}
+    ]
+}

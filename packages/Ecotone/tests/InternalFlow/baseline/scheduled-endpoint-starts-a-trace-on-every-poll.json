@@ -1,0 +1,29 @@
+{
+    "formatVersion": 1,
+    "scenario": "scheduled endpoint starts a trace on every poll",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:add","kind":"channel","label":"add","attributes":{"name":"add","pollable":false}},
+            {"id":"channel:scheduled_adding","kind":"channel","label":"scheduled_adding","attributes":{"internal":true,"name":"scheduled_adding","pollable":false}},
+            {"id":"endpoint:scheduled_adding.target","kind":"internalHandler","label":"class@anonymous#1::produce","attributes":{"class":"class@anonymous#1","inputChannel":"scheduled_adding","internal":true,"method":"produce"}},
+            {"id":"handler:adding","kind":"internalHandler","label":"class@anonymous#1::add","attributes":{"class":"class@anonymous#1","endpointId":"adding","inputChannel":"add","method":"add","owner":null}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"scheduled:scheduled_adding","kind":"scheduled","label":"class@anonymous#1::produce","attributes":{"class":"class@anonymous#1","endpointId":"scheduled_adding","method":"produce"}}
+        ],
+        "edges": [
+            {"from":"channel:add","to":"handler:adding","kind":"input","attributes":[]},
+            {"from":"channel:scheduled_adding","to":"endpoint:scheduled_adding.target","kind":"input","attributes":{"consumer":"eventDriven","internal":true}},
+            {"from":"handler:adding","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"handler:adding","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"internal":true}},
+            {"from":"scheduled:scheduled_adding","to":"channel:add","kind":"sendsTo","attributes":[]}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "trace": [
+        {"depth":0,"name":"receive add","kind":"Consumer","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::add","kind":"Server","status":"Ok"},
+        {"depth":0,"name":"receive add","kind":"Consumer","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::add","kind":"Server","status":"Ok"}
+    ]
+}

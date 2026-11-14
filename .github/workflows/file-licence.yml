@@ -34,3 +34,8 @@ jobs:
 
       - name: Check framework code opens no transaction outside the boundaries
         run: php bin/check-framework-transactions.php
+
+      # The committed snapshots of the flow scenario catalogue (internal wiring and traced steps) are
+      # what the code produces; regenerate them with php bin/internal-flow.php snapshot
+      - name: Check the internal flow snapshots are current
+        run: php bin/check-internal-flow.php

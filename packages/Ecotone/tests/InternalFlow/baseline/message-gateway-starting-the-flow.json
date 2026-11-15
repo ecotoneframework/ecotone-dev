@@ -4,10 +4,10 @@
     "wiring": {
         "nodes": [
             {"id":"channel:notification.send","kind":"channel","label":"notification.send","attributes":{"name":"notification.send","pollable":false}},
-            {"id":"gateway:Ecotone\\Test\\Flow\\Fixture\\FlowNotificationGateway::send","kind":"gateway","label":"FlowNotificationGateway::send","attributes":{"interface":"Ecotone\\Test\\Flow\\Fixture\\FlowNotificationGateway","internal":true,"method":"send","requestChannel":"notification.send"}},
+            {"id":"gateway:Ecotone\\Test\\Flow\\Fixture\\FlowNotificationGateway::send","kind":"gateway","label":"FlowNotificationGateway::send","attributes":{"interface":"Ecotone\\Test\\Flow\\Fixture\\FlowNotificationGateway","internal":true,"method":"send","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessagingGatewayModule","requestChannel":"notification.send"}},
             {"id":"handler:notification.sending","kind":"internalHandler","label":"class@anonymous#1::send","attributes":{"class":"class@anonymous#1","endpointId":"notification.sending","inputChannel":"notification.send","method":"send","owner":null}},
-            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
-            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceMessageGateway","kind":"interceptor","label":"TracingInterceptor::traceMessageGateway","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceMessageGateway","position":"around"}}
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceMessageGateway","kind":"interceptor","label":"TracingInterceptor::traceMessageGateway","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceMessageGateway","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}}
         ],
         "edges": [
             {"from":"channel:notification.send","to":"handler:notification.sending","kind":"input","attributes":[]},

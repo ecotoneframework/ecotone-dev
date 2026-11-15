@@ -124,6 +124,7 @@ final class InternalMessageFlowDiscovery
                 'method' => $gateway->getRelatedMethodName(),
                 'requestChannel' => $this->stable($gateway->getRequestChannelName()),
                 'internal' => true,
+                'registeredBy' => $this->configuration->getRegisteringModule(Configuration::GATEWAY, $gateway->getInterfaceName() . '::' . $gateway->getRelatedMethodName()),
             ]);
         }
         $this->edge($id, $this->channelNode($gateway->getRequestChannelName()), FlowEdgeKind::SENDS_TO, []);
@@ -149,6 +150,7 @@ final class InternalMessageFlowDiscovery
                     'method' => $invoked?->getMethodName(),
                     'inputChannel' => $this->stable($inputChannel),
                     'internal' => true,
+                    'registeredBy' => $this->configuration->getRegisteringModule(Configuration::HANDLER, (string) $handler->getEndpointId()),
                 ], fn (mixed $value): bool => $value !== null),
             );
         }
@@ -179,7 +181,7 @@ final class InternalMessageFlowDiscovery
             }
         }
         $id = $this->endpointNodeId($endpointId);
-        $this->nodes[$id] = new FlowNode($id, FlowNodeKind::INTERNAL_HANDLER, $endpointId, ['endpointId' => $endpointId, 'consumer' => 'inboundChannelAdapter', 'internal' => true]);
+        $this->nodes[$id] = new FlowNode($id, FlowNodeKind::INTERNAL_HANDLER, $endpointId, ['endpointId' => $endpointId, 'consumer' => 'inboundChannelAdapter', 'internal' => true, 'registeredBy' => $this->configuration->getRegisteringModule(Configuration::CONSUMER, $endpointId)]);
     }
 
     /**
@@ -207,6 +209,7 @@ final class InternalMessageFlowDiscovery
                         'method' => $method,
                         'position' => $position,
                         'internal' => true,
+                        'registeredBy' => $this->configuration->getRegisteringModule(Configuration::INTERCEPTOR, (string) spl_object_id($interceptor)),
                     ]);
                 }
                 $this->edge($interceptedId, $id, FlowEdgeKind::INTERCEPTED_BY, []);
@@ -280,7 +283,7 @@ final class InternalMessageFlowDiscovery
         $id = 'channel:' . $name;
         $this->nodes[$id] ??= $this->declared->hasNode($id)
             ? $this->declared->node($id)
-            : new FlowNode($id, FlowNodeKind::CHANNEL, $name, ['name' => $name, 'pollable' => $this->configuration->isPollableChannel($channelName), 'internal' => true]);
+            : new FlowNode($id, FlowNodeKind::CHANNEL, $name, ['name' => $name, 'pollable' => $this->configuration->isPollableChannel($channelName), 'internal' => true, 'registeredBy' => $this->configuration->getRegisteringModule(Configuration::CHANNEL, $channelName)]);
 
         return $id;
     }

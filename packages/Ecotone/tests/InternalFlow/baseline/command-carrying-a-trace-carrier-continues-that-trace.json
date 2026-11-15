@@ -3,12 +3,12 @@
     "scenario": "command carrying a trace carrier continues that trace",
     "wiring": {
         "nodes": [
-            {"id":"channel:user.register","kind":"channel","label":"user.register","attributes":{"internal":true,"name":"user.register","pollable":false}},
-            {"id":"channel:user.registration.target","kind":"channel","label":"user.registration.target","attributes":{"internal":true,"name":"user.registration.target","pollable":false}},
-            {"id":"endpoint:user.register","kind":"internalHandler","label":"ChainedMessageProcessor::process on user.register","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"user.register","internal":true,"method":"process"}},
+            {"id":"channel:user.register","kind":"channel","label":"user.register","attributes":{"internal":true,"name":"user.register","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:user.registration.target","kind":"channel","label":"user.registration.target","attributes":{"internal":true,"name":"user.registration.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"endpoint:user.register","kind":"internalHandler","label":"ChainedMessageProcessor::process on user.register","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"user.register","internal":true,"method":"process","registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
             {"id":"handler:user.registration","kind":"commandHandler","label":"class@anonymous#1::register","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"user.registration","method":"register","owner":null,"routingKeys":["user.register"]}},
-            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around"}},
-            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
             {"id":"message:user.register","kind":"command","label":"user.register","attributes":{"class":null,"handled":true,"routingKey":"user.register"}}
         ],
         "edges": [

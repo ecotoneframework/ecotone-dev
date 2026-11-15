@@ -3,10 +3,10 @@
     "scenario": "event reaching a wildcard subscriber",
     "wiring": {
         "nodes": [
-            {"id":"channel:order.auditing.target","kind":"channel","label":"order.auditing.target","attributes":{"internal":true,"name":"order.auditing.target","pollable":false}},
+            {"id":"channel:order.auditing.target","kind":"channel","label":"order.auditing.target","attributes":{"internal":true,"name":"order.auditing.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
             {"id":"handler:order.auditing","kind":"eventHandler","label":"class@anonymous#1::audit","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"order.auditing","method":"audit","owner":null,"routingKeys":["order.*"]}},
-            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundEventHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundEventHandler","position":"around"}},
-            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundEventHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundEventHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
             {"id":"message:order.*","kind":"event","label":"order.*","attributes":{"class":null,"handled":true,"routingKey":"order.*"}}
         ],
         "edges": [

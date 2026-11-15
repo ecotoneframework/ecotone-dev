@@ -4,10 +4,10 @@
     "wiring": {
         "nodes": [
             {"id":"channel:add","kind":"channel","label":"add","attributes":{"name":"add","pollable":false}},
-            {"id":"channel:scheduled_adding","kind":"channel","label":"scheduled_adding","attributes":{"internal":true,"name":"scheduled_adding","pollable":false}},
-            {"id":"endpoint:scheduled_adding.target","kind":"internalHandler","label":"class@anonymous#1::produce on scheduled_adding","attributes":{"class":"class@anonymous#1","inputChannel":"scheduled_adding","internal":true,"method":"produce"}},
+            {"id":"channel:scheduled_adding","kind":"channel","label":"scheduled_adding","attributes":{"internal":true,"name":"scheduled_adding","pollable":false,"registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule"}},
+            {"id":"endpoint:scheduled_adding.target","kind":"internalHandler","label":"class@anonymous#1::produce on scheduled_adding","attributes":{"class":"class@anonymous#1","inputChannel":"scheduled_adding","internal":true,"method":"produce","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule"}},
             {"id":"handler:adding","kind":"internalHandler","label":"class@anonymous#1::add","attributes":{"class":"class@anonymous#1","endpointId":"adding","inputChannel":"add","method":"add","owner":null}},
-            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
             {"id":"scheduled:scheduled_adding","kind":"scheduled","label":"class@anonymous#1::produce","attributes":{"class":"class@anonymous#1","endpointId":"scheduled_adding","method":"produce"}}
         ],
         "edges": [

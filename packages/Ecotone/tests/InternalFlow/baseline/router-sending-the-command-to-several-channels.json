@@ -3,19 +3,19 @@
     "scenario": "router sending the command to several channels",
     "wiring": {
         "nodes": [
-            {"id":"channel:shipment.dispatch","kind":"channel","label":"shipment.dispatch","attributes":{"internal":true,"name":"shipment.dispatch","pollable":false}},
-            {"id":"channel:shipment.dispatching.target","kind":"channel","label":"shipment.dispatching.target","attributes":{"internal":true,"name":"shipment.dispatching.target","pollable":false}},
+            {"id":"channel:shipment.dispatch","kind":"channel","label":"shipment.dispatch","attributes":{"internal":true,"name":"shipment.dispatch","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:shipment.dispatching.target","kind":"channel","label":"shipment.dispatching.target","attributes":{"internal":true,"name":"shipment.dispatching.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
             {"id":"channel:shipment.label","kind":"channel","label":"shipment.label","attributes":{"name":"shipment.label","pollable":false}},
             {"id":"channel:shipment.notify","kind":"channel","label":"shipment.notify","attributes":{"name":"shipment.notify","pollable":false}},
             {"id":"channel:shipment.route","kind":"channel","label":"shipment.route","attributes":{"name":"shipment.route","pollable":false}},
-            {"id":"endpoint:shipment.dispatch","kind":"internalHandler","label":"ChainedMessageProcessor::process on shipment.dispatch","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"shipment.dispatch","internal":true,"method":"process"}},
-            {"id":"endpoint:shipment.route","kind":"router","label":"shipment.route","attributes":{"inputChannel":"shipment.route","internal":true}},
+            {"id":"endpoint:shipment.dispatch","kind":"internalHandler","label":"ChainedMessageProcessor::process on shipment.dispatch","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"shipment.dispatch","internal":true,"method":"process","registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"endpoint:shipment.route","kind":"router","label":"shipment.route","attributes":{"inputChannel":"shipment.route","internal":true,"registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\RouterModule"}},
             {"id":"handler:class@anonymous#1::route","kind":"router","label":"class@anonymous#1::route","attributes":{"class":"class@anonymous#1","endpointId":null,"inputChannel":"shipment.route","method":"route","owner":null}},
             {"id":"handler:shipment.dispatching","kind":"commandHandler","label":"class@anonymous#1::dispatch","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"shipment.dispatching","method":"dispatch","owner":null,"routingKeys":["shipment.dispatch"]}},
             {"id":"handler:shipment.labelling","kind":"internalHandler","label":"class@anonymous#1::label","attributes":{"class":"class@anonymous#1","endpointId":"shipment.labelling","inputChannel":"shipment.label","method":"label","owner":null}},
             {"id":"handler:shipment.notifying","kind":"internalHandler","label":"class@anonymous#1::notify","attributes":{"class":"class@anonymous#1","endpointId":"shipment.notifying","inputChannel":"shipment.notify","method":"notify","owner":null}},
-            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around"}},
-            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
             {"id":"message:shipment.dispatch","kind":"command","label":"shipment.dispatch","attributes":{"class":null,"handled":true,"routingKey":"shipment.dispatch"}}
         ],
         "edges": [

@@ -30,6 +30,27 @@ use Psr\Container\ContainerInterface;
  */
 interface Configuration extends CompilerPass
 {
+    public const REGISTERED_OUTSIDE_A_MODULE = 'application';
+    public const HANDLER = 'handler';
+    public const GATEWAY = 'gateway';
+    public const CHANNEL = 'channel';
+    public const CONSUMER = 'consumer';
+    public const INTERCEPTOR = 'interceptor';
+    public const SERVICE = 'service';
+    public const CONSOLE_COMMAND = 'console command';
+    public const ASYNCHRONOUS_ENDPOINT = 'asynchronous endpoint';
+
+    /**
+     * @param class-string<Module>|self::REGISTERED_OUTSIDE_A_MODULE $moduleClass
+     */
+    public function registerOnBehalfOf(string $moduleClass): void;
+
+    /**
+     * @param string $name endpoint id, channel name, service id, console command name, `Interface::method` of a gateway, or spl_object_id() of an interceptor builder
+     * @return class-string<Module>|self::REGISTERED_OUTSIDE_A_MODULE
+     */
+    public function getRegisteringModule(string $kind, string $name): string;
+
     /**
      * @param MessageChannelBuilder $messageChannelBuilder
      * @return Configuration

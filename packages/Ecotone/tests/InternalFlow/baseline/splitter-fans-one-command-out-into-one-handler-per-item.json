@@ -3,16 +3,16 @@
     "scenario": "splitter fans one command out into one handler per item",
     "wiring": {
         "nodes": [
-            {"id":"channel:batch.import","kind":"channel","label":"batch.import","attributes":{"internal":true,"name":"batch.import","pollable":false}},
-            {"id":"channel:batch.importing.target","kind":"channel","label":"batch.importing.target","attributes":{"internal":true,"name":"batch.importing.target","pollable":false}},
+            {"id":"channel:batch.import","kind":"channel","label":"batch.import","attributes":{"internal":true,"name":"batch.import","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:batch.importing.target","kind":"channel","label":"batch.importing.target","attributes":{"internal":true,"name":"batch.importing.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
             {"id":"channel:batch.split","kind":"channel","label":"batch.split","attributes":{"name":"batch.split","pollable":false}},
             {"id":"channel:item.handle","kind":"channel","label":"item.handle","attributes":{"name":"item.handle","pollable":false}},
-            {"id":"endpoint:batch.import","kind":"internalHandler","label":"ChainedMessageProcessor::process on batch.import","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"batch.import","internal":true,"method":"process"}},
+            {"id":"endpoint:batch.import","kind":"internalHandler","label":"ChainedMessageProcessor::process on batch.import","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"batch.import","internal":true,"method":"process","registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
             {"id":"handler:batch.importing","kind":"commandHandler","label":"class@anonymous#1::import","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"batch.importing","method":"import","owner":null,"routingKeys":["batch.import"]}},
             {"id":"handler:class@anonymous#1::split","kind":"splitter","label":"class@anonymous#1::split","attributes":{"class":"class@anonymous#1","endpointId":null,"inputChannel":"batch.split","method":"split","owner":null}},
             {"id":"handler:item.handling","kind":"internalHandler","label":"class@anonymous#1::handle","attributes":{"class":"class@anonymous#1","endpointId":"item.handling","inputChannel":"item.handle","method":"handle","owner":null}},
-            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around"}},
-            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
             {"id":"message:batch.import","kind":"command","label":"batch.import","attributes":{"class":null,"handled":true,"routingKey":"batch.import"}}
         ],
         "edges": [

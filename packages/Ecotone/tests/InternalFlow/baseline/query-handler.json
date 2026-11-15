@@ -3,12 +3,12 @@
     "scenario": "query handler",
     "wiring": {
         "nodes": [
-            {"id":"channel:order.status","kind":"channel","label":"order.status","attributes":{"internal":true,"name":"order.status","pollable":false}},
-            {"id":"channel:order.status.reading.target","kind":"channel","label":"order.status.reading.target","attributes":{"internal":true,"name":"order.status.reading.target","pollable":false}},
-            {"id":"endpoint:order.status","kind":"internalHandler","label":"Bridge::handle on order.status","attributes":{"class":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge","inputChannel":"order.status","internal":true,"method":"handle"}},
+            {"id":"channel:order.status","kind":"channel","label":"order.status","attributes":{"internal":true,"name":"order.status","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:order.status.reading.target","kind":"channel","label":"order.status.reading.target","attributes":{"internal":true,"name":"order.status.reading.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"endpoint:order.status","kind":"internalHandler","label":"Bridge::handle on order.status","attributes":{"class":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge","inputChannel":"order.status","internal":true,"method":"handle","registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
             {"id":"handler:order.status.reading","kind":"queryHandler","label":"class@anonymous#1::status","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"order.status.reading","method":"status","owner":null,"routingKeys":["order.status"]}},
-            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundQueryHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundQueryHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundQueryHandler","position":"around"}},
-            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundQueryHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundQueryHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundQueryHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
             {"id":"message:order.status","kind":"query","label":"order.status","attributes":{"class":null,"handled":true,"routingKey":"order.status"}}
         ],
         "edges": [

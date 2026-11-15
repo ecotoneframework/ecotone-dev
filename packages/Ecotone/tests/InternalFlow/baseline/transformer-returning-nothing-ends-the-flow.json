@@ -4,15 +4,15 @@
     "wiring": {
         "nodes": [
             {"id":"channel:order.filter","kind":"channel","label":"order.filter","attributes":{"name":"order.filter","pollable":false}},
-            {"id":"channel:order.place","kind":"channel","label":"order.place","attributes":{"internal":true,"name":"order.place","pollable":false}},
-            {"id":"channel:order.placing.target","kind":"channel","label":"order.placing.target","attributes":{"internal":true,"name":"order.placing.target","pollable":false}},
+            {"id":"channel:order.place","kind":"channel","label":"order.place","attributes":{"internal":true,"name":"order.place","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:order.placing.target","kind":"channel","label":"order.placing.target","attributes":{"internal":true,"name":"order.placing.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
             {"id":"channel:order.store","kind":"channel","label":"order.store","attributes":{"name":"order.store","pollable":false}},
-            {"id":"endpoint:order.place","kind":"internalHandler","label":"ChainedMessageProcessor::process on order.place","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"order.place","internal":true,"method":"process"}},
+            {"id":"endpoint:order.place","kind":"internalHandler","label":"ChainedMessageProcessor::process on order.place","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"order.place","internal":true,"method":"process","registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
             {"id":"handler:order.filtering","kind":"transformer","label":"class@anonymous#1::filter","attributes":{"class":"class@anonymous#1","endpointId":"order.filtering","inputChannel":"order.filter","method":"filter","owner":null}},
             {"id":"handler:order.placing","kind":"commandHandler","label":"class@anonymous#1::place","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"order.placing","method":"place","owner":null,"routingKeys":["order.place"]}},
             {"id":"handler:order.storing","kind":"internalHandler","label":"class@anonymous#1::store","attributes":{"class":"class@anonymous#1","endpointId":"order.storing","inputChannel":"order.store","method":"store","owner":null}},
-            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around"}},
-            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around"}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","internal":true,"method":"aroundCommandHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","internal":true,"method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
             {"id":"message:order.place","kind":"command","label":"order.place","attributes":{"class":null,"handled":true,"routingKey":"order.place"}}
         ],
         "edges": [

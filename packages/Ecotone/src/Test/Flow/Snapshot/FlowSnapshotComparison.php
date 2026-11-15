@@ -20,17 +20,17 @@ final class FlowSnapshotComparison
      * @param array<string, FlowSnapshot> $before file name => snapshot
      * @param array<string, FlowSnapshot> $after file name => snapshot
      */
-    public static function between(array $before, array $after): self
+    public static function between(array $before, array $after, ?FlowSnapshot $sharedBefore = null, ?FlowSnapshot $sharedAfter = null): self
     {
         $compared = [];
         foreach (array_keys($before + $after) as $fileName) {
             $compared[] = FlowScenarioChange::between($before[$fileName] ?? null, $after[$fileName] ?? null);
         }
-        $onBothSides = array_values(array_filter($compared, fn (FlowScenarioChange $change): bool => $change->state === FlowScenarioChange::CHANGED));
-        $sharedByEveryScenario = count($onBothSides) > 1 ? array_intersect_assoc(...array_map(fn (FlowScenarioChange $change): array => $change->buildChangeIdentities(), $onBothSides)) : [];
+        $everyScenario = $sharedBefore !== null && $sharedAfter !== null ? FlowScenarioChange::between($sharedBefore, $sharedAfter) : null;
+        $sharedByEveryScenario = $everyScenario?->buildChangeIdentities() ?? [];
         $changes = [];
         foreach ($compared as $change) {
-            $change = $change->state === FlowScenarioChange::CHANGED ? $change->withoutBuildChangesOf($sharedByEveryScenario) : $change;
+            $change = $change->withoutBuildChangesOf(array_intersect_assoc($change->buildChangeIdentities(), $sharedByEveryScenario));
             if ($change->hasChanges()) {
                 $changes[$change->scenario] = $change;
             }
@@ -60,7 +60,7 @@ final class FlowSnapshotComparison
         }
         $groups = $merged;
 
-        return new self(count($before + $after), array_values($groups), $sharedByEveryScenario === [] ? null : $onBothSides[0]->withOnlyBuildChangesOf($sharedByEveryScenario));
+        return new self(count($before + $after), array_values($groups), $sharedByEveryScenario === [] ? null : $everyScenario);
     }
 
     /**

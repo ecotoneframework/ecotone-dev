@@ -67,7 +67,9 @@ final class InternalFlowConsoleCommands
     #[ConsoleCommand('ecotone:internal-flow:compare', 'Framework development: prints what changed between the snapshots stored in two locations, cut to the changed parts, as GitHub Markdown with Mermaid: --presentation=A a before/after pair, B one marked diagram, C the message path as a sequence diagram, json the raw comparison')]
     public function compare(ConsoleWriter $writer, #[ConsoleParameterOption] string $from, #[ConsoleParameterOption] string $to, #[ConsoleParameterOption] string $presentation = 'json'): void
     {
-        $comparison = FlowSnapshotComparison::between((new FlowSnapshots($from))->all(), (new FlowSnapshots($to))->all());
+        $before = new FlowSnapshots($from);
+        $after = new FlowSnapshots($to);
+        $comparison = FlowSnapshotComparison::between($before->all(), $after->all(), $before->shared(), $after->shared());
 
         $writer->write($presentation === 'json' ? $comparison->toJson() : FlowComparisonMarkdown::of($comparison, $presentation));
     }

@@ -62,6 +62,36 @@ final class FlowWording
         return 'process ' . $handler[2];
     }
 
+    /**
+     * @param array<string, scalar> $entry
+     */
+    public static function ofRegistration(array $entry): string
+    {
+        $name = self::withShortClassNames((string) $entry['name']);
+
+        return match ($entry['kind']) {
+            'handler' => "handler {$name}: {$entry['builder']} on " . ($entry['inputChannel'] ?? 'no channel')
+                . (isset($entry['outputChannel']) ? ", then to {$entry['outputChannel']}" : '')
+                . (isset($entry['target']) && self::withShortClassNames((string) $entry['target']) !== $name ? ', invokes ' . self::withShortClassNames((string) $entry['target']) : ''),
+            'gateway' => "gateway {$name}, sends to " . ($entry['requestChannel'] ?? 'no channel'),
+            'channel' => "channel {$name} (" . (($entry['pollable'] ?? false) ? 'pollable' : 'subscribable') . ')',
+            'consumer' => "consumer {$name} (" . ($entry['builder'] ?? 'consumer') . ')',
+            'interceptor' => ($entry['position'] ?? '') . ' interceptor ' . self::withShortClassNames((string) ($entry['target'] ?? $entry['name'])),
+            'service' => "service {$name}" . match (true) {
+                isset($entry['enterprise']) => ': Enterprise -> ' . self::withShortClassNames((string) $entry['enterprise']) . ', open core -> ' . self::withShortClassNames((string) $entry['openCore']),
+                isset($entry['aliasOf']) => ': alias of ' . self::withShortClassNames((string) $entry['aliasOf']),
+                self::withShortClassNames((string) ($entry['class'] ?? $entry['name'])) !== $name => ': ' . self::withShortClassNames((string) $entry['class']),
+                default => '',
+            },
+            default => $entry['kind'] . ' ' . $name,
+        };
+    }
+
+    public static function withShortClassNames(string $text): string
+    {
+        return (string) preg_replace('/(?:[A-Za-z_][A-Za-z0-9_]*\\\\)+(?=[A-Za-z_])/', '', $text);
+    }
+
     public static function ofArrow(FlowEdgeKind $kind): string
     {
         return match ($kind) {

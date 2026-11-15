@@ -24,12 +24,13 @@ const INTERNAL_FLOW_USAGE = <<<'USAGE'
       php bin/internal-flow.php check [--location=<directory>]
           Fails when a stored snapshot differs from what the code produces now.
 
-      php bin/internal-flow.php compare [--from=<directory>] [--to=<directory>] [--presentation=A|B|C|json]
+      php bin/internal-flow.php compare [--from=<directory>] [--to=<directory>] [--presentation=A|B|C|BUILD|json]
           Prints what changed between two sets of snapshots, scoped to the change. Without --from
           it compares from the committed baseline, without --to it compares to what the code
-          produces now. Presentations, as GitHub Markdown with Mermaid: A a before/after pair,
-          B one marked diagram, C the message's path as a sequence diagram. Without
-          --presentation, or with json, it prints the raw comparison.
+          produces now. Presentations, as GitHub Markdown with Mermaid, each opening with what
+          modules register now: A a before/after pair, B one marked diagram, C the message's
+          path as a sequence diagram, BUILD the message's path and then the marked diagram
+          collapsed. Without --presentation, or with json, it prints the raw comparison.
 
     The committed baseline is
     USAGE . ' ' . INTERNAL_FLOW_BASELINE . ".\n";

@@ -119,14 +119,6 @@ final class FlowScenarioChange
     }
 
     /**
-     * @param array<string, mixed> $registrations kind and name of a registration => anything
-     */
-    public function withOnlyBuildChangesOf(array $registrations): self
-    {
-        return new self($this->scenario, $this->state, $this->before, $this->after, $this->wiring, $this->trace, array_values(array_filter($this->build, fn (array $change): bool => isset($registrations[$change['kind'] . ':' . $change['name']]))));
-    }
-
-    /**
      * @return list<array{module: string, entries: list<array<string, mixed>>}>
      */
     public function buildByModule(): array

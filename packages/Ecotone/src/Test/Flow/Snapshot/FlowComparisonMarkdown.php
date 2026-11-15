@@ -18,6 +18,9 @@ final class FlowComparisonMarkdown
     public const BEFORE_AFTER_PAIR = 'A';
     public const MARKED_DIAGRAM = 'B';
     public const MESSAGE_PATH = 'C';
+    public const BUILD_VIEW = 'BUILD';
+    private const BUILD_LINES = 150;
+    private const BUILD_SIGNS = [FlowScenarioChange::ADDED => '+', FlowScenarioChange::REMOVED => '-', FlowScenarioChange::CHANGED => '~'];
     private const STEPS_PER_LIST = 40;
     private const SCENARIOS_PER_LINE = 6;
     private const EMPTY_FLOWCHART = "flowchart LR\n";
@@ -26,27 +29,72 @@ final class FlowComparisonMarkdown
 
     public static function of(FlowSnapshotComparison $comparison, string $presentation): string
     {
-        if (! in_array($presentation, [self::BEFORE_AFTER_PAIR, self::MARKED_DIAGRAM, self::MESSAGE_PATH], true)) {
-            throw InvalidArgumentException::create("ecotone:internal-flow:compare was asked for presentation `{$presentation}`, which it cannot produce. Pass --presentation=A for a before/after pair of diagrams and step lists, --presentation=B for one diagram with the changes marked and one step list, --presentation=C for the message's path as a sequence diagram with what changed in sentences, or --presentation=json for the raw comparison.");
+        if (! in_array($presentation, [self::BEFORE_AFTER_PAIR, self::MARKED_DIAGRAM, self::MESSAGE_PATH, self::BUILD_VIEW], true)) {
+            throw InvalidArgumentException::create("ecotone:internal-flow:compare was asked for presentation `{$presentation}`, which it cannot produce. Pass --presentation=A for a before/after pair of diagrams and step lists, --presentation=B for one diagram with the changes marked and one step list, --presentation=C for the message's path as a sequence diagram with what changed in sentences, --presentation=BUILD for the build, the message's path and the marked wiring collapsed, or --presentation=json for the raw comparison.");
         }
         $title = "## Message flow: what changed\n\n";
-        if ($comparison->groups === []) {
-            return $title . "None of {$comparison->scenariosCompared} scenarios changed its wiring or its traced steps.\n";
+        if ($comparison->groups === [] && $comparison->everyScenario === null) {
+            return $title . "None of {$comparison->scenariosCompared} scenarios changed its wiring, its build or its traced steps.\n";
         }
         $changed = array_sum(array_map(fn (array $group): int => count($group['scenarios']), $comparison->groups));
         $sections = array_map(
             fn (array $group): string => self::headingOf($group['scenarios'], $group['varyingNames'])
                 . implode("\n\n", $group['change']->summary()) . "\n\n"
+                . self::buildSection($group['change']) . "\n"
                 . match ($presentation) {
                     self::BEFORE_AFTER_PAIR => self::beforeAfterPair($group['change']),
                     self::MARKED_DIAGRAM => self::markedDiagram($group['change']),
-                    default => self::messagePath($group['change']),
+                    self::MESSAGE_PATH => self::messagePath($group['change']),
+                    default => self::messagePath($group['change']) . "\n<details><summary>Marked wiring and traced steps</summary>\n\n" . self::markedDiagram($group['change']) . "\n</details>\n",
                 }
             . self::offThePathLine($group['change']),
             $comparison->groups,
         );
+        if ($comparison->everyScenario !== null) {
+            array_unshift($sections, "### Every scenario\n\n" . self::buildSection($comparison->everyScenario));
+        }
 
-        return $title . "{$changed} of {$comparison->scenariosCompared} scenarios changed.\n\n" . implode("\n", $sections);
+        return $title . "{$changed} of {$comparison->scenariosCompared} scenarios changed" . ($comparison->everyScenario === null ? '' : ' beyond what every scenario shares') . ".\n\n" . implode("\n", $sections);
+    }
+
+    private static function buildSection(FlowScenarioChange $change): string
+    {
+        $heading = "#### Build: what modules register now\n\n";
+        if ($change->build === []) {
+            return $heading . ($change->state === FlowScenarioChange::CHANGED ? 'Unchanged.' : "The scenario was {$change->state}; its whole build is in its snapshot file.") . "\n";
+        }
+        $lines = [];
+        foreach ($change->buildByModule() as $module) {
+            $lines[] = FlowWording::withShortClassNames($module['module']);
+            foreach ($module['entries'] as $entry) {
+                $now = FlowWording::ofRegistration($entry['after'] ?? $entry['before']);
+                $lines[] = '  ' . self::BUILD_SIGNS[$entry['change']] . ' ' . $now;
+                if ($entry['change'] === FlowScenarioChange::CHANGED) {
+                    $was = FlowWording::ofRegistration($entry['before']);
+                    if ($was !== $now) {
+                        $lines[] = '      was: ' . $was;
+                    }
+                    if ($entry['before']['module'] !== $entry['after']['module']) {
+                        $lines[] = '      was registered by ' . FlowWording::withShortClassNames($entry['before']['module']);
+                    }
+                }
+                $chain = $entry['chain'] ?? [];
+                $marksLayers = $entry['change'] === FlowScenarioChange::CHANGED;
+                if ($marksLayers && array_filter($chain, fn (array $layer): bool => $layer['change'] !== FlowScenarioChange::UNCHANGED) === []) {
+                    continue;
+                }
+                foreach ($chain as $layer) {
+                    $lines[] = '      ' . match (true) {
+                        ! $marksLayers => '',
+                        $layer['change'] === FlowScenarioChange::ADDED => '+ ',
+                        $layer['change'] === FlowScenarioChange::REMOVED => '- ',
+                        default => '  ',
+                    } . FlowWording::withShortClassNames($layer['layer']);
+                }
+            }
+        }
+
+        return $heading . "```text\n" . implode("\n", count($lines) <= self::BUILD_LINES ? $lines : [...array_slice($lines, 0, self::BUILD_LINES), '… and ' . (count($lines) - self::BUILD_LINES) . ' more lines; the raw comparison has all of them']) . "\n```\n";
     }
 
     /**

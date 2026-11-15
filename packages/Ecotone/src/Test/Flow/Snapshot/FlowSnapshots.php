@@ -73,8 +73,7 @@ final class FlowSnapshots
         if (! is_dir($this->location)) {
             throw InvalidArgumentException::create("Flow snapshots were expected in {$this->location}, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/internal-flow.php snapshot --location={$this->location}`.");
         }
-        $sharedFile = $this->location . '/' . self::SHARED_FILE;
-        $shared = is_file($sharedFile) ? FlowSnapshot::sharedFromJson((string) file_get_contents($sharedFile), $sharedFile) : null;
+        $shared = $this->shared();
         $snapshots = [];
         foreach ($this->fileNames() as $name) {
             if ($name !== self::SHARED_FILE) {
@@ -84,6 +83,13 @@ final class FlowSnapshots
         ksort($snapshots, SORT_STRING);
 
         return $snapshots;
+    }
+
+    public function shared(): ?FlowSnapshot
+    {
+        $sharedFile = $this->location . '/' . self::SHARED_FILE;
+
+        return is_file($sharedFile) ? FlowSnapshot::sharedFromJson((string) file_get_contents($sharedFile), $sharedFile) : null;
     }
 
     private function createLocation(string $stored): void

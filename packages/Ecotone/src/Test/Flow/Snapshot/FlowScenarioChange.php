@@ -26,6 +26,7 @@ final class FlowScenarioChange
     public const LEFT_OUT = 'left out';
     private const UNCHANGED_STEPS_KEPT_WHOLE = 8;
     private const DERIVED = 'derivedFromWiring';
+    public const PART_REPORT = 'partReport';
 
     /**
      * @param list<array{change: string, step: array<string, mixed>}> $trace
@@ -59,7 +60,7 @@ final class FlowScenarioChange
             before: $before,
             after: $after,
             wiring: $state === self::CHANGED ? $before->wiring->compareTo($after->wiring) : $after->wiring->compareTo($after->wiring),
-            trace: self::withContinuationsFromWiring(self::changesBetween($before->trace, $after->trace), $before->wiring, $after->wiring),
+            trace: self::withPartReports(self::withContinuationsFromWiring(self::changesBetween($before->trace, $after->trace), $before->wiring, $after->wiring), $before, $after),
             build: $state === self::CHANGED ? self::buildChangesBetween($before, $after) : [],
         );
     }
@@ -143,7 +144,7 @@ final class FlowScenarioChange
         return array_filter($this->trace, fn (array $entry): bool => $entry['change'] !== self::UNCHANGED) !== [];
     }
 
-    public function identity(?string $varyingName = null): string
+    public function identity(?string $varyingName = null, ?string $nameItIsExchangedWith = null): string
     {
         $comparison = $this->wiring->toArray();
         $parts = [[$this->state]];
@@ -155,8 +156,8 @@ final class FlowScenarioChange
         $parts[] = $this->scopedTrace();
         $canonical = [];
         foreach ($parts as $position => $elements) {
-            $encoded = array_map(fn (mixed $element): string => self::withoutName(json_encode($element, JSON_THROW_ON_ERROR), $varyingName), $elements);
-            if ($position < array_key_last($parts) - 1) {
+            $encoded = array_map(fn (mixed $element): string => self::withoutNames(json_encode($element, JSON_THROW_ON_ERROR), $varyingName, $nameItIsExchangedWith), $elements);
+            if ($position !== array_key_last($parts)) {
                 sort($encoded, SORT_STRING);
             }
             $canonical[] = $encoded;
@@ -166,18 +167,26 @@ final class FlowScenarioChange
     }
 
     /**
-     * @return list<string>
+     * @return array<string, int> lower-cased name => how often the change holds it
      */
     public function namesIn(): array
     {
         preg_match_all('/[A-Za-z][A-Za-z0-9]*/', json_encode([$this->wiring->toArray(), $this->scopedTrace(), $this->build], JSON_THROW_ON_ERROR), $names);
 
-        return array_values(array_unique(array_map(strtolower(...), $names[0])));
+        return array_count_values(array_map(strtolower(...), $names[0]));
     }
 
-    private static function withoutName(string $text, ?string $varyingName): string
+    private static function withoutNames(string $text, ?string $varyingName, ?string $nameItIsExchangedWith): string
     {
-        return $varyingName === null ? $text : str_ireplace($varyingName, '{name}', $text);
+        if ($varyingName === null) {
+            return $text;
+        }
+
+        return (string) preg_replace_callback(
+            '/' . preg_quote($varyingName, '/') . ($nameItIsExchangedWith === null ? '' : '|' . preg_quote($nameItIsExchangedWith, '/')) . '/i',
+            fn (array $found): string => strtolower($found[0]) === strtolower($varyingName) ? '{name}' : '{other name}',
+            $text,
+        );
     }
 
     /**
@@ -343,6 +352,17 @@ final class FlowScenarioChange
             $step = $entry['step'];
             [$operation, $subject] = explode(' ', (string) $step['name'], 2) + [1 => ''];
             $from = $placeAtDepth[$step['depth'] - 1] ?? 'caller';
+            if (isset($step[self::PART_REPORT]) && isset($kept[$position])) {
+                $mark = match ($entry['change']) {
+                    self::ADDED => '+ ',
+                    self::REMOVED => '- ',
+                    default => '',
+                };
+                $path[] = ['from' => FlowWording::withShortClassNames($step[self::PART_REPORT]['sender']), 'to' => 'channel ' . $step[self::PART_REPORT]['channel'], 'label' => $mark . 'sends part report (build, no span)', 'derived' => true];
+                $path[] = ['from' => 'channel ' . $step[self::PART_REPORT]['channel'], 'to' => 'channel ' . $subject, 'label' => $mark . 'sends', 'derived' => false];
+                $placeAtDepth[$step['depth']] = 'channel ' . $subject;
+                continue;
+            }
             [$place, $label] = match (true) {
                 $operation === 'route' => [$from, null],
                 $operation === 'send' && in_array($subject, ['command', 'event', 'query'], true) => [$subject . ' bus', $subject . ' ' . ($step['destination'] ?? '')],
@@ -383,6 +403,19 @@ final class FlowScenarioChange
                 ? ['before' => 'Before: this scenario was not in the catalogue.', 'now' => 'Now: it is, with ' . count($this->after->trace) . ' traced steps.']
                 : ['before' => 'Before: this scenario was in the catalogue, with ' . count($this->before->trace) . ' traced steps.', 'now' => 'Now: it is gone.'];
         }
+        if (! $this->hasTraceChanges() && ! $this->wiring->hasChanges()) {
+            $counts = [];
+            foreach ($this->build as $change) {
+                $counts[$change['kind'] . ' ' . $change['change']] = ($counts[$change['kind'] . ' ' . $change['change']] ?? 0) + 1;
+            }
+            $counted = [];
+            foreach ($counts as $kindAndChange => $count) {
+                [$change, $kind] = [substr($kindAndChange, strrpos($kindAndChange, ' ') + 1), substr($kindAndChange, 0, strrpos($kindAndChange, ' '))];
+                $counted[] = $count . ' ' . $kind . ($count === 1 ? ' ' : 's ') . $change;
+            }
+
+            return ['before' => 'Before and now: the wiring and the traced steps are the same.', 'now' => 'Now: only the build changed: ' . implode(', ', $counted) . '.'];
+        }
         if (! $this->hasTraceChanges()) {
             $names = fn (array $nodes, MessageFlowGraph $wiring): string => implode(', ', array_map(fn (FlowNode $node): string => '`' . FlowWording::ofNode($node, $wiring) . '`', array_slice($nodes, 0, 4))) . (count($nodes) > 4 ? ' and ' . (count($nodes) - 4) . ' more' : '');
             $now = array_filter([
@@ -403,9 +436,22 @@ final class FlowScenarioChange
             $anchor = '`' . FlowWording::ofStep($entry['step'], $this->after->wiring) . '`';
         }
         $next = $this->trace[max($changedPositions) + 1]['step'] ?? null;
+        $firstChanged = $this->trace[$changedPositions[0]];
+        $startsWithASend = $firstChanged['change'] === self::ADDED && str_starts_with((string) $firstChanged['step']['name'], 'send ');
+        if ($startsWithASend) {
+            foreach ($this->trace as $position => $entry) {
+                if ($position >= $changedPositions[0]) {
+                    break;
+                }
+                if ($entry['step']['depth'] === $firstChanged['step']['depth']) {
+                    $anchor = '`' . FlowWording::ofStep($entry['step'], $this->after->wiring) . '`';
+                }
+            }
+        }
         $after = $anchor === null ? 'at the start' : 'after ' . $anchor;
         $unchangedSide = fn (string $tense): string => match (true) {
             $anchor === null => 'the traced flow ' . ($tense === 'past' ? 'started' : 'starts') . ' with `' . FlowWording::ofStep($next ?? ['name' => 'nothing'], $this->after->wiring) . '`',
+            $next === null && $startsWithASend && $tense === 'past' => 'nothing was sent after ' . $anchor,
             $next === null => 'the traced flow ' . ($tense === 'past' ? 'ended' : 'ends') . ' with ' . $anchor,
             default => $anchor . ($tense === 'past' ? ' was' : ' is') . ' followed directly by `' . FlowWording::ofStep($next, $this->after->wiring) . '`',
         };
@@ -444,7 +490,10 @@ final class FlowScenarioChange
                 default => '`' . FlowWording::ofStep($sender, $wiring) . '`',
             };
             $phrases[] = match (true) {
-                isset($step[self::DERIVED]) => 'it is routed to `' . substr(FlowWording::ofStep($step, $wiring), strlen('process ')) . '` (from the wiring: no span is recorded for that handler)',
+                isset($step[self::PART_REPORT]) => '`' . FlowWording::withShortClassNames($step[self::PART_REPORT]['sender']) . '`'
+                    . ($step[self::PART_REPORT]['chosenFor'] === '' ? '' : ' (`' . FlowWording::withShortClassNames($step[self::PART_REPORT]['chosenFor']) . '` with an Enterprise licence)')
+                    . " sends a part report to `{$step[self::PART_REPORT]['channel']}`, which goes on to `{$subject}` (the span shows only the send to `{$subject}`; the sender and the channel are read from the build)",
+                isset($step[self::DERIVED]) => 'it is routed to ' . ($this->isGathered($step, $change) ? 'the gathered handler ' : '') . '`' . substr(FlowWording::ofStep($step, $wiring), strlen('process ')) . '` (from the wiring: no span is recorded for that handler)',
                 $operation === 'send' && in_array($subject, ['command', 'event', 'query'], true) => "{$actor} sends {$subject} `" . ($step['destination'] ?? '') . '`',
                 $operation === 'send' => "{$actor} sends a message to `{$subject}`",
                 $operation === 'receive' => "it is received from `{$subject}`",
@@ -455,6 +504,35 @@ final class FlowScenarioChange
         }
 
         return $phrases;
+    }
+
+    /**
+     * @param array<string, mixed> $step
+     */
+    private function isGathered(array $step, string $change): bool
+    {
+        foreach (($change === self::ADDED ? $this->after : $this->before)->ledger as $entry) {
+            if (($entry['builder'] ?? null) === 'gatherer' && 'process ' . FlowWording::withShortClassNames((string) ($entry['target'] ?? '')) === $step['name']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, string> channel name => class that sends part reports to it
+     */
+    public function partReportChannels(): array
+    {
+        $channels = [];
+        foreach ($this->trace as $entry) {
+            if (isset($entry['step'][self::PART_REPORT])) {
+                $channels[$entry['step'][self::PART_REPORT]['channel']] = $entry['step'][self::PART_REPORT]['sender'];
+            }
+        }
+
+        return $channels;
     }
 
     /**
@@ -545,6 +623,58 @@ final class FlowScenarioChange
         }
 
         return $continued;
+    }
+
+    /**
+     * @param list<array{change: string, step: array<string, mixed>}> $trace
+     * @return list<array{change: string, step: array<string, mixed>}>
+     */
+    private static function withPartReports(array $trace, FlowSnapshot $before, FlowSnapshot $after): array
+    {
+        $stepAtDepth = [];
+        foreach ($trace as $position => $entry) {
+            $step = $entry['step'];
+            $sentWhileConsuming = str_starts_with((string) ($stepAtDepth[$step['depth'] - 1]['name'] ?? ''), 'receive ');
+            $stepAtDepth[$step['depth']] = $step;
+            if ($entry['change'] === self::UNCHANGED || ! $sentWhileConsuming || ! str_starts_with((string) $step['name'], 'send ') || isset($step['destination'])) {
+                continue;
+            }
+            $partReport = self::partReportSentThrough(substr((string) $step['name'], strlen('send ')), $entry['change'] === self::ADDED ? $after : $before);
+            if ($partReport !== null) {
+                $trace[$position]['step'][self::PART_REPORT] = $partReport;
+            }
+        }
+
+        return $trace;
+    }
+
+    /**
+     * @return array{sender: string, chosenFor: string, channel: string, gatherer: string}|null
+     */
+    private static function partReportSentThrough(string $channel, FlowSnapshot $snapshot): ?array
+    {
+        $gatherChannels = [];
+        foreach ($snapshot->ledger as $routing) {
+            if ($routing['kind'] !== 'handler' || ($routing['outputChannel'] ?? null) !== $channel) {
+                continue;
+            }
+            foreach ($snapshot->ledger as $gatherer) {
+                if (($gatherer['builder'] ?? null) === 'gatherer' && in_array($gatherer['inputChannel'] ?? null, [$routing['inputChannel'], $routing['inputChannel'] . '.execute'], true)) {
+                    $gatherChannels[] = ['channel' => (string) $routing['inputChannel'], 'gatherer' => (string) ($gatherer['target'] ?? $gatherer['name'])];
+                }
+            }
+        }
+        if (count($gatherChannels) !== 1) {
+            return null;
+        }
+        $sender = ['sender' => 'the part completion', 'chosenFor' => ''];
+        foreach ($snapshot->ledger as $service) {
+            if ($service['kind'] === 'service' && isset($service['enterprise']) && str_ends_with((string) $service['name'], '\\PartCompletion')) {
+                $sender = ['sender' => (string) $service['enterprise'], 'chosenFor' => (string) $service['name']];
+            }
+        }
+
+        return [...$sender, ...$gatherChannels[0]];
     }
 
     /**

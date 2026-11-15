@@ -29,8 +29,8 @@ use RecursiveIteratorIterator;
  */
 final class BuildFlowReadableComparisonTest extends TestCase
 {
-    private const BEFORE = 'Before: the traced flow ended with `process whenPlaced of projection orders`.';
-    private const NOW = 'Now: after `process whenPlaced of projection orders`, the consumer of `rebuild` sends a message to `rebuild`; it is received from `rebuild`; it is routed to `ProjectionRunCompletion::complete` (from the wiring: no span is recorded for that handler).';
+    private const BEFORE = 'Before: nothing was sent after `process partition batch orders`.';
+    private const NOW = 'Now: after `process partition batch orders`, `GatheringPartCompletion` (`PartCompletion` with an Enterprise licence) sends a part report to `ecotone.projection.rebuild.completion:orders`, which goes on to `rebuild` (the span shows only the send to `rebuild`; the sender and the channel are read from the build); it is received from `rebuild`; it is routed to the gathered handler `ProjectionRunCompletion::complete` (from the wiring: no span is recorded for that handler).';
 
     private string $location;
 
@@ -59,6 +59,26 @@ final class BuildFlowReadableComparisonTest extends TestCase
 
         self::assertCount(1, $comparison['groups']);
         self::assertSame(['projection backfill run', 'projection rebuild run'], $comparison['groups'][0]['scenarios']);
+        self::assertSame(['backfill', 'rebuild'], $comparison['groups'][0]['varyingNames']);
+    }
+
+    public function test_changes_that_each_hold_both_names_and_differ_by_exchanging_them_are_one_group(): void
+    {
+        $this->recordARunThatGainsItsCompletion('backfill');
+        $this->recordARunThatGainsItsCompletion('rebuild');
+        foreach (['before' => 'Acme\\SlowPlan', 'after' => 'Acme\\FastPlan'] as $side => $class) {
+            foreach (['backfill', 'rebuild'] as $operation) {
+                $file = $this->location . '/' . $side . "/projection-{$operation}-run.json";
+                $stored = json_decode((string) file_get_contents($file), true, flags: JSON_THROW_ON_ERROR);
+                $stored['build']['ledger'][] = ['module' => 'Acme\\PlanningModule', 'kind' => 'service', 'name' => 'Acme\\BackfillPlan', 'class' => $class];
+                $stored['build']['ledger'][] = ['module' => 'Acme\\PlanningModule', 'kind' => 'service', 'name' => 'Acme\\RebuildPlan', 'class' => $class];
+                file_put_contents($file, json_encode($stored, JSON_THROW_ON_ERROR));
+            }
+        }
+
+        $comparison = $this->comparison('json');
+
+        self::assertCount(1, $comparison['groups']);
         self::assertSame(['backfill', 'rebuild'], $comparison['groups'][0]['varyingNames']);
     }
 
@@ -93,7 +113,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
 
         self::assertSame(
             [
-                ['change' => 'added', 'step' => ['depth' => 3, 'name' => 'send rebuild', 'kind' => 'Producer', 'status' => 'Ok']],
+                ['change' => 'added', 'step' => ['depth' => 3, 'name' => 'send rebuild', 'kind' => 'Producer', 'status' => 'Ok', 'partReport' => ['sender' => 'Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion', 'chosenFor' => 'Ecotone\\Messaging\\Handler\\Gathering\\PartCompletion', 'channel' => 'ecotone.projection.rebuild.completion:orders', 'gatherer' => 'Ecotone\\Projecting\\ProjectionRunCompletion::complete']]],
                 ['change' => 'added', 'step' => ['depth' => 4, 'name' => 'receive rebuild', 'kind' => 'Consumer', 'status' => 'Ok']],
                 ['change' => 'added', 'step' => ['depth' => 5, 'name' => 'process ProjectionRunCompletion::complete', 'kind' => 'Wiring', 'status' => 'Ok', 'derivedFromWiring' => true]],
             ],
@@ -117,7 +137,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
         self::assertSame(['before' => self::BEFORE, 'now' => self::NOW], $this->comparison('json')['groups'][0]['summary']);
     }
 
-    public function test_every_presentation_opens_with_the_summary_names_the_scenarios_it_applies_to_and_lists_what_is_off_the_path(): void
+    public function test_every_presentation_opens_with_the_summary_names_the_scenarios_it_applies_to_and_leaves_what_is_off_the_path_to_the_build(): void
     {
         $this->recordARunThatGainsItsCompletion('backfill');
         $this->recordARunThatGainsItsCompletion('rebuild');
@@ -132,7 +152,8 @@ final class BuildFlowReadableComparisonTest extends TestCase
                 $markdown,
                 $presentation,
             );
-            self::assertStringContainsString("\nAlso registered now, not on this path: `closed-group cleanup`, `console command ecotone:gathering:discard`, `console command ecotone:gathering:list`, `console command ecotone:gathering:release`.\n", $markdown, $presentation);
+            self::assertStringNotContainsString('not on this path', $markdown, $presentation);
+            self::assertStringContainsString("#### Build: what modules register now\n\nUnchanged.\n", $markdown, $presentation);
             self::assertStringContainsString("\n_Legend: ", $markdown, $presentation);
             self::assertStringNotContainsString('class@anonymous', $markdown, $presentation);
             self::assertStringNotContainsString('Bridge::handle', $markdown, $presentation);
@@ -148,13 +169,15 @@ final class BuildFlowReadableComparisonTest extends TestCase
 
         self::assertStringContainsString('"Internal Handler<br/>consumer of rebuild"', $marked);
         self::assertStringContainsString('"Internal Handler<br/>ProjectionRunCompletion::complete"', $marked);
-        self::assertStringContainsString('("Channel<br/>ecotone.projection.rebuild.completion:orders (entry point: sent to from code)")', $marked);
+        self::assertStringContainsString('("Channel<br/>ecotone.projection.rebuild.completion:orders (entry point: part reports are sent here by GatheringPartCompletion)")', $marked);
         self::assertStringContainsString('-->|"then sends to"|', $marked);
         self::assertStringContainsString('-->|"routed to"|', $marked);
         self::assertStringNotContainsString('|"output"|', $marked);
         self::assertStringNotContainsString('|"routes"|', $marked);
-        self::assertStringContainsString('_Legend: green = added, red dashed = removed, yellow = changed; dotted outline = registered by Ecotone, solid outline = declared by the application; `then sends to` = the handler\'s result goes to that channel, `routed to` = chosen at runtime by a bus or a routing slip, an unlabelled arrow out of a channel = consumed by._', $marked);
-        self::assertStringContainsString("+      send rebuild\n+        receive rebuild\n+          process ProjectionRunCompletion::complete (from the wiring: no span is recorded)\n", $marked);
+        self::assertStringContainsString('_Legend: green = added; dotted outline = registered by Ecotone, solid outline = declared by the application; `then sends to` = the handler\'s result goes to that channel, `routed to` = chosen at runtime by a bus or a routing slip, an unlabelled arrow out of a channel = consumed by._', $marked);
+        self::assertStringNotContainsString('red dashed', $marked);
+        self::assertStringNotContainsString('yellow', $marked);
+        self::assertStringContainsString("+      send rebuild (part report by GatheringPartCompletion to ecotone.projection.rebuild.completion:orders)\n+        receive rebuild\n+          process ProjectionRunCompletion::complete (from the wiring: no span is recorded)\n", $marked);
         self::assertStringNotContainsString('steps unchanged', $marked);
     }
 
@@ -165,7 +188,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
         $pair = $this->comparison('A');
 
         self::assertStringContainsString("        process whenPlaced of projection orders\n```\n\nAfter:", $pair);
-        self::assertStringContainsString("      send rebuild   ← new\n        receive rebuild   ← new\n          process ProjectionRunCompletion::complete (from the wiring: no span is recorded)   ← new\n```\n", $pair);
+        self::assertStringContainsString("      send rebuild (part report by GatheringPartCompletion to ecotone.projection.rebuild.completion:orders)   ← new\n        receive rebuild   ← new\n          process ProjectionRunCompletion::complete (from the wiring: no span is recorded)   ← new\n```\n", $pair);
         self::assertStringContainsString('_Legend: dotted outline = registered by Ecotone, solid outline = declared by the application; ', $pair);
     }
 
@@ -177,14 +200,45 @@ final class BuildFlowReadableComparisonTest extends TestCase
 
         self::assertStringContainsString('    participant p4 as consumer of rebuild', $path);
         self::assertStringContainsString('    participant p3 as channel rebuild', $path);
-        self::assertStringContainsString('    participant p7 as ProjectionRunCompletion::complete', $path);
-        self::assertMatchesRegularExpression('/^    Note over p0,p7: Before$/m', $path);
-        self::assertMatchesRegularExpression('/^    Note over p0,p7: After$/m', $path);
-        self::assertStringContainsString("    p4->>p3: + sends\n    p3->>p4: + delivers\n    p4-->>p7: + routed to (wiring, no span)\n", $path);
+        self::assertStringContainsString('    participant p7 as GatheringPartCompletion', $path);
+        self::assertStringContainsString('    participant p8 as channel ecotone.projection.rebuild.completion:orders', $path);
+        self::assertStringContainsString('    participant p9 as ProjectionRunCompletion::complete', $path);
+        self::assertMatchesRegularExpression('/^    Note over p0,p9: Before$/m', $path);
+        self::assertMatchesRegularExpression('/^    Note over p0,p9: After$/m', $path);
+        self::assertStringContainsString("    p7-->>p8: + sends part report (build, no span)\n    p8->>p3: + sends\n    p3->>p4: + delivers\n    p4-->>p9: + routed to (wiring, no span)\n", $path);
         self::assertDoesNotMatchRegularExpression('/^    (p\d+)--?>>\1:/m', $path);
         self::assertStringNotContainsString('nodes added', $path);
         self::assertStringNotContainsString('- Traced steps:', $path);
-        self::assertStringContainsString('_Legend: solid arrow = a traced step, dashed arrow = taken from the wiring because no span is recorded; `+` = new, `-` = gone._', $path);
+        self::assertStringContainsString('_Legend: solid arrow = a traced step, dashed arrow = taken from the wiring or the build because no span is recorded; `+` = new._', $path);
+    }
+
+    public function test_the_sentence_the_marked_wiring_and_the_traced_steps_name_the_same_sender(): void
+    {
+        $this->recordARunThatGainsItsCompletion('rebuild');
+
+        $markdown = $this->comparison('BUILD');
+
+        self::assertSame(1, preg_match('/^Now: .*`GatheringPartCompletion` .* sends a part report to `ecotone\.projection\.rebuild\.completion:orders`/m', $markdown));
+        self::assertStringContainsString('as GatheringPartCompletion', $markdown);
+        self::assertStringContainsString('ecotone.projection.rebuild.completion:orders (entry point: part reports are sent here by GatheringPartCompletion)', $markdown);
+        self::assertStringContainsString('send rebuild (part report by GatheringPartCompletion to ecotone.projection.rebuild.completion:orders)', $markdown);
+        self::assertStringNotContainsString('the consumer of `rebuild` sends', $markdown);
+    }
+
+    public function test_a_change_of_the_build_alone_is_summarised_as_such_and_draws_nothing(): void
+    {
+        $this->recordARunThatGainsItsCompletion('rebuild', withoutTheNewSteps: true);
+        copy($this->location . '/after/projection-rebuild-run.json', $this->location . '/before/projection-rebuild-run.json');
+        $stored = json_decode((string) file_get_contents($this->location . '/after/projection-rebuild-run.json'), true, flags: JSON_THROW_ON_ERROR);
+        $stored['build']['ledger'][] = ['module' => 'Acme\\PlanningModule', 'kind' => 'service', 'name' => 'Acme\\Plan', 'class' => 'Acme\\Plan'];
+        $stored['build']['ledger'][] = ['module' => 'Acme\\PlanningModule', 'kind' => 'service', 'name' => 'Acme\\Planner', 'class' => 'Acme\\Planner'];
+        file_put_contents($this->location . '/after/projection-rebuild-run.json', json_encode($stored, JSON_THROW_ON_ERROR));
+
+        $markdown = $this->comparison('BUILD');
+
+        self::assertStringContainsString("Before and now: the wiring and the traced steps are the same.\n\nNow: only the build changed: 2 services added.\n\n#### Build: what modules register now\n\n```text\nPlanningModule\n  + service Plan\n  + service Planner\n```\n\nWiring and traced steps: unchanged.\n", $markdown);
+        self::assertStringNotContainsString('mermaid', $markdown);
+        self::assertStringNotContainsString('Legend', $markdown);
     }
 
     private function recordARunThatGainsItsCompletion(string $operation, bool $withoutTheNewSteps = false): void

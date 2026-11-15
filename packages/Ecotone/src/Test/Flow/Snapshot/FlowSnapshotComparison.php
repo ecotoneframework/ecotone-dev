@@ -9,6 +9,8 @@ namespace Ecotone\Test\Flow\Snapshot;
  */
 final class FlowSnapshotComparison
 {
+    private const NAMES_TRIED = 6;
+
     /**
      * @param list<array{scenarios: list<string>, varyingNames: list<string>, change: FlowScenarioChange}> $groups
      */
@@ -44,16 +46,26 @@ final class FlowSnapshotComparison
         $merged = [];
         foreach ($groups as $group) {
             foreach ($merged as $position => $earlier) {
-                $ownNames = array_values(array_diff($earlier['change']->namesIn(), $group['change']->namesIn()));
-                $otherNames = array_values(array_diff($group['change']->namesIn(), $earlier['change']->namesIn()));
-                usort($ownNames, fn (string $first, string $second): int => [strlen($first), $first] <=> [strlen($second), $second]);
-                usort($otherNames, fn (string $first, string $second): int => [strlen($first), $first] <=> [strlen($second), $second]);
-                $ownName = $earlier['varyingNames'][0] ?? $ownNames[0] ?? null;
-                if ($ownName === null || $otherNames === [] || $earlier['change']->identity($ownName) !== $group['change']->identity($otherNames[0])) {
+                $ownName = $otherName = null;
+                $moreOften = fn (array $names, array $thanIn): array => array_keys(array_filter($names, fn (int $count, string $name): bool => $count > ($thanIn[$name] ?? 0), ARRAY_FILTER_USE_BOTH));
+                $byLength = fn (string $first, string $second): int => [strlen($first), $first] <=> [strlen($second), $second];
+                $ownNames = $earlier['varyingNames'] === [] ? $moreOften($earlier['change']->namesIn(), $group['change']->namesIn()) : [$earlier['varyingNames'][0]];
+                $otherNames = $moreOften($group['change']->namesIn(), $earlier['change']->namesIn());
+                usort($ownNames, $byLength);
+                usort($otherNames, $byLength);
+                foreach (array_slice($ownNames, 0, self::NAMES_TRIED) as $ownCandidate) {
+                    foreach (array_slice($otherNames, 0, self::NAMES_TRIED) as $otherCandidate) {
+                        if ($earlier['change']->identity($ownCandidate, $otherCandidate) === $group['change']->identity($otherCandidate, $ownCandidate)) {
+                            [$ownName, $otherName] = [$ownCandidate, $otherCandidate];
+                            break 2;
+                        }
+                    }
+                }
+                if ($ownName === null) {
                     continue;
                 }
                 $merged[$position]['scenarios'] = [...$earlier['scenarios'], ...$group['scenarios']];
-                $merged[$position]['varyingNames'] = [...($earlier['varyingNames'] === [] ? [$ownName] : $earlier['varyingNames']), $otherNames[0]];
+                $merged[$position]['varyingNames'] = [...($earlier['varyingNames'] === [] ? [$ownName] : $earlier['varyingNames']), $otherName];
                 continue 2;
             }
             $merged[] = $group;

@@ -182,6 +182,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
             self::assertLessThan(strpos($markdown, '#### Build: what modules register now'), strpos($markdown, 'Now: '), $presentation);
             self::assertLessThan(strpos($markdown, $nextHeading), strpos($markdown, '#### Build: what modules register now'), $presentation);
             self::assertStringContainsString("\n  + handler audit: service activator on audit.target, invokes class@anonymous#1::audit\n      event driven consumer of audit.target\n", $markdown, $presentation);
+            self::assertStringContainsString("\n      handler class@anonymous#1::audit()\n      then: routing slip, else part report (GatheringPartCompletion with an Enterprise licence, NullPartCompletion in open core), else reply channel\n", $markdown, $presentation);
             self::assertStringContainsString("\n  + channel audit.target (subscribable)\n", $markdown, $presentation);
             self::assertMatchesRegularExpression('/^```text\n[A-Z][A-Za-z]+Module\n  [+~-] /m', $markdown, $presentation);
             self::assertStringNotContainsString('Ecotone\\', substr($markdown, strpos($markdown, '#### Build'), strpos($markdown, $nextHeading) - strpos($markdown, '#### Build')), $presentation);

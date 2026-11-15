@@ -63,6 +63,34 @@ final class BuildFlowBaselineTest extends TestCase
         self::assertContains('receive rebuild', array_column($rebuild['trace'], 'name'));
     }
 
+    public function test_the_catalogue_holds_an_asynchronous_backfill_of_two_batches_that_reports_each_batch(): void
+    {
+        $tooling = $this->tooling();
+        $tooling->runConsoleCommand('ecotone:build-flow:snapshot', ['location' => $this->location]);
+
+        $twoBatches = json_decode($this->filesIn($this->location)['tag-partitioned-projection-backfilled-asynchronously-in-two-batches.json'], true, flags: JSON_THROW_ON_ERROR);
+        $steps = array_map(fn (array $step): string => str_repeat('  ', $step['depth']) . $step['name'], $twoBatches['trace']);
+
+        self::assertSame(
+            [
+                'backfill course_seats',
+                '  send backfill',
+                '    receive backfill',
+                '      process partition batch course_seats',
+                '        process class@anonymous::whenDefined',
+                '      send backfill',
+                '        receive backfill',
+                '  send backfill',
+                '    receive backfill',
+                '      process partition batch course_seats',
+                '        process class@anonymous::whenDefined',
+                '      send backfill',
+                '        receive backfill',
+            ],
+            $steps,
+        );
+    }
+
     public function test_wiring_every_application_gets_is_stored_once_and_compared_as_part_of_every_scenario(): void
     {
         $tooling = $this->tooling();

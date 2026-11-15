@@ -29,6 +29,7 @@ final class FlowScenarioChange
 
     /**
      * @param list<array{change: string, step: array<string, mixed>}> $trace
+     * @param list<array{change: string, kind: string, name: string, before?: array<string, scalar>, after?: array<string, scalar>, chain?: list<array{change: string, layer: string}>}> $build
      */
     private function __construct(
         public readonly string $scenario,
@@ -37,6 +38,7 @@ final class FlowScenarioChange
         public readonly FlowSnapshot $after,
         public readonly FlowComparison $wiring,
         public readonly array $trace,
+        public readonly array $build,
     ) {
     }
 
@@ -58,12 +60,90 @@ final class FlowScenarioChange
             after: $after,
             wiring: $state === self::CHANGED ? $before->wiring->compareTo($after->wiring) : $after->wiring->compareTo($after->wiring),
             trace: self::withContinuationsFromWiring(self::changesBetween($before->trace, $after->trace), $before->wiring, $after->wiring),
+            build: $state === self::CHANGED ? self::buildChangesBetween($before, $after) : [],
         );
+    }
+
+    /**
+     * @return list<array{change: string, kind: string, name: string, before?: array<string, scalar>, after?: array<string, scalar>, chain?: list<array{change: string, layer: string}>}>
+     */
+    private static function buildChangesBetween(FlowSnapshot $before, FlowSnapshot $after): array
+    {
+        $changes = [];
+        foreach (array_keys($before->ledger + $after->ledger) as $registration) {
+            $entryBefore = $before->ledger[$registration] ?? null;
+            $entryAfter = $after->ledger[$registration] ?? null;
+            $shown = $entryAfter ?? $entryBefore;
+            $chainBefore = $entryBefore !== null && $shown['kind'] === 'handler' ? $before->chains[$shown['name']] ?? [] : [];
+            $chainAfter = $entryAfter !== null && $shown['kind'] === 'handler' ? $after->chains[$shown['name']] ?? [] : [];
+            if ($entryBefore === $entryAfter && $chainBefore === $chainAfter) {
+                continue;
+            }
+            $changes[] = [
+                'change' => match (true) {
+                    $entryBefore === null => self::ADDED,
+                    $entryAfter === null => self::REMOVED,
+                    default => self::CHANGED,
+                },
+                'kind' => $shown['kind'],
+                'name' => $shown['name'],
+                ...($entryBefore === null ? [] : ['before' => $entryBefore]),
+                ...($entryAfter === null ? [] : ['after' => $entryAfter]),
+                ...($chainBefore === [] && $chainAfter === [] ? [] : ['chain' => array_map(fn (array $layer): array => ['change' => $layer['change'], 'layer' => $layer['step']], self::changesBetween($chainBefore, $chainAfter))]),
+            ];
+        }
+        usort($changes, fn (array $first, array $second): int => [($first['after'] ?? $first['before'])['module'], $first['kind'], $first['name']] <=> [($second['after'] ?? $second['before'])['module'], $second['kind'], $second['name']]);
+
+        return $changes;
+    }
+
+    /**
+     * @return array<string, string> kind and name of a changed registration => what identifies the change
+     */
+    public function buildChangeIdentities(): array
+    {
+        $identities = [];
+        foreach ($this->build as $change) {
+            $identities[$change['kind'] . ':' . $change['name']] = md5(json_encode($change, JSON_THROW_ON_ERROR));
+        }
+
+        return $identities;
+    }
+
+    /**
+     * @param array<string, mixed> $registrations kind and name of a registration => anything
+     */
+    public function withoutBuildChangesOf(array $registrations): self
+    {
+        return new self($this->scenario, $this->state, $this->before, $this->after, $this->wiring, $this->trace, array_values(array_filter($this->build, fn (array $change): bool => ! isset($registrations[$change['kind'] . ':' . $change['name']]))));
+    }
+
+    /**
+     * @param array<string, mixed> $registrations kind and name of a registration => anything
+     */
+    public function withOnlyBuildChangesOf(array $registrations): self
+    {
+        return new self($this->scenario, $this->state, $this->before, $this->after, $this->wiring, $this->trace, array_values(array_filter($this->build, fn (array $change): bool => isset($registrations[$change['kind'] . ':' . $change['name']]))));
+    }
+
+    /**
+     * @return list<array{module: string, entries: list<array<string, mixed>>}>
+     */
+    public function buildByModule(): array
+    {
+        $modules = [];
+        foreach ($this->build as $change) {
+            $module = ($change['after'] ?? $change['before'])['module'];
+            $modules[$module] ??= ['module' => $module, 'entries' => []];
+            $modules[$module]['entries'][] = $change;
+        }
+
+        return array_values($modules);
     }
 
     public function hasChanges(): bool
     {
-        return $this->state !== self::CHANGED || $this->wiring->hasChanges() || $this->hasTraceChanges();
+        return $this->state !== self::CHANGED || $this->wiring->hasChanges() || $this->hasTraceChanges() || $this->build !== [];
     }
 
     public function hasTraceChanges(): bool
@@ -79,11 +159,12 @@ final class FlowScenarioChange
             $parts[] = $comparison[$change]['nodes'];
             $parts[] = $comparison[$change]['edges'];
         }
+        $parts[] = $this->build;
         $parts[] = $this->scopedTrace();
         $canonical = [];
         foreach ($parts as $position => $elements) {
             $encoded = array_map(fn (mixed $element): string => self::withoutName(json_encode($element, JSON_THROW_ON_ERROR), $varyingName), $elements);
-            if ($position !== array_key_last($parts)) {
+            if ($position < array_key_last($parts) - 1) {
                 sort($encoded, SORT_STRING);
             }
             $canonical[] = $encoded;
@@ -97,7 +178,7 @@ final class FlowScenarioChange
      */
     public function namesIn(): array
     {
-        preg_match_all('/[A-Za-z][A-Za-z0-9]*/', json_encode([$this->wiring->toArray(), $this->scopedTrace()], JSON_THROW_ON_ERROR), $names);
+        preg_match_all('/[A-Za-z][A-Za-z0-9]*/', json_encode([$this->wiring->toArray(), $this->scopedTrace(), $this->build], JSON_THROW_ON_ERROR), $names);
 
         return array_values(array_unique(array_map(strtolower(...), $names[0])));
     }
@@ -439,6 +520,7 @@ final class FlowScenarioChange
             'wiring' => $this->wiring->toArray(),
             'wiringParts' => $this->wiringParts(),
             'registeredOffThePath' => array_map(fn (array $nodes): array => array_map(fn (FlowNode $node): string => $node->id, $nodes), $this->registeredOffThePath()),
+            'build' => $this->buildByModule(),
             'trace' => $this->scopedTrace(),
         ];
     }
@@ -519,9 +601,9 @@ final class FlowScenarioChange
     }
 
     /**
-     * @param list<array<string, mixed>> $before
-     * @param list<array<string, mixed>> $after
-     * @return list<array{change: string, step: array<string, mixed>}>
+     * @param list<array<string, mixed>|string> $before
+     * @param list<array<string, mixed>|string> $after
+     * @return list<array{change: string, step: array<string, mixed>|string}>
      */
     private static function changesBetween(array $before, array $after): array
     {

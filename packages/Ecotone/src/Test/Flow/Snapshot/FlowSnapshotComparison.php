@@ -12,7 +12,7 @@ final class FlowSnapshotComparison
     /**
      * @param list<array{scenarios: list<string>, varyingNames: list<string>, change: FlowScenarioChange}> $groups
      */
-    private function __construct(public readonly int $scenariosCompared, public readonly array $groups)
+    private function __construct(public readonly int $scenariosCompared, public readonly array $groups, public readonly ?FlowScenarioChange $everyScenario)
     {
     }
 
@@ -22,9 +22,15 @@ final class FlowSnapshotComparison
      */
     public static function between(array $before, array $after): self
     {
-        $changes = [];
+        $compared = [];
         foreach (array_keys($before + $after) as $fileName) {
-            $change = FlowScenarioChange::between($before[$fileName] ?? null, $after[$fileName] ?? null);
+            $compared[] = FlowScenarioChange::between($before[$fileName] ?? null, $after[$fileName] ?? null);
+        }
+        $onBothSides = array_values(array_filter($compared, fn (FlowScenarioChange $change): bool => $change->state === FlowScenarioChange::CHANGED));
+        $sharedByEveryScenario = count($onBothSides) > 1 ? array_intersect_assoc(...array_map(fn (FlowScenarioChange $change): array => $change->buildChangeIdentities(), $onBothSides)) : [];
+        $changes = [];
+        foreach ($compared as $change) {
+            $change = $change->state === FlowScenarioChange::CHANGED ? $change->withoutBuildChangesOf($sharedByEveryScenario) : $change;
             if ($change->hasChanges()) {
                 $changes[$change->scenario] = $change;
             }
@@ -54,16 +60,17 @@ final class FlowSnapshotComparison
         }
         $groups = $merged;
 
-        return new self(count($before + $after), array_values($groups));
+        return new self(count($before + $after), array_values($groups), $sharedByEveryScenario === [] ? null : $onBothSides[0]->withOnlyBuildChangesOf($sharedByEveryScenario));
     }
 
     /**
-     * @return array{scenariosCompared: int, groups: list<array<string, mixed>>}
+     * @return array{scenariosCompared: int, everyScenario: array{build: list<array<string, mixed>>}, groups: list<array<string, mixed>>}
      */
     public function toArray(): array
     {
         return [
             'scenariosCompared' => $this->scenariosCompared,
+            'everyScenario' => ['build' => $this->everyScenario?->buildByModule() ?? []],
             'groups' => array_map(fn (array $group): array => ['scenarios' => $group['scenarios'], 'varyingNames' => $group['varyingNames'], ...$group['change']->toArray()], $this->groups),
         ];
     }

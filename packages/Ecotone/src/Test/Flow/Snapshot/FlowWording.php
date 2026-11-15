@@ -36,7 +36,7 @@ final class FlowWording
             isset(self::DESCRIBED_CLASSES[$class]) => sprintf(self::DESCRIBED_CLASSES[$class], $inputChannel),
             preg_match(self::BUS_CHANNEL, $inputChannel, $bus) === 1 => $bus[1] . ' bus routing',
             str_contains($class, '@anonymous') && $method !== '' => self::ofAnonymousHandler($node, $wiring, withItsKind: false),
-            ($node->attributes['internal'] ?? false) === true && $class !== '' && $method !== '' => self::shortName($class) . '::' . $method,
+            ($node->attributes['build'] ?? false) === true && $class !== '' && $method !== '' => self::shortName($class) . '::' . $method,
             default => $node->label,
         };
     }
@@ -119,7 +119,7 @@ final class FlowWording
 
     private static function isEntryPoint(FlowNode $channel, MessageFlowGraph $wiring): bool
     {
-        return ($channel->attributes['internal'] ?? false) === true && $wiring->hasNode($channel->id) && $wiring->edgesTo($channel->id) === [];
+        return ($channel->attributes['build'] ?? false) === true && $wiring->hasNode($channel->id) && $wiring->edgesTo($channel->id) === [];
     }
 
     private static function shortName(string $class): string

@@ -54,7 +54,7 @@ final class FlowScenarioRecorder
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'internal' => true]);
+        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
         $dump = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
         $wiring = MessageFlowGraph::fromJson($dump);
         $spanRecorder->clear();

@@ -237,10 +237,10 @@ final class MessageFlowGraph implements DefinedObject
             }
         }
 
-        $internalNodes = array_values(array_filter($this->nodes, fn (FlowNode $node): bool => ($node->attributes['internal'] ?? false) === true));
-        if ($internalNodes !== []) {
-            $marks[] = '    classDef internal stroke-dasharray:2 3,color:#57606a';
-            $marks[] = sprintf('    class %s internal', implode(',', array_map(fn (FlowNode $node): string => $mermaidIds[$node->id], $internalNodes)));
+        $buildNodes = array_values(array_filter($this->nodes, fn (FlowNode $node): bool => ($node->attributes['build'] ?? false) === true));
+        if ($buildNodes !== []) {
+            $marks[] = '    classDef build stroke-dasharray:2 3,color:#57606a';
+            $marks[] = sprintf('    class %s build', implode(',', array_map(fn (FlowNode $node): string => $mermaidIds[$node->id], $buildNodes)));
         }
 
         return implode("\n", [...$lines, ...array_keys($edgeLines), ...$marks]) . "\n";

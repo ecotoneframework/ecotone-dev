@@ -59,7 +59,7 @@ final class FlowSnapshot
     {
         $stored = json_decode($json, true);
         if (! is_array($stored) || ! is_string($stored['scenario'] ?? null) || ! is_array($stored['wiring']['nodes'] ?? null) || ! is_array($stored['wiring']['edges'] ?? null) || ! is_array($stored['build']['ledger'] ?? null) || ! is_array($stored['build']['chains'] ?? null) || ! is_array($stored['trace'] ?? null)) {
-            throw InvalidArgumentException::create("Flow snapshot file {$file} does not hold `scenario`, `wiring`, `build` and `trace`, so it was not written by this version of the internal flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
+            throw InvalidArgumentException::create("Flow snapshot file {$file} does not hold `scenario`, `wiring`, `build` and `trace`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.");
         }
         $nodes = [];
         $edges = [];
@@ -67,7 +67,7 @@ final class FlowSnapshot
         $chains = [];
         if (isset($stored['wiring']['withoutNodes'], $stored['wiring']['withoutEdges']) || isset($stored['build']['withoutLedger'], $stored['build']['withoutChains'])) {
             if ($shared === null) {
-                throw InvalidArgumentException::create("Flow snapshot file {$file} stores only what its scenario adds to what every application gets, but " . dirname($file) . '/' . FlowSnapshots::SHARED_FILE . ' is missing, so its whole wiring and build cannot be read. Restore that file from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.');
+                throw InvalidArgumentException::create("Flow snapshot file {$file} stores only what its scenario adds to what every application gets, but " . dirname($file) . '/' . FlowSnapshots::SHARED_FILE . ' is missing, so its whole wiring and build cannot be read. Restore that file from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.');
             }
             foreach ($shared->wiring->nodes() as $node) {
                 $nodes[$node->id] = $node;
@@ -105,7 +105,7 @@ final class FlowSnapshot
     {
         $stored = json_decode($json, true);
         if (! is_array($stored) || ! is_array($stored['wiring']['nodes'] ?? null) || ! is_array($stored['wiring']['edges'] ?? null) || ! is_array($stored['build']['ledger'] ?? null) || ! is_array($stored['build']['chains'] ?? null)) {
-            throw InvalidArgumentException::create("Shared file {$file} does not hold `wiring` and `build`, so it was not written by this version of the internal flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
+            throw InvalidArgumentException::create("Shared file {$file} does not hold `wiring` and `build`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.");
         }
 
         return self::fromJson(json_encode(['scenario' => 'what every application gets', 'trace' => []] + $stored, JSON_THROW_ON_ERROR), $file);

@@ -1,0 +1,62 @@
+{
+    "formatVersion": 2,
+    "scenario": "first handler attribute uses the recorded endpoint",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:order.first","kind":"channel","label":"order.first","attributes":{"build":true,"name":"order.first","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:order.first.handler.target","kind":"channel","label":"order.first.handler.target","attributes":{"build":true,"name":"order.first.handler.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:order.second","kind":"channel","label":"order.second","attributes":{"build":true,"name":"order.second","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:order.second.handler.target","kind":"channel","label":"order.second.handler.target","attributes":{"build":true,"name":"order.second.handler.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"endpoint:order.first","kind":"internalHandler","label":"ChainedMessageProcessor::process on order.first","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"order.first","method":"process","registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"endpoint:order.second","kind":"internalHandler","label":"ChainedMessageProcessor::process on order.second","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"order.second","method":"process","registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"handler:order.first.handler","kind":"commandHandler","label":"class@anonymous#1::handle","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"order.first.handler","method":"handle","owner":null,"routingKeys":["order.first"]}},
+            {"id":"handler:order.second.handler","kind":"commandHandler","label":"class@anonymous#1::handle","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"order.second.handler","method":"handle","owner":null,"routingKeys":["order.second"]}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","method":"aroundCommandHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"build":true,"class":"Ecotone\\Tracing\\TracingInterceptor","method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
+            {"id":"message:order.first","kind":"command","label":"order.first","attributes":{"class":null,"handled":true,"routingKey":"order.first"}},
+            {"id":"message:order.second","kind":"command","label":"order.second","attributes":{"class":null,"handled":true,"routingKey":"order.second"}}
+        ],
+        "edges": [
+            {"from":"channel:order.first","to":"endpoint:order.first","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
+            {"from":"channel:order.second","to":"endpoint:order.second","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
+            {"from":"channel:order.first.handler.target","to":"handler:order.first.handler","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
+            {"from":"channel:order.second.handler.target","to":"handler:order.second.handler","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
+            {"from":"handler:order.first.handler","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"handler:order.first.handler","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"handler:order.second.handler","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"handler:order.second.handler","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"endpoint:order.first","to":"channel:order.first.handler.target","kind":"output","attributes":{"build":true}},
+            {"from":"endpoint:order.second","to":"channel:order.second.handler.target","kind":"output","attributes":{"build":true}},
+            {"from":"message:order.first","to":"handler:order.first.handler","kind":"routedTo","attributes":[]},
+            {"from":"message:order.second","to":"handler:order.second.handler","kind":"routedTo","attributes":[]},
+            {"from":"endpoint:ecotone.modelling.bus.command_by_name","to":"channel:order.first.handler.target","kind":"routesTo","attributes":{"build":true,"routingKeys":["order.first"]}},
+            {"from":"endpoint:ecotone.modelling.bus.command_by_name","to":"channel:order.second.handler.target","kind":"routesTo","attributes":{"build":true,"routingKeys":["order.second"]}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"order.first","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"order.first.handler.target","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"order.second","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"order.second.handler.target","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process on order.first","builder":"service activator","inputChannel":"order.first","outputChannel":"order.first.handler.target","target":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process"},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process on order.second","builder":"service activator","inputChannel":"order.second","outputChannel":"order.second.handler.target","target":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process"},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"order.first.handler","builder":"service activator","inputChannel":"order.first.handler.target","target":"class@anonymous#1::handle"},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"order.second.handler","builder":"service activator","inputChannel":"order.second.handler.target","target":"class@anonymous#1::handle"}
+        ],
+        "chains": [
+            {"handler":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process on order.first","layers":["event driven consumer of order.first","handler Ecotone\\Messaging\\Handler\\Transformer\\HeaderEnricher::transform(Ecotone\\Api\\Messaging\\Message)","output channel order.first.handler.target","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core, when the handler returns nothing"]},
+            {"handler":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process on order.second","layers":["event driven consumer of order.second","handler Ecotone\\Messaging\\Handler\\Transformer\\HeaderEnricher::transform(Ecotone\\Api\\Messaging\\Message)","output channel order.second.handler.target","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core, when the handler returns nothing"]},
+            {"handler":"order.first.handler","layers":["event driven consumer of order.first.handler.target","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::handle(string)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]},
+            {"handler":"order.second.handler","layers":["event driven consumer of order.second.handler.target","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::handle(string)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
+    },
+    "trace": [
+        {"depth":0,"name":"send command","destination":"order.first","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::handle","kind":"Server","status":"Ok"}
+    ]
+}

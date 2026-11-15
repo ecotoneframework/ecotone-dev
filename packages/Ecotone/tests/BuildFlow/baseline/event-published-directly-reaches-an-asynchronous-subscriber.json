@@ -1,0 +1,61 @@
+{
+    "formatVersion": 2,
+    "scenario": "event published directly reaches an asynchronous subscriber",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:merchant.notifying.target","kind":"channel","label":"merchant.notifying.target","attributes":{"build":true,"name":"merchant.notifying.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:merchant.notifying.target.execute","kind":"channel","label":"merchant.notifying.target.execute","attributes":{"build":true,"name":"merchant.notifying.target.execute","pollable":false,"registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\AsynchronousModule"}},
+            {"id":"channel:notifications","kind":"channel","label":"notifications","attributes":{"name":"notifications","pollable":true}},
+            {"id":"endpoint:merchant.notifying.target","kind":"internalHandler","label":"RoutingSlipPrepender::transform on merchant.notifying.target","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Transformer\\RoutingSlipPrepender","inputChannel":"merchant.notifying.target","method":"transform","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\AsynchronousModule"}},
+            {"id":"endpoint:notifications","kind":"internalHandler","label":"Bridge::handle on notifications","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge","inputChannel":"notifications","method":"handle","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\BasicMessagingModule"}},
+            {"id":"handler:merchant.notifying","kind":"eventHandler","label":"class@anonymous#1::notify","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"merchant.notifying","method":"notify","owner":null,"routingKeys":["merchant.created"]}},
+            {"id":"interceptor:Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor::send","kind":"interceptor","label":"CollectorSenderInterceptor::send","attributes":{"build":true,"class":"Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor","method":"send","position":"around","registeredBy":"Ecotone\\Messaging\\Channel\\Collector\\Config\\CollectorModule"}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundEventHandler","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","method":"aroundEventHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"build":true,"class":"Ecotone\\Tracing\\TracingInterceptor","method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
+            {"id":"message:merchant.created","kind":"event","label":"merchant.created","attributes":{"class":null,"handled":true,"routingKey":"merchant.created"}}
+        ],
+        "edges": [
+            {"from":"channel:notifications","to":"handler:merchant.notifying","kind":"asynchronous","attributes":[]},
+            {"from":"channel:notifications","to":"endpoint:notifications","kind":"input","attributes":{"build":true,"consumer":"polling"}},
+            {"from":"channel:merchant.notifying.target","to":"endpoint:merchant.notifying.target","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
+            {"from":"channel:merchant.notifying.target.execute","to":"handler:merchant.notifying","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
+            {"from":"handler:merchant.notifying","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"handler:merchant.notifying","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\CommandBus::send","to":"interceptor:Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor::send","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"gateway:Ecotone\\Api\\Gateway\\CommandBus::sendWithRouting","to":"interceptor:Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor::send","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"endpoint:merchant.notifying.target","to":"channel:notifications","kind":"output","attributes":{"build":true}},
+            {"from":"message:merchant.created","to":"handler:merchant.notifying","kind":"routedTo","attributes":[]},
+            {"from":"endpoint:notifications","to":"channel:merchant.notifying.target.execute","kind":"routesTo","attributes":{"build":true,"via":"routingSlip"}},
+            {"from":"endpoint:ecotone.modelling.bus.event_by_name","to":"channel:merchant.notifying.target","kind":"routesTo","attributes":{"build":true,"routingKeys":["merchant.created"]}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"merchant.notifying.target","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\AsynchronousModule","kind":"channel","name":"merchant.notifying.target.execute","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\BasicMessagingModule","kind":"channel","name":"notifications","builder":"SimpleMessageChannelBuilder","pollable":true},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\AsynchronousModule","kind":"handler","name":"Ecotone\\Messaging\\Handler\\Transformer\\RoutingSlipPrepender::transform on merchant.notifying.target","builder":"uninterruptible service activator","inputChannel":"merchant.notifying.target","outputChannel":"notifications","target":"Ecotone\\Messaging\\Handler\\Transformer\\RoutingSlipPrepender::transform"},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"merchant.notifying","builder":"service activator","inputChannel":"merchant.notifying.target.execute","target":"class@anonymous#1::notify"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\BasicMessagingModule","kind":"handler","name":"notifications","builder":"bridge","inputChannel":"notifications","target":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge::handle"},
+            {"module":"Ecotone\\Messaging\\Channel\\Collector\\Config\\CollectorModule","kind":"interceptor","name":"around Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor::send","position":"around","target":"Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor::send"},
+            {"module":"Ecotone\\Messaging\\Channel\\Collector\\Config\\CollectorModule","kind":"service","name":"Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor.notifications","class":"Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor"},
+            {"module":"Ecotone\\Messaging\\Channel\\Collector\\Config\\CollectorModule","kind":"service","name":"polling.notifications.collector_storage","class":"Ecotone\\Messaging\\Channel\\Collector\\CollectorStorage"}
+        ],
+        "chains": [
+            {"handler":"Ecotone\\Messaging\\Handler\\Transformer\\RoutingSlipPrepender::transform on merchant.notifying.target","layers":["event driven consumer of merchant.notifying.target","handler Ecotone\\Messaging\\Handler\\Transformer\\RoutingSlipPrepender::transform(Ecotone\\Api\\Messaging\\Message)","output channel notifications","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core, when the handler returns nothing"]},
+            {"handler":"merchant.notifying","layers":["event driven consumer of merchant.notifying.target.execute","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::notify(string)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]},
+            {"handler":"notifications","layers":["polling consumer of notifications","before interceptor Ecotone\\Modelling\\MessageHandling\\MetadataPropagator\\MessageHeadersPropagatorInterceptor::propagateHeaders(array)","around interceptor Ecotone\\Lite\\Test\\Configuration\\PinnedTestClockInterceptor::handleAtPinnedTime","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceAsynchronousEndpoint","around interceptor Ecotone\\Messaging\\Endpoint\\AcknowledgeConfirmationInterceptor::ack","around interceptor Ecotone\\Messaging\\Handler\\Logger\\LoggingInterceptor::logException","around interceptor Ecotone\\Messaging\\Endpoint\\PollingConsumer\\PollingConsumerErrorChannelInterceptor::handle","around interceptor Ecotone\\Modelling\\MessageHandling\\MetadataPropagator\\MessageHeadersPropagatorInterceptor::storeHeaders","around interceptor Ecotone\\Modelling\\Config\\InstantRetry\\AsynchronousEndpointInstantRetryByDefault::retry","around interceptor Ecotone\\Messaging\\Channel\\DeliveryConfirmation\\DeliveryConfirmationInterceptor::await","around interceptor Ecotone\\Messaging\\Channel\\Collector\\CollectorSenderInterceptor::send","handler Ecotone\\Messaging\\Handler\\Bridge\\Bridge::handle(Ecotone\\Api\\Messaging\\Message)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
+    },
+    "trace": [
+        {"depth":0,"name":"send event","destination":"merchant.created","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"route merchant.notifying","destination":"merchant.notifying.target","kind":"Producer","status":"Ok"},
+        {"depth":2,"name":"send notifications","kind":"Producer","status":"Ok"},
+        {"depth":3,"name":"receive notifications","kind":"Consumer","status":"Ok"},
+        {"depth":4,"name":"process class@anonymous::notify","kind":"Server","status":"Ok"}
+    ]
+}

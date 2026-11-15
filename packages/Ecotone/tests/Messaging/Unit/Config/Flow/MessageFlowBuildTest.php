@@ -359,7 +359,7 @@ final class MessageFlowBuildTest extends TestCase
 
     private function dumpOf(FlowTestSupport $ecotone): string
     {
-        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'internal' => true]);
+        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
 
         return $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
     }

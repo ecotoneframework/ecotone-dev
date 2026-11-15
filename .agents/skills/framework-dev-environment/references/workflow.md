@@ -173,11 +173,12 @@ docker compose exec -T app php bin/check-licence.php
 docker compose exec -T app php bin/add-apache-licence.php      # open source
 docker compose exec -T app php bin/add-enterprise-licence.php  # Enterprise modules
 
-# Internal flow snapshots: the internal wiring and traced steps of every flow catalogue scenario, committed
-# under packages/Ecotone/tests/InternalFlow/baseline. The check fails when they are not what the code produces
-docker compose exec -T app php bin/check-internal-flow.php
-docker compose exec -T app php bin/internal-flow.php snapshot   # regenerate them after an intended change
-docker compose exec -T app php bin/internal-flow.php compare    # what changed against the baseline, as Markdown (--presentation=A|B|C|json)
+# Build flow snapshots: what modules register, the chain of each handler, the wiring and the traced steps
+# of every flow catalogue scenario, committed
+# under packages/Ecotone/tests/BuildFlow/baseline. The check fails when they are not what the code produces
+docker compose exec -T app php bin/check-build-flow.php
+docker compose exec -T app php bin/build-flow.php snapshot   # regenerate them after an intended change
+docker compose exec -T app php bin/build-flow.php compare    # what changed against the baseline, as Markdown (--presentation=A|B|C|BUILD|json)
 ```
 
 `phpstan.neon` is level 3 over `src` for Ecotone, Enqueue, Dbal, Amqp, JmsConverter, PdoEventSourcing, Laravel,
@@ -229,7 +230,7 @@ not add licence headers.
 |---|---|---|
 | `test-monorepo.yml` | every branch push **and** pull request | A `shards` job runs `bin/check-monorepo-shards.php`, which checks that `.github/monorepo-shards.json` names every test suite of `phpunit.xml.dist` exactly once and emits the matrix; then one `Monorepo (<shard>)` job per shard: `bin/check-suite-parity.php` first, then PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then `phpunit --testsuite <the shard's suites>` against PostgreSQL with MySQL as the secondary connection. A new suite in `phpunit.xml.dist` must be added to a shard or the run fails |
 | `split-testing.yml` | every branch push **and** pull request | Per-package `composer tests:ci` for every package with a `phpunit.xml.dist`, on PHP 8.2, PHP 8.5, and PHP 8.2 `--prefer-lowest`. Tempest is excluded — it needs PHP 8.5 and a monorepo-tied boot harness, so a Monorepo shard covers it |
-| `file-licence.yml` | every push **and** pull request | `php bin/check-licence.php` over `packages/*/src`, `php bin/check-framework-transactions.php`, and `php bin/check-internal-flow.php` (the committed flow snapshots are current) |
+| `file-licence.yml` | every push **and** pull request | `php bin/check-licence.php` over `packages/*/src`, `php bin/check-framework-transactions.php`, and `php bin/check-build-flow.php` (the committed flow snapshots are current) |
 | `contribution-check.yml` | PR opened or edited | Fails unless the PR body has the CLA checkbox ticked |
 | `quickstart-examples.yml` | every branch push **and** pull request | The quickstart applications, as their own package |
 | `benchmark-pr.yml` | pull request | phpbench on PHP 8.5, for Ecotone, Laravel and Symfony |

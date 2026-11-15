@@ -71,7 +71,7 @@ final class FlowSnapshots
     public function all(): array
     {
         if (! is_dir($this->location)) {
-            throw InvalidArgumentException::create("Flow snapshots were expected in {$this->location}, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/internal-flow.php snapshot --location={$this->location}`.");
+            throw InvalidArgumentException::create("Flow snapshots were expected in {$this->location}, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/build-flow.php snapshot --location={$this->location}`.");
         }
         $shared = $this->shared();
         $snapshots = [];

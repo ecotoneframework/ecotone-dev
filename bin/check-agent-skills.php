@@ -17,7 +17,7 @@ const DETERMINISTIC_CHECKS = [
     'suite-parity' => '.github/workflows/test-monorepo.yml: php bin/check-suite-parity.php',
     'monorepo-shards' => '.github/workflows/test-monorepo.yml: php bin/check-monorepo-shards.php',
     'framework-transactions' => '.github/workflows/file-licence.yml: php bin/check-framework-transactions.php',
-    'internal-flow' => '.github/workflows/file-licence.yml: php bin/check-internal-flow.php',
+    'build-flow' => '.github/workflows/file-licence.yml: php bin/check-build-flow.php',
     'phpstan' => 'composer tests:phpstan in every package CI run',
     'contribution-terms' => '.github/workflows/contribution-check.yml',
 ];

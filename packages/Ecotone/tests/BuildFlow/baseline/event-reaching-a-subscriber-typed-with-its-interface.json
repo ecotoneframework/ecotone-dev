@@ -1,0 +1,38 @@
+{
+    "formatVersion": 2,
+    "scenario": "event reaching a subscriber typed with its interface",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:order.auditing.target","kind":"channel","label":"order.auditing.target","attributes":{"build":true,"name":"order.auditing.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"handler:order.auditing","kind":"eventHandler","label":"class@anonymous#1::audit","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"order.auditing","method":"audit","owner":null,"routingKeys":["Ecotone\\Test\\Flow\\Fixture\\FlowOrderEvent"]}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundEventHandler","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","method":"aroundEventHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"build":true,"class":"Ecotone\\Tracing\\TracingInterceptor","method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
+            {"id":"message:Ecotone\\Test\\Flow\\Fixture\\FlowOrderEvent","kind":"event","label":"FlowOrderEvent","attributes":{"class":"Ecotone\\Test\\Flow\\Fixture\\FlowOrderEvent","handled":true,"routingKey":"Ecotone\\Test\\Flow\\Fixture\\FlowOrderEvent"}}
+        ],
+        "edges": [
+            {"from":"channel:order.auditing.target","to":"handler:order.auditing","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
+            {"from":"handler:order.auditing","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"handler:order.auditing","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"message:Ecotone\\Test\\Flow\\Fixture\\FlowOrderEvent","to":"handler:order.auditing","kind":"routedTo","attributes":[]},
+            {"from":"endpoint:ecotone.modelling.bus.event_by_name","to":"channel:order.auditing.target","kind":"routesTo","attributes":{"build":true,"routingKeys":["Ecotone\\Test\\Flow\\Fixture\\FlowOrderEvent"]}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"order.auditing.target","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"order.auditing","builder":"service activator","inputChannel":"order.auditing.target","target":"class@anonymous#1::audit"}
+        ],
+        "chains": [
+            {"handler":"order.auditing","layers":["event driven consumer of order.auditing.target","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::audit(Ecotone\\Test\\Flow\\Fixture\\FlowOrderEvent)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
+    },
+    "trace": [
+        {"depth":0,"name":"send event","destination":"Ecotone\\Test\\Flow\\Fixture\\FlowOrderCancelled","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"route order.auditing","destination":"order.auditing.target","kind":"Producer","status":"Ok"},
+        {"depth":2,"name":"process class@anonymous::audit","kind":"Server","status":"Ok"}
+    ]
+}

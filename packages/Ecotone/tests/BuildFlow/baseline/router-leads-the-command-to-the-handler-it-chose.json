@@ -1,0 +1,71 @@
+{
+    "formatVersion": 2,
+    "scenario": "router leads the command to the handler it chose",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:shipment.dispatch","kind":"channel","label":"shipment.dispatch","attributes":{"build":true,"name":"shipment.dispatch","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:shipment.dispatching.target","kind":"channel","label":"shipment.dispatching.target","attributes":{"build":true,"name":"shipment.dispatching.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:shipment.express","kind":"channel","label":"shipment.express","attributes":{"name":"shipment.express","pollable":false}},
+            {"id":"channel:shipment.route","kind":"channel","label":"shipment.route","attributes":{"name":"shipment.route","pollable":false}},
+            {"id":"channel:shipment.standard","kind":"channel","label":"shipment.standard","attributes":{"name":"shipment.standard","pollable":false}},
+            {"id":"endpoint:shipment.dispatch","kind":"internalHandler","label":"ChainedMessageProcessor::process on shipment.dispatch","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"shipment.dispatch","method":"process","registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"endpoint:shipment.route","kind":"router","label":"shipment.route","attributes":{"build":true,"inputChannel":"shipment.route","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\RouterModule"}},
+            {"id":"handler:class@anonymous#1::route","kind":"router","label":"class@anonymous#1::route","attributes":{"class":"class@anonymous#1","endpointId":null,"inputChannel":"shipment.route","method":"route","owner":null}},
+            {"id":"handler:shipment.dispatching","kind":"commandHandler","label":"class@anonymous#1::dispatch","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"shipment.dispatching","method":"dispatch","owner":null,"routingKeys":["shipment.dispatch"]}},
+            {"id":"handler:shipment.expressing","kind":"internalHandler","label":"class@anonymous#1::express","attributes":{"class":"class@anonymous#1","endpointId":"shipment.expressing","inputChannel":"shipment.express","method":"express","owner":null}},
+            {"id":"handler:shipment.standard.handling","kind":"internalHandler","label":"class@anonymous#1::standard","attributes":{"class":"class@anonymous#1","endpointId":"shipment.standard.handling","inputChannel":"shipment.standard","method":"standard","owner":null}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","method":"aroundCommandHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"build":true,"class":"Ecotone\\Tracing\\TracingInterceptor","method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
+            {"id":"message:shipment.dispatch","kind":"command","label":"shipment.dispatch","attributes":{"class":null,"handled":true,"routingKey":"shipment.dispatch"}}
+        ],
+        "edges": [
+            {"from":"channel:shipment.route","to":"endpoint:shipment.route","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
+            {"from":"channel:shipment.route","to":"handler:class@anonymous#1::route","kind":"input","attributes":[]},
+            {"from":"channel:shipment.express","to":"handler:shipment.expressing","kind":"input","attributes":[]},
+            {"from":"channel:shipment.dispatch","to":"endpoint:shipment.dispatch","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
+            {"from":"channel:shipment.standard","to":"handler:shipment.standard.handling","kind":"input","attributes":[]},
+            {"from":"channel:shipment.dispatching.target","to":"handler:shipment.dispatching","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
+            {"from":"handler:shipment.expressing","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"handler:shipment.expressing","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"handler:shipment.dispatching","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"handler:shipment.dispatching","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"handler:shipment.standard.handling","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"handler:shipment.standard.handling","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"endpoint:shipment.dispatch","to":"channel:shipment.dispatching.target","kind":"output","attributes":{"build":true}},
+            {"from":"handler:shipment.dispatching","to":"channel:shipment.route","kind":"output","attributes":[]},
+            {"from":"message:shipment.dispatch","to":"handler:shipment.dispatching","kind":"routedTo","attributes":[]},
+            {"from":"handler:class@anonymous#1::route","to":"channel:shipment.express","kind":"routesTo","attributes":{"inferred":true}},
+            {"from":"endpoint:ecotone.modelling.bus.command_by_name","to":"channel:shipment.dispatching.target","kind":"routesTo","attributes":{"build":true,"routingKeys":["shipment.dispatch"]}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"shipment.dispatch","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"shipment.dispatching.target","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"channel","name":"shipment.express","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Lite\\Test\\Configuration\\EcotoneTestSupportModule","kind":"channel","name":"shipment.route","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"channel","name":"shipment.standard","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process on shipment.dispatch","builder":"service activator","inputChannel":"shipment.dispatch","outputChannel":"shipment.dispatching.target","target":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\RouterModule","kind":"handler","name":"router on shipment.route","builder":"router","inputChannel":"shipment.route"},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"shipment.dispatching","builder":"service activator","inputChannel":"shipment.dispatching.target","outputChannel":"shipment.route","target":"class@anonymous#1::dispatch"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"handler","name":"shipment.expressing","builder":"service activator","inputChannel":"shipment.express","target":"class@anonymous#1::express"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"handler","name":"shipment.standard.handling","builder":"service activator","inputChannel":"shipment.standard","target":"class@anonymous#1::standard"}
+        ],
+        "chains": [
+            {"handler":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process on shipment.dispatch","layers":["event driven consumer of shipment.dispatch","handler Ecotone\\Messaging\\Handler\\Transformer\\HeaderEnricher::transform(Ecotone\\Api\\Messaging\\Message)","output channel shipment.dispatching.target","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core, when the handler returns nothing"]},
+            {"handler":"router on shipment.route","layers":["event driven consumer of shipment.route","router class@anonymous#1::route(string)","the channel the router resolves","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core"]},
+            {"handler":"shipment.dispatching","layers":["event driven consumer of shipment.dispatching.target","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::dispatch(string)","output channel shipment.route","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core, when the handler returns nothing"]},
+            {"handler":"shipment.expressing","layers":["event driven consumer of shipment.express","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::express(string)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]},
+            {"handler":"shipment.standard.handling","layers":["event driven consumer of shipment.standard","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::standard(string)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
+    },
+    "trace": [
+        {"depth":0,"name":"send command","destination":"shipment.dispatch","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::dispatch","kind":"Server","status":"Ok"},
+        {"depth":1,"name":"process class@anonymous::express","kind":"Server","status":"Ok"}
+    ]
+}

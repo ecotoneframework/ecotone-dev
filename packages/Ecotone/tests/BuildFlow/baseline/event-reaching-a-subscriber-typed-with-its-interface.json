@@ -25,7 +25,7 @@
             {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"order.auditing","builder":"service activator","inputChannel":"order.auditing.target","target":"class@anonymous#1::audit"}
         ],
         "chains": [
-            {"handler":"order.auditing","layers":["event driven consumer of order.auditing.target","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::audit(Ecotone\\Test\\Flow\\Fixture\\FlowOrderEvent)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+            {"handler":"order.auditing","layers":["event driven consumer of order.auditing.target","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::audit(Ecotone\\Test\\Flow\\Fixture\\FlowOrderEvent $event)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
         ],
         "withoutLedger": [],
         "withoutChains": []

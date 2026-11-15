@@ -109,7 +109,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         self::assertSame('changed', $entries['handler:handleLines']['change']);
         self::assertSame($entries['handler:handleLines']['before'], $entries['handler:handleLines']['after']);
         self::assertContains(['change' => 'removed', 'layer' => 'handler class@anonymous#1::handle()'], $entries['handler:handleLines']['chain']);
-        self::assertContains(['change' => 'added', 'layer' => 'handler class@anonymous#1::handle(array)'], $entries['handler:handleLines']['chain']);
+        self::assertContains(['change' => 'added', 'layer' => 'handler class@anonymous#1::handle(array $lines)'], $entries['handler:handleLines']['chain']);
     }
 
     public function test_scenarios_with_the_same_build_change_stay_one_group(): void

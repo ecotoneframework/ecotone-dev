@@ -199,7 +199,7 @@ final class MessageFlowBuildTest extends TestCase
 
         $chain = $this->chainsOf(EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE))['openTicket'];
 
-        self::assertNotEmpty(array_filter($chain, fn (string $layer): bool => str_ends_with($layer, '::open(' . OpenTicketForBuild::class . ', ' . CommandBus::class . ')')));
+        self::assertNotEmpty(array_filter($chain, fn (string $layer): bool => str_ends_with($layer, '::open(' . OpenTicketForBuild::class . ' $command, ' . CommandBus::class . ' $commandBus)')));
     }
 
     public function test_the_chain_puts_interceptors_of_the_application_in_the_order_they_run(): void

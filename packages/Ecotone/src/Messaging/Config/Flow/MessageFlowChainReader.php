@@ -254,7 +254,7 @@ final class MessageFlowChainReader
         $parameterTypes = [];
         if (class_exists($class) || interface_exists($class)) {
             foreach ($this->interfaceToCallRegistry->getFor($class, $method)->getInterfaceParameters() as $parameter) {
-                $parameterTypes[] = $parameter->getTypeHint();
+                $parameterTypes[] = $parameter->getTypeHint() . ' $' . $parameter->getName();
             }
         }
 

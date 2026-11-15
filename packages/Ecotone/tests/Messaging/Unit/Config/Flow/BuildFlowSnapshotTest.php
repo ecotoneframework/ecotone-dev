@@ -101,7 +101,7 @@ final class BuildFlowSnapshotTest extends TestCase
         self::assertStringEndsWith('Module', $handler[0]['module']);
         self::assertCount(1, $chain);
         self::assertSame('event driven consumer of placeOrder.target', $chain[0]['layers'][0]);
-        self::assertContains('handler class@anonymous#1::place(array, Ecotone\\Api\\Gateway\\EventBus)', $chain[0]['layers']);
+        self::assertContains('handler class@anonymous#1::place(array $order, Ecotone\\Api\\Gateway\\EventBus $eventBus)', $chain[0]['layers']);
     }
 
     public function test_recorded_snapshot_stores_one_ledger_entry_and_one_chain_per_line_sorted(): void

@@ -67,6 +67,97 @@ final class MessageFlowBuildTest extends TestCase
         self::assertStringNotContainsString('registeredBy', $ecotone->getInMemoryConsoleWriter()->getWrittenContent());
     }
 
+    public function test_the_ledger_holds_a_handler_with_its_module_builder_channels_and_target(): void
+    {
+        $ledger = $this->ledgerOf($this->orderingApplication());
+
+        $handler = $ledger['handler:placeOrder'];
+        self::assertStringEndsWith('Module', $handler['module']);
+        self::assertSame('service activator', $handler['builder']);
+        self::assertSame('placeOrder.target', $handler['inputChannel']);
+        self::assertStringEndsWith('::place', $handler['target']);
+        self::assertArrayNotHasKey('outputChannel', $handler);
+    }
+
+    public function test_the_ledger_holds_what_ecotone_derives_for_an_asynchronous_handler(): void
+    {
+        $ledger = $this->ledgerOf($this->orderingApplication());
+
+        self::assertSame('whenOrderWasPlaced.target.execute', $ledger['handler:whenOrderWasPlaced']['inputChannel']);
+        self::assertStringEndsWith('\AsynchronousModule', $ledger['channel:whenOrderWasPlaced.target.execute']['module']);
+        self::assertSame('bridge', $ledger['handler:notifications']['builder']);
+        self::assertSame('notifications', $ledger['handler:notifications']['inputChannel']);
+        $routing = array_values(array_filter($ledger, fn (array $entry): bool => $entry['kind'] === 'handler' && ($entry['outputChannel'] ?? null) === 'notifications'));
+        self::assertCount(1, $routing);
+        self::assertSame('whenOrderWasPlaced.target', $routing[0]['inputChannel']);
+        self::assertStringEndsWith('\AsynchronousModule', $routing[0]['module']);
+    }
+
+    public function test_the_ledger_holds_gateways_channels_interceptors_and_console_commands(): void
+    {
+        $ledger = $this->ledgerOf($this->orderingApplication());
+
+        self::assertStringEndsWith('\MessagingGatewayModule', $ledger['gateway:' . CommandBus::class . '::send']['module']);
+        self::assertTrue($ledger['channel:notifications']['pollable']);
+        self::assertSame('ecotone:flow:dump', $ledger['console command:ecotone:flow:dump']['name']);
+        self::assertStringEndsWith('\MessageFlowModule', $ledger['console command:ecotone:flow:dump']['module']);
+        self::assertNotEmpty(array_filter($ledger, fn (array $entry): bool => $entry['kind'] === 'interceptor' && in_array($entry['position'], ['before', 'around', 'after', 'beforeSend'], true)));
+    }
+
+    public function test_the_ledger_holds_both_choices_of_a_service_chosen_by_the_licence(): void
+    {
+        $ledger = $this->ledgerOf($this->orderingApplication());
+
+        $chosen = array_values(array_filter($ledger, fn (array $entry): bool => $entry['kind'] === 'service' && isset($entry['enterprise'])));
+        self::assertNotEmpty($chosen);
+        foreach ($chosen as $service) {
+            self::assertNotSame($service['enterprise'], $service['openCore']);
+            self::assertStringEndsWith('Module', $service['module']);
+        }
+    }
+
+    public function test_the_ledger_holds_a_service_by_its_class_without_constructor_arguments(): void
+    {
+        $ledger = $this->ledgerOf($this->orderingApplication());
+
+        $services = array_filter($ledger, fn (array $entry): bool => $entry['kind'] === 'service');
+        self::assertNotEmpty($services);
+        foreach ($services as $service) {
+            self::assertSame([], array_diff(array_keys($service), ['module', 'kind', 'name', 'class', 'enterprise', 'openCore', 'aliasOf']));
+        }
+    }
+
+    public function test_the_ledger_stays_the_same_when_the_application_is_built_again(): void
+    {
+        $first = $this->dumpOf($this->orderingApplication());
+
+        self::assertSame(json_decode($this->dumpOf($this->orderingApplication()), true)['build']['ledger'], json_decode($first, true)['build']['ledger']);
+        self::assertDoesNotMatchRegularExpression('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/', json_encode(json_decode($first, true)['build']));
+    }
+
+    public function test_a_handler_with_a_generated_endpoint_id_is_named_after_what_it_invokes(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('ticket.open')]
+            public function open(): void
+            {
+            }
+        };
+        $ledger = $this->ledgerOf(EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE));
+
+        $named = array_values(array_filter($ledger, fn (array $entry): bool => $entry['kind'] === 'handler' && str_ends_with($entry['target'] ?? '', '::open')));
+        self::assertCount(1, $named);
+        self::assertSame($named[0]['target'], $named[0]['name']);
+    }
+
+    public function test_the_build_is_left_out_of_the_dump_without_the_option(): void
+    {
+        $ecotone = $this->orderingApplication();
+        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json']);
+
+        self::assertArrayNotHasKey('build', json_decode($ecotone->getInMemoryConsoleWriter()->getWrittenContent(), true));
+    }
+
     private function orderingApplication(): FlowTestSupport
     {
         $ordering = new class () {
@@ -96,6 +187,19 @@ final class MessageFlowBuildTest extends TestCase
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'internal' => true]);
 
         return $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function ledgerOf(FlowTestSupport $ecotone): array
+    {
+        $ledger = [];
+        foreach (json_decode($this->dumpOf($ecotone), true)['build']['ledger'] as $entry) {
+            $ledger[$entry['kind'] . ':' . $entry['name']] = $entry;
+        }
+
+        return $ledger;
     }
 
     private function wiringOf(FlowTestSupport $ecotone): MessageFlowGraph

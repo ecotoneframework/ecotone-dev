@@ -1292,6 +1292,16 @@ final class MessagingSystemConfiguration implements Configuration
         return $this->channelAdapters;
     }
 
+    public function getRegisteredServiceDefinitions(): array
+    {
+        return $this->serviceDefinitions;
+    }
+
+    public function getRegisteredBeforeSendInterceptors(): array
+    {
+        return $this->beforeSendInterceptors;
+    }
+
     public function getRegisteredMethodInterceptors(): array
     {
         return ['before' => $this->beforeCallMethodInterceptors, 'around' => $this->aroundMethodInterceptors, 'after' => $this->afterCallMethodInterceptors];

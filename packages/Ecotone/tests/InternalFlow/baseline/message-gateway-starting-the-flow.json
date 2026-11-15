@@ -1,5 +1,5 @@
 {
-    "formatVersion": 1,
+    "formatVersion": 2,
     "scenario": "message gateway starting the flow",
     "wiring": {
         "nodes": [
@@ -20,6 +20,18 @@
         ],
         "withoutNodes": [],
         "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"channel","name":"notification.send","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessagingGatewayModule","kind":"gateway","name":"Ecotone\\Test\\Flow\\Fixture\\FlowNotificationGateway::send","requestChannel":"notification.send"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"handler","name":"notification.sending","builder":"service activator","inputChannel":"notification.send","target":"class@anonymous#1::send"}
+        ],
+        "chains": [
+            {"handler":"notification.sending","layers":["event driven consumer of notification.send","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::send(string)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
     },
     "trace": [
         {"depth":0,"name":"send notification.send","kind":"Server","status":"Ok"},

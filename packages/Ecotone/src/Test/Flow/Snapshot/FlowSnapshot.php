@@ -15,54 +15,70 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  */
 final class FlowSnapshot
 {
-    public const FORMAT_VERSION = 1;
+    public const FORMAT_VERSION = 2;
     private const ANONYMOUS_CLASS = '/@anonymous\x00([^\x00:]+):(\d+)\$[0-9a-f]+/';
     private const GENERATED_ID = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/';
 
     /**
      * @param list<array{depth: int, name: string, destination?: string, kind: string, status: string}> $trace
+     * @param array<string, array<string, scalar>> $ledger kind and name of a registration => its entry
+     * @param array<string, list<string>> $chains handler name of the ledger => its built layers, outermost first
      */
     private function __construct(
         public readonly string $scenario,
         public readonly MessageFlowGraph $wiring,
         public readonly array $trace,
+        public readonly array $ledger,
+        public readonly array $chains,
     ) {
     }
 
     /**
      * @param Span[] $spans
+     * @param array{ledger: list<array<string, scalar>>, chains: array<string, list<string>>} $build
      */
-    public static function of(string $scenario, MessageFlowGraph $wiring, array $spans): self
+    public static function of(string $scenario, MessageFlowGraph $wiring, array $spans, array $build): self
     {
-        $anonymousClasses = self::anonymousClassNamesIn($wiring);
+        $anonymousClasses = self::anonymousClassNamesIn([$wiring->toArray(), $build]);
         $nodes = array_map(fn (FlowNode $node): FlowNode => FlowNode::fromArray(self::withStableNames($node->toArray(), $anonymousClasses)), $wiring->nodes());
         usort($nodes, fn (FlowNode $first, FlowNode $second): int => strcmp($first->id, $second->id));
         $edges = array_map(fn (FlowEdge $edge): FlowEdge => FlowEdge::fromArray(self::withStableNames($edge->toArray(), $anonymousClasses)), $wiring->edges());
         usort($edges, fn (FlowEdge $first, FlowEdge $second): int => strcmp($first->identity(), $second->identity()));
+        $ledger = [];
+        foreach (self::withStableNames($build['ledger'], $anonymousClasses) as $entry) {
+            $ledger[$entry['kind'] . ':' . $entry['name']] = $entry;
+        }
+        $chains = self::withStableNames($build['chains'], $anonymousClasses);
+        ksort($ledger, SORT_STRING);
+        ksort($chains, SORT_STRING);
 
-        return new self($scenario, MessageFlowGraph::create($nodes, $edges), self::withStableNames(FlowTrace::stepsOf($spans), $anonymousClasses));
+        return new self($scenario, MessageFlowGraph::create($nodes, $edges), self::withStableNames(FlowTrace::stepsOf($spans), $anonymousClasses), $ledger, $chains);
     }
 
-    public static function fromJson(string $json, string $file, ?MessageFlowGraph $sharedWiring = null): self
+    public static function fromJson(string $json, string $file, ?self $shared = null): self
     {
         $stored = json_decode($json, true);
-        if (! is_array($stored) || ! is_string($stored['scenario'] ?? null) || ! is_array($stored['wiring']['nodes'] ?? null) || ! is_array($stored['wiring']['edges'] ?? null) || ! is_array($stored['trace'] ?? null)) {
-            throw InvalidArgumentException::create("Flow snapshot file {$file} does not hold `scenario`, `wiring` and `trace`, so it was not written by the internal flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
+        if (! is_array($stored) || ! is_string($stored['scenario'] ?? null) || ! is_array($stored['wiring']['nodes'] ?? null) || ! is_array($stored['wiring']['edges'] ?? null) || ! is_array($stored['build']['ledger'] ?? null) || ! is_array($stored['build']['chains'] ?? null) || ! is_array($stored['trace'] ?? null)) {
+            throw InvalidArgumentException::create("Flow snapshot file {$file} does not hold `scenario`, `wiring`, `build` and `trace`, so it was not written by this version of the internal flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
         }
         $nodes = [];
         $edges = [];
-        if (isset($stored['wiring']['withoutNodes'], $stored['wiring']['withoutEdges'])) {
-            if ($sharedWiring === null) {
-                throw InvalidArgumentException::create("Flow snapshot file {$file} stores only what its scenario adds to the wiring every application gets, but " . dirname($file) . '/' . FlowSnapshots::SHARED_WIRING_FILE . ' is missing, so its whole wiring cannot be read. Restore that file from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.');
+        $ledger = [];
+        $chains = [];
+        if (isset($stored['wiring']['withoutNodes'], $stored['wiring']['withoutEdges']) || isset($stored['build']['withoutLedger'], $stored['build']['withoutChains'])) {
+            if ($shared === null) {
+                throw InvalidArgumentException::create("Flow snapshot file {$file} stores only what its scenario adds to what every application gets, but " . dirname($file) . '/' . FlowSnapshots::SHARED_FILE . ' is missing, so its whole wiring and build cannot be read. Restore that file from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.');
             }
-            foreach ($sharedWiring->nodes() as $node) {
+            foreach ($shared->wiring->nodes() as $node) {
                 $nodes[$node->id] = $node;
             }
-            foreach ($sharedWiring->edges() as $edge) {
+            foreach ($shared->wiring->edges() as $edge) {
                 $edges[$edge->identity()] = $edge;
             }
-            $nodes = array_diff_key($nodes, array_flip($stored['wiring']['withoutNodes']));
-            $edges = array_diff_key($edges, array_flip($stored['wiring']['withoutEdges']));
+            $nodes = array_diff_key($nodes, array_flip($stored['wiring']['withoutNodes'] ?? []));
+            $edges = array_diff_key($edges, array_flip($stored['wiring']['withoutEdges'] ?? []));
+            $ledger = array_diff_key($shared->ledger, array_flip($stored['build']['withoutLedger'] ?? []));
+            $chains = array_diff_key($shared->chains, array_flip($stored['build']['withoutChains'] ?? []));
         }
         foreach ($stored['wiring']['nodes'] as $node) {
             $nodes[$node['id']] = FlowNode::fromArray($node);
@@ -71,25 +87,33 @@ final class FlowSnapshot
             $edge = FlowEdge::fromArray($edge);
             $edges[$edge->identity()] = $edge;
         }
+        foreach ($stored['build']['ledger'] as $entry) {
+            $ledger[$entry['kind'] . ':' . $entry['name']] = $entry;
+        }
+        foreach ($stored['build']['chains'] as $chain) {
+            $chains[$chain['handler']] = $chain['layers'];
+        }
         ksort($nodes, SORT_STRING);
         ksort($edges, SORT_STRING);
+        ksort($ledger, SORT_STRING);
+        ksort($chains, SORT_STRING);
 
-        return new self($stored['scenario'], MessageFlowGraph::create(array_values($nodes), array_values($edges)), $stored['trace']);
+        return new self($stored['scenario'], MessageFlowGraph::create(array_values($nodes), array_values($edges)), $stored['trace'], $ledger, $chains);
     }
 
-    public static function sharedWiringFromJson(string $json, string $file): MessageFlowGraph
+    public static function sharedFromJson(string $json, string $file): self
     {
         $stored = json_decode($json, true);
-        if (! is_array($stored) || ! is_array($stored['wiring']['nodes'] ?? null) || ! is_array($stored['wiring']['edges'] ?? null)) {
-            throw InvalidArgumentException::create("Shared wiring file {$file} does not hold `wiring` with its nodes and edges, so it was not written by the internal flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
+        if (! is_array($stored) || ! is_array($stored['wiring']['nodes'] ?? null) || ! is_array($stored['wiring']['edges'] ?? null) || ! is_array($stored['build']['ledger'] ?? null) || ! is_array($stored['build']['chains'] ?? null)) {
+            throw InvalidArgumentException::create("Shared file {$file} does not hold `wiring` and `build`, so it was not written by this version of the internal flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
         }
 
-        return MessageFlowGraph::fromArray($stored['wiring']);
+        return self::fromJson(json_encode(['scenario' => 'what every application gets', 'trace' => []] + $stored, JSON_THROW_ON_ERROR), $file);
     }
 
     public static function emptyFor(string $scenario): self
     {
-        return new self($scenario, MessageFlowGraph::create([], []), []);
+        return new self($scenario, MessageFlowGraph::create([], []), [], [], []);
     }
 
     public function fileName(): string
@@ -104,30 +128,44 @@ final class FlowSnapshot
 
     public function toJson(): string
     {
-        return $this->encodedWith(self::linesOf($this->wiring->nodes()), self::linesOf($this->wiring->edges()), []);
+        return $this->encodedWith(self::linesOf($this->wiring->nodes()), self::linesOf($this->wiring->edges()), [], $this->ledgerLines(), $this->chainLines(), []);
     }
 
-    public function toJsonBeside(MessageFlowGraph $sharedWiring): string
+    public function toJsonBeside(self $shared): string
     {
-        $sharedNodes = self::linesOf($sharedWiring->nodes());
-        $sharedEdges = self::linesOf($sharedWiring->edges());
+        $sharedNodes = self::linesOf($shared->wiring->nodes());
+        $sharedEdges = self::linesOf($shared->wiring->edges());
         $nodes = self::linesOf($this->wiring->nodes());
         $edges = self::linesOf($this->wiring->edges());
 
-        return $this->encodedWith(array_diff_assoc($nodes, $sharedNodes), array_diff_assoc($edges, $sharedEdges), [
-            '        "withoutNodes": ' . self::encoded(array_keys(array_diff_key($sharedNodes, $nodes))),
-            '        "withoutEdges": ' . self::encoded(array_keys(array_diff_key($sharedEdges, $edges))),
-        ]);
+        return $this->encodedWith(
+            array_diff_assoc($nodes, $sharedNodes),
+            array_diff_assoc($edges, $sharedEdges),
+            [
+                '        "withoutNodes": ' . self::encoded(array_keys(array_diff_key($sharedNodes, $nodes))),
+                '        "withoutEdges": ' . self::encoded(array_keys(array_diff_key($sharedEdges, $edges))),
+            ],
+            array_diff_assoc($this->ledgerLines(), $shared->ledgerLines()),
+            array_diff_assoc($this->chainLines(), $shared->chainLines()),
+            [
+                '        "withoutLedger": ' . self::encoded(array_keys(array_diff_key($shared->ledger, $this->ledger))),
+                '        "withoutChains": ' . self::encoded(array_keys(array_diff_key($shared->chains, $this->chains))),
+            ],
+        );
     }
 
-    public static function sharedWiringJson(MessageFlowGraph $sharedWiring): string
+    public function sharedJson(): string
     {
         return implode("\n", [
             '{',
             '    "formatVersion": ' . self::FORMAT_VERSION . ',',
             '    "wiring": {',
-            '        "nodes": ' . self::oneLineEach(self::linesOf($sharedWiring->nodes()), '        ') . ',',
-            '        "edges": ' . self::oneLineEach(self::linesOf($sharedWiring->edges()), '        '),
+            '        "nodes": ' . self::oneLineEach(self::linesOf($this->wiring->nodes()), '        ') . ',',
+            '        "edges": ' . self::oneLineEach(self::linesOf($this->wiring->edges()), '        '),
+            '    },',
+            '    "build": {',
+            '        "ledger": ' . self::oneLineEach($this->ledgerLines(), '        ') . ',',
+            '        "chains": ' . self::oneLineEach($this->chainLines(), '        '),
             '    }',
             '}',
             '',
@@ -135,11 +173,35 @@ final class FlowSnapshot
     }
 
     /**
+     * @return array<string, string> kind and name of a registration => its stored line
+     */
+    private function ledgerLines(): array
+    {
+        return array_map(self::encoded(...), $this->ledger);
+    }
+
+    /**
+     * @return array<string, string> handler name => its stored line
+     */
+    private function chainLines(): array
+    {
+        $lines = [];
+        foreach ($this->chains as $handler => $layers) {
+            $lines[$handler] = self::encoded(['handler' => $handler, 'layers' => $layers]);
+        }
+
+        return $lines;
+    }
+
+    /**
      * @param array<string, string> $nodeLines
      * @param array<string, string> $edgeLines
-     * @param list<string> $withoutShared
+     * @param list<string> $withoutSharedWiring
+     * @param array<string, string> $ledgerLines
+     * @param array<string, string> $chainLines
+     * @param list<string> $withoutSharedBuild
      */
-    private function encodedWith(array $nodeLines, array $edgeLines, array $withoutShared): string
+    private function encodedWith(array $nodeLines, array $edgeLines, array $withoutSharedWiring, array $ledgerLines, array $chainLines, array $withoutSharedBuild): string
     {
         return implode("\n", [
             '{',
@@ -149,7 +211,14 @@ final class FlowSnapshot
             implode(",\n", [
                 '        "nodes": ' . self::oneLineEach($nodeLines, '        '),
                 '        "edges": ' . self::oneLineEach($edgeLines, '        '),
-                ...$withoutShared,
+                ...$withoutSharedWiring,
+            ]),
+            '    },',
+            '    "build": {',
+            implode(",\n", [
+                '        "ledger": ' . self::oneLineEach($ledgerLines, '        '),
+                '        "chains": ' . self::oneLineEach($chainLines, '        '),
+                ...$withoutSharedBuild,
             ]),
             '    },',
             '    "trace": ' . self::oneLineEach(array_map(self::encoded(...), $this->trace), '    '),
@@ -192,9 +261,9 @@ final class FlowSnapshot
     /**
      * @return array<string, string> anonymous class name => name that stays the same wherever the class is declared
      */
-    private static function anonymousClassNamesIn(MessageFlowGraph $wiring): array
+    private static function anonymousClassNamesIn(array $recorded): array
     {
-        preg_match_all(self::ANONYMOUS_CLASS, self::flattened($wiring->toArray()), $found, PREG_SET_ORDER);
+        preg_match_all(self::ANONYMOUS_CLASS, self::flattened($recorded), $found, PREG_SET_ORDER);
         $declarations = [];
         foreach ($found as [$name, $file, $line]) {
             $declarations[$name] = [$file, (int) $line, $name];

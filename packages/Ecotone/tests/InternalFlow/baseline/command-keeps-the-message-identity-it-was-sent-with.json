@@ -1,5 +1,5 @@
 {
-    "formatVersion": 1,
+    "formatVersion": 2,
     "scenario": "command keeps the message identity it was sent with",
     "wiring": {
         "nodes": [
@@ -22,6 +22,20 @@
         ],
         "withoutNodes": [],
         "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"user.register","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"user.registration.target","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process on user.register","builder":"service activator","inputChannel":"user.register","outputChannel":"user.registration.target","target":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process"},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"user.registration","builder":"service activator","inputChannel":"user.registration.target","target":"class@anonymous#1::register"}
+        ],
+        "chains": [
+            {"handler":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process on user.register","layers":["event driven consumer of user.register","handler Ecotone\\Messaging\\Handler\\Transformer\\HeaderEnricher::transform(Ecotone\\Api\\Messaging\\Message)","output channel user.registration.target","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core, when the handler returns nothing"]},
+            {"handler":"user.registration","layers":["event driven consumer of user.registration.target","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::register(string)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
     },
     "trace": [
         {"depth":0,"name":"send command","destination":"user.register","kind":"Server","status":"Ok"},

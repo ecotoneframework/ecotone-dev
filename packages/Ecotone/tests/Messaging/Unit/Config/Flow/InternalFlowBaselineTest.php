@@ -68,20 +68,28 @@ final class InternalFlowBaselineTest extends TestCase
         $tooling = $this->tooling();
         $tooling->runConsoleCommand('ecotone:internal-flow:snapshot', ['location' => $this->location . '/before']);
         $files = $this->filesIn($this->location . '/before');
-        $shared = json_decode($files['shared-wiring.json'], true, flags: JSON_THROW_ON_ERROR);
+        $shared = json_decode($files['shared.json'], true, flags: JSON_THROW_ON_ERROR);
         $rebuild = json_decode($files['projection-rebuilt-asynchronously.json'], true, flags: JSON_THROW_ON_ERROR);
 
-        self::assertSame(['formatVersion', 'wiring'], array_keys($shared));
+        self::assertSame(['formatVersion', 'wiring', 'build'], array_keys($shared));
+        self::assertSame(['ledger', 'chains'], array_keys($shared['build']));
+        self::assertSame(['ledger', 'chains', 'withoutLedger', 'withoutChains'], array_keys($rebuild['build']));
+        $names = fn (array $ledger): array => array_map(fn (array $entry): string => $entry['kind'] . ':' . $entry['name'], $ledger);
+        self::assertContains('gateway:Ecotone\\Api\\Gateway\\CommandBus::send', $names($shared['build']['ledger']));
+        self::assertNotContains('gateway:Ecotone\\Api\\Gateway\\CommandBus::send', $names($rebuild['build']['ledger']));
+        self::assertContains('handler:projecting_manager_endpoint:orders', $names($rebuild['build']['ledger']));
+        self::assertContains('projecting_manager_endpoint:orders', array_column($rebuild['build']['chains'], 'handler'));
+        self::assertNotContains('projecting_manager_endpoint:orders', array_column($shared['build']['chains'], 'handler'));
         self::assertContains('gateway:Ecotone\\Api\\Gateway\\CommandBus::send', array_column($shared['wiring']['nodes'], 'id'));
         self::assertNotContains('gateway:Ecotone\\Api\\Gateway\\CommandBus::send', array_column($rebuild['wiring']['nodes'], 'id'));
         self::assertContains('projection:orders', array_column($rebuild['wiring']['nodes'], 'id'));
         self::assertContains('channel:rebuild', array_column($rebuild['wiring']['nodes'], 'id'));
         self::assertSame(['nodes', 'edges', 'withoutNodes', 'withoutEdges'], array_keys($rebuild['wiring']));
-        self::assertLessThan(strlen($files['shared-wiring.json']) / 2, strlen($files['projection-rebuilt-asynchronously.json']));
+        self::assertLessThan(strlen($files['shared.json']) / 2, strlen($files['projection-rebuilt-asynchronously.json']));
 
         mkdir($this->location . '/after');
         foreach ($files as $name => $content) {
-            file_put_contents($this->location . '/after/' . $name, $name === 'shared-wiring.json' ? str_replace('"label":"CommandBus::send"', '"label":"CommandBus::dispatch"', $content) : $content);
+            file_put_contents($this->location . '/after/' . $name, $name === 'shared.json' ? str_replace('"label":"CommandBus::send"', '"label":"CommandBus::dispatch"', $content) : $content);
         }
         $tooling->runConsoleCommand('ecotone:internal-flow:compare', ['from' => $this->location . '/before', 'to' => $this->location . '/after', 'presentation' => 'json']);
         $comparison = json_decode($tooling->getInMemoryConsoleWriter()->getWrittenContent(), true, flags: JSON_THROW_ON_ERROR);
@@ -103,11 +111,11 @@ final class InternalFlowBaselineTest extends TestCase
         file_put_contents($this->location . '/projection-rebuilt-asynchronously.json', str_replace('receive rebuild', 'receive something-else', (string) file_get_contents($this->location . '/projection-rebuilt-asynchronously.json')));
         unlink($this->location . '/projection-backfilled-asynchronously.json');
         file_put_contents($this->location . '/a-scenario-that-was-removed.json', '{}');
-        file_put_contents($this->location . '/shared-wiring.json', str_replace('CommandBus::send', 'CommandBus::dispatch', (string) file_get_contents($this->location . '/shared-wiring.json')));
+        file_put_contents($this->location . '/shared.json', str_replace('CommandBus::send', 'CommandBus::dispatch', (string) file_get_contents($this->location . '/shared.json')));
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
-            'The flow snapshots in ' . $this->location . ' are not what the code produces: differs: projection-rebuilt-asynchronously.json, shared-wiring.json; missing: projection-backfilled-asynchronously.json; no longer produced: a-scenario-that-was-removed.json. '
+            'The flow snapshots in ' . $this->location . ' are not what the code produces: differs: projection-rebuilt-asynchronously.json, shared.json; missing: projection-backfilled-asynchronously.json; no longer produced: a-scenario-that-was-removed.json. '
             . 'If the message flow was meant to change, regenerate the snapshots with `php bin/internal-flow.php snapshot` and commit them; `php bin/internal-flow.php compare` shows what changed. If it was not, the change altered the framework\'s wiring or traced steps by accident.'
         );
 

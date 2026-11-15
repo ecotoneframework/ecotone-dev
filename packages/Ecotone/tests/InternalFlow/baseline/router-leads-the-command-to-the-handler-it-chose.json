@@ -1,5 +1,5 @@
 {
-    "formatVersion": 1,
+    "formatVersion": 2,
     "scenario": "router leads the command to the handler it chose",
     "wiring": {
         "nodes": [
@@ -39,6 +39,29 @@
         ],
         "withoutNodes": [],
         "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"shipment.dispatch","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"shipment.dispatching.target","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"channel","name":"shipment.express","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Lite\\Test\\Configuration\\EcotoneTestSupportModule","kind":"channel","name":"shipment.route","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"channel","name":"shipment.standard","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process on shipment.dispatch","builder":"service activator","inputChannel":"shipment.dispatch","outputChannel":"shipment.dispatching.target","target":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\RouterModule","kind":"handler","name":"router on shipment.route","builder":"router","inputChannel":"shipment.route"},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"shipment.dispatching","builder":"service activator","inputChannel":"shipment.dispatching.target","outputChannel":"shipment.route","target":"class@anonymous#1::dispatch"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"handler","name":"shipment.expressing","builder":"service activator","inputChannel":"shipment.express","target":"class@anonymous#1::express"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"handler","name":"shipment.standard.handling","builder":"service activator","inputChannel":"shipment.standard","target":"class@anonymous#1::standard"}
+        ],
+        "chains": [
+            {"handler":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process on shipment.dispatch","layers":["event driven consumer of shipment.dispatch","handler Ecotone\\Messaging\\Handler\\Transformer\\HeaderEnricher::transform(Ecotone\\Api\\Messaging\\Message)","output channel shipment.dispatching.target","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core, when the handler returns nothing"]},
+            {"handler":"router on shipment.route","layers":["event driven consumer of shipment.route","router class@anonymous#1::route(string)","the channel the router resolves","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core"]},
+            {"handler":"shipment.dispatching","layers":["event driven consumer of shipment.dispatching.target","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::dispatch(string)","output channel shipment.route","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core, when the handler returns nothing"]},
+            {"handler":"shipment.expressing","layers":["event driven consumer of shipment.express","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::express(string)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]},
+            {"handler":"shipment.standard.handling","layers":["event driven consumer of shipment.standard","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::standard(string)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
     },
     "trace": [
         {"depth":0,"name":"send command","destination":"shipment.dispatch","kind":"Server","status":"Ok"},

@@ -77,12 +77,51 @@ final class InternalFlowSnapshotTest extends TestCase
         $ecotone->runConsoleCommand('ecotone:internal-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location]);
         $stored = (string) file_get_contents($this->location . '/placing-an-order.json');
 
-        self::assertSame(['formatVersion', 'scenario', 'wiring', 'trace'], array_keys($this->storedSnapshot('placing-an-order')));
+        self::assertSame(['formatVersion', 'scenario', 'wiring', 'build', 'trace'], array_keys($this->storedSnapshot('placing-an-order')));
+        self::assertSame(2, $this->storedSnapshot('placing-an-order')['formatVersion']);
         self::assertSame('Placing an order', $this->storedSnapshot('placing-an-order')['scenario']);
         self::assertDoesNotMatchRegularExpression('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/', $stored);
         self::assertDoesNotMatchRegularExpression('/\d{4}-\d{2}-\d{2}/', $stored);
         self::assertStringNotContainsString('\u0000', $stored);
         self::assertStringNotContainsString(__FILE__, $stored);
+    }
+
+    public function test_recorded_snapshot_holds_the_ledger_entry_and_the_chain_of_a_handler_of_the_application(): void
+    {
+        $ecotone = $this->orderingApplication($this->orderingService());
+
+        $ecotone->runConsoleCommand('ecotone:internal-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location]);
+        $build = $this->storedSnapshot('placing-an-order')['build'];
+        $handler = array_values(array_filter($build['ledger'], fn (array $entry): bool => $entry['kind'] === 'handler' && $entry['name'] === 'placeOrder'));
+        $chain = array_values(array_filter($build['chains'], fn (array $chain): bool => $chain['handler'] === 'placeOrder'));
+
+        self::assertSame(['ledger', 'chains'], array_keys($build));
+        self::assertCount(1, $handler);
+        self::assertSame('class@anonymous#1::place', $handler[0]['target']);
+        self::assertStringEndsWith('Module', $handler[0]['module']);
+        self::assertCount(1, $chain);
+        self::assertSame('event driven consumer of placeOrder.target', $chain[0]['layers'][0]);
+        self::assertContains('handler class@anonymous#1::place(array, Ecotone\\Api\\Gateway\\EventBus)', $chain[0]['layers']);
+    }
+
+    public function test_recorded_snapshot_stores_one_ledger_entry_and_one_chain_per_line_sorted(): void
+    {
+        $ecotone = $this->orderingApplication($this->orderingService());
+
+        $ecotone->runConsoleCommand('ecotone:internal-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location]);
+        $build = $this->storedSnapshot('placing-an-order')['build'];
+        $stored = (string) file_get_contents($this->location . '/placing-an-order.json');
+
+        $entries = array_map(fn (array $entry): string => $entry['kind'] . ':' . $entry['name'], $build['ledger']);
+        $sorted = $entries;
+        sort($sorted, SORT_STRING);
+        self::assertSame($sorted, $entries);
+        $handlers = array_column($build['chains'], 'handler');
+        $sortedHandlers = $handlers;
+        sort($sortedHandlers, SORT_STRING);
+        self::assertSame($sortedHandlers, $handlers);
+        self::assertSame(count($build['ledger']), preg_match_all('/^            \{"module":/m', $stored));
+        self::assertSame(count($build['chains']), preg_match_all('/^            \{"handler":/m', $stored));
     }
 
     public function test_recorded_snapshot_holds_the_internal_wiring_of_the_application(): void

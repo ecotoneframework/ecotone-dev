@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Test\Flow\Snapshot;
 
-use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
@@ -12,7 +11,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  */
 final class FlowSnapshots
 {
-    public const SHARED_WIRING_FILE = 'shared-wiring.json';
+    public const SHARED_FILE = 'shared.json';
 
     public function __construct(public readonly string $location)
     {
@@ -39,11 +38,11 @@ final class FlowSnapshots
      * @param array<string, FlowSnapshot> $snapshots file name => snapshot
      * @return array<string, string> file name => what the file holds
      */
-    public static function filesOf(array $snapshots, MessageFlowGraph $sharedWiring): array
+    public static function filesOf(array $snapshots, FlowSnapshot $shared): array
     {
-        $files = [self::SHARED_WIRING_FILE => FlowSnapshot::sharedWiringJson($sharedWiring)];
+        $files = [self::SHARED_FILE => $shared->sharedJson()];
         foreach ($snapshots as $fileName => $snapshot) {
-            $files[$fileName] = $snapshot->toJsonBeside($sharedWiring);
+            $files[$fileName] = $snapshot->toJsonBeside($shared);
         }
         ksort($files, SORT_STRING);
 
@@ -74,12 +73,12 @@ final class FlowSnapshots
         if (! is_dir($this->location)) {
             throw InvalidArgumentException::create("Flow snapshots were expected in {$this->location}, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/internal-flow.php snapshot --location={$this->location}`.");
         }
-        $sharedFile = $this->location . '/' . self::SHARED_WIRING_FILE;
-        $sharedWiring = is_file($sharedFile) ? FlowSnapshot::sharedWiringFromJson((string) file_get_contents($sharedFile), $sharedFile) : null;
+        $sharedFile = $this->location . '/' . self::SHARED_FILE;
+        $shared = is_file($sharedFile) ? FlowSnapshot::sharedFromJson((string) file_get_contents($sharedFile), $sharedFile) : null;
         $snapshots = [];
         foreach ($this->fileNames() as $name) {
-            if ($name !== self::SHARED_WIRING_FILE) {
-                $snapshots[$name] = FlowSnapshot::fromJson((string) file_get_contents($this->location . '/' . $name), $this->location . '/' . $name, $sharedWiring);
+            if ($name !== self::SHARED_FILE) {
+                $snapshots[$name] = FlowSnapshot::fromJson((string) file_get_contents($this->location . '/' . $name), $this->location . '/' . $name, $shared);
             }
         }
         ksort($snapshots, SORT_STRING);

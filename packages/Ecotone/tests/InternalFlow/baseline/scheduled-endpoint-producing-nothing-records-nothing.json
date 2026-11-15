@@ -1,5 +1,5 @@
 {
-    "formatVersion": 1,
+    "formatVersion": 2,
     "scenario": "scheduled endpoint producing nothing records nothing",
     "wiring": {
         "nodes": [
@@ -19,6 +19,21 @@
         ],
         "withoutNodes": [],
         "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"channel","name":"add","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule","kind":"channel","name":"scheduled_nothing","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ScheduledModule","kind":"consumer","name":"scheduled_nothing","builder":"inbound channel adapter"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"handler","name":"class@anonymous#1::add on add","builder":"service activator","inputChannel":"add","target":"class@anonymous#1::add"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule","kind":"handler","name":"scheduled_nothing.target","builder":"service activator","inputChannel":"scheduled_nothing","target":"class@anonymous#1::produceNothing"}
+        ],
+        "chains": [
+            {"handler":"class@anonymous#1::add on add","layers":["event driven consumer of add","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::add()","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]},
+            {"handler":"scheduled_nothing.target","layers":["event driven consumer of scheduled_nothing","handler class@anonymous#1::produceNothing()","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
     },
     "trace": []
 }

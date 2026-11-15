@@ -1,5 +1,5 @@
 {
-    "formatVersion": 1,
+    "formatVersion": 2,
     "scenario": "handler outside the boundary records no boundary spans",
     "wiring": {
         "nodes": [
@@ -22,6 +22,20 @@
         ],
         "withoutNodes": [],
         "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"enrolment.plain.target","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"enrolment.without_boundary","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process on enrolment.without_boundary","builder":"service activator","inputChannel":"enrolment.without_boundary","outputChannel":"enrolment.plain.target","target":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process"},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"enrolment.plain","builder":"service activator","inputChannel":"enrolment.plain.target","target":"class@anonymous#1::enrol"}
+        ],
+        "chains": [
+            {"handler":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor::process on enrolment.without_boundary","layers":["event driven consumer of enrolment.without_boundary","handler Ecotone\\Messaging\\Handler\\Transformer\\HeaderEnricher::transform(Ecotone\\Api\\Messaging\\Message)","output channel enrolment.plain.target","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core, when the handler returns nothing"]},
+            {"handler":"enrolment.plain","layers":["event driven consumer of enrolment.plain.target","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::enrol(string)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
     },
     "trace": [
         {"depth":0,"name":"send command","destination":"enrolment.without_boundary","kind":"Server","status":"Ok"},

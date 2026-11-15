@@ -41,7 +41,7 @@ final class FlowScenarioRecorder
      */
     public static function filesOfTheCatalogue(): array
     {
-        return FlowSnapshots::filesOf(self::snapshotsOfTheCatalogue(), self::snapshotOf(new FlowScenario('application without handlers', [], [], [], []))->wiring);
+        return FlowSnapshots::filesOf(self::snapshotsOfTheCatalogue(), self::snapshotOf(new FlowScenario('application without handlers', [], [], [], [])));
     }
 
     public static function snapshotOf(FlowScenario $scenario): FlowSnapshot
@@ -55,7 +55,8 @@ final class FlowScenarioRecorder
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'internal' => true]);
-        $wiring = MessageFlowGraph::fromJson($ecotone->getInMemoryConsoleWriter()->getWrittenContent());
+        $dump = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
+        $wiring = MessageFlowGraph::fromJson($dump);
         $spanRecorder->clear();
         foreach (array_keys($scenario->stages) as $stageIndex) {
             $failure = $scenario->runStage($stageIndex, $ecotone);
@@ -64,6 +65,6 @@ final class FlowScenarioRecorder
             }
         }
 
-        return FlowSnapshot::of($scenario->name, $wiring, $spanRecorder->recordedSpans());
+        return FlowSnapshot::of($scenario->name, $wiring, $spanRecorder->recordedSpans(), json_decode($dump, true, flags: JSON_THROW_ON_ERROR)['build']);
     }
 }

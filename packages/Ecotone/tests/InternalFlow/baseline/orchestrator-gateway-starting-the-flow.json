@@ -1,5 +1,5 @@
 {
-    "formatVersion": 1,
+    "formatVersion": 2,
     "scenario": "orchestrator gateway starting the flow",
     "wiring": {
         "nodes": [
@@ -26,6 +26,24 @@
         ],
         "withoutNodes": [],
         "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"channel","name":"approval.notify","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"channel","name":"approval.validate","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\Orchestrator\\OrchestratorModule","kind":"channel","name":"ecotone.orchestrator.entrypoint","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\Orchestrator\\OrchestratorModule","kind":"gateway","name":"Ecotone\\Test\\Flow\\Fixture\\FlowApprovalWorkflow::start","requestChannel":"ecotone.orchestrator.entrypoint"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\Orchestrator\\OrchestratorModule","kind":"handler","name":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\Orchestrator\\OrchestratorGatewayEntrypoint::handle on ecotone.orchestrator.entrypoint","builder":"service activator","inputChannel":"ecotone.orchestrator.entrypoint","target":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\Orchestrator\\OrchestratorGatewayEntrypoint::handle"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"handler","name":"approval.notifying","builder":"service activator","inputChannel":"approval.notify","target":"class@anonymous#1::notify"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"handler","name":"approval.validating","builder":"service activator","inputChannel":"approval.validate","target":"class@anonymous#1::validate"}
+        ],
+        "chains": [
+            {"handler":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\Orchestrator\\OrchestratorGatewayEntrypoint::handle on ecotone.orchestrator.entrypoint","layers":["event driven consumer of ecotone.orchestrator.entrypoint","handler Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\Orchestrator\\OrchestratorGatewayEntrypoint::handle(array)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]},
+            {"handler":"approval.notifying","layers":["event driven consumer of approval.notify","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::notify(string)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]},
+            {"handler":"approval.validating","layers":["event driven consumer of approval.validate","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::validate(string)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
     },
     "trace": [
         {"depth":0,"name":"send orchestrator","kind":"Server","status":"Ok"},

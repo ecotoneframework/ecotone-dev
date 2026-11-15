@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\ConsoleParameterOption;
 use Ecotone\Api\Console\ConsoleWriter;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Messaging\Config\Flow\InternalMessageFlowGraphBuilder;
+use Ecotone\Messaging\Config\Flow\MessageFlowBuild;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
@@ -17,9 +18,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 final class InternalFlowConsoleCommands
 {
     #[ConsoleCommand('ecotone:internal-flow:record', 'Framework development: stores the internal wiring of this application and the steps traced so far as the snapshot of the named scenario')]
-    public function record(ConsoleWriter $writer, InternalMessageFlowGraphBuilder $internalMessageFlow, InMemorySpanRecorder $spanRecorder, #[ConsoleParameterOption] string $scenario, #[ConsoleParameterOption] string $location): void
+    public function record(ConsoleWriter $writer, InternalMessageFlowGraphBuilder $internalMessageFlow, MessageFlowBuild $build, InMemorySpanRecorder $spanRecorder, #[ConsoleParameterOption] string $scenario, #[ConsoleParameterOption] string $location): void
     {
-        $snapshot = FlowSnapshot::of($scenario, $internalMessageFlow->build(), $spanRecorder->recordedSpans());
+        $snapshot = FlowSnapshot::of($scenario, $internalMessageFlow->build(), $spanRecorder->recordedSpans(), $build->toArray());
         (new FlowSnapshots($location))->store($snapshot);
 
         $writer->success("Recorded scenario {$scenario} in {$location}/{$snapshot->fileName()}");
@@ -31,7 +32,7 @@ final class InternalFlowConsoleCommands
         $files = FlowScenarioRecorder::filesOfTheCatalogue();
         (new FlowSnapshots($location))->replaceWith($files);
 
-        $writer->success('Stored ' . (count($files) - 1) . " flow snapshots and the wiring they share in {$location}");
+        $writer->success('Stored ' . (count($files) - 1) . " flow snapshots and what they share in {$location}");
     }
 
     #[ConsoleCommand('ecotone:internal-flow:check', 'Framework development: fails when a snapshot stored in the location differs from what the flow scenario catalogue produces now')]

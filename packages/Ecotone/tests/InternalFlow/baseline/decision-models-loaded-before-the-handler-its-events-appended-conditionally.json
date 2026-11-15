@@ -1,5 +1,5 @@
 {
-    "formatVersion": 1,
+    "formatVersion": 2,
     "scenario": "decision models loaded before the handler, its events appended conditionally",
     "wiring": {
         "nodes": [
@@ -36,6 +36,31 @@
         ],
         "withoutNodes": [],
         "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"class@anonymous#1::enrol.target","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"class@anonymous#1::enrolTwice.target","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"class@anonymous#1::enrol","builder":"service activator","inputChannel":"class@anonymous#1::enrol.target","target":"class@anonymous#1::enrol"},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"class@anonymous#1::enrolTwice","builder":"service activator","inputChannel":"class@anonymous#1::enrolTwice.target","target":"class@anonymous#1::enrolTwice"},
+            {"module":"Ecotone\\Modelling\\DecisionModel\\Config\\DecisionModelModule","kind":"interceptor","name":"around Ecotone\\Modelling\\DecisionModel\\DecisionModelAppendInterceptor::append","position":"around","target":"Ecotone\\Modelling\\DecisionModel\\DecisionModelAppendInterceptor::append"},
+            {"module":"Ecotone\\Modelling\\DecisionModel\\Config\\DecisionModelModule","kind":"interceptor","name":"before Ecotone\\Modelling\\DecisionModel\\DecisionModelBatchLoader::load","position":"before","target":"Ecotone\\Modelling\\DecisionModel\\DecisionModelBatchLoader::load"},
+            {"module":"Ecotone\\Modelling\\DecisionModel\\Config\\DecisionModelModule","kind":"interceptor","name":"before Ecotone\\Modelling\\DecisionModel\\DecisionModelBatchLoader::load#2","position":"before","target":"Ecotone\\Modelling\\DecisionModel\\DecisionModelBatchLoader::load"},
+            {"module":"Ecotone\\Lite\\Test\\Configuration\\EcotoneTestSupportModule","kind":"service","name":"Ecotone\\EventSourcing\\EventStore\\AppendStrategy\\AppendStrategy","class":"Ecotone\\EventSourcing\\EventStore\\AppendStrategy\\AppendStrategy","enterprise":"Ecotone\\EventSourcing\\EventStore\\AppendStrategy\\DynamicConsistencyBoundaryStrategy","openCore":"Ecotone\\EventSourcing\\EventStore\\AppendStrategy\\StandardConsistencyBoundaryStrategy"},
+            {"module":"Ecotone\\Lite\\Test\\Configuration\\EcotoneTestSupportModule","kind":"service","name":"Ecotone\\EventSourcing\\EventStore\\Tag\\InMemoryTagCollaborator","class":"Ecotone\\EventSourcing\\EventStore\\Tag\\InMemoryTagCollaborator","enterprise":"Ecotone\\EventSourcing\\EventStore\\Tag\\EnterpriseInMemoryTagCollaborator","openCore":"Ecotone\\EventSourcing\\EventStore\\Tag\\OpenCoreInMemoryTagCollaborator"},
+            {"module":"Ecotone\\EventSourcing\\Tagging\\Config\\EventTaggingModule","kind":"service","name":"Ecotone\\EventSourcing\\Tagging\\EventStoreAggregateCounter","class":"Ecotone\\EventSourcing\\Tagging\\EventStoreAggregateCounter"},
+            {"module":"Ecotone\\EventSourcing\\Tagging\\Config\\EventTaggingModule","kind":"service","name":"Ecotone\\Modelling\\Repository\\AggregateCounter","class":"Ecotone\\Modelling\\Repository\\AggregateCounter","enterprise":"Ecotone\\EventSourcing\\Tagging\\EventStoreAggregateCounter","openCore":"Ecotone\\Modelling\\Repository\\OpenCoreAggregateCounter"},
+            {"module":"Ecotone\\Modelling\\DecisionModel\\Config\\DecisionModelModule","kind":"service","name":"decisionModel.appendInterceptor","class":"Ecotone\\Modelling\\DecisionModel\\DecisionModelAppendInterceptor"},
+            {"module":"Ecotone\\Modelling\\DecisionModel\\Config\\DecisionModelModule","kind":"service","name":"decisionModel.batchLoader.class@anonymous#1::enrol","class":"Ecotone\\Modelling\\DecisionModel\\DecisionModelBatchLoader"},
+            {"module":"Ecotone\\Modelling\\DecisionModel\\Config\\DecisionModelModule","kind":"service","name":"decisionModel.batchLoader.class@anonymous#1::enrolTwice","class":"Ecotone\\Modelling\\DecisionModel\\DecisionModelBatchLoader"},
+            {"module":"Ecotone\\Modelling\\DecisionModel\\Config\\DecisionModelModule","kind":"service","name":"decisionModel.eventSourcingExecutor.Ecotone\\Test\\Flow\\Fixture\\FlowCourseCapacity","class":"Ecotone\\Modelling\\EventSourcingExecutor\\ApplyMethodExecutor"}
+        ],
+        "chains": [
+            {"handler":"class@anonymous#1::enrol","layers":["event driven consumer of {generated}.target","step Ecotone\\Tracing\\TracedDecisionModelBatchLoader::load(Ecotone\\Api\\Messaging\\Message)","around interceptor Ecotone\\Modelling\\DecisionModel\\DecisionModelAppendInterceptor::append","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::enrol(Ecotone\\Test\\Flow\\Fixture\\FlowEnrolStudent, Ecotone\\Test\\Flow\\Fixture\\FlowCourseCapacity)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]},
+            {"handler":"class@anonymous#1::enrolTwice","layers":["event driven consumer of {generated}.target","step Ecotone\\Tracing\\TracedDecisionModelBatchLoader::load(Ecotone\\Api\\Messaging\\Message)","around interceptor Ecotone\\Modelling\\DecisionModel\\DecisionModelAppendInterceptor::append","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::enrolTwice(Ecotone\\Test\\Flow\\Fixture\\FlowEnrolStudentTwice, Ecotone\\Test\\Flow\\Fixture\\FlowCourseCapacity, Ecotone\\Api\\Gateway\\CommandBus)","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
     },
     "trace": [
         {"depth":0,"name":"send command","destination":"Ecotone\\Test\\Flow\\Fixture\\FlowEnrolStudent","kind":"Server","status":"Ok"},

@@ -1,5 +1,5 @@
 {
-    "formatVersion": 1,
+    "formatVersion": 2,
     "scenario": "query handler",
     "wiring": {
         "nodes": [
@@ -22,6 +22,20 @@
         ],
         "withoutNodes": [],
         "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"order.status","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"channel","name":"order.status.reading.target","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge::handle on order.status","builder":"bridge","inputChannel":"order.status","outputChannel":"order.status.reading.target","target":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge::handle"},
+            {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"handler","name":"order.status.reading","builder":"service activator","inputChannel":"order.status.reading.target","target":"class@anonymous#1::status"}
+        ],
+        "chains": [
+            {"handler":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge::handle on order.status","layers":["event driven consumer of order.status","handler Ecotone\\Messaging\\Handler\\Bridge\\Bridge::handle(Ecotone\\Api\\Messaging\\Message)","output channel order.status.reading.target","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core, when the handler returns nothing"]},
+            {"handler":"order.status.reading","layers":["event driven consumer of order.status.reading.target","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundQueryHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::status()","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
     },
     "trace": [
         {"depth":0,"name":"send query","destination":"order.status","kind":"Server","status":"Ok"},

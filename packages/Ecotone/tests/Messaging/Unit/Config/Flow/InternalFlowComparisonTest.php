@@ -212,7 +212,7 @@ final class InternalFlowComparisonTest extends TestCase
         file_put_contents($this->location . '/after/placing-an-order.json', '{"something": "else"}');
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json does not hold `scenario`, `wiring` and `trace`, so it was not written by the internal flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
+        $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json does not hold `scenario`, `wiring`, `build` and `trace`, so it was not written by this version of the internal flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
 
         $this->comparison();
     }
@@ -226,7 +226,7 @@ final class InternalFlowComparisonTest extends TestCase
         file_put_contents($this->location . '/after/placing-an-order.json', json_encode($stored, JSON_THROW_ON_ERROR));
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json stores only what its scenario adds to the wiring every application gets, but {$this->location}/after/shared-wiring.json is missing, so its whole wiring cannot be read. Restore that file from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
+        $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json stores only what its scenario adds to what every application gets, but {$this->location}/after/shared.json is missing, so its whole wiring and build cannot be read. Restore that file from version control, or regenerate every snapshot with `php bin/internal-flow.php snapshot`.");
 
         $this->comparison();
     }

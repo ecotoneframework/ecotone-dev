@@ -342,7 +342,7 @@ final class DeadLetterDetailTest extends ReleasingWebTestCase
         $this->setUpPulseDatabase($client->getKernel());
         $entry = $overrides + ['messageId' => 'm-1', 'failureId' => 'aaaaaaaaaaaa', 'exceptionFile' => '', 'exceptionLine' => 0, 'messageName' => 'order.place', 'failedAt' => gmdate('c'), 'exceptionClass' => 'RuntimeException', 'exceptionMessage' => 'boom', 'stackTrace' => '', 'payload' => '{"orderId":1}', 'contentType' => 'application/json', 'channel' => 'orders_async', 'traceId' => null];
         $this->services['orders'] = $this->serviceAnsweringWith('orders', json_encode([
-            'schemaVersion' => 1,
+            'schemaVersion' => 2,
             'serviceName' => 'orders',
             'takenAt' => gmdate('c'),
             'overview' => ['ecotoneVersion' => '2.0.0', 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]],

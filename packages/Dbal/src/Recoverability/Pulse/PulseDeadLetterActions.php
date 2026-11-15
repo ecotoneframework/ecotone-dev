@@ -53,7 +53,7 @@ final class PulseDeadLetterActions
             $affected++;
         }
 
-        return self::replyWithAffected($snapshot->snapshotJson($sourceService, $headers), $affected);
+        return $snapshot->sectionsJson(sections: ['deadLetters', 'channels'], actionResult: ['deadLetterAction' => ['affected' => $affected]], sourceService: $sourceService, headers: $headers);
     }
 
     /**
@@ -71,12 +71,7 @@ final class PulseDeadLetterActions
             $affected++;
         }
 
-        return self::replyWithAffected($snapshot->snapshotJson($sourceService, $headers), $affected);
-    }
-
-    private static function replyWithAffected(string $snapshotJson, int $affected): string
-    {
-        return json_encode([...json_decode($snapshotJson, true, flags: JSON_THROW_ON_ERROR), 'deadLetterAction' => ['affected' => $affected]], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        return $snapshot->sectionsJson(sections: ['deadLetters', 'channels'], actionResult: ['deadLetterAction' => ['affected' => $affected]], sourceService: $sourceService, headers: $headers);
     }
 
     /**

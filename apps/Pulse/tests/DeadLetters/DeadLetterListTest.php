@@ -412,7 +412,7 @@ final class DeadLetterListTest extends ReleasingWebTestCase
         $entry = ['messageId' => 'invoice-1', 'failureId' => 'aaaaaaaaaaaa', 'exceptionFile' => '/srv/app/src/Invoice.php', 'exceptionLine' => 12, 'messageName' => 'invoice.issue', 'failedAt' => gmdate('c'), 'exceptionClass' => 'DomainException', 'exceptionMessage' => 'cannot issue invoice', 'stackTrace' => '#0 trace', 'payload' => '{"invoiceId":4}', 'contentType' => 'application/json', 'channel' => 'invoices'];
 
         return json_encode([
-            'schemaVersion' => 1,
+            'schemaVersion' => 2,
             'serviceName' => 'invoices',
             'takenAt' => gmdate('c'),
             'overview' => ['ecotoneVersion' => '2.0.0', 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]],

@@ -43,7 +43,7 @@ final class FannedOutEventsTest extends ReleasingWebTestCase
         $client = $this->pulseWebClient();
         $services = [
             'orders' => $this->publishingOrders(DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['shipping'], ['order.*'])),
-            'shipping' => $this->serviceAnsweringWith('shipping', '{"schemaVersion":1,"serviceName":"shipping"}'),
+            'shipping' => $this->serviceAnsweringWith('shipping', '{"schemaVersion":2,"serviceName":"shipping"}'),
         ];
         $this->pulseHavingHeardFrom($client, $services);
         $crawler = $client->request('GET', '/topology');

@@ -39,4 +39,9 @@ final class PulseDeadLetterStatus implements PulseSnapshotSection
     {
         return ['enabled' => $this->enabled];
     }
+
+    public function revision(): ?string
+    {
+        return null;
+    }
 }

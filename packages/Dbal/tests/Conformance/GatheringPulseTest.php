@@ -91,6 +91,8 @@ final class GatheringPulseTest extends TestCase
 
         $reply = $this->request('ecotone.pulse.gathering.release', ['groupId' => $groupId]);
         self::assertSame(['groupId' => $groupId, 'status' => 'release requested'], $reply['gatheringAction']);
+        self::assertSame(['gathering'], array_keys($reply['digests']));
+        self::assertArrayNotHasKey('flowGraph', $reply);
         self::assertSame([], $this->handler->gathered);
         self::assertContains($groupId, array_column($groups->listOpenGroups('pulse.summary.handler'), 'groupId'));
         $this->request('ecotone.pulse.gathering.release', ['groupId' => $groupId]);

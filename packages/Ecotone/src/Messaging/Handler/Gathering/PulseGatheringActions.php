@@ -58,10 +58,7 @@ final class PulseGatheringActions
             $status = 'discarded';
         }
 
-        return json_encode([
-            ...json_decode($snapshot->snapshotJson($sourceService, $headers), true, flags: JSON_THROW_ON_ERROR),
-            'gatheringAction' => ['groupId' => $groupId, 'status' => $status],
-        ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        return $snapshot->sectionsJson(sections: ['gathering'], actionResult: ['gatheringAction' => ['groupId' => $groupId, 'status' => $status]], sourceService: $sourceService, headers: $headers);
     }
 
     private function groupIdFrom(string $payload): string

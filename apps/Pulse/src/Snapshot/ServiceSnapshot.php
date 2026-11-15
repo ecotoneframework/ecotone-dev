@@ -9,7 +9,6 @@ use DateTimeImmutable;
 final readonly class ServiceSnapshot
 {
     /**
-     * @param array<string, mixed> $snapshot
      * @param list<string> $tenants
      * @param list<string> $unadvertisedTenants
      * @param array<string, array{digest: string, since: string}> $projectionMovements
@@ -22,7 +21,7 @@ final readonly class ServiceSnapshot
         public ServiceStatus $status,
         public ?DateTimeImmutable $lastSeenAt,
         public ?int $ageSeconds,
-        public array $snapshot,
+        public SectionedSnapshot $snapshot,
         public ?string $requestFailure,
         public ?string $replyError,
         public bool $followUpPending,

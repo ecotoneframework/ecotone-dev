@@ -200,7 +200,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
     {
         $this->configurePulseWithServices('orders');
         $client = $this->pulseClient();
-        [$orders, $handler] = $this->countingService('orders', json_encode(['schemaVersion' => 2, 'serviceName' => 'orders'], JSON_THROW_ON_ERROR));
+        [$orders, $handler] = $this->countingService('orders', json_encode(['schemaVersion' => 3, 'serviceName' => 'orders'], JSON_THROW_ON_ERROR));
 
         $client->request('GET', '/services');
         $this->runService($orders, 'orders');
@@ -266,7 +266,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
     {
         $this->configurePulseWithServices('orders');
         $client = $this->pulseClient();
-        $orders = $this->serviceAnsweringWith('orders', json_encode(['schemaVersion' => 2, 'serviceName' => 'orders'], JSON_THROW_ON_ERROR));
+        $orders = $this->serviceAnsweringWith('orders', json_encode(['schemaVersion' => 3, 'serviceName' => 'orders'], JSON_THROW_ON_ERROR));
 
         $client->request('GET', '/services');
         $this->runService($orders, 'orders');
@@ -274,7 +274,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/services');
 
         self::assertSame('waiting', $this->serviceStatusOf($crawler, 'orders'));
-        self::assertStringContainsString('schema version 2', $crawler->filter('[data-service="orders"] [data-reply-error]')->text());
+        self::assertStringContainsString('schema version 3', $crawler->filter('[data-service="orders"] [data-reply-error]')->text());
     }
 
     public function test_the_page_refreshes_itself_while_a_service_is_waiting(): void
@@ -347,7 +347,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
     private function snapshotJson(string $service, string $ecotoneVersion, ?array $deadLetters = null): string
     {
         $snapshot = [
-            'schemaVersion' => 1,
+            'schemaVersion' => 2,
             'serviceName' => $service,
             'takenAt' => '2026-10-20T12:00:00+00:00',
             'overview' => ['ecotoneVersion' => $ecotoneVersion, 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]],

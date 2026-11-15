@@ -140,6 +140,20 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_a_rebuild_replies_with_only_the_projections_and_the_gathering_it_changed(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $reply = $this->rebuild('async_orders', self::FIRST_TRACE);
+
+        self::assertSame('async_orders', $reply['rebuildAction']['projection']);
+        self::assertContains('async_orders', array_column($reply['projections'], 'name'));
+        self::assertEqualsCanonicalizing(['projections', 'gathering'], array_keys($reply['digests']));
+        self::assertTrue($reply['partial']);
+        self::assertSame([], array_intersect(['flowGraph', 'packages', 'consumers', 'overview', 'topology', 'channels', 'tracing', 'setup', 'deadLetters'], array_keys($reply)));
+    }
+
+    #[DataProvider('implementations')]
     public function test_a_synchronous_rebuild_started_from_the_console_is_not_listed(string $implementation): void
     {
         $this->bootstrap($implementation);

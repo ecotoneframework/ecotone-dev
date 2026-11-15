@@ -120,6 +120,23 @@ final class TenantViewsTest extends ReleasingWebTestCase
         self::assertCount(0, $hubOfTenantB->filter('[data-hub-problems] [data-failure]'));
     }
 
+    public function test_a_tenant_keeps_its_dead_letters_and_channel_depth_after_a_refresh_that_changed_nothing(): void
+    {
+        $client = $this->pulseWithTenants();
+        $this->failOrderOfTenant($this->services['orders'], 'tenant_a', 1);
+        $this->queueOrders('tenant_a', 3);
+        $this->queueOrders('tenant_b', 1);
+        $this->refreshedView($client, '/');
+
+        $home = $this->refreshedView($client, '/');
+        $channels = $client->request('GET', '/services/orders/channels');
+
+        self::assertCount(1, $this->problemsOf($home, 'orders@tenant_a', 'dead-letters'));
+        self::assertSame([], $this->problemsOf($home, 'orders@tenant_b', 'dead-letters'));
+        self::assertSame('3', $channels->filter('[data-hub-tenants] tr[data-channel="' . self::QUEUE . '"][data-tenant="tenant_a"] [data-ready]')->text());
+        self::assertSame('1', $channels->filter('[data-hub-tenants] tr[data-channel="' . self::QUEUE . '"][data-tenant="tenant_b"] [data-ready]')->text());
+    }
+
     private function pulseWithUnpreparedTenantB(): KernelBrowser
     {
         return $this->pulseWithTenantServices('', OpenedConnections::factory('sqlite:///' . self::unpreparedDatabaseFile()));

@@ -298,7 +298,7 @@ final class FlowGraphRoutesTest extends ReleasingWebTestCase
     private function snapshotOf(string $service, array $flowGraph): string
     {
         return json_encode([
-            'schemaVersion' => 1,
+            'schemaVersion' => 2,
             'serviceName' => $service,
             'takenAt' => gmdate('c'),
             'overview' => ['ecotoneVersion' => '2.0.0', 'phpVersion' => PHP_VERSION, 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]],

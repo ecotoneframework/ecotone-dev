@@ -22,13 +22,9 @@ final class FlowComparisonMarkdown
     public const MARKED_DIAGRAM = 'B';
     public const MESSAGE_PATH = 'C';
     public const BUILD_VIEW = 'BUILD';
-    private const BUILD_LINES = 150;
-    private const BUILD_SIGNS = [FlowScenarioChange::ADDED => '+', FlowScenarioChange::REMOVED => '-', FlowScenarioChange::CHANGED => '~'];
     private const STEPS_PER_LIST = 40;
     private const SCENARIOS_PER_LINE = 6;
     private const EMPTY_FLOWCHART = "flowchart LR\n";
-    private const STANDARD_RESULT = ['routing slip: the result goes to the next channel on it', 'reply channel of the message'];
-    private const PART_COMPLETION = 'part completion ';
     private const DERIVED_STEP = ' (from the wiring: no span is recorded)';
 
     public static function of(FlowSnapshotComparison $comparison, string $presentation): string
@@ -40,90 +36,33 @@ final class FlowComparisonMarkdown
         if ($comparison->groups === [] && $comparison->everyScenario === null) {
             return $title . "None of {$comparison->scenariosCompared} scenarios changed its wiring, its build or its traced steps.\n";
         }
-        $changed = array_sum(array_map(fn (array $group): int => count($group['scenarios']), $comparison->groups));
+        $changesItsPath = fn (array $group): bool => $group['change']->state !== FlowScenarioChange::CHANGED || $group['change']->wiring->hasChanges() || $group['change']->hasTraceChanges();
+        $pathGroups = array_values(array_filter($comparison->groups, $changesItsPath));
+        $count = fn (array $groups): int => array_sum(array_map(fn (array $group): int => count($group['scenarios']), $groups));
+        $withPath = $count($pathGroups);
+        $onlyBuild = $count($comparison->groups) - $withPath;
+        $forEveryScenario = count($comparison->everyScenario?->build ?? []);
+        $summary = implode(' ', array_filter([
+            $withPath === 0
+                ? "No scenario of {$comparison->scenariosCompared} changes its message path."
+                : "{$withPath} of {$comparison->scenariosCompared} scenarios change" . ($withPath === 1 ? 's its' : ' their') . ' message path.',
+            $onlyBuild === 0 ? null : $onlyBuild . ($withPath === 0 ? '' : ' more') . ' change' . ($onlyBuild === 1 ? 's only its' : ' only their') . ' build.',
+            $forEveryScenario === 0 ? null : $forEveryScenario . ' registration' . ($forEveryScenario === 1 ? ' changes' : 's change') . ' for every scenario.',
+        ]));
         $sections = array_map(
             fn (array $group): string => self::headingOf($group['scenarios'], $group['varyingNames'])
                 . implode("\n\n", $group['change']->summary()) . "\n\n"
-                . self::buildSection($group['change']) . "\n"
                 . match ($presentation) {
                     self::BEFORE_AFTER_PAIR => self::beforeAfterPair($group['change']),
                     self::MARKED_DIAGRAM => self::markedDiagram($group['change']),
                     self::MESSAGE_PATH => self::messagePath($group['change']),
-                    default => ! $group['change']->wiring->hasChanges() && ! $group['change']->hasTraceChanges() && $group['change']->state === FlowScenarioChange::CHANGED
-                        ? "Wiring and traced steps: unchanged.\n"
-                        : self::messagePath($group['change']) . "\n<details><summary>Marked wiring and traced steps</summary>\n\n" . self::markedDiagram($group['change']) . "\n</details>\n",
+                    default => self::messagePath($group['change']) . "\n<details><summary>Marked wiring and traced steps</summary>\n\n" . self::markedDiagram($group['change']) . "\n</details>\n",
                 },
-            $comparison->groups,
+            $pathGroups,
         );
-        if ($comparison->everyScenario !== null) {
-            array_unshift($sections, "### Every scenario\n\n" . self::buildSection($comparison->everyScenario));
-        }
+        $tree = FlowBuildTree::of($comparison);
 
-        return $title . "{$changed} of {$comparison->scenariosCompared} scenarios changed" . ($comparison->everyScenario === null ? '' : ' beyond what every scenario shares') . ".\n\n" . implode("\n", $sections);
-    }
-
-    private static function buildSection(FlowScenarioChange $change): string
-    {
-        $heading = "#### Build: what modules register now\n\n";
-        if ($change->build === []) {
-            return $heading . ($change->state === FlowScenarioChange::CHANGED ? 'Unchanged.' : "The scenario was {$change->state}; its whole build is in its snapshot file.") . "\n";
-        }
-        $lines = [];
-        foreach ($change->buildByModule() as $module) {
-            $lines[] = FlowWording::withShortClassNames($module['module']);
-            foreach ($module['entries'] as $entry) {
-                $now = FlowWording::ofRegistration($entry['after'] ?? $entry['before']);
-                $lines[] = '  ' . self::BUILD_SIGNS[$entry['change']] . ' ' . $now;
-                if ($entry['change'] === FlowScenarioChange::CHANGED) {
-                    $was = FlowWording::ofRegistration($entry['before']);
-                    if ($was !== $now) {
-                        $lines[] = '      was: ' . $was;
-                    }
-                    if ($entry['before']['module'] !== $entry['after']['module']) {
-                        $lines[] = '      was registered by ' . FlowWording::withShortClassNames($entry['before']['module']);
-                    }
-                }
-                $chain = $entry['chain'] ?? [];
-                $marksLayers = $entry['change'] === FlowScenarioChange::CHANGED;
-                if ($marksLayers && array_filter($chain, fn (array $layer): bool => $layer['change'] !== FlowScenarioChange::UNCHANGED) === []) {
-                    continue;
-                }
-                foreach (self::withTheStandardResultOnOneLine($chain) as $layer) {
-                    $lines[] = '      ' . match (true) {
-                        ! $marksLayers => '',
-                        $layer['change'] === FlowScenarioChange::ADDED => '+ ',
-                        $layer['change'] === FlowScenarioChange::REMOVED => '- ',
-                        default => '  ',
-                    } . FlowWording::withShortClassNames($layer['layer']);
-                }
-            }
-        }
-
-        return $heading . "```text\n" . implode("\n", count($lines) <= self::BUILD_LINES ? $lines : [...array_slice($lines, 0, self::BUILD_LINES), '… and ' . (count($lines) - self::BUILD_LINES) . ' more lines; the raw comparison has all of them']) . "\n```\n";
-    }
-
-    /**
-     * @param list<array{change: string, layer: string}> $chain
-     * @return list<array{change: string, layer: string}>
-     */
-    private static function withTheStandardResultOnOneLine(array $chain): array
-    {
-        $folded = [];
-        for ($position = 0; $position < count($chain); $position++) {
-            [$routingSlip, $partCompletion, $replyChannel] = [$chain[$position], $chain[$position + 1] ?? null, $chain[$position + 2] ?? null];
-            if (
-                $partCompletion !== null && $replyChannel !== null
-                && $routingSlip['layer'] === self::STANDARD_RESULT[0] && $replyChannel['layer'] === self::STANDARD_RESULT[1] && str_starts_with($partCompletion['layer'], self::PART_COMPLETION)
-                && $routingSlip['change'] === $partCompletion['change'] && $partCompletion['change'] === $replyChannel['change']
-            ) {
-                $folded[] = ['change' => $routingSlip['change'], 'layer' => 'then: routing slip, else part report (' . substr($partCompletion['layer'], strlen(self::PART_COMPLETION)) . '), else reply channel'];
-                $position += 2;
-            } else {
-                $folded[] = $routingSlip;
-            }
-        }
-
-        return $folded;
+        return $title . $summary . "\n\n" . implode("\n", array_filter([$tree, ...$sections]));
     }
 
     /**

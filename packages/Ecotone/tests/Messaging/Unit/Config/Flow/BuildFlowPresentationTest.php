@@ -52,8 +52,8 @@ final class BuildFlowPresentationTest extends TestCase
 
         $markdown = $this->presentation('A');
 
-        self::assertStringStartsWith("## Message flow: what changed\n\n1 of 1 scenarios changed.\n\n### `Placing an order`\n\nBefore: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### Build: what modules register now\n\n```text\n", $markdown);
-        self::assertStringContainsString("```\n\n#### Wiring\n\nBefore:\n\n```mermaid\nflowchart LR\n", $markdown);
+        self::assertStringStartsWith("## Message flow: what changed\n\n1 of 1 scenarios changes its message path.\n\n### Build: what changes\n\n```text\nMessagingSystem\n", $markdown);
+        self::assertStringContainsString("\n### `Placing an order`\n\nBefore: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### Wiring\n\nBefore:\n\n```mermaid\nflowchart LR\n", $markdown);
         [$before, $after] = $this->mermaidBlocksOf($markdown);
         self::assertStringNotContainsString('audit', $before);
         self::assertStringContainsString('Event Handler<br/>audit', $after);
@@ -107,8 +107,7 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertStringContainsString('After', $after);
         self::assertMatchesRegularExpression('/^    p\d+->>p\d+: \+ handles$/m', $after);
         self::assertMatchesRegularExpression('/^    participant p\d+ as event handler audit$/m', $diagrams[0]);
-        self::assertStringContainsString("Before: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### Build: what modules register now\n\n```text\n", $markdown);
-        self::assertStringContainsString("```\n\n#### The message's path\n", $markdown);
+        self::assertStringContainsString("Before: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### The message's path\n", $markdown);
     }
 
     public function test_every_presentation_keeps_each_diagram_within_fifteen_nodes_and_says_what_it_left_out(): void
@@ -133,7 +132,8 @@ final class BuildFlowPresentationTest extends TestCase
 
         $markdown = $this->presentation('B');
 
-        self::assertStringContainsString("2 of 2 scenarios changed.\n\n### 2 scenarios with the same change\n\nApplies to: `First ordering`, `Second ordering`.\n\n", $markdown);
+        self::assertStringContainsString("2 of 2 scenarios change their message path.\n\n### Build: what changes\n", $markdown);
+        self::assertStringContainsString("\n### 2 scenarios with the same change\n\nApplies to: `First ordering`, `Second ordering`.\n\n", $markdown);
         self::assertCount(1, $this->mermaidBlocksOf($markdown));
     }
 

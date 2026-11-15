@@ -171,7 +171,7 @@ final class FlowScenarioChange
      */
     public function namesIn(): array
     {
-        preg_match_all('/[A-Za-z][A-Za-z0-9]*/', json_encode([$this->wiring->toArray(), $this->scopedTrace(), $this->build], JSON_THROW_ON_ERROR), $names);
+        preg_match_all('/[A-Za-z][A-Za-z0-9_]*/', json_encode([$this->wiring->toArray(), $this->scopedTrace(), $this->build], JSON_THROW_ON_ERROR), $names);
 
         return array_count_values(array_map(strtolower(...), $names[0]));
     }
@@ -358,8 +358,12 @@ final class FlowScenarioChange
                     self::REMOVED => '- ',
                     default => '',
                 };
-                $path[] = ['from' => FlowWording::withShortClassNames($step[self::PART_REPORT]['sender']), 'to' => 'channel ' . $step[self::PART_REPORT]['channel'], 'label' => $mark . 'sends part report (build, no span)', 'derived' => true];
-                $path[] = ['from' => 'channel ' . $step[self::PART_REPORT]['channel'], 'to' => 'channel ' . $subject, 'label' => $mark . 'sends', 'derived' => false];
+                $sender = FlowWording::withShortClassNames($step[self::PART_REPORT]['sender']);
+                if (isset($placeAtDepth[$step['depth']])) {
+                    $path[] = ['from' => $placeAtDepth[$step['depth']], 'to' => $sender, 'label' => $mark . 'ends, its part completion runs (build, no span)', 'derived' => true];
+                }
+                $path[] = ['from' => $sender, 'to' => 'channel ' . $step[self::PART_REPORT]['channel'], 'label' => $mark . 'sends part report (build, no span)', 'derived' => true];
+                $path[] = ['from' => 'channel ' . $step[self::PART_REPORT]['channel'], 'to' => 'channel ' . $subject, 'label' => $mark . 'asynchronous routing sends', 'derived' => false];
                 $placeAtDepth[$step['depth']] = 'channel ' . $subject;
                 continue;
             }
@@ -374,6 +378,19 @@ final class FlowScenarioChange
             };
             if ($operation === 'receive' && ! str_starts_with($from, 'channel ')) {
                 $from = 'channel ' . $subject;
+            }
+            $gathered = isset($step[self::DERIVED]) ? $this->gatheredHandler($step, $entry['change']) : null;
+            if ($gathered !== null && isset($kept[$position])) {
+                $mark = match ($entry['change']) {
+                    self::ADDED => '+ ',
+                    self::REMOVED => '- ',
+                    default => '',
+                };
+                $path[] = ['from' => $from, 'to' => 'channel ' . $gathered['inputChannel'], 'label' => $mark . 'routed to (wiring, no span)', 'derived' => true];
+                $path[] = ['from' => 'channel ' . $gathered['inputChannel'], 'to' => 'gatherer (Enterprise only)', 'label' => $mark . 'delivers (build, no span)', 'derived' => true];
+                $path[] = ['from' => 'gatherer (Enterprise only)', 'to' => $place, 'label' => $mark . 'invokes (build, no span)', 'derived' => true];
+                $placeAtDepth[$step['depth']] = $place;
+                continue;
             }
             $placeAtDepth[$step['depth']] = $place;
             if ($label !== null && isset($kept[$position])) {
@@ -448,7 +465,7 @@ final class FlowScenarioChange
                 }
             }
         }
-        $after = $anchor === null ? 'at the start' : 'after ' . $anchor;
+        $after = $anchor === null ? 'at the start' : 'after ' . (isset($firstChanged['step'][self::PART_REPORT]) ? 'each ' : '') . $anchor;
         $unchangedSide = fn (string $tense): string => match (true) {
             $anchor === null => 'the traced flow ' . ($tense === 'past' ? 'started' : 'starts') . ' with `' . FlowWording::ofStep($next ?? ['name' => 'nothing'], $this->after->wiring) . '`',
             $next === null && $startsWithASend && $tense === 'past' => 'nothing was sent after ' . $anchor,
@@ -490,8 +507,8 @@ final class FlowScenarioChange
                 default => '`' . FlowWording::ofStep($sender, $wiring) . '`',
             };
             $phrases[] = match (true) {
-                isset($step[self::PART_REPORT]) => '`' . FlowWording::withShortClassNames($step[self::PART_REPORT]['sender']) . '`'
-                    . ($step[self::PART_REPORT]['chosenFor'] === '' ? '' : ' (`' . FlowWording::withShortClassNames($step[self::PART_REPORT]['chosenFor']) . '` with an Enterprise licence)')
+                isset($step[self::PART_REPORT]) => ($step[self::PART_REPORT]['chosenFor'] === '' ? '' : 'the Enterprise part completion, ')
+                    . '`' . FlowWording::withShortClassNames($step[self::PART_REPORT]['sender']) . '`' . ($step[self::PART_REPORT]['chosenFor'] === '' ? '' : ',')
                     . " sends a part report to `{$step[self::PART_REPORT]['channel']}`, which goes on to `{$subject}` (the span shows only the send to `{$subject}`; the sender and the channel are read from the build)",
                 isset($step[self::DERIVED]) => 'it is routed to ' . ($this->isGathered($step, $change) ? 'the gathered handler ' : '') . '`' . substr(FlowWording::ofStep($step, $wiring), strlen('process ')) . '` (from the wiring: no span is recorded for that handler)',
                 $operation === 'send' && in_array($subject, ['command', 'event', 'query'], true) => "{$actor} sends {$subject} `" . ($step['destination'] ?? '') . '`',
@@ -511,13 +528,22 @@ final class FlowScenarioChange
      */
     private function isGathered(array $step, string $change): bool
     {
-        foreach (($change === self::ADDED ? $this->after : $this->before)->ledger as $entry) {
-            if (($entry['builder'] ?? null) === 'gatherer' && 'process ' . FlowWording::withShortClassNames((string) ($entry['target'] ?? '')) === $step['name']) {
-                return true;
+        return $this->gatheredHandler($step, $change) !== null;
+    }
+
+    /**
+     * @param array<string, mixed> $step
+     * @return array<string, scalar>|null
+     */
+    private function gatheredHandler(array $step, string $change): ?array
+    {
+        foreach (($change === self::REMOVED ? $this->before : $this->after)->ledger as $entry) {
+            if (($entry['builder'] ?? null) === 'gatherer' && isset($entry['inputChannel']) && 'process ' . FlowWording::withShortClassNames((string) ($entry['target'] ?? '')) === $step['name']) {
+                return $entry;
             }
         }
 
-        return false;
+        return null;
     }
 
     /**

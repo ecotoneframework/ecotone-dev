@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Test\Flow\Snapshot;
 
+use Ecotone\Api\Messaging\Flow\FlowNodeKind;
+
 /**
  * licence Apache-2.0
  */
@@ -13,9 +15,16 @@ final class FlowSnapshotComparison
 
     /**
      * @param list<array{scenarios: list<string>, varyingNames: list<string>, change: FlowScenarioChange}> $groups
+     * @param array<string, list<array<string, mixed>>> $buildChangesByScenario scenario => its build changes beyond what every scenario shares
+     * @param list<string> $projectionNames every projection of the compared scenarios
      */
-    private function __construct(public readonly int $scenariosCompared, public readonly array $groups, public readonly ?FlowScenarioChange $everyScenario)
-    {
+    private function __construct(
+        public readonly int $scenariosCompared,
+        public readonly array $groups,
+        public readonly ?FlowScenarioChange $everyScenario,
+        public readonly array $buildChangesByScenario,
+        public readonly array $projectionNames,
+    ) {
     }
 
     /**
@@ -31,10 +40,22 @@ final class FlowSnapshotComparison
         $everyScenario = $sharedBefore !== null && $sharedAfter !== null ? FlowScenarioChange::between($sharedBefore, $sharedAfter) : null;
         $sharedByEveryScenario = $everyScenario?->buildChangeIdentities() ?? [];
         $changes = [];
+        $buildChangesByScenario = [];
+        $projectionNames = [];
+        foreach ([...$before, ...$after] as $snapshot) {
+            foreach ($snapshot->wiring->nodes() as $node) {
+                if ($node->kind === FlowNodeKind::PROJECTION) {
+                    $projectionNames[$node->label] = true;
+                }
+            }
+        }
         foreach ($compared as $change) {
             $change = $change->withoutBuildChangesOf(array_intersect_assoc($change->buildChangeIdentities(), $sharedByEveryScenario));
             if ($change->hasChanges()) {
                 $changes[$change->scenario] = $change;
+                if ($change->build !== []) {
+                    $buildChangesByScenario[$change->scenario] = $change->build;
+                }
             }
         }
         ksort($changes, SORT_STRING);
@@ -72,7 +93,7 @@ final class FlowSnapshotComparison
         }
         $groups = $merged;
 
-        return new self(count($before + $after), array_values($groups), $sharedByEveryScenario === [] ? null : $everyScenario);
+        return new self(count($before + $after), array_values($groups), $sharedByEveryScenario === [] ? null : $everyScenario, $buildChangesByScenario, array_keys($projectionNames));
     }
 
     /**

@@ -30,7 +30,7 @@ use RecursiveIteratorIterator;
 final class BuildFlowReadableComparisonTest extends TestCase
 {
     private const BEFORE = 'Before: nothing was sent after `process partition batch orders`.';
-    private const NOW = 'Now: after `process partition batch orders`, `GatheringPartCompletion` (`PartCompletion` with an Enterprise licence) sends a part report to `ecotone.projection.rebuild.completion:orders`, which goes on to `rebuild` (the span shows only the send to `rebuild`; the sender and the channel are read from the build); it is received from `rebuild`; it is routed to the gathered handler `ProjectionRunCompletion::complete` (from the wiring: no span is recorded for that handler).';
+    private const NOW = 'Now: after each `process partition batch orders`, the Enterprise part completion, `GatheringPartCompletion`, sends a part report to `ecotone.projection.rebuild.completion:orders`, which goes on to `rebuild` (the span shows only the send to `rebuild`; the sender and the channel are read from the build); it is received from `rebuild`; it is routed to the gathered handler `ProjectionRunCompletion::complete` (from the wiring: no span is recorded for that handler).';
 
     private string $location;
 
@@ -146,14 +146,14 @@ final class BuildFlowReadableComparisonTest extends TestCase
             $markdown = $this->comparison($presentation);
 
             self::assertStringStartsWith(
-                "## Message flow: what changed\n\n2 of 2 scenarios changed.\n\n### 2 scenarios with the same change\n\n"
+                "## Message flow: what changed\n\n2 of 2 scenarios change their message path.\n\n### 2 scenarios with the same change\n\n"
                 . "Applies to: `projection backfill run`, `projection rebuild run`. Shown for `backfill`; the same holds with `rebuild` in its place.\n\n"
                 . str_replace('rebuild', 'backfill', self::BEFORE) . "\n\n" . str_replace('rebuild', 'backfill', self::NOW) . "\n\n",
                 $markdown,
                 $presentation,
             );
             self::assertStringNotContainsString('not on this path', $markdown, $presentation);
-            self::assertStringContainsString("#### Build: what modules register now\n\nUnchanged.\n", $markdown, $presentation);
+            self::assertStringNotContainsString('Build: what', $markdown, $presentation);
             self::assertStringContainsString("\n_Legend: ", $markdown, $presentation);
             self::assertStringNotContainsString('class@anonymous', $markdown, $presentation);
             self::assertStringNotContainsString('Bridge::handle', $markdown, $presentation);
@@ -200,12 +200,24 @@ final class BuildFlowReadableComparisonTest extends TestCase
 
         self::assertStringContainsString('    participant p4 as consumer of rebuild', $path);
         self::assertStringContainsString('    participant p3 as channel rebuild', $path);
+        self::assertStringContainsString('    participant p5 as partition batch orders', $path);
         self::assertStringContainsString('    participant p7 as GatheringPartCompletion', $path);
         self::assertStringContainsString('    participant p8 as channel ecotone.projection.rebuild.completion:orders', $path);
-        self::assertStringContainsString('    participant p9 as ProjectionRunCompletion::complete', $path);
-        self::assertMatchesRegularExpression('/^    Note over p0,p9: Before$/m', $path);
-        self::assertMatchesRegularExpression('/^    Note over p0,p9: After$/m', $path);
-        self::assertStringContainsString("    p7-->>p8: + sends part report (build, no span)\n    p8->>p3: + sends\n    p3->>p4: + delivers\n    p4-->>p9: + routed to (wiring, no span)\n", $path);
+        self::assertStringContainsString('    participant p9 as channel ecotone.projection.rebuild.completion:orders.execute', $path);
+        self::assertStringContainsString('    participant p10 as gatherer (Enterprise only)', $path);
+        self::assertStringContainsString('    participant p11 as ProjectionRunCompletion::complete', $path);
+        self::assertMatchesRegularExpression('/^    Note over p0,p11: Before$/m', $path);
+        self::assertMatchesRegularExpression('/^    Note over p0,p11: After$/m', $path);
+        self::assertStringContainsString(
+            "    p5-->>p7: + ends, its part completion runs (build, no span)\n"
+            . "    p7-->>p8: + sends part report (build, no span)\n"
+            . "    p8->>p3: + asynchronous routing sends\n"
+            . "    p3->>p4: + delivers\n"
+            . "    p4-->>p9: + routed to (wiring, no span)\n"
+            . "    p9-->>p10: + delivers (build, no span)\n"
+            . "    p10-->>p11: + invokes (build, no span)\n",
+            $path,
+        );
         self::assertDoesNotMatchRegularExpression('/^    (p\d+)--?>>\1:/m', $path);
         self::assertStringNotContainsString('nodes added', $path);
         self::assertStringNotContainsString('- Traced steps:', $path);
@@ -218,7 +230,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
 
         $markdown = $this->comparison('BUILD');
 
-        self::assertSame(1, preg_match('/^Now: .*`GatheringPartCompletion` .* sends a part report to `ecotone\.projection\.rebuild\.completion:orders`/m', $markdown));
+        self::assertSame(1, preg_match('/^Now: after each .*the Enterprise part completion, `GatheringPartCompletion`, sends a part report to `ecotone\.projection\.rebuild\.completion:orders`/m', $markdown));
         self::assertStringContainsString('as GatheringPartCompletion', $markdown);
         self::assertStringContainsString('ecotone.projection.rebuild.completion:orders (entry point: part reports are sent here by GatheringPartCompletion)', $markdown);
         self::assertStringContainsString('send rebuild (part report by GatheringPartCompletion to ecotone.projection.rebuild.completion:orders)', $markdown);
@@ -236,7 +248,12 @@ final class BuildFlowReadableComparisonTest extends TestCase
 
         $markdown = $this->comparison('BUILD');
 
-        self::assertStringContainsString("Before and now: the wiring and the traced steps are the same.\n\nNow: only the build changed: 2 services added.\n\n#### Build: what modules register now\n\n```text\nPlanningModule\n  + service Plan\n  + service Planner\n```\n\nWiring and traced steps: unchanged.\n", $markdown);
+        self::assertSame(
+            "## Message flow: what changed\n\nNo scenario of 1 changes its message path. 1 changes only its build.\n\n"
+            . "### Build: what changes\n\n```text\nMessagingSystem\n└ PlanningModule\n  └ + 2 services\n```\n\n"
+            . "<details><summary>Counted registrations</summary>\n\n- PlanningModule + service: `Plan`, `Planner`\n\n</details>\n",
+            $markdown,
+        );
         self::assertStringNotContainsString('mermaid', $markdown);
         self::assertStringNotContainsString('Legend', $markdown);
     }

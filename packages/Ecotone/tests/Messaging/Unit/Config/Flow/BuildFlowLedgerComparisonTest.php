@@ -171,66 +171,117 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         self::assertSame([['module' => 'Acme\ReportingModule', 'entries' => [['change' => 'added', 'kind' => 'service', 'name' => 'Acme\Reports', 'after' => ['module' => 'Acme\ReportingModule', 'kind' => 'service', 'name' => 'Acme\Reports', 'class' => 'Acme\Reports']]]]], $comparison['groups'][0]['build']);
     }
 
-    public function test_every_presentation_lists_what_modules_register_now_between_the_sentences_and_its_diagrams(): void
+    public function test_every_presentation_opens_with_one_build_tree_rooted_at_the_messaging_system(): void
     {
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledWithAnAudit());
 
-        foreach (['A' => '#### Wiring', 'B' => '#### Wiring', 'C' => "#### The message's path", 'BUILD' => "#### The message's path"] as $presentation => $nextHeading) {
+        foreach (['A', 'B', 'C', 'BUILD'] as $presentation) {
             $markdown = $this->presentation($presentation);
 
-            self::assertLessThan(strpos($markdown, '#### Build: what modules register now'), strpos($markdown, 'Now: '), $presentation);
-            self::assertLessThan(strpos($markdown, $nextHeading), strpos($markdown, '#### Build: what modules register now'), $presentation);
-            self::assertStringContainsString("\n  + handler audit: service activator on audit.target, invokes class@anonymous#1::audit\n      event driven consumer of audit.target\n", $markdown, $presentation);
-            self::assertStringContainsString("\n      handler class@anonymous#1::audit()\n      then: routing slip, else part report (GatheringPartCompletion with an Enterprise licence, NullPartCompletion in open core), else reply channel\n", $markdown, $presentation);
-            self::assertStringContainsString("\n  + channel audit.target (subscribable)\n", $markdown, $presentation);
-            self::assertMatchesRegularExpression('/^```text\n[A-Z][A-Za-z]+Module\n  [+~-] /m', $markdown, $presentation);
-            self::assertStringNotContainsString('Ecotone\\', substr($markdown, strpos($markdown, '#### Build'), strpos($markdown, $nextHeading) - strpos($markdown, '#### Build')), $presentation);
+            self::assertSame(1, substr_count($markdown, "### Build: what changes\n\n```text\nMessagingSystem\n"), $presentation);
+            self::assertLessThan(strpos($markdown, '### `Handling lines`'), strpos($markdown, '### Build: what changes'), $presentation);
+            self::assertStringNotContainsString('#### Build', $markdown, $presentation);
+            self::assertStringNotContainsString('Ecotone\\', $this->treeOf($markdown), $presentation);
         }
     }
 
-    public function test_a_changed_chain_is_presented_as_the_layers_removed_and_added_between_the_ones_that_stay(): void
+    public function test_an_added_endpoint_nests_each_layer_inside_the_one_that_wraps_it_down_to_the_handler(): void
+    {
+        $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
+        $this->record('Handling lines', 'after', $this->linesHandledWithAnAudit());
+
+        $tree = $this->treeOf($this->presentation('BUILD'));
+
+        self::assertMatchesRegularExpression(
+            '/^MessagingSystem\n(?:[├└│ ].*\n)*?'
+            . '[├└] [A-Za-z]+Module\n'
+            . '([│ ]) ([├└]) \+ endpoint audit\n'
+            . '\1 [│ ]   on audit\.target\n'
+            . '\1 [│ ]   └ consumer \(event driven\)\n'
+            . '\1 [│ ]     └ interceptors \(\d+\)\n'
+            . '\1 [│ ]       └ class@anonymous#1::audit\(\)\n/mu',
+            $tree,
+        );
+        self::assertStringNotContainsString('routing slip', $tree);
+        self::assertStringNotContainsString('reply channel', $tree);
+        self::assertStringNotContainsString('service activator', $tree);
+        self::assertStringNotContainsString('invokes', $tree);
+    }
+
+    public function test_a_changed_endpoint_spells_out_only_the_changed_layers_and_collapses_the_ones_around_them(): void
     {
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledByASplitter());
 
-        $markdown = $this->presentation('BUILD');
+        $tree = $this->treeOf($this->presentation('BUILD'));
 
-        self::assertStringContainsString(
-            "  ~ handler handleLines: splitter on order.lines, invokes class@anonymous#1::handle\n"
-            . "      was: handler handleLines: service activator on order.lines, invokes class@anonymous#1::handle\n"
-            . "      was registered by ServiceActivatorModule\n"
-            . "        event driven consumer of order.lines\n",
-            $markdown,
+        self::assertMatchesRegularExpression(
+            '/[├└] ~ endpoint handleLines\n'
+            . '.*[│ ]   service activator -> splitter\n'
+            . '.*[│ ]   was registered by ServiceActivatorModule\n'
+            . '.*[│ ]   └ consumer\n'
+            . '.*[│ ]     └ - /u',
+            $tree,
         );
-        self::assertStringContainsString("\n      - handler class@anonymous#1::handle()\n", $markdown);
-        self::assertStringContainsString("\n      + splitter class@anonymous#1::handle()\n", $markdown);
-        self::assertStringContainsString("  ~ channel order.lines (subscribable)\n      was registered by ServiceActivatorModule\n", $markdown);
+        self::assertMatchesRegularExpression('/^.*- class@anonymous#1::handle\(\)\n(?:.*[+-] .*\n)*.*\+ splitter class@anonymous#1::handle\(\)\n/mu', $tree);
+        self::assertMatchesRegularExpression('/[├└] ~ channel order\.lines\n\s+was registered by ServiceActivatorModule\n/u', $tree);
+        self::assertStringNotContainsString('event driven consumer of', $tree);
     }
 
-    public function test_a_removed_registration_is_presented_with_a_minus(): void
+    public function test_a_parameter_a_handler_gains_is_named(): void
+    {
+        $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
+        $this->record('Handling lines', 'after', $this->linesHandledByAPlainHandlerTakingAPayload());
+
+        self::assertStringEndsWith(
+            "MessagingSystem\n"
+            . "└ ServiceActivatorModule\n"
+            . "  └ ~ endpoint handleLines\n"
+            . "      └ consumer\n"
+            . "        └ interceptors (unchanged)\n"
+            . "          └ class@anonymous#1::handle(…)\n"
+            . "            └ + array \$lines\n",
+            $this->treeOf($this->presentation('C')),
+        );
+    }
+
+    public function test_a_removed_endpoint_is_marked_with_a_minus(): void
     {
         $this->record('Handling lines', 'before', $this->linesHandledWithAnAudit());
         $this->record('Handling lines', 'after', $this->linesHandledByAPlainHandler());
 
-        self::assertStringContainsString("\n  - handler audit: service activator on audit.target, invokes class@anonymous#1::audit\n", $this->presentation('B'));
+        self::assertMatchesRegularExpression('/[├└] - endpoint audit\n.*[│ ]   on audit\.target\n/u', $this->treeOf($this->presentation('B')));
     }
 
-    public function test_the_build_presentation_puts_the_build_then_the_message_path_then_the_marked_wiring_collapsed(): void
+    public function test_registrations_without_a_chain_fold_into_one_count_per_module_with_their_names_below_the_tree(): void
     {
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledWithAnAudit());
 
         $markdown = $this->presentation('BUILD');
 
-        $positions = array_map(fn (string $part): int|false => strpos($markdown, $part), ['Before', 'Now: ', '#### Build: what modules register now', "#### The message's path", '<details><summary>Marked wiring and traced steps</summary>', '#### Wiring', 'classDef added', '</details>']);
+        self::assertMatchesRegularExpression('/[├└] \+ 2 channels\n/u', $this->treeOf($markdown));
+        self::assertStringNotContainsString('audit.target (', $this->treeOf($markdown));
+        self::assertMatchesRegularExpression('/```\n\n<details><summary>Counted registrations<\/summary>\n\n(?:- .*\n)*- [A-Za-z]+Module \+ channel: `audit\.target`, `order\.audit`\n/u', $markdown);
+    }
+
+    public function test_the_build_presentation_puts_the_tree_then_each_changed_path_with_its_wiring_collapsed(): void
+    {
+        $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
+        $this->record('Handling lines', 'after', $this->linesHandledWithAnAudit());
+
+        $markdown = $this->presentation('BUILD');
+
+        $positions = array_map(fn (string $part): int|false => strpos($markdown, $part), ['1 of 1 scenarios changes its message path.', '### Build: what changes', '### `Handling lines`', 'Before', 'Now: ', "#### The message's path", '<details><summary>Marked wiring and traced steps</summary>', '#### Wiring', 'classDef added']);
+        self::assertStringEndsWith("\n</details>\n", $markdown);
         self::assertNotContains(false, $positions);
         $sorted = $positions;
         sort($sorted);
         self::assertSame($sorted, $positions);
     }
 
-    public function test_a_service_chosen_by_the_licence_is_presented_with_both_choices(): void
+    public function test_a_service_chosen_by_the_licence_is_one_node_with_both_choices_and_a_build_only_scenario_gets_no_section(): void
     {
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledByAPlainHandler());
@@ -238,30 +289,54 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         $stored['build']['ledger'][] = ['module' => 'Acme\Reporting\ReportingModule', 'kind' => 'service', 'name' => 'Acme\Reporting\Reports', 'class' => 'Acme\Reporting\Reports', 'enterprise' => 'Acme\Reporting\GatheredReports', 'openCore' => 'Acme\Reporting\PlainReports'];
         file_put_contents($this->location . '/after/handling-lines.json', json_encode($stored, JSON_THROW_ON_ERROR));
 
-        self::assertStringContainsString("```text\nReportingModule\n  + service Reports: Enterprise -> GatheredReports, open core -> PlainReports\n```", $this->presentation('C'));
+        self::assertSame(
+            "## Message flow: what changed\n\nNo scenario of 1 changes its message path. 1 changes only its build.\n\n"
+            . "### Build: what changes\n\n```text\nMessagingSystem\n└ ReportingModule\n  └ + service Reports\n      Enterprise -> GatheredReports, open core -> PlainReports\n```\n",
+            $this->presentation('BUILD'),
+        );
     }
 
-    public function test_a_build_change_of_what_every_application_gets_is_presented_once_before_the_scenarios(): void
+    public function test_a_build_change_of_what_every_application_gets_is_one_node_scoped_to_every_scenario(): void
     {
         $this->recordTwoScenariosSharingAChangedReportsService();
 
         $markdown = $this->presentation('BUILD');
 
-        self::assertSame(1, substr_count($markdown, '~ service Reports'));
-        self::assertStringContainsString("### Every scenario\n\n#### Build: what modules register now\n\n```text\nReportingModule\n  ~ service Reports: FasterReports\n      was: service Reports\n```\n", $markdown);
-        self::assertLessThan(strpos($markdown, '### `Handling lines`'), strpos($markdown, '### Every scenario'));
-        self::assertStringContainsString('2 of 2 scenarios changed beyond what every scenario shares.', $markdown);
+        self::assertSame(1, substr_count($markdown, 'service Reports'));
+        self::assertMatchesRegularExpression('/[├└] ReportingModule\n[│ ] └ ~ service Reports \(every scenario\)\n[│ ]     Reports -> FasterReports\n/u', $this->treeOf($markdown));
+        self::assertStringContainsString('2 of 2 scenarios change their message path. 1 registration changes for every scenario.', $markdown);
     }
 
-    public function test_a_scenario_whose_build_is_unchanged_says_so(): void
+    public function test_a_service_that_is_a_licence_choice_in_some_scenarios_is_never_also_called_an_alias(): void
     {
-        $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
-        $this->record('Handling lines', 'after', $this->linesHandledByAPlainHandler());
-        $stored = json_decode((string) file_get_contents($this->location . '/after/handling-lines.json'), true, flags: JSON_THROW_ON_ERROR);
-        $stored['trace'][] = ['depth' => 0, 'name' => 'send command', 'destination' => 'order.audit', 'kind' => 'Server', 'status' => 'Ok'];
-        file_put_contents($this->location . '/after/handling-lines.json', json_encode($stored, JSON_THROW_ON_ERROR));
+        $this->recordTwoScenariosSharingAChangedReportsService();
+        $choice = ['module' => 'Acme\ReportingModule', 'kind' => 'service', 'name' => 'Acme\Reports', 'class' => 'Acme\Reports', 'enterprise' => 'Acme\GatheredReports', 'openCore' => 'Acme\FasterReports'];
+        $file = $this->location . '/after/handling-lines.json';
+        $stored = json_decode((string) file_get_contents($file), true, flags: JSON_THROW_ON_ERROR);
+        $stored['build']['ledger'][array_key_last($stored['build']['ledger'])] = $choice;
+        file_put_contents($file, json_encode($stored, JSON_THROW_ON_ERROR));
 
-        self::assertStringContainsString("#### Build: what modules register now\n\nUnchanged.\n", $this->presentation('BUILD'));
+        $tree = $this->treeOf($this->presentation('BUILD'));
+
+        self::assertSame(1, substr_count($tree, 'service Reports'));
+        self::assertMatchesRegularExpression('/~ service Reports \(every scenario\)\n[│ ]     Enterprise -> GatheredReports, open core -> FasterReports \(1 scenario\)\n[│ ]     Reports -> FasterReports \(the other scenarios\)\n/u', $tree);
+        self::assertStringNotContainsString('alias', $tree);
+    }
+
+    public function test_the_same_change_of_one_endpoint_in_several_scenarios_is_printed_once_with_the_scenarios_below_the_tree(): void
+    {
+        foreach (['Handling lines', 'Handling lines again', 'Handling lines as before'] as $scenario) {
+            $this->record($scenario, 'before', $this->linesHandledByAPlainHandler());
+            $this->record($scenario, 'after', $scenario === 'Handling lines as before' ? $this->linesHandledByAPlainHandler() : $this->linesHandledByAPlainHandlerTakingAPayload());
+        }
+
+        $markdown = $this->presentation('BUILD');
+
+        self::assertSame(1, substr_count($this->treeOf($markdown), 'endpoint handleLines'));
+        self::assertStringContainsString("  └ ~ endpoint handleLines (2 scenarios)\n", $this->treeOf($markdown));
+        self::assertStringContainsString("<details><summary>Scenarios of each scope</summary>\n\n- endpoint handleLines: `Handling lines`, `Handling lines again`\n\n</details>\n", $markdown);
+        self::assertStringContainsString('No scenario of 3 changes its message path. 2 change only their build.', $markdown);
+        self::assertStringNotContainsString('### `Handling lines', $markdown);
     }
 
     private function recordTwoScenariosSharingAChangedReportsService(): void
@@ -362,6 +437,13 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         $ecotone->runConsoleCommand('ecotone:build-flow:compare', ['from' => $this->location . '/before', 'to' => $this->location . '/after', 'presentation' => 'json']);
 
         return json_decode($ecotone->getInMemoryConsoleWriter()->getWrittenContent(), true, flags: JSON_THROW_ON_ERROR);
+    }
+
+    private function treeOf(string $markdown): string
+    {
+        self::assertSame(1, preg_match('/^### Build: what changes\n\n```text\n(.*?)```\n/ms', $markdown, $tree));
+
+        return $tree[1];
     }
 
     private function presentation(string $presentation): string

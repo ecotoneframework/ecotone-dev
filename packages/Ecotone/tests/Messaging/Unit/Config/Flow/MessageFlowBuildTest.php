@@ -4,14 +4,23 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
+use Ecotone\Api\Attribute\After;
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Before;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Gathered;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Router;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
+use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -158,6 +167,172 @@ final class MessageFlowBuildTest extends TestCase
         self::assertArrayNotHasKey('build', json_decode($ecotone->getInMemoryConsoleWriter()->getWrittenContent(), true));
     }
 
+    public function test_the_chain_of_a_command_handler_starts_at_its_consumer_and_ends_with_where_the_result_goes(): void
+    {
+        $chain = $this->chainsOf($this->orderingApplication())['placeOrder'];
+
+        self::assertSame('event driven consumer of placeOrder.target', $chain[0]);
+        self::assertStringStartsWith('handler ', $chain[count($chain) - 4]);
+        self::assertStringEndsWith('::place()', $chain[count($chain) - 4]);
+        self::assertSame('routing slip: the result goes to the next channel on it', $chain[count($chain) - 3]);
+        self::assertStringStartsWith('part completion ', $chain[count($chain) - 2]);
+        self::assertSame('reply channel of the message', $chain[count($chain) - 1]);
+    }
+
+    public function test_the_chain_of_a_queue_channel_consumer_names_the_polling_consumer_and_the_interceptors_around_it(): void
+    {
+        $chain = $this->chainsOf($this->orderingApplication())['notifications'];
+
+        self::assertSame('polling consumer of notifications', $chain[0]);
+        self::assertNotEmpty(array_filter($chain, fn (string $layer): bool => str_starts_with($layer, 'around interceptor ') && str_ends_with($layer, '\AcknowledgeConfirmationInterceptor::ack')));
+        self::assertNotEmpty(array_filter($chain, fn (string $layer): bool => str_starts_with($layer, 'handler ') && str_contains($layer, '\Bridge::handle(')));
+    }
+
+    public function test_the_chain_names_the_handler_with_its_parameter_types(): void
+    {
+        $handler = new class () {
+            #[CommandHandler(endpointId: 'openTicket')]
+            public function open(OpenTicketForBuild $command, CommandBus $commandBus): void
+            {
+            }
+        };
+
+        $chain = $this->chainsOf(EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE))['openTicket'];
+
+        self::assertNotEmpty(array_filter($chain, fn (string $layer): bool => str_ends_with($layer, '::open(' . OpenTicketForBuild::class . ', ' . CommandBus::class . ')')));
+    }
+
+    public function test_the_chain_puts_interceptors_of_the_application_in_the_order_they_run(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('ticket.open', endpointId: 'openTicket')]
+            public function open(): void
+            {
+            }
+
+            #[Before(pointcut: CommandHandler::class)]
+            public function check(): void
+            {
+            }
+
+            #[Around(pointcut: CommandHandler::class)]
+            public function measure(MethodInvocation $invocation): mixed
+            {
+                return $invocation->proceed();
+            }
+
+            #[After(pointcut: CommandHandler::class)]
+            public function audit(): void
+            {
+            }
+        };
+
+        $chain = $this->chainsOf(EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE))['openTicket'];
+        $positionOf = function (string $start, string $end) use ($chain): int {
+            $positions = array_keys(array_filter($chain, fn (string $layer): bool => str_starts_with($layer, $start) && str_ends_with($layer, $end)));
+            self::assertCount(1, $positions, $start . '...' . $end);
+
+            return $positions[0];
+        };
+
+        self::assertLessThan($positionOf('around interceptor ', '::measure'), $positionOf('before interceptor ', '::check()'));
+        self::assertLessThan($positionOf('handler ', '::open()'), $positionOf('around interceptor ', '::measure'));
+        self::assertLessThan($positionOf('after interceptor ', '::audit()'), $positionOf('handler ', '::open()'));
+    }
+
+    public function test_the_chain_of_a_splitter_names_the_splitter_and_its_output_channel(): void
+    {
+        $chain = $this->chainsOf($this->splittingApplication())['splitOrder'];
+
+        self::assertNotEmpty(array_filter($chain, fn (string $layer): bool => str_starts_with($layer, 'splitter ') && str_ends_with($layer, '::split()')));
+        self::assertEmpty(array_filter($chain, fn (string $layer): bool => str_starts_with($layer, 'handler ')));
+        self::assertSame('each split message to output channel order.lines', $chain[count($chain) - 1]);
+    }
+
+    public function test_the_chain_of_a_router_names_the_router(): void
+    {
+        $chain = $this->chainsOf($this->splittingApplication())['routeOrder'];
+
+        self::assertStringStartsWith('router ', $chain[1]);
+        self::assertStringEndsWith('::route()', $chain[1]);
+        self::assertSame('the channel the router resolves', $chain[2]);
+    }
+
+    public function test_the_chain_of_a_handler_with_an_output_channel_ends_at_that_channel(): void
+    {
+        $chain = $this->chainsOf($this->splittingApplication())['handleLine'];
+
+        self::assertContains('output channel order.done', $chain);
+        self::assertNotContains('reply channel of the message', $chain);
+    }
+
+    public function test_the_chain_of_a_gathered_handler_names_the_gatherer_before_the_handler(): void
+    {
+        $chain = $this->chainsOf($this->splittingApplication())['whenAllLinesHandled'];
+
+        $gatherer = array_keys(array_filter($chain, fn (string $layer): bool => str_starts_with($layer, 'gatherer ')));
+        $handler = array_keys(array_filter($chain, fn (string $layer): bool => str_starts_with($layer, 'handler ')));
+        self::assertCount(1, $gatherer);
+        self::assertStringContainsString('Enterprise', $chain[$gatherer[0]]);
+        self::assertLessThan($handler[0], $gatherer[0]);
+    }
+
+    public function test_every_handler_of_the_ledger_has_a_chain_and_no_chain_holds_a_generated_id(): void
+    {
+        $build = json_decode($this->dumpOf($this->splittingApplication()), true)['build'];
+
+        $handlers = array_column(array_filter($build['ledger'], fn (array $entry): bool => $entry['kind'] === 'handler'), 'name');
+        sort($handlers);
+        $withChain = array_keys($build['chains']);
+        sort($withChain);
+        self::assertSame($handlers, $withChain);
+        self::assertDoesNotMatchRegularExpression('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{64}/', json_encode($build['chains']));
+        self::assertSame($build['chains'], json_decode($this->dumpOf($this->splittingApplication()), true)['build']['chains']);
+    }
+
+    public function test_no_layer_of_these_applications_is_left_unrecognised(): void
+    {
+        self::assertStringNotContainsString('unrecognised', json_encode($this->chainsOf($this->splittingApplication())));
+        self::assertStringNotContainsString('unrecognised', json_encode($this->chainsOf($this->orderingApplication())));
+    }
+
+    private function splittingApplication(): FlowTestSupport
+    {
+        $ordering = new class () {
+            #[Splitter(inputChannelName: 'order.split', endpointId: 'splitOrder', outputChannelName: 'order.lines', gatherChannelName: 'order.gathered')]
+            public function split(): array
+            {
+                return [1, 2];
+            }
+
+            #[InternalHandler(inputChannelName: 'order.lines', endpointId: 'handleLine', outputChannelName: 'order.done')]
+            public function handle(): int
+            {
+                return 1;
+            }
+
+            #[InternalHandler(inputChannelName: 'order.done', endpointId: 'whenLineDone')]
+            public function done(): void
+            {
+            }
+
+            #[Gathered]
+            #[Asynchronous('gathering')]
+            #[InternalHandler(inputChannelName: 'order.gathered', endpointId: 'whenAllLinesHandled')]
+            public function gathered(GatheredParts $parts): void
+            {
+            }
+
+            #[Router('order.route', endpointId: 'routeOrder')]
+            public function route(): string
+            {
+                return 'order.split';
+            }
+        };
+
+        return EcotoneLite::bootstrapFlowTesting([$ordering::class], [$ordering], [SimpleMessageChannelBuilder::createQueueChannel('gathering')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+    }
+
     private function orderingApplication(): FlowTestSupport
     {
         $ordering = new class () {
@@ -202,8 +377,20 @@ final class MessageFlowBuildTest extends TestCase
         return $ledger;
     }
 
+    /**
+     * @return array<string, list<string>>
+     */
+    private function chainsOf(FlowTestSupport $ecotone): array
+    {
+        return json_decode($this->dumpOf($ecotone), true)['build']['chains'];
+    }
+
     private function wiringOf(FlowTestSupport $ecotone): MessageFlowGraph
     {
         return MessageFlowGraph::fromJson($this->dumpOf($ecotone));
     }
+}
+
+final class OpenTicketForBuild
+{
 }

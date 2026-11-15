@@ -166,6 +166,11 @@ interface Configuration extends CompilerPass
     public function getRegisteredMethodInterceptors(): array;
 
     /**
+     * @return list<MessageHandlerBuilder> in the order their consumers are registered, which is the order handlers of one channel are subscribed in
+     */
+    public function getRegisteredMessageHandlersInConsumerOrder(): array;
+
+    /**
      * @return array<string, Definition|Reference> service id => what a module registered under it
      */
     public function getRegisteredServiceDefinitions(): array;

@@ -1292,6 +1292,11 @@ final class MessagingSystemConfiguration implements Configuration
         return $this->channelAdapters;
     }
 
+    public function getRegisteredMessageHandlersInConsumerOrder(): array
+    {
+        return $this->getMessageHandlersBasedOnPriority();
+    }
+
     public function getRegisteredServiceDefinitions(): array
     {
         return $this->serviceDefinitions;

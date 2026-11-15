@@ -46,6 +46,6 @@ final class InternalMessageFlowCompilerPass implements CompilerPass
             InternalMessageFlowDiscovery::discover($this->configuration, $this->interfaceToCallRegistry, $this->declared)->getDefinition(),
         ]));
         $ledger = MessageFlowLedgerDiscovery::discover($this->configuration, $this->interfaceToCallRegistry);
-        $builder->register(MessageFlowBuild::class, (new MessageFlowBuild($ledger['ledger'], []))->getDefinition());
+        $builder->register(MessageFlowBuild::class, (new MessageFlowBuild($ledger['ledger'], MessageFlowChainReader::read($builder, $this->configuration, $this->interfaceToCallRegistry, $ledger['handlerNames'])))->getDefinition());
     }
 }

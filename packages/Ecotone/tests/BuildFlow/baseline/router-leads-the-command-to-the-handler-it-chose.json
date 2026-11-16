@@ -69,7 +69,7 @@
         {"depth":1,"name":"process class@anonymous::express","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send command shipment.dispatch", "steps": [
+        {"process": "send command shipment.dispatch, handled by class@anonymous::dispatch", "steps": [
             "  gateway CommandBus::sendWithRouting returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceCommandBus",
@@ -77,22 +77,22 @@
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          around DeliveryConfirmationInterceptor::await",
             "            direct channel ecotone.modelling.bus.command_by_name",
+            "              route by name shipment.dispatch to shipment.dispatching.target",
             "              direct channel shipment.dispatching.target",
             "                around MessageHandlerLogger::aroundCommandHandler",
             "                  around TracingInterceptor::traceHandlerEndpoint",
             "                    span process class@anonymous::dispatch",
             "                      handler class@anonymous::dispatch returns string",
             "                reply string to output channel shipment.route",
-            "                  send shipment.route",
-            "                    channel interceptor SpiecChannelAdapter",
-            "                    publish-subscribe channel shipment.route",
-            "                      router class@anonymous::route returns string",
-            "                      direct channel shipment.express",
-            "                        around MessageHandlerLogger::aroundMessageHandler",
-            "                          around TracingInterceptor::traceHandlerEndpoint",
-            "                            span process class@anonymous::express",
-            "                              handler class@anonymous::express returns nothing",
-            "                        no reply",
+            "                  publish-subscribe channel shipment.route",
+            "                    router class@anonymous::route returns string",
+            "                    route to shipment.express",
+            "                    direct channel shipment.express",
+            "                      around MessageHandlerLogger::aroundMessageHandler",
+            "                        around TracingInterceptor::traceHandlerEndpoint",
+            "                          span process class@anonymous::express",
+            "                            handler class@anonymous::express returns nothing",
+            "                      no reply",
             "              no reply"
         ]}
     ]

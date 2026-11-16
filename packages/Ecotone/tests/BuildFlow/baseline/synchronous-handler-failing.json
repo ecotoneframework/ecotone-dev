@@ -42,7 +42,7 @@
         {"depth":1,"name":"process class@anonymous::place","kind":"Server","status":"Error"}
     ],
     "execution": [
-        {"process": "send command order.place", "steps": [
+        {"process": "send command order.place, handled by class@anonymous::place", "steps": [
             "  gateway CommandBus::sendWithRouting throws RuntimeException",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceCommandBus throws RuntimeException",
@@ -50,6 +50,7 @@
             "        around MessageHeadersPropagatorInterceptor::storeHeaders throws RuntimeException",
             "          around DeliveryConfirmationInterceptor::await throws RuntimeException",
             "            direct channel ecotone.modelling.bus.command_by_name throws RuntimeException",
+            "              route by name order.place to order.placing.target",
             "              direct channel order.placing.target throws RuntimeException",
             "                around MessageHandlerLogger::aroundCommandHandler throws RuntimeException",
             "                  around TracingInterceptor::traceHandlerEndpoint throws RuntimeException",

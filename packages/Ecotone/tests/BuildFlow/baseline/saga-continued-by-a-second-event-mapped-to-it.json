@@ -89,15 +89,17 @@
         {"depth":2,"name":"process class@anonymous::whenPaid","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send event Ecotone\\Test\\Flow\\Fixture\\FlowOrderPlaced", "steps": [
+        {"process": "send event Ecotone\\Test\\Flow\\Fixture\\FlowOrderPlaced, handled by class@anonymous::start", "steps": [
             "  gateway EventBus::publish returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceEventBus",
             "      span send event Ecotone\\Test\\Flow\\Fixture\\FlowOrderPlaced",
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          direct channel ecotone.modelling.bus.event_by_name",
+            "            route by class FlowOrderPlaced to shipping.starting.target",
             "            span route shipping.starting shipping.starting.target",
             "              direct channel shipping.starting.target",
+            "                resolve the aggregate identifier to {\"orderId\":\"1\"}",
             "                reply FlowOrderPlaced to output channel shipping.starting.target-connection",
             "                  direct channel shipping.starting.target-connection",
             "                    step HeaderEnricher::transform returns a message of FlowOrderPlaced",
@@ -105,25 +107,34 @@
             "                      around TracingInterceptor::traceHandlerEndpoint",
             "                        span process class@anonymous::start",
             "                          handler class@anonymous::start returns class@anonymous",
+            "                    save the aggregate",
+            "                      repository saves class@anonymous at version 1",
             "                    reply string dropped, as no channel waits for it",
             "            no reply"
         ]},
-        {"process": "send event Ecotone\\Test\\Flow\\Fixture\\FlowPaymentReceived", "steps": [
+        {"process": "send event Ecotone\\Test\\Flow\\Fixture\\FlowPaymentReceived, handled by class@anonymous::whenPaid", "steps": [
             "  gateway EventBus::publish returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceEventBus",
             "      span send event Ecotone\\Test\\Flow\\Fixture\\FlowPaymentReceived",
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          direct channel ecotone.modelling.bus.event_by_name",
+            "            route by class FlowPaymentReceived to shipping.paying.target",
             "            span route shipping.paying shipping.paying.target",
             "              direct channel shipping.paying.target",
+            "                resolve the aggregate identifier to {\"orderId\":\"1\"}",
             "                reply FlowPaymentReceived to output channel shipping.paying.target-connection",
             "                  direct channel shipping.paying.target-connection",
             "                    step HeaderEnricher::transform returns a message of FlowPaymentReceived",
+            "                    resolve the aggregate identifier to {\"orderId\":\"1\"}",
+            "                    load the aggregate found it",
+            "                      repository finds class@anonymous by {\"orderId\":\"1\"} it at version none",
             "                    around MessageHandlerLogger::aroundEventHandler",
             "                      around TracingInterceptor::traceHandlerEndpoint",
             "                        span process class@anonymous::whenPaid",
             "                          handler class@anonymous::whenPaid returns nothing",
+            "                    save the aggregate",
+            "                      repository saves class@anonymous",
             "                    no reply",
             "            no reply"
         ]}

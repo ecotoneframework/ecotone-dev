@@ -79,7 +79,8 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertArrayNotHasKey('steps', $execution[1]);
         $changes = array_column($execution[0]['steps'], 'change');
         self::assertContains('left out', $changes);
-        self::assertSame('unchanged', $changes[array_search('added', $changes, true) - 1]);
+        $firstChange = array_key_first(array_filter($changes, fn (string $change): bool => in_array($change, ['added', 'removed'], true)));
+        self::assertSame('unchanged', $changes[$firstChange - 1]);
         self::assertContains('handler class@anonymous::audit returns nothing', array_map(trim(...), array_column(array_filter($execution[0]['steps'], fn (array $entry): bool => $entry['change'] === 'added'), 'step')));
     }
 
@@ -105,7 +106,7 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertStringContainsString("#### What ran, process by process\n", $presented);
         self::assertStringContainsString("Process `receive notifications, handled by class@anonymous::whenPlaced`: unchanged.\n", $presented);
         self::assertMatchesRegularExpression('/\n\+ +handler class@anonymous::audit returns nothing\n/', $presented);
-        self::assertMatchesRegularExpression('/```diff\n(  .*\n|  … \d+ unchanged steps\n|\+ .*\n)+```/', $presented);
+        self::assertMatchesRegularExpression('/```diff\n(  .*\n|  … \d+ unchanged steps\n|\+ .*\n|- .*\n)+```/', $presented);
     }
 
     public function test_processes_of_the_same_kind_are_titled_by_what_they_handled_and_paired_on_it(): void

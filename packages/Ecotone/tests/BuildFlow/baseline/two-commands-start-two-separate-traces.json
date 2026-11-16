@@ -44,7 +44,7 @@
         {"depth":1,"name":"process class@anonymous::register","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send command user.register", "steps": [
+        {"process": "send command user.register, handled by class@anonymous::register (1 of 2)", "steps": [
             "  gateway CommandBus::sendWithRouting returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceCommandBus",
@@ -52,6 +52,7 @@
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          around DeliveryConfirmationInterceptor::await",
             "            direct channel ecotone.modelling.bus.command_by_name",
+            "              route by name user.register to user.registration.target",
             "              direct channel user.registration.target",
             "                around MessageHandlerLogger::aroundCommandHandler",
             "                  around TracingInterceptor::traceHandlerEndpoint",
@@ -60,7 +61,7 @@
             "                no reply",
             "              no reply"
         ]},
-        {"process": "send command user.register", "steps": [
+        {"process": "send command user.register, handled by class@anonymous::register (2 of 2)", "steps": [
             "  gateway CommandBus::sendWithRouting returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceCommandBus",
@@ -68,6 +69,7 @@
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          around DeliveryConfirmationInterceptor::await",
             "            direct channel ecotone.modelling.bus.command_by_name",
+            "              route by name user.register to user.registration.target",
             "              direct channel user.registration.target",
             "                around MessageHandlerLogger::aroundCommandHandler",
             "                  around TracingInterceptor::traceHandlerEndpoint",

@@ -60,7 +60,7 @@
         {"depth":1,"name":"process class@anonymous::handle","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send command order.second", "steps": [
+        {"process": "send command order.second, handled by class@anonymous::handle", "steps": [
             "  gateway CommandBus::sendWithRouting returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceCommandBus",
@@ -68,6 +68,7 @@
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          around DeliveryConfirmationInterceptor::await",
             "            direct channel ecotone.modelling.bus.command_by_name",
+            "              route by name order.second to order.second.handler.target",
             "              direct channel order.second.handler.target",
             "                around MessageHandlerLogger::aroundCommandHandler",
             "                  around TracingInterceptor::traceHandlerEndpoint",

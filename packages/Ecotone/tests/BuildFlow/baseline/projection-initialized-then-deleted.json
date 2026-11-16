@@ -107,27 +107,35 @@
         {"depth":0,"name":"delete orders","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "initialize orders", "steps": [
-            "  direct channel ecotone.messaging.entrypoint",
-            "    router HeaderRouter::route returns array",
-            "    direct channel projecting_manager_initialize:orders",
-            "      before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
-            "      around TracingInterceptor::traceProjectionOperation",
-            "        span initialize orders",
-            "          around MessageHeadersPropagatorInterceptor::storeHeaders",
-            "            handler ProjectingManager::init returns nothing",
-            "      no reply"
+        {"process": "initialize orders, handled by ProjectingManager::init", "steps": [
+            "  entrypoint sends to projecting_manager_initialize:orders",
+            "    direct channel ecotone.messaging.entrypoint",
+            "      router HeaderRouter::route returns array",
+            "      route to projecting_manager_initialize:orders",
+            "      direct channel projecting_manager_initialize:orders",
+            "        before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "        around TracingInterceptor::traceProjectionOperation",
+            "          span initialize orders",
+            "            around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "              handler ProjectingManager::init returns nothing",
+            "                init the state of orders",
+            "                load partition (the whole stream) of orders found it at position start",
+            "        no reply"
         ]},
-        {"process": "delete orders", "steps": [
-            "  direct channel ecotone.messaging.entrypoint",
-            "    router HeaderRouter::route returns array",
-            "    direct channel projecting_manager_delete:orders",
-            "      before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
-            "      around TracingInterceptor::traceProjectionOperation",
-            "        span delete orders",
-            "          around MessageHeadersPropagatorInterceptor::storeHeaders",
-            "            handler ProjectingManager::delete returns nothing",
-            "      no reply"
+        {"process": "delete orders, handled by ProjectingManager::delete", "steps": [
+            "  entrypoint sends to projecting_manager_delete:orders",
+            "    direct channel ecotone.messaging.entrypoint",
+            "      router HeaderRouter::route returns array",
+            "      route to projecting_manager_delete:orders",
+            "      direct channel projecting_manager_delete:orders",
+            "        before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "        around TracingInterceptor::traceProjectionOperation",
+            "          span delete orders",
+            "            around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "              handler ProjectingManager::delete returns nothing",
+            "                delete the state of orders",
+            "                delete the projection",
+            "        no reply"
         ]}
     ]
 }

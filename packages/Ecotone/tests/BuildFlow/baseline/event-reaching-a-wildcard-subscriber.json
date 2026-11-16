@@ -36,13 +36,14 @@
         {"depth":2,"name":"process class@anonymous::audit","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send event order.placed", "steps": [
+        {"process": "send event order.placed, handled by class@anonymous::audit", "steps": [
             "  gateway EventBus::publishWithRouting returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceEventBus",
             "      span send event order.placed",
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          direct channel ecotone.modelling.bus.event_by_name",
+            "            route by name order.placed to order.auditing.target",
             "            span route order.auditing order.auditing.target",
             "              direct channel order.auditing.target",
             "                around MessageHandlerLogger::aroundEventHandler",

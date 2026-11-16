@@ -42,13 +42,14 @@
         {"depth":1,"name":"process class@anonymous::status","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send query order.status", "steps": [
-            "  gateway QueryBus::sendWithRouting returns a message of string",
+        {"process": "send query order.status, handled by class@anonymous::status", "steps": [
+            "  gateway QueryBus::sendWithRouting returns string",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceQueryBus",
             "      span send query order.status",
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          direct channel ecotone.modelling.bus.query_by_name",
+            "            route by name order.status to order.status.reading.target",
             "            direct channel order.status.reading.target",
             "              around MessageHandlerLogger::aroundQueryHandler",
             "                around TracingInterceptor::traceHandlerEndpoint",

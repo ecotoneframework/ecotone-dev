@@ -92,11 +92,16 @@
             "      span send event Ecotone\\Test\\Flow\\Fixture\\FlowPaymentReceived",
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          direct channel ecotone.modelling.bus.event_by_name",
+            "            route by class FlowPaymentReceived to shipping.paying.target",
             "            span route shipping.paying shipping.paying.target",
             "              direct channel shipping.paying.target",
+            "                resolve the aggregate identifier to {\"orderId\":\"unknown\"}",
             "                reply FlowPaymentReceived to output channel shipping.paying.target-connection",
             "                  direct channel shipping.paying.target-connection",
             "                    step HeaderEnricher::transform returns a message of FlowPaymentReceived",
+            "                    resolve the aggregate identifier to {\"orderId\":\"unknown\"}",
+            "                    load the aggregate dropped the message, as no aggregate was found",
+            "                      repository finds class@anonymous by {\"orderId\":\"unknown\"} nothing",
             "                    no reply",
             "            no reply"
         ]}

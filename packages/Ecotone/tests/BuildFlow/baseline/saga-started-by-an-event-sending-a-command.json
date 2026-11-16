@@ -90,15 +90,17 @@
         {"depth":4,"name":"process class@anonymous::prepare","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send event Ecotone\\Test\\Flow\\Fixture\\FlowOrderPlaced", "steps": [
+        {"process": "send event Ecotone\\Test\\Flow\\Fixture\\FlowOrderPlaced, handled by class@anonymous::start", "steps": [
             "  gateway EventBus::publish returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceEventBus",
             "      span send event Ecotone\\Test\\Flow\\Fixture\\FlowOrderPlaced",
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          direct channel ecotone.modelling.bus.event_by_name",
+            "            route by class FlowOrderPlaced to shipping.starting.target",
             "            span route shipping.starting shipping.starting.target",
             "              direct channel shipping.starting.target",
+            "                resolve the aggregate identifier to {\"orderId\":\"1\"}",
             "                reply FlowOrderPlaced to output channel shipping.starting.target-connection",
             "                  direct channel shipping.starting.target-connection",
             "                    step HeaderEnricher::transform returns a message of FlowOrderPlaced",
@@ -113,6 +115,7 @@
             "                                  around MessageHeadersPropagatorInterceptor::storeHeaders",
             "                                    around DeliveryConfirmationInterceptor::await",
             "                                      direct channel ecotone.modelling.bus.command_by_name",
+            "                                        route by name shipping.prepare to shipping.preparing.target",
             "                                        direct channel shipping.preparing.target",
             "                                          around MessageHandlerLogger::aroundCommandHandler",
             "                                            around TracingInterceptor::traceHandlerEndpoint",
@@ -120,6 +123,8 @@
             "                                                handler class@anonymous::prepare returns nothing",
             "                                          no reply",
             "                                        no reply",
+            "                    save the aggregate",
+            "                      repository saves class@anonymous at version 1",
             "                    reply string dropped, as no channel waits for it",
             "            no reply"
         ]}

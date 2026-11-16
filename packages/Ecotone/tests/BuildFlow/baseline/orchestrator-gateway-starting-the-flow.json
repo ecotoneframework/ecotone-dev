@@ -51,12 +51,12 @@
         {"depth":1,"name":"process class@anonymous::notify","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send orchestrator", "steps": [
-            "  gateway FlowApprovalWorkflow::start returns a message of string",
+        {"process": "send orchestrator, handled by OrchestratorGatewayEntrypoint::handle", "steps": [
+            "  gateway FlowApprovalWorkflow::start returns string",
             "    around TracingInterceptor::traceOrchestratorGateway",
             "      span send orchestrator",
             "        direct channel ecotone.orchestrator.entrypoint",
-            "          handler OrchestratorGatewayEntrypoint::handle returns array",
+            "          orchestrator OrchestratorGatewayEntrypoint::handle returns array",
             "          reply string to routing slip channel approval.validate",
             "            direct channel approval.validate",
             "              around MessageHandlerLogger::aroundMessageHandler",

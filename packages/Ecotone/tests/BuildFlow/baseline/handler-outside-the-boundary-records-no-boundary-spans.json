@@ -42,7 +42,7 @@
         {"depth":1,"name":"process class@anonymous::enrol","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send command enrolment.without_boundary", "steps": [
+        {"process": "send command enrolment.without_boundary, handled by class@anonymous::enrol", "steps": [
             "  gateway CommandBus::sendWithRouting returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceCommandBus",
@@ -50,6 +50,7 @@
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          around DeliveryConfirmationInterceptor::await",
             "            direct channel ecotone.modelling.bus.command_by_name",
+            "              route by name enrolment.without_boundary to enrolment.plain.target",
             "              direct channel enrolment.plain.target",
             "                around MessageHandlerLogger::aroundCommandHandler",
             "                  around TracingInterceptor::traceHandlerEndpoint",

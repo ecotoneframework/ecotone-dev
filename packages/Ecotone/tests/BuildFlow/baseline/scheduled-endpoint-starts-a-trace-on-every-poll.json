@@ -42,7 +42,7 @@
         {"depth":1,"name":"process class@anonymous::add","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "receive add", "steps": [
+        {"process": "receive add, handled by class@anonymous::add (1 of 2)", "steps": [
             "  gateway InboundGatewayEntrypoint::executeEntrypoint returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceAsynchronousEndpoint",
@@ -60,7 +60,7 @@
             "                            handler class@anonymous::add returns nothing",
             "                      no reply"
         ]},
-        {"process": "receive add", "steps": [
+        {"process": "receive add, handled by class@anonymous::add (2 of 2)", "steps": [
             "  gateway InboundGatewayEntrypoint::executeEntrypoint returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceAsynchronousEndpoint",

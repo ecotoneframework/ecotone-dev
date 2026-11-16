@@ -70,19 +70,21 @@
         {"depth":1,"name":"send distributed_channel","kind":"Producer","status":"Error"}
     ],
     "execution": [
-        {"process": "send distributed", "steps": [
+        {"process": "send distributed, handled by DistributedOutboundRouter::route", "steps": [
             "  gateway DistributedBus::sendCommand throws RuntimeException",
             "    before TracingInterceptor::provideContextForDistributedBus returns a message of string",
             "    around TracingInterceptor::traceDistributedBus throws RuntimeException",
             "      span send distributed",
             "        direct channel Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution throws RuntimeException",
             "          router DistributedOutboundRouter::route returns array",
+            "          route to distributed_channel",
             "          send distributed_channel throws RuntimeException",
             "            channel interceptor OutboundSerializationChannelInterceptor",
             "            channel interceptor MessageCollectorChannelInterceptor",
             "            channel interceptor SendRetryChannelInterceptor",
             "            span send distributed_channel",
-            "              channel interceptor TracingChannelInterceptor"
+            "              channel interceptor TracingChannelInterceptor",
+            "            after-send-completion through OutboundSerializationChannelInterceptor, MessageCollectorChannelInterceptor, SendRetryChannelInterceptor, TracingChannelInterceptor"
         ]}
     ]
 }

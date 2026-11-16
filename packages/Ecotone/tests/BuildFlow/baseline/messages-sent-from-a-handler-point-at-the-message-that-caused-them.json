@@ -58,13 +58,14 @@
         {"depth":4,"name":"process class@anonymous::register","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send event merchant.created", "steps": [
+        {"process": "send event merchant.created, handled by class@anonymous::merchantToUser", "steps": [
             "  gateway EventBus::publishWithRouting returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceEventBus",
             "      span send event merchant.created",
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          direct channel ecotone.modelling.bus.event_by_name",
+            "            route by name merchant.created to merchant.to.user.target",
             "            span route merchant.to.user merchant.to.user.target",
             "              direct channel merchant.to.user.target",
             "                around MessageHandlerLogger::aroundEventHandler",
@@ -78,6 +79,7 @@
             "                              around MessageHeadersPropagatorInterceptor::storeHeaders",
             "                                around DeliveryConfirmationInterceptor::await",
             "                                  direct channel ecotone.modelling.bus.command_by_name",
+            "                                    route by name user.register to user.registration.target",
             "                                    direct channel user.registration.target",
             "                                      around MessageHandlerLogger::aroundCommandHandler",
             "                                        around TracingInterceptor::traceHandlerEndpoint",

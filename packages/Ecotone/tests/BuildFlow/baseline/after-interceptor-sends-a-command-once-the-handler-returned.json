@@ -66,14 +66,15 @@
         {"depth":2,"name":"process class@anonymous::record","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send command order.place", "steps": [
-            "  gateway CommandBus::sendWithRouting returns a message of string",
+        {"process": "send command order.place, handled by class@anonymous::place", "steps": [
+            "  gateway CommandBus::sendWithRouting returns string",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceCommandBus",
             "      span send command order.place",
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          around DeliveryConfirmationInterceptor::await",
             "            direct channel ecotone.modelling.bus.command_by_name",
+            "              route by name order.place to order.placing.target",
             "              direct channel order.placing.target",
             "                around MessageHandlerLogger::aroundCommandHandler",
             "                  around TracingInterceptor::traceHandlerEndpoint",
@@ -87,6 +88,7 @@
             "                        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "                          around DeliveryConfirmationInterceptor::await",
             "                            direct channel ecotone.modelling.bus.command_by_name",
+            "                              route by name audit.record to audit.recording.target",
             "                              direct channel audit.recording.target",
             "                                around MessageHandlerLogger::aroundCommandHandler",
             "                                  around TracingInterceptor::traceHandlerEndpoint",

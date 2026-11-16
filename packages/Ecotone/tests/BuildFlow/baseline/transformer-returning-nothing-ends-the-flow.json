@@ -58,7 +58,7 @@
         {"depth":1,"name":"process class@anonymous::place","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send command order.place", "steps": [
+        {"process": "send command order.place, handled by class@anonymous::place", "steps": [
             "  gateway CommandBus::sendWithRouting returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceCommandBus",
@@ -66,17 +66,16 @@
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          around DeliveryConfirmationInterceptor::await",
             "            direct channel ecotone.modelling.bus.command_by_name",
+            "              route by name order.place to order.placing.target",
             "              direct channel order.placing.target",
             "                around MessageHandlerLogger::aroundCommandHandler",
             "                  around TracingInterceptor::traceHandlerEndpoint",
             "                    span process class@anonymous::place",
             "                      handler class@anonymous::place returns string",
             "                reply string to output channel order.filter",
-            "                  send order.filter",
-            "                    channel interceptor SpiecChannelAdapter",
-            "                    publish-subscribe channel order.filter",
-            "                      handler class@anonymous::filter returns nothing",
-            "                      no reply",
+            "                  publish-subscribe channel order.filter",
+            "                    transformer class@anonymous::filter returns nothing",
+            "                    no reply",
             "              no reply"
         ]}
     ]

@@ -36,13 +36,14 @@
         {"depth":2,"name":"process class@anonymous::notify","kind":"Server","status":"Error"}
     ],
     "execution": [
-        {"process": "send event merchant.created", "steps": [
+        {"process": "send event merchant.created, handled by class@anonymous::notify", "steps": [
             "  gateway EventBus::publishWithRouting throws RuntimeException",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceEventBus throws RuntimeException",
             "      span send event merchant.created",
             "        around MessageHeadersPropagatorInterceptor::storeHeaders throws RuntimeException",
             "          direct channel ecotone.modelling.bus.event_by_name throws RuntimeException",
+            "            route by name merchant.created to merchant.notifying.target",
             "            span route merchant.notifying merchant.notifying.target",
             "              direct channel merchant.notifying.target throws RuntimeException",
             "                around MessageHandlerLogger::aroundEventHandler throws RuntimeException",

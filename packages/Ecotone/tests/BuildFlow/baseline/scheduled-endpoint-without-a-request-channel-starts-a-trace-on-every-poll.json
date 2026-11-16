@@ -30,7 +30,7 @@
         {"depth":0,"name":"poll scheduled_handler","kind":"Consumer","status":"Ok"}
     ],
     "execution": [
-        {"process": "poll scheduled_handler", "steps": [
+        {"process": "poll scheduled_handler (1 of 2)", "steps": [
             "  gateway InboundGatewayEntrypoint::executeEntrypoint returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceAsynchronousEndpoint",
@@ -42,7 +42,7 @@
             "                around AsynchronousEndpointInstantRetryByDefault::retry",
             "                  around DeliveryConfirmationInterceptor::await"
         ]},
-        {"process": "poll scheduled_handler", "steps": [
+        {"process": "poll scheduled_handler (2 of 2)", "steps": [
             "  gateway InboundGatewayEntrypoint::executeEntrypoint returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceAsynchronousEndpoint",

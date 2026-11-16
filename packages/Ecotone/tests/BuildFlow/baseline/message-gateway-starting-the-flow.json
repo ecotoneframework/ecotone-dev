@@ -38,7 +38,7 @@
         {"depth":1,"name":"process class@anonymous::send","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send notification.send", "steps": [
+        {"process": "send notification.send, handled by class@anonymous::send", "steps": [
             "  gateway FlowNotificationGateway::send returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceMessageGateway",

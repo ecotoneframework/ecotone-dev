@@ -79,7 +79,7 @@
         {"depth":6,"name":"process class@anonymous::register","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send command merchant.create", "steps": [
+        {"process": "send command merchant.create, handled by class@anonymous::create", "steps": [
             "  gateway CommandBus::sendWithRouting returns nothing",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceCommandBus",
@@ -87,6 +87,7 @@
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          around DeliveryConfirmationInterceptor::await",
             "            direct channel ecotone.modelling.bus.command_by_name",
+            "              route by name merchant.create to merchant.creation.target",
             "              direct channel merchant.creation.target",
             "                around MessageHandlerLogger::aroundCommandHandler",
             "                  around TracingInterceptor::traceHandlerEndpoint",
@@ -98,6 +99,7 @@
             "                            span send event merchant.created",
             "                              around MessageHeadersPropagatorInterceptor::storeHeaders",
             "                                direct channel ecotone.modelling.bus.event_by_name",
+            "                                  route by name merchant.created to merchant.to.user.target",
             "                                  span route merchant.to.user merchant.to.user.target",
             "                                    direct channel merchant.to.user.target",
             "                                      around MessageHandlerLogger::aroundEventHandler",
@@ -111,6 +113,7 @@
             "                                                    around MessageHeadersPropagatorInterceptor::storeHeaders",
             "                                                      around DeliveryConfirmationInterceptor::await",
             "                                                        direct channel ecotone.modelling.bus.command_by_name",
+            "                                                          route by name user.register to user.registration.target",
             "                                                          direct channel user.registration.target",
             "                                                            around MessageHandlerLogger::aroundCommandHandler",
             "                                                              around TracingInterceptor::traceHandlerEndpoint",

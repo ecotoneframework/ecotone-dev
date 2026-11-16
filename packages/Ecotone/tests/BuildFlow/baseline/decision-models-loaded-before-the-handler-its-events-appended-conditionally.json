@@ -70,17 +70,19 @@
         {"depth":1,"name":"send event","destination":"Ecotone\\Test\\Flow\\Fixture\\FlowStudentEnrolled","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send command Ecotone\\Test\\Flow\\Fixture\\FlowEnrolStudent", "steps": [
-            "  gateway CommandBus::send returns a message of array",
+        {"process": "send command Ecotone\\Test\\Flow\\Fixture\\FlowEnrolStudent, handled by class@anonymous::enrol", "steps": [
+            "  gateway CommandBus::send returns array",
             "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "    around TracingInterceptor::traceCommandBus",
             "      span send command Ecotone\\Test\\Flow\\Fixture\\FlowEnrolStudent",
             "        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "          around DeliveryConfirmationInterceptor::await",
             "            direct channel ecotone.modelling.bus.command_by_name",
-            "              direct channel {generated}.target",
+            "              route by class FlowEnrolStudent to {generated#1}.target",
+            "              direct channel {generated#1}.target",
             "                before TracedDecisionModelBatchLoader::load returns array",
             "                  span Decision Models: class@anonymous::enrol",
+            "                    apply FlowCourseDefined to FlowCourseCapacity, by EnterpriseAggregateMethodInvoker",
             "                around DecisionModelAppendInterceptor::append",
             "                  around MessageHandlerLogger::aroundCommandHandler",
             "                    around TracingInterceptor::traceHandlerEndpoint",
@@ -93,6 +95,7 @@
             "                      span send event Ecotone\\Test\\Flow\\Fixture\\FlowStudentEnrolled",
             "                        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "                          direct channel ecotone.modelling.bus.event_by_name",
+            "                            route by class FlowStudentEnrolled to no channel",
             "                            no reply",
             "                reply array to the reply channel of the request",
             "              no reply"

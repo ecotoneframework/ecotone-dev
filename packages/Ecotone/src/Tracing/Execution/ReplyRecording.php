@@ -77,7 +77,7 @@ final class ReplyRecording
             return;
         }
         if ($open['reply'] === null) {
-            $this->tracer->recordStep('no hand-over', hints: [ExecutionHint::critical(ExecutionHint::RESULT, 'the handler returned nothing')]);
+            $this->tracer->recordStep('no hand-over', hints: [ExecutionHint::critical(ExecutionHint::RESULT, 'nothing returned by ' . $this->handler)]);
 
             return;
         }
@@ -88,7 +88,7 @@ final class ReplyRecording
 
             return;
         }
-        $this->tracer->recordStep('no hand-over', hints: array_values(array_filter([ExecutionHint::critical(ExecutionHint::RESULT, 'returned ' . $payload . ', no output channel, routing slip or reply channel'), $slip])));
+        $this->tracer->recordStep('no hand-over', hints: array_values(array_filter([ExecutionHint::critical(ExecutionHint::RESULT, $payload . ' returned by ' . $this->handler . ', nothing takes it'), $slip])));
     }
 
     private static function routingSlipChangeOf(Message $request, Message $handedOver): ?ExecutionHint

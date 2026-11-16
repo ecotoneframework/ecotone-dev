@@ -222,6 +222,16 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         self::assertContains('↳ result: passes RuntimeException out of the process', $lines);
     }
 
+    public function test_a_step_without_a_hand_over_names_whose_result_it_was(): void
+    {
+        $lines = array_map(trim(...), $this->asynchronousOrder());
+        $route = self::positionOf($lines, 'route to order.place.endpoint.target');
+        $noHandOver = array_values(array_filter(array_keys($lines, 'no hand-over', true), fn (int $position): bool => $position > $route));
+
+        self::assertSame('↳ result: nothing returned by the router', $lines[$noHandOver[0] + 1]);
+        self::assertSame('↳ result: nothing returned by class@anonymous::place', $lines[$noHandOver[1] + 1]);
+    }
+
     public function test_no_step_names_a_class_of_the_recording(): void
     {
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
@@ -356,8 +366,8 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $lines = array_map(trim(...), $this->recorded([$listeners::class], [$listeners], [], fn (FlowTestSupport $ecotone) => $ecotone->publishEventWithRouting('order.placed', [])));
 
         $whyNothing = array_values(array_map(fn (int $position): string => $lines[$position + 1], array_keys($lines, 'no hand-over', true)));
-        self::assertContains('↳ result: returned string, no output channel, routing slip or reply channel', $whyNothing);
-        self::assertContains('↳ result: the handler returned nothing', $whyNothing);
+        self::assertContains('↳ result: string returned by class@anonymous::audit, nothing takes it', $whyNothing);
+        self::assertContains('↳ result: nothing returned by class@anonymous::notify', $whyNothing);
     }
 
     public function test_the_entrypoint_sets_the_routing_slip_and_its_router_says_which_header_chose_the_route(): void

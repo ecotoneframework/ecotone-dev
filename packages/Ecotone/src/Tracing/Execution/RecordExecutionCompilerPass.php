@@ -382,10 +382,13 @@ final class RecordExecutionCompilerPass implements CompilerPass
         return new Definition(RecordedGatheringPart::class, [$gatheringHandler, new Reference(Tracer::class)]);
     }
 
-    private static function handlerNamed(string $interface): string
+    private static function handlerNamed(string $interface, mixed $processor): string
     {
         if (! str_contains($interface, '::')) {
-            return 'the handler';
+            return match ($processor instanceof Definition ? $processor->getClassName() : '') {
+                RouterProcessor::class => 'the router',
+                default => 'the chain',
+            };
         }
         [$class, $method] = explode('::', $interface, 2);
 
@@ -395,7 +398,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
     private function withRecordedReply(Definition $requestReplyProducer, ContainerBuilder $builder): Definition
     {
         $arguments = $requestReplyProducer->getArguments();
-        $recording = $builder->register(self::REPLY_RECORDING_PREFIX . spl_object_id($requestReplyProducer), new Definition(ReplyRecording::class, [self::handlerNamed((string) ($arguments[6] ?? '')), new Reference(Tracer::class)]));
+        $recording = $builder->register(self::REPLY_RECORDING_PREFIX . spl_object_id($requestReplyProducer), new Definition(ReplyRecording::class, [self::handlerNamed((string) ($arguments[6] ?? ''), $arguments[1]), new Reference(Tracer::class)]));
         if ($arguments[0] instanceof Reference) {
             $arguments[0] = new Definition(RecordedReplyChannel::class, [$arguments[0], ReplyRecording::OUTPUT_CHANNEL, $arguments[0] instanceof ChannelReference ? $arguments[0]->getChannelName() : $arguments[0]->getId(), $recording]);
         }

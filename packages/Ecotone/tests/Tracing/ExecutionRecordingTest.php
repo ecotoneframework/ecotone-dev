@@ -617,6 +617,15 @@ final class ExecutionRecordingTest extends TracingTestCase
         self::assertContains('send notifications', $lines);
     }
 
+    public function test_an_aggregate_method_reached_through_the_factory_and_action_router_is_a_handler(): void
+    {
+        $lines = self::trimmed(self::executionOf('routed factory and action with explicit endpoint ids'));
+
+        self::assertContains('handler class@anonymous::place returns class@anonymous', $lines);
+        self::assertContains('handler class@anonymous::placeAgain returns nothing', $lines);
+        self::assertSame([], array_values(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'step class@anonymous'))));
+    }
+
     /**
      * @param list<string> $lines
      * @return list<string>

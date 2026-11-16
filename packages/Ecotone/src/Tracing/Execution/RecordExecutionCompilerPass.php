@@ -27,6 +27,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerStaticObjectResolver;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Handler\Router\InvocationRouter;
+use Ecotone\Messaging\Handler\Router\RouterProcessor;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Tracing\Tracer;
 
@@ -130,6 +131,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 Gateway::class => $this->withRecordedEntry($arguments, $builder),
                 BeforeSendChannelInterceptor::class => $this->recorded($arguments, self::PRESEND, $builder),
                 InvocationRouter::class => $this->recorded($arguments, self::ROUTER, $builder),
+                RouterProcessor::class => $this->recorded($arguments, null, $builder),
                 default => $this->recorded($arguments, $role, $builder),
             };
         }

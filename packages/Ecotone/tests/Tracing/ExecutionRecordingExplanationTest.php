@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
@@ -217,6 +218,46 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $entrypoint = self::positionOf($lines, 'entrypoint sends to backfill, setting the routing slip ecotone.projection.partition_batch.executor');
 
         self::assertSame('route to backfill, named by the header ecotone.messaging.entrypoint of the message', $lines[$entrypoint + 3]);
+    }
+
+    public function test_copies_of_one_event_sent_to_two_asynchronous_handlers_are_each_released_and_linked_to_their_own_consumer(): void
+    {
+        $listeners = new class () {
+            #[CommandHandler('order.place')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', []);
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'audit')]
+            public function audit(): void
+            {
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'notify')]
+            public function notify(): void
+            {
+            }
+        };
+
+        $lines = array_map(trim(...), $this->recorded([$listeners::class], [$listeners], [SimpleMessageChannelBuilder::createQueueChannel('notifications')], function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommandWithRouting('order.place', []);
+            $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+        }));
+
+        self::assertSame(
+            [
+                'release collected message to notifications, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 2',
+                'release collected message to notifications, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 3',
+            ],
+            array_values(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'release collected message to notifications'))),
+        );
+        self::assertSame(
+            ['receive notifications: the event order.placed, put on the channel by process 1', 'receive notifications: the event order.placed, put on the channel by process 1'],
+            array_values(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'receive notifications'))),
+        );
     }
 
     /**

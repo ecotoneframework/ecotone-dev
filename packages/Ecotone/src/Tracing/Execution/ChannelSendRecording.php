@@ -54,7 +54,7 @@ final class ChannelSendRecording
 
     public function started(Message $message): void
     {
-        $messageId = $message->getHeaders()->getMessageId();
+        $messageId = self::identityOf($message);
         $released = $this->tracer->releaseCollected($this->channelName, $messageId);
         $this->openSends[] = [
             'step' => $this->onlyFlowTestingIntercepts ? null : $this->tracer->startEntry(($released ? 'release collected message to ' . $this->channelName . ', held by ' . self::COLLECTOR . ' on its first send' : 'send ' . $this->channelName) . self::retryOf($message), attributes: [SpanAttribute::EXECUTION_SENT_MESSAGE => $messageId]),
@@ -158,7 +158,7 @@ final class ChannelSendRecording
                 }
             }
         }
-        $this->tracer->awaitReceive('receive ' . $this->channelName, $notes, [SpanAttribute::EXECUTION_RECEIVED_MESSAGE => $headers->getMessageId()]);
+        $this->tracer->awaitReceive('receive ' . $this->channelName, $notes, [SpanAttribute::EXECUTION_RECEIVED_MESSAGE => self::identityOf($message)]);
         if (! $headers->containsKey(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION)) {
             return $message;
         }
@@ -273,6 +273,13 @@ final class ChannelSendRecording
         }
 
         return $changes === [] ? 'passes the message on unchanged' : 'passes on the message with ' . implode('; ', $changes);
+    }
+
+    private static function identityOf(Message $message): string
+    {
+        $headers = $message->getHeaders();
+
+        return $headers->getMessageId() . ($headers->containsKey(MessageHeaders::ROUTING_SLIP) ? ' to ' . $headers->get(MessageHeaders::ROUTING_SLIP) : '');
     }
 
     private static function retryOf(Message $message): string

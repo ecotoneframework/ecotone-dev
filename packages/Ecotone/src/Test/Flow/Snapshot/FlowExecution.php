@@ -13,7 +13,7 @@ use Ecotone\Test\Flow\ExpectedSpan;
  */
 final class FlowExecution
 {
-    private const PLUMBING = ['Bridge::handle', 'RoutingSlipPrepender::transform'];
+    private const PLUMBING = ['Bridge::handle', 'RoutingSlipPrepender::transform', 'HeaderRouter::route'];
     private const GENERATED_ID = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/';
 
     /**
@@ -105,7 +105,7 @@ final class FlowExecution
     private static function handledIn(array $steps): ?string
     {
         foreach ($steps as $step) {
-            if (preg_match('/^\s*handler (\S+::\w+)/', $step, $handler) === 1 && ! in_array($handler[1], self::PLUMBING, true)) {
+            if (preg_match('/^\s*(?:handler|transformer|splitter|router|orchestrator) (\S+::\w+)/', $step, $handler) === 1 && ! in_array($handler[1], self::PLUMBING, true)) {
                 return $handler[1];
             }
             if (preg_match('/^\s*store part (\d+ of \d+)$/', $step, $part) === 1) {

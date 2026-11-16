@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tracing;
 
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Router;
+use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Api\Attribute\Transformer;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
@@ -41,6 +47,51 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
 
         self::assertContains('route by class ExecutionRecordedPlaceOrder to placeOrder.target', $lines);
         self::assertContains('route by name order.count to countOrders.target', $lines);
+    }
+
+    public function test_transformers_splitters_routers_bridges_and_orchestrators_are_recorded_in_their_own_role(): void
+    {
+        $endpoints = new class () {
+            #[Transformer('order.normalize')]
+            public function normalize(string $order): string
+            {
+                return strtoupper($order);
+            }
+
+            #[Router('order.route')]
+            public function route(string $order): string
+            {
+                return 'order.normalize';
+            }
+
+            #[Splitter('order.split', outputChannelName: 'order.normalize')]
+            public function split(string $orders): array
+            {
+                return explode(',', $orders);
+            }
+
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(string $order): void
+            {
+            }
+        };
+
+        $lines = $this->recorded([$endpoints::class], [$endpoints], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
+            $ecotone->sendDirectToChannel('order.route', 'b');
+            $ecotone->sendDirectToChannel('order.split', 'c,d');
+            $ecotone->sendCommandWithRouting('order.place', 'e');
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        });
+
+        self::assertContains('router class@anonymous::route returns string', $lines);
+        self::assertContains('route to order.normalize', $lines);
+        self::assertContains('transformer class@anonymous::normalize returns string', $lines);
+        self::assertContains('splitter class@anonymous::split returns array', $lines);
+        self::assertCount(3, array_keys($lines, 'direct channel order.normalize', true));
+        self::assertContains('bridge Bridge::handle returns a message of string', $lines);
+        self::assertSame([], array_values(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'handler class@anonymous::normalize') || str_starts_with($line, 'handler class@anonymous::split'))));
+        self::assertNotEmpty(array_filter(self::executionOf('orchestrator gateway starting the flow'), fn (string $line): bool => str_starts_with($line, 'orchestrator ')));
     }
 
     /**

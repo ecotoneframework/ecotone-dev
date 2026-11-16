@@ -253,7 +253,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                around AsynchronousEndpointInstantRetryByDefault::retry',
                 '                  around DeliveryConfirmationInterceptor::await',
                 '                    around CollectorSenderInterceptor::send for orders',
-                '                      handler Bridge::handle returns a message of string',
+                '                      bridge Bridge::handle returns a message of string',
                 '                      reply string to routing slip channel order.place.endpoint.target.execute',
                 '                        direct channel order.place.endpoint.target.execute',
                 '                          around MessageHandlerLogger::aroundCommandHandler',
@@ -534,9 +534,9 @@ final class ExecutionRecordingTest extends TracingTestCase
         $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines());
 
         self::assertCount(4, array_filter($lines, fn (string $line): bool => str_starts_with($line, 'process ')));
-        self::assertContains('handler class@anonymous::normalize returns string', $lines);
+        self::assertContains('transformer class@anonymous::normalize returns string', $lines);
         self::assertContains('router class@anonymous::route returns string', $lines);
-        self::assertContains('handler class@anonymous::split returns array', $lines);
+        self::assertContains('splitter class@anonymous::split returns array', $lines);
         self::assertContains('handler class@anonymous::noop returns nothing', $lines);
     }
 

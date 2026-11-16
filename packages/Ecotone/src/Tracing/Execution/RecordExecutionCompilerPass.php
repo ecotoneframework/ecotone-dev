@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\Handler\Gathering\GatheringMessageHandler;
 use Ecotone\Messaging\Handler\Gathering\GatheringPartCompletion;
@@ -25,9 +26,13 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MethodInvocation
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerStaticObjectResolver;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\OrchestratorResultMessageConverter;
+use Ecotone\Messaging\Handler\Processor\MethodInvokerProcessor;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Handler\Router\InvocationRouter;
+use Ecotone\Messaging\Handler\Router\Router;
 use Ecotone\Messaging\Handler\Router\RouterProcessor;
+use Ecotone\Messaging\Handler\Transformer\TransformerResultToMessageConverter;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Tracing\Tracer;
@@ -39,6 +44,12 @@ final class RecordExecutionCompilerPass implements CompilerPass
 {
     public const PRESEND = 'presend';
     public const ROUTER = 'router';
+    public const TRANSFORMER = 'transformer';
+    public const SPLITTER = 'splitter';
+    public const BRIDGE = 'bridge';
+    public const ORCHESTRATOR = 'orchestrator';
+    private const OWN_ROLES = [self::TRANSFORMER, self::SPLITTER, self::ORCHESTRATOR];
+    private const SPLITTER_PROCESSOR_PREFIX = 'ecotone.gathering.splitter.core.';
     private const CHANNEL_ID_PREFIX = 'channel-';
     private const COLLECTOR_SENDER_PREFIX = CollectorSenderInterceptor::class . '.';
     private const POLL_HOUSEKEEPING = [
@@ -60,7 +71,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 $definition = $this->recordChannel(substr($id, strlen(self::CHANNEL_ID_PREFIX)), $definition, $builder);
                 $builder->replace($id, $definition);
             }
-            $recorded = $this->recorded($definition, null, $builder);
+            $recorded = $this->recorded($definition, str_starts_with($id, self::SPLITTER_PROCESSOR_PREFIX) ? self::SPLITTER : null, $builder);
             if ($recorded !== $definition) {
                 $builder->replace($id, $recorded);
             }
@@ -123,7 +134,8 @@ final class RecordExecutionCompilerPass implements CompilerPass
         $arguments = $value->getArguments();
         if ($value instanceof InterceptedChainDefinition) {
             foreach ($arguments[0] as $position => $processor) {
-                $arguments[0][$position] = $this->recorded($processor, $value->roles[$position] ?? InterceptedChainDefinition::STEP, $builder);
+                $chainRole = $value->roles[$position] ?? InterceptedChainDefinition::STEP;
+                $arguments[0][$position] = $this->recorded($processor, $chainRole === InterceptedChainDefinition::HANDLER && in_array($role, self::OWN_ROLES, true) ? $role : $chainRole, $builder);
             }
         } else {
             $arguments = match ($value->getClassName()) {
@@ -133,6 +145,8 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 BeforeSendChannelInterceptor::class => $this->recorded($arguments, self::PRESEND, $builder),
                 InvocationRouter::class => $this->recorded($arguments, self::ROUTER, $builder),
                 RouterProcessor::class => $this->withRecordedRoutes($this->recorded($arguments, null, $builder)),
+                Router::class => $this->withRecordedRouterRoutes($this->recorded($arguments, null, $builder)),
+                MethodInvokerProcessor::class => $this->recorded($arguments, self::roleOfProcessor($arguments, $role), $builder),
                 default => $this->recorded($arguments, $role, $builder),
             };
         }
@@ -160,6 +174,34 @@ final class RecordExecutionCompilerPass implements CompilerPass
         $arguments[0] = new Definition(RecordedRouteSelector::class, [$arguments[0], $routingKeyHeader, new Reference(Tracer::class)]);
 
         return $arguments;
+    }
+
+    /**
+     * @param array<int|string, mixed> $arguments
+     * @return array<int|string, mixed>
+     */
+    private function withRecordedRouterRoutes(array $arguments): array
+    {
+        $arguments[1] = new Definition(RecordedRouteSelector::class, [$arguments[1], '', new Reference(Tracer::class)]);
+
+        return $arguments;
+    }
+
+    /**
+     * @param array<int|string, mixed> $arguments
+     */
+    private static function roleOfProcessor(array $arguments, ?string $role): ?string
+    {
+        if ($role !== null && $role !== InterceptedChainDefinition::HANDLER) {
+            return $role;
+        }
+        $resultConverter = $arguments[1] ?? null;
+
+        return match ($resultConverter instanceof Definition ? $resultConverter->getClassName() : '') {
+            TransformerResultToMessageConverter::class => self::TRANSFORMER,
+            OrchestratorResultMessageConverter::class => self::ORCHESTRATOR,
+            default => $role,
+        };
     }
 
     private static function withRecordedPartReports(Definition $partCompletion): Definition
@@ -228,6 +270,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
         }
         if ($role !== null) {
             $invoked = $this->invokedClassOf($arguments[0] ?? null, $builder) . '::' . ($arguments[1] ?? '');
+            $role = $invoked === Bridge::class . '::handle' && $role === InterceptedChainDefinition::HANDLER ? self::BRIDGE : $role;
             $recordedInterceptors[] = self::recordingInterceptor(self::isHousekeeping($invoked) ? 'recordHousekeeping' : 'recordInvocation', $role);
         }
         $arguments[$aroundInterceptorsPosition] = $recordedInterceptors;

@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Test\Ecotone\Tracing;
 
 use Ecotone\Api\Attribute\After;
+use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Before;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\Gathered;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Presend;
 use Ecotone\Api\Attribute\Router;
@@ -556,6 +558,24 @@ final class ExecutionRecordingTest extends TracingTestCase
         );
     }
 
+    public function test_the_reply_of_an_asynchronous_aggregate_action_is_recorded_as_dropped(): void
+    {
+        $recorder = new InMemorySpanRecorder();
+
+        EcotoneLite::bootstrapFlowTesting(
+            [ExecutionRecordedOrder::class],
+            [...self::recordingSpansInto($recorder)],
+            [self::tracingConfiguration()->withExecutionRecording(), SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            enabledModules: [],
+        )
+            ->sendCommandWithRouting('order.place', 'order-1')
+            ->sendCommandWithRouting('order.confirm', 'order-1')
+            ->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines());
+
+        self::assertSame('reply string dropped, as no channel waits for it', $lines[array_key_last($lines)]);
+    }
+
     /**
      * @param list<string> $lines
      * @return list<string>
@@ -606,5 +626,28 @@ final class ExecutionRecordingTest extends TracingTestCase
             return FlowExecution::of($recorder->recordedSpans())->lines();
         }
         self::fail("No scenario named {$scenarioName} in the flow scenario catalogue");
+    }
+}
+
+#[Aggregate]
+final class ExecutionRecordedOrder
+{
+    #[Identifier]
+    public string $orderId = '';
+
+    #[CommandHandler('order.place')]
+    public static function place(string $orderId): self
+    {
+        $order = new self();
+        $order->orderId = $orderId;
+
+        return $order;
+    }
+
+    #[Asynchronous('orders')]
+    #[CommandHandler('order.confirm', endpointId: 'order.confirm.endpoint', identifierMapping: ['orderId' => 'payload'])]
+    public function confirm(): string
+    {
+        return 'confirmed';
     }
 }

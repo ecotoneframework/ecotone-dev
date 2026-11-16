@@ -22,15 +22,19 @@ final class ChannelSendRecording
     /** @var list<array{step: ?ExecutionStep, ran: int, messageId: string, failed: ?string, failedAfter: array<int, bool>}> */
     private array $openSends = [];
 
+    /** @var list<string> class of each channel interceptor, in the order they run */
+    private array $interceptors;
+
     /**
-     * @param list<string> $interceptors class of each channel interceptor, in the order they run
+     * @param list<string|object> $interceptors class of each channel interceptor, or the interceptor when its class is known only to the container
      */
     public function __construct(
         private string $channelName,
-        private array $interceptors,
+        array $interceptors,
         private bool $onlyFlowTestingIntercepts,
         private ExecutionRecordingTracer $tracer,
     ) {
+        $this->interceptors = array_map(fn (string|object $interceptor): string => is_object($interceptor) ? $interceptor::class : $interceptor, $interceptors);
     }
 
     public function started(Message $message): void

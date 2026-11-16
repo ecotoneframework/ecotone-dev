@@ -75,7 +75,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
             $interceptorClasses = array_map(fn (mixed $interceptor): string => $this->classOf($interceptor, $builder), array_values($arguments[1]));
             $recording = $builder->register(self::SEND_RECORDING_PREFIX . $channelName, new Definition(ChannelSendRecording::class, [
                 $channelName,
-                $interceptorClasses,
+                array_map(fn (string $class, mixed $interceptor): string|Reference => $interceptor instanceof Reference && ! class_exists($class) ? $interceptor : $class, $interceptorClasses, array_values($arguments[1])),
                 array_values(array_filter($interceptorClasses, fn (string $class): bool => ! self::isFlowTesting($class))) === [],
                 new Reference(Tracer::class),
             ]));

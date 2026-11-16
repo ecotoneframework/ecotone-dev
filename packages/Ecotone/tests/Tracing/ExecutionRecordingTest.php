@@ -85,7 +85,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '        around MessageHeadersPropagatorInterceptor::storeHeaders',
                 '          around DeliveryConfirmationInterceptor::await',
                 '            direct channel ecotone.modelling.bus.command_by_name',
-                '              direct channel {generated}.target',
+                '              direct channel {generated#1}.target',
                 '                before class@anonymous::beforePlacing returns nothing',
                 '                around class@anonymous::aroundPlacing',
                 '                  around MessageHandlerLogger::aroundCommandHandler',
@@ -133,9 +133,9 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '        around MessageHeadersPropagatorInterceptor::storeHeaders',
                 '          around DeliveryConfirmationInterceptor::await',
                 '            direct channel ecotone.modelling.bus.command_by_name',
-                '              send {generated}.target',
+                '              send {generated#1}.target',
                 '                presend class@anonymous::beforeSending returns nothing',
-                '                direct channel {generated}.target',
+                '                direct channel {generated#1}.target',
                 '                  around MessageHandlerLogger::aroundCommandHandler',
                 '                    around TracingInterceptor::traceHandlerEndpoint',
                 '                      span process class@anonymous::place',
@@ -181,7 +181,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '        around MessageHeadersPropagatorInterceptor::storeHeaders',
                 '          around DeliveryConfirmationInterceptor::await',
                 '            direct channel ecotone.modelling.bus.command_by_name',
-                '              direct channel {generated}.target',
+                '              direct channel {generated#1}.target',
                 '                around class@anonymous::skipPlacing',
                 '                no reply',
                 '              no reply',
@@ -296,7 +296,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '        around MessageHeadersPropagatorInterceptor::storeHeaders',
                 '          around DeliveryConfirmationInterceptor::await',
                 '            direct channel ecotone.modelling.bus.command_by_name',
-                '              direct channel {generated}.target',
+                '              direct channel {generated#1}.target',
                 '                around MessageHandlerLogger::aroundCommandHandler',
                 '                  around TracingInterceptor::traceHandlerEndpoint',
                 '                    span process class@anonymous::place',
@@ -624,6 +624,43 @@ final class ExecutionRecordingTest extends TracingTestCase
         self::assertContains('handler class@anonymous::place returns class@anonymous', $lines);
         self::assertContains('handler class@anonymous::placeAgain returns nothing', $lines);
         self::assertSame([], array_values(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'step class@anonymous'))));
+    }
+
+    public function test_different_generated_names_in_one_recording_stay_different(): void
+    {
+        $recorder = new InMemorySpanRecorder();
+        $orders = new class () {
+            #[CommandHandler('order.place')]
+            public function place(string $order): void
+            {
+            }
+
+            #[CommandHandler('order.cancel')]
+            public function cancel(string $order): void
+            {
+            }
+        };
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$orders::class],
+            [$orders, ...self::recordingSpansInto($recorder)],
+            [self::tracingConfiguration()->withExecutionRecording()],
+            enabledModules: [],
+        )
+            ->sendCommandWithRouting('order.place', 'order-1')
+            ->sendCommandWithRouting('order.cancel', 'order-1');
+        $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines());
+
+        self::assertContains('direct channel {generated#1}.target', $lines);
+        self::assertContains('direct channel {generated#2}.target', $lines);
+    }
+
+    public function test_a_channel_interceptor_registered_by_its_service_name_is_named_by_its_class(): void
+    {
+        $lines = self::trimmed(self::executionOf('event forwarded to a channel whose other interceptor fails after the send'));
+
+        self::assertSame([], array_values(array_filter($lines, fn (string $line): bool => str_contains($line, 'failingAfterSend'))));
+        self::assertContains('channel interceptor AbstractChannelInterceptor@anonymous', $lines);
     }
 
     /**

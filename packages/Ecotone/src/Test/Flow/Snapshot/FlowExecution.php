@@ -14,6 +14,7 @@ use Ecotone\Test\Flow\ExpectedSpan;
 final class FlowExecution
 {
     private const PLUMBING = ['Bridge::handle', 'RoutingSlipPrepender::transform'];
+    private const GENERATED_ID = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/';
 
     /**
      * @param list<array{process: string, steps: list<string>}> $processes
@@ -51,7 +52,29 @@ final class FlowExecution
             $processes,
         );
 
-        return new self(self::titled($processes));
+        return new self(self::withNumberedGeneratedNames(self::titled($processes)));
+    }
+
+    /**
+     * @param list<array{process: string, steps: list<string>}> $processes
+     * @return list<array{process: string, steps: list<string>}>
+     */
+    private static function withNumberedGeneratedNames(array $processes): array
+    {
+        $numbers = [];
+        $numbered = function (string $text) use (&$numbers): string {
+            return (string) preg_replace_callback(self::GENERATED_ID, function (array $generated) use (&$numbers): string {
+                $numbers[$generated[0]] ??= count($numbers) + 1;
+
+                return '{generated#' . $numbers[$generated[0]] . '}';
+            }, $text);
+        };
+        foreach ($processes as $position => $process) {
+            $processes[$position]['process'] = $numbered($process['process']);
+            $processes[$position]['steps'] = array_map($numbered, $process['steps']);
+        }
+
+        return $processes;
     }
 
     /**
@@ -175,6 +198,6 @@ final class FlowExecution
 
     private static function readable(string $name): string
     {
-        return (string) preg_replace(['/@anonymous\x00[^:]*?(?=::)/', '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/'], ['@anonymous', '{generated}'], $name);
+        return (string) preg_replace('/@anonymous\x00[^:]*?(?=::)/', '@anonymous', $name);
     }
 }

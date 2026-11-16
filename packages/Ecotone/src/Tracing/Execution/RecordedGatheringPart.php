@@ -20,14 +20,17 @@ final class RecordedGatheringPart implements MessageHandler
     public function handle(Message $message): void
     {
         $headers = $message->getHeaders();
-        $group = $headers->containsKey(GatheringHeaders::GROUP_ID) ? ' of gathering group ' . $headers->get(GatheringHeaders::GROUP_ID) : '';
-        $this->tracer->recordStep(match (true) {
-            $group === '' => 'read no gathering group from the header ' . GatheringHeaders::GROUP_ID,
-            $headers->containsKey(GatheringHeaders::MANUAL_RELEASE) => 'read a manual release' . $group . ' from the headers ' . GatheringHeaders::GROUP_ID . ' and ' . GatheringHeaders::MANUAL_RELEASE,
-            $headers->containsKey(GatheringHeaders::TIMEOUT) => 'read a timeout' . $group . ' from the headers ' . GatheringHeaders::GROUP_ID . ' and ' . GatheringHeaders::TIMEOUT,
-            default => 'read part ' . ($headers->containsKey(GatheringHeaders::PART_NUMBER) ? $headers->get(GatheringHeaders::PART_NUMBER) : '?') . ' of ' . ($headers->containsKey(GatheringHeaders::SIZE) ? $headers->get(GatheringHeaders::SIZE) : '?') . $group
-                . ' from the headers ' . GatheringHeaders::GROUP_ID . ', ' . GatheringHeaders::PART_NUMBER . ' and ' . GatheringHeaders::SIZE,
-        });
+        $header = fn (string $name): string => $headers->containsKey($name) ? (string) $headers->get($name) : '?';
+        [$label, $readFrom] = match (true) {
+            ! $headers->containsKey(GatheringHeaders::GROUP_ID) => ['read no gathering group', [GatheringHeaders::GROUP_ID]],
+            $headers->containsKey(GatheringHeaders::MANUAL_RELEASE) => ['read manual release', [GatheringHeaders::GROUP_ID, GatheringHeaders::MANUAL_RELEASE]],
+            $headers->containsKey(GatheringHeaders::TIMEOUT) => ['read timeout', [GatheringHeaders::GROUP_ID, GatheringHeaders::TIMEOUT]],
+            default => ['read part ' . $header(GatheringHeaders::PART_NUMBER) . ' of ' . $header(GatheringHeaders::SIZE), [GatheringHeaders::GROUP_ID, GatheringHeaders::PART_NUMBER, GatheringHeaders::SIZE]],
+        };
+        $this->tracer->recordStep($label, hints: array_values(array_filter([
+            $headers->containsKey(GatheringHeaders::GROUP_ID) ? ExecutionHint::detail(ExecutionHint::GROUP, $header(GatheringHeaders::GROUP_ID)) : null,
+            ExecutionHint::detail(ExecutionHint::READ_FROM, implode(', ', $readFrom)),
+        ])));
         $this->gatheringHandler->handle($message);
     }
 

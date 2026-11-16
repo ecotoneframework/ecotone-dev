@@ -34,7 +34,7 @@ final class ExecutionRecordingTracer implements Tracer
     /** @var list<Span> steps of the process entry still open, recorded once a span starts inside it */
     private array $stepsOfOpenEntry = [];
     private bool $spanStartedInOpenEntry = false;
-    /** @var ?array{name: string, notes: list<array{depth: int, name: string}>, attributes: array<string, scalar>} */
+    /** @var ?array{name: string, notes: list<array{depth: int, name: string, hints?: list<ExecutionHint>}>, attributes: array<string, scalar>} */
     private ?array $awaitedReceive = null;
     private ?ExecutionStep $receiveEntry = null;
     private ?ExecutionStep $receiveContinuation = null;
@@ -68,7 +68,7 @@ final class ExecutionRecordingTracer implements Tracer
     }
 
     /**
-     * @param list<array{depth: int, name: string}> $notes
+     * @param list<array{depth: int, name: string, hints?: list<ExecutionHint>}> $notes
      * @param array<string, scalar> $attributes
      */
     public function awaitReceive(string $name, array $notes, array $attributes): void
@@ -119,7 +119,10 @@ final class ExecutionRecordingTracer implements Tracer
     /**
      * @param array<string, scalar> $attributes
      */
-    public function startStep(string $name, array $attributes = [], bool $invocation = false): ?ExecutionStep
+    /**
+     * @param list<ExecutionHint> $hints
+     */
+    public function startStep(string $name, array $attributes = [], bool $invocation = false, array $hints = []): ?ExecutionStep
     {
         $current = $this->tracer->currentSpan();
         if ($current === null && $this->openSteps === []) {
@@ -144,6 +147,7 @@ final class ExecutionRecordingTracer implements Tracer
                 SpanAttribute::EXECUTION_STEP => true,
                 SpanAttribute::EXECUTION_ORDER => ++$this->order,
                 ...$attributes,
+                ...($hints === [] ? [] : [SpanAttribute::EXECUTION_HINTS => ExecutionHint::encoded($hints)]),
             ],
             $this->clock->now(),
         );
@@ -153,7 +157,7 @@ final class ExecutionRecordingTracer implements Tracer
     }
 
     /**
-     * @param list<array{depth: int, name: string}> $notes
+     * @param list<array{depth: int, name: string, hints?: list<ExecutionHint>}> $notes
      */
     private function recordNested(array $notes): void
     {
@@ -162,7 +166,7 @@ final class ExecutionRecordingTracer implements Tracer
             while (count($open) > $note['depth']) {
                 $this->endStep(array_pop($open), '');
             }
-            $step = $this->startStep($note['name']);
+            $step = $this->startStep($note['name'], hints: $note['hints'] ?? []);
             if ($step !== null) {
                 $open[] = $step;
             }
@@ -175,17 +179,20 @@ final class ExecutionRecordingTracer implements Tracer
     /**
      * @param array<string, scalar> $attributes
      */
-    public function recordStep(string $name, array $attributes = []): void
+    public function recordStep(string $name, array $attributes = [], array $hints = []): void
     {
-        $step = $this->startStep($name, $attributes);
+        $step = $this->startStep($name, $attributes, hints: $hints);
         if ($step !== null) {
             $this->endStep($step, '');
         }
     }
 
-    public function endStep(ExecutionStep $step, string $outcome): void
+    /**
+     * @param list<ExecutionHint> $hints
+     */
+    public function endStep(ExecutionStep $step, string $outcome, array $hints = []): void
     {
-        $this->finish($step, $outcome, SpanStatus::Ok, null);
+        $this->finish($step, $outcome, SpanStatus::Ok, null, $hints);
     }
 
     public function endStepWhenSomethingRanInside(ExecutionStep $step): void
@@ -206,6 +213,14 @@ final class ExecutionRecordingTracer implements Tracer
         $this->finish($step, 'throws ' . self::shortClassOf($failure::class), SpanStatus::Error, $failure->getMessage());
     }
 
+    /**
+     * @param list<ExecutionHint> $hints
+     */
+    private static function withHints(string $encoded, array $hints): string
+    {
+        return json_encode([...json_decode($encoded, true, flags: JSON_THROW_ON_ERROR), ...json_decode(ExecutionHint::encoded($hints), true, flags: JSON_THROW_ON_ERROR)], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
     public static function shortClassOf(string $class): string
     {
         $class = explode("\0", $class, 2)[0];
@@ -213,7 +228,10 @@ final class ExecutionRecordingTracer implements Tracer
         return substr($class, (int) strrpos('\\' . $class, '\\'));
     }
 
-    private function finish(ExecutionStep $step, string $outcome, SpanStatus $status, ?string $statusDescription): void
+    /**
+     * @param list<ExecutionHint> $hints
+     */
+    private function finish(ExecutionStep $step, string $outcome, SpanStatus $status, ?string $statusDescription, array $hints = []): void
     {
         $position = array_search($step, $this->openSteps, true);
         if ($position === false) {
@@ -227,7 +245,11 @@ final class ExecutionRecordingTracer implements Tracer
             $step->parentSpanId,
             $step->name,
             SpanKind::Internal,
-            $outcome === '' ? $step->attributes : [...$step->attributes, SpanAttribute::EXECUTION_OUTCOME => $outcome],
+            [
+                ...$step->attributes,
+                ...($outcome === '' ? [] : [SpanAttribute::EXECUTION_OUTCOME => $outcome]),
+                ...($hints === [] ? [] : [SpanAttribute::EXECUTION_HINTS => self::withHints((string) ($step->attributes[SpanAttribute::EXECUTION_HINTS] ?? '[]'), $hints)]),
+            ],
             $status,
             $statusDescription,
             [],

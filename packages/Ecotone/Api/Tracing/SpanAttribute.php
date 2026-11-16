@@ -29,6 +29,7 @@ final class SpanAttribute
     public const EXECUTION_PARENT = 'ecotone.execution.parent';
     public const EXECUTION_ORDER = 'ecotone.execution.order';
     public const EXECUTION_PROCESS = 'ecotone.execution.process';
+    public const EXECUTION_HINTS = 'ecotone.execution.hints';
     public const EXECUTION_SENT_MESSAGE = 'ecotone.execution.sent_message';
     public const EXECUTION_RECEIVED_MESSAGE = 'ecotone.execution.received_message';
 

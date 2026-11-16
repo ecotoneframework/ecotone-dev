@@ -77,25 +77,28 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         self::assertSame(
             [
-                'process 1: send command order.place, handled by class@anonymous::place',
-                '  gateway CommandBus::sendWithRouting returns string',
-                '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
+                'process 1: send command order.place, class@anonymous::place',
+                '  gateway CommandBus::sendWithRouting',
+                '    before MessageHeadersPropagatorInterceptor::propagateHeaders',
                 '    around TracingInterceptor::traceCommandBus',
                 '      span send command order.place',
                 '        around MessageHeadersPropagatorInterceptor::storeHeaders',
                 '          around DeliveryConfirmationInterceptor::await',
                 '            direct channel ecotone.modelling.bus.command_by_name',
-                '              route by name order.place to {generated#1}.target',
+                '              route to {generated#1}.target',
+                '                ↳ chosen by: name order.place',
                 '              direct channel {generated#1}.target',
-                '                before class@anonymous::beforePlacing returns nothing',
+                '                before class@anonymous::beforePlacing',
                 '                around class@anonymous::aroundPlacing',
                 '                  around MessageHandlerLogger::aroundCommandHandler',
                 '                    around TracingInterceptor::traceHandlerEndpoint',
                 '                      span process class@anonymous::place',
-                '                        handler class@anonymous::place returns string',
-                '                after class@anonymous::afterPlacing returns nothing',
-                '                reply string to the reply channel of the request, where its sender waits for it',
-                '              nothing handed over: the handler returned nothing',
+                '                        handler class@anonymous::place',
+                '                after class@anonymous::afterPlacing',
+                '                reply to the reply channel of the request',
+                '                  ↳ chosen by: reply channel of the request',
+                '              no hand-over',
+                '                ↳ result: the handler returned nothing',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -126,25 +129,28 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         self::assertSame(
             [
-                'process 1: send command order.place, handled by class@anonymous::place',
-                '  gateway CommandBus::sendWithRouting returns nothing',
-                '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
+                'process 1: send command order.place, class@anonymous::place',
+                '  gateway CommandBus::sendWithRouting',
+                '    before MessageHeadersPropagatorInterceptor::propagateHeaders',
                 '    around TracingInterceptor::traceCommandBus',
                 '      span send command order.place',
                 '        around MessageHeadersPropagatorInterceptor::storeHeaders',
                 '          around DeliveryConfirmationInterceptor::await',
                 '            direct channel ecotone.modelling.bus.command_by_name',
-                '              route by name order.place to {generated#1}.target',
+                '              route to {generated#1}.target',
+                '                ↳ chosen by: name order.place',
                 '              send {generated#1}.target',
-                '                presend class@anonymous::beforeSending returns nothing',
+                '                presend class@anonymous::beforeSending',
                 '                put on channel {generated#1}.target',
                 '                  direct channel {generated#1}.target',
                 '                    around MessageHandlerLogger::aroundCommandHandler',
                 '                      around TracingInterceptor::traceHandlerEndpoint',
                 '                        span process class@anonymous::place',
-                '                          handler class@anonymous::place returns nothing',
-                '                    nothing handed over: the handler returned nothing',
-                '              nothing handed over: the handler returned nothing',
+                '                          handler class@anonymous::place',
+                '                    no hand-over',
+                '                      ↳ result: the handler returned nothing',
+                '              no hand-over',
+                '                ↳ result: the handler returned nothing',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -177,18 +183,21 @@ final class ExecutionRecordingTest extends TracingTestCase
         self::assertSame(
             [
                 'process 1: send command order.place',
-                '  gateway CommandBus::sendWithRouting returns nothing',
-                '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
+                '  gateway CommandBus::sendWithRouting',
+                '    before MessageHeadersPropagatorInterceptor::propagateHeaders',
                 '    around TracingInterceptor::traceCommandBus',
                 '      span send command order.place',
                 '        around MessageHeadersPropagatorInterceptor::storeHeaders',
                 '          around DeliveryConfirmationInterceptor::await',
                 '            direct channel ecotone.modelling.bus.command_by_name',
-                '              route by name order.place to {generated#1}.target',
+                '              route to {generated#1}.target',
+                '                ↳ chosen by: name order.place',
                 '              direct channel {generated#1}.target',
                 '                around class@anonymous::skipPlacing',
-                '                nothing handed over: the handler returned nothing',
-                '              nothing handed over: the handler returned nothing',
+                '                no hand-over',
+                '                  ↳ result: the handler returned nothing',
+                '              no hand-over',
+                '                ↳ result: the handler returned nothing',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -217,48 +226,48 @@ final class ExecutionRecordingTest extends TracingTestCase
         self::assertSame(
             [
                 'process 1: send command order.place',
-                '  gateway CommandBus::sendWithRouting returns nothing',
-                '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
+                '  gateway CommandBus::sendWithRouting',
+                '    before MessageHeadersPropagatorInterceptor::propagateHeaders',
                 '    around TracingInterceptor::traceCommandBus',
                 '      span send command order.place',
                 '        around MessageHeadersPropagatorInterceptor::storeHeaders',
                 '          around DeliveryConfirmationInterceptor::await',
                 '            around CollectorSenderInterceptor::send for orders',
                 '              direct channel ecotone.modelling.bus.command_by_name',
-                '                route by name order.place to order.place.endpoint.target',
+                '                route to order.place.endpoint.target',
+                '                  ↳ chosen by: name order.place',
                 '                send order.place.endpoint.target',
-                '                  presend MessageHandlerLogger::asynchronous returns nothing',
+                '                  presend MessageHandlerLogger::asynchronous',
                 '                  put on channel order.place.endpoint.target',
                 '                    direct channel order.place.endpoint.target',
-                '                      handler RoutingSlipPrepender::transform returns a message of string',
-                '                      RoutingSlipPrepender::transform put order.place.endpoint.target.execute in front of the routing slip, which is now order.place.endpoint.target.execute',
-                '                      forward string by the output channel orders, configured on RoutingSlipPrepender::transform; the routing slip order.place.endpoint.target.execute stays on the message for a later step; the reply channel of the request stays on the message',
-                '                        the forwarded message carries the string the handler returned, with the headers of the request; added: ecotone_modelling_bus_routing_key; removed: ecotone.modelling.bus.command_by_name',
+                '                      handler RoutingSlipPrepender::transform',
+                '                      forward to orders',
+                '                        ↳ chosen by: output channel of RoutingSlipPrepender::transform',
+                '                        ↳ routing slip: none → order.place.endpoint.target.execute',
                 '                        send orders',
-                '                          before send, OutboundSerializationChannelInterceptor::preSend',
-                '                            passes on the message with headers removed: ecotone_messaging_reply_channel',
-                '                            before send, MessageCollectorChannelInterceptor::preSend',
-                '                              collects the message and passes none on: the send stops here, so the interceptors after it and the put on the channel do not run; the message is held until the handler ends',
-                '                nothing handed over: the handler returned nothing',
-                '              release collected message to orders, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 2',
-                '                before send, OutboundSerializationChannelInterceptor::preSend',
-                '                  passes the message on unchanged',
-                '                  before send, MessageCollectorChannelInterceptor::preSend',
-                '                    passes the message on unchanged',
-                '                    before send, InMemoryQueueAcknowledgeInterceptor::preSend',
-                '                      passes on the message with headers added: ecotone_messaging_consumer_acknowledge_header, ecotone_in_memory_queue_consumer_acknowledge',
-                '                      before send, TracingChannelInterceptor::preSend',
+                '                          before send OutboundSerializationChannelInterceptor::preSend',
+                '                            before send MessageCollectorChannelInterceptor::preSend',
+                '                              ↳ stopped: held until the handler ends, the put did not run',
+                '                no hand-over',
+                '                  ↳ result: the handler returned nothing',
+                '              release collected message to orders',
+                '                ↳ stopped: first send held by MessageCollectorChannelInterceptor',
+                '                ↳ taken by: process 2, a separate consumer run',
+                '                before send OutboundSerializationChannelInterceptor::preSend',
+                '                  before send MessageCollectorChannelInterceptor::preSend',
+                '                    before send InMemoryQueueAcknowledgeInterceptor::preSend',
+                '                      before send TracingChannelInterceptor::preSend',
                 '                        span send orders',
-                '                          passes on the message with headers added: traceparent, ecotone_tracing_delivery',
                 '                          put on channel orders',
-                '                SendRetryChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure',
-                '                TracingChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure',
-                'process 2: receive orders, handled by class@anonymous::place',
-                '  receive orders: the command order.place, put on the channel by process 1',
-                '    take the message from channel orders',
-                '    TracingChannelInterceptor::afterReceiveCompletion, run when the take ended, here with a message and no failure',
-                '    gateway InboundChannelAdapterEntrypoint::executeEntrypoint returns nothing',
-                '      before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
+                '                after send SendRetryChannelInterceptor::afterSendCompletion',
+                '                after send TracingChannelInterceptor::afterSendCompletion',
+                'process 2: receive orders, class@anonymous::place',
+                '  receive orders',
+                '    ↳ sent by: process 1, the command order.place',
+                '    take from channel orders',
+                '    after receive TracingChannelInterceptor::afterReceiveCompletion',
+                '    gateway InboundChannelAdapterEntrypoint::executeEntrypoint',
+                '      before MessageHeadersPropagatorInterceptor::propagateHeaders',
                 '      around TracingInterceptor::traceAsynchronousEndpoint',
                 '        span receive orders',
                 '          around AcknowledgeConfirmationInterceptor::ack',
@@ -268,16 +277,19 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                  around AsynchronousEndpointInstantRetryByDefault::retry',
                 '                    around DeliveryConfirmationInterceptor::await',
                 '                      around CollectorSenderInterceptor::send for orders',
-                '                        bridge Bridge::handle returns a message of string',
-                '                        forward string by the routing slip, taking order.place.endpoint.target.execute from it; the slip held order.place.endpoint.target.execute and is now removed',
-                '                          the forwarded message carries the string the handler returned, with the headers of the request',
+                '                        bridge Bridge::handle',
+                '                        forward to order.place.endpoint.target.execute',
+                '                          ↳ chosen by: routing slip',
+                '                          ↳ routing slip: order.place.endpoint.target.execute → none',
                 '                          direct channel order.place.endpoint.target.execute',
                 '                            around MessageHandlerLogger::aroundCommandHandler',
                 '                              around TracingInterceptor::traceHandlerEndpoint',
                 '                                span process class@anonymous::place',
-                '                                  handler class@anonymous::place returns nothing',
-                '                            nothing handed over: the handler returned nothing',
-                '            acknowledged: accepted',
+                '                                  handler class@anonymous::place',
+                '                            no hand-over',
+                '                              ↳ result: the handler returned nothing',
+                '            acknowledge',
+                '              ↳ result: accepted',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -309,29 +321,32 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         self::assertSame(
             [
-                'process 1: send command order.place, handled by class@anonymous::place',
-                '  gateway CommandBus::sendWithRouting returns string',
-                '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
+                'process 1: send command order.place, class@anonymous::place',
+                '  gateway CommandBus::sendWithRouting',
+                '    before MessageHeadersPropagatorInterceptor::propagateHeaders',
                 '    around TracingInterceptor::traceCommandBus',
                 '      span send command order.place',
                 '        around MessageHeadersPropagatorInterceptor::storeHeaders',
                 '          around DeliveryConfirmationInterceptor::await',
                 '            direct channel ecotone.modelling.bus.command_by_name',
-                '              route by name order.place to {generated#1}.target',
+                '              route to {generated#1}.target',
+                '                ↳ chosen by: name order.place',
                 '              direct channel {generated#1}.target',
                 '                around MessageHandlerLogger::aroundCommandHandler',
                 '                  around TracingInterceptor::traceHandlerEndpoint',
                 '                    span process class@anonymous::place',
-                '                      handler class@anonymous::place returns string',
-                '                forward string by the output channel order.confirm, configured on class@anonymous::place; the reply channel of the request stays on the message',
-                '                  the forwarded message carries the string the handler returned, with the headers of the request',
+                '                      handler class@anonymous::place',
+                '                forward to order.confirm',
+                '                  ↳ chosen by: output channel of class@anonymous::place',
                 '                  publish-subscribe channel order.confirm',
                 '                    around MessageHandlerLogger::aroundMessageHandler',
                 '                      around TracingInterceptor::traceHandlerEndpoint',
                 '                        span process class@anonymous::confirm',
-                '                          handler class@anonymous::confirm returns string',
-                '                    reply string to the reply channel of the request, where its sender waits for it',
-                '              nothing handed over: the handler returned nothing',
+                '                          handler class@anonymous::confirm',
+                '                    reply to the reply channel of the request',
+                '                      ↳ chosen by: reply channel of the request',
+                '              no hand-over',
+                '                ↳ result: the handler returned nothing',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -341,26 +356,28 @@ final class ExecutionRecordingTest extends TracingTestCase
     {
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
 
+        $lines = self::trimmed($lines);
         $expected = [
-            'process 2: backfill course_seats, handled by ProjectingConsoleCommands::backfillProjection',
-            '                before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
-            '                      handler ProjectingManager::prepareBackfill returns nothing',
-            'process 3: receive backfill, handled by PartitionBatchExecutorHandler::executeBatch (1 of 2)',
-            '                                handler PartitionBatchExecutorHandler::executeBatch returns nothing',
-            '                            part report by GatheringPartCompletion of a request without a reply, part 1 of 2, to ecotone.projection.backfill.completion:course_seats',
-            '                                        collects the message and passes none on: the send stops here, so the interceptors after it and the put on the channel do not run; the message is held until the handler ends',
-            '                        release collected message to backfill, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 5',
-            'process 4: receive backfill, handled by PartitionBatchExecutorHandler::executeBatch (2 of 2)',
-            '                                handler PartitionBatchExecutorHandler::executeBatch returns nothing',
-            '                            part report by GatheringPartCompletion of a request without a reply, part 2 of 2, to ecotone.projection.backfill.completion:course_seats',
-            '                                        collects the message and passes none on: the send stops here, so the interceptors after it and the put on the channel do not run; the message is held until the handler ends',
-            '                        release collected message to backfill, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 6',
-            'process 5: receive backfill, handled by the gatherer only, recording part 1 of 2 reported by process 3, whose work ran there',
-            '                              read part 1 of 2 of gathering group {generated#1} from the headers ecotone_gathering_group_id, ecotone_gathering_part_number and ecotone_gathering_group_size',
-            'process 6: receive backfill, handled by the gatherer only, recording part 2 of 2 reported by process 4, whose work ran there',
-            '                              read part 2 of 2 of gathering group {generated#1} from the headers ecotone_gathering_group_id, ecotone_gathering_part_number and ecotone_gathering_group_size',
-            '                                release 2 of 2 parts, as all parts are accounted for: build GatheredParts with 2 results and the original payload array and pass it straight to the handler the #[Gathered] endpoint wraps, inside this same consumer run, with no queue in between',
-            '                                  handler ProjectionRunCompletion::complete returns nothing',
+            'process 2: backfill course_seats, ProjectingConsoleCommands::backfillProjection',
+            'handler ProjectingManager::prepareBackfill',
+            'process 3: receive backfill, PartitionBatchExecutorHandler::executeBatch (1 of 2)',
+            'handler PartitionBatchExecutorHandler::executeBatch',
+            'part report to ecotone.projection.backfill.completion:course_seats',
+            '↳ result: part 1 of 2, no reply',
+            '↳ stopped: held until the handler ends, the put did not run',
+            'release collected message to backfill',
+            '↳ taken by: process 5, a separate consumer run',
+            'process 4: receive backfill, PartitionBatchExecutorHandler::executeBatch (2 of 2)',
+            'part report to ecotone.projection.backfill.completion:course_seats',
+            '↳ result: part 2 of 2, no reply',
+            'release collected message to backfill',
+            '↳ taken by: process 6, a separate consumer run',
+            'process 5: receive backfill, GatheringMessageHandler::handle (part 1 of 2)',
+            'read part 1 of 2',
+            'process 6: receive backfill, GatheringMessageHandler::handle (part 2 of 2)',
+            'read part 2 of 2',
+            'release group',
+            'handler ProjectionRunCompletion::complete',
         ];
 
         self::assertSame($expected, self::inOrderOf($lines, $expected));
@@ -392,10 +409,10 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         self::assertSame(
             [
-                'process 1: send command order.place, handled by class@anonymous::place',
-                '  gateway CommandBus::sendWithRouting returns nothing',
-                '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
-                '    before class@anonymous::beforeSendingTheCommand returns nothing',
+                'process 1: send command order.place, class@anonymous::place',
+                '  gateway CommandBus::sendWithRouting',
+                '    before MessageHeadersPropagatorInterceptor::propagateHeaders',
+                '    before class@anonymous::beforeSendingTheCommand',
                 '    around TracingInterceptor::traceCommandBus',
             ],
             array_slice(FlowExecution::of($recorder->recordedSpans())->lines(), 0, 5),
@@ -429,9 +446,8 @@ final class ExecutionRecordingTest extends TracingTestCase
     {
         $lines = self::trimmed(self::executionOf('event forwarded to a channel whose send succeeds on retry'));
 
-        self::assertContains('release collected message to notifications, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 3', $lines);
-        self::assertSame([], preg_grep('/^release collected message to notifications.* throws RuntimeException/', $lines));
-        self::assertContains('send failed with RuntimeException, recovered by SendRetryChannelInterceptor', $lines);
+        self::assertStep($lines, 'release collected message to notifications', ['taken by: process 3, a separate consumer run', 'result: failed with RuntimeException, recovered by SendRetryChannelInterceptor']);
+        self::assertSame([], preg_grep('/^↳ result: throws RuntimeException/', array_slice($lines, (int) array_search('release collected message to notifications', $lines, true), 4)));
     }
 
     public function test_a_message_without_a_gathering_group_fails_with_the_gatherer_own_message_when_recorded(): void
@@ -501,9 +517,11 @@ final class ExecutionRecordingTest extends TracingTestCase
         self::assertSame(
             [
                 'process 1: gateway CommandBus::sendWithRouting',
-                '  gateway CommandBus::sendWithRouting throws RuntimeException',
-                '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
-                '    before class@anonymous::refuseTheCommand throws RuntimeException',
+                '  gateway CommandBus::sendWithRouting',
+                '    ↳ result: throws RuntimeException',
+                '    before MessageHeadersPropagatorInterceptor::propagateHeaders',
+                '    before class@anonymous::refuseTheCommand',
+                '      ↳ result: throws RuntimeException',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -547,13 +565,13 @@ final class ExecutionRecordingTest extends TracingTestCase
         $ecotone->sendDirectToChannel('order.route', 'b');
         $ecotone->sendDirectToChannel('order.split', 'c,d');
         $ecotone->runConsoleCommand('orders:noop', []);
-        $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines());
+        $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines(true));
 
         self::assertCount(4, array_filter($lines, fn (string $line): bool => str_starts_with($line, 'process ')));
-        self::assertContains('transformer class@anonymous::normalize returns string', $lines);
-        self::assertContains('router class@anonymous::route returns string', $lines);
-        self::assertContains('splitter class@anonymous::split returns array', $lines);
-        self::assertContains('handler class@anonymous::noop returns nothing', $lines);
+        self::assertStep($lines, 'transformer class@anonymous::normalize', ['result: returns string']);
+        self::assertStep($lines, 'router class@anonymous::route', ['result: returns string']);
+        self::assertStep($lines, 'splitter class@anonymous::split', ['result: returns array']);
+        self::assertStep($lines, 'handler class@anonymous::noop', ['result: returns nothing']);
     }
 
     public function test_a_spy_of_flow_testing_on_a_channel_adds_no_send_to_the_recording(): void
@@ -576,10 +594,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             testConfiguration: TestConfiguration::createWithDefaults()->withFailOnNotFoundHandler(false),
         )->sendCommandWithRouting('order.unknown', 'order-1');
 
-        self::assertContains(
-            'flow testing AllowMissingDestination::invoke turned DestinationResolutionException into a normal return',
-            self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines()),
-        );
+        self::assertStep(self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines()), 'flow testing AllowMissingDestination::invoke', ['result: DestinationResolutionException turned into a normal return']);
     }
 
     public function test_the_reply_of_an_asynchronous_aggregate_action_is_recorded_as_dropped(): void
@@ -597,10 +612,10 @@ final class ExecutionRecordingTest extends TracingTestCase
             ->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines());
 
-        $consumed = array_slice($lines, (int) array_search('process 3: receive orders, handled by ExecutionRecordedOrder::confirm', $lines, true));
+        $consumed = array_slice($lines, (int) array_search('process 3: receive orders, ExecutionRecordedOrder::confirm', $lines, true));
 
-        self::assertContains('nothing handed over: the handler returned string, and no output channel, routing slip or reply channel of the request takes it', $consumed);
-        self::assertNotContains('reply string to the reply channel of the request, where its sender waits for it', $consumed);
+        self::assertStep($consumed, 'no hand-over', ['result: returned string, no output channel, routing slip or reply channel']);
+        self::assertNotContains('reply to the reply channel of the request', $consumed);
     }
 
     public function test_a_message_collected_by_a_handler_that_failed_is_not_read_as_released_when_sent_again(): void
@@ -643,10 +658,10 @@ final class ExecutionRecordingTest extends TracingTestCase
 
     public function test_an_aggregate_method_reached_through_the_factory_and_action_router_is_a_handler(): void
     {
-        $lines = self::trimmed(self::executionOf('routed factory and action with explicit endpoint ids'));
+        $lines = self::trimmed(self::executionOf('routed factory and action with explicit endpoint ids', withEveryHint: true));
 
-        self::assertContains('handler class@anonymous::place returns class@anonymous', $lines);
-        self::assertContains('handler class@anonymous::placeAgain returns nothing', $lines);
+        self::assertStep($lines, 'handler class@anonymous::place', ['result: returns class@anonymous']);
+        self::assertStep($lines, 'handler class@anonymous::placeAgain', ['result: returns nothing']);
         self::assertSame([], array_values(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'step class@anonymous'))));
     }
 
@@ -684,7 +699,27 @@ final class ExecutionRecordingTest extends TracingTestCase
         $lines = self::trimmed(self::executionOf('event forwarded to a channel whose other interceptor fails after the send'));
 
         self::assertSame([], array_values(array_filter($lines, fn (string $line): bool => str_contains($line, 'failingAfterSend'))));
-        self::assertContains('before send, AbstractChannelInterceptor@anonymous::preSend', $lines);
+        self::assertContains('before send AbstractChannelInterceptor@anonymous::preSend', $lines);
+    }
+
+    /**
+     * @param list<string> $lines
+     * @param list<string> $hints
+     */
+    private static function assertStep(array $lines, string $label, array $hints): void
+    {
+        foreach (array_keys($lines, $label, true) as $position) {
+            $under = [];
+            for ($next = $position + 1; str_starts_with($lines[$next] ?? '', '↳ '); $next++) {
+                $under[] = substr($lines[$next], strlen('↳ '));
+            }
+            if (array_diff($hints, $under) === []) {
+                self::assertTrue(true);
+
+                return;
+            }
+        }
+        self::fail("No step {$label} with the hints " . implode('; ', $hints));
     }
 
     /**
@@ -716,7 +751,7 @@ final class ExecutionRecordingTest extends TracingTestCase
     /**
      * @return list<string>
      */
-    private static function executionOf(string $scenarioName): array
+    private static function executionOf(string $scenarioName, bool $withEveryHint = false): array
     {
         foreach (FlowScenarioCatalogue::all() as $scenario) {
             if ($scenario->name !== $scenarioName) {
@@ -734,7 +769,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 self::assertNull($scenario->runStage($stage, $ecotone));
             }
 
-            return FlowExecution::of($recorder->recordedSpans())->lines();
+            return FlowExecution::of($recorder->recordedSpans())->lines($withEveryHint);
         }
         self::fail("No scenario named {$scenarioName} in the flow scenario catalogue");
     }

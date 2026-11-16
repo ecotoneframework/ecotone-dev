@@ -25,9 +25,10 @@ final class RecordedStreamSource implements StreamSource
     {
         return RecordedStep::of(
             $this->tracer,
-            'load events of ' . $projectionName . ($partitionKey === null ? '' : ' partition ' . $partitionKey) . ' after position ' . ($lastPosition ?? 'start') . ', up to ' . $count,
+            'load events of ' . $projectionName . ($partitionKey === null ? '' : ' partition ' . $partitionKey),
             fn () => $this->streamSource->load($projectionName, $lastPosition, $count, $partitionKey),
             fn (StreamPage $page): string => 'got ' . count($page->events) . ' events',
+            [ExecutionHint::detail(ExecutionHint::READ_FROM, 'after position ' . ($lastPosition ?? 'start') . ', up to ' . $count)],
         );
     }
 }

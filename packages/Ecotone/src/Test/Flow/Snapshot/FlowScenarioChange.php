@@ -12,6 +12,7 @@ use Ecotone\Api\Messaging\Flow\FlowNode;
 use Ecotone\Api\Messaging\Flow\FlowNodeChange;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
+use Ecotone\Tracing\Execution\ExecutionHint;
 
 /**
  * licence Apache-2.0
@@ -639,8 +640,8 @@ final class FlowScenarioChange
     }
 
     /**
-     * @param list<array{process: string, steps: list<string>}> $before
-     * @param list<array{process: string, steps: list<string>}> $after
+     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $before
+     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $after
      * @return list<array{process: string, change: string, steps?: list<array{change: string, step?: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool}>}>
      */
     private static function executionChangesBetween(array $before, array $after): array
@@ -656,8 +657,8 @@ final class FlowScenarioChange
                 default => [null, $after[$afterPosition++]],
             };
             $processes[] = match (true) {
-                $process[0] === null => ['process' => $entry['step'], 'change' => self::ADDED, 'steps' => array_map(fn (string $step): array => ['change' => self::ADDED, 'step' => $step], $process[1]['steps'])],
-                $process[1] === null => ['process' => $entry['step'], 'change' => self::REMOVED, 'steps' => array_map(fn (string $step): array => ['change' => self::REMOVED, 'step' => $step], $process[0]['steps'])],
+                $process[0] === null => ['process' => $entry['step'], 'change' => self::ADDED, 'steps' => array_map(fn (array $step): array => ['change' => self::ADDED, 'step' => str_repeat('  ', $step['depth']) . $step['label'], 'hints' => self::criticalOf($step['hints'])], $process[1]['steps'])],
+                $process[1] === null => ['process' => $entry['step'], 'change' => self::REMOVED, 'steps' => array_map(fn (array $step): array => ['change' => self::REMOVED, 'step' => str_repeat('  ', $step['depth']) . $step['label'], 'hints' => self::criticalOf($step['hints'])], $process[0]['steps'])],
                 $process[0]['steps'] === $process[1]['steps'] => ['process' => $entry['step'], 'change' => self::UNCHANGED],
                 default => ['process' => $entry['step'], 'change' => self::CHANGED, 'steps' => self::withUnchangedNeighboursOnly(FlowExecutionChange::between($process[0]['steps'], $process[1]['steps']))],
             };
@@ -667,16 +668,30 @@ final class FlowScenarioChange
     }
 
     /**
-     * @param list<array{process: string, steps: list<string>}> $processes
-     * @return list<array{process: string, steps: list<string>}>
+     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $processes
+     * @return list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}>
      */
     private static function withProcessesNamedByTitle(array $processes): array
     {
-        $reference = '/(?<=by process |run, process )(\d+)\b/';
-        $titles = array_map(fn (string $title): string => '`' . preg_replace('/(?<=by |run, )process \d+\b/', 'another process', $title) . '`', array_column($processes, 'process'));
-        $named = fn (string $text): string => (string) preg_replace_callback($reference, fn (array $number): string => $titles[(int) $number[1] - 1] ?? $number[1], $text);
+        $titles = array_map(fn (string $title): string => '`' . $title . '`', array_column($processes, 'process'));
+        $named = fn (string $text): string => (string) preg_replace_callback('/\bprocess (\d+)\b/', fn (array $number): string => 'process ' . ($titles[(int) $number[1] - 1] ?? $number[1]), $text);
 
-        return array_map(fn (array $process): array => ['process' => $named($process['process']), 'steps' => array_map($named, $process['steps'])], $processes);
+        return array_map(fn (array $process): array => [
+            'process' => $process['process'],
+            'steps' => array_map(fn (array $step): array => [
+                ...$step,
+                'hints' => array_map(fn (array $hint): array => in_array($hint['key'], [ExecutionHint::SENT_BY, ExecutionHint::TAKEN_BY, ExecutionHint::RUNS], true) ? [...$hint, 'value' => $named($hint['value'])] : $hint, $step['hints']),
+            ], $process['steps']),
+        ], $processes);
+    }
+
+    /**
+     * @param list<array{key: string, value: string, critical: bool}> $hints
+     * @return list<array{key: string, value: string, critical: bool}>
+     */
+    private static function criticalOf(array $hints): array
+    {
+        return array_values(array_filter($hints, fn (array $hint): bool => $hint['critical']));
     }
 
     /**

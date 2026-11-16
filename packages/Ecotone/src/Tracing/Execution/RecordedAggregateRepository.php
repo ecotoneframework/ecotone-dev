@@ -26,9 +26,10 @@ final class RecordedAggregateRepository implements AggregateRepository
     public function findBy(string $aggregateClassName, array $identifiers): ?ResolvedAggregate
     {
         return $this->recorded(
-            'repository finds ' . ExecutionRecordingTracer::shortClassOf($aggregateClassName) . ' by ' . json_encode($identifiers, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'repository finds ' . ExecutionRecordingTracer::shortClassOf($aggregateClassName),
             fn () => $this->repository->findBy($aggregateClassName, $identifiers),
-            fn (?ResolvedAggregate $aggregate): string => $aggregate === null ? 'nothing' : 'it at version ' . ($aggregate->getVersionBeforeHandling() ?? 'none'),
+            fn (?ResolvedAggregate $aggregate): string => $aggregate === null ? 'found nothing' : 'found it at version ' . ($aggregate->getVersionBeforeHandling() ?? 'none'),
+            [ExecutionHint::detail(ExecutionHint::READ_FROM, (string) json_encode($identifiers, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE))],
         );
     }
 
@@ -41,9 +42,12 @@ final class RecordedAggregateRepository implements AggregateRepository
         );
     }
 
-    private function recorded(string $name, Closure $call, Closure $outcome): mixed
+    /**
+     * @param list<ExecutionHint> $hints
+     */
+    private function recorded(string $name, Closure $call, Closure $outcome, array $hints = []): mixed
     {
-        $step = $this->tracer->startStep($name);
+        $step = $this->tracer->startStep($name, hints: $hints);
         try {
             $result = $call();
         } catch (Throwable $failure) {

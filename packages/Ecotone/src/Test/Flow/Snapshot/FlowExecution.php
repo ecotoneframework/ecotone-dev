@@ -7,17 +7,19 @@ namespace Ecotone\Test\Flow\Snapshot;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Test\Flow\ExpectedSpan;
+use Ecotone\Tracing\Execution\ExecutionHint;
 
 /**
  * licence Apache-2.0
  */
 final class FlowExecution
 {
-    private const PLUMBING = ['Bridge::handle', 'RoutingSlipPrepender::transform', 'HeaderRouter::route', 'GatheringMessageHandler::handle'];
+    private const PLUMBING = ['Bridge::handle', 'RoutingSlipPrepender::transform', 'HeaderRouter::route'];
     private const GENERATED_ID = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{64}/';
+    private const HINT_MARKER = '↳ ';
 
     /**
-     * @param list<array{process: string, steps: list<string>}> $processes
+     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $processes
      */
     private function __construct(public readonly array $processes)
     {
@@ -48,8 +50,8 @@ final class FlowExecution
         [$links, $sources] = self::linksBetween($processes, $children);
         $processes = array_map(
             fn (Span $process): array => ($process->attributes[SpanAttribute::EXECUTION_STEP] ?? false)
-                ? ['process' => self::nameOf(self::firstSpanUnder($process, $children) ?? $process), 'steps' => [...self::linesOf([$process], $children, 1, $links)]]
-                : ['process' => self::nameOf($process), 'steps' => self::stepsUnder($process, $children, 1, $links)],
+                ? ['process' => self::nameOf(self::firstSpanUnder($process, $children) ?? $process), 'steps' => self::stepsOf([$process], $children, 1, $links)]
+                : ['process' => self::nameOf($process), 'steps' => self::stepsOf($children[$process->spanId] ?? [], $children, 1, $links)],
             $processes,
         );
 
@@ -57,9 +59,35 @@ final class FlowExecution
     }
 
     /**
+     * @return list<string>
+     */
+    public function lines(bool $withEveryHint = false): array
+    {
+        $lines = [];
+        foreach ($this->processes as $position => $process) {
+            $lines[] = 'process ' . ($position + 1) . ': ' . $process['process'];
+            foreach ($process['steps'] as $step) {
+                $lines[] = str_repeat('  ', $step['depth']) . $step['label'];
+                foreach ($step['hints'] as $hint) {
+                    if ($withEveryHint || $hint['critical']) {
+                        $lines[] = self::hintLine($step['depth'], $hint['key'], $hint['value']);
+                    }
+                }
+            }
+        }
+
+        return $lines;
+    }
+
+    public static function hintLine(int $depth, string $key, string $value): string
+    {
+        return str_repeat('  ', $depth + 1) . self::HINT_MARKER . $key . ': ' . $value;
+    }
+
+    /**
      * @param list<Span> $processes
      * @param array<string, list<Span>> $children
-     * @return array{0: array<string, string>, 1: array<int, int>} what each sending and receiving step adds to its line, and the process that put the received message of each consumer process on its channel
+     * @return array{0: array<string, list<array{key: string, value: string, critical: bool}>>, 1: array<int, array{process: int, part: ?string}>} hints each sending and receiving step gets, and the process that put the received message of each consumer process on its channel
      */
     private static function linksBetween(array $processes, array $children): array
     {
@@ -97,9 +125,10 @@ final class FlowExecution
             }
             $consumer = $processOf[$span->spanId];
             $putter = $senders[count($senders) - 1];
-            $sources[$consumer] = $processOf[$putter->spanId] + 1;
-            $links[$span->spanId] = ': ' . self::kindOfMessageSentBy($senders[0], $parentOf) . ', put on the channel by process ' . $sources[$consumer];
-            $links[$putter->spanId] = '; taken from the channel later by a separate consumer run, process ' . ($consumer + 1);
+            [$kind, $part] = self::kindOfMessageSentBy($senders[0], $parentOf);
+            $sources[$consumer] = ['process' => $processOf[$putter->spanId] + 1, 'part' => $part];
+            $links[$span->spanId][] = ['key' => ExecutionHint::SENT_BY, 'value' => 'process ' . $sources[$consumer]['process'] . ', ' . $kind, 'critical' => true];
+            $links[$putter->spanId][] = ['key' => ExecutionHint::TAKEN_BY, 'value' => 'process ' . ($consumer + 1) . ', a separate consumer run', 'critical' => true];
         }
 
         return [$links, $sources];
@@ -107,27 +136,71 @@ final class FlowExecution
 
     /**
      * @param array<string, Span> $parentOf
+     * @return array{0: string, 1: ?string}
      */
-    private static function kindOfMessageSentBy(Span $sender, array $parentOf): string
+    private static function kindOfMessageSentBy(Span $sender, array $parentOf): array
     {
         for ($span = $sender; $span !== null; $span = $parentOf[$span->spanId] ?? null) {
-            if (preg_match('/^part report by .*, part (\d+ of \d+), to /', self::nameOf($span), $part) === 1) {
-                return 'the part report for part ' . $part[1];
+            $name = self::nameOf($span);
+            if (str_starts_with($name, 'part report to ')) {
+                foreach (self::hintsOf($span) as $hint) {
+                    if ($hint['key'] === ExecutionHint::RESULT && preg_match('/^part (\d+ of \d+)/', $hint['value'], $part) === 1) {
+                        return ['the part report for part ' . $part[1], $part[1]];
+                    }
+                }
             }
-            if (preg_match('/^send (command|event|query) (\S+)$/', self::nameOf($span), $sent) === 1) {
-                return 'the ' . $sent[1] . ' ' . $sent[2];
+            if (preg_match('/^send (command|event|query) (\S+)$/', $name, $sent) === 1) {
+                return ['the ' . $sent[1] . ' ' . $sent[2], null];
             }
-            if (preg_match('/^entrypoint sends to ([^,]+)/', self::nameOf($span), $target) === 1) {
-                return 'the message the entrypoint sent to ' . $target[1];
+            if (preg_match('/^entrypoint sends to (\S+)/', $name, $target) === 1) {
+                return ['the message the entrypoint sent to ' . $target[1], null];
             }
         }
 
-        return 'the message';
+        return ['the message', null];
     }
 
     /**
-     * @param list<array{process: string, steps: list<string>}> $processes
-     * @return list<array{process: string, steps: list<string>}>
+     * @return list<array{key: string, value: string, critical: bool}>
+     */
+    private static function hintsOf(Span $span): array
+    {
+        $hints = [];
+        $outcome = (string) ($span->attributes[SpanAttribute::EXECUTION_OUTCOME] ?? '');
+        if ($outcome !== '') {
+            $hints[] = ['key' => ExecutionHint::RESULT, 'value' => self::readable($outcome), 'critical' => str_starts_with($outcome, 'throws ')];
+        }
+        foreach (json_decode((string) ($span->attributes[SpanAttribute::EXECUTION_HINTS] ?? '[]'), true, flags: JSON_THROW_ON_ERROR) as [$key, $value, $critical]) {
+            $hints[] = ['key' => (string) $key, 'value' => self::readable((string) $value), 'critical' => (bool) $critical];
+        }
+
+        return $hints;
+    }
+
+    /**
+     * @param list<Span> $spans
+     * @param array<string, list<Span>> $children
+     * @param array<string, list<array{key: string, value: string, critical: bool}>> $links
+     * @return list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>
+     */
+    private static function stepsOf(array $spans, array $children, int $depth, array $links): array
+    {
+        $steps = [];
+        foreach ($spans as $child) {
+            $steps[] = [
+                'depth' => $depth,
+                'label' => (($child->attributes[SpanAttribute::EXECUTION_STEP] ?? false) ? '' : 'span ') . self::nameOf($child),
+                'hints' => [...self::hintsOf($child), ...($links[$child->spanId] ?? [])],
+            ];
+            $steps = [...$steps, ...self::stepsOf($children[$child->spanId] ?? [], $children, $depth + 1, $links)];
+        }
+
+        return $steps;
+    }
+
+    /**
+     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $processes
+     * @return list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}>
      */
     private static function withNumberedGeneratedNames(array $processes): array
     {
@@ -141,50 +214,66 @@ final class FlowExecution
         };
         foreach ($processes as $position => $process) {
             $processes[$position]['process'] = $numbered($process['process']);
-            $processes[$position]['steps'] = array_map($numbered, $process['steps']);
+            foreach ($process['steps'] as $index => $step) {
+                $processes[$position]['steps'][$index]['label'] = $numbered($step['label']);
+                foreach ($step['hints'] as $hintIndex => $hint) {
+                    $processes[$position]['steps'][$index]['hints'][$hintIndex]['value'] = $numbered($hint['value']);
+                }
+            }
         }
 
         return $processes;
     }
 
     /**
-     * @param list<array{process: string, steps: list<string>}> $processes
-     * @param array<int, int> $sources
-     * @return list<array{process: string, steps: list<string>}>
+     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $processes
+     * @param array<int, array{process: int, part: ?string}> $sources
+     * @return list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}>
      */
     private static function titled(array $processes, array $sources): array
     {
+        $ordinals = [];
         foreach ($processes as $position => $process) {
-            $handled = self::handledIn($process['steps'], $sources[$position] ?? null);
-            $processes[$position]['process'] = $process['process'] . ($handled === null ? '' : ', handled by ' . $handled);
+            [$handled, $part] = self::handledIn($process['steps']);
+            $processes[$position]['process'] = $process['process'] . ($handled === null ? '' : ', ' . $handled);
+            if ($part !== null) {
+                $ordinals[$position] = 'part ' . $part;
+                if (isset($sources[$position]) && $process['steps'] !== []) {
+                    $processes[$position]['steps'][0]['hints'][] = ['key' => ExecutionHint::RUNS, 'value' => 'only the gatherer, the work of part ' . $part . ' ran in process ' . $sources[$position]['process'], 'critical' => true];
+                }
+            }
         }
         $count = array_count_values(array_column($processes, 'process'));
         $seen = [];
         foreach ($processes as $position => $process) {
             if ($count[$process['process']] > 1) {
                 $seen[$process['process']] = ($seen[$process['process']] ?? 0) + 1;
-                $processes[$position]['process'] .= ' (' . $seen[$process['process']] . ' of ' . $count[$process['process']] . ')';
+                $ordinals[$position] ??= $seen[$process['process']] . ' of ' . $count[$process['process']];
             }
+        }
+        foreach ($ordinals as $position => $ordinal) {
+            $processes[$position]['process'] .= ' (' . $ordinal . ')';
         }
 
         return $processes;
     }
 
     /**
-     * @param list<string> $steps
+     * @param list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}> $steps
+     * @return array{0: ?string, 1: ?string} the handler the process ran, and the part when it is the gatherer
      */
-    private static function handledIn(array $steps, ?int $source): ?string
+    private static function handledIn(array $steps): array
     {
-        foreach ($steps as $step) {
-            if (preg_match('/^\s*(?:handler|transformer|splitter|router|orchestrator) (\S+::\w+)/', $step, $handler) === 1 && ! in_array($handler[1], self::PLUMBING, true)) {
-                return $handler[1];
+        foreach ($steps as $position => $step) {
+            if (preg_match('/^(?:handler|transformer|splitter|router|orchestrator) (\S+::\w+)$/', $step['label'], $handler) !== 1 || in_array($handler[1], self::PLUMBING, true)) {
+                continue;
             }
-            if (preg_match('/^\s*read part (\d+ of \d+) of gathering group /', $step, $part) === 1) {
-                return 'the gatherer only, recording part ' . $part[1] . ($source === null ? '' : ' reported by process ' . $source . ', whose work ran there');
-            }
+            $read = $steps[$position + 1]['label'] ?? '';
+
+            return [$handler[1], preg_match('/^read part (\d+ of \d+)$/', $read, $part) === 1 ? $part[1] : null];
         }
 
-        return null;
+        return [null, null];
     }
 
     /**
@@ -203,50 +292,6 @@ final class FlowExecution
         }
 
         return null;
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function lines(): array
-    {
-        $lines = [];
-        foreach ($this->processes as $position => $process) {
-            $lines[] = 'process ' . ($position + 1) . ': ' . $process['process'];
-            foreach ($process['steps'] as $step) {
-                $lines[] = $step;
-            }
-        }
-
-        return $lines;
-    }
-
-    /**
-     * @param array<string, list<Span>> $children
-     * @param array<string, string> $links
-     * @return list<string>
-     */
-    private static function stepsUnder(Span $span, array $children, int $depth, array $links): array
-    {
-        return self::linesOf($children[$span->spanId] ?? [], $children, $depth, $links);
-    }
-
-    /**
-     * @param list<Span> $spans
-     * @param array<string, list<Span>> $children
-     * @param array<string, string> $links
-     * @return list<string>
-     */
-    private static function linesOf(array $spans, array $children, int $depth, array $links): array
-    {
-        $steps = [];
-        foreach ($spans as $child) {
-            $outcome = $child->attributes[SpanAttribute::EXECUTION_OUTCOME] ?? '';
-            $steps[] = str_repeat('  ', $depth) . (($child->attributes[SpanAttribute::EXECUTION_STEP] ?? false) ? '' : 'span ') . self::nameOf($child) . ($outcome === '' ? '' : ' ' . $outcome) . ($links[$child->spanId] ?? '');
-            $steps = [...$steps, ...self::stepsUnder($child, $children, $depth + 1, $links)];
-        }
-
-        return $steps;
     }
 
     private static function nameOf(Span $span): string

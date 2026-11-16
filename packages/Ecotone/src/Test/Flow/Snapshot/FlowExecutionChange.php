@@ -16,12 +16,15 @@ final class FlowExecutionChange
     private const SIMILAR_ENOUGH = 0.5;
 
     /**
-     * @param list<string> $before
-     * @param list<string> $after
-     * @return list<array{change: string, step: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool}>
+     * @param list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}> $beforeSteps
+     * @param list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}> $afterSteps
+     * @return list<array{change: string, step: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool, hints?: list<array{key: string, value: string, critical: bool}>, hintChanges?: list<array{key: string, before: string, now: string}>}>
      */
-    public static function between(array $before, array $after): array
+    public static function between(array $beforeSteps, array $afterSteps): array
     {
+        $before = array_map(fn (array $step): string => str_repeat('  ', $step['depth']) . $step['label'], $beforeSteps);
+        $after = array_map(fn (array $step): string => str_repeat('  ', $step['depth']) . $step['label'], $afterSteps);
+        $hints = ['before' => array_column($beforeSteps, 'hints'), 'after' => array_column($afterSteps, 'hints')];
         $beforeTree = self::treeOf($before);
         $afterTree = self::treeOf($after);
         $plain = self::aligned(count($before), count($after), fn (int $beforeLine, int $afterLine): bool => $before[$beforeLine] === $after[$afterLine]);
@@ -34,7 +37,7 @@ final class FlowExecutionChange
             $rejected += $failed;
         } while ($failed !== []);
 
-        return self::mergedRepeats(self::entriesOf($aligned, $moves, $before, $after, $afterTree));
+        return self::mergedRepeats(self::entriesOf($aligned, $moves, $before, $after, $afterTree, $hints));
     }
 
     /**
@@ -236,20 +239,15 @@ final class FlowExecutionChange
      * @param array{depth: list<int>, text: list<string>, parent: list<int|null>, end: list<int>} $afterTree
      * @return list<array{change: string, step: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool, signature?: string}>
      */
-    private static function entriesOf(array $aligned, array $moves, array $before, array $after, array $afterTree): array
+    private static function entriesOf(array $aligned, array $moves, array $before, array $after, array $afterTree, array $hints): array
     {
         usort($moves, fn (array $one, array $other): int => $one['after'] <=> $other['after']);
         $entries = [];
         foreach ([...$aligned, [null, PHP_INT_MAX]] as [$beforeLine, $afterLine]) {
             while ($moves !== [] && $afterLine !== null && $moves[0]['after'] < $afterLine) {
-                array_push($entries, ...self::movedEntries(array_shift($moves), $before, $after, $afterTree));
+                array_push($entries, ...self::movedEntries(array_shift($moves), $before, $after, $afterTree, $hints));
             }
-            $entries[] = match (true) {
-                $afterLine === PHP_INT_MAX => null,
-                $beforeLine === null => ['change' => FlowScenarioChange::ADDED, 'step' => $after[$afterLine]],
-                $afterLine === null => ['change' => FlowScenarioChange::REMOVED, 'step' => $before[$beforeLine]],
-                default => ['change' => FlowScenarioChange::UNCHANGED, 'step' => $after[$afterLine]],
-            };
+            $entries[] = $afterLine === PHP_INT_MAX ? null : self::entryOf($beforeLine, $afterLine, $beforeLine === null ? null : $before[$beforeLine], $afterLine === null ? null : $after[$afterLine], $hints);
         }
 
         return array_values(array_filter($entries));
@@ -262,18 +260,15 @@ final class FlowExecutionChange
      * @param array{depth: list<int>, text: list<string>, parent: list<int|null>, end: list<int>} $afterTree
      * @return list<array{change: string, step: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool, signature?: string}>
      */
-    private static function movedEntries(array $move, array $before, array $after, array $afterTree): array
+    private static function movedEntries(array $move, array $before, array $after, array $afterTree, array $hints): array
     {
         $deeper = intdiv(strspn($after[$move['after']], ' ') - strspn($before[$move['before']], ' '), 2);
         $changes = [];
         foreach (array_slice($move['inside'], 1) as [$beforeLine, $afterLine]) {
-            $changes[] = match (true) {
-                $beforeLine === null => ['change' => FlowScenarioChange::ADDED, 'step' => $after[$afterLine]],
-                $afterLine === null => ['change' => FlowScenarioChange::REMOVED, 'step' => $deeper > 0 ? str_repeat('  ', $deeper) . $before[$beforeLine] : substr($before[$beforeLine], -2 * $deeper)],
-                default => ['change' => FlowScenarioChange::UNCHANGED, 'step' => $after[$afterLine]],
-            };
+            $changes[] = self::entryOf($beforeLine, $afterLine, $beforeLine === null ? null : ($deeper > 0 ? str_repeat('  ', $deeper) . $before[$beforeLine] : substr($before[$beforeLine], -2 * $deeper)), $afterLine === null ? null : $after[$afterLine], $hints);
         }
-        $changedInside = array_filter($changes, fn (array $change): bool => $change['change'] !== FlowScenarioChange::UNCHANGED) !== [];
+        $rootHintChanges = self::hintChangesBetween($hints['before'][$move['before']], $hints['after'][$move['after']]);
+        $changedInside = $rootHintChanges !== [] || array_filter($changes, fn (array $change): bool => $change['change'] !== FlowScenarioChange::UNCHANGED) !== [];
         $moved = [
             'change' => FlowScenarioChange::MOVED,
             'step' => $after[$move['after']],
@@ -282,10 +277,58 @@ final class FlowExecutionChange
             'movement' => $deeper > 0 ? self::UNDER : self::OUT_OF,
             'parent' => $move['parent'],
             'changedInside' => $changedInside,
-            'signature' => implode("\n", array_slice($after, $move['after'], $afterTree['end'][$move['after']] - $move['after'])),
+            'signature' => implode("\n", array_slice($after, $move['after'], $afterTree['end'][$move['after']] - $move['after'])) . json_encode(array_slice($hints['after'], $move['after'], $afterTree['end'][$move['after']] - $move['after']), JSON_THROW_ON_ERROR),
+            ...($rootHintChanges === [] ? [] : ['hintChanges' => $rootHintChanges]),
         ];
 
         return $changedInside ? [$moved, ...$changes] : [$moved];
+    }
+
+    /**
+     * @param array{before: list<list<array{key: string, value: string, critical: bool}>>, after: list<list<array{key: string, value: string, critical: bool}>>} $hints
+     * @return array<string, mixed>
+     */
+    private static function entryOf(?int $beforeLine, ?int $afterLine, ?string $beforeStep, ?string $afterStep, array $hints): array
+    {
+        $critical = fn (array $stepHints): array => array_values(array_filter($stepHints, fn (array $hint): bool => $hint['critical']));
+        if ($beforeLine === null) {
+            return ['change' => FlowScenarioChange::ADDED, 'step' => (string) $afterStep, 'hints' => $critical($hints['after'][$afterLine])];
+        }
+        if ($afterLine === null) {
+            return ['change' => FlowScenarioChange::REMOVED, 'step' => (string) $beforeStep, 'hints' => $critical($hints['before'][$beforeLine])];
+        }
+        $changes = self::hintChangesBetween($hints['before'][$beforeLine], $hints['after'][$afterLine]);
+
+        return $changes === []
+            ? ['change' => FlowScenarioChange::UNCHANGED, 'step' => (string) $afterStep, 'hints' => $critical($hints['after'][$afterLine])]
+            : ['change' => FlowScenarioChange::CHANGED, 'step' => (string) $afterStep, 'hintChanges' => $changes];
+    }
+
+    /**
+     * @param list<array{key: string, value: string, critical: bool}> $before
+     * @param list<array{key: string, value: string, critical: bool}> $after
+     * @return list<array{key: string, before: string, now: string}>
+     */
+    private static function hintChangesBetween(array $before, array $after): array
+    {
+        $valuesOf = function (array $hints): array {
+            $values = [];
+            foreach ($hints as $hint) {
+                $values[$hint['key']][] = $hint['value'];
+            }
+
+            return array_map(fn (array $list): string => implode('; ', $list), $values);
+        };
+        $beforeValues = $valuesOf($before);
+        $afterValues = $valuesOf($after);
+        $changes = [];
+        foreach (array_unique([...array_keys($beforeValues), ...array_keys($afterValues)]) as $key) {
+            if (($beforeValues[$key] ?? '') !== ($afterValues[$key] ?? '')) {
+                $changes[] = ['key' => (string) $key, 'before' => $beforeValues[$key] ?? '', 'now' => $afterValues[$key] ?? ''];
+            }
+        }
+
+        return $changes;
     }
 
     /**

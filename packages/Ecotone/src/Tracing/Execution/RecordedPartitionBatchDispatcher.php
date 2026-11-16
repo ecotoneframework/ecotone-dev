@@ -20,8 +20,9 @@ final class RecordedPartitionBatchDispatcher implements PartitionBatchDispatcher
     {
         RecordedStep::of(
             $this->tracer,
-            'dispatch ' . count($batches) . ' partition batches of ' . $operation . ' to ' . ($asyncChannelName ?? 'this process') . ', by ' . ExecutionRecordingTracer::shortClassOf($this->partitionBatchDispatcher::class),
+            'dispatch ' . count($batches) . ' partition batches to ' . ($asyncChannelName ?? 'this process'),
             fn () => $this->partitionBatchDispatcher->dispatch($projectionName, $operation, $asyncChannelName, $prepare, $batches),
+            hints: [ExecutionHint::detail(ExecutionHint::BY, ExecutionRecordingTracer::shortClassOf($this->partitionBatchDispatcher::class) . ', for ' . $operation)],
         );
     }
 }

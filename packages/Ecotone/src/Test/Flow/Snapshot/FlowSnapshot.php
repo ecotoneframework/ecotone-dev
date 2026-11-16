@@ -23,7 +23,7 @@ final class FlowSnapshot
      * @param list<array{depth: int, name: string, destination?: string, kind: string, status: string}> $trace
      * @param array<string, array<string, scalar>> $ledger kind and name of a registration => its entry
      * @param array<string, list<string>> $chains handler name of the ledger => its built layers, outermost first
-     * @param list<array{process: string, steps: list<string>}> $execution
+     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $execution
      */
     private function __construct(
         public readonly string $scenario,
@@ -100,7 +100,7 @@ final class FlowSnapshot
         ksort($ledger, SORT_STRING);
         ksort($chains, SORT_STRING);
 
-        return new self($stored['scenario'], MessageFlowGraph::create(array_values($nodes), array_values($edges)), $stored['trace'], $ledger, $chains, $stored['execution']);
+        return new self($stored['scenario'], MessageFlowGraph::create(array_values($nodes), array_values($edges)), $stored['trace'], $ledger, $chains, self::executionOf($stored['execution'], $file));
     }
 
     public static function sharedFromJson(string $json, string $file): self
@@ -225,12 +225,33 @@ final class FlowSnapshot
             '    },',
             '    "trace": ' . self::oneLineEach(array_map(self::encoded(...), $this->trace), '    ') . ',',
             '    "execution": ' . self::oneLineEach(array_map(
-                fn (array $process): string => '{"process": ' . self::encoded($process['process']) . ', "steps": ' . self::oneLineEach(array_map(self::encoded(...), $process['steps']), '        ') . '}',
+                fn (array $process): string => '{"process": ' . self::encoded($process['process']) . ', "steps": ' . self::oneLineEach(array_map(
+                    fn (array $step): string => self::encoded(['depth' => $step['depth'], 'label' => $step['label'], ...($step['hints'] === [] ? [] : ['hints' => $step['hints']])]),
+                    $process['steps'],
+                ), '        ') . '}',
                 $this->execution,
             ), '    '),
             '}',
             '',
         ]);
+    }
+
+    /**
+     * @param list<array{process: string, steps: list<mixed>}> $execution
+     * @return list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}>
+     */
+    private static function executionOf(array $execution, string $file): array
+    {
+        return array_map(fn (array $process): array => [
+            'process' => (string) $process['process'],
+            'steps' => array_map(function (mixed $step) use ($file): array {
+                if (! is_array($step) || ! is_int($step['depth'] ?? null) || ! is_string($step['label'] ?? null)) {
+                    throw InvalidArgumentException::create("Flow snapshot file {$file} holds steps of `execution` without a depth and a label, so it was written by an earlier version of the build flow tooling. Regenerate every snapshot with `php bin/build-flow.php snapshot`.");
+                }
+
+                return ['depth' => $step['depth'], 'label' => $step['label'], 'hints' => array_map(fn (array $hint): array => ['key' => (string) $hint['key'], 'value' => (string) $hint['value'], 'critical' => (bool) $hint['critical']], $step['hints'] ?? [])];
+            }, $process['steps']),
+        ], $execution);
     }
 
     /**

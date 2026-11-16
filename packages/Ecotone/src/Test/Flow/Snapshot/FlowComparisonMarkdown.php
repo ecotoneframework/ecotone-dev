@@ -79,17 +79,46 @@ final class FlowComparisonMarkdown
                 FlowScenarioChange::REMOVED => 'ran only before.',
                 default => FlowWording::ofChangedProcess($process['steps']),
             };
-            $lines = array_map(fn (array $entry): string => match ($entry['change']) {
-                FlowScenarioChange::LEFT_OUT => '  … ' . $entry['steps'] . ' unchanged steps',
-                FlowScenarioChange::MOVED => '  ' . FlowWording::ofMovedSteps($entry),
-                FlowScenarioChange::ADDED => '+ ' . $entry['step'],
-                FlowScenarioChange::REMOVED => '- ' . $entry['step'],
-                default => '  ' . $entry['step'],
-            }, $process['steps'] ?? []);
+            $lines = [];
+            foreach ($process['steps'] ?? [] as $entry) {
+                array_push($lines, ...self::linesOfStep($entry));
+            }
             $sections[] = 'Process `' . $process['process'] . '`: ' . $state . ($lines === [] ? '' : "\n\n```diff\n" . implode("\n", $lines) . "\n```");
         }
 
         return "\n#### What ran, process by process\n\n" . implode("\n\n", $sections) . "\n";
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     * @return list<string>
+     */
+    private static function linesOfStep(array $entry): array
+    {
+        $depth = intdiv(strspn((string) ($entry['step'] ?? ''), ' '), 2);
+        $prefix = match ($entry['change']) {
+            FlowScenarioChange::ADDED => '+ ',
+            FlowScenarioChange::REMOVED => '- ',
+            default => '  ',
+        };
+        $lines = [match ($entry['change']) {
+            FlowScenarioChange::LEFT_OUT => '  … ' . $entry['steps'] . ' unchanged steps',
+            FlowScenarioChange::MOVED => '  ' . FlowWording::ofMovedSteps($entry),
+            default => $prefix . $entry['step'],
+        }];
+        foreach ($entry['hints'] ?? [] as $hint) {
+            $lines[] = $prefix . FlowExecution::hintLine($depth, $hint['key'], $hint['value']);
+        }
+        foreach ($entry['hintChanges'] ?? [] as $change) {
+            if ($change['before'] !== '') {
+                $lines[] = '- ' . FlowExecution::hintLine($depth, $change['key'], $change['before']);
+            }
+            if ($change['now'] !== '') {
+                $lines[] = '+ ' . FlowExecution::hintLine($depth, $change['key'], $change['now']);
+            }
+        }
+
+        return $lines;
     }
 
     /**

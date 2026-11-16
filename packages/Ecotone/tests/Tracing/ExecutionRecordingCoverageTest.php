@@ -56,8 +56,8 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             $ecotone->sendQueryWithRouting('order.count');
         });
 
-        self::assertContains('route by class ExecutionRecordedPlaceOrder to placeOrder.target', $lines);
-        self::assertContains('route by name order.count to countOrders.target', $lines);
+        self::assertStep($lines, 'route to placeOrder.target', ['chosen by: class ExecutionRecordedPlaceOrder']);
+        self::assertStep($lines, 'route to countOrders.target', ['chosen by: name order.count']);
     }
 
     public function test_transformers_splitters_routers_bridges_and_orchestrators_are_recorded_in_their_own_role(): void
@@ -95,12 +95,12 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         });
 
-        self::assertContains('router class@anonymous::route returns string', $lines);
+        self::assertStep($lines, 'router class@anonymous::route', ['result: returns string']);
         self::assertContains('route to order.normalize', $lines);
-        self::assertContains('transformer class@anonymous::normalize returns string', $lines);
-        self::assertContains('splitter class@anonymous::split returns array', $lines);
+        self::assertStep($lines, 'transformer class@anonymous::normalize', ['result: returns string']);
+        self::assertStep($lines, 'splitter class@anonymous::split', ['result: returns array']);
         self::assertCount(3, array_keys($lines, 'direct channel order.normalize', true));
-        self::assertContains('bridge Bridge::handle returns a message of string', $lines);
+        self::assertStep($lines, 'bridge Bridge::handle', ['result: returns a message of string']);
         self::assertSame([], array_values(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'handler class@anonymous::normalize') || str_starts_with($line, 'handler class@anonymous::split'))));
         self::assertNotEmpty(array_filter(self::executionOf('orchestrator gateway starting the flow'), fn (string $line): bool => str_starts_with($line, 'orchestrator ')));
     }
@@ -109,9 +109,9 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
     {
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
 
-        self::assertContains('open gathering group {generated#1} of 2 parts', $lines);
-        self::assertNotEmpty(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'record part 1 of gathering group {generated#1} as arrived, in InMemoryGatheredGroupStore::completePart:')));
-        self::assertNotEmpty(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'record part 2 of gathering group {generated#1} as arrived, in InMemoryGatheredGroupStore::completePart:')));
+        self::assertStep($lines, 'open gathering group of 2 parts', ['group: {generated#1}']);
+        self::assertStep($lines, 'record part 1 of 2 in InMemoryGatheredGroupStore', ['group: {generated#1}']);
+        self::assertStep($lines, 'record part 2 of 2 in InMemoryGatheredGroupStore', ['group: {generated#1}']);
     }
 
     public function test_a_consumed_message_starts_its_process_at_the_receive_with_what_the_channel_applied(): void
@@ -120,11 +120,10 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             $ecotone->sendCommandWithRouting('order.place', 'order-1', metadata: [MessageHeaders::PRIORITY => 5]);
             $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         });
-        $receive = array_search('process 2: receive orders, handled by ExecutionRecordedOrders::place', $lines, true);
+        $receive = array_search('process 2: receive orders, ExecutionRecordedOrders::place', $lines, true);
 
         self::assertIsInt($receive);
-        self::assertSame('receive orders: the command order.place, put on the channel by process 1', $lines[$receive + 1]);
-        self::assertSame('take the message from channel orders, received with priority 5', $lines[$receive + 2]);
+        self::assertSame(['receive orders', '↳ sent by: process 1, the command order.place', 'take from channel orders', '↳ received with: priority 5'], array_slice($lines, $receive + 1, 4));
     }
 
     public function test_the_receive_and_send_phases_of_channel_interceptors_are_recorded(): void
@@ -134,9 +133,9 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         });
 
-        self::assertContains('TracingChannelInterceptor::afterReceiveCompletion, run when the take ended, here with a message and no failure', $lines);
-        self::assertContains('SendRetryChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure', $lines);
-        self::assertContains('TracingChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure', $lines);
+        self::assertStep($lines, 'after receive TracingChannelInterceptor::afterReceiveCompletion', ['result: a message, no failure']);
+        self::assertStep($lines, 'after send SendRetryChannelInterceptor::afterSendCompletion', ['result: no failure']);
+        self::assertStep($lines, 'after send TracingChannelInterceptor::afterSendCompletion', ['result: no failure']);
     }
 
     public function test_the_acknowledgement_of_a_consumed_message_is_recorded_with_the_strategy_that_decided_it(): void
@@ -147,8 +146,8 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2, stopOnError: false));
         });
 
-        self::assertContains('acknowledged: accepted', $lines);
-        self::assertContains('acknowledged: resent to the channel, by the final failure strategy resend', $lines);
+        self::assertStep($lines, 'acknowledge', ['result: accepted']);
+        self::assertStep($lines, 'acknowledge', ['result: resent to the channel', 'chosen by: final failure strategy resend']);
     }
 
     public function test_an_aggregate_is_recorded_as_identifier_resolution_load_handler_and_save_with_its_repository_calls(): void
@@ -173,8 +172,8 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
 
     public function test_a_saga_load_is_recorded_as_found_or_as_dropping_the_message(): void
     {
-        self::assertContains('load the aggregate found it', self::executionOf('saga continued by a second event mapped to it'));
-        self::assertContains('load the aggregate dropped the message, as no aggregate was found', self::executionOf('event for an unknown saga is dropped'));
+        self::assertStep(self::executionOf('saga continued by a second event mapped to it'), 'load the aggregate', ['result: found it']);
+        self::assertStep(self::executionOf('event for an unknown saga is dropped'), 'load the aggregate', ['result: no aggregate found, message dropped']);
     }
 
     public function test_an_event_sourced_aggregate_is_recorded_applying_its_events_when_loaded(): void
@@ -185,7 +184,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         });
 
         self::assertNotEmpty(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'repository finds ExecutionRecordedEventSourcedOrder')));
-        self::assertContains('apply ExecutionRecordedOrderWasPlaced to ExecutionRecordedEventSourcedOrder, by EnterpriseAggregateMethodInvoker', $lines);
+        self::assertStep($lines, 'apply ExecutionRecordedOrderWasPlaced to ExecutionRecordedEventSourcedOrder', ['by: EnterpriseAggregateMethodInvoker']);
     }
 
     public function test_a_handler_fetching_an_aggregate_runs_the_same_while_recorded(): void
@@ -206,15 +205,16 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         });
 
         self::assertSame('order-1', $orders->fetched);
-        self::assertContains('repository finds ExecutionRecordedEventSourcedOrder by {"orderId":"order-1"} it at version 1', $lines);
+        self::assertStep($lines, 'repository finds ExecutionRecordedEventSourcedOrder', ['result: found it at version 1', 'read from: {"orderId":"order-1"}']);
     }
 
     public function test_a_send_through_the_messaging_entrypoint_is_an_entry_saying_which_headers_it_propagated(): void
     {
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
-        $process = (int) array_search('process 2: backfill course_seats, handled by ProjectingConsoleCommands::backfillProjection', $lines, true);
+        $process = (int) array_search('process 2: backfill course_seats, ProjectingConsoleCommands::backfillProjection', $lines, true);
 
-        self::assertStringStartsWith('entrypoint sends to ecotone.channel.ecotone:projection:backfill, propagating ', $lines[$process + 1]);
+        self::assertSame('entrypoint sends to ecotone.channel.ecotone:projection:backfill', $lines[$process + 1]);
+        self::assertStringStartsWith('↳ propagating: ', $lines[$process + 2]);
         self::assertContains('entrypoint sends to projecting_manager_backfill:course_seats', $lines);
     }
 
@@ -222,8 +222,8 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
     {
         $lines = self::executionOf('failure is retried with a delay, then sent to the dead letter');
 
-        self::assertNotEmpty(preg_grep('/^send orders as retry 1, delayed \d+ ms; taken from the channel later by a separate consumer run, process 3$/', $lines));
-        self::assertContains('forward string by the output channel dead_letter, configured on DelayedRetryErrorHandler::handle; the routing slip order.placing.target.execute stays on the message for a later step', $lines);
+        self::assertStep($lines, 'send orders', ['retry: 1, delayed 0 ms', 'taken by: process 3, a separate consumer run']);
+        self::assertStep($lines, 'forward to dead_letter', ['chosen by: output channel of DelayedRetryErrorHandler::handle', 'routing slip: order.placing.target.execute → order.placing.target.execute']);
     }
 
     public function test_a_conversion_is_recorded_as_its_own_step_on_the_send_and_on_the_handler_argument(): void
@@ -262,20 +262,20 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             }
         });
 
-        self::assertNotEmpty(preg_grep('/^convert argument command throws /', $lines));
+        self::assertNotEmpty(preg_grep('/^↳ result: throws /', array_slice($lines, (int) array_search('convert argument command', $lines, true) + 1, 1)));
         self::assertEmpty(preg_grep('/^handler class@anonymous::place/', $lines));
     }
 
     public function test_a_projection_run_records_its_transaction_stream_loads_flush_partition_saves_and_the_dispatch_of_its_batches(): void
     {
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
-        $dispatching = array_slice($lines, (int) array_search('process 2: backfill course_seats, handled by ProjectingConsoleCommands::backfillProjection', $lines, true), 40);
+        $dispatching = array_slice($lines, (int) array_search('process 2: backfill course_seats, ProjectingConsoleCommands::backfillProjection', $lines, true), 60);
 
-        self::assertContains('dispatch 2 partition batches of backfill to backfill, by GatheredPartitionBatchDispatcher', $dispatching);
-        self::assertNotEmpty(preg_grep('/^open gathering group \{generated#\d+\} of 2 parts$/', $dispatching));
+        self::assertStep($dispatching, 'dispatch 2 partition batches to backfill', ['by: GatheredPartitionBatchDispatcher, for backfill']);
+        self::assertStep($dispatching, 'open gathering group of 2 parts', ['group: {generated#1}']);
         self::assertContains('begin the projection transaction', $lines);
         self::assertContains('commit the projection transaction', $lines);
-        self::assertNotEmpty(preg_grep('/^load events of course_seats /', $lines));
+        self::assertNotEmpty(preg_grep('/^load events of course_seats partition /', $lines));
         self::assertNotEmpty(preg_grep('/^save partition .* of course_seats$/', $lines));
         self::assertContains('flush the projection', $lines);
     }
@@ -296,8 +296,8 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         };
         $run = fn (FlowTestSupport $ecotone) => $ecotone->sendDirectToChannel('order.split', 'a,b');
 
-        self::assertContains('MethodInvokerProcessor, chosen by the licence', $this->recorded([$splitter::class], [$splitter], [], $run, licenceKey: null));
-        self::assertContains('UngatheredSplitterProcessor, chosen by the licence', $this->recorded([$splitter::class], [$splitter], [], $run));
+        self::assertStep($this->recorded([$splitter::class], [$splitter], [], $run, licenceKey: null), 'processor MethodInvokerProcessor', ['chosen by: licence']);
+        self::assertStep($this->recorded([$splitter::class], [$splitter], [], $run), 'processor UngatheredSplitterProcessor', ['chosen by: licence']);
     }
 
     public function test_a_consumer_that_stops_on_a_failure_is_recorded_releasing_the_message(): void
@@ -310,7 +310,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             }
         });
 
-        self::assertContains('acknowledged: released back to the channel, and the consumer stops (final failure strategy resend)', $lines);
+        self::assertStep($lines, 'acknowledge', ['result: released back to the channel, the consumer stops', 'chosen by: final failure strategy resend']);
     }
 
     /**
@@ -331,7 +331,27 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             licenceKey: $licenceKey,
         ));
 
-        return array_map(trim(...), FlowExecution::of($recorder->recordedSpans())->lines());
+        return array_map(trim(...), FlowExecution::of($recorder->recordedSpans())->lines(true));
+    }
+
+    /**
+     * @param list<string> $lines
+     * @param list<string> $hints
+     */
+    private static function assertStep(array $lines, string $label, array $hints): void
+    {
+        foreach (array_keys($lines, $label, true) as $position) {
+            $under = [];
+            for ($next = $position + 1; str_starts_with($lines[$next] ?? '', '↳ '); $next++) {
+                $under[] = substr($lines[$next], strlen('↳ '));
+            }
+            if (array_diff($hints, $under) === []) {
+                self::assertTrue(true);
+
+                return;
+            }
+        }
+        self::fail("No step {$label} with the hints " . implode('; ', $hints));
     }
 
     /**
@@ -339,7 +359,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
      */
     private static function executionOf(string $scenarioName): array
     {
-        return array_map(trim(...), FlowExecution::of(self::spansOf($scenarioName))->lines());
+        return array_map(trim(...), FlowExecution::of(self::spansOf($scenarioName))->lines(true));
     }
 
     /**

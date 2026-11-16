@@ -23,11 +23,15 @@ final class RecordedGatheredRelease implements MessageHandler
     {
         $parts = $message->getPayload();
         $step = $parts instanceof GatheredParts
-            ? $this->tracer->startStep('release ' . ($parts->size - count($parts->missingPartNumbers)) . ' of ' . $parts->size . ' parts, ' . match ($parts->releaseReason) {
-                GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR => 'as all parts are accounted for',
-                GatheredReleaseReason::TIMEOUT => 'as the gathering timed out',
-                GatheredReleaseReason::MANUAL_RELEASE => 'as it was released manually',
-            } . ': build GatheredParts with ' . count($parts->results) . ' result' . (count($parts->results) === 1 ? '' : 's') . ' and the original payload ' . ExecutionRecorder::typeOf($parts->originalPayload) . ' and pass it straight to the handler the #[Gathered] endpoint wraps, inside this same consumer run, with no queue in between')
+            ? $this->tracer->startStep('release group', hints: [
+                ExecutionHint::critical(ExecutionHint::CHOSEN_BY, match ($parts->releaseReason) {
+                    GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR => 'all parts accounted for',
+                    GatheredReleaseReason::TIMEOUT => 'timeout',
+                    GatheredReleaseReason::MANUAL_RELEASE => 'manual release',
+                }),
+                ExecutionHint::critical(ExecutionHint::RESULT, 'GatheredParts, ' . ($parts->size - count($parts->missingPartNumbers)) . ' of ' . $parts->size . ' parts, original payload ' . ExecutionRecorder::typeOf($parts->originalPayload)),
+                ExecutionHint::critical(ExecutionHint::RUNS, 'this consumer run, no queue, straight to the #[Gathered] handler'),
+            ])
             : null;
         try {
             $this->gatheredHandler->handle($message);

@@ -6,6 +6,7 @@ namespace Ecotone\Tracing\Execution;
 
 use Closure;
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -28,7 +29,7 @@ final class RecordedMessagingEntrypointService extends MessagingEntrypointServic
 
     public function send(mixed $payload, string $targetChannel): mixed
     {
-        return $this->recorded($targetChannel, '', fn () => parent::send($payload, $targetChannel));
+        return $this->recorded($targetChannel, [], fn () => parent::send($payload, $targetChannel));
     }
 
     public function sendWithHeaders(mixed $payload, array $headers, string $targetChannel, ?string $routingSlip = null): mixed
@@ -43,39 +44,45 @@ final class RecordedMessagingEntrypointService extends MessagingEntrypointServic
 
     public function sendWithHeadersPropagation(mixed $payload, array $headers, string $targetChannel, ?string $routingSlip = null): mixed
     {
-        return $this->recorded($targetChannel, self::slipOf($routingSlip) . $this->propagatedOver($headers), fn () => parent::sendWithHeadersPropagation($payload, $headers, $targetChannel, $routingSlip));
+        return $this->recorded($targetChannel, [...self::slipOf($routingSlip), $this->propagatedOver($headers)], fn () => parent::sendWithHeadersPropagation($payload, $headers, $targetChannel, $routingSlip));
     }
 
     public function sendWithHeadersPropagationAndMessageReply(mixed $payload, array $headers, string $targetChannel, ?string $routingSlip = null): ?Message
     {
-        return $this->recorded($targetChannel, self::slipOf($routingSlip) . $this->propagatedOver($headers), fn () => parent::sendWithHeadersPropagationAndMessageReply($payload, $headers, $targetChannel, $routingSlip));
+        return $this->recorded($targetChannel, [...self::slipOf($routingSlip), $this->propagatedOver($headers)], fn () => parent::sendWithHeadersPropagationAndMessageReply($payload, $headers, $targetChannel, $routingSlip));
     }
 
     public function sendMessage(Message $message): mixed
     {
         $headers = $message->getHeaders();
 
-        return $this->recorded($headers->containsKey(self::ENTRYPOINT) ? (string) $headers->get(self::ENTRYPOINT) : 'the channel its message names', '', fn () => parent::sendMessage($message));
+        return $this->recorded($headers->containsKey(self::ENTRYPOINT) ? (string) $headers->get(self::ENTRYPOINT) : 'the channel its message names', [], fn () => parent::sendMessage($message));
     }
 
-    private static function slipOf(?string $routingSlip): string
+    /**
+     * @return list<ExecutionHint>
+     */
+    private static function slipOf(?string $routingSlip): array
     {
-        return $routingSlip === null || $routingSlip === '' ? '' : ', setting the routing slip ' . str_replace(',', ', ', $routingSlip);
+        return $routingSlip === null || $routingSlip === '' ? [] : [ExecutionHint::critical(ExecutionHint::ROUTING_SLIP, 'none → ' . str_replace(',', ', ', $routingSlip))];
     }
 
     /**
      * @param array<string, mixed> $headers
      */
-    private function propagatedOver(array $headers): string
+    private function propagatedOver(array $headers): ExecutionHint
     {
         $propagated = array_keys(array_diff_key($this->headersPropagator->propagateHeaders($headers), $headers));
 
-        return ', propagating ' . ($propagated === [] ? 'no headers' : implode(', ', $propagated));
+        return ExecutionHint::detail(ExecutionHint::PROPAGATING, $propagated === [] ? 'no headers' : implode(', ', $propagated));
     }
 
-    private function recorded(string $targetChannel, string $propagation, Closure $send): mixed
+    /**
+     * @param list<ExecutionHint> $hints
+     */
+    private function recorded(string $targetChannel, array $hints, Closure $send): mixed
     {
-        $step = $this->tracer->startEntry('entrypoint sends to ' . $targetChannel . $propagation);
+        $step = $this->tracer->startEntry('entrypoint sends to ' . $targetChannel, attributes: $hints === [] ? [] : [SpanAttribute::EXECUTION_HINTS => ExecutionHint::encoded($hints)]);
         try {
             $result = $send();
         } catch (Throwable $failure) {

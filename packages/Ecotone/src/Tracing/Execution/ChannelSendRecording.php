@@ -32,7 +32,7 @@ final class ChannelSendRecording
     public const PHASES = [self::PRE_SEND, self::POST_SEND, self::AFTER_SEND_COMPLETION, self::PRE_RECEIVE, self::POST_RECEIVE, self::AFTER_RECEIVE_COMPLETION];
     private const FLOW_TESTING_NAMESPACE = 'Ecotone\\Lite\\Test\\';
 
-    /** @var list<array{step: ?ExecutionStep, entered: list<ExecutionStep>, put: ?ExecutionStep, passedOn: Message, ran: int, messageId: string, failed: ?string, failedAfter: array<int, bool>, after: list<array{position: int, phase: string, failure: ?string}>, left: bool}> */
+    /** @var list<array{step: ?ExecutionStep, entered: list<array{step: ExecutionStep, position: int, hints: list<ExecutionHint>}>, put: ?ExecutionStep, passedOn: Message, ran: int, messageId: string, failed: ?string, failedAfter: array<int, bool>, after: list<array{position: int, phase: string, failure: ?string}>, left: bool}> */
     private array $openSends = [];
     /** @var list<string> class of each channel interceptor, in the order they run */
     private array $interceptors;
@@ -57,7 +57,16 @@ final class ChannelSendRecording
         $messageId = self::identityOf($message);
         $released = $this->tracer->releaseCollected($this->channelName, $messageId);
         $this->openSends[] = [
-            'step' => $this->onlyFlowTestingIntercepts ? null : $this->tracer->startEntry(($released ? 'release collected message to ' . $this->channelName . ', held by ' . self::COLLECTOR . ' on its first send' : 'send ' . $this->channelName) . self::retryOf($message), attributes: [SpanAttribute::EXECUTION_SENT_MESSAGE => $messageId]),
+            'step' => $this->onlyFlowTestingIntercepts ? null : $this->tracer->startEntry(
+                ($released ? 'release collected message to ' : 'send ') . $this->channelName,
+                attributes: [
+                    SpanAttribute::EXECUTION_SENT_MESSAGE => $messageId,
+                    SpanAttribute::EXECUTION_HINTS => ExecutionHint::encoded(array_values(array_filter([
+                        $released ? ExecutionHint::critical(ExecutionHint::STOPPED, 'first send held by ' . self::COLLECTOR) : null,
+                        self::retryOf($message),
+                    ]))),
+                ],
+            ),
             'entered' => [],
             'put' => null,
             'passedOn' => $message,
@@ -75,8 +84,9 @@ final class ChannelSendRecording
     {
         $current = count($this->openSends) - 1;
         $send = $this->openSends[$current];
-        if ($send['step'] !== null && $this->shows($position, self::PRE_SEND)) {
-            $this->tracer->recordStep(self::changeOf($send['passedOn'], $passedOn));
+        $entered = count($send['entered']) - 1;
+        if ($entered >= 0 && $send['entered'][$entered]['position'] === $position) {
+            $this->openSends[$current]['entered'][$entered]['hints'] = self::changeOf($send['passedOn'], $passedOn);
         }
         $this->openSends[$current]['passedOn'] = $passedOn;
         $this->openSends[$current]['ran'] = $position + 1;
@@ -117,18 +127,16 @@ final class ChannelSendRecording
         if ($send['step'] !== null) {
             foreach ($send['after'] as $after) {
                 if ($this->shows($after['position'], $after['phase'])) {
-                    $this->tracer->recordStep($this->afterPhaseOf($after, $send['failed']));
+                    [$label, $hints] = $this->afterPhaseOf($after, $send['failed']);
+                    $this->tracer->recordStep($label, hints: $hints);
                 }
             }
-        }
-        if ($failure === null && $send['failed'] !== null) {
-            $this->tracer->recordStep('send failed with ' . $send['failed'] . ', ' . $this->recoveryOf($send['failedAfter']));
         }
         if ($send['step'] === null) {
             return;
         }
         if ($failure === null) {
-            $this->tracer->endStep($send['step'], '');
+            $this->tracer->endStep($send['step'], '', $send['failed'] === null ? [] : [ExecutionHint::critical(ExecutionHint::RESULT, 'failed with ' . $send['failed'] . ', ' . $this->recoveryOf($send['failedAfter']))]);
 
             return;
         }
@@ -147,14 +155,14 @@ final class ChannelSendRecording
         $depth = 0;
         foreach (array_keys($this->interceptors) as $position) {
             if ($this->shows($position, self::PRE_RECEIVE)) {
-                $notes[] = ['depth' => $depth++, 'name' => 'before the take, ' . $this->methodOf($position, self::PRE_RECEIVE) . ' lets the receive go on'];
+                $notes[] = ['depth' => $depth++, 'name' => 'before receive ' . $this->methodOf($position, self::PRE_RECEIVE)];
             }
         }
-        $notes[] = ['depth' => $depth, 'name' => 'take the message from channel ' . $this->channelName . ($applied === [] ? '' : ', received with ' . implode(', ', $applied))];
-        foreach ([self::AFTER_RECEIVE_COMPLETION => ', run when the take ended, here with a message and no failure', self::POST_RECEIVE => ', run on the message taken'] as $phase => $when) {
+        $notes[] = ['depth' => $depth, 'name' => 'take from channel ' . $this->channelName, 'hints' => $applied === [] ? [] : [ExecutionHint::detail(ExecutionHint::RECEIVED_WITH, implode(', ', $applied))]];
+        foreach ([self::AFTER_RECEIVE_COMPLETION => 'after receive ', self::POST_RECEIVE => 'after take '] as $phase => $kind) {
             foreach (array_keys($this->interceptors) as $position) {
                 if ($this->shows($position, $phase)) {
-                    $notes[] = ['depth' => 0, 'name' => $this->methodOf($position, $phase) . $when];
+                    $notes[] = ['depth' => 0, 'name' => $kind . $this->methodOf($position, $phase), 'hints' => $phase === self::AFTER_RECEIVE_COMPLETION ? [ExecutionHint::detail(ExecutionHint::RESULT, 'a message, no failure')] : []];
                 }
             }
         }
@@ -176,9 +184,9 @@ final class ChannelSendRecording
         if ($this->openSends[$current]['step'] === null || ! $this->shows($position, self::PRE_SEND)) {
             return;
         }
-        $step = $this->tracer->startStep('before send, ' . $this->methodOf($position, self::PRE_SEND));
+        $step = $this->tracer->startStep('before send ' . $this->methodOf($position, self::PRE_SEND));
         if ($step !== null) {
-            $this->openSends[$current]['entered'][] = $step;
+            $this->openSends[$current]['entered'][] = ['step' => $step, 'position' => $position, 'hints' => []];
         }
     }
 
@@ -196,41 +204,46 @@ final class ChannelSendRecording
         if ($send['put'] !== null) {
             $failure === null ? $this->tracer->endStep($send['put'], '') : $this->tracer->failStep($send['put'], $failure);
         } elseif ($failure === null && $send['ran'] < count($this->interceptors)) {
-            $this->recordStop($send);
+            $stop = $this->stopOf($send);
+            $deepest = count($send['entered']) - 1;
+            if ($deepest >= 0) {
+                $send['entered'][$deepest]['hints'][] = $stop;
+            }
         }
-        foreach (array_reverse($send['entered']) as $position => $step) {
-            $position === 0 && $failure !== null && $send['put'] === null ? $this->tracer->failStep($step, $failure) : $this->tracer->endStep($step, '');
+        foreach (array_reverse($send['entered']) as $position => $entered) {
+            $position === 0 && $failure !== null && $send['put'] === null ? $this->tracer->failStep($entered['step'], $failure) : $this->tracer->endStep($entered['step'], '', $entered['hints']);
         }
     }
 
     /**
      * @param array{messageId: string, ran: int} $send
      */
-    private function recordStop(array $send): void
+    private function stopOf(array $send): ExecutionHint
     {
         $stoppedBy = ExecutionRecordingTracer::shortClassOf($this->interceptors[$send['ran']]);
         if ($stoppedBy === self::COLLECTOR) {
             $this->tracer->collect($this->channelName, $send['messageId']);
-            $this->tracer->recordStep('collects the message and passes none on: the send stops here, so the interceptors after it and the put on the channel do not run; the message is held until the handler ends');
 
-            return;
+            return ExecutionHint::critical(ExecutionHint::STOPPED, 'held until the handler ends, the put did not run');
         }
-        $this->tracer->recordStep('passes no message on: the send stops here, so the interceptors after it and the put on the channel do not run');
+
+        return ExecutionHint::critical(ExecutionHint::STOPPED, 'no message passed on, the put did not run');
     }
 
     /**
      * @param array{position: int, phase: string, failure: ?string} $after
+     * @return array{0: string, 1: list<ExecutionHint>}
      */
-    private function afterPhaseOf(array $after, ?string $sendFailure): string
+    private function afterPhaseOf(array $after, ?string $sendFailure): array
     {
         if ($after['phase'] === self::POST_SEND) {
-            return $this->methodOf($after['position'], self::POST_SEND) . ', run after a send that ended without a failure';
+            return ['after successful send ' . $this->methodOf($after['position'], self::POST_SEND), []];
         }
         if ($sendFailure !== null && $this->interceptors[$after['position']] === SendRetryChannelInterceptor::class) {
-            return ExecutionRecordingTracer::shortClassOf(SendRetryChannelInterceptor::class) . '::recover, run instead of afterSendCompletion when the send failed with ' . $sendFailure;
+            return ['recover ' . ExecutionRecordingTracer::shortClassOf(SendRetryChannelInterceptor::class) . '::recover', [ExecutionHint::critical(ExecutionHint::RESULT, 'send failed with ' . $sendFailure)]];
         }
 
-        return $this->methodOf($after['position'], self::AFTER_SEND_COMPLETION) . ', run when the send ended, here ' . ($after['failure'] === null ? 'without a failure' : 'after it failed with ' . $after['failure']);
+        return ['after send ' . $this->methodOf($after['position'], self::AFTER_SEND_COMPLETION), [$after['failure'] === null ? ExecutionHint::detail(ExecutionHint::RESULT, 'no failure') : ExecutionHint::critical(ExecutionHint::RESULT, 'failed with ' . $after['failure'])]];
     }
 
     private function shows(int $position, string $phase): bool
@@ -247,32 +260,33 @@ final class ChannelSendRecording
         return ExecutionRecordingTracer::shortClassOf($this->interceptors[$position]) . '::' . $phase;
     }
 
-    private static function changeOf(Message $before, Message $after): string
+    /**
+     * @return list<ExecutionHint>
+     */
+    private static function changeOf(Message $before, Message $after): array
     {
         if ($before === $after) {
-            return 'passes the message on unchanged';
+            return [];
         }
-        $changes = [];
-        if ($before->getPayload() !== $after->getPayload()) {
-            $changes[] = 'payload now ' . ExecutionRecorder::typeOf($after->getPayload());
-        }
+        $hints = [];
         $beforeHeaders = $before->getHeaders()->headers();
         $afterHeaders = $after->getHeaders()->headers();
-        if (($beforeHeaders[MessageHeaders::CONTENT_TYPE] ?? null) !== ($afterHeaders[MessageHeaders::CONTENT_TYPE] ?? null) && isset($afterHeaders[MessageHeaders::CONTENT_TYPE])) {
-            $changes[] = 'content type now ' . $afterHeaders[MessageHeaders::CONTENT_TYPE];
+        $contentTypeChanged = ($beforeHeaders[MessageHeaders::CONTENT_TYPE] ?? null) !== ($afterHeaders[MessageHeaders::CONTENT_TYPE] ?? null) && isset($afterHeaders[MessageHeaders::CONTENT_TYPE]);
+        if ($before->getPayload() !== $after->getPayload() || $contentTypeChanged) {
+            $hints[] = ExecutionHint::detail(ExecutionHint::PAYLOAD, ExecutionRecorder::typeOf($after->getPayload()) . ($contentTypeChanged ? ', ' . $afterHeaders[MessageHeaders::CONTENT_TYPE] : ''));
         }
         unset($beforeHeaders[MessageHeaders::CONTENT_TYPE], $afterHeaders[MessageHeaders::CONTENT_TYPE]);
         foreach ([
-            'headers added: ' => array_keys(array_diff_key($afterHeaders, $beforeHeaders)),
-            'headers removed: ' => array_keys(array_diff_key($beforeHeaders, $afterHeaders)),
-            'headers changed: ' => array_keys(array_filter(array_intersect_key($afterHeaders, $beforeHeaders), fn (mixed $value, string $name): bool => $value !== $beforeHeaders[$name], ARRAY_FILTER_USE_BOTH)),
-        ] as $label => $names) {
+            ExecutionHint::HEADERS_ADDED => array_keys(array_diff_key($afterHeaders, $beforeHeaders)),
+            ExecutionHint::HEADERS_REMOVED => array_keys(array_diff_key($beforeHeaders, $afterHeaders)),
+            ExecutionHint::HEADERS_CHANGED => array_keys(array_filter(array_intersect_key($afterHeaders, $beforeHeaders), fn (mixed $value, string $name): bool => $value !== $beforeHeaders[$name], ARRAY_FILTER_USE_BOTH)),
+        ] as $key => $names) {
             if ($names !== []) {
-                $changes[] = $label . implode(', ', $names);
+                $hints[] = ExecutionHint::detail($key, implode(', ', $names));
             }
         }
 
-        return $changes === [] ? 'passes the message on unchanged' : 'passes on the message with ' . implode('; ', $changes);
+        return $hints;
     }
 
     private static function identityOf(Message $message): string
@@ -282,14 +296,14 @@ final class ChannelSendRecording
         return $headers->getMessageId() . ($headers->containsKey(MessageHeaders::ROUTING_SLIP) ? ' to ' . $headers->get(MessageHeaders::ROUTING_SLIP) : '');
     }
 
-    private static function retryOf(Message $message): string
+    private static function retryOf(Message $message): ?ExecutionHint
     {
         $headers = $message->getHeaders();
         if (! $headers->containsKey(DelayedRetryErrorHandler::ECOTONE_RETRY_HEADER)) {
-            return '';
+            return null;
         }
 
-        return ' as retry ' . $headers->get(DelayedRetryErrorHandler::ECOTONE_RETRY_HEADER) . ($headers->containsKey(MessageHeaders::DELIVERY_DELAY) ? ', delayed ' . $headers->get(MessageHeaders::DELIVERY_DELAY) . ' ms' : '');
+        return ExecutionHint::critical(ExecutionHint::RETRY, $headers->get(DelayedRetryErrorHandler::ECOTONE_RETRY_HEADER) . ($headers->containsKey(MessageHeaders::DELIVERY_DELAY) ? ', delayed ' . $headers->get(MessageHeaders::DELIVERY_DELAY) . ' ms' : ''));
     }
 
     /**

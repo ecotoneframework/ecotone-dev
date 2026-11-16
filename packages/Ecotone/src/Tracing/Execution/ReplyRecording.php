@@ -36,21 +36,7 @@ final class ReplyRecording
 
     public function replied(?Message $reply): void
     {
-        $position = count($this->openRequests) - 1;
-        $this->openRequests[$position]['reply'] = $reply;
-        if ($reply === null) {
-            return;
-        }
-        $before = self::routingSlipOf($this->openRequests[$position]['request']);
-        $after = self::routingSlipOf($reply);
-        if ($before === $after) {
-            return;
-        }
-        $this->tracer->recordStep($this->handler . match (true) {
-            $after === [] => ' removed the routing slip ' . implode(', ', $before),
-            $before === [] || array_slice($after, -count($before)) === $before => ' put ' . implode(', ', array_slice($after, 0, count($after) - count($before))) . ' in front of the routing slip, which is now ' . implode(', ', $after),
-            default => ' changed the routing slip from ' . implode(', ', $before) . ' to ' . implode(', ', $after),
-        });
+        $this->openRequests[count($this->openRequests) - 1]['reply'] = $reply;
     }
 
     public function routedTo(string $mechanism, string $channelName, Message $forwarded, Closure $send): void
@@ -58,21 +44,12 @@ final class ReplyRecording
         $position = count($this->openRequests) - 1;
         $this->openRequests[$position]['handedOver'] = true;
         $request = $this->openRequests[$position]['request'];
-        $reply = $this->openRequests[$position]['reply'];
-        $payload = ExecutionRecorder::typeOf($forwarded->getPayload());
-        $slipBefore = $reply === null ? [] : self::routingSlipOf($reply);
-        $slipAfter = self::routingSlipOf($forwarded);
-        $left = array_values(array_filter([
-            $mechanism === self::OUTPUT_CHANNEL && $slipAfter !== [] ? 'the routing slip ' . implode(', ', $slipAfter) . ' stays on the message for a later step' : null,
-            $forwarded->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL) ? 'the reply channel of the request stays on the message' : null,
-        ]));
-        $step = $this->tracer->startStep(
-            ($mechanism === self::OUTPUT_CHANNEL
-                ? 'forward ' . $payload . ' by the output channel ' . $channelName . ', configured on ' . $this->handler
-                : 'forward ' . $payload . ' by the routing slip, taking ' . $channelName . ' from it; the slip held ' . implode(', ', $slipBefore) . ($slipAfter === [] ? ' and is now removed' : ' and now holds ' . implode(', ', $slipAfter)))
-            . ($left === [] ? '' : '; ' . implode('; ', $left))
-        );
-        $this->tracer->recordStep(self::forwardedOf($request, $forwarded));
+        $step = $this->tracer->startStep('forward to ' . $channelName, hints: array_values(array_filter([
+            ExecutionHint::critical(ExecutionHint::CHOSEN_BY, $mechanism === self::OUTPUT_CHANNEL ? 'output channel of ' . $this->handler : 'routing slip'),
+            self::routingSlipChangeOf($request, $forwarded),
+            $forwarded->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL) ? ExecutionHint::detail(ExecutionHint::KEPT, 'reply channel of the request') : null,
+            ...self::forwardedOf($request, $forwarded),
+        ])));
         try {
             $send();
         } catch (Throwable $failure) {
@@ -99,31 +76,50 @@ final class ReplyRecording
             return;
         }
         if ($open['reply'] === null) {
-            $this->tracer->recordStep('nothing handed over: the handler returned nothing');
+            $this->tracer->recordStep('no hand-over', hints: [ExecutionHint::critical(ExecutionHint::RESULT, 'the handler returned nothing')]);
 
             return;
         }
         $payload = ExecutionRecorder::typeOf($open['reply']->getPayload());
-        $this->tracer->recordStep($request->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL)
-            ? 'reply ' . $payload . ' to the reply channel of the request, where its sender waits for it'
-            : 'nothing handed over: the handler returned ' . $payload . ', and no output channel, routing slip or reply channel of the request takes it');
+        $slip = self::routingSlipChangeOf($request, $open['reply']);
+        if ($request->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL)) {
+            $this->tracer->recordStep('reply to the reply channel of the request', hints: array_values(array_filter([ExecutionHint::critical(ExecutionHint::CHOSEN_BY, 'reply channel of the request'), $slip, ExecutionHint::detail(ExecutionHint::PAYLOAD, $payload)])));
+
+            return;
+        }
+        $this->tracer->recordStep('no hand-over', hints: array_values(array_filter([ExecutionHint::critical(ExecutionHint::RESULT, 'returned ' . $payload . ', no output channel, routing slip or reply channel'), $slip])));
     }
 
-    private static function forwardedOf(Message $request, Message $forwarded): string
+    private static function routingSlipChangeOf(Message $request, Message $handedOver): ?ExecutionHint
+    {
+        $before = self::routingSlipOf($request);
+        $after = self::routingSlipOf($handedOver);
+        if ($before === [] && $after === []) {
+            return null;
+        }
+
+        return ExecutionHint::critical(ExecutionHint::ROUTING_SLIP, ($before === [] ? 'none' : implode(', ', $before)) . ' → ' . ($after === [] ? 'none' : implode(', ', $after)));
+    }
+
+    /**
+     * @return list<ExecutionHint>
+     */
+    private static function forwardedOf(Message $request, Message $forwarded): array
     {
         if ($request === $forwarded) {
-            return 'the forwarded message is the request itself';
+            return [];
         }
         $requestHeaders = $request->getHeaders()->headers();
         $forwardedHeaders = $forwarded->getHeaders()->headers();
         unset($requestHeaders[MessageHeaders::ROUTING_SLIP], $forwardedHeaders[MessageHeaders::ROUTING_SLIP]);
-        $changes = array_filter([
-            'added: ' => array_keys(array_diff_key($forwardedHeaders, $requestHeaders)),
-            'removed: ' => array_keys(array_diff_key($requestHeaders, $forwardedHeaders)),
-        ]);
+        $hints = [ExecutionHint::detail(ExecutionHint::PAYLOAD, ExecutionRecorder::typeOf($forwarded->getPayload()))];
+        foreach ([ExecutionHint::HEADERS_ADDED => array_keys(array_diff_key($forwardedHeaders, $requestHeaders)), ExecutionHint::HEADERS_REMOVED => array_keys(array_diff_key($requestHeaders, $forwardedHeaders))] as $key => $names) {
+            if ($names !== []) {
+                $hints[] = ExecutionHint::detail($key, implode(', ', $names));
+            }
+        }
 
-        return 'the forwarded message carries the ' . ExecutionRecorder::typeOf($forwarded->getPayload()) . ' the handler returned, with the headers of the request'
-            . implode('', array_map(fn (string $label, array $names): string => '; ' . $label . implode(', ', $names), array_keys($changes), $changes));
+        return $hints;
     }
 
     /**

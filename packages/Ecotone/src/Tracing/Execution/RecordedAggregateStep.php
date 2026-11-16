@@ -36,24 +36,27 @@ final class RecordedAggregateStep implements MessageProcessor
             throw $failure;
         }
         if ($step !== null) {
-            $this->tracer->endStep($step, $this->outcomeOf($result));
+            $this->tracer->endStep($step, '', $this->outcomeOf($result));
         }
 
         return $result;
     }
 
-    private function outcomeOf(?Message $result): string
+    /**
+     * @return list<ExecutionHint>
+     */
+    private function outcomeOf(?Message $result): array
     {
         return match ($this->step) {
-            self::IDENTIFIER => $result !== null && $result->getHeaders()->containsKey(AggregateMessage::AGGREGATE_ID)
-                ? 'to ' . json_encode(AggregateIdMetadata::createFrom($result->getHeaders()->get(AggregateMessage::AGGREGATE_ID))->getIdentifiers(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
-                : 'to no identifier',
-            self::LOAD => match (true) {
-                $result === null => 'dropped the message, as no aggregate was found',
-                $result->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE) => 'found it',
-                default => 'found nothing, so the factory runs',
-            },
-            default => '',
+            self::IDENTIFIER => [ExecutionHint::detail(ExecutionHint::RESULT, $result !== null && $result->getHeaders()->containsKey(AggregateMessage::AGGREGATE_ID)
+                ? json_encode(AggregateIdMetadata::createFrom($result->getHeaders()->get(AggregateMessage::AGGREGATE_ID))->getIdentifiers(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+                : 'no identifier')],
+            self::LOAD => [match (true) {
+                $result === null => ExecutionHint::critical(ExecutionHint::RESULT, 'no aggregate found, message dropped'),
+                $result->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE) => ExecutionHint::detail(ExecutionHint::RESULT, 'found it'),
+                default => ExecutionHint::critical(ExecutionHint::RESULT, 'found nothing, the factory runs'),
+            }],
+            default => [],
         };
     }
 }

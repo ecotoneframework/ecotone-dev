@@ -12,9 +12,12 @@ use Throwable;
  */
 final class RecordedStep
 {
-    public static function of(ExecutionRecordingTracer $tracer, string $name, Closure $call, ?Closure $outcome = null): mixed
+    /**
+     * @param list<ExecutionHint> $hints
+     */
+    public static function of(ExecutionRecordingTracer $tracer, string $name, Closure $call, ?Closure $outcome = null, array $hints = []): mixed
     {
-        $step = $tracer->startStep($name);
+        $step = $tracer->startStep($name, hints: $hints);
         try {
             $result = $call();
         } catch (Throwable $failure) {

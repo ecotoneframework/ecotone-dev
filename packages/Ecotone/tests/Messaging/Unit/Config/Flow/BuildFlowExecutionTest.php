@@ -54,9 +54,9 @@ final class BuildFlowExecutionTest extends TestCase
 
         $execution = $this->storedSnapshot('after', 'placing-an-order')['execution'];
 
-        self::assertSame(['send command order.place, handled by class@anonymous::place', 'receive notifications, handled by class@anonymous::whenPlaced'], array_column($execution, 'process'));
-        self::assertSame('  gateway CommandBus::sendWithRouting returns nothing', $execution[0]['steps'][0]);
-        self::assertContains('handler class@anonymous::whenPlaced returns nothing', array_map(trim(...), $execution[1]['steps']));
+        self::assertSame(['send command order.place, class@anonymous::place', 'receive notifications, class@anonymous::whenPlaced'], array_column($execution, 'process'));
+        self::assertSame(['depth' => 1, 'label' => 'gateway CommandBus::sendWithRouting', 'hints' => [['key' => 'result', 'value' => 'returns nothing', 'critical' => false]]], $execution[0]['steps'][0]);
+        self::assertContains('handler class@anonymous::whenPlaced', array_column($execution[1]['steps'], 'label'));
     }
 
     public function test_recording_the_execution_leaves_the_stored_trace_as_it_is_without_it(): void
@@ -76,7 +76,7 @@ final class BuildFlowExecutionTest extends TestCase
         $execution = $this->comparison()['groups'][0]['execution'];
 
         self::assertSame(
-            [['process' => 'send command order.place, handled by class@anonymous::place', 'change' => 'changed'], ['process' => 'receive notifications, handled by class@anonymous::whenPlaced', 'change' => 'unchanged']],
+            [['process' => 'send command order.place, class@anonymous::place', 'change' => 'changed'], ['process' => 'receive notifications, class@anonymous::whenPlaced', 'change' => 'unchanged']],
             array_map(fn (array $process): array => ['process' => $process['process'], 'change' => $process['change']], $execution),
         );
         self::assertArrayNotHasKey('steps', $execution[1]);
@@ -84,7 +84,7 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertContains('left out', $changes);
         $firstChange = array_key_first(array_filter($changes, fn (string $change): bool => in_array($change, ['added', 'removed'], true)));
         self::assertSame('unchanged', $changes[$firstChange - 1]);
-        self::assertContains('handler class@anonymous::audit returns nothing', array_map(trim(...), array_column(array_filter($execution[0]['steps'], fn (array $entry): bool => $entry['change'] === 'added'), 'step')));
+        self::assertContains('handler class@anonymous::audit', array_map(trim(...), array_column(array_filter($execution[0]['steps'], fn (array $entry): bool => $entry['change'] === 'added'), 'step')));
     }
 
     public function test_a_process_that_runs_only_after_the_change_is_shown_whole(): void
@@ -96,14 +96,11 @@ final class BuildFlowExecutionTest extends TestCase
 
         self::assertSame(['changed', 'added'], array_column($execution, 'change'));
         self::assertSame(
-            [
-                ['change' => 'removed', 'step' => 'release collected message to notifications, held by MessageCollectorChannelInterceptor on its first send'],
-                ['change' => 'added', 'step' => 'release collected message to notifications, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process `receive notifications, handled by class@anonymous::whenPlaced`'],
-            ],
-            array_values(array_map(fn (array $entry): array => ['change' => $entry['change'], 'step' => trim($entry['step'])], array_filter($execution[0]['steps'], fn (array $entry): bool => in_array($entry['change'], ['added', 'removed'], true)))),
+            [['change' => 'changed', 'step' => 'release collected message to notifications', 'hintChanges' => [['key' => 'taken by', 'before' => '', 'now' => 'process `receive notifications, class@anonymous::whenPlaced`, a separate consumer run']]]],
+            array_values(array_map(fn (array $entry): array => ['change' => $entry['change'], 'step' => trim($entry['step']), 'hintChanges' => $entry['hintChanges']], array_filter($execution[0]['steps'], fn (array $entry): bool => $entry['change'] !== 'unchanged' && $entry['change'] !== 'left out'))),
         );
         self::assertSame(
-            str_replace('by process 1', 'by process `send command order.place, handled by class@anonymous::place`', $this->storedSnapshot('after', 'placing-an-order')['execution'][1]['steps']),
+            array_map(fn (array $step): string => str_repeat('  ', $step['depth']) . $step['label'], $this->storedSnapshot('after', 'placing-an-order')['execution'][1]['steps']),
             array_column($execution[1]['steps'], 'step'),
         );
         self::assertSame(['added'], array_values(array_unique(array_column($execution[1]['steps'], 'change'))));
@@ -117,8 +114,8 @@ final class BuildFlowExecutionTest extends TestCase
         $presented = $this->presented('A');
 
         self::assertStringContainsString("#### What ran, process by process\n", $presented);
-        self::assertStringContainsString("Process `receive notifications, handled by class@anonymous::whenPlaced`: unchanged.\n", $presented);
-        self::assertMatchesRegularExpression('/\n\+ +handler class@anonymous::audit returns nothing\n/', $presented);
+        self::assertStringContainsString("Process `receive notifications, class@anonymous::whenPlaced`: unchanged.\n", $presented);
+        self::assertMatchesRegularExpression('/\n\+ +handler class@anonymous::audit\n/', $presented);
         self::assertMatchesRegularExpression('/```diff\n(  .*\n|  … \d+ unchanged steps\n|\+ .*\n|- .*\n)+```/', $presented);
     }
 
@@ -131,9 +128,9 @@ final class BuildFlowExecutionTest extends TestCase
 
         self::assertSame(
             [
-                ['process' => 'send command order.place, handled by class@anonymous::place', 'change' => 'changed'],
-                ['process' => 'receive notifications, handled by class@anonymous::audit', 'change' => 'added'],
-                ['process' => 'receive notifications, handled by class@anonymous::whenPlaced', 'change' => 'unchanged'],
+                ['process' => 'send command order.place, class@anonymous::place', 'change' => 'changed'],
+                ['process' => 'receive notifications, class@anonymous::audit', 'change' => 'added'],
+                ['process' => 'receive notifications, class@anonymous::whenPlaced', 'change' => 'unchanged'],
             ],
             array_map(fn (array $process): array => ['process' => $process['process'], 'change' => $process['change']], $execution),
         );
@@ -159,9 +156,9 @@ final class BuildFlowExecutionTest extends TestCase
 
         self::assertMatchesRegularExpression('/\n {4,}… around MessageHandlerLogger::aroundCommandHandler \(\d+ steps\): moved, now run under the around class@anonymous::wrap step, and inside it:\n/', $presented);
         self::assertSame(1, substr_count($presented, 'MessageHandlerLogger::aroundCommandHandler'));
-        self::assertMatchesRegularExpression('/\n\+ +handler class@anonymous::audit returns nothing\n/', $presented);
+        self::assertMatchesRegularExpression('/\n\+ +handler class@anonymous::audit\n/', $presented);
         preg_match_all('/^- +(.+)$/m', $this->whatRan($presented), $removed);
-        self::assertSame(['route by name order.placed to whenOrderWasPlaced.target'], $removed[1]);
+        self::assertSame(['route to whenOrderWasPlaced.target', '↳ chosen by: name order.placed'], $removed[1]);
     }
 
     public function test_steps_that_lost_the_step_they_ran_under_are_reported_as_moved_out_of_it(): void
@@ -193,8 +190,8 @@ final class BuildFlowExecutionTest extends TestCase
 
         $presented = $this->presented('A');
 
-        self::assertMatchesRegularExpression('/\nProcess `send command order\.place, handled by class@anonymous::place`: runs the same steps, \d+ of them now under another step\.\n/', $presented);
-        self::assertMatchesRegularExpression('/\n {4,}… gateway EventBus::publishWithRouting returns nothing \(\d+ steps\): unchanged, now run under the handler class@anonymous::whenPlaced step\n/', $presented);
+        self::assertMatchesRegularExpression('/\nProcess `send command order\.place, class@anonymous::place`: runs the same steps, \d+ of them now under another step\.\n/', $presented);
+        self::assertMatchesRegularExpression('/\n {4,}… gateway EventBus::publishWithRouting \(\d+ steps\): unchanged, now run under the handler class@anonymous::whenPlaced step\n/', $presented);
         self::assertDoesNotMatchRegularExpression('/\n[-+] /', $this->whatRan($presented));
     }
 
@@ -207,27 +204,26 @@ final class BuildFlowExecutionTest extends TestCase
 
         preg_match_all('/^ *(.+?)   ← new$/m', $presented, $new);
         self::assertSame(['send command order.forward', 'process command handler forward', 'send event order.placed', 'route whenOrderWasPlaced → whenOrderWasPlaced.target'], $new[1]);
-        self::assertMatchesRegularExpression('/\n {4,}… gateway EventBus::publishWithRouting returns nothing \(\d+ steps\): (unchanged|moved), now run under the handler class@anonymous::forward step/', $presented);
+        self::assertMatchesRegularExpression('/\n {4,}… gateway EventBus::publishWithRouting \(\d+ steps\): (unchanged|moved), now run under the handler class@anonymous::forward step/', $presented);
     }
 
     public function test_two_alike_steps_that_moved_are_each_paired_with_their_own_counterpart(): void
     {
         $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
         $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
-        $sends = fn (string $indent): array => [
-            $indent . 'entrypoint sends to notifications',
-            $indent . '  send notifications; taken from the channel later by a separate consumer run, process 2',
-            $indent . '    put on channel notifications',
-            $indent . 'entrypoint sends to notifications',
-            $indent . '  send notifications; taken from the channel later by a separate consumer run, process 3',
-            $indent . '    put on channel notifications',
+        $takenBy = fn (int $process): array => [['key' => 'taken by', 'value' => 'process ' . $process . ', a separate consumer run', 'critical' => true]];
+        $sends = fn (int $depth): array => [
+            ['depth' => $depth, 'label' => 'entrypoint sends to notifications', 'hints' => []],
+            ['depth' => $depth + 1, 'label' => 'send notifications', 'hints' => $takenBy(2)],
+            ['depth' => $depth + 2, 'label' => 'put on channel notifications', 'hints' => []],
+            ['depth' => $depth, 'label' => 'entrypoint sends to notifications', 'hints' => []],
+            ['depth' => $depth + 1, 'label' => 'send notifications', 'hints' => $takenBy(3)],
+            ['depth' => $depth + 2, 'label' => 'put on channel notifications', 'hints' => []],
         ];
-        $consumers = [
-            ['process' => 'receive notifications (1 of 2)', 'steps' => ['  receive notifications: the message, put on the channel by process 1']],
-            ['process' => 'receive notifications (2 of 2)', 'steps' => ['  receive notifications: the message, put on the channel by process 1']],
-        ];
-        $this->replaceExecution('before', [['process' => 'dispatch', 'steps' => ['  handler class@anonymous::dispatch returns nothing', ...$sends('    ')]], ...$consumers]);
-        $this->replaceExecution('after', [['process' => 'dispatch', 'steps' => ['  handler class@anonymous::dispatch returns nothing', '    dispatch 2 batches', ...$sends('      ')]], ...$consumers]);
+        $consumer = fn (string $ordinal): array => ['process' => 'receive notifications (' . $ordinal . ')', 'steps' => [['depth' => 1, 'label' => 'receive notifications', 'hints' => [['key' => 'sent by', 'value' => 'process 1, the message', 'critical' => true]]]]];
+        $handler = ['depth' => 1, 'label' => 'handler class@anonymous::dispatch', 'hints' => []];
+        $this->replaceExecution('before', [['process' => 'dispatch', 'steps' => [$handler, ...$sends(2)]], $consumer('1 of 2'), $consumer('2 of 2')]);
+        $this->replaceExecution('after', [['process' => 'dispatch', 'steps' => [$handler, ['depth' => 2, 'label' => 'dispatch 2 batches', 'hints' => []], ...$sends(3)]], $consumer('1 of 2'), $consumer('2 of 2')]);
 
         $presented = $this->whatRan($this->presented('A'));
 
@@ -235,14 +231,70 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertDoesNotMatchRegularExpression('/\n- /', $presented);
     }
 
+    public function test_every_step_in_every_baseline_is_a_label_of_at_most_90_characters_with_hints_from_one_vocabulary(): void
+    {
+        $vocabulary = ['chosen by', 'result', 'routing slip', 'headers added', 'headers removed', 'headers changed', 'payload', 'sent by', 'taken by', 'stopped', 'runs', 'read from', 'propagating', 'received with', 'retry', 'group', 'kept', 'by'];
+        $labels = [];
+        $keys = [];
+        foreach (glob(__DIR__ . '/../../../../BuildFlow/baseline/*.json') as $file) {
+            foreach (json_decode((string) file_get_contents($file), true, flags: JSON_THROW_ON_ERROR)['execution'] ?? [] as $process) {
+                foreach ($process['steps'] as $step) {
+                    $labels[] = $step['label'];
+                    foreach ($step['hints'] ?? [] as $hint) {
+                        $keys[$hint['key']] = true;
+                        self::assertIsBool($hint['critical']);
+                    }
+                }
+            }
+        }
+
+        self::assertNotEmpty($labels);
+        self::assertSame([], array_values(array_filter($labels, fn (string $label): bool => mb_strlen($label) > 90 || preg_match('/ so |which is|here without|; /', $label) === 1)));
+        self::assertSame([], array_values(array_diff(array_keys($keys), $vocabulary)));
+    }
+
+    public function test_the_stored_snapshot_holds_each_step_as_its_depth_label_and_hints(): void
+    {
+        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+
+        $steps = $this->storedSnapshot('after', 'placing-an-order')['execution'][1]['steps'];
+
+        self::assertSame(['depth' => 1, 'label' => 'receive notifications', 'hints' => [['key' => 'sent by', 'value' => 'process 1, the event order.placed', 'critical' => true]]], $steps[0]);
+        self::assertSame(['depth' => 2, 'label' => 'take from channel notifications'], $steps[1]);
+    }
+
+    public function test_a_step_whose_hints_differ_is_one_changed_step_with_the_hint_before_and_now(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $routed = fn (string $channel): array => [['process' => 'send command order.place', 'steps' => [
+            ['depth' => 1, 'label' => 'handler class@anonymous::place', 'hints' => []],
+            ['depth' => 1, 'label' => 'forward to ' . $channel, 'hints' => [['key' => 'chosen by', 'value' => 'routing slip', 'critical' => true], ['key' => 'routing slip', 'value' => $channel . ' → none', 'critical' => true]]],
+        ]]];
+        $this->replaceExecution('before', $routed('orders'));
+        $this->replaceExecution('after', $routed('orders'));
+        $after = $routed('orders');
+        $after[0]['steps'][1]['hints'][0]['value'] = 'output channel of class@anonymous::place';
+        $this->replaceExecution('after', $after);
+
+        $presented = $this->whatRan($this->presented('A'));
+
+        self::assertStringContainsString("  forward to orders\n-     ↳ chosen by: routing slip\n+     ↳ chosen by: output channel of class@anonymous::place\n", $presented);
+        self::assertStringNotContainsString('- forward to orders', $presented);
+        self::assertStringNotContainsString('routing slip: orders', $presented);
+    }
+
     public function test_a_process_referred_to_by_number_is_compared_by_what_it_is_so_a_renumbered_process_stays_unchanged(): void
     {
         $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
         $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
-        $sender = ['process' => 'send command order.place', 'steps' => ['  send q; taken from the channel later by a separate consumer run, process 2']];
-        $gatherer = fn (int $sender): array => ['process' => 'receive q, handled by the gatherer only, recording part 1 of 1 reported by process ' . $sender . ', whose work ran there', 'steps' => ['  receive q: the part report for part 1 of 1, put on the channel by process ' . $sender]];
-        $this->replaceExecution('before', [$sender, $gatherer(1)]);
-        $this->replaceExecution('after', [['process' => 'initialize', 'steps' => ['  handler class@anonymous::init returns nothing']], ['process' => 'send command order.place', 'steps' => ['  send q; taken from the channel later by a separate consumer run, process 3']], $gatherer(2)]);
+        $sender = fn (int $consumer): array => ['process' => 'send command order.place', 'steps' => [['depth' => 1, 'label' => 'send q', 'hints' => [['key' => 'taken by', 'value' => 'process ' . $consumer . ', a separate consumer run', 'critical' => true]]]]];
+        $gatherer = fn (int $sender): array => ['process' => 'receive q, GatheringMessageHandler::handle (part 1 of 1)', 'steps' => [['depth' => 1, 'label' => 'receive q', 'hints' => [
+            ['key' => 'sent by', 'value' => 'process ' . $sender . ', the part report for part 1 of 1', 'critical' => true],
+            ['key' => 'runs', 'value' => 'only the gatherer, the work of part 1 of 1 ran in process ' . $sender, 'critical' => true],
+        ]]]];
+        $this->replaceExecution('before', [$sender(2), $gatherer(1)]);
+        $this->replaceExecution('after', [['process' => 'initialize', 'steps' => [['depth' => 1, 'label' => 'handler class@anonymous::init', 'hints' => []]]], $sender(3), $gatherer(2)]);
 
         $execution = $this->comparison()['groups'][0]['execution'];
 
@@ -250,7 +302,7 @@ final class BuildFlowExecutionTest extends TestCase
             [
                 ['process' => 'initialize', 'change' => 'added'],
                 ['process' => 'send command order.place', 'change' => 'unchanged'],
-                ['process' => 'receive q, handled by the gatherer only, recording part 1 of 1 reported by process `send command order.place`, whose work ran there', 'change' => 'unchanged'],
+                ['process' => 'receive q, GatheringMessageHandler::handle (part 1 of 1)', 'change' => 'unchanged'],
             ],
             array_map(fn (array $process): array => ['process' => $process['process'], 'change' => $process['change']], $execution),
         );

@@ -123,8 +123,10 @@ final class FlowWording
     public static function ofChangedProcess(array $steps): string
     {
         $moved = array_filter($steps, fn (array $entry): bool => $entry['change'] === FlowScenarioChange::MOVED);
+        $runsOtherSteps = array_filter($steps, fn (array $entry): bool => in_array($entry['change'], [FlowScenarioChange::ADDED, FlowScenarioChange::REMOVED], true)) !== [];
+        $rehinted = count(array_filter($steps, fn (array $entry): bool => $entry['change'] === FlowScenarioChange::CHANGED || isset($entry['hintChanges'])));
         if ($moved === []) {
-            return 'runs other steps now.';
+            return $runsOtherSteps || $rehinted === 0 ? 'runs other steps now.' : "runs the same steps, {$rehinted} of them with other hints.";
         }
         $count = array_sum(array_map(fn (array $entry): int => $entry['steps'] * $entry['times'], $moved));
         $movements = array_unique(array_column($moved, 'movement'));
@@ -133,7 +135,6 @@ final class FlowWording
             reset($movements) === FlowExecutionChange::UNDER => 'under another step',
             default => 'outside the step they ran under',
         };
-        $runsOtherSteps = array_filter($steps, fn (array $entry): bool => in_array($entry['change'], [FlowScenarioChange::ADDED, FlowScenarioChange::REMOVED], true)) !== [];
 
         return $runsOtherSteps
             ? "runs other steps now, and {$count} of its steps now run {$where}."

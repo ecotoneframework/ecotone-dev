@@ -22,10 +22,10 @@ final class RecordedPartReportChannel implements MessageChannel
     {
         $headers = $message->getHeaders();
         $header = fn (string $name): mixed => $headers->containsKey($name) ? $headers->get($name) : '?';
-        $step = $this->tracer->startStep(
-            'part report by GatheringPartCompletion of a request ' . ($headers->containsKey(GatheringHeaders::NO_RESULT) && $headers->get(GatheringHeaders::NO_RESULT) ? 'without a reply' : 'with a reply ' . ExecutionRecorder::typeOf($message->getPayload()))
-            . ', part ' . $header(GatheringHeaders::PART_NUMBER) . ' of ' . $header(GatheringHeaders::SIZE) . ', to ' . $this->channelName
-        );
+        $step = $this->tracer->startStep('part report to ' . $this->channelName, hints: [
+            ExecutionHint::critical(ExecutionHint::CHOSEN_BY, 'part report by GatheringPartCompletion'),
+            ExecutionHint::critical(ExecutionHint::RESULT, 'part ' . $header(GatheringHeaders::PART_NUMBER) . ' of ' . $header(GatheringHeaders::SIZE) . ', ' . ($headers->containsKey(GatheringHeaders::NO_RESULT) && $headers->get(GatheringHeaders::NO_RESULT) ? 'no reply' : 'reply ' . ExecutionRecorder::typeOf($message->getPayload()))),
+        ]);
         try {
             $this->messageChannel->send($message);
         } catch (Throwable $failure) {

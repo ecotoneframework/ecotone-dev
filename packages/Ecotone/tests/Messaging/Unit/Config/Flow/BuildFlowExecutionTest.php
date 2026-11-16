@@ -210,6 +210,42 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertMatchesRegularExpression('/\n {4,}… gateway EventBus::publishWithRouting returns nothing \(\d+ steps\): (unchanged|moved), now run under the handler class@anonymous::forward step/', $presented);
     }
 
+    public function test_two_alike_steps_that_moved_are_each_paired_with_their_own_counterpart(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $sends = fn (string $indent): array => [
+            $indent . 'entrypoint sends to notifications',
+            $indent . '  send notifications; taken from the channel later by a separate consumer run, process 2',
+            $indent . '    put on channel notifications',
+            $indent . 'entrypoint sends to notifications',
+            $indent . '  send notifications; taken from the channel later by a separate consumer run, process 3',
+            $indent . '    put on channel notifications',
+        ];
+        $consumers = [
+            ['process' => 'receive notifications (1 of 2)', 'steps' => ['  receive notifications: the message, put on the channel by process 1']],
+            ['process' => 'receive notifications (2 of 2)', 'steps' => ['  receive notifications: the message, put on the channel by process 1']],
+        ];
+        $this->replaceExecution('before', [['process' => 'dispatch', 'steps' => ['  handler class@anonymous::dispatch returns nothing', ...$sends('    ')]], ...$consumers]);
+        $this->replaceExecution('after', [['process' => 'dispatch', 'steps' => ['  handler class@anonymous::dispatch returns nothing', '    dispatch 2 batches', ...$sends('      ')]], ...$consumers]);
+
+        $presented = $this->whatRan($this->presented('A'));
+
+        self::assertSame(2, substr_count($presented, '… entrypoint sends to notifications (3 steps): unchanged, now run under the dispatch step'));
+        self::assertDoesNotMatchRegularExpression('/\n- /', $presented);
+    }
+
+    /**
+     * @param list<array{process: string, steps: list<string>}> $execution
+     */
+    private function replaceExecution(string $side, array $execution): void
+    {
+        $file = $this->location . '/' . $side . '/placing-an-order.json';
+        $snapshot = json_decode((string) file_get_contents($file), true, flags: JSON_THROW_ON_ERROR);
+        $snapshot['execution'] = $execution;
+        file_put_contents($file, json_encode($snapshot, JSON_THROW_ON_ERROR));
+    }
+
     private function ordering(): object
     {
         return new class () {

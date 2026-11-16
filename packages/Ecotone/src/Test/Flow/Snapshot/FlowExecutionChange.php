@@ -67,7 +67,7 @@ final class FlowExecutionChange
      * @param array{depth: list<int>, text: list<string>, parent: list<int|null>, end: list<int>} $beforeTree
      * @param array{depth: list<int>, text: list<string>, parent: list<int|null>, end: list<int>} $afterTree
      * @param list<array{0: int|null, 1: int|null}> $plain
-     * @return list<array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, parent: string}>
+     * @return list<array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, mates: int, parent: string}>
      */
     private static function moveCandidates(array $beforeTree, array $afterTree, array $plain): array
     {
@@ -93,13 +93,13 @@ final class FlowExecutionChange
                 $inside = self::alignedInside($beforeTree, $beforeLine, $afterTree, $afterLine);
                 $mates = count(array_filter($inside, fn (array $lines): bool => $lines[0] !== null && $lines[1] !== null));
                 if ($inside[0] === [$beforeLine, $afterLine] && 2 * $mates >= self::SIMILAR_ENOUGH * ($beforeSize + $afterSize)) {
-                    $candidates[] = ['before' => $beforeLine, 'after' => $afterLine, 'inside' => $inside, 'parent' => $afterTree['depth'][$afterLine] > $beforeTree['depth'][$beforeLine]
+                    $candidates[] = ['before' => $beforeLine, 'after' => $afterLine, 'inside' => $inside, 'mates' => $mates, 'parent' => $afterTree['depth'][$afterLine] > $beforeTree['depth'][$beforeLine]
                         ? $afterTree['text'][(int) $afterTree['parent'][$afterLine]]
                         : $beforeTree['text'][(int) $beforeTree['parent'][$beforeLine]]];
                 }
             }
         }
-        usort($candidates, fn (array $one, array $other): int => [count($other['inside']), $one['before']] <=> [count($one['inside']), $other['before']]);
+        usort($candidates, fn (array $one, array $other): int => [$other['mates'], $one['before'], $one['after']] <=> [$one['mates'], $other['before'], $other['after']]);
 
         return $candidates;
     }
@@ -125,9 +125,9 @@ final class FlowExecutionChange
     }
 
     /**
-     * @param list<array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, parent: string}> $candidates
+     * @param list<array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, mates: int, parent: string}> $candidates
      * @param array<string, true> $rejected
-     * @return list<array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, parent: string}>
+     * @return list<array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, mates: int, parent: string}>
      */
     private static function chosenMoves(array $candidates, array $rejected): array
     {
@@ -148,7 +148,7 @@ final class FlowExecutionChange
     }
 
     /**
-     * @param list<array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, parent: string}> $moves
+     * @param list<array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, mates: int, parent: string}> $moves
      * @param list<string> $before
      * @param list<string> $after
      * @param array{depth: list<int>, text: list<string>, parent: list<int|null>, end: list<int>} $beforeTree
@@ -172,7 +172,7 @@ final class FlowExecutionChange
     }
 
     /**
-     * @param list<array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, parent: string}> $moves
+     * @param list<array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, mates: int, parent: string}> $moves
      * @param list<array{0: int|null, 1: int|null}> $aligned
      * @param array{depth: list<int>, text: list<string>, parent: list<int|null>, end: list<int>} $beforeTree
      * @param array{depth: list<int>, text: list<string>, parent: list<int|null>, end: list<int>} $afterTree
@@ -230,7 +230,7 @@ final class FlowExecutionChange
 
     /**
      * @param list<array{0: int|null, 1: int|null}> $aligned
-     * @param list<array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, parent: string}> $moves
+     * @param list<array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, mates: int, parent: string}> $moves
      * @param list<string> $before
      * @param list<string> $after
      * @param array{depth: list<int>, text: list<string>, parent: list<int|null>, end: list<int>} $afterTree
@@ -256,7 +256,7 @@ final class FlowExecutionChange
     }
 
     /**
-     * @param array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, parent: string} $move
+     * @param array{before: int, after: int, inside: list<array{0: int|null, 1: int|null}>, mates: int, parent: string} $move
      * @param list<string> $before
      * @param list<string> $after
      * @param array{depth: list<int>, text: list<string>, parent: list<int|null>, end: list<int>} $afterTree

@@ -206,6 +206,15 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         self::assertContains('repository finds ExecutionRecordedEventSourcedOrder by {"orderId":"order-1"} it at version 1', $lines);
     }
 
+    public function test_a_send_through_the_messaging_entrypoint_is_an_entry_saying_which_headers_it_propagated(): void
+    {
+        $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
+        $process = (int) array_search('process 2: backfill course_seats, handled by ProjectingConsoleCommands::backfillProjection', $lines, true);
+
+        self::assertStringStartsWith('entrypoint sends to ecotone.channel.ecotone:projection:backfill, propagating ', $lines[$process + 1]);
+        self::assertContains('entrypoint sends to projecting_manager_backfill:course_seats', $lines);
+    }
+
     /**
      * @param list<class-string> $classes
      * @param list<object> $services

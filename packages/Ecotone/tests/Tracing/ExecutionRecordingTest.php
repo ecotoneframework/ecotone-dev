@@ -332,8 +332,8 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $expected = [
             'process 2: backfill course_seats, handled by ProjectingConsoleCommands::backfillProjection',
-            '            before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
-            '                  handler ProjectingManager::prepareBackfill returns nothing',
+            '                before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
+            '                      handler ProjectingManager::prepareBackfill returns nothing',
             'process 3: receive backfill, handled by PartitionBatchExecutorHandler::executeBatch (1 of 2)',
             '                                handler PartitionBatchExecutorHandler::executeBatch returns nothing',
             '                            no reply',

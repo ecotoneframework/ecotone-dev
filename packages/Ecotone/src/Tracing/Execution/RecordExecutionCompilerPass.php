@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
@@ -75,6 +76,9 @@ final class RecordExecutionCompilerPass implements CompilerPass
         $this->visited = [];
         if ($builder->has(AllAggregateRepository::class)) {
             $builder->replace(AllAggregateRepository::class, new Definition(RecordedAggregateRepository::class, [$builder->getDefinition(AllAggregateRepository::class), new Reference(Tracer::class)]));
+        }
+        if ($builder->has(MessagingEntrypointService::class) && $builder->getDefinition(MessagingEntrypointService::class) instanceof Definition) {
+            $builder->replace(MessagingEntrypointService::class, new Definition(RecordedMessagingEntrypointService::class, [...$builder->getDefinition(MessagingEntrypointService::class)->getArguments(), new Reference(Tracer::class)]));
         }
         if ($builder->has(GatheredGroupStore::class)) {
             $builder->replace(GatheredGroupStore::class, new Definition(RecordedGatheredGroupStore::class, [$builder->getDefinition(GatheredGroupStore::class), new Reference(Tracer::class)]));

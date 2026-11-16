@@ -94,6 +94,15 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         self::assertNotEmpty(array_filter(self::executionOf('orchestrator gateway starting the flow'), fn (string $line): bool => str_starts_with($line, 'orchestrator ')));
     }
 
+    public function test_the_gathering_store_calls_are_recorded_under_the_gatherer(): void
+    {
+        $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
+
+        self::assertContains('open gathering group {generated#1} of 2 parts', $lines);
+        self::assertContains('complete part 1 of gathering group {generated#1}', $lines);
+        self::assertContains('complete part 2 of gathering group {generated#1}', $lines);
+    }
+
     /**
      * @param list<class-string> $classes
      * @param list<object> $services

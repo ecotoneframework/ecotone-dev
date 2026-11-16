@@ -14,7 +14,7 @@ use Ecotone\Test\Flow\ExpectedSpan;
 final class FlowExecution
 {
     private const PLUMBING = ['Bridge::handle', 'RoutingSlipPrepender::transform', 'HeaderRouter::route'];
-    private const GENERATED_ID = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/';
+    private const GENERATED_ID = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{64}/';
 
     /**
      * @param list<array{process: string, steps: list<string>}> $processes

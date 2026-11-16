@@ -343,8 +343,8 @@ final class ExecutionRecordingTest extends TracingTestCase
             '                          store part 1 of 2',
             'process 6: receive backfill, handled by the gatherer storing part 2 of 2',
             '                          store part 2 of 2',
-            '                            release 2 of 2 parts, as all parts are accounted for',
-            '                              handler ProjectionRunCompletion::complete returns nothing',
+            '                              release 2 of 2 parts, as all parts are accounted for',
+            '                                handler ProjectionRunCompletion::complete returns nothing',
         ];
 
         self::assertSame($expected, self::inOrderOf($lines, $expected));

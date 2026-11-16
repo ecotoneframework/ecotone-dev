@@ -17,6 +17,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
+use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheringMessageHandler;
 use Ecotone\Messaging\Handler\Gathering\GatheringPartCompletion;
 use Ecotone\Messaging\Handler\Processor\InterceptedChainDefinition;
@@ -66,6 +67,9 @@ final class RecordExecutionCompilerPass implements CompilerPass
     public function process(ContainerBuilder $builder): void
     {
         $this->visited = [];
+        if ($builder->has(GatheredGroupStore::class)) {
+            $builder->replace(GatheredGroupStore::class, new Definition(RecordedGatheredGroupStore::class, [$builder->getDefinition(GatheredGroupStore::class), new Reference(Tracer::class)]));
+        }
         foreach ($builder->getDefinitions() as $id => $definition) {
             if ($definition instanceof Definition && str_starts_with($id, self::CHANNEL_ID_PREFIX)) {
                 $definition = $this->recordChannel(substr($id, strlen(self::CHANNEL_ID_PREFIX)), $definition, $builder);

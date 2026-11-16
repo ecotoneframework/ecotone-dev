@@ -14,7 +14,7 @@ use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanKind;
-use Ecotone\Messaging\Channel\ChannelInterceptor;
+use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
@@ -23,7 +23,7 @@ use Throwable;
 /**
  * licence Apache-2.0
  */
-final class TracingChannelInterceptor implements ChannelInterceptor
+final class TracingChannelInterceptor extends AbstractChannelInterceptor
 {
     /** @var list<list<ActiveSpan>> */
     private array $openSendSpans = [];
@@ -195,10 +195,6 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         return BusRoutingMapBuilder::endpointIdOfDestinationChannel(substr($executionChannel, 0, -strlen(AsynchronousModule::HANDLER_EXECUTION_CHANNEL_SUFFIX)));
     }
 
-    public function postSend(Message $message, MessageChannel $messageChannel): void
-    {
-    }
-
     public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): bool
     {
         foreach (array_reverse(array_pop($this->openSendSpans) ?? []) as $span) {
@@ -210,11 +206,6 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         }
 
         return false;
-    }
-
-    public function preReceive(MessageChannel $messageChannel): bool
-    {
-        return true;
     }
 
     public function afterReceiveCompletion(?Message $message, MessageChannel $messageChannel, ?Throwable $exception): void
@@ -232,10 +223,5 @@ final class TracingChannelInterceptor implements ChannelInterceptor
                 ...TracingInterceptor::trackingAttributesCarriedBy($message, false),
             ], TracingInterceptor::remoteParentOf($message))
             ->fail($exception);
-    }
-
-    public function postReceive(Message $message, MessageChannel $messageChannel): ?Message
-    {
-        return $message;
     }
 }

@@ -6,6 +6,8 @@ namespace Test\Ecotone\Tracing;
 
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -130,6 +132,76 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
             ['receive orders', 'take the message from channel orders', 'TracingChannelInterceptor::afterReceiveCompletion, run when the take ended, here with a message and no failure'],
             array_slice($lines, $receive, 3),
         );
+    }
+
+    public function test_the_consumer_forwards_by_the_routing_slip_saying_what_the_slip_held_and_what_remains(): void
+    {
+        $lines = array_map(trim(...), $this->asynchronousOrder());
+        $forward = self::positionOf($lines, 'forward string by the routing slip, taking order.place.endpoint.target.execute from it; the slip held order.place.endpoint.target.execute and is now removed');
+
+        self::assertSame('bridge Bridge::handle returns a message of string', $lines[$forward - 1]);
+        self::assertSame('the forwarded message carries the string the handler returned, with the headers of the request', $lines[$forward + 1]);
+        self::assertSame('direct channel order.place.endpoint.target.execute', $lines[$forward + 2]);
+    }
+
+    public function test_the_routing_slip_an_asynchronous_endpoint_puts_on_the_message_is_recorded_before_the_send_to_the_queue(): void
+    {
+        $lines = array_map(trim(...), $this->asynchronousOrder());
+        $prepended = self::positionOf($lines, 'RoutingSlipPrepender::transform put order.place.endpoint.target.execute in front of the routing slip, which is now order.place.endpoint.target.execute');
+
+        self::assertSame('handler RoutingSlipPrepender::transform returns a message of string', $lines[$prepended - 1]);
+        self::assertSame('forward string by the output channel orders, configured on RoutingSlipPrepender::transform; the routing slip order.place.endpoint.target.execute stays on the message for a later step; the reply channel of the request stays on the message', $lines[$prepended + 1]);
+    }
+
+    public function test_a_result_forwarded_by_the_output_channel_and_a_reply_to_the_waiting_sender_name_their_mechanism(): void
+    {
+        $orders = new class () {
+            #[CommandHandler('order.place', outputChannelName: 'order.confirm')]
+            public function place(string $order): string
+            {
+                return $order;
+            }
+
+            #[InternalHandler('order.confirm')]
+            public function confirm(string $order): string
+            {
+                return $order . ' confirmed';
+            }
+        };
+
+        $lines = array_map(trim(...), $this->recorded([$orders::class], [$orders], [], fn (FlowTestSupport $ecotone) => $ecotone->sendCommandWithRouting('order.place', 'order-1')));
+
+        self::assertContains('forward string by the output channel order.confirm, configured on class@anonymous::place; the reply channel of the request stays on the message', $lines);
+        self::assertContains('reply string to the reply channel of the request, where its sender waits for it', $lines);
+    }
+
+    public function test_nothing_handed_over_says_whether_the_handler_returned_nothing_or_nothing_took_its_result(): void
+    {
+        $listeners = new class () {
+            #[EventHandler('order.placed')]
+            public function audit(): string
+            {
+                return 'audited';
+            }
+
+            #[EventHandler('order.placed')]
+            public function notify(): void
+            {
+            }
+        };
+
+        $lines = array_map(trim(...), $this->recorded([$listeners::class], [$listeners], [], fn (FlowTestSupport $ecotone) => $ecotone->publishEventWithRouting('order.placed', [])));
+
+        self::assertContains('nothing handed over: the handler returned string, and no output channel, routing slip or reply channel of the request takes it', $lines);
+        self::assertContains('nothing handed over: the handler returned nothing', $lines);
+    }
+
+    public function test_the_entrypoint_sets_the_routing_slip_and_its_router_says_which_header_chose_the_route(): void
+    {
+        $lines = array_map(trim(...), self::executionOf('tag-partitioned projection backfilled asynchronously in two batches'));
+        $entrypoint = self::positionOf($lines, 'entrypoint sends to backfill, setting the routing slip ecotone.projection.partition_batch.executor');
+
+        self::assertSame('route to backfill, named by the header ecotone.messaging.entrypoint of the message', $lines[$entrypoint + 3]);
     }
 
     /**

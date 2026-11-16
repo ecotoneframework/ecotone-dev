@@ -24,7 +24,7 @@ final class RecordedPartCompletion implements PartCompletion
     public function complete(Message $request, ?Message $reply): bool
     {
         $completed = $this->partCompletion->complete($request, $reply);
-        if ($completed && $reply !== null) {
+        if ($completed) {
             $this->recording->completedAsPart();
         }
 

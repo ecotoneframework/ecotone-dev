@@ -12,13 +12,13 @@ use Ecotone\Api\Messaging\MessageChannel;
  */
 final class RecordedReplyChannel implements MessageChannel
 {
-    public function __construct(private MessageChannel $messageChannel, private string $destination, private ReplyRecording $recording)
+    public function __construct(private MessageChannel $messageChannel, private string $mechanism, private string $channelName, private ReplyRecording $recording)
     {
     }
 
     public function send(Message $message): void
     {
-        $this->recording->routedTo($this->destination, fn () => $this->messageChannel->send($message));
+        $this->recording->routedTo($this->mechanism, $this->channelName, $message, fn () => $this->messageChannel->send($message));
     }
 
     public function __toString(): string

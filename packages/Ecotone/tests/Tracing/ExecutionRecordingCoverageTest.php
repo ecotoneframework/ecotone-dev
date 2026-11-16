@@ -223,7 +223,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         $lines = self::executionOf('failure is retried with a delay, then sent to the dead letter');
 
         self::assertNotEmpty(preg_grep('/^send orders as retry 1, delayed \d+ ms$/', $lines));
-        self::assertContains('reply string to output channel dead_letter', $lines);
+        self::assertContains('forward string by the output channel dead_letter, configured on DelayedRetryErrorHandler::handle; the routing slip order.placing.target.execute stays on the message for a later step', $lines);
     }
 
     public function test_a_conversion_is_recorded_as_its_own_step_on_the_send_and_on_the_handler_argument(): void

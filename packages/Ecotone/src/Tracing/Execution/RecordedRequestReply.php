@@ -19,7 +19,7 @@ final class RecordedRequestReply implements MessageHandler
 
     public function handle(Message $message): void
     {
-        $this->recording->started();
+        $this->recording->started($message);
         try {
             $this->requestReplyProducer->handle($message);
         } catch (Throwable $failure) {

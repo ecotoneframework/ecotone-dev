@@ -12,14 +12,14 @@ use Ecotone\Messaging\Handler\Router\RouteSelector;
  */
 final class RecordedRouteSelector implements RouteSelector
 {
-    public function __construct(private RouteSelector $routeSelector, private string $routingKeyHeader, private ExecutionRecordingTracer $tracer)
+    public function __construct(private RouteSelector $routeSelector, private string $routingKeyHeader, private string $routeHeader, private ExecutionRecordingTracer $tracer)
     {
     }
 
     public function route(Message $message): array
     {
         $routes = $this->routeSelector->route($message);
-        $this->tracer->recordStep('route ' . $this->reasonOf($message) . ($routes === [] ? 'to no channel' : 'to ' . implode(', ', $routes)));
+        $this->tracer->recordStep('route ' . $this->reasonOf($message) . ($routes === [] ? 'to no channel' : 'to ' . implode(', ', $routes)) . ($this->routeHeader === '' ? '' : ', named by the header ' . $this->routeHeader . ' of the message'));
 
         return $routes;
     }

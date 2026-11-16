@@ -18,7 +18,7 @@ final class RecordedChannelResolver implements ChannelResolver
 
     public function resolve(string|MessageChannel $channelName): MessageChannel
     {
-        return new RecordedReplyChannel($this->channelResolver->resolve($channelName), 'routing slip channel ' . $channelName, $this->recording);
+        return new RecordedReplyChannel($this->channelResolver->resolve($channelName), ReplyRecording::ROUTING_SLIP, (string) $channelName, $this->recording);
     }
 
     public function hasChannelWithName(string $channelName): bool

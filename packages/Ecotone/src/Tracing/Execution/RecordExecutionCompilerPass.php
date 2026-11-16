@@ -35,6 +35,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerStaticObjectR
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\OrchestratorResultMessageConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvokerProcessor;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
+use Ecotone\Messaging\Handler\Router\HeaderRouter;
 use Ecotone\Messaging\Handler\Router\InvocationRouter;
 use Ecotone\Messaging\Handler\Router\Router;
 use Ecotone\Messaging\Handler\Router\RouterProcessor;
@@ -260,7 +261,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
     {
         $routingKeyResolver = $arguments[0] instanceof Definition ? ($arguments[0]->getArguments()[1] ?? null) : null;
         $routingKeyHeader = $routingKeyResolver instanceof Definition && $routingKeyResolver->getClassName() === BusRoutingKeyResolver::class ? (string) $routingKeyResolver->getArguments()[0] : '';
-        $arguments[0] = new Definition(RecordedRouteSelector::class, [$arguments[0], $routingKeyHeader, new Reference(Tracer::class)]);
+        $arguments[0] = new Definition(RecordedRouteSelector::class, [$arguments[0], $routingKeyHeader, self::routeHeaderOf($arguments[0]), new Reference(Tracer::class)]);
 
         return $arguments;
     }
@@ -271,9 +272,31 @@ final class RecordExecutionCompilerPass implements CompilerPass
      */
     private function withRecordedRouterRoutes(array $arguments): array
     {
-        $arguments[1] = new Definition(RecordedRouteSelector::class, [$arguments[1], '', new Reference(Tracer::class)]);
+        $arguments[1] = new Definition(RecordedRouteSelector::class, [$arguments[1], '', self::routeHeaderOf($arguments[1]), new Reference(Tracer::class)]);
 
         return $arguments;
+    }
+
+    private static function routeHeaderOf(mixed $routeSelector, int $depth = 8): string
+    {
+        if (is_array($routeSelector) && $depth > 0) {
+            foreach ($routeSelector as $element) {
+                $header = self::routeHeaderOf($element, $depth - 1);
+                if ($header !== '') {
+                    return $header;
+                }
+            }
+
+            return '';
+        }
+        if (! $routeSelector instanceof Definition) {
+            return '';
+        }
+        if ($routeSelector->getClassName() === HeaderRouter::class) {
+            return (string) $routeSelector->getArguments()[0];
+        }
+
+        return $depth > 0 ? self::routeHeaderOf($routeSelector->getArguments(), $depth - 1) : '';
     }
 
     /**
@@ -354,12 +377,22 @@ final class RecordExecutionCompilerPass implements CompilerPass
         return new Definition(RecordedGatheringPart::class, [$gatheringHandler, new Reference(Tracer::class)]);
     }
 
+    private static function handlerNamed(string $interface): string
+    {
+        if (! str_contains($interface, '::')) {
+            return 'the handler';
+        }
+        [$class, $method] = explode('::', $interface, 2);
+
+        return ExecutionRecordingTracer::shortClassOf($class) . '::' . $method;
+    }
+
     private function withRecordedReply(Definition $requestReplyProducer, ContainerBuilder $builder): Definition
     {
-        $recording = $builder->register(self::REPLY_RECORDING_PREFIX . spl_object_id($requestReplyProducer), new Definition(ReplyRecording::class, [new Reference(Tracer::class)]));
         $arguments = $requestReplyProducer->getArguments();
+        $recording = $builder->register(self::REPLY_RECORDING_PREFIX . spl_object_id($requestReplyProducer), new Definition(ReplyRecording::class, [self::handlerNamed((string) ($arguments[6] ?? '')), new Reference(Tracer::class)]));
         if ($arguments[0] instanceof Reference) {
-            $arguments[0] = new Definition(RecordedReplyChannel::class, [$arguments[0], 'output channel ' . ($arguments[0] instanceof ChannelReference ? $arguments[0]->getChannelName() : $arguments[0]->getId()), $recording]);
+            $arguments[0] = new Definition(RecordedReplyChannel::class, [$arguments[0], ReplyRecording::OUTPUT_CHANNEL, $arguments[0] instanceof ChannelReference ? $arguments[0]->getChannelName() : $arguments[0]->getId(), $recording]);
         }
         $arguments[1] = new Definition(RecordedReplyProcessor::class, [$arguments[1], $recording]);
         $arguments[2] = new Definition(RecordedChannelResolver::class, [$arguments[2], $recording]);

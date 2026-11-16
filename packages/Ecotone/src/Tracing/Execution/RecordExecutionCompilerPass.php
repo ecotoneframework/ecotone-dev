@@ -28,6 +28,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerStaticObjectR
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Handler\Router\InvocationRouter;
 use Ecotone\Messaging\Handler\Router\RouterProcessor;
+use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Tracing\Tracer;
 
@@ -131,7 +132,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 Gateway::class => $this->withRecordedEntry($arguments, $builder),
                 BeforeSendChannelInterceptor::class => $this->recorded($arguments, self::PRESEND, $builder),
                 InvocationRouter::class => $this->recorded($arguments, self::ROUTER, $builder),
-                RouterProcessor::class => $this->recorded($arguments, null, $builder),
+                RouterProcessor::class => $this->withRecordedRoutes($this->recorded($arguments, null, $builder)),
                 default => $this->recorded($arguments, $role, $builder),
             };
         }
@@ -146,6 +147,19 @@ final class RecordExecutionCompilerPass implements CompilerPass
             GatheringMessageHandler::class => self::withRecordedGathering($value),
             default => $value,
         };
+    }
+
+    /**
+     * @param array<int|string, mixed> $arguments
+     * @return array<int|string, mixed>
+     */
+    private function withRecordedRoutes(array $arguments): array
+    {
+        $routingKeyResolver = $arguments[0] instanceof Definition ? ($arguments[0]->getArguments()[1] ?? null) : null;
+        $routingKeyHeader = $routingKeyResolver instanceof Definition && $routingKeyResolver->getClassName() === BusRoutingKeyResolver::class ? (string) $routingKeyResolver->getArguments()[0] : '';
+        $arguments[0] = new Definition(RecordedRouteSelector::class, [$arguments[0], $routingKeyHeader, new Reference(Tracer::class)]);
+
+        return $arguments;
     }
 
     private static function withRecordedPartReports(Definition $partCompletion): Definition

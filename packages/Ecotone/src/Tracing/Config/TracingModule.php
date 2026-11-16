@@ -32,6 +32,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -45,6 +46,9 @@ use Ecotone\Projecting\ProjectionOperationEndpoint;
 use Ecotone\Projecting\ProjectionTriggerEndpoint;
 use Ecotone\Tracing\CompositeSpanRecorder;
 use Ecotone\Tracing\EcotoneTracer;
+use Ecotone\Tracing\Execution\ExecutionRecorder;
+use Ecotone\Tracing\Execution\ExecutionRecordingTracer;
+use Ecotone\Tracing\Execution\RecordExecutionCompilerPass;
 use Ecotone\Tracing\MessageSpanAttributes;
 use Ecotone\Tracing\Tracer;
 use Ecotone\Tracing\TracerCurrentTrace;
@@ -90,12 +94,22 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         ];
 
         $messagingConfiguration->registerServiceDefinition(SpanRecorder::class, new Definition(CompositeSpanRecorder::class, [$spanRecorders]));
-        $messagingConfiguration->registerServiceDefinition(
-            Tracer::class,
-            $tracerReferences === []
-                ? new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)])
-                : new Reference($tracerReferences[0]->referenceName)
-        );
+        if ($tracingConfiguration->executionRecording) {
+            if ($tracerReferences !== []) {
+                throw ConfigurationException::create("Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but spans go to the tracer {$tracerReferences[0]->referenceName}, and execution steps can be recorded only by Ecotone's own tracer. Remove withExecutionRecording() when tracing through {$tracerReferences[0]->referenceName}, or record the flow with a span recorder registered by TracingConfiguration::withSpanRecorder() instead of a tracer.");
+            }
+            $messagingConfiguration->registerServiceDefinition(EcotoneTracer::class, new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));
+            $messagingConfiguration->registerServiceDefinition(Tracer::class, new Definition(ExecutionRecordingTracer::class, [new Reference(EcotoneTracer::class), new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));
+            $messagingConfiguration->registerServiceDefinition(ExecutionRecorder::class, new Definition(ExecutionRecorder::class, [new Reference(Tracer::class)]));
+            $messagingConfiguration->addCompilerPass(new RecordExecutionCompilerPass());
+        } else {
+            $messagingConfiguration->registerServiceDefinition(
+                Tracer::class,
+                $tracerReferences === []
+                    ? new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)])
+                    : new Reference($tracerReferences[0]->referenceName)
+            );
+        }
         $messagingConfiguration->addCompilerPass(new RegisterSpanEventLoggerCompilerPass());
         $messagingConfiguration->addCompilerPass(new TraceEventRoutesCompilerPass());
         $messagingConfiguration->addCompilerPass(new TraceDynamicConsistencyBoundaryCompilerPass());

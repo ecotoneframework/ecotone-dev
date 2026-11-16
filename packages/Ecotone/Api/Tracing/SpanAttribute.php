@@ -24,6 +24,11 @@ final class SpanAttribute
     public const BATCH_DELIVERIES = 'ecotone.batch.deliveries';
     public const ROUTE_UNDELIVERED = 'ecotone.route.undelivered';
     public const ROUTE_COLLECTED = 'ecotone.route.collected';
+    public const EXECUTION_STEP = 'ecotone.execution.step';
+    public const EXECUTION_OUTCOME = 'ecotone.execution.outcome';
+    public const EXECUTION_PARENT = 'ecotone.execution.parent';
+    public const EXECUTION_ORDER = 'ecotone.execution.order';
+    public const EXECUTION_PROCESS = 'ecotone.execution.process';
 
     public const ECOTONE = 'ecotone';
     public const OPERATION_SEND = 'send';

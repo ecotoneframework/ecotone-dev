@@ -7,6 +7,7 @@ namespace Ecotone\Tracing\Execution;
 use function array_pop;
 use function count;
 
+use Ecotone\Api\Messaging\Message;
 use Throwable;
 
 /**
@@ -16,8 +17,10 @@ final class ChannelSendRecording
 {
     public const COLLECTOR = 'MessageCollectorChannelInterceptor';
 
-    /** @var list<array{step: ?ExecutionStep, ran: int}> */
+    /** @var list<array{step: ?ExecutionStep, ran: int, messageId: string}> */
     private array $openSends = [];
+    /** @var array<string, true> message id => held by the collector until the handler ends */
+    private array $collected = [];
 
     /**
      * @param list<string> $interceptors class of each channel interceptor, in the order they run
@@ -29,9 +32,16 @@ final class ChannelSendRecording
     ) {
     }
 
-    public function started(): void
+    public function started(Message $message): void
     {
-        $this->openSends[] = ['step' => $this->tracer->startStep('send ' . $this->channelName), 'ran' => 0];
+        $messageId = $message->getHeaders()->getMessageId();
+        $released = isset($this->collected[$messageId]);
+        unset($this->collected[$messageId]);
+        $this->openSends[] = [
+            'step' => $this->tracer->startStep(($released ? 'release collected message to ' : 'send ') . $this->channelName),
+            'ran' => 0,
+            'messageId' => $messageId,
+        ];
     }
 
     public function interceptorRan(int $position): void
@@ -48,6 +58,9 @@ final class ChannelSendRecording
         }
         if ($failure === null && $send['ran'] < count($this->interceptors)) {
             $stoppedBy = ExecutionRecordingTracer::shortClassOf($this->interceptors[$send['ran']]);
+            if ($stoppedBy === self::COLLECTOR) {
+                $this->collected[$send['messageId']] = true;
+            }
             $this->tracer->recordStep($stoppedBy === self::COLLECTOR ? 'collected, held until the handler ends' : 'channel interceptor ' . $stoppedBy . ' stopped the message');
         }
         if ($send['step'] === null) {

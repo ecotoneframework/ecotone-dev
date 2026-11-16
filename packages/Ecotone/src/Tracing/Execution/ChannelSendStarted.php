@@ -20,7 +20,7 @@ final class ChannelSendStarted extends AbstractChannelInterceptor
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
-        $this->recording->started();
+        $this->recording->started($message);
 
         return $message;
     }

@@ -204,7 +204,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                    channel interceptor OutboundSerializationChannelInterceptor',
                 '                    collected, held until the handler ends',
                 '            no reply',
-                '        send orders',
+                '        release collected message to orders',
                 '          channel interceptor OutboundSerializationChannelInterceptor',
                 '          channel interceptor MessageCollectorChannelInterceptor',
                 '          channel interceptor SendRetryChannelInterceptor',

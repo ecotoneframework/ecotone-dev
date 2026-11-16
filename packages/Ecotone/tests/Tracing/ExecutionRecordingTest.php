@@ -9,13 +9,16 @@ use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Before;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Presend;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\Flow\Snapshot\FlowExecution;
@@ -402,6 +405,42 @@ final class ExecutionRecordingTest extends TracingTestCase
         self::assertContains('release collected message to notifications', $lines);
         self::assertNotContains('release collected message to notifications throws RuntimeException', $lines);
         self::assertContains('send failed with RuntimeException, recovered by SendRetryChannelInterceptor', $lines);
+    }
+
+    public function test_a_message_without_a_gathering_group_fails_with_the_gatherer_own_message_when_recorded(): void
+    {
+        $summaries = new class () {
+            #[Splitter('parts', endpointId: 'parts.split', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('work')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$summaries::class],
+            [$summaries, ...self::recordingSpansInto(new InMemorySpanRecorder())],
+            [self::tracingConfiguration()->withExecutionRecording(), SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $this->expectExceptionMessage('A #[Gathered] handler requires a gathering group opened by its splitter.');
+
+        $ecotone->sendDirectToChannel('summary', 'not a part');
+        $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup());
     }
 
     /**

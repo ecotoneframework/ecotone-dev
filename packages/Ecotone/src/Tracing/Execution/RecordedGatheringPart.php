@@ -24,7 +24,8 @@ final class RecordedGatheringPart implements MessageHandler
         $step = $this->tracer->startStep(match (true) {
             $headers->containsKey(GatheringHeaders::MANUAL_RELEASE) => 'release requested manually',
             $headers->containsKey(GatheringHeaders::TIMEOUT) => 'release requested by the timeout',
-            default => 'store part ' . $headers->get(GatheringHeaders::PART_NUMBER) . ' of ' . $headers->get(GatheringHeaders::SIZE),
+            $headers->containsKey(GatheringHeaders::PART_NUMBER) && $headers->containsKey(GatheringHeaders::SIZE) => 'store part ' . $headers->get(GatheringHeaders::PART_NUMBER) . ' of ' . $headers->get(GatheringHeaders::SIZE),
+            default => 'gather a message that names no part of a gathering group',
         });
         try {
             $this->gatheringHandler->handle($message);

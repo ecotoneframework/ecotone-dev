@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Tracing\Execution;
 
 use Closure;
+use Ecotone\Messaging\Handler\Gathering\GatheringHeaders;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
@@ -34,22 +35,22 @@ final class RecordedMessagingEntrypointService extends MessagingEntrypointServic
 
     public function sendWithHeaders(mixed $payload, array $headers, string $targetChannel, ?string $routingSlip = null): mixed
     {
-        return $this->recorded($targetChannel, self::slipOf($routingSlip), fn () => parent::sendWithHeaders($payload, $headers, $targetChannel, $routingSlip));
+        return $this->recorded($targetChannel, [...self::slipOf($routingSlip), ...self::gatheringOf($headers)], fn () => parent::sendWithHeaders($payload, $headers, $targetChannel, $routingSlip));
     }
 
     public function sendWithHeadersWithMessageReply(mixed $payload, array $headers, string $targetChannel, ?string $routingSlip = null): ?Message
     {
-        return $this->recorded($targetChannel, self::slipOf($routingSlip), fn () => parent::sendWithHeadersWithMessageReply($payload, $headers, $targetChannel, $routingSlip));
+        return $this->recorded($targetChannel, [...self::slipOf($routingSlip), ...self::gatheringOf($headers)], fn () => parent::sendWithHeadersWithMessageReply($payload, $headers, $targetChannel, $routingSlip));
     }
 
     public function sendWithHeadersPropagation(mixed $payload, array $headers, string $targetChannel, ?string $routingSlip = null): mixed
     {
-        return $this->recorded($targetChannel, [...self::slipOf($routingSlip), $this->propagatedOver($headers)], fn () => parent::sendWithHeadersPropagation($payload, $headers, $targetChannel, $routingSlip));
+        return $this->recorded($targetChannel, [...self::slipOf($routingSlip), ...self::gatheringOf($headers), $this->propagatedOver($headers)], fn () => parent::sendWithHeadersPropagation($payload, $headers, $targetChannel, $routingSlip));
     }
 
     public function sendWithHeadersPropagationAndMessageReply(mixed $payload, array $headers, string $targetChannel, ?string $routingSlip = null): ?Message
     {
-        return $this->recorded($targetChannel, [...self::slipOf($routingSlip), $this->propagatedOver($headers)], fn () => parent::sendWithHeadersPropagationAndMessageReply($payload, $headers, $targetChannel, $routingSlip));
+        return $this->recorded($targetChannel, [...self::slipOf($routingSlip), ...self::gatheringOf($headers), $this->propagatedOver($headers)], fn () => parent::sendWithHeadersPropagationAndMessageReply($payload, $headers, $targetChannel, $routingSlip));
     }
 
     public function sendMessage(Message $message): mixed
@@ -65,6 +66,19 @@ final class RecordedMessagingEntrypointService extends MessagingEntrypointServic
     private static function slipOf(?string $routingSlip): array
     {
         return $routingSlip === null || $routingSlip === '' ? [] : [ExecutionHint::critical(ExecutionHint::ROUTING_SLIP, 'none → ' . str_replace(',', ', ', $routingSlip))];
+    }
+
+    /**
+     * @param array<string, mixed> $headers
+     * @return list<ExecutionHint>
+     */
+    private static function gatheringOf(array $headers): array
+    {
+        if (! isset($headers[GatheringHeaders::GROUP_ID])) {
+            return [];
+        }
+
+        return [ExecutionHint::critical(ExecutionHint::GROUP, 'part ' . ($headers[GatheringHeaders::PART_NUMBER] ?? '?') . ' of ' . ($headers[GatheringHeaders::SIZE] ?? '?') . ' of ' . $headers[GatheringHeaders::GROUP_ID] . ', reports to ' . ($headers[GatheringHeaders::CHANNEL_NAME] ?? '?'))];
     }
 
     /**

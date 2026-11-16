@@ -190,6 +190,19 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         self::assertSame([], preg_grep('/^↳ routing slip: (.+) → \1$/', $lines));
     }
 
+    public function test_each_partition_batch_send_says_which_gathering_part_it_carries(): void
+    {
+        $lines = array_map(trim(...), self::executionOf('tag-partitioned projection backfilled asynchronously in two batches'));
+
+        self::assertSame(
+            [
+                '↳ group: part 1 of 2 of {generated#1}, reports to ecotone.projection.backfill.completion:course_seats',
+                '↳ group: part 2 of 2 of {generated#1}, reports to ecotone.projection.backfill.completion:course_seats',
+            ],
+            array_values(array_map(fn (int $position): string => $lines[$position + 2], array_keys($lines, 'entrypoint sends to backfill', true))),
+        );
+    }
+
     public function test_no_step_names_a_class_of_the_recording(): void
     {
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
@@ -334,7 +347,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $entrypoint = self::positionOf($lines, 'entrypoint sends to backfill');
 
         self::assertSame('↳ routing slip: none → ecotone.projection.partition_batch.executor', $lines[$entrypoint + 1]);
-        self::assertSame(['route to backfill', '↳ chosen by: header ecotone.messaging.entrypoint'], array_slice($lines, $entrypoint + 4, 2));
+        self::assertSame(['route to backfill', '↳ chosen by: header ecotone.messaging.entrypoint'], array_slice($lines, $entrypoint + 5, 2));
     }
 
     public function test_copies_of_one_event_sent_to_two_asynchronous_handlers_are_each_released_and_linked_to_their_own_consumer(): void

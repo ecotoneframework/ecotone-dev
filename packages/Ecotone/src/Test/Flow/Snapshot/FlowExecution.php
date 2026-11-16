@@ -13,6 +13,8 @@ use Ecotone\Test\Flow\ExpectedSpan;
  */
 final class FlowExecution
 {
+    private const PLUMBING = ['Bridge::handle', 'RoutingSlipPrepender::transform'];
+
     /**
      * @param list<array{process: string, steps: list<string>}> $processes
      */
@@ -42,12 +44,53 @@ final class FlowExecution
             $children[$parent][] = $span;
         }
 
-        return new self(array_map(
+        $processes = array_map(
             fn (Span $process): array => ($process->attributes[SpanAttribute::EXECUTION_STEP] ?? false)
                 ? ['process' => self::nameOf(self::firstSpanUnder($process, $children) ?? $process), 'steps' => [...self::linesOf([$process], $children, 1)]]
                 : ['process' => self::nameOf($process), 'steps' => self::stepsUnder($process, $children, 1)],
             $processes,
-        ));
+        );
+
+        return new self(self::titled($processes));
+    }
+
+    /**
+     * @param list<array{process: string, steps: list<string>}> $processes
+     * @return list<array{process: string, steps: list<string>}>
+     */
+    private static function titled(array $processes): array
+    {
+        foreach ($processes as $position => $process) {
+            $handled = self::handledIn($process['steps']);
+            $processes[$position]['process'] = $process['process'] . ($handled === null ? '' : ', handled by ' . $handled);
+        }
+        $count = array_count_values(array_column($processes, 'process'));
+        $seen = [];
+        foreach ($processes as $position => $process) {
+            if ($count[$process['process']] > 1) {
+                $seen[$process['process']] = ($seen[$process['process']] ?? 0) + 1;
+                $processes[$position]['process'] .= ' (' . $seen[$process['process']] . ' of ' . $count[$process['process']] . ')';
+            }
+        }
+
+        return $processes;
+    }
+
+    /**
+     * @param list<string> $steps
+     */
+    private static function handledIn(array $steps): ?string
+    {
+        foreach ($steps as $step) {
+            if (preg_match('/^\s*handler (\S+::\w+)/', $step, $handler) === 1 && ! in_array($handler[1], self::PLUMBING, true)) {
+                return $handler[1];
+            }
+            if (preg_match('/^\s*store part (\d+ of \d+)$/', $step, $part) === 1) {
+                return 'the gatherer storing part ' . $part[1];
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -51,7 +51,7 @@ final class BuildFlowExecutionTest extends TestCase
 
         $execution = $this->storedSnapshot('after', 'placing-an-order')['execution'];
 
-        self::assertSame(['send command order.place', 'receive notifications'], array_column($execution, 'process'));
+        self::assertSame(['send command order.place, handled by class@anonymous::place', 'receive notifications, handled by class@anonymous::whenPlaced'], array_column($execution, 'process'));
         self::assertSame('  gateway CommandBus::sendWithRouting returns nothing', $execution[0]['steps'][0]);
         self::assertContains('handler class@anonymous::whenPlaced returns nothing', array_map(trim(...), $execution[1]['steps']));
     }
@@ -73,7 +73,7 @@ final class BuildFlowExecutionTest extends TestCase
         $execution = $this->comparison()['groups'][0]['execution'];
 
         self::assertSame(
-            [['process' => 'send command order.place', 'change' => 'changed'], ['process' => 'receive notifications', 'change' => 'unchanged']],
+            [['process' => 'send command order.place, handled by class@anonymous::place', 'change' => 'changed'], ['process' => 'receive notifications, handled by class@anonymous::whenPlaced', 'change' => 'unchanged']],
             array_map(fn (array $process): array => ['process' => $process['process'], 'change' => $process['change']], $execution),
         );
         self::assertArrayNotHasKey('steps', $execution[1]);
@@ -103,9 +103,26 @@ final class BuildFlowExecutionTest extends TestCase
         $presented = $this->presented('A');
 
         self::assertStringContainsString("#### What ran, process by process\n", $presented);
-        self::assertStringContainsString("Process `receive notifications`: unchanged.\n", $presented);
+        self::assertStringContainsString("Process `receive notifications, handled by class@anonymous::whenPlaced`: unchanged.\n", $presented);
         self::assertMatchesRegularExpression('/\n\+ +handler class@anonymous::audit returns nothing\n/', $presented);
         self::assertMatchesRegularExpression('/```diff\n(  .*\n|  … \d+ unchanged steps\n|\+ .*\n)+```/', $presented);
+    }
+
+    public function test_processes_of_the_same_kind_are_titled_by_what_they_handled_and_paired_on_it(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->orderingWithAsynchronousAudit(), executionRecording: true);
+
+        $execution = $this->comparison()['groups'][0]['execution'];
+
+        self::assertSame(
+            [
+                ['process' => 'send command order.place, handled by class@anonymous::place', 'change' => 'changed'],
+                ['process' => 'receive notifications, handled by class@anonymous::audit', 'change' => 'added'],
+                ['process' => 'receive notifications, handled by class@anonymous::whenPlaced', 'change' => 'unchanged'],
+            ],
+            array_map(fn (array $process): array => ['process' => $process['process'], 'change' => $process['change']], $execution),
+        );
     }
 
     private function ordering(): object
@@ -134,6 +151,29 @@ final class BuildFlowExecutionTest extends TestCase
                 $eventBus->publishWithRouting('order.placed', []);
             }
 
+            #[EventHandler('order.placed', endpointId: 'audit')]
+            public function audit(): void
+            {
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'whenOrderWasPlaced')]
+            public function whenPlaced(): void
+            {
+            }
+        };
+    }
+
+    private function orderingWithAsynchronousAudit(): object
+    {
+        return new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', []);
+            }
+
+            #[Asynchronous('notifications')]
             #[EventHandler('order.placed', endpointId: 'audit')]
             public function audit(): void
             {

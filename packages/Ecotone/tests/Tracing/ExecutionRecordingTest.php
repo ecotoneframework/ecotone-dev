@@ -72,7 +72,7 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         self::assertSame(
             [
-                'process 1: send command order.place',
+                'process 1: send command order.place, handled by class@anonymous::place',
                 '  gateway CommandBus::sendWithRouting returns a message of string',
                 '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
                 '    around TracingInterceptor::traceCommandBus',
@@ -120,7 +120,7 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         self::assertSame(
             [
-                'process 1: send command order.place',
+                'process 1: send command order.place, handled by class@anonymous::place',
                 '  gateway CommandBus::sendWithRouting returns nothing',
                 '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
                 '    around TracingInterceptor::traceCommandBus',
@@ -234,7 +234,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                channel interceptor InMemoryQueueAcknowledgeInterceptor',
                 '                span send orders',
                 '                  channel interceptor TracingChannelInterceptor',
-                'process 2: receive orders',
+                'process 2: receive orders, handled by class@anonymous::place',
                 '  gateway InboundChannelAdapterEntrypoint::executeEntrypoint returns nothing',
                 '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
                 '    around TracingInterceptor::traceAsynchronousEndpoint',
@@ -285,7 +285,7 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         self::assertSame(
             [
-                'process 1: send command order.place',
+                'process 1: send command order.place, handled by class@anonymous::place',
                 '  gateway CommandBus::sendWithRouting returns a message of string',
                 '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
                 '    around TracingInterceptor::traceCommandBus',
@@ -316,24 +316,24 @@ final class ExecutionRecordingTest extends TracingTestCase
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
 
         $expected = [
-            'process 2: backfill course_seats',
+            'process 2: backfill course_seats, handled by ProjectingConsoleCommands::backfillProjection',
             '            before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
             '                  handler ProjectingManager::prepareBackfill returns nothing',
-            'process 3: receive backfill',
+            'process 3: receive backfill, handled by PartitionBatchExecutorHandler::executeBatch (1 of 2)',
             '                              handler PartitionBatchExecutorHandler::executeBatch returns nothing',
             '                          no reply',
             '                          part report of a request without a reply, part 1 of 2, to ecotone.projection.backfill.completion:course_seats',
             '                                  collected, held until the handler ends',
             '                      release collected message to backfill',
-            'process 4: receive backfill',
+            'process 4: receive backfill, handled by PartitionBatchExecutorHandler::executeBatch (2 of 2)',
             '                              handler PartitionBatchExecutorHandler::executeBatch returns nothing',
             '                          no reply',
             '                          part report of a request without a reply, part 2 of 2, to ecotone.projection.backfill.completion:course_seats',
             '                                  collected, held until the handler ends',
             '                      release collected message to backfill',
-            'process 5: receive backfill',
+            'process 5: receive backfill, handled by the gatherer storing part 1 of 2',
             '                          store part 1 of 2',
-            'process 6: receive backfill',
+            'process 6: receive backfill, handled by the gatherer storing part 2 of 2',
             '                          store part 2 of 2',
             '                            release 2 of 2 parts, as all parts are accounted for',
             '                              handler ProjectionRunCompletion::complete returns nothing',
@@ -368,7 +368,7 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         self::assertSame(
             [
-                'process 1: send command order.place',
+                'process 1: send command order.place, handled by class@anonymous::place',
                 '  gateway CommandBus::sendWithRouting returns nothing',
                 '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
                 '    before class@anonymous::beforeSendingTheCommand returns nothing',

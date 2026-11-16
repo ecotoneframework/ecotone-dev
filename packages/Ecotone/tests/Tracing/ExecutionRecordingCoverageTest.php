@@ -14,10 +14,12 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
+use RuntimeException;
 
 /**
  * licence Apache-2.0
@@ -103,6 +105,43 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         self::assertContains('complete part 2 of gathering group {generated#1}', $lines);
     }
 
+    public function test_a_consumed_message_starts_its_process_at_the_receive_with_what_the_channel_applied(): void
+    {
+        $lines = $this->recorded([ExecutionRecordedOrders::class], [new ExecutionRecordedOrders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommandWithRouting('order.place', 'order-1', metadata: [MessageHeaders::PRIORITY => 5]);
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        });
+        $receive = array_search('process 2: receive orders, handled by ExecutionRecordedOrders::place', $lines, true);
+
+        self::assertIsInt($receive);
+        self::assertSame('receive orders', $lines[$receive + 1]);
+        self::assertSame('received with priority 5', $lines[$receive + 2]);
+    }
+
+    public function test_the_receive_and_send_phases_of_channel_interceptors_are_recorded(): void
+    {
+        $lines = $this->recorded([ExecutionRecordedOrders::class], [new ExecutionRecordedOrders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommandWithRouting('order.place', 'order-1');
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        });
+
+        self::assertContains('pre-receive, after-receive-completion and post-receive through OutboundSerializationChannelInterceptor, MessageCollectorChannelInterceptor, SendRetryChannelInterceptor, InMemoryQueueAcknowledgeInterceptor, TracingChannelInterceptor', $lines);
+        self::assertContains('post-send through OutboundSerializationChannelInterceptor, MessageCollectorChannelInterceptor, SendRetryChannelInterceptor, InMemoryQueueAcknowledgeInterceptor, TracingChannelInterceptor', $lines);
+        self::assertContains('after-send-completion through OutboundSerializationChannelInterceptor, MessageCollectorChannelInterceptor, SendRetryChannelInterceptor, InMemoryQueueAcknowledgeInterceptor, TracingChannelInterceptor', $lines);
+    }
+
+    public function test_the_acknowledgement_of_a_consumed_message_is_recorded_with_the_strategy_that_decided_it(): void
+    {
+        $lines = $this->recorded([ExecutionRecordedOrders::class], [new ExecutionRecordedOrders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommandWithRouting('order.place', 'order-1');
+            $ecotone->sendCommandWithRouting('order.place', 'failing');
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2, stopOnError: false));
+        });
+
+        self::assertContains('acknowledged: accepted', $lines);
+        self::assertContains('acknowledged: resent to the channel, by the final failure strategy resend', $lines);
+    }
+
     /**
      * @param list<class-string> $classes
      * @param list<object> $services
@@ -153,4 +192,16 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
 
 final class ExecutionRecordedPlaceOrder
 {
+}
+
+final class ExecutionRecordedOrders
+{
+    #[Asynchronous('orders')]
+    #[CommandHandler('order.place', endpointId: 'placeOrder')]
+    public function place(string $order): void
+    {
+        if ($order === 'failing') {
+            throw new RuntimeException('placing failed');
+        }
+    }
 }

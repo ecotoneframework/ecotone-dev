@@ -19,7 +19,7 @@ final class RecordedEntry implements MessageProcessor
 
     public function process(Message $message): ?Message
     {
-        $step = $this->tracer->startEntry($this->entry);
+        $step = $this->tracer->startEntry($this->entry, continuesAReceive: true);
         try {
             $reply = $this->messageProcessor->process($message);
         } catch (Throwable $failure) {

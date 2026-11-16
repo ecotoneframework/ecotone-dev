@@ -34,6 +34,7 @@ use Ecotone\Messaging\Handler\Router\InvocationRouter;
 use Ecotone\Messaging\Handler\Router\Router;
 use Ecotone\Messaging\Handler\Router\RouterProcessor;
 use Ecotone\Messaging\Handler\Transformer\TransformerResultToMessageConverter;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Tracing\Tracer;
@@ -93,6 +94,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 $channelName,
                 array_map(fn (string $class, mixed $interceptor): string|Reference => $interceptor instanceof Reference && ! class_exists($class) ? $interceptor : $class, $interceptorClasses, array_values($arguments[1])),
                 array_values(array_filter($interceptorClasses, fn (string $class): bool => ! self::isFlowTesting($class))) === [],
+                new Reference(MessageBuilder::class),
                 new Reference(Tracer::class),
             ]));
             $interceptors = [];

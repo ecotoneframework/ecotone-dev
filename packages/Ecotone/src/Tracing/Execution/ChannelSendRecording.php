@@ -8,7 +8,10 @@ use function array_pop;
 use function count;
 
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptor;
+use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Throwable;
 
 /**
@@ -19,7 +22,7 @@ final class ChannelSendRecording
     public const COLLECTOR = 'MessageCollectorChannelInterceptor';
     private const FLOW_TESTING_NAMESPACE = 'Ecotone\\Lite\\Test\\';
 
-    /** @var list<array{step: ?ExecutionStep, ran: int, messageId: string, failed: ?string, failedAfter: array<int, bool>}> */
+    /** @var list<array{step: ?ExecutionStep, ran: int, messageId: string, failed: ?string, failedAfter: array<int, bool>, postSentAfter: array<int, true>}> */
     private array $openSends = [];
 
     /** @var list<string> class of each channel interceptor, in the order they run */
@@ -32,6 +35,7 @@ final class ChannelSendRecording
         private string $channelName,
         array $interceptors,
         private bool $onlyFlowTestingIntercepts,
+        private MessageBuilder $messageBuilder,
         private ExecutionRecordingTracer $tracer,
     ) {
         $this->interceptors = array_map(fn (string|object $interceptor): string => is_object($interceptor) ? $interceptor::class : $interceptor, $interceptors);
@@ -47,6 +51,7 @@ final class ChannelSendRecording
             'messageId' => $messageId,
             'failed' => null,
             'failedAfter' => [],
+            'postSentAfter' => [],
         ];
     }
 
@@ -56,6 +61,51 @@ final class ChannelSendRecording
         if (! str_starts_with($this->interceptors[$position], self::FLOW_TESTING_NAMESPACE) && $this->interceptors[$position] !== BeforeSendChannelInterceptor::class) {
             $this->tracer->recordStep('channel interceptor ' . ExecutionRecordingTracer::shortClassOf($this->interceptors[$position]));
         }
+    }
+
+    public function postSentAfter(int $position): void
+    {
+        $this->openSends[count($this->openSends) - 1]['postSentAfter'][$position] = true;
+    }
+
+    public function received(Message $message): Message
+    {
+        $headers = $message->getHeaders();
+        $applied = array_filter([
+            $headers->containsKey(MessageHeaders::DELIVERY_DELAY) ? 'delay ' . $headers->get(MessageHeaders::DELIVERY_DELAY) . ' ms' : null,
+            $headers->containsKey(MessageHeaders::PRIORITY) ? 'priority ' . $headers->get(MessageHeaders::PRIORITY) : null,
+            $headers->containsKey(MessageHeaders::TIME_TO_LIVE) ? 'time to live ' . $headers->get(MessageHeaders::TIME_TO_LIVE) . ' ms' : null,
+        ]);
+        $through = $this->namesOf(array_keys($this->interceptors));
+        $this->tracer->awaitReceive('receive ' . $this->channelName, array_values(array_filter([
+            $applied === [] ? null : 'received with ' . implode(', ', $applied),
+            $through === '' ? null : 'pre-receive, after-receive-completion and post-receive through ' . $through,
+        ])));
+        if (! $headers->containsKey(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION)) {
+            return $message;
+        }
+        $location = (string) $headers->get(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION);
+        $callback = $headers->containsKey($location) ? $headers->get($location) : null;
+
+        return $callback instanceof AcknowledgementCallback
+            ? $this->messageBuilder->fromMessage($message)->setHeader($location, new RecordedAcknowledgementCallback($callback, $this->tracer))->build()
+            : $message;
+    }
+
+    /**
+     * @param list<int> $positions
+     */
+    private function namesOf(array $positions): string
+    {
+        $names = [];
+        foreach ($positions as $position) {
+            $interceptor = $this->interceptors[$position];
+            if (! str_starts_with($interceptor, self::FLOW_TESTING_NAMESPACE) && $interceptor !== BeforeSendChannelInterceptor::class) {
+                $names[] = ExecutionRecordingTracer::shortClassOf($interceptor);
+            }
+        }
+
+        return implode(', ', $names);
     }
 
     public function completedAfter(int $position, ?Throwable $failure): void
@@ -72,6 +122,12 @@ final class ChannelSendRecording
         $send = array_pop($this->openSends);
         if ($send === null) {
             return;
+        }
+        foreach (['post-send' => array_keys($send['postSentAfter']), 'after-send-completion' => array_keys($send['failedAfter'])] as $phase => $positions) {
+            $through = $this->namesOf($positions);
+            if ($through !== '') {
+                $this->tracer->recordStep($phase . ' through ' . $through);
+            }
         }
         if ($failure === null && $send['failed'] !== null) {
             $this->tracer->recordStep('send failed with ' . $send['failed'] . ', ' . $this->recoveryOf($send['failedAfter']));

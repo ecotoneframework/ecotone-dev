@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing\Execution;
 
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
@@ -34,5 +35,19 @@ final class RecordedPollableChannelInterceptorAdapter extends PollableChannelInt
             throw $failure;
         }
         $this->recording->completed(null);
+    }
+
+    public function receive(): ?Message
+    {
+        $message = parent::receive();
+
+        return $message === null ? null : $this->recording->received($message);
+    }
+
+    public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
+    {
+        $message = parent::receiveWithTimeout($pollingMetadata);
+
+        return $message === null ? null : $this->recording->received($message);
     }
 }

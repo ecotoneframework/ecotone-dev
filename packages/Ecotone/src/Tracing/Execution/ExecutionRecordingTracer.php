@@ -32,6 +32,10 @@ final class ExecutionRecordingTracer implements Tracer
     /** @var list<Span> steps of the process entry still open, recorded once a span starts inside it */
     private array $stepsOfOpenEntry = [];
     private bool $spanStartedInOpenEntry = false;
+    /** @var ?array{name: string, notes: list<string>} */
+    private ?array $awaitedReceive = null;
+    private ?ExecutionStep $receiveEntry = null;
+    private ?ExecutionStep $receiveContinuation = null;
     private bool $invocationInOpenEntry = false;
     private bool $housekeepingInOpenEntry = false;
     /** @var array<string, array{depth: int, collected: array<string, true>}> channel => message ids its collector holds while its sender runs */
@@ -61,10 +65,29 @@ final class ExecutionRecordingTracer implements Tracer
         return $this->tracer->currentSpan();
     }
 
-    public function startEntry(string $name): ?ExecutionStep
+    /**
+     * @param list<string> $notes
+     */
+    public function awaitReceive(string $name, array $notes): void
+    {
+        $this->awaitedReceive = ['name' => $name, 'notes' => $notes];
+    }
+
+    public function startEntry(string $name, bool $continuesAReceive = false): ?ExecutionStep
     {
         if ($this->tracer->currentSpan() !== null || $this->openSteps !== []) {
             return $this->startStep($name);
+        }
+        $awaitedReceive = $continuesAReceive ? $this->awaitedReceive : null;
+        if ($awaitedReceive !== null) {
+            $this->awaitedReceive = null;
+            $this->receiveEntry = $this->startEntry($awaitedReceive['name']);
+            foreach ($awaitedReceive['notes'] as $note) {
+                $this->recordStep($note);
+            }
+            $this->receiveContinuation = $this->startStep($name);
+
+            return $this->receiveContinuation;
         }
         $this->stepsOfOpenEntry = [];
         $this->spanStartedInOpenEntry = false;
@@ -173,6 +196,15 @@ final class ExecutionRecordingTracer implements Tracer
         );
         if ($step->parentSpanId === null) {
             $this->closeEntry($span);
+
+            return;
+        }
+        if ($this->receiveEntry !== null && $step === $this->receiveContinuation) {
+            $this->stepsOfOpenEntry[] = $span;
+            $receiveEntry = $this->receiveEntry;
+            $this->receiveEntry = null;
+            $this->receiveContinuation = null;
+            $this->finish($receiveEntry, '', $status, $statusDescription);
 
             return;
         }

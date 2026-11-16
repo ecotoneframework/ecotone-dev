@@ -25,6 +25,11 @@ final class ChannelInterceptorRan extends AbstractChannelInterceptor
         return $message;
     }
 
+    public function postSend(Message $message, MessageChannel $messageChannel): void
+    {
+        $this->recording->postSentAfter($this->position);
+    }
+
     public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): bool
     {
         $this->recording->completedAfter($this->position, $exception);

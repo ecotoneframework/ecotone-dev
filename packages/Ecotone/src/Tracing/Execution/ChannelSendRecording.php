@@ -17,7 +17,7 @@ final class ChannelSendRecording
 {
     public const COLLECTOR = 'MessageCollectorChannelInterceptor';
 
-    /** @var list<array{step: ?ExecutionStep, ran: int, messageId: string}> */
+    /** @var list<array{step: ?ExecutionStep, ran: int, messageId: string, failed: ?string, failedAfter: array<int, bool>}> */
     private array $openSends = [];
     /** @var array<string, true> message id => held by the collector until the handler ends */
     private array $collected = [];
@@ -41,6 +41,8 @@ final class ChannelSendRecording
             'step' => $this->tracer->startEntry(($released ? 'release collected message to ' : 'send ') . $this->channelName),
             'ran' => 0,
             'messageId' => $messageId,
+            'failed' => null,
+            'failedAfter' => [],
         ];
     }
 
@@ -50,13 +52,25 @@ final class ChannelSendRecording
         $this->tracer->recordStep('channel interceptor ' . ExecutionRecordingTracer::shortClassOf($this->interceptors[$position]));
     }
 
+    public function completedAfter(int $position, ?Throwable $failure): void
+    {
+        $current = count($this->openSends) - 1;
+        $this->openSends[$current]['failedAfter'][$position] = $failure !== null;
+        if ($failure !== null) {
+            $this->openSends[$current]['failed'] ??= ExecutionRecordingTracer::shortClassOf($failure::class);
+        }
+    }
+
     public function completed(?Throwable $failure): void
     {
         $send = array_pop($this->openSends);
         if ($send === null) {
             return;
         }
-        if ($failure === null && $send['ran'] < count($this->interceptors)) {
+        if ($failure === null && $send['failed'] !== null) {
+            $this->tracer->recordStep('send failed with ' . $send['failed'] . ', ' . $this->recoveryOf($send['failedAfter']));
+        }
+        if ($failure === null && $send['failed'] === null && $send['ran'] < count($this->interceptors)) {
             $stoppedBy = ExecutionRecordingTracer::shortClassOf($this->interceptors[$send['ran']]);
             if ($stoppedBy === self::COLLECTOR) {
                 $this->collected[$send['messageId']] = true;
@@ -72,5 +86,19 @@ final class ChannelSendRecording
             return;
         }
         $this->tracer->failStep($send['step'], $failure);
+    }
+
+    /**
+     * @param array<int, bool> $failedAfter
+     */
+    private function recoveryOf(array $failedAfter): string
+    {
+        foreach ($failedAfter as $position => $failed) {
+            if (! $failed && ($failedAfter[$position - 1] ?? false)) {
+                return 'recovered by ' . ExecutionRecordingTracer::shortClassOf($this->interceptors[$position]);
+            }
+        }
+
+        return 'handled by its channel interceptors without failing the flow';
     }
 }

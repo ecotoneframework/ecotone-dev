@@ -48,7 +48,8 @@ final class RecordExecutionCompilerPass implements CompilerPass
         $this->visited = [];
         foreach ($builder->getDefinitions() as $id => $definition) {
             if ($definition instanceof Definition && str_starts_with($id, self::CHANNEL_ID_PREFIX)) {
-                $this->recordChannel(substr($id, strlen(self::CHANNEL_ID_PREFIX)), $definition, $builder);
+                $definition = $this->recordChannel(substr($id, strlen(self::CHANNEL_ID_PREFIX)), $definition, $builder);
+                $builder->replace($id, $definition);
             }
             $recorded = $this->recorded($definition, null, $builder);
             if ($recorded !== $definition) {
@@ -57,7 +58,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
         }
     }
 
-    private function recordChannel(string $channelName, Definition $channel, ContainerBuilder $builder): void
+    private function recordChannel(string $channelName, Definition $channel, ContainerBuilder $builder): Definition
     {
         $arguments = $channel->getArguments();
         $innerChannel = $channel;
@@ -68,13 +69,16 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 array_map(fn (mixed $interceptor): string => $this->classOf($interceptor, $builder), array_values($arguments[1])),
                 new Reference(Tracer::class),
             ]));
-            $interceptors = [new Definition(ChannelSendStarted::class, [$recording])];
+            $interceptors = [];
             foreach (array_values($arguments[1]) as $position => $interceptor) {
                 $interceptors[] = $interceptor;
                 $interceptors[] = new Definition(ChannelInterceptorRan::class, [$recording, $position]);
             }
-            $arguments[1] = $interceptors;
-            $channel->replaceArguments($arguments);
+            $recordedChannel = new Definition($channel->getClassName() === PollableChannelInterceptorAdapter::class ? RecordedPollableChannelInterceptorAdapter::class : RecordedEventDrivenChannelInterceptorAdapter::class, [$arguments[0], $interceptors, $recording]);
+            foreach ($channel->getMethodCalls() as $methodCall) {
+                $recordedChannel->addMethodCall($methodCall->getMethodName(), $methodCall->getArguments());
+            }
+            $channel = $recordedChannel;
         }
         $handOver = match ($innerChannel instanceof Definition ? $innerChannel->getClassName() : '') {
             DirectChannel::class => 'direct channel ' . $channelName,
@@ -88,6 +92,8 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 $methodCall->replaceArguments($subscription);
             }
         }
+
+        return $channel;
     }
 
     private function recorded(mixed $value, ?string $role, ContainerBuilder $builder): mixed

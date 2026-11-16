@@ -7,6 +7,7 @@ namespace Ecotone\Tracing\Execution;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -22,5 +23,12 @@ final class ChannelInterceptorRan extends AbstractChannelInterceptor
         $this->recording->interceptorRan($this->position);
 
         return $message;
+    }
+
+    public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): bool
+    {
+        $this->recording->completedAfter($this->position, $exception);
+
+        return false;
     }
 }

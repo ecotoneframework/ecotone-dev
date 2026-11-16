@@ -395,6 +395,24 @@ final class ExecutionRecordingTest extends TracingTestCase
         self::assertSame([], FlowExecution::of($recorder->recordedSpans())->lines());
     }
 
+    public function test_a_send_that_succeeds_on_retry_is_recorded_as_delivered_with_its_recovery(): void
+    {
+        $lines = self::trimmed(self::executionOf('event forwarded to a channel whose send succeeds on retry'));
+
+        self::assertContains('release collected message to notifications', $lines);
+        self::assertNotContains('release collected message to notifications throws RuntimeException', $lines);
+        self::assertContains('send failed with RuntimeException, recovered by SendRetryChannelInterceptor', $lines);
+    }
+
+    /**
+     * @param list<string> $lines
+     * @return list<string>
+     */
+    private static function trimmed(array $lines): array
+    {
+        return array_map(trim(...), $lines);
+    }
+
     /**
      * @param list<string> $lines
      * @param list<string> $expected

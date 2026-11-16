@@ -70,7 +70,7 @@ final class FlowExecution
         $steps = [];
         foreach ($children[$span->spanId] ?? [] as $child) {
             $outcome = $child->attributes[SpanAttribute::EXECUTION_OUTCOME] ?? '';
-            $steps[] = str_repeat('  ', $depth) . self::nameOf($child) . ($outcome === '' ? '' : ' ' . $outcome);
+            $steps[] = str_repeat('  ', $depth) . (($child->attributes[SpanAttribute::EXECUTION_STEP] ?? false) ? '' : 'span ') . self::nameOf($child) . ($outcome === '' ? '' : ' ' . $outcome);
             $steps = [...$steps, ...self::stepsUnder($child, $children, $depth + 1)];
         }
 
@@ -99,6 +99,6 @@ final class FlowExecution
 
     private static function readable(string $name): string
     {
-        return (string) preg_replace('/@anonymous\x00[^:]*?(?=::)/', '@anonymous', $name);
+        return (string) preg_replace(['/@anonymous\x00[^:]*?(?=::)/', '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/'], ['@anonymous', '{generated}'], $name);
     }
 }

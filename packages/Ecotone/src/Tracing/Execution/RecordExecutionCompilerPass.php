@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing\Execution;
 
+use Ecotone\Messaging\Channel\DirectChannel;
+use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
+use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
+use Ecotone\Messaging\Channel\PublishSubscribeChannel;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptor;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
@@ -16,6 +20,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MethodInvocation
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Router\InvocationRouter;
+use Ecotone\Tracing\Tracer;
 
 /**
  * licence Apache-2.0
@@ -25,6 +30,8 @@ final class RecordExecutionCompilerPass implements CompilerPass
     public const PRESEND = 'presend';
     public const ROUTER = 'router';
     public const GATEWAY = 'gateway';
+    private const CHANNEL_ID_PREFIX = 'channel-';
+    private const SEND_RECORDING_PREFIX = 'ecotone.execution.send.';
 
     /** @var array<int, true> */
     private array $visited = [];
@@ -32,8 +39,44 @@ final class RecordExecutionCompilerPass implements CompilerPass
     public function process(ContainerBuilder $builder): void
     {
         $this->visited = [];
-        foreach ($builder->getDefinitions() as $definition) {
+        foreach ($builder->getDefinitions() as $id => $definition) {
+            if ($definition instanceof Definition && str_starts_with($id, self::CHANNEL_ID_PREFIX)) {
+                $this->recordChannel(substr($id, strlen(self::CHANNEL_ID_PREFIX)), $definition, $builder);
+            }
             $this->recorded($definition, null, $builder);
+        }
+    }
+
+    private function recordChannel(string $channelName, Definition $channel, ContainerBuilder $builder): void
+    {
+        $arguments = $channel->getArguments();
+        $innerChannel = $channel;
+        if (in_array($channel->getClassName(), [PollableChannelInterceptorAdapter::class, EventDrivenChannelInterceptorAdapter::class], true)) {
+            $innerChannel = $arguments[0];
+            $recording = $builder->register(self::SEND_RECORDING_PREFIX . $channelName, new Definition(ChannelSendRecording::class, [
+                $channelName,
+                array_map(fn (mixed $interceptor): string => $this->classOf($interceptor, $builder), array_values($arguments[1])),
+                new Reference(Tracer::class),
+            ]));
+            $interceptors = [new Definition(ChannelSendStarted::class, [$recording])];
+            foreach (array_values($arguments[1]) as $position => $interceptor) {
+                $interceptors[] = $interceptor;
+                $interceptors[] = new Definition(ChannelInterceptorRan::class, [$recording, $position]);
+            }
+            $arguments[1] = $interceptors;
+            $channel->replaceArguments($arguments);
+        }
+        $handOver = match ($innerChannel instanceof Definition ? $innerChannel->getClassName() : '') {
+            DirectChannel::class => 'direct channel ' . $channelName,
+            PublishSubscribeChannel::class => 'publish-subscribe channel ' . $channelName,
+            default => 'channel ' . $channelName,
+        };
+        foreach ($channel->getMethodCalls() as $methodCall) {
+            if ($methodCall->getMethodName() === 'subscribe') {
+                $subscription = $methodCall->getArguments();
+                $subscription[0] = new Definition(RecordedHandOver::class, [$handOver, $subscription[0], new Reference(Tracer::class)]);
+                $methodCall->replaceArguments($subscription);
+            }
         }
     }
 

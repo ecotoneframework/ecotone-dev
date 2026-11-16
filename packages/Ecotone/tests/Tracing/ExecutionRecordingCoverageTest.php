@@ -265,6 +265,20 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         self::assertEmpty(preg_grep('/^handler class@anonymous::place/', $lines));
     }
 
+    public function test_a_projection_run_records_its_transaction_stream_loads_flush_partition_saves_and_the_dispatch_of_its_batches(): void
+    {
+        $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
+        $dispatching = array_slice($lines, (int) array_search('process 2: backfill course_seats, handled by ProjectingConsoleCommands::backfillProjection', $lines, true), 40);
+
+        self::assertContains('dispatch 2 partition batches of backfill to backfill, by GatheredPartitionBatchDispatcher', $dispatching);
+        self::assertNotEmpty(preg_grep('/^open gathering group \{generated#\d+\} of 2 parts$/', $dispatching));
+        self::assertContains('begin the projection transaction', $lines);
+        self::assertContains('commit the projection transaction', $lines);
+        self::assertNotEmpty(preg_grep('/^load events of course_seats /', $lines));
+        self::assertNotEmpty(preg_grep('/^save partition .* of course_seats$/', $lines));
+        self::assertContains('flush the projection', $lines);
+    }
+
     /**
      * @param list<class-string> $classes
      * @param list<object> $services

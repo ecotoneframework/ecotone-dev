@@ -44,6 +44,10 @@ use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\EventSourcingExecutor\ApplyMethodExecutor;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Modelling\Repository\AllAggregateRepository;
+use Ecotone\Projecting\PartitionBatchDispatcher;
+use Ecotone\Projecting\ProjectingManager;
+use Ecotone\Projecting\ProjectionStateStorageRegistry;
+use Ecotone\Projecting\StreamSourceRegistry;
 use Ecotone\Tracing\Tracer;
 
 /**
@@ -83,6 +87,9 @@ final class RecordExecutionCompilerPass implements CompilerPass
         }
         if ($builder->has(ConversionService::REFERENCE_NAME)) {
             $builder->replace(ConversionService::REFERENCE_NAME, new Definition(RecordedConversionService::class, [$builder->getDefinition(ConversionService::REFERENCE_NAME), new Reference(Tracer::class)]));
+        }
+        if ($builder->has(PartitionBatchDispatcher::class)) {
+            $builder->replace(PartitionBatchDispatcher::class, new Definition(RecordedPartitionBatchDispatcher::class, [$builder->getDefinition(PartitionBatchDispatcher::class), new Reference(Tracer::class)]));
         }
         if ($builder->has(GatheredGroupStore::class)) {
             $builder->replace(GatheredGroupStore::class, new Definition(RecordedGatheredGroupStore::class, [$builder->getDefinition(GatheredGroupStore::class), new Reference(Tracer::class)]));
@@ -186,6 +193,9 @@ final class RecordExecutionCompilerPass implements CompilerPass
             LoadAggregateMessageProcessor::class => self::recordedAggregateStep($value, RecordedAggregateStep::LOAD),
             SaveAggregateService::class => self::recordedAggregateStep($value, RecordedAggregateStep::SAVE),
             ApplyMethodExecutor::class => self::withRecordedApply($value),
+            ProjectionStateStorageRegistry::class => self::withEachRecordedAs($value, RecordedProjectionStateStorage::class),
+            StreamSourceRegistry::class => self::withEachRecordedAs($value, RecordedStreamSource::class),
+            ProjectingManager::class => self::withRecordedProjectorExecutor($value),
             default => $value,
         };
     }
@@ -229,6 +239,25 @@ final class RecordExecutionCompilerPass implements CompilerPass
             OrchestratorResultMessageConverter::class => self::ORCHESTRATOR,
             default => $role,
         };
+    }
+
+    private static function withEachRecordedAs(Definition $registry, string $recordedClass): Definition
+    {
+        $registry->replaceArguments(array_map(
+            fn (mixed $services): mixed => is_array($services) ? array_map(fn (mixed $service): Definition => new Definition($recordedClass, [$service, new Reference(Tracer::class)]), $services) : $services,
+            $registry->getArguments(),
+        ));
+
+        return $registry;
+    }
+
+    private static function withRecordedProjectorExecutor(Definition $projectingManager): Definition
+    {
+        $arguments = $projectingManager->getArguments();
+        $arguments[1] = new Definition(RecordedProjectorExecutor::class, [$arguments[1], new Reference(Tracer::class)]);
+        $projectingManager->replaceArguments($arguments);
+
+        return $projectingManager;
     }
 
     private static function recordedGateway(Definition $gateway): Definition

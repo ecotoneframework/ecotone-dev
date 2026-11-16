@@ -235,6 +235,27 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertDoesNotMatchRegularExpression('/\n- /', $presented);
     }
 
+    public function test_a_process_referred_to_by_number_is_compared_by_what_it_is_so_a_renumbered_process_stays_unchanged(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $sender = ['process' => 'send command order.place', 'steps' => ['  send q; taken from the channel later by a separate consumer run, process 2']];
+        $gatherer = fn (int $sender): array => ['process' => 'receive q, handled by the gatherer only, recording part 1 of 1 reported by process ' . $sender . ', whose work ran there', 'steps' => ['  receive q: the part report for part 1 of 1, put on the channel by process ' . $sender]];
+        $this->replaceExecution('before', [$sender, $gatherer(1)]);
+        $this->replaceExecution('after', [['process' => 'initialize', 'steps' => ['  handler class@anonymous::init returns nothing']], ['process' => 'send command order.place', 'steps' => ['  send q; taken from the channel later by a separate consumer run, process 3']], $gatherer(2)]);
+
+        $execution = $this->comparison()['groups'][0]['execution'];
+
+        self::assertSame(
+            [
+                ['process' => 'initialize', 'change' => 'added'],
+                ['process' => 'send command order.place', 'change' => 'unchanged'],
+                ['process' => 'receive q, handled by the gatherer only, recording part 1 of 1 reported by process `send command order.place`, whose work ran there', 'change' => 'unchanged'],
+            ],
+            array_map(fn (array $process): array => ['process' => $process['process'], 'change' => $process['change']], $execution),
+        );
+    }
+
     /**
      * @param list<array{process: string, steps: list<string>}> $execution
      */

@@ -673,7 +673,7 @@ final class FlowScenarioChange
     private static function withProcessesNamedByTitle(array $processes): array
     {
         $reference = '/(?<=by process |run, process )(\d+)\b/';
-        $titles = array_map(fn (string $title): string => '`' . preg_replace($reference, 'another process', $title) . '`', array_column($processes, 'process'));
+        $titles = array_map(fn (string $title): string => '`' . preg_replace('/(?<=by |run, )process \d+\b/', 'another process', $title) . '`', array_column($processes, 'process'));
         $named = fn (string $text): string => (string) preg_replace_callback($reference, fn (array $number): string => $titles[(int) $number[1] - 1] ?? $number[1], $text);
 
         return array_map(fn (array $process): array => ['process' => $named($process['process']), 'steps' => array_map($named, $process['steps'])], $processes);

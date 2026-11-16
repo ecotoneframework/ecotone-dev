@@ -94,8 +94,18 @@ final class BuildFlowExecutionTest extends TestCase
 
         $execution = $this->comparison()['groups'][0]['execution'];
 
-        self::assertSame(['unchanged', 'added'], array_column($execution, 'change'));
-        self::assertSame($this->storedSnapshot('after', 'placing-an-order')['execution'][1]['steps'], array_column($execution[1]['steps'], 'step'));
+        self::assertSame(['changed', 'added'], array_column($execution, 'change'));
+        self::assertSame(
+            [
+                ['change' => 'removed', 'step' => 'release collected message to notifications, held by MessageCollectorChannelInterceptor on its first send'],
+                ['change' => 'added', 'step' => 'release collected message to notifications, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process `receive notifications, handled by class@anonymous::whenPlaced`'],
+            ],
+            array_values(array_map(fn (array $entry): array => ['change' => $entry['change'], 'step' => trim($entry['step'])], array_filter($execution[0]['steps'], fn (array $entry): bool => in_array($entry['change'], ['added', 'removed'], true)))),
+        );
+        self::assertSame(
+            str_replace('by process 1', 'by process `send command order.place, handled by class@anonymous::place`', $this->storedSnapshot('after', 'placing-an-order')['execution'][1]['steps']),
+            array_column($execution[1]['steps'], 'step'),
+        );
         self::assertSame(['added'], array_values(array_unique(array_column($execution[1]['steps'], 'change'))));
     }
 

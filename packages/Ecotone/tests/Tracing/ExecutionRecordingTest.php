@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Before;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Presend;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -73,6 +74,8 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                  span process class@anonymous::place',
                 '                    handler class@anonymous::place returns string',
                 '            after class@anonymous::afterPlacing returns nothing',
+                '            reply string to the reply channel of the request',
+                '          no reply',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -116,6 +119,8 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                around TracingInterceptor::traceHandlerEndpoint',
                 '                  span process class@anonymous::place',
                 '                    handler class@anonymous::place returns nothing',
+                '              no reply',
+                '          no reply',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -154,6 +159,8 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '        direct channel ecotone.modelling.bus.command_by_name',
                 '          direct channel {generated}.target',
                 '            around class@anonymous::skipPlacing',
+                '            no reply',
+                '          no reply',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -192,9 +199,11 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              channel interceptor BeforeSendChannelInterceptor',
                 '              direct channel order.place.endpoint.target',
                 '                handler RoutingSlipPrepender::transform returns a message of string',
-                '                send orders',
-                '                  channel interceptor OutboundSerializationChannelInterceptor',
-                '                  collected, held until the handler ends',
+                '                reply string to output channel orders',
+                '                  send orders',
+                '                    channel interceptor OutboundSerializationChannelInterceptor',
+                '                    collected, held until the handler ends',
+                '            no reply',
                 '        send orders',
                 '          channel interceptor OutboundSerializationChannelInterceptor',
                 '          channel interceptor MessageCollectorChannelInterceptor',
@@ -212,11 +221,64 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              around CollectorSenderInterceptor::send',
                 '                gateway GatewayInternalProcessor::process returns nothing',
                 '                  handler Bridge::handle returns a message of string',
-                '                  direct channel order.place.endpoint.target.execute',
-                '                    around MessageHandlerLogger::aroundCommandHandler',
-                '                      around TracingInterceptor::traceHandlerEndpoint',
-                '                        span process class@anonymous::place',
-                '                          handler class@anonymous::place returns nothing',
+                '                  reply string to routing slip channel order.place.endpoint.target.execute',
+                '                    direct channel order.place.endpoint.target.execute',
+                '                      around MessageHandlerLogger::aroundCommandHandler',
+                '                        around TracingInterceptor::traceHandlerEndpoint',
+                '                          span process class@anonymous::place',
+                '                            handler class@anonymous::place returns nothing',
+                '                      no reply',
+            ],
+            FlowExecution::of($recorder->recordedSpans())->lines(),
+        );
+    }
+
+    public function test_a_reply_is_recorded_with_where_it_was_routed(): void
+    {
+        $recorder = new InMemorySpanRecorder();
+        $orders = new class () {
+            #[CommandHandler('order.place', outputChannelName: 'order.confirm')]
+            public function place(string $order): string
+            {
+                return $order;
+            }
+
+            #[InternalHandler('order.confirm')]
+            public function confirm(string $order): string
+            {
+                return $order . ' confirmed';
+            }
+        };
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$orders::class],
+            [$orders, ...self::recordingSpansInto($recorder)],
+            [self::tracingConfiguration()->withExecutionRecording()],
+            enabledModules: [],
+        )->sendCommandWithRouting('order.place', 'order-1');
+
+        self::assertSame(
+            [
+                'process 1: send command order.place',
+                '  around MessageHeadersPropagatorInterceptor::storeHeaders',
+                '    around DeliveryConfirmationInterceptor::await',
+                '      gateway GatewayInternalProcessor::process returns a message of string',
+                '        direct channel ecotone.modelling.bus.command_by_name',
+                '          direct channel {generated}.target',
+                '            around MessageHandlerLogger::aroundCommandHandler',
+                '              around TracingInterceptor::traceHandlerEndpoint',
+                '                span process class@anonymous::place',
+                '                  handler class@anonymous::place returns string',
+                '            reply string to output channel order.confirm',
+                '              send order.confirm',
+                '                channel interceptor SpiecChannelAdapter',
+                '                publish-subscribe channel order.confirm',
+                '                  around MessageHandlerLogger::aroundMessageHandler',
+                '                    around TracingInterceptor::traceHandlerEndpoint',
+                '                      span process class@anonymous::confirm',
+                '                        handler class@anonymous::confirm returns string',
+                '                  reply string to the reply channel of the request',
+                '          no reply',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );

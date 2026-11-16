@@ -9,6 +9,7 @@ use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\PublishSubscribeChannel;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptor;
+use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -19,6 +20,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MethodInvocationConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
+use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Handler\Router\InvocationRouter;
 use Ecotone\Tracing\Tracer;
 
@@ -32,6 +34,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
     public const GATEWAY = 'gateway';
     private const CHANNEL_ID_PREFIX = 'channel-';
     private const SEND_RECORDING_PREFIX = 'ecotone.execution.send.';
+    private const REPLY_RECORDING_PREFIX = 'ecotone.execution.reply.';
 
     /** @var array<int, true> */
     private array $visited = [];
@@ -43,7 +46,10 @@ final class RecordExecutionCompilerPass implements CompilerPass
             if ($definition instanceof Definition && str_starts_with($id, self::CHANNEL_ID_PREFIX)) {
                 $this->recordChannel(substr($id, strlen(self::CHANNEL_ID_PREFIX)), $definition, $builder);
             }
-            $this->recorded($definition, null, $builder);
+            $recorded = $this->recorded($definition, null, $builder);
+            if ($recorded !== $definition) {
+                $builder->replace($id, $recorded);
+            }
         }
     }
 
@@ -112,7 +118,22 @@ final class RecordExecutionCompilerPass implements CompilerPass
             $methodCall->replaceArguments($this->recorded($methodCall->getArguments(), null, $builder));
         }
 
-        return $value;
+        return $value->getClassName() === RequestReplyProducer::class ? $this->withRecordedReply($value, $builder) : $value;
+    }
+
+    private function withRecordedReply(Definition $requestReplyProducer, ContainerBuilder $builder): Definition
+    {
+        $recording = $builder->register(self::REPLY_RECORDING_PREFIX . spl_object_id($requestReplyProducer), new Definition(ReplyRecording::class, [new Reference(Tracer::class)]));
+        $arguments = $requestReplyProducer->getArguments();
+        if ($arguments[0] instanceof Reference) {
+            $arguments[0] = new Definition(RecordedReplyChannel::class, [$arguments[0], 'output channel ' . ($arguments[0] instanceof ChannelReference ? $arguments[0]->getChannelName() : $arguments[0]->getId()), $recording]);
+        }
+        $arguments[1] = new Definition(RecordedReplyProcessor::class, [$arguments[1], $recording]);
+        $arguments[2] = new Definition(RecordedChannelResolver::class, [$arguments[2], $recording]);
+        $arguments[5] = new Definition(RecordedPartCompletion::class, [$arguments[5], $recording]);
+        $requestReplyProducer->replaceArguments($arguments);
+
+        return new Definition(RecordedRequestReply::class, [$requestReplyProducer, $recording]);
     }
 
     /**

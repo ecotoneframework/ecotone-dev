@@ -34,7 +34,7 @@ final class ExecutionRecordingTracer implements Tracer
     /** @var list<Span> steps of the process entry still open, recorded once a span starts inside it */
     private array $stepsOfOpenEntry = [];
     private bool $spanStartedInOpenEntry = false;
-    /** @var ?array{name: string, notes: list<string>} */
+    /** @var ?array{name: string, notes: list<array{depth: int, name: string}>} */
     private ?array $awaitedReceive = null;
     private ?ExecutionStep $receiveEntry = null;
     private ?ExecutionStep $receiveContinuation = null;
@@ -68,7 +68,7 @@ final class ExecutionRecordingTracer implements Tracer
     }
 
     /**
-     * @param list<string> $notes
+     * @param list<array{depth: int, name: string}> $notes
      */
     public function awaitReceive(string $name, array $notes): void
     {
@@ -84,9 +84,7 @@ final class ExecutionRecordingTracer implements Tracer
         if ($awaitedReceive !== null) {
             $this->awaitedReceive = null;
             $this->receiveEntry = $this->startEntry($awaitedReceive['name']);
-            foreach ($awaitedReceive['notes'] as $note) {
-                $this->recordStep($note);
-            }
+            $this->recordNested($awaitedReceive['notes']);
             $this->receiveContinuation = $this->startStep($name);
 
             return $this->receiveContinuation;
@@ -147,6 +145,26 @@ final class ExecutionRecordingTracer implements Tracer
         $this->openSteps[] = $step;
 
         return $step;
+    }
+
+    /**
+     * @param list<array{depth: int, name: string}> $notes
+     */
+    private function recordNested(array $notes): void
+    {
+        $open = [];
+        foreach ($notes as $note) {
+            while (count($open) > $note['depth']) {
+                $this->endStep(array_pop($open), '');
+            }
+            $step = $this->startStep($note['name']);
+            if ($step !== null) {
+                $open[] = $step;
+            }
+        }
+        while ($open !== []) {
+            $this->endStep(array_pop($open), '');
+        }
     }
 
     /**

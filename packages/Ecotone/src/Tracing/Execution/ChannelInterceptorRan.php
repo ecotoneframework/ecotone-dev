@@ -20,7 +20,7 @@ final class ChannelInterceptorRan extends AbstractChannelInterceptor
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
-        $this->recording->interceptorRan($this->position);
+        $this->recording->interceptorRan($this->position, $message);
 
         return $message;
     }

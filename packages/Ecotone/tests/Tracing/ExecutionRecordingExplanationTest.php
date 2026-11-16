@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tracing;
 
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
@@ -55,6 +59,96 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
 
         self::assertSame([], array_values(array_filter($lines, fn (string $line): bool => preg_match('/\bRecorded[A-Z]\w*\b/', $line) === 1)));
+    }
+
+    public function test_after_the_put_each_after_send_phase_names_its_interceptor_method_and_when_it_runs_and_inherited_empty_phases_are_left_out(): void
+    {
+        $lines = array_map(trim(...), $this->asynchronousOrder());
+        $release = self::positionOf($lines, 'release collected message to orders, held by MessageCollectorChannelInterceptor on its first send');
+        $afterPhases = array_values(array_filter(array_slice($lines, $release), fn (string $line): bool => str_contains($line, ', run ')));
+
+        self::assertSame(
+            [
+                'SendRetryChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure',
+                'TracingChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure',
+                'TracingChannelInterceptor::afterReceiveCompletion, run when the take ended, here with a message and no failure',
+            ],
+            $afterPhases,
+        );
+        self::assertSame([], array_values(array_filter($lines, fn (string $line): bool => str_contains($line, ' through '))));
+    }
+
+    public function test_a_send_nests_each_interceptor_around_the_next_with_the_put_on_the_channel_innermost(): void
+    {
+        $lines = $this->asynchronousOrder();
+        $release = self::positionOf($lines, 'release collected message to orders, held by MessageCollectorChannelInterceptor on its first send');
+
+        self::assertSame(
+            [
+                [0, 'release collected message to orders, held by MessageCollectorChannelInterceptor on its first send'],
+                [1, 'before send, OutboundSerializationChannelInterceptor::preSend'],
+                [2, 'passes the message on unchanged'],
+                [2, 'before send, MessageCollectorChannelInterceptor::preSend'],
+                [3, 'passes the message on unchanged'],
+                [3, 'before send, InMemoryQueueAcknowledgeInterceptor::preSend'],
+                [4, 'passes on the message with headers added: ecotone_messaging_consumer_acknowledge_header, ecotone_in_memory_queue_consumer_acknowledge'],
+                [4, 'before send, TracingChannelInterceptor::preSend'],
+                [5, 'span send orders'],
+                [6, 'passes on the message with headers added: traceparent, ecotone_tracing_delivery'],
+                [6, 'put on channel orders'],
+                [1, 'SendRetryChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure'],
+                [1, 'TracingChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure'],
+            ],
+            array_map(fn (string $line): array => [self::depthOf($line) - self::depthOf($lines[$release]), trim($line)], array_slice($lines, $release, 13)),
+        );
+    }
+
+    public function test_the_send_the_collector_holds_stops_at_the_collector_and_never_reaches_the_channel(): void
+    {
+        $lines = $this->asynchronousOrder();
+        $send = self::positionOf($lines, 'send orders');
+
+        self::assertSame(
+            [
+                [0, 'send orders'],
+                [1, 'before send, OutboundSerializationChannelInterceptor::preSend'],
+                [2, 'passes on the message with headers removed: ecotone_messaging_reply_channel'],
+                [2, 'before send, MessageCollectorChannelInterceptor::preSend'],
+                [3, 'collects the message and passes none on: the send stops here, so the interceptors after it and the put on the channel do not run; the message is held until the handler ends'],
+            ],
+            array_map(fn (string $line): array => [self::depthOf($line) - self::depthOf($lines[$send]), trim($line)], array_slice($lines, $send, 5)),
+        );
+        self::assertLessThanOrEqual(self::depthOf($lines[$send]), self::depthOf($lines[$send + 5]));
+    }
+
+    public function test_the_receive_takes_the_message_from_the_channel_and_names_the_after_receive_phase_that_ran(): void
+    {
+        $lines = array_map(trim(...), $this->asynchronousOrder());
+        $receive = self::positionOf($lines, 'receive orders');
+
+        self::assertSame(
+            ['receive orders', 'take the message from channel orders', 'TracingChannelInterceptor::afterReceiveCompletion, run when the take ended, here with a message and no failure'],
+            array_slice($lines, $receive, 3),
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function asynchronousOrder(): array
+    {
+        $orders = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
+            public function place(string $order): void
+            {
+            }
+        };
+
+        return $this->recorded([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommandWithRouting('order.place', 'order-1');
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        });
     }
 
     /**

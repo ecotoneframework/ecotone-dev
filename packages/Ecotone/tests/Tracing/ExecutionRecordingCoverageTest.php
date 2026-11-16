@@ -124,7 +124,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
 
         self::assertIsInt($receive);
         self::assertSame('receive orders', $lines[$receive + 1]);
-        self::assertSame('received with priority 5', $lines[$receive + 2]);
+        self::assertSame('take the message from channel orders, received with priority 5', $lines[$receive + 2]);
     }
 
     public function test_the_receive_and_send_phases_of_channel_interceptors_are_recorded(): void
@@ -134,9 +134,9 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         });
 
-        self::assertContains('pre-receive, after-receive-completion and post-receive through OutboundSerializationChannelInterceptor, MessageCollectorChannelInterceptor, SendRetryChannelInterceptor, InMemoryQueueAcknowledgeInterceptor, TracingChannelInterceptor', $lines);
-        self::assertContains('post-send through OutboundSerializationChannelInterceptor, MessageCollectorChannelInterceptor, SendRetryChannelInterceptor, InMemoryQueueAcknowledgeInterceptor, TracingChannelInterceptor', $lines);
-        self::assertContains('after-send-completion through OutboundSerializationChannelInterceptor, MessageCollectorChannelInterceptor, SendRetryChannelInterceptor, InMemoryQueueAcknowledgeInterceptor, TracingChannelInterceptor', $lines);
+        self::assertContains('TracingChannelInterceptor::afterReceiveCompletion, run when the take ended, here with a message and no failure', $lines);
+        self::assertContains('SendRetryChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure', $lines);
+        self::assertContains('TracingChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure', $lines);
     }
 
     public function test_the_acknowledgement_of_a_consumed_message_is_recorded_with_the_strategy_that_decided_it(): void

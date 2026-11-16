@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing\Execution;
 
+use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\Collector\CollectorSenderInterceptor;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
@@ -52,6 +53,7 @@ use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionStateStorageRegistry;
 use Ecotone\Projecting\StreamSourceRegistry;
 use Ecotone\Tracing\Tracer;
+use ReflectionMethod;
 
 /**
  * licence Apache-2.0
@@ -143,6 +145,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
             $recording = $builder->register(self::SEND_RECORDING_PREFIX . $channelName, new Definition(ChannelSendRecording::class, [
                 $channelName,
                 array_map(fn (string $class, mixed $interceptor): string|Reference => $interceptor instanceof Reference && ! class_exists($class) ? $interceptor : $class, $interceptorClasses, array_values($arguments[1])),
+                array_map(self::declaredPhasesOf(...), $interceptorClasses),
                 array_values(array_filter($interceptorClasses, fn (string $class): bool => ! self::isFlowTesting($class))) === [],
                 new Reference(MessageBuilder::class),
                 new Reference(Tracer::class),
@@ -172,6 +175,21 @@ final class RecordExecutionCompilerPass implements CompilerPass
         }
 
         return $channel;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function declaredPhasesOf(string $interceptorClass): array
+    {
+        if (! class_exists($interceptorClass)) {
+            return ChannelSendRecording::PHASES;
+        }
+
+        return array_values(array_filter(
+            ChannelSendRecording::PHASES,
+            fn (string $phase): bool => (new ReflectionMethod($interceptorClass, $phase))->getDeclaringClass()->getName() !== AbstractChannelInterceptor::class,
+        ));
     }
 
     private function recorded(mixed $value, ?string $role, ContainerBuilder $builder): mixed

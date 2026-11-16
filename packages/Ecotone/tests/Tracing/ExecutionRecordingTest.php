@@ -137,12 +137,13 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              route by name order.place to {generated#1}.target',
                 '              send {generated#1}.target',
                 '                presend class@anonymous::beforeSending returns nothing',
-                '                direct channel {generated#1}.target',
-                '                  around MessageHandlerLogger::aroundCommandHandler',
-                '                    around TracingInterceptor::traceHandlerEndpoint',
-                '                      span process class@anonymous::place',
-                '                        handler class@anonymous::place returns nothing',
-                '                  no reply',
+                '                put on channel {generated#1}.target',
+                '                  direct channel {generated#1}.target',
+                '                    around MessageHandlerLogger::aroundCommandHandler',
+                '                      around TracingInterceptor::traceHandlerEndpoint',
+                '                        span process class@anonymous::place',
+                '                          handler class@anonymous::place returns nothing',
+                '                    no reply',
                 '              no reply',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
@@ -227,27 +228,33 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                route by name order.place to order.place.endpoint.target',
                 '                send order.place.endpoint.target',
                 '                  presend MessageHandlerLogger::asynchronous returns nothing',
-                '                  direct channel order.place.endpoint.target',
-                '                    handler RoutingSlipPrepender::transform returns a message of string',
-                '                    reply string to output channel orders',
-                '                      send orders',
-                '                        channel interceptor OutboundSerializationChannelInterceptor',
-                '                        post-send through OutboundSerializationChannelInterceptor',
-                '                        after-send-completion through OutboundSerializationChannelInterceptor',
-                '                        collected, held until the handler ends',
+                '                  put on channel order.place.endpoint.target',
+                '                    direct channel order.place.endpoint.target',
+                '                      handler RoutingSlipPrepender::transform returns a message of string',
+                '                      reply string to output channel orders',
+                '                        send orders',
+                '                          before send, OutboundSerializationChannelInterceptor::preSend',
+                '                            passes on the message with headers removed: ecotone_messaging_reply_channel',
+                '                            before send, MessageCollectorChannelInterceptor::preSend',
+                '                              collects the message and passes none on: the send stops here, so the interceptors after it and the put on the channel do not run; the message is held until the handler ends',
                 '                no reply',
-                '              release collected message to orders',
-                '                channel interceptor OutboundSerializationChannelInterceptor',
-                '                channel interceptor MessageCollectorChannelInterceptor',
-                '                channel interceptor SendRetryChannelInterceptor',
-                '                channel interceptor InMemoryQueueAcknowledgeInterceptor',
-                '                span send orders',
-                '                  channel interceptor TracingChannelInterceptor',
-                '                post-send through OutboundSerializationChannelInterceptor, MessageCollectorChannelInterceptor, SendRetryChannelInterceptor, InMemoryQueueAcknowledgeInterceptor, TracingChannelInterceptor',
-                '                after-send-completion through OutboundSerializationChannelInterceptor, MessageCollectorChannelInterceptor, SendRetryChannelInterceptor, InMemoryQueueAcknowledgeInterceptor, TracingChannelInterceptor',
+                '              release collected message to orders, held by MessageCollectorChannelInterceptor on its first send',
+                '                before send, OutboundSerializationChannelInterceptor::preSend',
+                '                  passes the message on unchanged',
+                '                  before send, MessageCollectorChannelInterceptor::preSend',
+                '                    passes the message on unchanged',
+                '                    before send, InMemoryQueueAcknowledgeInterceptor::preSend',
+                '                      passes on the message with headers added: ecotone_messaging_consumer_acknowledge_header, ecotone_in_memory_queue_consumer_acknowledge',
+                '                      before send, TracingChannelInterceptor::preSend',
+                '                        span send orders',
+                '                          passes on the message with headers added: traceparent, ecotone_tracing_delivery',
+                '                          put on channel orders',
+                '                SendRetryChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure',
+                '                TracingChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure',
                 'process 2: receive orders, handled by class@anonymous::place',
                 '  receive orders',
-                '    pre-receive, after-receive-completion and post-receive through OutboundSerializationChannelInterceptor, MessageCollectorChannelInterceptor, SendRetryChannelInterceptor, InMemoryQueueAcknowledgeInterceptor, TracingChannelInterceptor',
+                '    take the message from channel orders',
+                '    TracingChannelInterceptor::afterReceiveCompletion, run when the take ended, here with a message and no failure',
                 '    gateway InboundChannelAdapterEntrypoint::executeEntrypoint returns nothing',
                 '      before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
                 '      around TracingInterceptor::traceAsynchronousEndpoint',
@@ -338,14 +345,14 @@ final class ExecutionRecordingTest extends TracingTestCase
             '                                handler PartitionBatchExecutorHandler::executeBatch returns nothing',
             '                            no reply',
             '                            part report by GatheringPartCompletion of a request without a reply, part 1 of 2, to ecotone.projection.backfill.completion:course_seats',
-            '                                    collected, held until the handler ends',
-            '                        release collected message to backfill',
+            '                                        collects the message and passes none on: the send stops here, so the interceptors after it and the put on the channel do not run; the message is held until the handler ends',
+            '                        release collected message to backfill, held by MessageCollectorChannelInterceptor on its first send',
             'process 4: receive backfill, handled by PartitionBatchExecutorHandler::executeBatch (2 of 2)',
             '                                handler PartitionBatchExecutorHandler::executeBatch returns nothing',
             '                            no reply',
             '                            part report by GatheringPartCompletion of a request without a reply, part 2 of 2, to ecotone.projection.backfill.completion:course_seats',
-            '                                    collected, held until the handler ends',
-            '                        release collected message to backfill',
+            '                                        collects the message and passes none on: the send stops here, so the interceptors after it and the put on the channel do not run; the message is held until the handler ends',
+            '                        release collected message to backfill, held by MessageCollectorChannelInterceptor on its first send',
             'process 5: receive backfill, handled by the gatherer taking in part 1 of 2',
             '                              read part 1 of 2 of gathering group {generated#1} from the headers ecotone_gathering_group_id, ecotone_gathering_part_number and ecotone_gathering_group_size',
             'process 6: receive backfill, handled by the gatherer taking in part 2 of 2',
@@ -420,8 +427,8 @@ final class ExecutionRecordingTest extends TracingTestCase
     {
         $lines = self::trimmed(self::executionOf('event forwarded to a channel whose send succeeds on retry'));
 
-        self::assertContains('release collected message to notifications', $lines);
-        self::assertNotContains('release collected message to notifications throws RuntimeException', $lines);
+        self::assertContains('release collected message to notifications, held by MessageCollectorChannelInterceptor on its first send', $lines);
+        self::assertNotContains('release collected message to notifications, held by MessageCollectorChannelInterceptor on its first send throws RuntimeException', $lines);
         self::assertContains('send failed with RuntimeException, recovered by SendRetryChannelInterceptor', $lines);
     }
 
@@ -675,7 +682,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         $lines = self::trimmed(self::executionOf('event forwarded to a channel whose other interceptor fails after the send'));
 
         self::assertSame([], array_values(array_filter($lines, fn (string $line): bool => str_contains($line, 'failingAfterSend'))));
-        self::assertContains('channel interceptor AbstractChannelInterceptor@anonymous', $lines);
+        self::assertContains('before send, AbstractChannelInterceptor@anonymous::preSend', $lines);
     }
 
     /**

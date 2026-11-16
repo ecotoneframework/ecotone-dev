@@ -42,22 +42,22 @@
         {"depth":1,"name":"process class@anonymous::enrol","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send command enrolment.without_boundary, handled by class@anonymous::enrol", "steps": [
-            "  gateway CommandBus::sendWithRouting returns nothing",
-            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
-            "    around TracingInterceptor::traceCommandBus",
-            "      span send command enrolment.without_boundary",
-            "        around MessageHeadersPropagatorInterceptor::storeHeaders",
-            "          around DeliveryConfirmationInterceptor::await",
-            "            direct channel ecotone.modelling.bus.command_by_name",
-            "              route by name enrolment.without_boundary to enrolment.plain.target",
-            "              direct channel enrolment.plain.target",
-            "                around MessageHandlerLogger::aroundCommandHandler",
-            "                  around TracingInterceptor::traceHandlerEndpoint",
-            "                    span process class@anonymous::enrol",
-            "                      handler class@anonymous::enrol returns nothing",
-            "                nothing handed over: the handler returned nothing",
-            "              nothing handed over: the handler returned nothing"
+        {"process": "send command enrolment.without_boundary, class@anonymous::enrol", "steps": [
+            {"depth":1,"label":"gateway CommandBus::sendWithRouting","hints":[{"key":"result","value":"returns nothing","critical":false}]},
+            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":2,"label":"around TracingInterceptor::traceCommandBus"},
+            {"depth":3,"label":"span send command enrolment.without_boundary"},
+            {"depth":4,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders"},
+            {"depth":5,"label":"around DeliveryConfirmationInterceptor::await"},
+            {"depth":6,"label":"direct channel ecotone.modelling.bus.command_by_name"},
+            {"depth":7,"label":"route to enrolment.plain.target","hints":[{"key":"chosen by","value":"name enrolment.without_boundary","critical":true}]},
+            {"depth":7,"label":"direct channel enrolment.plain.target"},
+            {"depth":8,"label":"around MessageHandlerLogger::aroundCommandHandler"},
+            {"depth":9,"label":"around TracingInterceptor::traceHandlerEndpoint"},
+            {"depth":10,"label":"span process class@anonymous::enrol"},
+            {"depth":11,"label":"handler class@anonymous::enrol","hints":[{"key":"result","value":"returns nothing","critical":false}]},
+            {"depth":8,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]},
+            {"depth":7,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]}
         ]}
     ]
 }

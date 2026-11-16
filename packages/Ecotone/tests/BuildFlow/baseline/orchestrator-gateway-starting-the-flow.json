@@ -51,28 +51,25 @@
         {"depth":1,"name":"process class@anonymous::notify","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "send orchestrator, handled by OrchestratorGatewayEntrypoint::handle", "steps": [
-            "  gateway FlowApprovalWorkflow::start returns string",
-            "    around TracingInterceptor::traceOrchestratorGateway",
-            "      span send orchestrator",
-            "        direct channel ecotone.orchestrator.entrypoint",
-            "          orchestrator OrchestratorGatewayEntrypoint::handle returns array",
-            "          OrchestratorGatewayEntrypoint::handle put approval.validate, approval.notify in front of the routing slip, which is now approval.validate, approval.notify",
-            "          forward string by the routing slip, taking approval.validate from it; the slip held approval.validate, approval.notify and now holds approval.notify; the reply channel of the request stays on the message",
-            "            the forwarded message carries the string the handler returned, with the headers of the request",
-            "            direct channel approval.validate",
-            "              around MessageHandlerLogger::aroundMessageHandler",
-            "                around TracingInterceptor::traceHandlerEndpoint",
-            "                  span process class@anonymous::validate",
-            "                    handler class@anonymous::validate returns string",
-            "              forward string by the routing slip, taking approval.notify from it; the slip held approval.notify and is now removed; the reply channel of the request stays on the message",
-            "                the forwarded message carries the string the handler returned, with the headers of the request",
-            "                direct channel approval.notify",
-            "                  around MessageHandlerLogger::aroundMessageHandler",
-            "                    around TracingInterceptor::traceHandlerEndpoint",
-            "                      span process class@anonymous::notify",
-            "                        handler class@anonymous::notify returns string",
-            "                  reply string to the reply channel of the request, where its sender waits for it"
+        {"process": "send orchestrator, OrchestratorGatewayEntrypoint::handle", "steps": [
+            {"depth":1,"label":"gateway FlowApprovalWorkflow::start","hints":[{"key":"result","value":"returns string","critical":false}]},
+            {"depth":2,"label":"around TracingInterceptor::traceOrchestratorGateway"},
+            {"depth":3,"label":"span send orchestrator"},
+            {"depth":4,"label":"direct channel ecotone.orchestrator.entrypoint"},
+            {"depth":5,"label":"orchestrator OrchestratorGatewayEntrypoint::handle","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":5,"label":"forward to approval.validate","hints":[{"key":"chosen by","value":"routing slip","critical":true},{"key":"routing slip","value":"none → approval.notify","critical":true},{"key":"kept","value":"reply channel of the request","critical":false},{"key":"payload","value":"string","critical":false}]},
+            {"depth":6,"label":"direct channel approval.validate"},
+            {"depth":7,"label":"around MessageHandlerLogger::aroundMessageHandler"},
+            {"depth":8,"label":"around TracingInterceptor::traceHandlerEndpoint"},
+            {"depth":9,"label":"span process class@anonymous::validate"},
+            {"depth":10,"label":"handler class@anonymous::validate","hints":[{"key":"result","value":"returns string","critical":false}]},
+            {"depth":7,"label":"forward to approval.notify","hints":[{"key":"chosen by","value":"routing slip","critical":true},{"key":"routing slip","value":"approval.notify → none","critical":true},{"key":"kept","value":"reply channel of the request","critical":false},{"key":"payload","value":"string","critical":false}]},
+            {"depth":8,"label":"direct channel approval.notify"},
+            {"depth":9,"label":"around MessageHandlerLogger::aroundMessageHandler"},
+            {"depth":10,"label":"around TracingInterceptor::traceHandlerEndpoint"},
+            {"depth":11,"label":"span process class@anonymous::notify"},
+            {"depth":12,"label":"handler class@anonymous::notify","hints":[{"key":"result","value":"returns string","critical":false}]},
+            {"depth":9,"label":"reply to the reply channel of the request","hints":[{"key":"chosen by","value":"reply channel of the request","critical":true},{"key":"payload","value":"string","critical":false}]}
         ]}
     ]
 }

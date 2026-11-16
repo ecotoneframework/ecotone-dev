@@ -107,35 +107,35 @@
         {"depth":0,"name":"delete orders","kind":"Server","status":"Ok"}
     ],
     "execution": [
-        {"process": "initialize orders, handled by ProjectingManager::init", "steps": [
-            "  entrypoint sends to projecting_manager_initialize:orders",
-            "    direct channel ecotone.messaging.entrypoint",
-            "      router HeaderRouter::route returns array",
-            "      route to projecting_manager_initialize:orders, named by the header ecotone.messaging.entrypoint of the message",
-            "      direct channel projecting_manager_initialize:orders",
-            "        before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
-            "        around TracingInterceptor::traceProjectionOperation",
-            "          span initialize orders",
-            "            around MessageHeadersPropagatorInterceptor::storeHeaders",
-            "              handler ProjectingManager::init returns nothing",
-            "                init the state of orders",
-            "                load partition (the whole stream) of orders found it at position start",
-            "        nothing handed over: the handler returned nothing"
+        {"process": "initialize orders, ProjectingManager::init", "steps": [
+            {"depth":1,"label":"entrypoint sends to projecting_manager_initialize:orders"},
+            {"depth":2,"label":"direct channel ecotone.messaging.entrypoint"},
+            {"depth":3,"label":"router HeaderRouter::route","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":3,"label":"route to projecting_manager_initialize:orders","hints":[{"key":"chosen by","value":"header ecotone.messaging.entrypoint","critical":true}]},
+            {"depth":3,"label":"direct channel projecting_manager_initialize:orders"},
+            {"depth":4,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":4,"label":"around TracingInterceptor::traceProjectionOperation"},
+            {"depth":5,"label":"span initialize orders"},
+            {"depth":6,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders"},
+            {"depth":7,"label":"handler ProjectingManager::init","hints":[{"key":"result","value":"returns nothing","critical":false}]},
+            {"depth":8,"label":"init the state of orders"},
+            {"depth":8,"label":"load partition (the whole stream) of orders","hints":[{"key":"result","value":"found it at position start","critical":false}]},
+            {"depth":4,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]}
         ]},
-        {"process": "delete orders, handled by ProjectingManager::delete", "steps": [
-            "  entrypoint sends to projecting_manager_delete:orders",
-            "    direct channel ecotone.messaging.entrypoint",
-            "      router HeaderRouter::route returns array",
-            "      route to projecting_manager_delete:orders, named by the header ecotone.messaging.entrypoint of the message",
-            "      direct channel projecting_manager_delete:orders",
-            "        before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
-            "        around TracingInterceptor::traceProjectionOperation",
-            "          span delete orders",
-            "            around MessageHeadersPropagatorInterceptor::storeHeaders",
-            "              handler ProjectingManager::delete returns nothing",
-            "                delete the state of orders",
-            "                delete the projection",
-            "        nothing handed over: the handler returned nothing"
+        {"process": "delete orders, ProjectingManager::delete", "steps": [
+            {"depth":1,"label":"entrypoint sends to projecting_manager_delete:orders"},
+            {"depth":2,"label":"direct channel ecotone.messaging.entrypoint"},
+            {"depth":3,"label":"router HeaderRouter::route","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":3,"label":"route to projecting_manager_delete:orders","hints":[{"key":"chosen by","value":"header ecotone.messaging.entrypoint","critical":true}]},
+            {"depth":3,"label":"direct channel projecting_manager_delete:orders"},
+            {"depth":4,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":4,"label":"around TracingInterceptor::traceProjectionOperation"},
+            {"depth":5,"label":"span delete orders"},
+            {"depth":6,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders"},
+            {"depth":7,"label":"handler ProjectingManager::delete","hints":[{"key":"result","value":"returns nothing","critical":false}]},
+            {"depth":8,"label":"delete the state of orders"},
+            {"depth":8,"label":"delete the projection"},
+            {"depth":4,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]}
         ]}
     ]
 }

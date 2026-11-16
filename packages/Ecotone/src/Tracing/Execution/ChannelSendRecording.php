@@ -11,6 +11,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptor;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
+use Ecotone\Messaging\Handler\Recoverability\DelayedRetryErrorHandler;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Throwable;
 
@@ -46,7 +47,7 @@ final class ChannelSendRecording
         $messageId = $message->getHeaders()->getMessageId();
         $released = $this->tracer->releaseCollected($this->channelName, $messageId);
         $this->openSends[] = [
-            'step' => $this->onlyFlowTestingIntercepts ? null : $this->tracer->startEntry(($released ? 'release collected message to ' : 'send ') . $this->channelName),
+            'step' => $this->onlyFlowTestingIntercepts ? null : $this->tracer->startEntry(($released ? 'release collected message to ' : 'send ') . $this->channelName . self::retryOf($message)),
             'ran' => 0,
             'messageId' => $messageId,
             'failed' => null,
@@ -61,6 +62,16 @@ final class ChannelSendRecording
         if (! str_starts_with($this->interceptors[$position], self::FLOW_TESTING_NAMESPACE) && $this->interceptors[$position] !== BeforeSendChannelInterceptor::class) {
             $this->tracer->recordStep('channel interceptor ' . ExecutionRecordingTracer::shortClassOf($this->interceptors[$position]));
         }
+    }
+
+    private static function retryOf(Message $message): string
+    {
+        $headers = $message->getHeaders();
+        if (! $headers->containsKey(DelayedRetryErrorHandler::ECOTONE_RETRY_HEADER)) {
+            return '';
+        }
+
+        return ' as retry ' . $headers->get(DelayedRetryErrorHandler::ECOTONE_RETRY_HEADER) . ($headers->containsKey(MessageHeaders::DELIVERY_DELAY) ? ', delayed ' . $headers->get(MessageHeaders::DELIVERY_DELAY) . ' ms' : '');
     }
 
     public function postSentAfter(int $position): void

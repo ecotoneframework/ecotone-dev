@@ -215,6 +215,14 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         self::assertContains('entrypoint sends to projecting_manager_backfill:course_seats', $lines);
     }
 
+    public function test_a_delayed_retry_and_the_dead_letter_decision_are_recorded(): void
+    {
+        $lines = self::executionOf('failure is retried with a delay, then sent to the dead letter');
+
+        self::assertNotEmpty(preg_grep('/^send orders as retry 1, delayed \d+ ms$/', $lines));
+        self::assertContains('reply string to output channel dead_letter', $lines);
+    }
+
     /**
      * @param list<class-string> $classes
      * @param list<object> $services

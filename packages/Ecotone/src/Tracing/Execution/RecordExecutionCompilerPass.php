@@ -26,6 +26,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerStaticObjectResolver;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Handler\Router\InvocationRouter;
+use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Tracing\Tracer;
 
 /**
@@ -36,6 +37,10 @@ final class RecordExecutionCompilerPass implements CompilerPass
     public const PRESEND = 'presend';
     public const ROUTER = 'router';
     private const CHANNEL_ID_PREFIX = 'channel-';
+    private const POLL_HOUSEKEEPING = [
+        MessageHeadersPropagatorInterceptor::class . '::enablePollingConsumerPropagation',
+        MessageHeadersPropagatorInterceptor::class . '::disablePollingConsumerPropagation',
+    ];
     private const FLOW_TESTING_NAMESPACE = 'Ecotone\\Lite\\Test\\';
     private const SEND_RECORDING_PREFIX = 'ecotone.execution.send.';
     private const REPLY_RECORDING_PREFIX = 'ecotone.execution.reply.';
@@ -64,9 +69,11 @@ final class RecordExecutionCompilerPass implements CompilerPass
         $innerChannel = $channel;
         if (in_array($channel->getClassName(), [PollableChannelInterceptorAdapter::class, EventDrivenChannelInterceptorAdapter::class], true)) {
             $innerChannel = $arguments[0];
+            $interceptorClasses = array_map(fn (mixed $interceptor): string => $this->classOf($interceptor, $builder), array_values($arguments[1]));
             $recording = $builder->register(self::SEND_RECORDING_PREFIX . $channelName, new Definition(ChannelSendRecording::class, [
                 $channelName,
-                array_map(fn (mixed $interceptor): string => $this->classOf($interceptor, $builder), array_values($arguments[1])),
+                $interceptorClasses,
+                array_values(array_filter($interceptorClasses, fn (string $class): bool => ! self::isFlowTesting($class))) === [],
                 new Reference(Tracer::class),
             ]));
             $interceptors = [];
@@ -184,13 +191,23 @@ final class RecordExecutionCompilerPass implements CompilerPass
         }
         $recordedInterceptors = [];
         foreach ($aroundInterceptors as $aroundInterceptor) {
-            if ($aroundInterceptor instanceof Definition && $aroundInterceptor->getClassName() === AroundMethodInterceptor::class && ! self::isFlowTestingHousekeeping($this->classOf($aroundInterceptor->getArguments()[0], $builder))) {
-                $recordedInterceptors[] = self::recordingInterceptor('recordAround', $this->classOf($aroundInterceptor->getArguments()[0], $builder) . '::' . $aroundInterceptor->getArguments()[1]);
+            $interceptor = $aroundInterceptor instanceof Definition && $aroundInterceptor->getClassName() === AroundMethodInterceptor::class
+                ? $this->classOf($aroundInterceptor->getArguments()[0], $builder) . '::' . $aroundInterceptor->getArguments()[1]
+                : null;
+            if ($interceptor !== null && self::isFlowTesting($interceptor)) {
+                $recordedInterceptors[] = self::recordingInterceptor('recordFlowTesting', $interceptor);
+                $recordedInterceptors[] = $this->recorded($aroundInterceptor, null, $builder);
+                $recordedInterceptors[] = self::recordingInterceptor('observeFlowTesting', $interceptor);
+                continue;
+            }
+            if ($interceptor !== null) {
+                $recordedInterceptors[] = self::recordingInterceptor('recordAround', $interceptor);
             }
             $recordedInterceptors[] = $this->recorded($aroundInterceptor, null, $builder);
         }
-        if ($role !== null && ! self::isFlowTestingHousekeeping($this->invokedClassOf($arguments[0] ?? null, $builder))) {
-            $recordedInterceptors[] = self::recordingInterceptor('recordInvocation', $role);
+        if ($role !== null) {
+            $invoked = $this->invokedClassOf($arguments[0] ?? null, $builder) . '::' . ($arguments[1] ?? '');
+            $recordedInterceptors[] = self::recordingInterceptor(self::isHousekeeping($invoked) ? 'recordHousekeeping' : 'recordInvocation', $role);
         }
         $arguments[$aroundInterceptorsPosition] = $recordedInterceptors;
         ksort($arguments);
@@ -212,9 +229,14 @@ final class RecordExecutionCompilerPass implements CompilerPass
         return $arguments;
     }
 
-    private static function isFlowTestingHousekeeping(string $class): bool
+    private static function isFlowTesting(string $class): bool
     {
         return str_starts_with($class, self::FLOW_TESTING_NAMESPACE);
+    }
+
+    private static function isHousekeeping(string $invoked): bool
+    {
+        return self::isFlowTesting($invoked) || in_array($invoked, self::POLL_HOUSEKEEPING, true);
     }
 
     private function invokedClassOf(mixed $objectResolver, ContainerBuilder $builder): string

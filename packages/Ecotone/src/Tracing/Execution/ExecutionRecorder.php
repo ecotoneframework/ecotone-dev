@@ -38,7 +38,7 @@ final class ExecutionRecorder
 
     public function recordInvocation(string $role, MethodInvocation $methodInvocation): mixed
     {
-        $step = $this->tracer->startStep($role . ' ' . self::shortNameOf($methodInvocation->getName()));
+        $step = $this->tracer->startStep($role . ' ' . self::shortNameOf($methodInvocation->getName()), invocation: $role !== RecordExecutionCompilerPass::ROUTER);
         try {
             $result = $methodInvocation->proceed();
         } catch (Throwable $failure) {
@@ -53,6 +53,42 @@ final class ExecutionRecorder
         }
 
         return $result;
+    }
+
+    public function recordHousekeeping(string $role, MethodInvocation $methodInvocation): mixed
+    {
+        $this->tracer->markHousekeeping();
+
+        return $methodInvocation->proceed();
+    }
+
+    public function recordFlowTesting(string $interceptor, MethodInvocation $methodInvocation): mixed
+    {
+        $this->tracer->startFlowTesting();
+        try {
+            $result = $methodInvocation->proceed();
+        } catch (Throwable $failure) {
+            $this->tracer->endFlowTesting();
+
+            throw $failure;
+        }
+        $hiddenFailure = $this->tracer->endFlowTesting();
+        if ($hiddenFailure !== null) {
+            $this->tracer->recordStep('flow testing ' . self::shortNameOf($interceptor) . ' turned ' . $hiddenFailure . ' into a normal return');
+        }
+
+        return $result;
+    }
+
+    public function observeFlowTesting(string $interceptor, MethodInvocation $methodInvocation): mixed
+    {
+        try {
+            return $methodInvocation->proceed();
+        } catch (Throwable $failure) {
+            $this->tracer->flowTestingFailed($failure);
+
+            throw $failure;
+        }
     }
 
     public static function shortNameOf(string $classAndMethod): string

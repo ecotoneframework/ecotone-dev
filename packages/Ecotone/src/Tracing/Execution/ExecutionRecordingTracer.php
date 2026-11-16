@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing\Execution;
 
+use function array_pop;
 use function array_search;
 use function array_splice;
 use function count;
@@ -31,6 +32,10 @@ final class ExecutionRecordingTracer implements Tracer
     /** @var list<Span> steps of the process entry still open, recorded once a span starts inside it */
     private array $stepsOfOpenEntry = [];
     private bool $spanStartedInOpenEntry = false;
+    private bool $invocationInOpenEntry = false;
+    private bool $housekeepingInOpenEntry = false;
+    /** @var list<?string> failure that reached each open interceptor of flow testing, by its short class */
+    private array $flowTestingFailures = [];
 
     public function __construct(
         private EcotoneTracer $tracer,
@@ -61,6 +66,8 @@ final class ExecutionRecordingTracer implements Tracer
         }
         $this->stepsOfOpenEntry = [];
         $this->spanStartedInOpenEntry = false;
+        $this->invocationInOpenEntry = false;
+        $this->housekeepingInOpenEntry = false;
         $entry = new ExecutionStep(
             SpanContext::newTrace(),
             null,
@@ -82,11 +89,14 @@ final class ExecutionRecordingTracer implements Tracer
     /**
      * @param array<string, scalar> $attributes
      */
-    public function startStep(string $name, array $attributes = []): ?ExecutionStep
+    public function startStep(string $name, array $attributes = [], bool $invocation = false): ?ExecutionStep
     {
         $current = $this->tracer->currentSpan();
         if ($current === null && $this->openSteps === []) {
             return null;
+        }
+        if ($invocation) {
+            $this->invocationInOpenEntry = true;
         }
         $parentStep = $this->openStepOf($current);
         $parentContext = $parentStep?->context ?? $current?->context();
@@ -172,15 +182,42 @@ final class ExecutionRecordingTracer implements Tracer
         $this->spanRecorder->record($span);
     }
 
+    public function markHousekeeping(): void
+    {
+        if (! $this->spanStartedInOpenEntry && ! $this->invocationInOpenEntry) {
+            $this->housekeepingInOpenEntry = true;
+        }
+    }
+
+    public function startFlowTesting(): void
+    {
+        $this->flowTestingFailures[] = null;
+    }
+
+    public function flowTestingFailed(Throwable $failure): void
+    {
+        if ($this->flowTestingFailures !== []) {
+            $this->flowTestingFailures[count($this->flowTestingFailures) - 1] = self::shortClassOf($failure::class);
+        }
+    }
+
+    public function endFlowTesting(): ?string
+    {
+        return array_pop($this->flowTestingFailures);
+    }
+
     private function closeEntry(Span $entry): void
     {
-        if ($this->spanStartedInOpenEntry || $entry->status === SpanStatus::Error) {
+        $kept = $entry->status === SpanStatus::Error || (! $this->housekeepingInOpenEntry && ($this->spanStartedInOpenEntry || $this->invocationInOpenEntry));
+        if ($kept) {
             foreach ([...$this->stepsOfOpenEntry, $entry] as $span) {
                 $this->spanRecorder->record($span);
             }
         }
         $this->stepsOfOpenEntry = [];
         $this->spanStartedInOpenEntry = false;
+        $this->invocationInOpenEntry = false;
+        $this->housekeepingInOpenEntry = false;
     }
 
     private function openStepOf(?ActiveSpan $current): ?ExecutionStep

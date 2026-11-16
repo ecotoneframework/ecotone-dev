@@ -9,12 +9,16 @@ use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Before;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Presend;
+use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -295,14 +299,12 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                    span process class@anonymous::place',
                 '                      handler class@anonymous::place returns string',
                 '                reply string to output channel order.confirm',
-                '                  send order.confirm',
-                '                    channel interceptor SpiecChannelAdapter',
-                '                    publish-subscribe channel order.confirm',
-                '                      around MessageHandlerLogger::aroundMessageHandler',
-                '                        around TracingInterceptor::traceHandlerEndpoint',
-                '                          span process class@anonymous::confirm',
-                '                            handler class@anonymous::confirm returns string',
-                '                      reply string to the reply channel of the request',
+                '                  publish-subscribe channel order.confirm',
+                '                    around MessageHandlerLogger::aroundMessageHandler',
+                '                      around TracingInterceptor::traceHandlerEndpoint',
+                '                        span process class@anonymous::confirm',
+                '                          handler class@anonymous::confirm returns string',
+                '                    reply string to the reply channel of the request',
                 '              no reply',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
@@ -480,6 +482,79 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '    before class@anonymous::refuseTheCommand throws RuntimeException',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
+        );
+    }
+
+    public function test_entries_that_start_no_span_are_recorded_when_they_run_a_handler(): void
+    {
+        $recorder = new InMemorySpanRecorder();
+        $endpoints = new class () {
+            #[Transformer('order.normalize')]
+            public function normalize(string $order): string
+            {
+                return strtoupper($order);
+            }
+
+            #[Router('order.route')]
+            public function route(string $order): string
+            {
+                return 'order.normalize';
+            }
+
+            #[Splitter('order.split', outputChannelName: 'order.normalize')]
+            public function split(string $orders): array
+            {
+                return explode(',', $orders);
+            }
+
+            #[ConsoleCommand('orders:noop')]
+            public function noop(): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$endpoints::class],
+            [$endpoints, ...self::recordingSpansInto($recorder)],
+            [self::tracingConfiguration()->withExecutionRecording()],
+            enabledModules: [],
+        );
+
+        $ecotone->sendDirectToChannel('order.normalize', 'a');
+        $ecotone->sendDirectToChannel('order.route', 'b');
+        $ecotone->sendDirectToChannel('order.split', 'c,d');
+        $ecotone->runConsoleCommand('orders:noop', []);
+        $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines());
+
+        self::assertCount(4, array_filter($lines, fn (string $line): bool => str_starts_with($line, 'process ')));
+        self::assertContains('handler class@anonymous::normalize returns string', $lines);
+        self::assertContains('router class@anonymous::route returns string', $lines);
+        self::assertContains('handler class@anonymous::split returns array', $lines);
+        self::assertContains('handler class@anonymous::noop returns nothing', $lines);
+    }
+
+    public function test_a_spy_of_flow_testing_on_a_channel_adds_no_send_to_the_recording(): void
+    {
+        $lines = self::trimmed(self::executionOf('output channel chain of three handlers'));
+
+        self::assertSame([], array_values(array_filter($lines, fn (string $line): bool => str_contains($line, 'SpiecChannelAdapter'))));
+        self::assertSame([], array_values(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'send '))));
+    }
+
+    public function test_an_outcome_changed_by_flow_testing_is_recorded(): void
+    {
+        $recorder = new InMemorySpanRecorder();
+
+        EcotoneLite::bootstrapFlowTesting(
+            [],
+            [...self::recordingSpansInto($recorder)],
+            [self::tracingConfiguration()->withExecutionRecording()],
+            enabledModules: [],
+            testConfiguration: TestConfiguration::createWithDefaults()->withFailOnNotFoundHandler(false),
+        )->sendCommandWithRouting('order.unknown', 'order-1');
+
+        self::assertContains(
+            'flow testing AllowMissingDestination::invoke turned DestinationResolutionException into a normal return',
+            self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines()),
         );
     }
 

@@ -16,6 +16,7 @@ use Throwable;
 final class ChannelSendRecording
 {
     public const COLLECTOR = 'MessageCollectorChannelInterceptor';
+    private const FLOW_TESTING_NAMESPACE = 'Ecotone\\Lite\\Test\\';
 
     /** @var list<array{step: ?ExecutionStep, ran: int, messageId: string, failed: ?string, failedAfter: array<int, bool>}> */
     private array $openSends = [];
@@ -28,6 +29,7 @@ final class ChannelSendRecording
     public function __construct(
         private string $channelName,
         private array $interceptors,
+        private bool $onlyFlowTestingIntercepts,
         private ExecutionRecordingTracer $tracer,
     ) {
     }
@@ -38,7 +40,7 @@ final class ChannelSendRecording
         $released = isset($this->collected[$messageId]);
         unset($this->collected[$messageId]);
         $this->openSends[] = [
-            'step' => $this->tracer->startEntry(($released ? 'release collected message to ' : 'send ') . $this->channelName),
+            'step' => $this->onlyFlowTestingIntercepts ? null : $this->tracer->startEntry(($released ? 'release collected message to ' : 'send ') . $this->channelName),
             'ran' => 0,
             'messageId' => $messageId,
             'failed' => null,
@@ -49,7 +51,9 @@ final class ChannelSendRecording
     public function interceptorRan(int $position): void
     {
         $this->openSends[count($this->openSends) - 1]['ran'] = $position + 1;
-        $this->tracer->recordStep('channel interceptor ' . ExecutionRecordingTracer::shortClassOf($this->interceptors[$position]));
+        if (! str_starts_with($this->interceptors[$position], self::FLOW_TESTING_NAMESPACE)) {
+            $this->tracer->recordStep('channel interceptor ' . ExecutionRecordingTracer::shortClassOf($this->interceptors[$position]));
+        }
     }
 
     public function completedAfter(int $position, ?Throwable $failure): void

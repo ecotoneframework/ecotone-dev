@@ -14,6 +14,7 @@ use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\Handler\Gathering\GatheringMessageHandler;
 use Ecotone\Messaging\Handler\Gathering\GatheringPartCompletion;
 use Ecotone\Messaging\Handler\Processor\InterceptedChainDefinition;
@@ -22,6 +23,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MethodInvocationConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerStaticObjectResolver;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Handler\Router\InvocationRouter;
 use Ecotone\Tracing\Tracer;
@@ -33,8 +35,8 @@ final class RecordExecutionCompilerPass implements CompilerPass
 {
     public const PRESEND = 'presend';
     public const ROUTER = 'router';
-    public const GATEWAY = 'gateway';
     private const CHANNEL_ID_PREFIX = 'channel-';
+    private const FLOW_TESTING_NAMESPACE = 'Ecotone\\Lite\\Test\\';
     private const SEND_RECORDING_PREFIX = 'ecotone.execution.send.';
     private const REPLY_RECORDING_PREFIX = 'ecotone.execution.reply.';
 
@@ -109,7 +111,8 @@ final class RecordExecutionCompilerPass implements CompilerPass
         } else {
             $arguments = match ($value->getClassName()) {
                 MethodInvoker::class => $this->withRecordedInvocation($arguments, 4, $role ?? InterceptedChainDefinition::HANDLER, $builder),
-                AroundMessageProcessor::class => $this->withRecordedInvocation($arguments, 2, self::GATEWAY, $builder),
+                AroundMessageProcessor::class => $this->withRecordedInvocation($arguments, 2, null, $builder),
+                Gateway::class => $this->withRecordedEntry($arguments, $builder),
                 BeforeSendChannelInterceptor::class => $this->recorded($arguments, self::PRESEND, $builder),
                 InvocationRouter::class => $this->recorded($arguments, self::ROUTER, $builder),
                 default => $this->recorded($arguments, $role, $builder),
@@ -165,7 +168,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
      * @param array<int|string, mixed> $arguments
      * @return array<int|string, mixed>
      */
-    private function withRecordedInvocation(array $arguments, int $aroundInterceptorsPosition, string $role, ContainerBuilder $builder): array
+    private function withRecordedInvocation(array $arguments, int $aroundInterceptorsPosition, ?string $role, ContainerBuilder $builder): array
     {
         $aroundInterceptors = $arguments[$aroundInterceptorsPosition] ?? [];
         foreach ($arguments as $position => $argument) {
@@ -175,16 +178,44 @@ final class RecordExecutionCompilerPass implements CompilerPass
         }
         $recordedInterceptors = [];
         foreach ($aroundInterceptors as $aroundInterceptor) {
-            if ($aroundInterceptor instanceof Definition && $aroundInterceptor->getClassName() === AroundMethodInterceptor::class) {
+            if ($aroundInterceptor instanceof Definition && $aroundInterceptor->getClassName() === AroundMethodInterceptor::class && ! self::isFlowTestingHousekeeping($this->classOf($aroundInterceptor->getArguments()[0], $builder))) {
                 $recordedInterceptors[] = self::recordingInterceptor('recordAround', $this->classOf($aroundInterceptor->getArguments()[0], $builder) . '::' . $aroundInterceptor->getArguments()[1]);
             }
             $recordedInterceptors[] = $this->recorded($aroundInterceptor, null, $builder);
         }
-        $recordedInterceptors[] = self::recordingInterceptor('recordInvocation', $role);
+        if ($role !== null && ! self::isFlowTestingHousekeeping($this->invokedClassOf($arguments[0] ?? null, $builder))) {
+            $recordedInterceptors[] = self::recordingInterceptor('recordInvocation', $role);
+        }
         $arguments[$aroundInterceptorsPosition] = $recordedInterceptors;
         ksort($arguments);
 
         return $arguments;
+    }
+
+    /**
+     * @param array<int|string, mixed> $arguments
+     * @return array<int|string, mixed>
+     */
+    private function withRecordedEntry(array $arguments, ContainerBuilder $builder): array
+    {
+        $arguments = $this->recorded($arguments, null, $builder);
+        $replyConverter = $arguments[2] ?? null;
+        $invoked = $replyConverter instanceof Definition ? (string) ($replyConverter->getArguments()[1] ?? '') : '';
+        $arguments[3] = new Definition(RecordedEntry::class, [$arguments[3], 'gateway ' . ExecutionRecorder::shortNameOf($invoked), new Reference(Tracer::class)]);
+
+        return $arguments;
+    }
+
+    private static function isFlowTestingHousekeeping(string $class): bool
+    {
+        return str_starts_with($class, self::FLOW_TESTING_NAMESPACE);
+    }
+
+    private function invokedClassOf(mixed $objectResolver, ContainerBuilder $builder): string
+    {
+        return $objectResolver instanceof Definition && $objectResolver->getClassName() === MethodInvokerStaticObjectResolver::class
+            ? $this->classOf($objectResolver->getArguments()[0], $builder)
+            : '';
     }
 
     private static function recordingInterceptor(string $method, string $value): Definition

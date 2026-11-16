@@ -28,6 +28,9 @@ final class ExecutionRecordingTracer implements Tracer
     /** @var list<ExecutionStep> */
     private array $openSteps = [];
     private int $order = 0;
+    /** @var list<Span> steps of the process entry still open, recorded once a span starts inside it */
+    private array $stepsOfOpenEntry = [];
+    private bool $spanStartedInOpenEntry = false;
 
     public function __construct(
         private EcotoneTracer $tracer,
@@ -51,17 +54,45 @@ final class ExecutionRecordingTracer implements Tracer
         return $this->tracer->currentSpan();
     }
 
+    public function startEntry(string $name): ?ExecutionStep
+    {
+        if ($this->tracer->currentSpan() !== null || $this->openSteps !== []) {
+            return $this->startStep($name);
+        }
+        $this->stepsOfOpenEntry = [];
+        $this->spanStartedInOpenEntry = false;
+        $entry = new ExecutionStep(
+            SpanContext::newTrace(),
+            null,
+            null,
+            $name,
+            [
+                SpanAttribute::MESSAGING_SYSTEM => SpanAttribute::ECOTONE,
+                SpanAttribute::EXECUTION_STEP => true,
+                SpanAttribute::EXECUTION_PROCESS => true,
+                SpanAttribute::EXECUTION_ORDER => ++$this->order,
+            ],
+            $this->clock->now(),
+        );
+        $this->openSteps[] = $entry;
+
+        return $entry;
+    }
+
     /**
      * @param array<string, scalar> $attributes
      */
     public function startStep(string $name, array $attributes = []): ?ExecutionStep
     {
         $current = $this->tracer->currentSpan();
-        if ($current === null) {
+        if ($current === null && $this->openSteps === []) {
             return null;
         }
         $parentStep = $this->openStepOf($current);
-        $parentContext = $parentStep?->context ?? $current->context();
+        $parentContext = $parentStep?->context ?? $current?->context();
+        if ($parentContext === null) {
+            return null;
+        }
         $step = new ExecutionStep(
             $parentContext->newChild(),
             $parentContext->spanId,
@@ -115,7 +146,7 @@ final class ExecutionRecordingTracer implements Tracer
             return;
         }
         array_splice($this->openSteps, $position, 1);
-        $this->spanRecorder->record(new Span(
+        $span = new Span(
             $step->context->traceId,
             $step->context->spanId,
             $step->parentSpanId,
@@ -127,10 +158,32 @@ final class ExecutionRecordingTracer implements Tracer
             [],
             $step->startedAt,
             $this->clock->now(),
-        ));
+        );
+        if ($step->parentSpanId === null) {
+            $this->closeEntry($span);
+
+            return;
+        }
+        if ($this->openSteps !== [] && $this->openSteps[0]->parentSpanId === null) {
+            $this->stepsOfOpenEntry[] = $span;
+
+            return;
+        }
+        $this->spanRecorder->record($span);
     }
 
-    private function openStepOf(ActiveSpan $current): ?ExecutionStep
+    private function closeEntry(Span $entry): void
+    {
+        if ($this->spanStartedInOpenEntry) {
+            foreach ([...$this->stepsOfOpenEntry, $entry] as $span) {
+                $this->spanRecorder->record($span);
+            }
+        }
+        $this->stepsOfOpenEntry = [];
+        $this->spanStartedInOpenEntry = false;
+    }
+
+    private function openStepOf(?ActiveSpan $current): ?ExecutionStep
     {
         $step = $this->openSteps[count($this->openSteps) - 1] ?? null;
 
@@ -145,10 +198,13 @@ final class ExecutionRecordingTracer implements Tracer
     {
         $attributes[SpanAttribute::EXECUTION_ORDER] = ++$this->order;
         $current = $this->tracer->currentSpan();
-        if ($current === null) {
+        if ($current === null && $this->openSteps === []) {
             $attributes[SpanAttribute::EXECUTION_PROCESS] = true;
 
             return $attributes;
+        }
+        if ($current === null) {
+            $this->spanStartedInOpenEntry = true;
         }
         $step = $this->openStepOf($current);
         if ($step !== null) {

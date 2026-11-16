@@ -38,7 +38,7 @@ final class ChannelSendRecording
         $released = isset($this->collected[$messageId]);
         unset($this->collected[$messageId]);
         $this->openSends[] = [
-            'step' => $this->tracer->startStep(($released ? 'release collected message to ' : 'send ') . $this->channelName),
+            'step' => $this->tracer->startEntry(($released ? 'release collected message to ' : 'send ') . $this->channelName),
             'ran' => 0,
             'messageId' => $messageId,
         ];

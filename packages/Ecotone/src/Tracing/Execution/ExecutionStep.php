@@ -18,8 +18,8 @@ final class ExecutionStep
      */
     public function __construct(
         public readonly SpanContext $context,
-        public readonly string $parentSpanId,
-        public readonly ActiveSpan $owner,
+        public readonly ?string $parentSpanId,
+        public readonly ?ActiveSpan $owner,
         public readonly string $name,
         public readonly array $attributes,
         public readonly DatePoint $startedAt,

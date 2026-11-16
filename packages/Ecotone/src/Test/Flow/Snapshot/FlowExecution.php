@@ -42,7 +42,30 @@ final class FlowExecution
             $children[$parent][] = $span;
         }
 
-        return new self(array_map(fn (Span $process): array => ['process' => self::nameOf($process), 'steps' => self::stepsUnder($process, $children, 1)], $processes));
+        return new self(array_map(
+            fn (Span $process): array => ($process->attributes[SpanAttribute::EXECUTION_STEP] ?? false)
+                ? ['process' => self::nameOf(self::firstSpanUnder($process, $children) ?? $process), 'steps' => [...self::linesOf([$process], $children, 1)]]
+                : ['process' => self::nameOf($process), 'steps' => self::stepsUnder($process, $children, 1)],
+            $processes,
+        ));
+    }
+
+    /**
+     * @param array<string, list<Span>> $children
+     */
+    private static function firstSpanUnder(Span $span, array $children): ?Span
+    {
+        foreach ($children[$span->spanId] ?? [] as $child) {
+            if (! ($child->attributes[SpanAttribute::EXECUTION_STEP] ?? false)) {
+                return $child;
+            }
+            $found = self::firstSpanUnder($child, $children);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -67,8 +90,18 @@ final class FlowExecution
      */
     private static function stepsUnder(Span $span, array $children, int $depth): array
     {
+        return self::linesOf($children[$span->spanId] ?? [], $children, $depth);
+    }
+
+    /**
+     * @param list<Span> $spans
+     * @param array<string, list<Span>> $children
+     * @return list<string>
+     */
+    private static function linesOf(array $spans, array $children, int $depth): array
+    {
         $steps = [];
-        foreach ($children[$span->spanId] ?? [] as $child) {
+        foreach ($spans as $child) {
             $outcome = $child->attributes[SpanAttribute::EXECUTION_OUTCOME] ?? '';
             $steps[] = str_repeat('  ', $depth) . (($child->attributes[SpanAttribute::EXECUTION_STEP] ?? false) ? '' : 'span ') . self::nameOf($child) . ($outcome === '' ? '' : ' ' . $outcome);
             $steps = [...$steps, ...self::stepsUnder($child, $children, $depth + 1)];

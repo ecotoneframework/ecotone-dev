@@ -22,7 +22,7 @@ final class RecordedHandOver implements MessageHandler
 
     public function handle(Message $message): void
     {
-        $step = $this->tracer->startStep($this->handOver);
+        $step = $this->tracer->startEntry($this->handOver);
         try {
             $this->messageHandler->handle($message);
         } catch (Throwable $failure) {

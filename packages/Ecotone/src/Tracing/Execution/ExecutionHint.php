@@ -19,6 +19,7 @@ final class ExecutionHint
     public const SENT_BY = 'sent by';
     public const TAKEN_BY = 'taken by';
     public const STOPPED = 'stopped';
+    public const COLLECTED = 'collected';
     public const RUNS = 'runs';
     public const READ_FROM = 'read from';
     public const PROPAGATING = 'propagating';
@@ -29,7 +30,7 @@ final class ExecutionHint
     public const BY = 'by';
     public const KEYS = [
         self::CHOSEN_BY, self::RESULT, self::ROUTING_SLIP, self::HEADERS_ADDED, self::HEADERS_REMOVED, self::HEADERS_CHANGED, self::PAYLOAD,
-        self::SENT_BY, self::TAKEN_BY, self::STOPPED, self::RUNS, self::READ_FROM, self::PROPAGATING, self::RECEIVED_WITH, self::RETRY, self::GROUP, self::KEPT, self::BY,
+        self::SENT_BY, self::TAKEN_BY, self::STOPPED, self::COLLECTED, self::RUNS, self::READ_FROM, self::PROPAGATING, self::RECEIVED_WITH, self::RETRY, self::GROUP, self::KEPT, self::BY,
     ];
 
     private function __construct(public readonly string $key, public readonly string $value, public readonly bool $critical)

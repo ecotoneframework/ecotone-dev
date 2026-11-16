@@ -241,6 +241,15 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         self::assertContains('put on channel orders', $lines);
     }
 
+    public function test_a_collected_message_is_held_on_its_first_send_and_released_after_the_handler_without_naming_the_collector_class(): void
+    {
+        $lines = array_map(trim(...), $this->asynchronousOrder());
+
+        self::assertSame('↳ collected: held until the handler ends', $lines[self::positionOf($lines, 'before send MessageCollectorChannelInterceptor::preSend') + 1]);
+        self::assertSame('↳ collected: released after the handler ended', $lines[self::positionOf($lines, 'release collected message to orders') + 1]);
+        self::assertSame([], preg_grep('/^↳ (stopped|collected): .*MessageCollector/', $lines));
+    }
+
     public function test_no_step_names_a_class_of_the_recording(): void
     {
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
@@ -272,7 +281,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         self::assertSame(
             [
                 [0, 'release collected message to orders'],
-                [1, '↳ stopped: first send held by MessageCollectorChannelInterceptor'],
+                [1, '↳ collected: released after the handler ended'],
                 [1, '↳ taken by: process 2, a separate consumer run'],
                 [1, 'before send OutboundSerializationChannelInterceptor::preSend'],
                 [2, 'before send MessageCollectorChannelInterceptor::preSend'],
@@ -297,7 +306,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
                 [0, 'send orders'],
                 [1, 'before send OutboundSerializationChannelInterceptor::preSend'],
                 [2, 'before send MessageCollectorChannelInterceptor::preSend'],
-                [3, '↳ stopped: held until the handler ends, the put did not run'],
+                [3, '↳ collected: held until the handler ends'],
             ],
             array_map(fn (string $line): array => [self::depthOf($line) - self::depthOf($lines[$send]), trim($line)], array_slice($lines, $send, 4)),
         );
@@ -416,7 +425,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         }));
 
         self::assertSame(
-            [['↳ stopped: first send held by MessageCollectorChannelInterceptor', '↳ taken by: process 2, a separate consumer run'], ['↳ stopped: first send held by MessageCollectorChannelInterceptor', '↳ taken by: process 3, a separate consumer run']],
+            [['↳ collected: released after the handler ended', '↳ taken by: process 2, a separate consumer run'], ['↳ collected: released after the handler ended', '↳ taken by: process 3, a separate consumer run']],
             array_map(fn (int $position): array => array_slice($lines, $position + 1, 2), array_keys($lines, 'release collected message to notifications', true)),
         );
         self::assertSame(

@@ -63,7 +63,7 @@ final class ChannelSendRecording
                 attributes: [
                     SpanAttribute::EXECUTION_SENT_MESSAGE => $messageId,
                     SpanAttribute::EXECUTION_HINTS => ExecutionHint::encoded(array_values(array_filter([
-                        $released ? ExecutionHint::critical(ExecutionHint::STOPPED, 'first send held by ' . self::COLLECTOR) : null,
+                        $released ? ExecutionHint::critical(ExecutionHint::COLLECTED, 'released after the handler ended') : null,
                         self::retryOf($message),
                     ]))),
                 ],
@@ -225,10 +225,10 @@ final class ChannelSendRecording
         if ($stoppedBy === self::COLLECTOR) {
             $this->tracer->collect($this->channelName, $send['messageId']);
 
-            return ExecutionHint::critical(ExecutionHint::STOPPED, 'held until the handler ends, the put did not run');
+            return ExecutionHint::critical(ExecutionHint::COLLECTED, 'held until the handler ends');
         }
 
-        return ExecutionHint::critical(ExecutionHint::STOPPED, 'no message passed on, the put did not run');
+        return ExecutionHint::critical(ExecutionHint::STOPPED, 'no message passed on');
     }
 
     /**

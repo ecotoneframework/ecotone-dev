@@ -233,7 +233,7 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_every_step_in_every_baseline_is_a_label_of_at_most_90_characters_with_hints_from_one_vocabulary(): void
     {
-        $vocabulary = ['chosen by', 'result', 'routing slip', 'headers added', 'headers removed', 'headers changed', 'payload', 'sent by', 'taken by', 'stopped', 'runs', 'read from', 'propagating', 'received with', 'retry', 'group', 'kept', 'by'];
+        $vocabulary = ['chosen by', 'result', 'routing slip', 'headers added', 'headers removed', 'headers changed', 'payload', 'sent by', 'taken by', 'stopped', 'collected', 'runs', 'read from', 'propagating', 'received with', 'retry', 'group', 'kept', 'by'];
         $labels = [];
         $keys = [];
         foreach (glob(__DIR__ . '/../../../../BuildFlow/baseline/*.json') as $file) {

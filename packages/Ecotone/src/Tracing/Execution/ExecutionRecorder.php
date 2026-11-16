@@ -41,7 +41,7 @@ final class ExecutionRecorder
     {
         $this->tracer->openCollector($channelName);
         try {
-            return $this->recordAround(CollectorSenderInterceptor::class . '::send', $methodInvocation);
+            return $this->recordAround(CollectorSenderInterceptor::class . '::send for ' . $channelName, $methodInvocation);
         } finally {
             $this->tracer->closeCollector($channelName);
         }

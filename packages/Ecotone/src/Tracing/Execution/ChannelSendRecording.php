@@ -7,6 +7,7 @@ namespace Ecotone\Tracing\Execution;
 use function array_pop;
 use function count;
 
+use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanAttribute;
@@ -57,13 +58,24 @@ final class ChannelSendRecording
     {
         $messageId = self::identityOf($message);
         $released = $this->tracer->releaseCollected($this->channelName, $messageId);
+        $releasedInBatch = 0;
+        if ($message->getPayload() instanceof BatchMessage) {
+            foreach ($message->getPayload()->entries as $entry) {
+                $entryHeaders = $entry['headers'] ?? [];
+                $releasedInBatch += $this->tracer->releaseCollected($this->channelName, ($entryHeaders[MessageHeaders::MESSAGE_ID] ?? '') . (isset($entryHeaders[MessageHeaders::ROUTING_SLIP]) ? ' to ' . $entryHeaders[MessageHeaders::ROUTING_SLIP] : '')) ? 1 : 0;
+            }
+        }
         $this->openSends[] = [
             'step' => $this->onlyFlowTestingIntercepts ? null : $this->tracer->startEntry(
-                ($released ? 'release collected message to ' : 'send ') . $this->channelName,
+                match (true) {
+                    $releasedInBatch > 0 => 'release ' . $releasedInBatch . ' collected messages as one batch to ',
+                    $released => 'release collected message to ',
+                    default => 'send ',
+                } . $this->channelName,
                 attributes: [
                     SpanAttribute::EXECUTION_SENT_MESSAGE => $messageId,
                     SpanAttribute::EXECUTION_HINTS => ExecutionHint::encoded(array_values(array_filter([
-                        $released ? ExecutionHint::critical(ExecutionHint::COLLECTED, 'released after the handler ended') : null,
+                        $released || $releasedInBatch > 0 ? ExecutionHint::critical(ExecutionHint::COLLECTED, 'released after the handler ended') : null,
                         self::retryOf($message),
                     ]))),
                 ],

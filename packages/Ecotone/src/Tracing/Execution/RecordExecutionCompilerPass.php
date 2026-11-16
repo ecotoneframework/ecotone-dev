@@ -47,6 +47,7 @@ use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
 use Ecotone\Modelling\AggregateIdentifierRetrevingService;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\EventSourcingExecutor\ApplyMethodExecutor;
+use Ecotone\Modelling\MessageHandling\Distribution\DistributedOutboundRouter;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Modelling\Repository\AllAggregateRepository;
 use Ecotone\Projecting\PartitionBatchDispatcher;
@@ -278,7 +279,8 @@ final class RecordExecutionCompilerPass implements CompilerPass
      */
     private function withRecordedRouterRoutes(array $arguments): array
     {
-        $arguments[1] = new Definition(RecordedRouteSelector::class, [$arguments[1], '', self::routeHeaderOf($arguments[1]), new Reference(Tracer::class)]);
+        $invoked = $arguments[1] instanceof Definition && $arguments[1]->getClassName() === InvocationRouter::class ? ($arguments[1]->getArguments()[1] ?? '') : '';
+        $arguments[1] = new Definition(RecordedRouteSelector::class, [$arguments[1], '', $invoked === DistributedOutboundRouter::class . '::route' ? RecordedRouteSelector::SERVICE_MAP : self::routeHeaderOf($arguments[1]), new Reference(Tracer::class)]);
 
         return $arguments;
     }
@@ -343,7 +345,9 @@ final class RecordExecutionCompilerPass implements CompilerPass
 
     private static function recordedGateway(Definition $gateway): Definition
     {
-        $recorded = new Definition(RecordedGateway::class, $gateway->getArguments());
+        $arguments = $gateway->getArguments();
+        $arguments[3] = new Definition(RecordedGatewayRequest::class, [$arguments[3], new Reference(Tracer::class)]);
+        $recorded = new Definition(RecordedGateway::class, $arguments);
         foreach ($gateway->getMethodCalls() as $methodCall) {
             $recorded->addMethodCall($methodCall->getMethodName(), $methodCall->getArguments());
         }

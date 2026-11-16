@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing\Execution;
 
+use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\Router\RouteSelector;
 
@@ -12,6 +13,8 @@ use Ecotone\Messaging\Handler\Router\RouteSelector;
  */
 final class RecordedRouteSelector implements RouteSelector
 {
+    public const SERVICE_MAP = 'service map';
+
     public function __construct(private RouteSelector $routeSelector, private string $routingKeyHeader, private string $routeHeader, private ExecutionRecordingTracer $tracer)
     {
     }
@@ -27,6 +30,13 @@ final class RecordedRouteSelector implements RouteSelector
 
     private function reasonOf(Message $message): string
     {
+        if ($this->routeHeader === self::SERVICE_MAP) {
+            $headers = $message->getHeaders();
+            $header = fn (string $name): string => $headers->containsKey($name) ? (string) $headers->get($name) : '?';
+            $type = $header(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE);
+
+            return self::SERVICE_MAP . ', ' . ($type === 'event' ? 'event ' . $header(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) : $type . ' to ' . $header(DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME));
+        }
         if ($this->routeHeader !== '') {
             return 'header ' . $this->routeHeader;
         }

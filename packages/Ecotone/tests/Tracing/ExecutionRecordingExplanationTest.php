@@ -13,7 +13,9 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\GatheredParts;
@@ -24,6 +26,7 @@ use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
+use RuntimeException;
 
 /**
  * licence Apache-2.0
@@ -248,6 +251,42 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         self::assertSame('↳ collected: held until the handler ends', $lines[self::positionOf($lines, 'before send MessageCollectorChannelInterceptor::preSend') + 1]);
         self::assertSame('↳ collected: released after the handler ended', $lines[self::positionOf($lines, 'release collected message to orders') + 1]);
         self::assertSame([], preg_grep('/^↳ (stopped|collected): .*MessageCollector/', $lines));
+    }
+
+    public function test_projecting_an_event_is_a_step_that_holds_the_route_to_its_handler(): void
+    {
+        $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
+        $project = self::positionOf($lines, 'project FlowCourseDefined');
+
+        self::assertSame('route to course_seats.defined.target', trim($lines[$project + 1]));
+        self::assertSame(self::depthOf($lines[$project]) + 1, self::depthOf($lines[$project + 1]));
+    }
+
+    public function test_a_second_attempt_of_an_instant_retry_says_it_is_a_retry_and_why(): void
+    {
+        $orders = new class () {
+            public int $attempts = 0;
+
+            #[CommandHandler('order.place')]
+            public function place(): void
+            {
+                if (++$this->attempts === 1) {
+                    throw new RuntimeException('first attempt fails');
+                }
+            }
+        };
+
+        $lines = array_map(trim(...), $this->recorded([$orders::class], [$orders], [InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 2)], fn (FlowTestSupport $ecotone) => $ecotone->sendCommandWithRouting('order.place', [])));
+
+        self::assertContains('↳ retry: attempt 2 after RuntimeException, by InstantRetryInterceptor::retry', $lines);
+    }
+
+    public function test_a_distributed_send_shows_the_routing_slip_its_gateway_set_and_why_the_router_chose_the_channel(): void
+    {
+        $lines = array_map(trim(...), self::executionOf('distributed command consumed by the target service'));
+
+        self::assertContains('↳ routing slip: none → ' . DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE, array_slice($lines, 0, 4));
+        self::assertSame('↳ chosen by: service map, command to ticket_service', $lines[self::positionOf($lines, 'route to distributed_channel') + 1]);
     }
 
     public function test_no_step_names_a_class_of_the_recording(): void

@@ -42,6 +42,8 @@ final class ExecutionRecordingTracer implements Tracer
     private bool $housekeepingInOpenEntry = false;
     /** @var array<string, array{depth: int, collected: array<string, true>}> channel => message ids its collector holds while its sender runs */
     private array $collectors = [];
+    /** @var array<string, list<ExecutionHint>> span id of an open step => hints learned while it runs */
+    private array $hintsOfOpenSteps = [];
     /** @var list<?string> failure that reached each open interceptor of flow testing, by its short class */
     private array $flowTestingFailures = [];
 
@@ -187,6 +189,14 @@ final class ExecutionRecordingTracer implements Tracer
         }
     }
 
+    public function hintOpenStep(ExecutionHint $hint): void
+    {
+        $step = $this->openSteps[count($this->openSteps) - 1] ?? null;
+        if ($step !== null) {
+            $this->hintsOfOpenSteps[$step->context->spanId][] = $hint;
+        }
+    }
+
     /**
      * @param list<ExecutionHint> $hints
      */
@@ -206,6 +216,7 @@ final class ExecutionRecordingTracer implements Tracer
         if ($position !== false) {
             array_splice($this->openSteps, $position, 1);
         }
+        unset($this->hintsOfOpenSteps[$step->context->spanId]);
     }
 
     public function failStep(ExecutionStep $step, Throwable $failure): void
@@ -239,6 +250,8 @@ final class ExecutionRecordingTracer implements Tracer
         }
         array_splice($this->openSteps, $position, 1);
         unset($this->stepsWithChildren[$step->context->spanId]);
+        $hints = [...($this->hintsOfOpenSteps[$step->context->spanId] ?? []), ...$hints];
+        unset($this->hintsOfOpenSteps[$step->context->spanId]);
         $span = new Span(
             $step->context->traceId,
             $step->context->spanId,

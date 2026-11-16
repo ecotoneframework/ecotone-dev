@@ -253,20 +253,39 @@ final class FlowExecution
      * @param array<string, list<array{key: string, value: string, critical: bool}>> $links
      * @return list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>
      */
-    private static function stepsOf(array $spans, array $children, int $depth, array $links, ?string $failureAbove = null, bool $hasStepAbove = false): array
+    private static function stepsOf(array $spans, array $children, int $depth, array $links, ?string $failureAbove = null, bool $hasStepAbove = false, string $parent = ''): array
     {
         $steps = [];
+        $previous = null;
+        $attempt = 1;
         foreach ($spans as $child) {
             $isStep = (bool) ($child->attributes[SpanAttribute::EXECUTION_STEP] ?? false);
+            $label = ($isStep ? '' : 'span ') . self::nameOf($child);
+            $retried = $previous !== null && $previous['label'] === $label && $previous['failure'] !== null;
+            $attempt = $retried ? $attempt + 1 : 1;
             $steps[] = [
                 'depth' => $depth,
-                'label' => ($isStep ? '' : 'span ') . self::nameOf($child),
-                'hints' => [...($isStep ? self::failureHintsOf($child, $children, $failureAbove, $hasStepAbove && $failureAbove === null) : []), ...self::hintsOf($child), ...($links[$child->spanId] ?? [])],
+                'label' => $label,
+                'hints' => [
+                    ...($retried ? [['key' => ExecutionHint::RETRY, 'value' => 'attempt ' . $attempt . ' after ' . $previous['failure'] . ($parent === '' ? '' : ', by ' . self::withoutKind($parent)), 'critical' => true]] : []),
+                    ...($isStep ? self::failureHintsOf($child, $children, $failureAbove, $hasStepAbove && $failureAbove === null) : []),
+                    ...self::hintsOf($child),
+                    ...($links[$child->spanId] ?? []),
+                ],
             ];
-            $steps = [...$steps, ...self::stepsOf($children[$child->spanId] ?? [], $children, $depth + 1, $links, $isStep ? (self::thrownBy($child) ?? ($child->status === SpanStatus::Error ? 'a failure' : null)) : $failureAbove, $hasStepAbove || $isStep)];
+            $failure = self::thrownBy($child) ?? ($child->status === SpanStatus::Error ? 'a failure' : null);
+            $steps = [...$steps, ...self::stepsOf($children[$child->spanId] ?? [], $children, $depth + 1, $links, $isStep ? $failure : $failureAbove, $hasStepAbove || $isStep, $isStep ? $label : $parent)];
+            $previous = ['label' => $label, 'failure' => $failure];
         }
 
         return $steps;
+    }
+
+    private static function withoutKind(string $label): string
+    {
+        $words = explode(' ', $label, 2);
+
+        return str_contains($words[1] ?? '', '::') ? $words[1] : $label;
     }
 
     /**

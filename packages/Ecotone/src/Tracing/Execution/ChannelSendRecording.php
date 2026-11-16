@@ -8,6 +8,7 @@ use function array_pop;
 use function count;
 
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptor;
 use Throwable;
 
 /**
@@ -51,7 +52,7 @@ final class ChannelSendRecording
     public function interceptorRan(int $position): void
     {
         $this->openSends[count($this->openSends) - 1]['ran'] = $position + 1;
-        if (! str_starts_with($this->interceptors[$position], self::FLOW_TESTING_NAMESPACE)) {
+        if (! str_starts_with($this->interceptors[$position], self::FLOW_TESTING_NAMESPACE) && $this->interceptors[$position] !== BeforeSendChannelInterceptor::class) {
             $this->tracer->recordStep('channel interceptor ' . ExecutionRecordingTracer::shortClassOf($this->interceptors[$position]));
         }
     }

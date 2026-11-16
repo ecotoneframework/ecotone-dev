@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing\Execution;
 
-use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Throwable;
@@ -18,11 +17,11 @@ final class RecordedParameterConverter implements ParameterConverter
     {
     }
 
-    public function getArgumentFrom(Message $message, ?MethodInvocation $methodInvocation = null): mixed
+    public function getArgumentFrom(Message $message): mixed
     {
         $step = $this->tracer->startStep('convert argument ' . $this->parameterName);
         try {
-            $argument = $this->parameterConverter->getArgumentFrom($message, $methodInvocation);
+            $argument = $this->parameterConverter->getArgumentFrom($message);
         } catch (Throwable $failure) {
             if ($step !== null) {
                 $this->tracer->failStep($step, $failure);

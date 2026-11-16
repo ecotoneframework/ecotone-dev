@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
@@ -79,6 +80,9 @@ final class RecordExecutionCompilerPass implements CompilerPass
         }
         if ($builder->has(MessagingEntrypointService::class) && $builder->getDefinition(MessagingEntrypointService::class) instanceof Definition) {
             $builder->replace(MessagingEntrypointService::class, new Definition(RecordedMessagingEntrypointService::class, [...$builder->getDefinition(MessagingEntrypointService::class)->getArguments(), new Reference(Tracer::class)]));
+        }
+        if ($builder->has(ConversionService::REFERENCE_NAME)) {
+            $builder->replace(ConversionService::REFERENCE_NAME, new Definition(RecordedConversionService::class, [$builder->getDefinition(ConversionService::REFERENCE_NAME), new Reference(Tracer::class)]));
         }
         if ($builder->has(GatheredGroupStore::class)) {
             $builder->replace(GatheredGroupStore::class, new Definition(RecordedGatheredGroupStore::class, [$builder->getDefinition(GatheredGroupStore::class), new Reference(Tracer::class)]));
@@ -174,6 +178,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
         }
 
         return match ($value->getClassName()) {
+            Gateway::class => self::recordedGateway($value),
             RequestReplyProducer::class => $this->withRecordedReply($value, $builder),
             GatheringPartCompletion::class => self::withRecordedPartReports($value),
             GatheringMessageHandler::class => self::withRecordedGathering($value),
@@ -224,6 +229,16 @@ final class RecordExecutionCompilerPass implements CompilerPass
             OrchestratorResultMessageConverter::class => self::ORCHESTRATOR,
             default => $role,
         };
+    }
+
+    private static function recordedGateway(Definition $gateway): Definition
+    {
+        $recorded = new Definition(RecordedGateway::class, $gateway->getArguments());
+        foreach ($gateway->getMethodCalls() as $methodCall) {
+            $recorded->addMethodCall($methodCall->getMethodName(), $methodCall->getArguments());
+        }
+
+        return $recorded;
     }
 
     private static function recordedAggregateStep(Definition $processor, string $step): Definition
@@ -285,6 +300,11 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 $arguments[$position] = $this->recorded($argument, null, $builder);
             }
         }
+        if ($role !== null && is_array($arguments[2] ?? null) && is_array($arguments[3] ?? null)) {
+            foreach ($arguments[2] as $position => $parameterConverter) {
+                $arguments[2][$position] = new Definition(RecordedParameterConverter::class, [$parameterConverter, (string) ($arguments[3][$position] ?? $position), new Reference(Tracer::class)]);
+            }
+        }
         $recordedInterceptors = [];
         foreach ($aroundInterceptors as $aroundInterceptor) {
             $interceptor = $aroundInterceptor instanceof Definition && $aroundInterceptor->getClassName() === AroundMethodInterceptor::class
@@ -324,9 +344,8 @@ final class RecordExecutionCompilerPass implements CompilerPass
         $arguments = $this->recorded($arguments, null, $builder);
         $replyConverter = $arguments[2] ?? null;
         $invoked = $replyConverter instanceof Definition ? (string) ($replyConverter->getArguments()[1] ?? '') : '';
-        $arguments[3] = new Definition(RecordedEntry::class, [$arguments[3], 'gateway ' . ExecutionRecorder::shortNameOf($invoked), new Reference(Tracer::class)]);
 
-        return $arguments;
+        return [...array_values($arguments), 'gateway ' . ExecutionRecorder::shortNameOf($invoked), new Reference(Tracer::class)];
     }
 
     private static function isFlowTesting(string $class): bool

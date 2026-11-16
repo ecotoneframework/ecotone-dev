@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -26,6 +27,7 @@ use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -221,6 +223,46 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
 
         self::assertNotEmpty(preg_grep('/^send orders as retry 1, delayed \d+ ms$/', $lines));
         self::assertContains('reply string to output channel dead_letter', $lines);
+    }
+
+    public function test_a_conversion_is_recorded_as_its_own_step_on_the_send_and_on_the_handler_argument(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler(endpointId: 'placeOrder')]
+            public function place(ExecutionRecordedPlaceOrder $command): void
+            {
+            }
+        };
+
+        $lines = $this->recorded([$orders::class, ExecutionRecordedPlaceOrder::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::APPLICATION_X_PHP_SERIALIZED)], function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommand(new ExecutionRecordedPlaceOrder());
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        });
+
+        self::assertContains('convert ExecutionRecordedPlaceOrder (application/x-php) to string (application/x-php-serialized)', $lines);
+        self::assertNotEmpty(preg_grep('/^convert argument command$/', $lines));
+        self::assertNotEmpty(preg_grep('/^convert string \(application\/x-php-serialized\) to ExecutionRecordedPlaceOrder/', $lines));
+    }
+
+    public function test_an_argument_that_cannot_be_converted_is_recorded_as_a_failed_conversion_not_as_the_handler_failing(): void
+    {
+        $orders = new class () {
+            #[CommandHandler('order.place')]
+            public function place(ExecutionRecordedPlaceOrder $command): void
+            {
+            }
+        };
+
+        $lines = $this->recorded([$orders::class, ExecutionRecordedPlaceOrder::class], [$orders], [], function (FlowTestSupport $ecotone): void {
+            try {
+                $ecotone->sendCommandWithRouting('order.place', 'not an order');
+            } catch (Throwable) {
+            }
+        });
+
+        self::assertNotEmpty(preg_grep('/^convert argument command throws /', $lines));
+        self::assertEmpty(preg_grep('/^handler class@anonymous::place/', $lines));
     }
 
     /**

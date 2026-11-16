@@ -29,6 +29,8 @@ final class ExecutionRecordingTracer implements Tracer
     /** @var list<ExecutionStep> */
     private array $openSteps = [];
     private int $order = 0;
+    /** @var array<string, true> span id of an open step => a step ran inside it */
+    private array $stepsWithChildren = [];
     /** @var list<Span> steps of the process entry still open, recorded once a span starts inside it */
     private array $stepsOfOpenEntry = [];
     private bool $spanStartedInOpenEntry = false;
@@ -128,6 +130,7 @@ final class ExecutionRecordingTracer implements Tracer
         if ($parentContext === null) {
             return null;
         }
+        $this->stepsWithChildren[$parentContext->spanId] = true;
         $step = new ExecutionStep(
             $parentContext->newChild(),
             $parentContext->spanId,
@@ -162,6 +165,19 @@ final class ExecutionRecordingTracer implements Tracer
         $this->finish($step, $outcome, SpanStatus::Ok, null);
     }
 
+    public function endStepWhenSomethingRanInside(ExecutionStep $step): void
+    {
+        if (isset($this->stepsWithChildren[$step->context->spanId])) {
+            $this->endStep($step, '');
+
+            return;
+        }
+        $position = array_search($step, $this->openSteps, true);
+        if ($position !== false) {
+            array_splice($this->openSteps, $position, 1);
+        }
+    }
+
     public function failStep(ExecutionStep $step, Throwable $failure): void
     {
         $this->finish($step, 'throws ' . self::shortClassOf($failure::class), SpanStatus::Error, $failure->getMessage());
@@ -181,6 +197,7 @@ final class ExecutionRecordingTracer implements Tracer
             return;
         }
         array_splice($this->openSteps, $position, 1);
+        unset($this->stepsWithChildren[$step->context->spanId]);
         $span = new Span(
             $step->context->traceId,
             $step->context->spanId,

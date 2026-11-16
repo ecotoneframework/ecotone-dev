@@ -78,7 +78,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         self::assertSame(
             [
                 'process 1: send command order.place, handled by class@anonymous::place',
-                '  gateway CommandBus::sendWithRouting returns a message of string',
+                '  gateway CommandBus::sendWithRouting returns string',
                 '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
                 '    around TracingInterceptor::traceCommandBus',
                 '      span send command order.place',
@@ -300,7 +300,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         self::assertSame(
             [
                 'process 1: send command order.place, handled by class@anonymous::place',
-                '  gateway CommandBus::sendWithRouting returns a message of string',
+                '  gateway CommandBus::sendWithRouting returns string',
                 '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
                 '    around TracingInterceptor::traceCommandBus',
                 '      span send command order.place',

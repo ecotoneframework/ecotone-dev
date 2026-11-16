@@ -346,11 +346,11 @@ final class ExecutionRecordingTest extends TracingTestCase
             '                            part report by GatheringPartCompletion of a request without a reply, part 2 of 2, to ecotone.projection.backfill.completion:course_seats',
             '                                    collected, held until the handler ends',
             '                        release collected message to backfill',
-            'process 5: receive backfill, handled by the gatherer storing part 1 of 2',
-            '                              store part 1 of 2',
-            'process 6: receive backfill, handled by the gatherer storing part 2 of 2',
-            '                              store part 2 of 2',
-            '                                  release 2 of 2 parts, as all parts are accounted for',
+            'process 5: receive backfill, handled by the gatherer taking in part 1 of 2',
+            '                              read part 1 of 2 of gathering group {generated#1} from the headers ecotone_gathering_group_id, ecotone_gathering_part_number and ecotone_gathering_group_size',
+            'process 6: receive backfill, handled by the gatherer taking in part 2 of 2',
+            '                              read part 2 of 2 of gathering group {generated#1} from the headers ecotone_gathering_group_id, ecotone_gathering_part_number and ecotone_gathering_group_size',
+            '                                  release 2 of 2 parts, as all parts are accounted for: build GatheredParts with 2 results and the original payload array, passed straight to the handler the #[Gathered] endpoint wraps',
             '                                    handler ProjectionRunCompletion::complete returns nothing',
         ];
 

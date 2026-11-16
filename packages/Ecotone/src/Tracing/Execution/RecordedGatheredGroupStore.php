@@ -32,7 +32,16 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
 
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void
     {
-        $this->recorded('complete part ' . $partNumber . ' of gathering group ' . $groupId, fn () => $this->store->completePart($groupId, $partNumber, $report, $whenComplete));
+        $released = false;
+        $this->recorded('complete part ' . $partNumber . ' of gathering group ' . $groupId . ' in ' . ExecutionRecordingTracer::shortClassOf($this->store::class), function () use ($groupId, $partNumber, $report, $whenComplete, &$released): void {
+            $this->store->completePart($groupId, $partNumber, $report, function (mixed ...$arguments) use ($whenComplete, &$released): void {
+                $released = true;
+                $this->recorded('all parts are in, so the store releases the group and calls the gatherer back', fn () => $whenComplete(...$arguments));
+            });
+            if (! $released) {
+                $this->tracer->recordStep('the group is not complete yet, so nothing is handed over: this process ends here and the remaining parts are awaited');
+            }
+        });
     }
 
     public function gatherChannelNameFor(string $groupId): string
@@ -42,7 +51,7 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
 
     public function releaseGroup(string $groupId, callable $whenReleased, GatheredReleaseReason|CollectedReleaseReason|null $releaseReason): void
     {
-        $this->recorded('release gathering group ' . $groupId . ($releaseReason === null ? '' : ', reason ' . $releaseReason->value), fn () => $this->store->releaseGroup($groupId, $whenReleased, $releaseReason));
+        $this->recorded('release gathering group ' . $groupId . ($releaseReason === null ? '' : ', reason ' . $releaseReason->value) . ' in ' . ExecutionRecordingTracer::shortClassOf($this->store::class), fn () => $this->store->releaseGroup($groupId, fn (mixed ...$arguments) => $this->recorded('the store releases the group and calls the gatherer back', fn () => $whenReleased(...$arguments)), $releaseReason));
     }
 
     public function discard(string $groupId): void

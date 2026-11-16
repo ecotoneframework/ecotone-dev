@@ -7,7 +7,6 @@ namespace Ecotone\Tracing\Execution;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\Gathering\GatheringHeaders;
 use Ecotone\Messaging\MessageHandler;
-use Throwable;
 
 /**
  * licence Apache-2.0
@@ -21,24 +20,15 @@ final class RecordedGatheringPart implements MessageHandler
     public function handle(Message $message): void
     {
         $headers = $message->getHeaders();
-        $step = $this->tracer->startStep(match (true) {
-            $headers->containsKey(GatheringHeaders::MANUAL_RELEASE) => 'release requested manually',
-            $headers->containsKey(GatheringHeaders::TIMEOUT) => 'release requested by the timeout',
-            $headers->containsKey(GatheringHeaders::PART_NUMBER) && $headers->containsKey(GatheringHeaders::SIZE) => 'store part ' . $headers->get(GatheringHeaders::PART_NUMBER) . ' of ' . $headers->get(GatheringHeaders::SIZE),
-            default => 'gather a message that names no part of a gathering group',
+        $group = $headers->containsKey(GatheringHeaders::GROUP_ID) ? ' of gathering group ' . $headers->get(GatheringHeaders::GROUP_ID) : '';
+        $this->tracer->recordStep(match (true) {
+            $group === '' => 'read no gathering group from the header ' . GatheringHeaders::GROUP_ID,
+            $headers->containsKey(GatheringHeaders::MANUAL_RELEASE) => 'read a manual release' . $group . ' from the headers ' . GatheringHeaders::GROUP_ID . ' and ' . GatheringHeaders::MANUAL_RELEASE,
+            $headers->containsKey(GatheringHeaders::TIMEOUT) => 'read a timeout' . $group . ' from the headers ' . GatheringHeaders::GROUP_ID . ' and ' . GatheringHeaders::TIMEOUT,
+            default => 'read part ' . ($headers->containsKey(GatheringHeaders::PART_NUMBER) ? $headers->get(GatheringHeaders::PART_NUMBER) : '?') . ' of ' . ($headers->containsKey(GatheringHeaders::SIZE) ? $headers->get(GatheringHeaders::SIZE) : '?') . $group
+                . ' from the headers ' . GatheringHeaders::GROUP_ID . ', ' . GatheringHeaders::PART_NUMBER . ' and ' . GatheringHeaders::SIZE,
         });
-        try {
-            $this->gatheringHandler->handle($message);
-        } catch (Throwable $failure) {
-            if ($step !== null) {
-                $this->tracer->failStep($step, $failure);
-            }
-
-            throw $failure;
-        }
-        if ($step !== null) {
-            $this->tracer->endStep($step, '');
-        }
+        $this->gatheringHandler->handle($message);
     }
 
     public function __toString(): string

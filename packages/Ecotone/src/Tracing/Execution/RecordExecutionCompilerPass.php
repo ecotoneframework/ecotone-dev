@@ -78,10 +78,13 @@ final class RecordExecutionCompilerPass implements CompilerPass
 
     /** @var array<int, true> */
     private array $visited = [];
+    /** @var list<Definition> */
+    private array $licensed = [];
 
     public function process(ContainerBuilder $builder): void
     {
         $this->visited = [];
+        $this->licensed = [];
         if ($builder->has(AllAggregateRepository::class)) {
             $builder->replace(AllAggregateRepository::class, new Definition(RecordedAggregateRepository::class, [$builder->getDefinition(AllAggregateRepository::class), new Reference(Tracer::class)]));
         }
@@ -107,6 +110,27 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 $builder->replace($id, $recorded);
             }
         }
+        foreach ($this->licensed as $licensed) {
+            $licensed->replaceArguments([$licensed->getArguments()[0], self::frameworkClassesChosenBy($licensed->getArguments()[0], $builder), new Reference(Tracer::class)]);
+        }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function frameworkClassesChosenBy(Definition $licenceChoice, ContainerBuilder $builder): array
+    {
+        $classes = [];
+        foreach ([$licenceChoice->getArguments()[1], $licenceChoice->getArguments()[2]] as $reference) {
+            $chosen = is_string($reference) && $builder->has($reference) ? $builder->getDefinition($reference) : null;
+            if (! $chosen instanceof Definition) {
+                continue;
+            }
+            $inner = $chosen->getArguments()[0] ?? null;
+            $classes[$chosen->getClassName()] = str_starts_with($chosen->getClassName(), __NAMESPACE__ . '\\Recorded') && $inner instanceof Definition ? $inner->getClassName() : $chosen->getClassName();
+        }
+
+        return $classes;
     }
 
     private function recordChannel(string $channelName, Definition $channel, ContainerBuilder $builder): Definition
@@ -188,7 +212,10 @@ final class RecordExecutionCompilerPass implements CompilerPass
         }
 
         if ($value->hasFactory() && $value->getFactory() === [LicenceDecider::class, 'decide'] && in_array($value->getClassName(), [MessageProcessor::class, MessageHandler::class], true)) {
-            return new Definition($value->getClassName() === MessageProcessor::class ? RecordedLicensedMessageProcessor::class : RecordedLicensedMessageHandler::class, [$value, new Reference(Tracer::class)]);
+            $licensed = new Definition($value->getClassName() === MessageProcessor::class ? RecordedLicensedMessageProcessor::class : RecordedLicensedMessageHandler::class, [$value, [], new Reference(Tracer::class)]);
+            $this->licensed[] = $licensed;
+
+            return $licensed;
         }
 
         return match ($value->getClassName()) {

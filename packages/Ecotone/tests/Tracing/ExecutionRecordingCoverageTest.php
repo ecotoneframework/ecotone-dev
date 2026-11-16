@@ -110,8 +110,8 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
 
         self::assertContains('open gathering group {generated#1} of 2 parts', $lines);
-        self::assertContains('complete part 1 of gathering group {generated#1}', $lines);
-        self::assertContains('complete part 2 of gathering group {generated#1}', $lines);
+        self::assertContains('complete part 1 of gathering group {generated#1} in InMemoryGatheredGroupStore', $lines);
+        self::assertContains('complete part 2 of gathering group {generated#1} in InMemoryGatheredGroupStore', $lines);
     }
 
     public function test_a_consumed_message_starts_its_process_at_the_receive_with_what_the_channel_applied(): void

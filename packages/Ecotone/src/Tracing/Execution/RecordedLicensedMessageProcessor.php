@@ -12,12 +12,15 @@ use Ecotone\Messaging\Handler\MessageProcessor;
  */
 final class RecordedLicensedMessageProcessor implements MessageProcessor
 {
-    public function __construct(private MessageProcessor $messageProcessor, private ExecutionRecordingTracer $tracer)
+    /**
+     * @param array<string, string> $frameworkClassOf framework class of each class the licence may choose, keyed by the class that runs
+     */
+    public function __construct(private MessageProcessor $messageProcessor, private array $frameworkClassOf, private ExecutionRecordingTracer $tracer)
     {
     }
 
     public function process(Message $message): ?Message
     {
-        return RecordedStep::of($this->tracer, ExecutionRecordingTracer::shortClassOf($this->messageProcessor::class) . ', chosen by the licence', fn () => $this->messageProcessor->process($message));
+        return RecordedStep::of($this->tracer, ExecutionRecordingTracer::shortClassOf($this->frameworkClassOf[$this->messageProcessor::class] ?? $this->messageProcessor::class) . ', chosen by the licence', fn () => $this->messageProcessor->process($message));
     }
 }

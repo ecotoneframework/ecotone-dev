@@ -13,7 +13,7 @@ use Ecotone\Test\Flow\ExpectedSpan;
  */
 final class FlowExecution
 {
-    private const PLUMBING = ['Bridge::handle', 'RoutingSlipPrepender::transform', 'HeaderRouter::route'];
+    private const PLUMBING = ['Bridge::handle', 'RoutingSlipPrepender::transform', 'HeaderRouter::route', 'GatheringMessageHandler::handle'];
     private const GENERATED_ID = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{64}/';
 
     /**
@@ -108,8 +108,8 @@ final class FlowExecution
             if (preg_match('/^\s*(?:handler|transformer|splitter|router|orchestrator) (\S+::\w+)/', $step, $handler) === 1 && ! in_array($handler[1], self::PLUMBING, true)) {
                 return $handler[1];
             }
-            if (preg_match('/^\s*store part (\d+ of \d+)$/', $step, $part) === 1) {
-                return 'the gatherer storing part ' . $part[1];
+            if (preg_match('/^\s*read part (\d+ of \d+) of gathering group /', $step, $part) === 1) {
+                return 'the gatherer taking in part ' . $part[1];
             }
         }
 

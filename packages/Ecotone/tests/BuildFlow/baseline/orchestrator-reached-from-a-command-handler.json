@@ -84,23 +84,27 @@
             "                  around TracingInterceptor::traceHandlerEndpoint",
             "                    span process class@anonymous::request",
             "                      handler class@anonymous::request returns string",
-            "                reply string to output channel approval.workflow",
+            "                forward string by the output channel approval.workflow, configured on class@anonymous::request; the reply channel of the request stays on the message",
+            "                  the forwarded message carries the string the handler returned, with the headers of the request",
             "                  publish-subscribe channel approval.workflow",
             "                    orchestrator class@anonymous::workflow returns array",
-            "                    reply string to routing slip channel approval.validate",
+            "                    class@anonymous::workflow put approval.validate, approval.notify in front of the routing slip, which is now approval.validate, approval.notify",
+            "                    forward string by the routing slip, taking approval.validate from it; the slip held approval.validate, approval.notify and now holds approval.notify; the reply channel of the request stays on the message",
+            "                      the forwarded message carries the string the handler returned, with the headers of the request",
             "                      direct channel approval.validate",
             "                        around MessageHandlerLogger::aroundMessageHandler",
             "                          around TracingInterceptor::traceHandlerEndpoint",
             "                            span process class@anonymous::validate",
             "                              handler class@anonymous::validate returns string",
-            "                        reply string to routing slip channel approval.notify",
+            "                        forward string by the routing slip, taking approval.notify from it; the slip held approval.notify and is now removed; the reply channel of the request stays on the message",
+            "                          the forwarded message carries the string the handler returned, with the headers of the request",
             "                          direct channel approval.notify",
             "                            around MessageHandlerLogger::aroundMessageHandler",
             "                              around TracingInterceptor::traceHandlerEndpoint",
             "                                span process class@anonymous::notify",
             "                                  handler class@anonymous::notify returns string",
-            "                            reply string to the reply channel of the request",
-            "              no reply"
+            "                            reply string to the reply channel of the request, where its sender waits for it",
+            "              nothing handed over: the handler returned nothing"
         ]}
     ]
 }

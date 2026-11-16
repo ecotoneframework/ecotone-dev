@@ -111,7 +111,7 @@
             "  entrypoint sends to projecting_manager_initialize:orders",
             "    direct channel ecotone.messaging.entrypoint",
             "      router HeaderRouter::route returns array",
-            "      route to projecting_manager_initialize:orders",
+            "      route to projecting_manager_initialize:orders, named by the header ecotone.messaging.entrypoint of the message",
             "      direct channel projecting_manager_initialize:orders",
             "        before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "        around TracingInterceptor::traceProjectionOperation",
@@ -120,13 +120,13 @@
             "              handler ProjectingManager::init returns nothing",
             "                init the state of orders",
             "                load partition (the whole stream) of orders found it at position start",
-            "        no reply"
+            "        nothing handed over: the handler returned nothing"
         ]},
         {"process": "delete orders, handled by ProjectingManager::delete", "steps": [
             "  entrypoint sends to projecting_manager_delete:orders",
             "    direct channel ecotone.messaging.entrypoint",
             "      router HeaderRouter::route returns array",
-            "      route to projecting_manager_delete:orders",
+            "      route to projecting_manager_delete:orders, named by the header ecotone.messaging.entrypoint of the message",
             "      direct channel projecting_manager_delete:orders",
             "        before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
             "        around TracingInterceptor::traceProjectionOperation",
@@ -135,7 +135,7 @@
             "              handler ProjectingManager::delete returns nothing",
             "                delete the state of orders",
             "                delete the projection",
-            "        no reply"
+            "        nothing handed over: the handler returned nothing"
         ]}
     ]
 }

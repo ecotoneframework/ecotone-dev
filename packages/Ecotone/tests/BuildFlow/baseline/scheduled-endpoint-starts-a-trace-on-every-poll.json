@@ -58,7 +58,7 @@
             "                        around TracingInterceptor::traceHandlerEndpoint",
             "                          span process class@anonymous::add",
             "                            handler class@anonymous::add returns nothing",
-            "                      no reply"
+            "                      nothing handed over: the handler returned nothing"
         ]},
         {"process": "receive add, handled by class@anonymous::add (2 of 2)", "steps": [
             "  gateway InboundGatewayEntrypoint::executeEntrypoint returns nothing",
@@ -76,7 +76,7 @@
             "                        around TracingInterceptor::traceHandlerEndpoint",
             "                          span process class@anonymous::add",
             "                            handler class@anonymous::add returns nothing",
-            "                      no reply"
+            "                      nothing handed over: the handler returned nothing"
         ]}
     ]
 }

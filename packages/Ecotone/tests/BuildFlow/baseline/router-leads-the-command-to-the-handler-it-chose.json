@@ -83,7 +83,8 @@
             "                  around TracingInterceptor::traceHandlerEndpoint",
             "                    span process class@anonymous::dispatch",
             "                      handler class@anonymous::dispatch returns string",
-            "                reply string to output channel shipment.route",
+            "                forward string by the output channel shipment.route, configured on class@anonymous::dispatch; the reply channel of the request stays on the message",
+            "                  the forwarded message carries the string the handler returned, with the headers of the request",
             "                  publish-subscribe channel shipment.route",
             "                    router class@anonymous::route returns string",
             "                    route to shipment.express",
@@ -92,8 +93,8 @@
             "                        around TracingInterceptor::traceHandlerEndpoint",
             "                          span process class@anonymous::express",
             "                            handler class@anonymous::express returns nothing",
-            "                      no reply",
-            "              no reply"
+            "                      nothing handed over: the handler returned nothing",
+            "              nothing handed over: the handler returned nothing"
         ]}
     ]
 }

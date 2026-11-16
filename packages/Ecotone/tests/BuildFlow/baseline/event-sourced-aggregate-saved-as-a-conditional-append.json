@@ -93,7 +93,8 @@
             "              route by class FlowDefineCourse to {generated#1}.target",
             "              direct channel {generated#1}.target",
             "                resolve the aggregate identifier to {\"courseId\":\"course-1\"}",
-            "                reply FlowDefineCourse to output channel {generated#1}.target-connection",
+            "                forward FlowDefineCourse by the output channel {generated#1}.target-connection, configured on the handler; the reply channel of the request stays on the message",
+            "                  the forwarded message carries the FlowDefineCourse the handler returned, with the headers of the request; added: ecotone.modelling.aggregate.id",
             "                  direct channel {generated#1}.target-connection",
             "                    before TracedDecisionModelBatchLoader::load returns array",
             "                      span Decision Models: class@anonymous::define",
@@ -113,9 +114,9 @@
             "                            around MessageHeadersPropagatorInterceptor::storeHeaders",
             "                              direct channel ecotone.modelling.bus.event_by_name",
             "                                route by class FlowCourseDefined to no channel",
-            "                                no reply",
-            "                    reply string to the reply channel of the request",
-            "              no reply"
+            "                                nothing handed over: the handler returned nothing",
+            "                    reply string to the reply channel of the request, where its sender waits for it",
+            "              nothing handed over: the handler returned nothing"
         ]}
     ]
 }

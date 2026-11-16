@@ -96,9 +96,9 @@
             "                        around MessageHeadersPropagatorInterceptor::storeHeaders",
             "                          direct channel ecotone.modelling.bus.event_by_name",
             "                            route by class FlowStudentEnrolled to no channel",
-            "                            no reply",
-            "                reply array to the reply channel of the request",
-            "              no reply"
+            "                            nothing handed over: the handler returned nothing",
+            "                reply array to the reply channel of the request, where its sender waits for it",
+            "              nothing handed over: the handler returned nothing"
         ]}
     ]
 }

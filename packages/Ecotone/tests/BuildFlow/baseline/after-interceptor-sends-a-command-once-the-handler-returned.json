@@ -94,10 +94,10 @@
             "                                  around TracingInterceptor::traceHandlerEndpoint",
             "                                    span process class@anonymous::record",
             "                                      handler class@anonymous::record returns nothing",
-            "                                no reply",
-            "                              no reply",
-            "                reply string to the reply channel of the request",
-            "              no reply"
+            "                                nothing handed over: the handler returned nothing",
+            "                              nothing handed over: the handler returned nothing",
+            "                reply string to the reply channel of the request, where its sender waits for it",
+            "              nothing handed over: the handler returned nothing"
         ]}
     ]
 }

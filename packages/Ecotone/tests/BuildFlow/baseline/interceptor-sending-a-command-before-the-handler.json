@@ -90,14 +90,14 @@
             "                                  around TracingInterceptor::traceHandlerEndpoint",
             "                                    span process class@anonymous::record",
             "                                      handler class@anonymous::record returns nothing",
-            "                                no reply",
-            "                              no reply",
+            "                                nothing handed over: the handler returned nothing",
+            "                              nothing handed over: the handler returned nothing",
             "                around MessageHandlerLogger::aroundCommandHandler",
             "                  around TracingInterceptor::traceHandlerEndpoint",
             "                    span process class@anonymous::place",
             "                      handler class@anonymous::place returns nothing",
-            "                no reply",
-            "              no reply"
+            "                nothing handed over: the handler returned nothing",
+            "              nothing handed over: the handler returned nothing"
         ]}
     ]
 }

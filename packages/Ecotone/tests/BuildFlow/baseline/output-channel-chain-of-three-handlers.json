@@ -76,20 +76,22 @@
             "                  around TracingInterceptor::traceHandlerEndpoint",
             "                    span process class@anonymous::place",
             "                      handler class@anonymous::place returns string",
-            "                reply string to output channel order.validate",
+            "                forward string by the output channel order.validate, configured on class@anonymous::place; the reply channel of the request stays on the message",
+            "                  the forwarded message carries the string the handler returned, with the headers of the request",
             "                  publish-subscribe channel order.validate",
             "                    around MessageHandlerLogger::aroundMessageHandler",
             "                      around TracingInterceptor::traceHandlerEndpoint",
             "                        span process class@anonymous::validate",
             "                          handler class@anonymous::validate returns string",
-            "                    reply string to output channel order.store",
+            "                    forward string by the output channel order.store, configured on class@anonymous::validate; the reply channel of the request stays on the message",
+            "                      the forwarded message carries the string the handler returned, with the headers of the request",
             "                      publish-subscribe channel order.store",
             "                        around MessageHandlerLogger::aroundMessageHandler",
             "                          around TracingInterceptor::traceHandlerEndpoint",
             "                            span process class@anonymous::store",
             "                              handler class@anonymous::store returns nothing",
-            "                        no reply",
-            "              no reply"
+            "                        nothing handed over: the handler returned nothing",
+            "              nothing handed over: the handler returned nothing"
         ]}
     ]
 }

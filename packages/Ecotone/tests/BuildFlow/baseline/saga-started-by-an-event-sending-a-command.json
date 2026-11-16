@@ -101,7 +101,8 @@
             "            span route shipping.starting shipping.starting.target",
             "              direct channel shipping.starting.target",
             "                resolve the aggregate identifier to {\"orderId\":\"1\"}",
-            "                reply FlowOrderPlaced to output channel shipping.starting.target-connection",
+            "                forward FlowOrderPlaced by the output channel shipping.starting.target-connection, configured on the handler",
+            "                  the forwarded message carries the FlowOrderPlaced the handler returned, with the headers of the request; added: ecotone.modelling.aggregate.id",
             "                  direct channel shipping.starting.target-connection",
             "                    step HeaderEnricher::transform returns a message of FlowOrderPlaced",
             "                    around MessageHandlerLogger::aroundEventHandler",
@@ -121,12 +122,12 @@
             "                                            around TracingInterceptor::traceHandlerEndpoint",
             "                                              span process class@anonymous::prepare",
             "                                                handler class@anonymous::prepare returns nothing",
-            "                                          no reply",
-            "                                        no reply",
+            "                                          nothing handed over: the handler returned nothing",
+            "                                        nothing handed over: the handler returned nothing",
             "                    save the aggregate",
             "                      repository saves class@anonymous at version 1",
-            "                    reply string dropped, as no channel waits for it",
-            "            no reply"
+            "                    nothing handed over: the handler returned string, and no output channel, routing slip or reply channel of the request takes it",
+            "            nothing handed over: the handler returned nothing"
         ]}
     ]
 }

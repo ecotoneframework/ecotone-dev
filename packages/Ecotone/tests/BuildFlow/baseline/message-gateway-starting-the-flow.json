@@ -49,7 +49,7 @@
             "              around TracingInterceptor::traceHandlerEndpoint",
             "                span process class@anonymous::send",
             "                  handler class@anonymous::send returns nothing",
-            "            no reply"
+            "            nothing handed over: the handler returned nothing"
         ]}
     ]
 }

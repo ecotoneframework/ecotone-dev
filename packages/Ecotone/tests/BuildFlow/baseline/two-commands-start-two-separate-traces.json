@@ -58,8 +58,8 @@
             "                  around TracingInterceptor::traceHandlerEndpoint",
             "                    span process class@anonymous::register",
             "                      handler class@anonymous::register returns nothing",
-            "                no reply",
-            "              no reply"
+            "                nothing handed over: the handler returned nothing",
+            "              nothing handed over: the handler returned nothing"
         ]},
         {"process": "send command user.register, handled by class@anonymous::register (2 of 2)", "steps": [
             "  gateway CommandBus::sendWithRouting returns nothing",
@@ -75,8 +75,8 @@
             "                  around TracingInterceptor::traceHandlerEndpoint",
             "                    span process class@anonymous::register",
             "                      handler class@anonymous::register returns nothing",
-            "                no reply",
-            "              no reply"
+            "                nothing handed over: the handler returned nothing",
+            "              nothing handed over: the handler returned nothing"
         ]}
     ]
 }

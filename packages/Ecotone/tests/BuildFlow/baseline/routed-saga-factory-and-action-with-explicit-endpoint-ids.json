@@ -89,7 +89,8 @@
             "              route by name order.place to order.factory.target",
             "              direct channel order.factory.target",
             "                resolve the aggregate identifier to {\"orderId\":\"1\"}",
-            "                reply array to output channel order.factory.target-connection",
+            "                forward array by the output channel order.factory.target-connection, configured on the handler; the reply channel of the request stays on the message",
+            "                  the forwarded message carries the array the handler returned, with the headers of the request; added: ecotone.modelling.aggregate.id",
             "                  direct channel order.factory.target-connection",
             "                    step HeaderEnricher::transform returns a message of array",
             "                    resolve the aggregate identifier to {\"orderId\":\"1\"}",
@@ -102,8 +103,8 @@
             "                          handler class@anonymous::place returns class@anonymous",
             "                    save the aggregate",
             "                      repository saves class@anonymous at version 1",
-            "                    reply string to the reply channel of the request",
-            "              no reply"
+            "                    reply string to the reply channel of the request, where its sender waits for it",
+            "              nothing handed over: the handler returned nothing"
         ]},
         {"process": "send command order.place, handled by class@anonymous::placeAgain", "steps": [
             "  gateway CommandBus::sendWithRouting returns nothing",
@@ -116,7 +117,8 @@
             "              route by name order.place to order.factory.target",
             "              direct channel order.factory.target",
             "                resolve the aggregate identifier to {\"orderId\":\"1\"}",
-            "                reply array to output channel order.factory.target-connection",
+            "                forward array by the output channel order.factory.target-connection, configured on the handler; the reply channel of the request stays on the message",
+            "                  the forwarded message carries the array the handler returned, with the headers of the request; added: ecotone.modelling.aggregate.id",
             "                  direct channel order.factory.target-connection",
             "                    step HeaderEnricher::transform returns a message of array",
             "                    resolve the aggregate identifier to {\"orderId\":\"1\"}",
@@ -129,8 +131,8 @@
             "                          handler class@anonymous::placeAgain returns nothing",
             "                    save the aggregate",
             "                      repository saves class@anonymous",
-            "                    no reply",
-            "              no reply"
+            "                    nothing handed over: the handler returned nothing",
+            "              nothing handed over: the handler returned nothing"
         ]}
     ]
 }

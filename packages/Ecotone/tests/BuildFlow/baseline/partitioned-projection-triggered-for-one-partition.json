@@ -125,7 +125,7 @@
             "                      entrypoint sends to projecting_manager_batch:tenant_orders",
             "                        direct channel ecotone.messaging.entrypoint",
             "                          router HeaderRouter::route returns array",
-            "                          route to projecting_manager_batch:tenant_orders",
+            "                          route to projecting_manager_batch:tenant_orders, named by the header ecotone.messaging.entrypoint of the message",
             "                          direct channel projecting_manager_batch:tenant_orders",
             "                            handler ProjectingManager::executePartitionBatch returns int",
             "                              load partition tenant-1 of tenant_orders found nothing",
@@ -140,15 +140,15 @@
             "                                  around TracingInterceptor::traceHandlerEndpoint",
             "                                    span process class@anonymous::whenPlaced",
             "                                      handler class@anonymous::whenPlaced returns nothing",
-            "                                no reply",
+            "                                nothing handed over: the handler returned nothing",
             "                              flush the projection",
             "                              save partition tenant-1 at position 1 of tenant_orders",
             "                              commit the projection transaction",
-            "                            reply int to the reply channel of the request",
+            "                            reply int to the reply channel of the request, where its sender waits for it",
             "                      entrypoint sends to projecting_manager_batch:tenant_orders",
             "                        direct channel ecotone.messaging.entrypoint",
             "                          router HeaderRouter::route returns array",
-            "                          route to projecting_manager_batch:tenant_orders",
+            "                          route to projecting_manager_batch:tenant_orders, named by the header ecotone.messaging.entrypoint of the message",
             "                          direct channel projecting_manager_batch:tenant_orders",
             "                            handler ProjectingManager::executePartitionBatch returns int",
             "                              load partition tenant-1 of tenant_orders found it at position 1",
@@ -157,9 +157,9 @@
             "                              load events of tenant_orders partition tenant-1 after position 1, up to 1000 got 0 events",
             "                              save partition tenant-1 at position 1 of tenant_orders",
             "                              commit the projection transaction",
-            "                            reply int to the reply channel of the request",
-            "                no reply",
-            "            no reply"
+            "                            reply int to the reply channel of the request, where its sender waits for it",
+            "                nothing handed over: the handler returned nothing",
+            "            nothing handed over: the handler returned nothing"
         ]}
     ]
 }

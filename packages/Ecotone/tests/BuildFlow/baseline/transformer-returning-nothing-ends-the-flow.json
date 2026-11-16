@@ -72,11 +72,12 @@
             "                  around TracingInterceptor::traceHandlerEndpoint",
             "                    span process class@anonymous::place",
             "                      handler class@anonymous::place returns string",
-            "                reply string to output channel order.filter",
+            "                forward string by the output channel order.filter, configured on class@anonymous::place; the reply channel of the request stays on the message",
+            "                  the forwarded message carries the string the handler returned, with the headers of the request",
             "                  publish-subscribe channel order.filter",
             "                    transformer class@anonymous::filter returns nothing",
-            "                    no reply",
-            "              no reply"
+            "                    nothing handed over: the handler returned nothing",
+            "              nothing handed over: the handler returned nothing"
         ]}
     ]
 }

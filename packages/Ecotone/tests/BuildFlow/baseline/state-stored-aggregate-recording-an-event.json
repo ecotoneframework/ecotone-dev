@@ -101,7 +101,8 @@
             "              route by name order.create to order.creating.target",
             "              direct channel order.creating.target",
             "                resolve the aggregate identifier to {\"orderId\":\"1\"}",
-            "                reply array to output channel order.creating.target-connection",
+            "                forward array by the output channel order.creating.target-connection, configured on the handler; the reply channel of the request stays on the message",
+            "                  the forwarded message carries the array the handler returned, with the headers of the request; added: ecotone.modelling.aggregate.id",
             "                  direct channel order.creating.target-connection",
             "                    step HeaderEnricher::transform returns a message of array",
             "                    around MessageHandlerLogger::aroundCommandHandler",
@@ -123,10 +124,10 @@
             "                                      around TracingInterceptor::traceHandlerEndpoint",
             "                                        span process class@anonymous::on",
             "                                          handler class@anonymous::on returns nothing",
-            "                                    no reply",
-            "                                no reply",
-            "                    reply string to the reply channel of the request",
-            "              no reply"
+            "                                    nothing handed over: the handler returned nothing",
+            "                                nothing handed over: the handler returned nothing",
+            "                    reply string to the reply channel of the request, where its sender waits for it",
+            "              nothing handed over: the handler returned nothing"
         ]}
     ]
 }

@@ -74,7 +74,8 @@
             "                  around TracingInterceptor::traceHandlerEndpoint",
             "                    span process class@anonymous::import",
             "                      handler class@anonymous::import returns array",
-            "                reply array to output channel batch.split",
+            "                forward array by the output channel batch.split, configured on class@anonymous::import; the reply channel of the request stays on the message",
+            "                  the forwarded message carries the array the handler returned, with the headers of the request",
             "                  publish-subscribe channel batch.split",
             "                    UngatheredSplitterProcessor, chosen by the licence",
             "                      splitter class@anonymous::split returns array",
@@ -83,14 +84,14 @@
             "                        around TracingInterceptor::traceHandlerEndpoint",
             "                          span process class@anonymous::handle",
             "                            handler class@anonymous::handle returns nothing",
-            "                      no reply",
+            "                      nothing handed over: the handler returned nothing",
             "                    direct channel item.handle",
             "                      around MessageHandlerLogger::aroundMessageHandler",
             "                        around TracingInterceptor::traceHandlerEndpoint",
             "                          span process class@anonymous::handle",
             "                            handler class@anonymous::handle returns nothing",
-            "                      no reply",
-            "              no reply"
+            "                      nothing handed over: the handler returned nothing",
+            "              nothing handed over: the handler returned nothing"
         ]}
     ]
 }

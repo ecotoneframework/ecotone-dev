@@ -96,14 +96,15 @@
             "            span route shipping.paying shipping.paying.target",
             "              direct channel shipping.paying.target",
             "                resolve the aggregate identifier to {\"orderId\":\"unknown\"}",
-            "                reply FlowPaymentReceived to output channel shipping.paying.target-connection",
+            "                forward FlowPaymentReceived by the output channel shipping.paying.target-connection, configured on the handler",
+            "                  the forwarded message carries the FlowPaymentReceived the handler returned, with the headers of the request; added: ecotone.modelling.aggregate.id",
             "                  direct channel shipping.paying.target-connection",
             "                    step HeaderEnricher::transform returns a message of FlowPaymentReceived",
             "                    resolve the aggregate identifier to {\"orderId\":\"unknown\"}",
             "                    load the aggregate dropped the message, as no aggregate was found",
             "                      repository finds class@anonymous by {\"orderId\":\"unknown\"} nothing",
-            "                    no reply",
-            "            no reply"
+            "                    nothing handed over: the handler returned nothing",
+            "            nothing handed over: the handler returned nothing"
         ]}
     ]
 }

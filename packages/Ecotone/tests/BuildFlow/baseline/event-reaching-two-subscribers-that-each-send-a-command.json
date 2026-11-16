@@ -100,9 +100,9 @@
             "                                        around TracingInterceptor::traceHandlerEndpoint",
             "                                          span process class@anonymous::register",
             "                                            handler class@anonymous::register returns nothing",
-            "                                      no reply",
-            "                                    no reply",
-            "                no reply",
+            "                                      nothing handed over: the handler returned nothing",
+            "                                    nothing handed over: the handler returned nothing",
+            "                nothing handed over: the handler returned nothing",
             "            span route merchant.to.second.user merchant.to.second.user.target",
             "              direct channel merchant.to.second.user.target",
             "                around MessageHandlerLogger::aroundEventHandler",
@@ -122,10 +122,10 @@
             "                                        around TracingInterceptor::traceHandlerEndpoint",
             "                                          span process class@anonymous::register",
             "                                            handler class@anonymous::register returns nothing",
-            "                                      no reply",
-            "                                    no reply",
-            "                no reply",
-            "            no reply"
+            "                                      nothing handed over: the handler returned nothing",
+            "                                    nothing handed over: the handler returned nothing",
+            "                nothing handed over: the handler returned nothing",
+            "            nothing handed over: the handler returned nothing"
         ]}
     ]
 }

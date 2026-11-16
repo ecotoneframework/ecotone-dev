@@ -34,6 +34,8 @@ final class ExecutionRecordingTracer implements Tracer
     private bool $spanStartedInOpenEntry = false;
     private bool $invocationInOpenEntry = false;
     private bool $housekeepingInOpenEntry = false;
+    /** @var array<string, array{depth: int, collected: array<string, true>}> channel => message ids its collector holds while its sender runs */
+    private array $collectors = [];
     /** @var list<?string> failure that reached each open interceptor of flow testing, by its short class */
     private array $flowTestingFailures = [];
 
@@ -180,6 +182,37 @@ final class ExecutionRecordingTracer implements Tracer
             return;
         }
         $this->spanRecorder->record($span);
+    }
+
+    public function openCollector(string $channelName): void
+    {
+        $collector = $this->collectors[$channelName] ?? ['depth' => 0, 'collected' => []];
+        $collector['depth']++;
+        $this->collectors[$channelName] = $collector;
+    }
+
+    public function closeCollector(string $channelName): void
+    {
+        if (--$this->collectors[$channelName]['depth'] === 0) {
+            unset($this->collectors[$channelName]);
+        }
+    }
+
+    public function collect(string $channelName, string $messageId): void
+    {
+        if (isset($this->collectors[$channelName])) {
+            $this->collectors[$channelName]['collected'][$messageId] = true;
+        }
+    }
+
+    public function releaseCollected(string $channelName, string $messageId): bool
+    {
+        if (! isset($this->collectors[$channelName]['collected'][$messageId])) {
+            return false;
+        }
+        unset($this->collectors[$channelName]['collected'][$messageId]);
+
+        return true;
     }
 
     public function markHousekeeping(): void

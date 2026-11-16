@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing\Execution;
 
+use Ecotone\Messaging\Channel\Collector\CollectorSenderInterceptor;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
@@ -37,6 +38,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
     public const PRESEND = 'presend';
     public const ROUTER = 'router';
     private const CHANNEL_ID_PREFIX = 'channel-';
+    private const COLLECTOR_SENDER_PREFIX = CollectorSenderInterceptor::class . '.';
     private const POLL_HOUSEKEEPING = [
         MessageHeadersPropagatorInterceptor::class . '::enablePollingConsumerPropagation',
         MessageHeadersPropagatorInterceptor::class . '::disablePollingConsumerPropagation',
@@ -200,7 +202,10 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 $recordedInterceptors[] = self::recordingInterceptor('observeFlowTesting', $interceptor);
                 continue;
             }
-            if ($interceptor !== null) {
+            $reference = $interceptor !== null ? $aroundInterceptor->getArguments()[0] : null;
+            if ($reference instanceof Reference && str_starts_with($reference->getId(), self::COLLECTOR_SENDER_PREFIX)) {
+                $recordedInterceptors[] = self::recordingInterceptor('recordCollectorSender', substr($reference->getId(), strlen(self::COLLECTOR_SENDER_PREFIX)));
+            } elseif ($interceptor !== null) {
                 $recordedInterceptors[] = self::recordingInterceptor('recordAround', $interceptor);
             }
             $recordedInterceptors[] = $this->recorded($aroundInterceptor, null, $builder);

@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Before;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -22,9 +23,11 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\GatheredParts;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\Flow\Snapshot\FlowExecution;
@@ -574,6 +577,44 @@ final class ExecutionRecordingTest extends TracingTestCase
         $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines());
 
         self::assertSame('reply string dropped, as no channel waits for it', $lines[array_key_last($lines)]);
+    }
+
+    public function test_a_message_collected_by_a_handler_that_failed_is_not_read_as_released_when_sent_again(): void
+    {
+        $recorder = new InMemorySpanRecorder();
+        $orders = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
+            public function place(string $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', $order, metadata: [MessageHeaders::MESSAGE_ID => '0b3c8e2a-5f8c-4d5e-9a3f-2b1c0d9e8f7a']);
+
+                throw new RuntimeException('placing failed');
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'order.placed.endpoint')]
+            public function notify(string $order): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$orders::class],
+            [$orders, ...self::recordingSpansInto($recorder)],
+            [self::tracingConfiguration()->withExecutionRecording(), SimpleMessageChannelBuilder::createQueueChannel('orders'), SimpleMessageChannelBuilder::createQueueChannel('notifications')],
+            enabledModules: [],
+        );
+
+        $ecotone->sendCommandWithRouting('order.place', 'order-1');
+        try {
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        } catch (RuntimeException) {
+        }
+        $ecotone->publishEventWithRouting('order.placed', 'order-1', metadata: [MessageHeaders::MESSAGE_ID => '0b3c8e2a-5f8c-4d5e-9a3f-2b1c0d9e8f7a']);
+        $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines());
+
+        self::assertNotContains('release collected message to notifications', $lines);
+        self::assertContains('send notifications', $lines);
     }
 
     /**

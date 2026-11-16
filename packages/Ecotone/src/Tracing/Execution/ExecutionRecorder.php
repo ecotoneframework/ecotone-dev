@@ -6,6 +6,7 @@ namespace Ecotone\Tracing\Execution;
 
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Messaging\Channel\Collector\CollectorSenderInterceptor;
 use Throwable;
 
 /**
@@ -34,6 +35,16 @@ final class ExecutionRecorder
         }
 
         return $result;
+    }
+
+    public function recordCollectorSender(string $channelName, MethodInvocation $methodInvocation): mixed
+    {
+        $this->tracer->openCollector($channelName);
+        try {
+            return $this->recordAround(CollectorSenderInterceptor::class . '::send', $methodInvocation);
+        } finally {
+            $this->tracer->closeCollector($channelName);
+        }
     }
 
     public function recordInvocation(string $role, MethodInvocation $methodInvocation): mixed

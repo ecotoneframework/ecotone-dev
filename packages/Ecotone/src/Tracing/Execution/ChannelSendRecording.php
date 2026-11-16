@@ -21,8 +21,6 @@ final class ChannelSendRecording
 
     /** @var list<array{step: ?ExecutionStep, ran: int, messageId: string, failed: ?string, failedAfter: array<int, bool>}> */
     private array $openSends = [];
-    /** @var array<string, true> message id => held by the collector until the handler ends */
-    private array $collected = [];
 
     /**
      * @param list<string> $interceptors class of each channel interceptor, in the order they run
@@ -38,8 +36,7 @@ final class ChannelSendRecording
     public function started(Message $message): void
     {
         $messageId = $message->getHeaders()->getMessageId();
-        $released = isset($this->collected[$messageId]);
-        unset($this->collected[$messageId]);
+        $released = $this->tracer->releaseCollected($this->channelName, $messageId);
         $this->openSends[] = [
             'step' => $this->onlyFlowTestingIntercepts ? null : $this->tracer->startEntry(($released ? 'release collected message to ' : 'send ') . $this->channelName),
             'ran' => 0,
@@ -78,7 +75,7 @@ final class ChannelSendRecording
         if ($failure === null && $send['failed'] === null && $send['ran'] < count($this->interceptors)) {
             $stoppedBy = ExecutionRecordingTracer::shortClassOf($this->interceptors[$send['ran']]);
             if ($stoppedBy === self::COLLECTOR) {
-                $this->collected[$send['messageId']] = true;
+                $this->tracer->collect($this->channelName, $send['messageId']);
             }
             $this->tracer->recordStep($stoppedBy === self::COLLECTOR ? 'collected, held until the handler ends' : 'channel interceptor ' . $stoppedBy . ' stopped the message');
         }

@@ -174,7 +174,7 @@ final class ExecutionRecordingTracer implements Tracer
 
     private function closeEntry(Span $entry): void
     {
-        if ($this->spanStartedInOpenEntry) {
+        if ($this->spanStartedInOpenEntry || $entry->status === SpanStatus::Error) {
             foreach ([...$this->stepsOfOpenEntry, $entry] as $span) {
                 $this->spanRecorder->record($span);
             }

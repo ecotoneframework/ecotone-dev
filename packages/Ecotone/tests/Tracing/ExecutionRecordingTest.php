@@ -23,6 +23,7 @@ use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
+use RuntimeException;
 
 /**
  * licence Apache-2.0
@@ -441,6 +442,45 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $ecotone->sendDirectToChannel('summary', 'not a part');
         $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup());
+    }
+
+    public function test_a_process_that_fails_before_its_first_span_is_recorded_with_its_failure(): void
+    {
+        $recorder = new InMemorySpanRecorder();
+        $orders = new class () {
+            #[CommandHandler('order.place')]
+            public function place(string $order): void
+            {
+            }
+        };
+        $interceptors = new class () {
+            #[Before(pointcut: CommandBus::class)]
+            public function refuseTheCommand(): void
+            {
+                throw new RuntimeException('refused');
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$orders::class, $interceptors::class],
+            [$orders, $interceptors, ...self::recordingSpansInto($recorder)],
+            [self::tracingConfiguration()->withExecutionRecording()],
+            enabledModules: [],
+        );
+
+        try {
+            $ecotone->sendCommandWithRouting('order.place', 'order-1');
+        } catch (RuntimeException) {
+        }
+
+        self::assertSame(
+            [
+                'process 1: gateway CommandBus::sendWithRouting',
+                '  gateway CommandBus::sendWithRouting throws RuntimeException',
+                '    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array',
+                '    before class@anonymous::refuseTheCommand throws RuntimeException',
+            ],
+            FlowExecution::of($recorder->recordedSpans())->lines(),
+        );
     }
 
     /**

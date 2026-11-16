@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tracing;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Fetch;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Splitter;
@@ -15,7 +19,9 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
+use Ecotone\Api\Tracing\Span;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
@@ -142,6 +148,64 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         self::assertContains('acknowledged: resent to the channel, by the final failure strategy resend', $lines);
     }
 
+    public function test_an_aggregate_is_recorded_as_identifier_resolution_load_handler_and_save_with_its_repository_calls(): void
+    {
+        $lines = self::executionOf('state-stored aggregate recording an event');
+
+        self::assertNotEmpty(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'resolve the aggregate identifier')));
+        self::assertNotEmpty(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'save the aggregate')));
+        self::assertNotEmpty(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'repository saves ')));
+    }
+
+    public function test_the_events_an_aggregate_recorded_are_published_from_its_save(): void
+    {
+        $lines = FlowExecution::of(self::spansOf('state-stored aggregate recording an event'))->lines();
+        $save = array_key_first(array_filter($lines, fn (string $line): bool => str_starts_with(trim($line), 'save the aggregate')));
+        $publish = array_key_first(array_filter($lines, fn (string $line, int $position): bool => $position > (int) $save && str_starts_with(trim($line), 'gateway EventBus::publish'), ARRAY_FILTER_USE_BOTH));
+
+        self::assertIsInt($save);
+        self::assertIsInt($publish);
+        self::assertGreaterThan(strlen($lines[$save]) - strlen(ltrim($lines[$save])), strlen($lines[$publish]) - strlen(ltrim($lines[$publish])));
+    }
+
+    public function test_a_saga_load_is_recorded_as_found_or_as_dropping_the_message(): void
+    {
+        self::assertContains('load the aggregate found it', self::executionOf('saga continued by a second event mapped to it'));
+        self::assertContains('load the aggregate dropped the message, as no aggregate was found', self::executionOf('event for an unknown saga is dropped'));
+    }
+
+    public function test_an_event_sourced_aggregate_is_recorded_applying_its_events_when_loaded(): void
+    {
+        $lines = $this->recorded([ExecutionRecordedEventSourcedOrder::class, ExecutionRecordedOrderWasPlaced::class], [], [], function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommandWithRouting('es_order.place', ['orderId' => 'order-1']);
+            $ecotone->sendCommandWithRouting('es_order.cancel', ['orderId' => 'order-1']);
+        });
+
+        self::assertNotEmpty(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'repository finds ExecutionRecordedEventSourcedOrder')));
+        self::assertContains('apply ExecutionRecordedOrderWasPlaced to ExecutionRecordedEventSourcedOrder', $lines);
+    }
+
+    public function test_a_handler_fetching_an_aggregate_runs_the_same_while_recorded(): void
+    {
+        $orders = new class () {
+            public ?string $fetched = null;
+
+            #[CommandHandler('order.inspect')]
+            public function inspect(string $orderId, #[Fetch('payload')] ExecutionRecordedEventSourcedOrder $order): void
+            {
+                $this->fetched = $orderId;
+            }
+        };
+
+        $lines = $this->recorded([ExecutionRecordedEventSourcedOrder::class, ExecutionRecordedOrderWasPlaced::class, $orders::class], [$orders], [], function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommandWithRouting('es_order.place', ['orderId' => 'order-1']);
+            $ecotone->sendCommandWithRouting('order.inspect', 'order-1');
+        });
+
+        self::assertSame('order-1', $orders->fetched);
+        self::assertContains('repository finds ExecutionRecordedEventSourcedOrder by {"orderId":"order-1"} it at version 1', $lines);
+    }
+
     /**
      * @param list<class-string> $classes
      * @param list<object> $services
@@ -168,6 +232,14 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
      */
     private static function executionOf(string $scenarioName): array
     {
+        return array_map(trim(...), FlowExecution::of(self::spansOf($scenarioName))->lines());
+    }
+
+    /**
+     * @return list<Span>
+     */
+    private static function spansOf(string $scenarioName): array
+    {
         foreach (FlowScenarioCatalogue::all() as $scenario) {
             if ($scenario->name !== $scenarioName) {
                 continue;
@@ -184,7 +256,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
                 self::assertNull($scenario->runStage($stage, $ecotone));
             }
 
-            return array_map(trim(...), FlowExecution::of($recorder->recordedSpans())->lines());
+            return $recorder->recordedSpans();
         }
         self::fail("No scenario named {$scenarioName} in the flow scenario catalogue");
     }
@@ -203,5 +275,39 @@ final class ExecutionRecordedOrders
         if ($order === 'failing') {
             throw new RuntimeException('placing failed');
         }
+    }
+}
+
+#[EventSourcingAggregate]
+final class ExecutionRecordedEventSourcedOrder
+{
+    use WithAggregateVersioning;
+
+    #[Identifier]
+    private string $orderId;
+
+    #[CommandHandler('es_order.place')]
+    public static function place(array $command): array
+    {
+        return [new ExecutionRecordedOrderWasPlaced($command['orderId'])];
+    }
+
+    #[CommandHandler('es_order.cancel')]
+    public function cancel(): array
+    {
+        return [];
+    }
+
+    #[Apply]
+    public function applyPlaced(ExecutionRecordedOrderWasPlaced $event): void
+    {
+        $this->orderId = $event->orderId;
+    }
+}
+
+final class ExecutionRecordedOrderWasPlaced
+{
+    public function __construct(public readonly string $orderId)
+    {
     }
 }

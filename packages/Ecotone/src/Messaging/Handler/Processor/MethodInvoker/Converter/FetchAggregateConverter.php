@@ -11,7 +11,7 @@ use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Messaging\Handler\ExpressionResult;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
-use Ecotone\Modelling\Repository\AllAggregateRepository;
+use Ecotone\Modelling\Repository\AggregateRepository;
 use InvalidArgumentException;
 use Throwable;
 
@@ -36,7 +36,7 @@ use Throwable;
 class FetchAggregateConverter implements ParameterConverter
 {
     public function __construct(
-        private AllAggregateRepository $aggregateRepository,
+        private AggregateRepository $aggregateRepository,
         private string $aggregateClassName,
         private AttributeExpressionExecutor $expressionExecutor,
         private bool $doesAllowsNull,

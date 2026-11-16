@@ -35,8 +35,13 @@ use Ecotone\Messaging\Handler\Router\Router;
 use Ecotone\Messaging\Handler\Router\RouterProcessor;
 use Ecotone\Messaging\Handler\Transformer\TransformerResultToMessageConverter;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\AggregateFlow\LoadAggregate\LoadAggregateMessageProcessor;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
+use Ecotone\Modelling\AggregateIdentifierRetrevingService;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
+use Ecotone\Modelling\EventSourcingExecutor\ApplyMethodExecutor;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
+use Ecotone\Modelling\Repository\AllAggregateRepository;
 use Ecotone\Tracing\Tracer;
 
 /**
@@ -68,6 +73,9 @@ final class RecordExecutionCompilerPass implements CompilerPass
     public function process(ContainerBuilder $builder): void
     {
         $this->visited = [];
+        if ($builder->has(AllAggregateRepository::class)) {
+            $builder->replace(AllAggregateRepository::class, new Definition(RecordedAggregateRepository::class, [$builder->getDefinition(AllAggregateRepository::class), new Reference(Tracer::class)]));
+        }
         if ($builder->has(GatheredGroupStore::class)) {
             $builder->replace(GatheredGroupStore::class, new Definition(RecordedGatheredGroupStore::class, [$builder->getDefinition(GatheredGroupStore::class), new Reference(Tracer::class)]));
         }
@@ -165,6 +173,10 @@ final class RecordExecutionCompilerPass implements CompilerPass
             RequestReplyProducer::class => $this->withRecordedReply($value, $builder),
             GatheringPartCompletion::class => self::withRecordedPartReports($value),
             GatheringMessageHandler::class => self::withRecordedGathering($value),
+            AggregateIdentifierRetrevingService::class => self::recordedAggregateStep($value, RecordedAggregateStep::IDENTIFIER),
+            LoadAggregateMessageProcessor::class => self::recordedAggregateStep($value, RecordedAggregateStep::LOAD),
+            SaveAggregateService::class => self::recordedAggregateStep($value, RecordedAggregateStep::SAVE),
+            ApplyMethodExecutor::class => self::withRecordedApply($value),
             default => $value,
         };
     }
@@ -208,6 +220,20 @@ final class RecordExecutionCompilerPass implements CompilerPass
             OrchestratorResultMessageConverter::class => self::ORCHESTRATOR,
             default => $role,
         };
+    }
+
+    private static function recordedAggregateStep(Definition $processor, string $step): Definition
+    {
+        return new Definition(RecordedAggregateStep::class, [$processor, $step, new Reference(Tracer::class)]);
+    }
+
+    private static function withRecordedApply(Definition $applyMethodExecutor): Definition
+    {
+        $arguments = $applyMethodExecutor->getArguments();
+        $arguments[2] = new Definition(RecordedAggregateMethodInvoker::class, [$arguments[2], new Reference(Tracer::class)]);
+        $applyMethodExecutor->replaceArguments($arguments);
+
+        return $applyMethodExecutor;
     }
 
     private static function withRecordedPartReports(Definition $partCompletion): Definition

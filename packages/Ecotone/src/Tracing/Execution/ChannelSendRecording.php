@@ -46,6 +46,7 @@ final class ChannelSendRecording
         array $interceptors,
         private array $declaredPhases,
         private bool $onlyFlowTestingIntercepts,
+        private bool $queued,
         private MessageBuilder $messageBuilder,
         private ExecutionRecordingTracer $tracer,
     ) {
@@ -96,7 +97,7 @@ final class ChannelSendRecording
             return;
         }
         if ($send['step'] !== null) {
-            $this->openSends[$current]['put'] = $this->tracer->startStep('put on channel ' . $this->channelName);
+            $this->openSends[$current]['put'] = $this->tracer->startStep(($this->queued ? 'put on channel ' : 'deliver inline to ') . $this->channelName);
         }
     }
 

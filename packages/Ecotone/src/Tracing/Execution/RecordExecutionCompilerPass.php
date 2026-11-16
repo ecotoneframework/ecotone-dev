@@ -153,6 +153,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 array_map(fn (string $class, mixed $interceptor): string|Reference => $interceptor instanceof Reference && ! class_exists($class) ? $interceptor : $class, $interceptorClasses, array_values($arguments[1])),
                 array_map(self::declaredPhasesOf(...), $interceptorClasses),
                 array_values(array_filter($interceptorClasses, fn (string $class): bool => ! self::isFlowTesting($class))) === [],
+                $channel->getClassName() === PollableChannelInterceptorAdapter::class,
                 new Reference(MessageBuilder::class),
                 new Reference(Tracer::class),
             ]));

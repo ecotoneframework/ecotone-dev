@@ -232,6 +232,15 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         self::assertSame('↳ result: nothing returned by class@anonymous::place', $lines[$noHandOver[1] + 1]);
     }
 
+    public function test_a_send_to_a_direct_channel_runs_its_subscriber_inline_and_a_send_to_a_queue_puts_it_on_the_queue(): void
+    {
+        $lines = array_map(trim(...), $this->asynchronousOrder());
+
+        self::assertContains('deliver inline to order.place.endpoint.target', $lines);
+        self::assertNotContains('put on channel order.place.endpoint.target', $lines);
+        self::assertContains('put on channel orders', $lines);
+    }
+
     public function test_no_step_names_a_class_of_the_recording(): void
     {
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');

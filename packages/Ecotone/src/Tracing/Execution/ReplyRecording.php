@@ -44,9 +44,10 @@ final class ReplyRecording
         $position = count($this->openRequests) - 1;
         $this->openRequests[$position]['handedOver'] = true;
         $request = $this->openRequests[$position]['request'];
+        $reply = $this->openRequests[$position]['reply'] ?? $request;
         $step = $this->tracer->startStep('forward to ' . $channelName, hints: array_values(array_filter([
             ExecutionHint::critical(ExecutionHint::CHOSEN_BY, $mechanism === self::OUTPUT_CHANNEL ? 'output channel of ' . $this->handler : 'routing slip'),
-            self::routingSlipChangeOf($request, $forwarded),
+            self::routingSlipChangeOf($mechanism === self::ROUTING_SLIP ? $reply : $request, $forwarded),
             $forwarded->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL) ? ExecutionHint::detail(ExecutionHint::KEPT, 'reply channel of the request') : null,
             ...self::forwardedOf($request, $forwarded),
         ])));
@@ -96,6 +97,9 @@ final class ReplyRecording
         $after = self::routingSlipOf($handedOver);
         if ($before === [] && $after === []) {
             return null;
+        }
+        if ($before === $after) {
+            return ExecutionHint::critical(ExecutionHint::KEPT, 'routing slip ' . implode(', ', $after));
         }
 
         return ExecutionHint::critical(ExecutionHint::ROUTING_SLIP, ($before === [] ? 'none' : implode(', ', $before)) . ' → ' . ($after === [] ? 'none' : implode(', ', $after)));

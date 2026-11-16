@@ -173,6 +173,23 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         );
     }
 
+    public function test_the_routing_slip_hint_shows_the_slip_the_handler_returned_and_what_the_forward_left(): void
+    {
+        $lines = array_map(trim(...), self::executionOf('orchestrator gateway starting the flow'));
+        $forward = self::positionOf($lines, 'forward to approval.validate');
+
+        self::assertSame(['↳ chosen by: routing slip', '↳ routing slip: approval.validate, approval.notify → approval.notify'], array_slice($lines, $forward + 1, 2));
+    }
+
+    public function test_a_routing_slip_the_output_channel_leaves_unchanged_is_kept_not_shown_as_changed(): void
+    {
+        $lines = array_map(trim(...), self::executionOf('failure is retried with a delay, then sent to the dead letter'));
+        $forward = self::positionOf($lines, 'forward to dead_letter');
+
+        self::assertSame(['↳ chosen by: output channel of DelayedRetryErrorHandler::handle', '↳ kept: routing slip order.placing.target.execute'], array_slice($lines, $forward + 1, 2));
+        self::assertSame([], preg_grep('/^↳ routing slip: (.+) → \1$/', $lines));
+    }
+
     public function test_no_step_names_a_class_of_the_recording(): void
     {
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');

@@ -223,7 +223,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         $lines = self::executionOf('failure is retried with a delay, then sent to the dead letter');
 
         self::assertStep($lines, 'send orders', ['retry: 1, delayed 0 ms', 'taken by: process 3, a separate consumer run']);
-        self::assertStep($lines, 'forward to dead_letter', ['chosen by: output channel of DelayedRetryErrorHandler::handle', 'routing slip: order.placing.target.execute → order.placing.target.execute']);
+        self::assertStep($lines, 'forward to dead_letter', ['chosen by: output channel of DelayedRetryErrorHandler::handle', 'kept: routing slip order.placing.target.execute']);
     }
 
     public function test_a_conversion_is_recorded_as_its_own_step_on_the_send_and_on_the_handler_argument(): void

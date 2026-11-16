@@ -104,6 +104,56 @@ final class FlowWording
         };
     }
 
+    /**
+     * @param array{change: string, step: string, steps: int, times: int, movement: string, parent: string, changedInside: bool} $moved
+     */
+    public static function ofMovedSteps(array $moved): string
+    {
+        $where = ($moved['movement'] === FlowExecutionChange::UNDER ? 'now run under the ' : 'no longer run under the ') . self::stepNameOf($moved['parent']) . ' step';
+
+        return str_repeat(' ', strspn($moved['step'], ' '))
+            . '… ' . ($moved['times'] > 1 ? $moved['times'] . ' × ' : '') . ltrim($moved['step'], ' ')
+            . ' (' . $moved['steps'] . ' step' . ($moved['steps'] === 1 ? '' : 's') . ($moved['times'] > 1 ? ' each' : '') . '): '
+            . ($moved['changedInside'] ? 'moved, ' . $where . ', and inside it:' : 'unchanged, ' . $where);
+    }
+
+    /**
+     * @param list<array{change: string, step?: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool}> $steps
+     */
+    public static function ofChangedProcess(array $steps): string
+    {
+        $moved = array_filter($steps, fn (array $entry): bool => $entry['change'] === FlowScenarioChange::MOVED);
+        if ($moved === []) {
+            return 'runs other steps now.';
+        }
+        $count = array_sum(array_map(fn (array $entry): int => $entry['steps'] * $entry['times'], $moved));
+        $movements = array_unique(array_column($moved, 'movement'));
+        $where = match (true) {
+            count($movements) > 1 => 'under or out of another step',
+            reset($movements) === FlowExecutionChange::UNDER => 'under another step',
+            default => 'outside the step they ran under',
+        };
+        $runsOtherSteps = array_filter($steps, fn (array $entry): bool => in_array($entry['change'], [FlowScenarioChange::ADDED, FlowScenarioChange::REMOVED], true)) !== [];
+
+        return $runsOtherSteps
+            ? "runs other steps now, and {$count} of its steps now run {$where}."
+            : "runs the same steps, {$count} of them now {$where}.";
+    }
+
+    private static function stepNameOf(string $step): string
+    {
+        $words = explode(' ', $step);
+        $named = [];
+        foreach ($words as $word) {
+            $named[] = $word;
+            if (str_contains($word, '::')) {
+                return implode(' ', $named);
+            }
+        }
+
+        return $words[0];
+    }
+
     private static function ofAnonymousHandler(FlowNode $node, MessageFlowGraph $wiring, bool $withItsKind): string
     {
         $method = (string) $node->attributes['method'];

@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
@@ -126,6 +129,77 @@ final class BuildFlowExecutionTest extends TestCase
         );
     }
 
+    public function test_steps_that_only_run_deeper_under_a_new_step_are_reported_as_moved_under_it_with_their_count(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->orderingWrappedInAround(), executionRecording: true);
+
+        $presented = $this->presented('A');
+
+        self::assertMatchesRegularExpression('/\n\+ +around class@anonymous::wrap\n {4,}… around MessageHandlerLogger::aroundCommandHandler \(\d+ steps\): unchanged, now run under the around class@anonymous::wrap step\n/', $presented);
+        self::assertDoesNotMatchRegularExpression('/\n- /', $this->whatRan($presented));
+    }
+
+    public function test_steps_that_moved_and_changed_inside_show_the_move_once_and_only_their_changed_steps(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->orderingWithAuditWrappedInAround(), executionRecording: true);
+
+        $presented = $this->presented('A');
+
+        self::assertMatchesRegularExpression('/\n {4,}… around MessageHandlerLogger::aroundCommandHandler \(\d+ steps\): moved, now run under the around class@anonymous::wrap step, and inside it:\n/', $presented);
+        self::assertSame(1, substr_count($presented, 'MessageHandlerLogger::aroundCommandHandler'));
+        self::assertMatchesRegularExpression('/\n\+ +handler class@anonymous::audit returns nothing\n/', $presented);
+        preg_match_all('/^- +(.+)$/m', $this->whatRan($presented), $removed);
+        self::assertSame(['route by name order.placed to whenOrderWasPlaced.target'], $removed[1]);
+    }
+
+    public function test_steps_that_lost_the_step_they_ran_under_are_reported_as_moved_out_of_it(): void
+    {
+        $this->record('Placing an order', 'before', $this->orderingWrappedInAround(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+
+        $presented = $this->presented('A');
+
+        self::assertMatchesRegularExpression('/\n- +around class@anonymous::wrap\n {4,}… around MessageHandlerLogger::aroundCommandHandler \(\d+ steps\): unchanged, no longer run under the around class@anonymous::wrap step\n/', $presented);
+        self::assertDoesNotMatchRegularExpression('/\n\+ /', $this->whatRan($presented));
+    }
+
+    public function test_steps_that_changed_their_order_of_execution_stay_removed_and_added(): void
+    {
+        $this->record('Placing an order', 'before', $this->orderingWithTwoArounds(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->orderingWithTwoAroundsSwapped(), executionRecording: true);
+
+        $presented = $this->presented('A');
+
+        self::assertMatchesRegularExpression('/\n- +around class@anonymous::first\n- +around class@anonymous::second\n\+ +around class@anonymous::second\n\+ +around class@anonymous::first\n/', $presented);
+        self::assertStringNotContainsString('run under', $this->whatRan($presented));
+    }
+
+    public function test_a_process_whose_steps_only_moved_says_they_moved_under_another_step(): void
+    {
+        $this->record('Placing an order', 'before', $this->orderingPublishingBothEvents(), executionRecording: true, consumed: false);
+        $this->record('Placing an order', 'after', $this->orderingPublishingTheSecondEventFromTheFirstHandler(), executionRecording: true, consumed: false);
+
+        $presented = $this->presented('A');
+
+        self::assertMatchesRegularExpression('/\nProcess `send command order\.place, handled by class@anonymous::place`: runs the same steps, \d+ of them now under another step\.\n/', $presented);
+        self::assertMatchesRegularExpression('/\n {4,}… gateway EventBus::publishWithRouting returns nothing \(\d+ steps\): unchanged, now run under the handler class@anonymous::whenPlaced step\n/', $presented);
+        self::assertDoesNotMatchRegularExpression('/\n[-+] /', $this->whatRan($presented));
+    }
+
+    public function test_the_traced_steps_marked_new_are_the_same_when_what_ran_shows_steps_moved_under_a_new_step(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->orderingForwardedThroughACommand(), executionRecording: true);
+
+        $presented = $this->presented('A');
+
+        preg_match_all('/^ *(.+?)   ← new$/m', $presented, $new);
+        self::assertSame(['send command order.forward', 'process command handler forward', 'send event order.placed', 'route whenOrderWasPlaced → whenOrderWasPlaced.target'], $new[1]);
+        self::assertMatchesRegularExpression('/\n {4,}… gateway EventBus::publishWithRouting returns nothing \(\d+ steps\): (unchanged|moved), now run under the handler class@anonymous::forward step/', $presented);
+    }
+
     private function ordering(): object
     {
         return new class () {
@@ -155,6 +229,168 @@ final class BuildFlowExecutionTest extends TestCase
             #[EventHandler('order.placed', endpointId: 'audit')]
             public function audit(): void
             {
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'whenOrderWasPlaced')]
+            public function whenPlaced(): void
+            {
+            }
+        };
+    }
+
+    private function orderingWrappedInAround(): object
+    {
+        return new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', []);
+            }
+
+            #[Around(pointcut: CommandHandler::class)]
+            public function wrap(MethodInvocation $invocation): mixed
+            {
+                return $invocation->proceed();
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'whenOrderWasPlaced')]
+            public function whenPlaced(): void
+            {
+            }
+        };
+    }
+
+    private function orderingWithAuditWrappedInAround(): object
+    {
+        return new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', []);
+            }
+
+            #[Around(pointcut: CommandHandler::class)]
+            public function wrap(MethodInvocation $invocation): mixed
+            {
+                return $invocation->proceed();
+            }
+
+            #[EventHandler('order.placed', endpointId: 'audit')]
+            public function audit(): void
+            {
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'whenOrderWasPlaced')]
+            public function whenPlaced(): void
+            {
+            }
+        };
+    }
+
+    private function orderingWithTwoArounds(): object
+    {
+        return new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order): void
+            {
+            }
+
+            #[Around(precedence: 1, pointcut: CommandHandler::class)]
+            public function first(MethodInvocation $invocation): mixed
+            {
+                return $invocation->proceed();
+            }
+
+            #[Around(precedence: 2, pointcut: CommandHandler::class)]
+            public function second(MethodInvocation $invocation): mixed
+            {
+                return $invocation->proceed();
+            }
+        };
+    }
+
+    private function orderingWithTwoAroundsSwapped(): object
+    {
+        return new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order): void
+            {
+            }
+
+            #[Around(precedence: 2, pointcut: CommandHandler::class)]
+            public function first(MethodInvocation $invocation): mixed
+            {
+                return $invocation->proceed();
+            }
+
+            #[Around(precedence: 1, pointcut: CommandHandler::class)]
+            public function second(MethodInvocation $invocation): mixed
+            {
+                return $invocation->proceed();
+            }
+        };
+    }
+
+    private function orderingPublishingBothEvents(): object
+    {
+        return new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', []);
+                $eventBus->publishWithRouting('order.paid', []);
+            }
+
+            #[EventHandler('order.placed', endpointId: 'whenOrderWasPlaced')]
+            public function whenPlaced(array $event, EventBus $eventBus): void
+            {
+            }
+
+            #[EventHandler('order.paid', endpointId: 'whenOrderWasPaid')]
+            public function whenPaid(): void
+            {
+            }
+        };
+    }
+
+    private function orderingPublishingTheSecondEventFromTheFirstHandler(): object
+    {
+        return new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', []);
+            }
+
+            #[EventHandler('order.placed', endpointId: 'whenOrderWasPlaced')]
+            public function whenPlaced(array $event, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.paid', []);
+            }
+
+            #[EventHandler('order.paid', endpointId: 'whenOrderWasPaid')]
+            public function whenPaid(): void
+            {
+            }
+        };
+    }
+
+    private function orderingForwardedThroughACommand(): object
+    {
+        return new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order, CommandBus $commandBus): void
+            {
+                $commandBus->sendWithRouting('order.forward', []);
+            }
+
+            #[CommandHandler('order.forward', endpointId: 'forwardOrder')]
+            public function forward(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', []);
             }
 
             #[Asynchronous('notifications')]
@@ -214,6 +450,11 @@ final class BuildFlowExecutionTest extends TestCase
         $ecotone->runConsoleCommand('ecotone:build-flow:compare', ['from' => $this->location . '/before', 'to' => $this->location . '/after', 'presentation' => $presentation]);
 
         return $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
+    }
+
+    private function whatRan(string $presented): string
+    {
+        return substr($presented, (int) strpos($presented, '#### What ran, process by process'));
     }
 
     /**

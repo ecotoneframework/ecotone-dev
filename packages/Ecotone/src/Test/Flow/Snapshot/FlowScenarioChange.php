@@ -24,6 +24,7 @@ final class FlowScenarioChange
     public const REMOVED = 'removed';
     public const UNCHANGED = 'unchanged';
     public const LEFT_OUT = 'left out';
+    public const MOVED = 'moved';
     private const UNCHANGED_STEPS_KEPT_WHOLE = 8;
     private const UNCHANGED_NEIGHBOURS_OF_AN_EXECUTED_STEP = 2;
     private const DERIVED = 'derivedFromWiring';
@@ -32,7 +33,7 @@ final class FlowScenarioChange
     /**
      * @param list<array{change: string, step: array<string, mixed>}> $trace
      * @param list<array{change: string, kind: string, name: string, before?: array<string, scalar>, after?: array<string, scalar>, chain?: list<array{change: string, layer: string}>}> $build
-     * @param list<array{process: string, change: string, steps?: list<array{change: string, step?: string, steps?: int}>}> $execution
+     * @param list<array{process: string, change: string, steps?: list<array{change: string, step?: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool}>}> $execution
      */
     private function __construct(
         public readonly string $scenario,
@@ -640,7 +641,7 @@ final class FlowScenarioChange
     /**
      * @param list<array{process: string, steps: list<string>}> $before
      * @param list<array{process: string, steps: list<string>}> $after
-     * @return list<array{process: string, change: string, steps?: list<array{change: string, step?: string, steps?: int}>}>
+     * @return list<array{process: string, change: string, steps?: list<array{change: string, step?: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool}>}>
      */
     private static function executionChangesBetween(array $before, array $after): array
     {
@@ -656,7 +657,7 @@ final class FlowScenarioChange
                 $process[0] === null => ['process' => $entry['step'], 'change' => self::ADDED, 'steps' => array_map(fn (string $step): array => ['change' => self::ADDED, 'step' => $step], $process[1]['steps'])],
                 $process[1] === null => ['process' => $entry['step'], 'change' => self::REMOVED, 'steps' => array_map(fn (string $step): array => ['change' => self::REMOVED, 'step' => $step], $process[0]['steps'])],
                 $process[0]['steps'] === $process[1]['steps'] => ['process' => $entry['step'], 'change' => self::UNCHANGED],
-                default => ['process' => $entry['step'], 'change' => self::CHANGED, 'steps' => self::withUnchangedNeighboursOnly(self::changesBetween($process[0]['steps'], $process[1]['steps']))],
+                default => ['process' => $entry['step'], 'change' => self::CHANGED, 'steps' => self::withUnchangedNeighboursOnly(FlowExecutionChange::between($process[0]['steps'], $process[1]['steps']))],
             };
         }
 
@@ -664,8 +665,8 @@ final class FlowScenarioChange
     }
 
     /**
-     * @param list<array{change: string, step: string}> $steps
-     * @return list<array{change: string, step?: string, steps?: int}>
+     * @param list<array{change: string, step: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool}> $steps
+     * @return list<array{change: string, step?: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool}>
      */
     private static function withUnchangedNeighboursOnly(array $steps): array
     {

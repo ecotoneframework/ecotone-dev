@@ -77,10 +77,11 @@ final class FlowComparisonMarkdown
                 FlowScenarioChange::UNCHANGED => 'unchanged.',
                 FlowScenarioChange::ADDED => 'runs only now.',
                 FlowScenarioChange::REMOVED => 'ran only before.',
-                default => 'runs other steps now.',
+                default => FlowWording::ofChangedProcess($process['steps']),
             };
             $lines = array_map(fn (array $entry): string => match ($entry['change']) {
                 FlowScenarioChange::LEFT_OUT => '  … ' . $entry['steps'] . ' unchanged steps',
+                FlowScenarioChange::MOVED => '  ' . FlowWording::ofMovedSteps($entry),
                 FlowScenarioChange::ADDED => '+ ' . $entry['step'],
                 FlowScenarioChange::REMOVED => '- ' . $entry['step'],
                 default => '  ' . $entry['step'],

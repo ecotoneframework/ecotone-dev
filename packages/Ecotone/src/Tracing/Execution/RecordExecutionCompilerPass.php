@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Bridge\Bridge;
@@ -22,6 +23,7 @@ use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\Handler\Gathering\GatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\GatheringMessageHandler;
 use Ecotone\Messaging\Handler\Gathering\GatheringPartCompletion;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Processor\InterceptedChainDefinition;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor;
@@ -36,6 +38,7 @@ use Ecotone\Messaging\Handler\Router\InvocationRouter;
 use Ecotone\Messaging\Handler\Router\Router;
 use Ecotone\Messaging\Handler\Router\RouterProcessor;
 use Ecotone\Messaging\Handler\Transformer\TransformerResultToMessageConverter;
+use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\LoadAggregate\LoadAggregateMessageProcessor;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
@@ -182,6 +185,10 @@ final class RecordExecutionCompilerPass implements CompilerPass
         $value->replaceArguments($arguments);
         foreach ($value->getMethodCalls() as $methodCall) {
             $methodCall->replaceArguments($this->recorded($methodCall->getArguments(), null, $builder));
+        }
+
+        if ($value->hasFactory() && $value->getFactory() === [LicenceDecider::class, 'decide'] && in_array($value->getClassName(), [MessageProcessor::class, MessageHandler::class], true)) {
+            return new Definition($value->getClassName() === MessageProcessor::class ? RecordedLicensedMessageProcessor::class : RecordedLicensedMessageHandler::class, [$value, new Reference(Tracer::class)]);
         }
 
         return match ($value->getClassName()) {

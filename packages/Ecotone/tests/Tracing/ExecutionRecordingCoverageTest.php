@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Splitter;
@@ -184,7 +185,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         });
 
         self::assertNotEmpty(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'repository finds ExecutionRecordedEventSourcedOrder')));
-        self::assertContains('apply ExecutionRecordedOrderWasPlaced to ExecutionRecordedEventSourcedOrder', $lines);
+        self::assertContains('apply ExecutionRecordedOrderWasPlaced to ExecutionRecordedEventSourcedOrder, by EnterpriseAggregateMethodInvoker', $lines);
     }
 
     public function test_a_handler_fetching_an_aggregate_runs_the_same_while_recorded(): void
@@ -279,6 +280,26 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         self::assertContains('flush the projection', $lines);
     }
 
+    public function test_a_step_run_by_a_service_the_licence_chose_names_that_service(): void
+    {
+        $splitter = new class () {
+            #[Splitter('order.split', outputChannelName: 'order.item')]
+            public function split(string $orders): array
+            {
+                return explode(',', $orders);
+            }
+
+            #[InternalHandler('order.item')]
+            public function item(string $item): void
+            {
+            }
+        };
+        $run = fn (FlowTestSupport $ecotone) => $ecotone->sendDirectToChannel('order.split', 'a,b');
+
+        self::assertContains('MethodInvokerProcessor, chosen by the licence', $this->recorded([$splitter::class], [$splitter], [], $run, licenceKey: null));
+        self::assertContains('UngatheredSplitterProcessor, chosen by the licence', $this->recorded([$splitter::class], [$splitter], [], $run));
+    }
+
     /**
      * @param list<class-string> $classes
      * @param list<object> $services
@@ -286,7 +307,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
      * @param callable(FlowTestSupport): void $run
      * @return list<string>
      */
-    private function recorded(array $classes, array $services, array $extensionObjects, callable $run): array
+    private function recorded(array $classes, array $services, array $extensionObjects, callable $run, ?string $licenceKey = LicenceTesting::VALID_LICENCE): array
     {
         $recorder = new InMemorySpanRecorder();
         $run(EcotoneLite::bootstrapFlowTesting(
@@ -294,7 +315,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             [...$services, ...self::recordingSpansInto($recorder)],
             [...$extensionObjects, self::tracingConfiguration()->withExecutionRecording()],
             enabledModules: [],
-            licenceKey: LicenceTesting::VALID_LICENCE,
+            licenceKey: $licenceKey,
         ));
 
         return array_map(trim(...), FlowExecution::of($recorder->recordedSpans())->lines());

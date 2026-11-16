@@ -23,22 +23,20 @@ use Ecotone\Test\LicenceTesting;
  */
 final class ExecutionRecordingExplanationTest extends TracingTestCase
 {
-    public function test_the_gatherer_takes_in_a_part_by_its_headers_stores_it_and_hands_the_full_group_to_the_gathered_handler(): void
+    public function test_the_gatherer_takes_in_a_part_by_its_headers_records_it_as_arrived_and_hands_the_full_group_to_the_gathered_handler(): void
     {
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
 
         $expected = [
-            'process 5: receive backfill, handled by the gatherer taking in part 1 of 2',
+            'process 5: receive backfill, handled by the gatherer only, recording part 1 of 2 reported by process 3, whose work ran there',
             'handler GatheringMessageHandler::handle, chosen by the licence',
             'read part 1 of 2 of gathering group {generated#1} from the headers ecotone_gathering_group_id, ecotone_gathering_part_number and ecotone_gathering_group_size',
-            'complete part 1 of gathering group {generated#1} in InMemoryGatheredGroupStore',
-            'the group is not complete yet, so nothing is handed over: this process ends here and the remaining parts are awaited',
-            'process 6: receive backfill, handled by the gatherer taking in part 2 of 2',
+            'record part 1 of gathering group {generated#1} as arrived, in InMemoryGatheredGroupStore::completePart: the group still waits for its other parts, so nothing is handed over and this consumer run ends here',
+            'process 6: receive backfill, handled by the gatherer only, recording part 2 of 2 reported by process 4, whose work ran there',
             'handler GatheringMessageHandler::handle, chosen by the licence',
             'read part 2 of 2 of gathering group {generated#1} from the headers ecotone_gathering_group_id, ecotone_gathering_part_number and ecotone_gathering_group_size',
-            'complete part 2 of gathering group {generated#1} in InMemoryGatheredGroupStore',
-            'all parts are in, so the store releases the group and calls the gatherer back',
-            'release 2 of 2 parts, as all parts are accounted for: build GatheredParts with 2 results and the original payload array, passed straight to the handler the #[Gathered] endpoint wraps',
+            'record part 2 of gathering group {generated#1} as arrived, in InMemoryGatheredGroupStore::completePart: with it all 2 parts are in, so the store releases the group and calls the gatherer back right here',
+            'release 2 of 2 parts, as all parts are accounted for: build GatheredParts with 2 results and the original payload array and pass it straight to the handler the #[Gathered] endpoint wraps, inside this same consumer run, with no queue in between',
             'handler ProjectionRunCompletion::complete returns nothing',
         ];
 
@@ -48,12 +46,29 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
     public function test_the_gatherer_steps_nest_as_the_code_calls_them(): void
     {
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
-        $complete = self::positionOf($lines, 'complete part 2 of gathering group {generated#1} in InMemoryGatheredGroupStore');
+        $recorded = self::positionOf($lines, 'record part 2 of gathering group {generated#1} as arrived, in InMemoryGatheredGroupStore::completePart: with it all 2 parts are in, so the store releases the group and calls the gatherer back right here');
 
-        self::assertSame(self::depthOf($lines[$complete - 1]), self::depthOf($lines[$complete]));
-        self::assertSame(self::depthOf($lines[$complete]) + 1, self::depthOf($lines[$complete + 1]));
-        self::assertSame(self::depthOf($lines[$complete + 1]) + 1, self::depthOf($lines[$complete + 2]));
-        self::assertSame(self::depthOf($lines[$complete + 2]) + 1, self::depthOf($lines[$complete + 3]));
+        self::assertSame(self::depthOf($lines[$recorded - 1]), self::depthOf($lines[$recorded]));
+        self::assertSame(self::depthOf($lines[$recorded]) + 1, self::depthOf($lines[$recorded + 1]));
+        self::assertSame(self::depthOf($lines[$recorded + 1]) + 1, self::depthOf($lines[$recorded + 2]));
+    }
+
+    public function test_a_consumer_process_names_the_message_it_received_and_the_earlier_process_that_put_it_on_the_channel(): void
+    {
+        $lines = array_map(trim(...), self::executionOf('tag-partitioned projection backfilled asynchronously in two batches'));
+
+        self::assertSame('receive backfill: the message the entrypoint sent to backfill, put on the channel by process 2', $lines[self::positionOf($lines, 'process 3: receive backfill, handled by PartitionBatchExecutorHandler::executeBatch (1 of 2)') + 1]);
+        self::assertSame('receive backfill: the part report for part 1 of 2, put on the channel by process 3', $lines[self::positionOf($lines, 'process 5: receive backfill, handled by the gatherer only, recording part 1 of 2 reported by process 3, whose work ran there') + 1]);
+    }
+
+    public function test_the_step_that_put_a_message_on_the_channel_points_to_the_later_consumer_run_that_took_it(): void
+    {
+        $lines = array_map(trim(...), self::executionOf('tag-partitioned projection backfilled asynchronously in two batches'));
+
+        self::assertContains('release collected message to backfill, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 5', $lines);
+        self::assertContains('release collected message to backfill, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 6', $lines);
+        self::assertContains('send backfill; taken from the channel later by a separate consumer run, process 3', $lines);
+        self::assertContains('send backfill; taken from the channel later by a separate consumer run, process 4', $lines);
     }
 
     public function test_no_step_names_a_class_of_the_recording(): void
@@ -66,7 +81,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
     public function test_after_the_put_each_after_send_phase_names_its_interceptor_method_and_when_it_runs_and_inherited_empty_phases_are_left_out(): void
     {
         $lines = array_map(trim(...), $this->asynchronousOrder());
-        $release = self::positionOf($lines, 'release collected message to orders, held by MessageCollectorChannelInterceptor on its first send');
+        $release = self::positionOf($lines, 'release collected message to orders, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 2');
         $afterPhases = array_values(array_filter(array_slice($lines, $release), fn (string $line): bool => str_contains($line, ', run ')));
 
         self::assertSame(
@@ -83,11 +98,11 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
     public function test_a_send_nests_each_interceptor_around_the_next_with_the_put_on_the_channel_innermost(): void
     {
         $lines = $this->asynchronousOrder();
-        $release = self::positionOf($lines, 'release collected message to orders, held by MessageCollectorChannelInterceptor on its first send');
+        $release = self::positionOf($lines, 'release collected message to orders, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 2');
 
         self::assertSame(
             [
-                [0, 'release collected message to orders, held by MessageCollectorChannelInterceptor on its first send'],
+                [0, 'release collected message to orders, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 2'],
                 [1, 'before send, OutboundSerializationChannelInterceptor::preSend'],
                 [2, 'passes the message on unchanged'],
                 [2, 'before send, MessageCollectorChannelInterceptor::preSend'],
@@ -126,10 +141,10 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
     public function test_the_receive_takes_the_message_from_the_channel_and_names_the_after_receive_phase_that_ran(): void
     {
         $lines = array_map(trim(...), $this->asynchronousOrder());
-        $receive = self::positionOf($lines, 'receive orders');
+        $receive = self::positionOf($lines, 'receive orders: the command order.place, put on the channel by process 1');
 
         self::assertSame(
-            ['receive orders', 'take the message from channel orders', 'TracingChannelInterceptor::afterReceiveCompletion, run when the take ended, here with a message and no failure'],
+            ['receive orders: the command order.place, put on the channel by process 1', 'take the message from channel orders', 'TracingChannelInterceptor::afterReceiveCompletion, run when the take ended, here with a message and no failure'],
             array_slice($lines, $receive, 3),
         );
     }

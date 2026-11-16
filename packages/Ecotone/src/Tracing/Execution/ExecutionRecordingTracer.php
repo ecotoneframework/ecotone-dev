@@ -34,7 +34,7 @@ final class ExecutionRecordingTracer implements Tracer
     /** @var list<Span> steps of the process entry still open, recorded once a span starts inside it */
     private array $stepsOfOpenEntry = [];
     private bool $spanStartedInOpenEntry = false;
-    /** @var ?array{name: string, notes: list<array{depth: int, name: string}>} */
+    /** @var ?array{name: string, notes: list<array{depth: int, name: string}>, attributes: array<string, scalar>} */
     private ?array $awaitedReceive = null;
     private ?ExecutionStep $receiveEntry = null;
     private ?ExecutionStep $receiveContinuation = null;
@@ -69,21 +69,25 @@ final class ExecutionRecordingTracer implements Tracer
 
     /**
      * @param list<array{depth: int, name: string}> $notes
+     * @param array<string, scalar> $attributes
      */
-    public function awaitReceive(string $name, array $notes): void
+    public function awaitReceive(string $name, array $notes, array $attributes): void
     {
-        $this->awaitedReceive = ['name' => $name, 'notes' => $notes];
+        $this->awaitedReceive = ['name' => $name, 'notes' => $notes, 'attributes' => $attributes];
     }
 
-    public function startEntry(string $name, bool $continuesAReceive = false): ?ExecutionStep
+    /**
+     * @param array<string, scalar> $attributes
+     */
+    public function startEntry(string $name, bool $continuesAReceive = false, array $attributes = []): ?ExecutionStep
     {
         if ($this->tracer->currentSpan() !== null || $this->openSteps !== []) {
-            return $this->startStep($name);
+            return $this->startStep($name, $attributes);
         }
         $awaitedReceive = $continuesAReceive ? $this->awaitedReceive : null;
         if ($awaitedReceive !== null) {
             $this->awaitedReceive = null;
-            $this->receiveEntry = $this->startEntry($awaitedReceive['name']);
+            $this->receiveEntry = $this->startEntry($awaitedReceive['name'], attributes: $awaitedReceive['attributes']);
             $this->recordNested($awaitedReceive['notes']);
             $this->receiveContinuation = $this->startStep($name);
 
@@ -103,6 +107,7 @@ final class ExecutionRecordingTracer implements Tracer
                 SpanAttribute::EXECUTION_STEP => true,
                 SpanAttribute::EXECUTION_PROCESS => true,
                 SpanAttribute::EXECUTION_ORDER => ++$this->order,
+                ...$attributes,
             ],
             $this->clock->now(),
         );

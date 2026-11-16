@@ -32,16 +32,23 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
 
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void
     {
-        $released = false;
-        $this->recorded('complete part ' . $partNumber . ' of gathering group ' . $groupId . ' in ' . ExecutionRecordingTracer::shortClassOf($this->store::class), function () use ($groupId, $partNumber, $report, $whenComplete, &$released): void {
-            $this->store->completePart($groupId, $partNumber, $report, function (mixed ...$arguments) use ($whenComplete, &$released): void {
-                $released = true;
-                $this->recorded('all parts are in, so the store releases the group and calls the gatherer back', fn () => $whenComplete(...$arguments));
+        $step = $this->tracer->startStep('record part ' . $partNumber . ' of gathering group ' . $groupId . ' as arrived, in ' . ExecutionRecordingTracer::shortClassOf($this->store::class) . '::completePart:');
+        $outcome = 'the group still waits for its other parts, so nothing is handed over and this consumer run ends here';
+        try {
+            $this->store->completePart($groupId, $partNumber, $report, function (mixed ...$arguments) use ($whenComplete, &$outcome): void {
+                $outcome = 'with it all ' . count($arguments[1] ?? []) . ' parts are in, so the store releases the group and calls the gatherer back right here';
+                $whenComplete(...$arguments);
             });
-            if (! $released) {
-                $this->tracer->recordStep('the group is not complete yet, so nothing is handed over: this process ends here and the remaining parts are awaited');
+        } catch (Throwable $failure) {
+            if ($step !== null) {
+                $this->tracer->failStep($step, $failure);
             }
-        });
+
+            throw $failure;
+        }
+        if ($step !== null) {
+            $this->tracer->endStep($step, $outcome);
+        }
     }
 
     public function gatherChannelNameFor(string $groupId): string

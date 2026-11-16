@@ -110,8 +110,8 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
 
         self::assertContains('open gathering group {generated#1} of 2 parts', $lines);
-        self::assertContains('complete part 1 of gathering group {generated#1} in InMemoryGatheredGroupStore', $lines);
-        self::assertContains('complete part 2 of gathering group {generated#1} in InMemoryGatheredGroupStore', $lines);
+        self::assertNotEmpty(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'record part 1 of gathering group {generated#1} as arrived, in InMemoryGatheredGroupStore::completePart:')));
+        self::assertNotEmpty(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'record part 2 of gathering group {generated#1} as arrived, in InMemoryGatheredGroupStore::completePart:')));
     }
 
     public function test_a_consumed_message_starts_its_process_at_the_receive_with_what_the_channel_applied(): void
@@ -123,7 +123,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         $receive = array_search('process 2: receive orders, handled by ExecutionRecordedOrders::place', $lines, true);
 
         self::assertIsInt($receive);
-        self::assertSame('receive orders', $lines[$receive + 1]);
+        self::assertSame('receive orders: the command order.place, put on the channel by process 1', $lines[$receive + 1]);
         self::assertSame('take the message from channel orders, received with priority 5', $lines[$receive + 2]);
     }
 
@@ -222,7 +222,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
     {
         $lines = self::executionOf('failure is retried with a delay, then sent to the dead letter');
 
-        self::assertNotEmpty(preg_grep('/^send orders as retry 1, delayed \d+ ms$/', $lines));
+        self::assertNotEmpty(preg_grep('/^send orders as retry 1, delayed \d+ ms; taken from the channel later by a separate consumer run, process 3$/', $lines));
         self::assertContains('forward string by the output channel dead_letter, configured on DelayedRetryErrorHandler::handle; the routing slip order.placing.target.execute stays on the message for a later step', $lines);
     }
 

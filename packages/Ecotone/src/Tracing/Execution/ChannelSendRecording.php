@@ -9,6 +9,7 @@ use function count;
 
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Messaging\Channel\PollableChannel\SendRetries\SendRetryChannelInterceptor;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptor;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
@@ -56,7 +57,7 @@ final class ChannelSendRecording
         $messageId = $message->getHeaders()->getMessageId();
         $released = $this->tracer->releaseCollected($this->channelName, $messageId);
         $this->openSends[] = [
-            'step' => $this->onlyFlowTestingIntercepts ? null : $this->tracer->startEntry(($released ? 'release collected message to ' . $this->channelName . ', held by ' . self::COLLECTOR . ' on its first send' : 'send ' . $this->channelName) . self::retryOf($message)),
+            'step' => $this->onlyFlowTestingIntercepts ? null : $this->tracer->startEntry(($released ? 'release collected message to ' . $this->channelName . ', held by ' . self::COLLECTOR . ' on its first send' : 'send ' . $this->channelName) . self::retryOf($message), attributes: [SpanAttribute::EXECUTION_SENT_MESSAGE => $messageId]),
             'entered' => [],
             'put' => null,
             'passedOn' => $message,
@@ -157,7 +158,7 @@ final class ChannelSendRecording
                 }
             }
         }
-        $this->tracer->awaitReceive('receive ' . $this->channelName, $notes);
+        $this->tracer->awaitReceive('receive ' . $this->channelName, $notes, [SpanAttribute::EXECUTION_RECEIVED_MESSAGE => $headers->getMessageId()]);
         if (! $headers->containsKey(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION)) {
             return $message;
         }

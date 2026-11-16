@@ -27,7 +27,7 @@ final class RecordedGatheredRelease implements MessageHandler
                 GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR => 'as all parts are accounted for',
                 GatheredReleaseReason::TIMEOUT => 'as the gathering timed out',
                 GatheredReleaseReason::MANUAL_RELEASE => 'as it was released manually',
-            } . ': build GatheredParts with ' . count($parts->results) . ' result' . (count($parts->results) === 1 ? '' : 's') . ' and the original payload ' . ExecutionRecorder::typeOf($parts->originalPayload) . ', passed straight to the handler the #[Gathered] endpoint wraps')
+            } . ': build GatheredParts with ' . count($parts->results) . ' result' . (count($parts->results) === 1 ? '' : 's') . ' and the original payload ' . ExecutionRecorder::typeOf($parts->originalPayload) . ' and pass it straight to the handler the #[Gathered] endpoint wraps, inside this same consumer run, with no queue in between')
             : null;
         try {
             $this->gatheredHandler->handle($message);

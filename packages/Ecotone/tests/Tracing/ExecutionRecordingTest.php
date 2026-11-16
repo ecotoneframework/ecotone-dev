@@ -240,7 +240,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                            before send, MessageCollectorChannelInterceptor::preSend',
                 '                              collects the message and passes none on: the send stops here, so the interceptors after it and the put on the channel do not run; the message is held until the handler ends',
                 '                nothing handed over: the handler returned nothing',
-                '              release collected message to orders, held by MessageCollectorChannelInterceptor on its first send',
+                '              release collected message to orders, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 2',
                 '                before send, OutboundSerializationChannelInterceptor::preSend',
                 '                  passes the message on unchanged',
                 '                  before send, MessageCollectorChannelInterceptor::preSend',
@@ -254,7 +254,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                SendRetryChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure',
                 '                TracingChannelInterceptor::afterSendCompletion, run when the send ended, here without a failure',
                 'process 2: receive orders, handled by class@anonymous::place',
-                '  receive orders',
+                '  receive orders: the command order.place, put on the channel by process 1',
                 '    take the message from channel orders',
                 '    TracingChannelInterceptor::afterReceiveCompletion, run when the take ended, here with a message and no failure',
                 '    gateway InboundChannelAdapterEntrypoint::executeEntrypoint returns nothing',
@@ -349,18 +349,18 @@ final class ExecutionRecordingTest extends TracingTestCase
             '                                handler PartitionBatchExecutorHandler::executeBatch returns nothing',
             '                            part report by GatheringPartCompletion of a request without a reply, part 1 of 2, to ecotone.projection.backfill.completion:course_seats',
             '                                        collects the message and passes none on: the send stops here, so the interceptors after it and the put on the channel do not run; the message is held until the handler ends',
-            '                        release collected message to backfill, held by MessageCollectorChannelInterceptor on its first send',
+            '                        release collected message to backfill, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 5',
             'process 4: receive backfill, handled by PartitionBatchExecutorHandler::executeBatch (2 of 2)',
             '                                handler PartitionBatchExecutorHandler::executeBatch returns nothing',
             '                            part report by GatheringPartCompletion of a request without a reply, part 2 of 2, to ecotone.projection.backfill.completion:course_seats',
             '                                        collects the message and passes none on: the send stops here, so the interceptors after it and the put on the channel do not run; the message is held until the handler ends',
-            '                        release collected message to backfill, held by MessageCollectorChannelInterceptor on its first send',
-            'process 5: receive backfill, handled by the gatherer taking in part 1 of 2',
+            '                        release collected message to backfill, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 6',
+            'process 5: receive backfill, handled by the gatherer only, recording part 1 of 2 reported by process 3, whose work ran there',
             '                              read part 1 of 2 of gathering group {generated#1} from the headers ecotone_gathering_group_id, ecotone_gathering_part_number and ecotone_gathering_group_size',
-            'process 6: receive backfill, handled by the gatherer taking in part 2 of 2',
+            'process 6: receive backfill, handled by the gatherer only, recording part 2 of 2 reported by process 4, whose work ran there',
             '                              read part 2 of 2 of gathering group {generated#1} from the headers ecotone_gathering_group_id, ecotone_gathering_part_number and ecotone_gathering_group_size',
-            '                                  release 2 of 2 parts, as all parts are accounted for: build GatheredParts with 2 results and the original payload array, passed straight to the handler the #[Gathered] endpoint wraps',
-            '                                    handler ProjectionRunCompletion::complete returns nothing',
+            '                                release 2 of 2 parts, as all parts are accounted for: build GatheredParts with 2 results and the original payload array and pass it straight to the handler the #[Gathered] endpoint wraps, inside this same consumer run, with no queue in between',
+            '                                  handler ProjectionRunCompletion::complete returns nothing',
         ];
 
         self::assertSame($expected, self::inOrderOf($lines, $expected));
@@ -429,8 +429,8 @@ final class ExecutionRecordingTest extends TracingTestCase
     {
         $lines = self::trimmed(self::executionOf('event forwarded to a channel whose send succeeds on retry'));
 
-        self::assertContains('release collected message to notifications, held by MessageCollectorChannelInterceptor on its first send', $lines);
-        self::assertNotContains('release collected message to notifications, held by MessageCollectorChannelInterceptor on its first send throws RuntimeException', $lines);
+        self::assertContains('release collected message to notifications, held by MessageCollectorChannelInterceptor on its first send; taken from the channel later by a separate consumer run, process 3', $lines);
+        self::assertSame([], preg_grep('/^release collected message to notifications.* throws RuntimeException/', $lines));
         self::assertContains('send failed with RuntimeException, recovered by SendRetryChannelInterceptor', $lines);
     }
 

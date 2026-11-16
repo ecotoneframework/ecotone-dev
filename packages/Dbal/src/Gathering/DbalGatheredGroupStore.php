@@ -143,6 +143,22 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         }
     }
 
+    public function recordedPartsOf(string $groupId): ?array
+    {
+        $connection = $this->connection();
+        try {
+            $group = $connection->fetchAssociative('SELECT state, size FROM ' . self::GROUP_TABLE . ' WHERE group_id = ?', [$groupId]);
+            if (! $group) {
+                return null;
+            }
+            $partNumbers = array_map('intval', $connection->fetchFirstColumn('SELECT part_number FROM ' . self::PART_TABLE . ' WHERE group_id = ? ORDER BY part_number', [$groupId]));
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
+        }
+
+        return ['open' => $group['state'] === 'open', 'size' => GatheredGroupSize::asNullable((int) $group['size']), 'partNumbers' => $partNumbers];
+    }
+
     public function gatherChannelNameFor(string $groupId): string
     {
         try {

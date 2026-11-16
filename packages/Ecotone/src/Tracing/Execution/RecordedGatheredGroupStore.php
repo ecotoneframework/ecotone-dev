@@ -35,10 +35,11 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
     {
         $size = $report->getHeaders()->containsKey(GatheringHeaders::SIZE) ? ' of ' . $report->getHeaders()->get(GatheringHeaders::SIZE) : '';
         $step = $this->tracer->startStep('record part ' . $partNumber . $size . ' in ' . ExecutionRecordingTracer::shortClassOf($this->store::class), hints: [ExecutionHint::detail(ExecutionHint::GROUP, $groupId)]);
-        $outcome = [ExecutionHint::critical(ExecutionHint::RESULT, 'group waits for its other parts, nothing handed over, this run ends here')];
+        $before = $this->store->recordedPartsOf($groupId);
+        $released = null;
         try {
-            $this->store->completePart($groupId, $partNumber, $report, function (mixed ...$arguments) use ($whenComplete, &$outcome): void {
-                $outcome = [ExecutionHint::critical(ExecutionHint::RESULT, 'all ' . count($arguments[1] ?? []) . ' parts in, group released'), ExecutionHint::critical(ExecutionHint::RUNS, 'gatherer called back in this run')];
+            $this->store->completePart($groupId, $partNumber, $report, function (mixed ...$arguments) use ($whenComplete, &$released): void {
+                $released = count($arguments[1] ?? []);
                 $whenComplete(...$arguments);
             });
         } catch (Throwable $failure) {
@@ -49,13 +50,42 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
             throw $failure;
         }
         if ($step !== null) {
-            $this->tracer->endStep($step, '', $outcome);
+            $this->tracer->endStep($step, '', $this->outcomeOfPart($groupId, $partNumber, $before, $released));
         }
+    }
+
+    /**
+     * @param array{open: bool, size: ?int, partNumbers: list<int>}|null $before
+     * @return list<ExecutionHint>
+     */
+    private function outcomeOfPart(string $groupId, int $partNumber, ?array $before, ?int $released): array
+    {
+        if ($released !== null) {
+            return [ExecutionHint::critical(ExecutionHint::RESULT, 'part stored, ' . $released . ' of ' . $released . ' in, group released'), ExecutionHint::critical(ExecutionHint::RUNS, 'gatherer called back in this run')];
+        }
+        $alreadyThere = $before !== null && in_array($partNumber, $before['partNumbers'], true);
+        if ($before !== null && ! $before['open']) {
+            return [ExecutionHint::critical(ExecutionHint::RESULT, ($alreadyThere ? 'duplicate' : 'late') . ' part ignored, group already released')];
+        }
+        if ($alreadyThere) {
+            return [ExecutionHint::critical(ExecutionHint::RESULT, 'duplicate part ignored')];
+        }
+        $after = $this->store->recordedPartsOf($groupId);
+        if ($after === null || ! in_array($partNumber, $after['partNumbers'], true)) {
+            return [ExecutionHint::critical(ExecutionHint::RESULT, 'part not stored')];
+        }
+
+        return [ExecutionHint::critical(ExecutionHint::RESULT, 'part stored, ' . count($after['partNumbers']) . ' of ' . ($after['size'] ?? '?') . ' in, group waits')];
     }
 
     public function gatherChannelNameFor(string $groupId): string
     {
         return $this->store->gatherChannelNameFor($groupId);
+    }
+
+    public function recordedPartsOf(string $groupId): ?array
+    {
+        return $this->store->recordedPartsOf($groupId);
     }
 
     public function releaseGroup(string $groupId, callable $whenReleased, GatheredReleaseReason|CollectedReleaseReason|null $releaseReason): void

@@ -5,12 +5,19 @@ declare(strict_types=1);
 namespace Test\Ecotone\Tracing;
 
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Api\Attribute\Gathered;
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\GatheredParts;
+use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
@@ -34,11 +41,11 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
             '↳ chosen by: licence',
             'read part 1 of 2',
             'record part 1 of 2 in InMemoryGatheredGroupStore',
-            '↳ result: group waits for its other parts, nothing handed over, this run ends here',
+            '↳ result: part stored, 1 of 2 in, group waits',
             'process 6: receive backfill, GatheringMessageHandler::handle (part 2 of 2)',
             'read part 2 of 2',
             'record part 2 of 2 in InMemoryGatheredGroupStore',
-            '↳ result: all 2 parts in, group released',
+            '↳ result: part stored, 2 of 2 in, group released',
             '↳ runs: gatherer called back in this run',
             'release group',
             '↳ chosen by: all parts accounted for',
@@ -105,6 +112,64 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         self::assertSame(
             ['receive backfill', '↳ sent by: process 3, the part report for part 1 of 2', '↳ runs: only the gatherer, the work of part 1 of 2 ran in process 3'],
             array_slice($lines, $process + 1, 3),
+        );
+    }
+
+    public function test_a_part_the_store_ignores_is_recorded_as_ignored_not_as_waiting(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            public function start(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Splitter('parts', endpointId: 'split.parts', outputChannelName: 'work', gatherChannelName: 'summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Asynchronous('workers')]
+            #[InternalHandler('work', endpointId: 'work.handler')]
+            public function work(int $part): int
+            {
+                return $part;
+            }
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE - 1, pointcut: AsynchronousRunningEndpoint::class)]
+            public function duplicateWorkerDelivery(MethodInvocation $invocation, AsynchronousRunningEndpoint $endpoint): mixed
+            {
+                $again = $invocation->cloneCurrentState();
+                $result = $invocation->proceed();
+                if ($endpoint->getEndpointId() === 'workers') {
+                    $again->proceed();
+                }
+
+                return $result;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+        };
+
+        $lines = array_map(trim(...), $this->recorded([$handler::class], [$handler], [SimpleMessageChannelBuilder::createQueueChannel('summaries'), SimpleMessageChannelBuilder::createQueueChannel('workers')], function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommandWithRouting('split', [10, 20]);
+            $ecotone->run('workers')->run('summaries');
+        }));
+
+        self::assertSame(
+            [
+                '↳ result: part stored, 1 of 2 in, group waits',
+                '↳ result: duplicate part ignored',
+                '↳ result: part stored, 2 of 2 in, group released',
+                '↳ result: duplicate part ignored, group already released',
+            ],
+            array_map(fn (int $position): string => $lines[$position + 1], array_keys(array_filter($lines, fn (string $line): bool => preg_match('/^record part \d of 2 in InMemoryGatheredGroupStore$/', $line) === 1))),
         );
     }
 

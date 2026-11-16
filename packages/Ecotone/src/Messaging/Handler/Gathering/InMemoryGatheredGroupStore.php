@@ -167,6 +167,13 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         }
     }
 
+    public function recordedPartsOf(string $groupId): ?array
+    {
+        $group = $this->groups[$groupId] ?? null;
+
+        return $group === null ? null : ['open' => $group['state'] === 'open', 'size' => GatheredGroupSize::asNullable($group['size']), 'partNumbers' => array_keys($group['parts'])];
+    }
+
     public function gatherChannelNameFor(string $groupId): string
     {
         $group = $this->groups[$groupId] ?? throw GatheredGroupNotFound::forId($groupId);

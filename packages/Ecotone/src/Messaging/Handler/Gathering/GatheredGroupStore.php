@@ -39,6 +39,9 @@ interface GatheredGroupStore
 
     public function gatherChannelNameFor(string $groupId): string;
 
+    /** @return array{open: bool, size: ?int, partNumbers: list<int>}|null */
+    public function recordedPartsOf(string $groupId): ?array;
+
     public function releaseGroup(string $groupId, callable $whenReleased, GatheredReleaseReason|CollectedReleaseReason|null $releaseReason): void;
 
     public function discard(string $groupId): void;

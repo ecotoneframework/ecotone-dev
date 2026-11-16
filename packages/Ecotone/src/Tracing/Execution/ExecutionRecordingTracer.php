@@ -218,7 +218,7 @@ final class ExecutionRecordingTracer implements Tracer
      */
     private static function withHints(string $encoded, array $hints): string
     {
-        return json_encode([...json_decode($encoded, true, flags: JSON_THROW_ON_ERROR), ...json_decode(ExecutionHint::encoded($hints), true, flags: JSON_THROW_ON_ERROR)], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return ExecutionHint::json([...(array) json_decode($encoded, true), ...(array) json_decode(ExecutionHint::encoded($hints), true)]);
     }
 
     public static function shortClassOf(string $class): string

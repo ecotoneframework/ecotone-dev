@@ -49,7 +49,7 @@ final class RecordedAggregateStep implements MessageProcessor
     {
         return match ($this->step) {
             self::IDENTIFIER => [ExecutionHint::detail(ExecutionHint::RESULT, $result !== null && $result->getHeaders()->containsKey(AggregateMessage::AGGREGATE_ID)
-                ? json_encode(AggregateIdMetadata::createFrom($result->getHeaders()->get(AggregateMessage::AGGREGATE_ID))->getIdentifiers(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+                ? ExecutionHint::json(AggregateIdMetadata::createFrom($result->getHeaders()->get(AggregateMessage::AGGREGATE_ID))->getIdentifiers())
                 : 'no identifier')],
             self::LOAD => [match (true) {
                 $result === null => ExecutionHint::critical(ExecutionHint::RESULT, 'no aggregate found, message dropped'),

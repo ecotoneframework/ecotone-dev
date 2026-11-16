@@ -51,6 +51,11 @@ final class ExecutionHint
      */
     public static function encoded(array $hints): string
     {
-        return json_encode(array_map(fn (self $hint): array => [$hint->key, $hint->value, $hint->critical], $hints), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return self::json(array_map(fn (self $hint): array => [$hint->key, $hint->value, $hint->critical], $hints));
+    }
+
+    public static function json(mixed $value): string
+    {
+        return (string) json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR);
     }
 }

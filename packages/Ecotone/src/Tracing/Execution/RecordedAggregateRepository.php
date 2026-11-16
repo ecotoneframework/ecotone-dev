@@ -29,7 +29,7 @@ final class RecordedAggregateRepository implements AggregateRepository
             'repository finds ' . ExecutionRecordingTracer::shortClassOf($aggregateClassName),
             fn () => $this->repository->findBy($aggregateClassName, $identifiers),
             fn (?ResolvedAggregate $aggregate): string => $aggregate === null ? 'found nothing' : 'found it at version ' . ($aggregate->getVersionBeforeHandling() ?? 'none'),
-            [ExecutionHint::detail(ExecutionHint::READ_FROM, (string) json_encode($identifiers, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE))],
+            [ExecutionHint::detail(ExecutionHint::READ_FROM, ExecutionHint::json($identifiers))],
         );
     }
 

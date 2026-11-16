@@ -25,7 +25,7 @@ final class FlowExecution
      */
     public static function of(array $spans): self
     {
-        $spans = array_values(array_filter($spans, fn (Span $span): bool => ! ExpectedSpan::isFrameworkNoise($span)));
+        $spans = array_values(array_filter($spans, fn (Span $span): bool => ! ExpectedSpan::isFrameworkNoise($span) && isset($span->attributes[SpanAttribute::EXECUTION_ORDER])));
         usort($spans, fn (Span $first, Span $second): int => self::orderOf($first) <=> self::orderOf($second));
         $present = [];
         foreach ($spans as $span) {

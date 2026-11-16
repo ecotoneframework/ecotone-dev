@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "conflicting append fails with the conflict recorded",
     "wiring": {
         "nodes": [
@@ -72,5 +72,50 @@
         {"depth":3,"name":"Conditional Append: ecotone_event_stream","kind":"Internal","status":"Ok"},
         {"depth":3,"name":"send event","destination":"Ecotone\\Test\\Flow\\Fixture\\FlowStudentEnrolled","kind":"Server","status":"Ok"},
         {"depth":1,"name":"Conditional Append: ecotone_event_stream","kind":"Internal","status":"Error"}
+    ],
+    "execution": [
+        {"process": "send command Ecotone\\Test\\Flow\\Fixture\\FlowEnrolStudentTwice", "steps": [
+            "  gateway CommandBus::send throws DecisionModelConcurrencyException",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceCommandBus throws DecisionModelConcurrencyException",
+            "      span send command Ecotone\\Test\\Flow\\Fixture\\FlowEnrolStudentTwice",
+            "        around MessageHeadersPropagatorInterceptor::storeHeaders throws DecisionModelConcurrencyException",
+            "          around DeliveryConfirmationInterceptor::await throws DecisionModelConcurrencyException",
+            "            direct channel ecotone.modelling.bus.command_by_name throws DecisionModelConcurrencyException",
+            "              direct channel {generated}.target throws DecisionModelConcurrencyException",
+            "                before TracedDecisionModelBatchLoader::load returns array",
+            "                  span Decision Models: class@anonymous::enrolTwice",
+            "                around DecisionModelAppendInterceptor::append throws DecisionModelConcurrencyException",
+            "                  around MessageHandlerLogger::aroundCommandHandler",
+            "                    around TracingInterceptor::traceHandlerEndpoint",
+            "                      span process class@anonymous::enrolTwice",
+            "                        handler class@anonymous::enrolTwice returns array",
+            "                          gateway CommandBus::send returns a message of array",
+            "                            before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "                            around TracingInterceptor::traceCommandBus",
+            "                              span send command Ecotone\\Test\\Flow\\Fixture\\FlowEnrolStudent",
+            "                                around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                                  around DeliveryConfirmationInterceptor::await",
+            "                                    direct channel ecotone.modelling.bus.command_by_name",
+            "                                      direct channel {generated}.target",
+            "                                        before TracedDecisionModelBatchLoader::load returns array",
+            "                                          span Decision Models: class@anonymous::enrol",
+            "                                        around DecisionModelAppendInterceptor::append",
+            "                                          around MessageHandlerLogger::aroundCommandHandler",
+            "                                            around TracingInterceptor::traceHandlerEndpoint",
+            "                                              span process class@anonymous::enrol",
+            "                                                handler class@anonymous::enrol returns array",
+            "                                          span Conditional Append: ecotone_event_stream",
+            "                                          gateway EventBus::publish returns nothing",
+            "                                            before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "                                            around TracingInterceptor::traceEventBus",
+            "                                              span send event Ecotone\\Test\\Flow\\Fixture\\FlowStudentEnrolled",
+            "                                                around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                                                  direct channel ecotone.modelling.bus.event_by_name",
+            "                                                    no reply",
+            "                                        reply array to the reply channel of the request",
+            "                                      no reply",
+            "                  span Conditional Append: ecotone_event_stream"
+        ]}
     ]
 }

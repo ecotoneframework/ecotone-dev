@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "wiring": {
         "nodes": [
             {"id":"channel:dbal_dead_letter","kind":"channel","label":"dbal_dead_letter","attributes":{"build":true,"name":"dbal_dead_letter","pollable":false,"registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ErrorHandlerModule"}},

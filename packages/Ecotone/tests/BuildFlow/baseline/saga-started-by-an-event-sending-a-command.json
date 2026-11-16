@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "saga started by an event sending a command",
     "wiring": {
         "nodes": [
@@ -88,5 +88,40 @@
         {"depth":2,"name":"process class@anonymous::start","kind":"Server","status":"Ok"},
         {"depth":3,"name":"send command","destination":"shipping.prepare","kind":"Server","status":"Ok"},
         {"depth":4,"name":"process class@anonymous::prepare","kind":"Server","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "send event Ecotone\\Test\\Flow\\Fixture\\FlowOrderPlaced", "steps": [
+            "  gateway EventBus::publish returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceEventBus",
+            "      span send event Ecotone\\Test\\Flow\\Fixture\\FlowOrderPlaced",
+            "        around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "          direct channel ecotone.modelling.bus.event_by_name",
+            "            span route shipping.starting shipping.starting.target",
+            "              direct channel shipping.starting.target",
+            "                reply FlowOrderPlaced to output channel shipping.starting.target-connection",
+            "                  direct channel shipping.starting.target-connection",
+            "                    step HeaderEnricher::transform returns a message of FlowOrderPlaced",
+            "                    around MessageHandlerLogger::aroundEventHandler",
+            "                      around TracingInterceptor::traceHandlerEndpoint",
+            "                        span process class@anonymous::start",
+            "                          handler class@anonymous::start returns class@anonymous",
+            "                            gateway CommandBus::sendWithRouting returns nothing",
+            "                              before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "                              around TracingInterceptor::traceCommandBus",
+            "                                span send command shipping.prepare",
+            "                                  around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                                    around DeliveryConfirmationInterceptor::await",
+            "                                      direct channel ecotone.modelling.bus.command_by_name",
+            "                                        direct channel shipping.preparing.target",
+            "                                          around MessageHandlerLogger::aroundCommandHandler",
+            "                                            around TracingInterceptor::traceHandlerEndpoint",
+            "                                              span process class@anonymous::prepare",
+            "                                                handler class@anonymous::prepare returns nothing",
+            "                                          no reply",
+            "                                        no reply",
+            "                    reply string dropped, as no channel waits for it",
+            "            no reply"
+        ]}
     ]
 }

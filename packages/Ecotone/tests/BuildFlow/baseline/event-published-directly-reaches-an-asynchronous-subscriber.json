@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "event published directly reaches an asynchronous subscriber",
     "wiring": {
         "nodes": [
@@ -57,5 +57,51 @@
         {"depth":2,"name":"send notifications","kind":"Producer","status":"Ok"},
         {"depth":3,"name":"receive notifications","kind":"Consumer","status":"Ok"},
         {"depth":4,"name":"process class@anonymous::notify","kind":"Server","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "send event merchant.created", "steps": [
+            "  gateway EventBus::publishWithRouting returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceEventBus",
+            "      span send event merchant.created",
+            "        around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "          direct channel ecotone.modelling.bus.event_by_name",
+            "            span route merchant.notifying merchant.notifying.target",
+            "              send merchant.notifying.target",
+            "                presend MessageHandlerLogger::asynchronous returns nothing",
+            "                channel interceptor BeforeSendChannelInterceptor",
+            "                direct channel merchant.notifying.target",
+            "                  handler RoutingSlipPrepender::transform returns a message of string",
+            "                  reply string to output channel notifications",
+            "                    send notifications",
+            "                      channel interceptor OutboundSerializationChannelInterceptor",
+            "                      channel interceptor MessageCollectorChannelInterceptor",
+            "                      channel interceptor SendRetryChannelInterceptor",
+            "                      channel interceptor InMemoryQueueAcknowledgeInterceptor",
+            "                      span send notifications",
+            "                        channel interceptor TracingChannelInterceptor",
+            "            no reply"
+        ]},
+        {"process": "receive notifications", "steps": [
+            "  gateway InboundChannelAdapterEntrypoint::executeEntrypoint returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceAsynchronousEndpoint",
+            "      span receive notifications",
+            "        around AcknowledgeConfirmationInterceptor::ack",
+            "          around LoggingInterceptor::logException",
+            "            around PollingConsumerErrorChannelInterceptor::handle",
+            "              around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                around AsynchronousEndpointInstantRetryByDefault::retry",
+            "                  around DeliveryConfirmationInterceptor::await",
+            "                    around CollectorSenderInterceptor::send",
+            "                      handler Bridge::handle returns a message of string",
+            "                      reply string to routing slip channel merchant.notifying.target.execute",
+            "                        direct channel merchant.notifying.target.execute",
+            "                          around MessageHandlerLogger::aroundEventHandler",
+            "                            around TracingInterceptor::traceHandlerEndpoint",
+            "                              span process class@anonymous::notify",
+            "                                handler class@anonymous::notify returns nothing",
+            "                          no reply"
+        ]}
     ]
 }

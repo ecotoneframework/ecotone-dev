@@ -212,7 +212,7 @@ final class BuildFlowComparisonTest extends TestCase
         file_put_contents($this->location . '/after/placing-an-order.json', '{"something": "else"}');
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json does not hold `scenario`, `wiring`, `build` and `trace`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.");
+        $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json does not hold `scenario`, `wiring`, `build`, `trace` and `execution`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.");
 
         $this->comparison();
     }

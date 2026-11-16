@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "asynchronous gateway queues the call until its consumer runs",
     "wiring": {
         "nodes": [
@@ -50,5 +50,42 @@
         {"depth":1,"name":"send tickets","kind":"Producer","status":"Ok"},
         {"depth":2,"name":"receive tickets","kind":"Consumer","status":"Ok"},
         {"depth":3,"name":"process class@anonymous::create","kind":"Server","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "send ticket.create", "steps": [
+            "  gateway FlowTicketGateway::create returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceMessageGateway",
+            "      span send ticket.create",
+            "        around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "          send tickets",
+            "            channel interceptor OutboundSerializationChannelInterceptor",
+            "            channel interceptor MessageCollectorChannelInterceptor",
+            "            channel interceptor SendRetryChannelInterceptor",
+            "            channel interceptor InMemoryQueueAcknowledgeInterceptor",
+            "            span send tickets",
+            "              channel interceptor TracingChannelInterceptor"
+        ]},
+        {"process": "receive tickets", "steps": [
+            "  gateway InboundChannelAdapterEntrypoint::executeEntrypoint returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceAsynchronousEndpoint",
+            "      span receive tickets",
+            "        around AcknowledgeConfirmationInterceptor::ack",
+            "          around LoggingInterceptor::logException",
+            "            around PollingConsumerErrorChannelInterceptor::handle",
+            "              around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                around AsynchronousEndpointInstantRetryByDefault::retry",
+            "                  around DeliveryConfirmationInterceptor::await",
+            "                    around CollectorSenderInterceptor::send",
+            "                      handler Bridge::handle returns a message of string",
+            "                      reply string to routing slip channel ticket.create",
+            "                        direct channel ticket.create",
+            "                          around MessageHandlerLogger::aroundMessageHandler",
+            "                            around TracingInterceptor::traceHandlerEndpoint",
+            "                              span process class@anonymous::create",
+            "                                handler class@anonymous::create returns nothing",
+            "                          no reply"
+        ]}
     ]
 }

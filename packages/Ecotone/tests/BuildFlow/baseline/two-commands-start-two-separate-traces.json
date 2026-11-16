@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "two commands start two separate traces",
     "wiring": {
         "nodes": [
@@ -42,5 +42,39 @@
         {"depth":1,"name":"process class@anonymous::register","kind":"Server","status":"Ok"},
         {"depth":0,"name":"send command","destination":"user.register","kind":"Server","status":"Ok"},
         {"depth":1,"name":"process class@anonymous::register","kind":"Server","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "send command user.register", "steps": [
+            "  gateway CommandBus::sendWithRouting returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceCommandBus",
+            "      span send command user.register",
+            "        around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "          around DeliveryConfirmationInterceptor::await",
+            "            direct channel ecotone.modelling.bus.command_by_name",
+            "              direct channel user.registration.target",
+            "                around MessageHandlerLogger::aroundCommandHandler",
+            "                  around TracingInterceptor::traceHandlerEndpoint",
+            "                    span process class@anonymous::register",
+            "                      handler class@anonymous::register returns nothing",
+            "                no reply",
+            "              no reply"
+        ]},
+        {"process": "send command user.register", "steps": [
+            "  gateway CommandBus::sendWithRouting returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceCommandBus",
+            "      span send command user.register",
+            "        around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "          around DeliveryConfirmationInterceptor::await",
+            "            direct channel ecotone.modelling.bus.command_by_name",
+            "              direct channel user.registration.target",
+            "                around MessageHandlerLogger::aroundCommandHandler",
+            "                  around TracingInterceptor::traceHandlerEndpoint",
+            "                    span process class@anonymous::register",
+            "                      handler class@anonymous::register returns nothing",
+            "                no reply",
+            "              no reply"
+        ]}
     ]
 }

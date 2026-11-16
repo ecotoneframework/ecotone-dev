@@ -15,7 +15,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  */
 final class FlowSnapshot
 {
-    public const FORMAT_VERSION = 2;
+    public const FORMAT_VERSION = 3;
     private const ANONYMOUS_CLASS = '/@anonymous\x00([^\x00:]+):(\d+)\$[0-9a-f]+/';
     private const GENERATED_ID = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/';
 
@@ -23,6 +23,7 @@ final class FlowSnapshot
      * @param list<array{depth: int, name: string, destination?: string, kind: string, status: string}> $trace
      * @param array<string, array<string, scalar>> $ledger kind and name of a registration => its entry
      * @param array<string, list<string>> $chains handler name of the ledger => its built layers, outermost first
+     * @param list<array{process: string, steps: list<string>}> $execution
      */
     private function __construct(
         public readonly string $scenario,
@@ -30,6 +31,7 @@ final class FlowSnapshot
         public readonly array $trace,
         public readonly array $ledger,
         public readonly array $chains,
+        public readonly array $execution,
     ) {
     }
 
@@ -52,14 +54,14 @@ final class FlowSnapshot
         ksort($ledger, SORT_STRING);
         ksort($chains, SORT_STRING);
 
-        return new self($scenario, MessageFlowGraph::create($nodes, $edges), self::withStableNames(FlowTrace::stepsOf($spans), $anonymousClasses), $ledger, $chains);
+        return new self($scenario, MessageFlowGraph::create($nodes, $edges), self::withStableNames(FlowTrace::stepsOf($spans), $anonymousClasses), $ledger, $chains, self::withStableNames(FlowExecution::of($spans)->processes, $anonymousClasses));
     }
 
     public static function fromJson(string $json, string $file, ?self $shared = null): self
     {
         $stored = json_decode($json, true);
-        if (! is_array($stored) || ! is_string($stored['scenario'] ?? null) || ! is_array($stored['wiring']['nodes'] ?? null) || ! is_array($stored['wiring']['edges'] ?? null) || ! is_array($stored['build']['ledger'] ?? null) || ! is_array($stored['build']['chains'] ?? null) || ! is_array($stored['trace'] ?? null)) {
-            throw InvalidArgumentException::create("Flow snapshot file {$file} does not hold `scenario`, `wiring`, `build` and `trace`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.");
+        if (! is_array($stored) || ! is_string($stored['scenario'] ?? null) || ! is_array($stored['wiring']['nodes'] ?? null) || ! is_array($stored['wiring']['edges'] ?? null) || ! is_array($stored['build']['ledger'] ?? null) || ! is_array($stored['build']['chains'] ?? null) || ! is_array($stored['trace'] ?? null) || ! is_array($stored['execution'] ?? null)) {
+            throw InvalidArgumentException::create("Flow snapshot file {$file} does not hold `scenario`, `wiring`, `build`, `trace` and `execution`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.");
         }
         $nodes = [];
         $edges = [];
@@ -98,7 +100,7 @@ final class FlowSnapshot
         ksort($ledger, SORT_STRING);
         ksort($chains, SORT_STRING);
 
-        return new self($stored['scenario'], MessageFlowGraph::create(array_values($nodes), array_values($edges)), $stored['trace'], $ledger, $chains);
+        return new self($stored['scenario'], MessageFlowGraph::create(array_values($nodes), array_values($edges)), $stored['trace'], $ledger, $chains, $stored['execution']);
     }
 
     public static function sharedFromJson(string $json, string $file): self
@@ -108,12 +110,12 @@ final class FlowSnapshot
             throw InvalidArgumentException::create("Shared file {$file} does not hold `wiring` and `build`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.");
         }
 
-        return self::fromJson(json_encode(['scenario' => 'what every application gets', 'trace' => []] + $stored, JSON_THROW_ON_ERROR), $file);
+        return self::fromJson(json_encode(['scenario' => 'what every application gets', 'trace' => [], 'execution' => []] + $stored, JSON_THROW_ON_ERROR), $file);
     }
 
     public static function emptyFor(string $scenario): self
     {
-        return new self($scenario, MessageFlowGraph::create([], []), [], [], []);
+        return new self($scenario, MessageFlowGraph::create([], []), [], [], [], []);
     }
 
     public function fileName(): string
@@ -221,7 +223,11 @@ final class FlowSnapshot
                 ...$withoutSharedBuild,
             ]),
             '    },',
-            '    "trace": ' . self::oneLineEach(array_map(self::encoded(...), $this->trace), '    '),
+            '    "trace": ' . self::oneLineEach(array_map(self::encoded(...), $this->trace), '    ') . ',',
+            '    "execution": ' . self::oneLineEach(array_map(
+                fn (array $process): string => '{"process": ' . self::encoded($process['process']) . ', "steps": ' . self::oneLineEach(array_map(self::encoded(...), $process['steps']), '        ') . '}',
+                $this->execution,
+            ), '    '),
             '}',
             '',
         ]);

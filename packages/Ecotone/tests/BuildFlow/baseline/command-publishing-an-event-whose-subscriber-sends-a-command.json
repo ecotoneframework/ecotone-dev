@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "command publishing an event whose subscriber sends a command",
     "wiring": {
         "nodes": [
@@ -77,5 +77,51 @@
         {"depth":4,"name":"process class@anonymous::merchantToUser","kind":"Server","status":"Ok"},
         {"depth":5,"name":"send command","destination":"user.register","kind":"Server","status":"Ok"},
         {"depth":6,"name":"process class@anonymous::register","kind":"Server","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "send command merchant.create", "steps": [
+            "  gateway CommandBus::sendWithRouting returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceCommandBus",
+            "      span send command merchant.create",
+            "        around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "          around DeliveryConfirmationInterceptor::await",
+            "            direct channel ecotone.modelling.bus.command_by_name",
+            "              direct channel merchant.creation.target",
+            "                around MessageHandlerLogger::aroundCommandHandler",
+            "                  around TracingInterceptor::traceHandlerEndpoint",
+            "                    span process class@anonymous::create",
+            "                      handler class@anonymous::create returns nothing",
+            "                        gateway EventBus::publishWithRouting returns nothing",
+            "                          before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "                          around TracingInterceptor::traceEventBus",
+            "                            span send event merchant.created",
+            "                              around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                                direct channel ecotone.modelling.bus.event_by_name",
+            "                                  span route merchant.to.user merchant.to.user.target",
+            "                                    direct channel merchant.to.user.target",
+            "                                      around MessageHandlerLogger::aroundEventHandler",
+            "                                        around TracingInterceptor::traceHandlerEndpoint",
+            "                                          span process class@anonymous::merchantToUser",
+            "                                            handler class@anonymous::merchantToUser returns nothing",
+            "                                              gateway CommandBus::sendWithRouting returns nothing",
+            "                                                before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "                                                around TracingInterceptor::traceCommandBus",
+            "                                                  span send command user.register",
+            "                                                    around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                                                      around DeliveryConfirmationInterceptor::await",
+            "                                                        direct channel ecotone.modelling.bus.command_by_name",
+            "                                                          direct channel user.registration.target",
+            "                                                            around MessageHandlerLogger::aroundCommandHandler",
+            "                                                              around TracingInterceptor::traceHandlerEndpoint",
+            "                                                                span process class@anonymous::register",
+            "                                                                  handler class@anonymous::register returns nothing",
+            "                                                            no reply",
+            "                                                          no reply",
+            "                                      no reply",
+            "                                  no reply",
+            "                no reply",
+            "              no reply"
+        ]}
     ]
 }

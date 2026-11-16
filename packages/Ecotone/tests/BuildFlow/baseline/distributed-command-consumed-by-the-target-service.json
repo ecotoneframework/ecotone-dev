@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "distributed command consumed by the target service",
     "wiring": {
         "nodes": [
@@ -93,5 +93,55 @@
         {"depth":2,"name":"receive distributed_channel","kind":"Consumer","status":"Ok"},
         {"depth":3,"name":"send command","destination":"ticket.create","kind":"Server","status":"Ok"},
         {"depth":4,"name":"process class@anonymous::create","kind":"Server","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "send distributed", "steps": [
+            "  gateway DistributedBus::sendCommand returns nothing",
+            "    before TracingInterceptor::provideContextForDistributedBus returns a message of string",
+            "    around TracingInterceptor::traceDistributedBus",
+            "      span send distributed",
+            "        direct channel Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution",
+            "          router DistributedOutboundRouter::route returns array",
+            "          send distributed_channel",
+            "            channel interceptor OutboundSerializationChannelInterceptor",
+            "            channel interceptor MessageCollectorChannelInterceptor",
+            "            channel interceptor SendRetryChannelInterceptor",
+            "            channel interceptor InMemoryQueueAcknowledgeInterceptor",
+            "            span send distributed_channel",
+            "              channel interceptor TracingChannelInterceptor"
+        ]},
+        {"process": "receive distributed_channel", "steps": [
+            "  gateway InboundChannelAdapterEntrypoint::executeEntrypoint returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceAsynchronousEndpoint",
+            "      span receive distributed_channel",
+            "        around AcknowledgeConfirmationInterceptor::ack",
+            "          around LoggingInterceptor::logException",
+            "            around PollingConsumerErrorChannelInterceptor::handle",
+            "              around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                around AsynchronousEndpointInstantRetryByDefault::retry",
+            "                  around DeliveryConfirmationInterceptor::await",
+            "                    around CollectorSenderInterceptor::send",
+            "                      handler Bridge::handle returns a message of string",
+            "                      reply string to routing slip channel ecotone.distributed.invoke",
+            "                        direct channel ecotone.distributed.invoke",
+            "                          handler DistributedMessageHandler::handle returns nothing",
+            "                            gateway CommandBus::sendWithRouting returns nothing",
+            "                              before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "                              around TracingInterceptor::traceCommandBus",
+            "                                span send command ticket.create",
+            "                                  around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                                    around DeliveryConfirmationInterceptor::await",
+            "                                      around CollectorSenderInterceptor::send",
+            "                                        direct channel ecotone.modelling.bus.command_by_name",
+            "                                          direct channel ticket.creation.target",
+            "                                            around MessageHandlerLogger::aroundCommandHandler",
+            "                                              around TracingInterceptor::traceHandlerEndpoint",
+            "                                                span process class@anonymous::create",
+            "                                                  handler class@anonymous::create returns nothing",
+            "                                            no reply",
+            "                                          no reply",
+            "                          no reply"
+        ]}
     ]
 }

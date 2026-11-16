@@ -77,8 +77,8 @@ final class BuildFlowSnapshotTest extends TestCase
         $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location]);
         $stored = (string) file_get_contents($this->location . '/placing-an-order.json');
 
-        self::assertSame(['formatVersion', 'scenario', 'wiring', 'build', 'trace'], array_keys($this->storedSnapshot('placing-an-order')));
-        self::assertSame(2, $this->storedSnapshot('placing-an-order')['formatVersion']);
+        self::assertSame(['formatVersion', 'scenario', 'wiring', 'build', 'trace', 'execution'], array_keys($this->storedSnapshot('placing-an-order')));
+        self::assertSame(3, $this->storedSnapshot('placing-an-order')['formatVersion']);
         self::assertSame('Placing an order', $this->storedSnapshot('placing-an-order')['scenario']);
         self::assertDoesNotMatchRegularExpression('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/', $stored);
         self::assertDoesNotMatchRegularExpression('/\d{4}-\d{2}-\d{2}/', $stored);

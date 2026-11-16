@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Test\Flow\Snapshot;
 
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
@@ -46,17 +47,12 @@ final class FlowScenarioRecorder
 
     public static function snapshotOf(FlowScenario $scenario): FlowSnapshot
     {
+        $built = self::applicationOf($scenario, new InMemorySpanRecorder(), TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class));
+        $built->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
+        $dump = $built->getInMemoryConsoleWriter()->getWrittenContent();
         $spanRecorder = new InMemorySpanRecorder();
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            $scenario->classesToResolve,
-            [...$scenario->services, InMemorySpanRecorder::class => $spanRecorder],
-            [...$scenario->extensionObjects, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)],
-            enabledModules: [],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+        $ecotone = self::applicationOf($scenario, $spanRecorder, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording());
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
-        $dump = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
-        $wiring = MessageFlowGraph::fromJson($dump);
         $spanRecorder->clear();
         foreach (array_keys($scenario->stages) as $stageIndex) {
             $failure = $scenario->runStage($stageIndex, $ecotone);
@@ -65,6 +61,17 @@ final class FlowScenarioRecorder
             }
         }
 
-        return FlowSnapshot::of($scenario->name, $wiring, $spanRecorder->recordedSpans(), json_decode($dump, true, flags: JSON_THROW_ON_ERROR)['build']);
+        return FlowSnapshot::of($scenario->name, MessageFlowGraph::fromJson($dump), $spanRecorder->recordedSpans(), json_decode($dump, true, flags: JSON_THROW_ON_ERROR)['build']);
+    }
+
+    private static function applicationOf(FlowScenario $scenario, InMemorySpanRecorder $spanRecorder, TracingConfiguration $tracing): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            $scenario->classesToResolve,
+            [...$scenario->services, InMemorySpanRecorder::class => $spanRecorder],
+            [...$scenario->extensionObjects, $tracing],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 }

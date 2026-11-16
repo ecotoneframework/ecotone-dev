@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "partitioned projection triggered for one partition",
     "wiring": {
         "nodes": [
@@ -107,5 +107,38 @@
         {"depth":1,"name":"route tenant_orders","destination":"projecting_manager_handler:tenant_orders","kind":"Producer","status":"Ok"},
         {"depth":2,"name":"process tenant_orders","kind":"Consumer","status":"Ok"},
         {"depth":3,"name":"process class@anonymous::whenPlaced","kind":"Server","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "send event order.placed", "steps": [
+            "  gateway EventBus::publishWithRouting returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceEventBus",
+            "      span send event order.placed",
+            "        around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "          direct channel ecotone.modelling.bus.event_by_name",
+            "            span route tenant_orders projecting_manager_handler:tenant_orders",
+            "              direct channel projecting_manager_handler:tenant_orders",
+            "                around TracingInterceptor::traceProjection",
+            "                  span process tenant_orders",
+            "                    handler ProjectingManager::execute returns nothing",
+            "                      direct channel ecotone.messaging.entrypoint",
+            "                        router HeaderRouter::route returns array",
+            "                        direct channel projecting_manager_batch:tenant_orders",
+            "                          handler ProjectingManager::executePartitionBatch returns int",
+            "                            direct channel tenant_orders.placed.target",
+            "                              around MessageHandlerLogger::aroundEventHandler",
+            "                                around TracingInterceptor::traceHandlerEndpoint",
+            "                                  span process class@anonymous::whenPlaced",
+            "                                    handler class@anonymous::whenPlaced returns nothing",
+            "                              no reply",
+            "                          reply int to the reply channel of the request",
+            "                      direct channel ecotone.messaging.entrypoint",
+            "                        router HeaderRouter::route returns array",
+            "                        direct channel projecting_manager_batch:tenant_orders",
+            "                          handler ProjectingManager::executePartitionBatch returns int",
+            "                          reply int to the reply channel of the request",
+            "                no reply",
+            "            no reply"
+        ]}
     ]
 }

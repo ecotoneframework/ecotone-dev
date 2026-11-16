@@ -25,12 +25,14 @@ final class FlowScenarioChange
     public const UNCHANGED = 'unchanged';
     public const LEFT_OUT = 'left out';
     private const UNCHANGED_STEPS_KEPT_WHOLE = 8;
+    private const UNCHANGED_NEIGHBOURS_OF_AN_EXECUTED_STEP = 2;
     private const DERIVED = 'derivedFromWiring';
     public const PART_REPORT = 'partReport';
 
     /**
      * @param list<array{change: string, step: array<string, mixed>}> $trace
      * @param list<array{change: string, kind: string, name: string, before?: array<string, scalar>, after?: array<string, scalar>, chain?: list<array{change: string, layer: string}>}> $build
+     * @param list<array{process: string, change: string, steps?: list<array{change: string, step?: string, steps?: int}>}> $execution
      */
     private function __construct(
         public readonly string $scenario,
@@ -40,6 +42,7 @@ final class FlowScenarioChange
         public readonly FlowComparison $wiring,
         public readonly array $trace,
         public readonly array $build,
+        public readonly array $execution,
     ) {
     }
 
@@ -62,6 +65,7 @@ final class FlowScenarioChange
             wiring: $state === self::CHANGED ? $before->wiring->compareTo($after->wiring) : $after->wiring->compareTo($after->wiring),
             trace: self::withPartReports(self::withContinuationsFromWiring(self::changesBetween($before->trace, $after->trace), $before->wiring, $after->wiring), $before, $after),
             build: $state === self::CHANGED ? self::buildChangesBetween($before, $after) : [],
+            execution: self::executionChangesBetween($before->execution, $after->execution),
         );
     }
 
@@ -116,7 +120,7 @@ final class FlowScenarioChange
      */
     public function withoutBuildChangesOf(array $registrations): self
     {
-        return new self($this->scenario, $this->state, $this->before, $this->after, $this->wiring, $this->trace, array_values(array_filter($this->build, fn (array $change): bool => ! isset($registrations[$change['kind'] . ':' . $change['name']]))));
+        return new self($this->scenario, $this->state, $this->before, $this->after, $this->wiring, $this->trace, array_values(array_filter($this->build, fn (array $change): bool => ! isset($registrations[$change['kind'] . ':' . $change['name']]))), $this->execution);
     }
 
     /**
@@ -136,7 +140,12 @@ final class FlowScenarioChange
 
     public function hasChanges(): bool
     {
-        return $this->state !== self::CHANGED || $this->wiring->hasChanges() || $this->hasTraceChanges() || $this->build !== [];
+        return $this->state !== self::CHANGED || $this->wiring->hasChanges() || $this->hasTraceChanges() || $this->build !== [] || $this->hasExecutionChanges();
+    }
+
+    public function hasExecutionChanges(): bool
+    {
+        return array_filter($this->execution, fn (array $process): bool => $process['change'] !== self::UNCHANGED) !== [];
     }
 
     public function hasTraceChanges(): bool
@@ -153,6 +162,7 @@ final class FlowScenarioChange
             $parts[] = $comparison[$change]['edges'];
         }
         $parts[] = $this->build;
+        $parts[] = array_values(array_filter($this->execution, fn (array $process): bool => $process['change'] !== self::UNCHANGED));
         $parts[] = $this->scopedTrace();
         $canonical = [];
         foreach ($parts as $position => $elements) {
@@ -420,6 +430,11 @@ final class FlowScenarioChange
                 ? ['before' => 'Before: this scenario was not in the catalogue.', 'now' => 'Now: it is, with ' . count($this->after->trace) . ' traced steps.']
                 : ['before' => 'Before: this scenario was in the catalogue, with ' . count($this->before->trace) . ' traced steps.', 'now' => 'Now: it is gone.'];
         }
+        if (! $this->hasTraceChanges() && ! $this->wiring->hasChanges() && $this->build === []) {
+            $changed = count(array_filter($this->execution, fn (array $process): bool => $process['change'] !== self::UNCHANGED));
+
+            return ['before' => 'Before and now: the wiring, the build and the traced steps are the same.', 'now' => 'Now: ' . $changed . ' process' . ($changed === 1 ? ' runs' : 'es run') . ' other steps.'];
+        }
         if (! $this->hasTraceChanges() && ! $this->wiring->hasChanges()) {
             $counts = [];
             foreach ($this->build as $change) {
@@ -618,7 +633,68 @@ final class FlowScenarioChange
             'registeredOffThePath' => array_map(fn (array $nodes): array => array_map(fn (FlowNode $node): string => $node->id, $nodes), $this->registeredOffThePath()),
             'build' => $this->buildByModule(),
             'trace' => $this->scopedTrace(),
+            'execution' => $this->execution,
         ];
+    }
+
+    /**
+     * @param list<array{process: string, steps: list<string>}> $before
+     * @param list<array{process: string, steps: list<string>}> $after
+     * @return list<array{process: string, change: string, steps?: list<array{change: string, step?: string, steps?: int}>}>
+     */
+    private static function executionChangesBetween(array $before, array $after): array
+    {
+        $processes = [];
+        $beforePosition = $afterPosition = 0;
+        foreach (self::changesBetween(array_column($before, 'process'), array_column($after, 'process')) as $entry) {
+            $process = match ($entry['change']) {
+                self::UNCHANGED => [$before[$beforePosition++], $after[$afterPosition++]],
+                self::REMOVED => [$before[$beforePosition++], null],
+                default => [null, $after[$afterPosition++]],
+            };
+            $processes[] = match (true) {
+                $process[0] === null => ['process' => $entry['step'], 'change' => self::ADDED, 'steps' => array_map(fn (string $step): array => ['change' => self::ADDED, 'step' => $step], $process[1]['steps'])],
+                $process[1] === null => ['process' => $entry['step'], 'change' => self::REMOVED, 'steps' => array_map(fn (string $step): array => ['change' => self::REMOVED, 'step' => $step], $process[0]['steps'])],
+                $process[0]['steps'] === $process[1]['steps'] => ['process' => $entry['step'], 'change' => self::UNCHANGED],
+                default => ['process' => $entry['step'], 'change' => self::CHANGED, 'steps' => self::withUnchangedNeighboursOnly(self::changesBetween($process[0]['steps'], $process[1]['steps']))],
+            };
+        }
+
+        return $processes;
+    }
+
+    /**
+     * @param list<array{change: string, step: string}> $steps
+     * @return list<array{change: string, step?: string, steps?: int}>
+     */
+    private static function withUnchangedNeighboursOnly(array $steps): array
+    {
+        $kept = [];
+        foreach ($steps as $position => $entry) {
+            if ($entry['change'] !== self::UNCHANGED) {
+                foreach (range($position - self::UNCHANGED_NEIGHBOURS_OF_AN_EXECUTED_STEP, $position + self::UNCHANGED_NEIGHBOURS_OF_AN_EXECUTED_STEP) as $neighbour) {
+                    $kept[$neighbour] = true;
+                }
+            }
+        }
+        $scoped = [];
+        $leftOut = 0;
+        foreach ($steps as $position => $entry) {
+            if (! isset($kept[$position])) {
+                $leftOut++;
+                continue;
+            }
+            if ($leftOut > 0) {
+                $scoped[] = ['change' => self::LEFT_OUT, 'steps' => $leftOut];
+                $leftOut = 0;
+            }
+            $scoped[] = $entry;
+        }
+        if ($leftOut > 0) {
+            $scoped[] = ['change' => self::LEFT_OUT, 'steps' => $leftOut];
+        }
+
+        return $scoped;
     }
 
     /**

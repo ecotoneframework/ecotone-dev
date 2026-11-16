@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "router sending the command to several channels",
     "wiring": {
         "nodes": [
@@ -69,5 +69,39 @@
         {"depth":1,"name":"process class@anonymous::dispatch","kind":"Server","status":"Ok"},
         {"depth":1,"name":"process class@anonymous::label","kind":"Server","status":"Ok"},
         {"depth":1,"name":"process class@anonymous::notify","kind":"Server","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "send command shipment.dispatch", "steps": [
+            "  gateway CommandBus::sendWithRouting returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceCommandBus",
+            "      span send command shipment.dispatch",
+            "        around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "          around DeliveryConfirmationInterceptor::await",
+            "            direct channel ecotone.modelling.bus.command_by_name",
+            "              direct channel shipment.dispatching.target",
+            "                around MessageHandlerLogger::aroundCommandHandler",
+            "                  around TracingInterceptor::traceHandlerEndpoint",
+            "                    span process class@anonymous::dispatch",
+            "                      handler class@anonymous::dispatch returns string",
+            "                reply string to output channel shipment.route",
+            "                  send shipment.route",
+            "                    channel interceptor SpiecChannelAdapter",
+            "                    publish-subscribe channel shipment.route",
+            "                      router class@anonymous::route returns array",
+            "                      direct channel shipment.label",
+            "                        around MessageHandlerLogger::aroundMessageHandler",
+            "                          around TracingInterceptor::traceHandlerEndpoint",
+            "                            span process class@anonymous::label",
+            "                              handler class@anonymous::label returns nothing",
+            "                        no reply",
+            "                      direct channel shipment.notify",
+            "                        around MessageHandlerLogger::aroundMessageHandler",
+            "                          around TracingInterceptor::traceHandlerEndpoint",
+            "                            span process class@anonymous::notify",
+            "                              handler class@anonymous::notify returns nothing",
+            "                        no reply",
+            "              no reply"
+        ]}
     ]
 }

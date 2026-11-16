@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "event-sourced aggregate feeding a projection",
     "wiring": {
         "nodes": [
@@ -157,5 +157,55 @@
         {"depth":2,"name":"route order_list","destination":"projecting_manager_handler:order_list","kind":"Producer","status":"Ok"},
         {"depth":3,"name":"process order_list","kind":"Consumer","status":"Ok"},
         {"depth":4,"name":"process class@anonymous::whenPlaced","kind":"Server","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "send command flow_order.place", "steps": [
+            "  gateway CommandBus::sendWithRouting returns a message of string",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceCommandBus",
+            "      span send command flow_order.place",
+            "        around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "          around DeliveryConfirmationInterceptor::await",
+            "            direct channel ecotone.modelling.bus.command_by_name",
+            "              direct channel flow_order.placing.target",
+            "                reply array to output channel flow_order.placing.target-connection",
+            "                  direct channel flow_order.placing.target-connection",
+            "                    step HeaderEnricher::transform returns a message of array",
+            "                    around MessageHandlerLogger::aroundCommandHandler",
+            "                      around TracingInterceptor::traceHandlerEndpoint",
+            "                        span process FlowOrder::place",
+            "                          handler FlowOrder::place returns array",
+            "                    gateway EventBus::publish returns nothing",
+            "                      before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "                      around TracingInterceptor::traceEventBus",
+            "                        span send event Ecotone\\Test\\Flow\\Fixture\\FlowOrderPlaced",
+            "                          around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                            direct channel ecotone.modelling.bus.event_by_name",
+            "                              span route order_list projecting_manager_handler:order_list",
+            "                                direct channel projecting_manager_handler:order_list",
+            "                                  around TracingInterceptor::traceProjection",
+            "                                    span process order_list",
+            "                                      handler ProjectingManager::execute returns nothing",
+            "                                        direct channel ecotone.messaging.entrypoint",
+            "                                          router HeaderRouter::route returns array",
+            "                                          direct channel projecting_manager_batch:order_list",
+            "                                            handler ProjectingManager::executePartitionBatch returns int",
+            "                                              direct channel order_list.placed.target",
+            "                                                around MessageHandlerLogger::aroundEventHandler",
+            "                                                  around TracingInterceptor::traceHandlerEndpoint",
+            "                                                    span process class@anonymous::whenPlaced",
+            "                                                      handler class@anonymous::whenPlaced returns nothing",
+            "                                                no reply",
+            "                                            reply int to the reply channel of the request",
+            "                                        direct channel ecotone.messaging.entrypoint",
+            "                                          router HeaderRouter::route returns array",
+            "                                          direct channel projecting_manager_batch:order_list",
+            "                                            handler ProjectingManager::executePartitionBatch returns int",
+            "                                            reply int to the reply channel of the request",
+            "                                  no reply",
+            "                              no reply",
+            "                    reply string to the reply channel of the request",
+            "              no reply"
+        ]}
     ]
 }

@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "distributed event delivered to every subscribed channel",
     "wiring": {
         "nodes": [
@@ -97,5 +97,55 @@
         {"depth":3,"name":"send event","destination":"user.billing_changed","kind":"Server","status":"Ok"},
         {"depth":4,"name":"route billing.updating","destination":"billing.updating.target","kind":"Producer","status":"Ok"},
         {"depth":5,"name":"process class@anonymous::update","kind":"Server","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "send distributed", "steps": [
+            "  gateway DistributedBus::publishEvent returns nothing",
+            "    before TracingInterceptor::provideContextForDistributedBus returns a message of string",
+            "    around TracingInterceptor::traceDistributedBus",
+            "      span send distributed",
+            "        direct channel Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution",
+            "          router DistributedOutboundRouter::route returns array",
+            "          send billing_events",
+            "            channel interceptor OutboundSerializationChannelInterceptor",
+            "            channel interceptor MessageCollectorChannelInterceptor",
+            "            channel interceptor SendRetryChannelInterceptor",
+            "            channel interceptor InMemoryQueueAcknowledgeInterceptor",
+            "            span send billing_events",
+            "              channel interceptor TracingChannelInterceptor"
+        ]},
+        {"process": "receive billing_events", "steps": [
+            "  gateway InboundChannelAdapterEntrypoint::executeEntrypoint returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceAsynchronousEndpoint",
+            "      span receive billing_events",
+            "        around AcknowledgeConfirmationInterceptor::ack",
+            "          around LoggingInterceptor::logException",
+            "            around PollingConsumerErrorChannelInterceptor::handle",
+            "              around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                around AsynchronousEndpointInstantRetryByDefault::retry",
+            "                  around DeliveryConfirmationInterceptor::await",
+            "                    around CollectorSenderInterceptor::send",
+            "                      around CollectorSenderInterceptor::send",
+            "                        handler Bridge::handle returns a message of string",
+            "                        reply string to routing slip channel ecotone.distributed.invoke",
+            "                          direct channel ecotone.distributed.invoke",
+            "                            handler DistributedMessageHandler::handle returns nothing",
+            "                              gateway EventBus::publishWithRouting returns nothing",
+            "                                before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "                                around TracingInterceptor::traceEventBus",
+            "                                  span send event user.billing_changed",
+            "                                    around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                                      direct channel ecotone.modelling.bus.event_by_name",
+            "                                        span route billing.updating billing.updating.target",
+            "                                          direct channel billing.updating.target",
+            "                                            around MessageHandlerLogger::aroundEventHandler",
+            "                                              around TracingInterceptor::traceHandlerEndpoint",
+            "                                                span process class@anonymous::update",
+            "                                                  handler class@anonymous::update returns nothing",
+            "                                            no reply",
+            "                                        no reply",
+            "                            no reply"
+        ]}
     ]
 }

@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "state-stored aggregate recording an event",
     "wiring": {
         "nodes": [
@@ -88,5 +88,40 @@
         {"depth":1,"name":"send event","destination":"Ecotone\\Test\\Flow\\Fixture\\FlowOrderPlaced","kind":"Server","status":"Ok"},
         {"depth":2,"name":"route order.placed.handling","destination":"order.placed.handling.target","kind":"Producer","status":"Ok"},
         {"depth":3,"name":"process class@anonymous::on","kind":"Server","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "send command order.create", "steps": [
+            "  gateway CommandBus::sendWithRouting returns a message of string",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceCommandBus",
+            "      span send command order.create",
+            "        around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "          around DeliveryConfirmationInterceptor::await",
+            "            direct channel ecotone.modelling.bus.command_by_name",
+            "              direct channel order.creating.target",
+            "                reply array to output channel order.creating.target-connection",
+            "                  direct channel order.creating.target-connection",
+            "                    step HeaderEnricher::transform returns a message of array",
+            "                    around MessageHandlerLogger::aroundCommandHandler",
+            "                      around TracingInterceptor::traceHandlerEndpoint",
+            "                        span process class@anonymous::create",
+            "                          handler class@anonymous::create returns class@anonymous",
+            "                    gateway EventBus::publish returns nothing",
+            "                      before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "                      around TracingInterceptor::traceEventBus",
+            "                        span send event Ecotone\\Test\\Flow\\Fixture\\FlowOrderPlaced",
+            "                          around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                            direct channel ecotone.modelling.bus.event_by_name",
+            "                              span route order.placed.handling order.placed.handling.target",
+            "                                direct channel order.placed.handling.target",
+            "                                  around MessageHandlerLogger::aroundEventHandler",
+            "                                    around TracingInterceptor::traceHandlerEndpoint",
+            "                                      span process class@anonymous::on",
+            "                                        handler class@anonymous::on returns nothing",
+            "                                  no reply",
+            "                              no reply",
+            "                    reply string to the reply channel of the request",
+            "              no reply"
+        ]}
     ]
 }

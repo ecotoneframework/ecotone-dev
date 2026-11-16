@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "failed message is ignored by its channel",
     "wiring": {
         "nodes": [
@@ -63,5 +63,53 @@
         {"depth":1,"name":"send orders","kind":"Producer","status":"Ok"},
         {"depth":2,"name":"receive orders","kind":"Consumer","status":"Error"},
         {"depth":3,"name":"process class@anonymous::place","kind":"Server","status":"Error"}
+    ],
+    "execution": [
+        {"process": "send command order.place", "steps": [
+            "  gateway CommandBus::sendWithRouting returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceCommandBus",
+            "      span send command order.place",
+            "        around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "          around DeliveryConfirmationInterceptor::await",
+            "            around CollectorSenderInterceptor::send",
+            "              direct channel ecotone.modelling.bus.command_by_name",
+            "                send order.placing.target",
+            "                  presend MessageHandlerLogger::asynchronous returns nothing",
+            "                  channel interceptor BeforeSendChannelInterceptor",
+            "                  direct channel order.placing.target",
+            "                    handler RoutingSlipPrepender::transform returns a message of string",
+            "                    reply string to output channel orders",
+            "                      send orders",
+            "                        channel interceptor OutboundSerializationChannelInterceptor",
+            "                        collected, held until the handler ends",
+            "                no reply",
+            "              release collected message to orders",
+            "                channel interceptor OutboundSerializationChannelInterceptor",
+            "                channel interceptor MessageCollectorChannelInterceptor",
+            "                channel interceptor SendRetryChannelInterceptor",
+            "                channel interceptor InMemoryQueueAcknowledgeInterceptor",
+            "                span send orders",
+            "                  channel interceptor TracingChannelInterceptor"
+        ]},
+        {"process": "receive orders", "steps": [
+            "  gateway InboundChannelAdapterEntrypoint::executeEntrypoint returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceAsynchronousEndpoint",
+            "      span receive orders",
+            "        around AcknowledgeConfirmationInterceptor::ack",
+            "          around LoggingInterceptor::logException throws RuntimeException",
+            "            around PollingConsumerErrorChannelInterceptor::handle throws RuntimeException",
+            "              around MessageHeadersPropagatorInterceptor::storeHeaders throws RuntimeException",
+            "                around DeliveryConfirmationInterceptor::await throws RuntimeException",
+            "                  around CollectorSenderInterceptor::send throws RuntimeException",
+            "                    handler Bridge::handle returns a message of string",
+            "                    reply string to routing slip channel order.placing.target.execute throws RuntimeException",
+            "                      direct channel order.placing.target.execute throws RuntimeException",
+            "                        around MessageHandlerLogger::aroundCommandHandler throws RuntimeException",
+            "                          around TracingInterceptor::traceHandlerEndpoint throws RuntimeException",
+            "                            span process class@anonymous::place",
+            "                              handler class@anonymous::place throws RuntimeException"
+        ]}
     ]
 }

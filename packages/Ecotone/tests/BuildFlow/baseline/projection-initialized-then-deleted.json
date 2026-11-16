@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "projection initialized, then deleted",
     "wiring": {
         "nodes": [
@@ -105,5 +105,29 @@
     "trace": [
         {"depth":0,"name":"initialize orders","kind":"Server","status":"Ok"},
         {"depth":0,"name":"delete orders","kind":"Server","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "initialize orders", "steps": [
+            "  direct channel ecotone.messaging.entrypoint",
+            "    router HeaderRouter::route returns array",
+            "    direct channel projecting_manager_initialize:orders",
+            "      before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "      around TracingInterceptor::traceProjectionOperation",
+            "        span initialize orders",
+            "          around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "            handler ProjectingManager::init returns nothing",
+            "      no reply"
+        ]},
+        {"process": "delete orders", "steps": [
+            "  direct channel ecotone.messaging.entrypoint",
+            "    router HeaderRouter::route returns array",
+            "    direct channel projecting_manager_delete:orders",
+            "      before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "      around TracingInterceptor::traceProjectionOperation",
+            "        span delete orders",
+            "          around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "            handler ProjectingManager::delete returns nothing",
+            "      no reply"
+        ]}
     ]
 }

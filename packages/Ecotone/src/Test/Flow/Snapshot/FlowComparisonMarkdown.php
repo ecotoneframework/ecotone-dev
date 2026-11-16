@@ -36,7 +36,7 @@ final class FlowComparisonMarkdown
         if ($comparison->groups === [] && $comparison->everyScenario === null) {
             return $title . "None of {$comparison->scenariosCompared} scenarios changed its wiring, its build or its traced steps.\n";
         }
-        $changesItsPath = fn (array $group): bool => $group['change']->state !== FlowScenarioChange::CHANGED || $group['change']->wiring->hasChanges() || $group['change']->hasTraceChanges();
+        $changesItsPath = fn (array $group): bool => $group['change']->state !== FlowScenarioChange::CHANGED || $group['change']->wiring->hasChanges() || $group['change']->hasTraceChanges() || $group['change']->hasExecutionChanges();
         $pathGroups = array_values(array_filter($comparison->groups, $changesItsPath));
         $count = fn (array $groups): int => array_sum(array_map(fn (array $group): int => count($group['scenarios']), $groups));
         $withPath = $count($pathGroups);
@@ -57,12 +57,38 @@ final class FlowComparisonMarkdown
                     self::MARKED_DIAGRAM => self::markedDiagram($group['change']),
                     self::MESSAGE_PATH => self::messagePath($group['change']),
                     default => self::messagePath($group['change']) . "\n<details><summary>Marked wiring and traced steps</summary>\n\n" . self::markedDiagram($group['change']) . "\n</details>\n",
-                },
+                }
+            . self::whatRan($group['change']),
             $pathGroups,
         );
         $tree = FlowBuildTree::of($comparison);
 
         return $title . $summary . "\n\n" . implode("\n", array_filter([$tree, ...$sections]));
+    }
+
+    private static function whatRan(FlowScenarioChange $change): string
+    {
+        if (! $change->hasExecutionChanges()) {
+            return '';
+        }
+        $sections = [];
+        foreach ($change->execution as $process) {
+            $state = match ($process['change']) {
+                FlowScenarioChange::UNCHANGED => 'unchanged.',
+                FlowScenarioChange::ADDED => 'runs only now.',
+                FlowScenarioChange::REMOVED => 'ran only before.',
+                default => 'runs other steps now.',
+            };
+            $lines = array_map(fn (array $entry): string => match ($entry['change']) {
+                FlowScenarioChange::LEFT_OUT => '  … ' . $entry['steps'] . ' unchanged steps',
+                FlowScenarioChange::ADDED => '+ ' . $entry['step'],
+                FlowScenarioChange::REMOVED => '- ' . $entry['step'],
+                default => '  ' . $entry['step'],
+            }, $process['steps'] ?? []);
+            $sections[] = 'Process `' . $process['process'] . '`: ' . $state . ($lines === [] ? '' : "\n\n```diff\n" . implode("\n", $lines) . "\n```");
+        }
+
+        return "\n#### What ran, process by process\n\n" . implode("\n\n", $sections) . "\n";
     }
 
     /**

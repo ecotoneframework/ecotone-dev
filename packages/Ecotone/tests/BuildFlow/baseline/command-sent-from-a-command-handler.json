@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "command sent from a command handler",
     "wiring": {
         "nodes": [
@@ -61,5 +61,37 @@
         {"depth":1,"name":"process class@anonymous::register","kind":"Server","status":"Ok"},
         {"depth":2,"name":"send command","destination":"audit.record","kind":"Server","status":"Ok"},
         {"depth":3,"name":"process class@anonymous::record","kind":"Server","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "send command user.register", "steps": [
+            "  gateway CommandBus::sendWithRouting returns nothing",
+            "    before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "    around TracingInterceptor::traceCommandBus",
+            "      span send command user.register",
+            "        around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "          around DeliveryConfirmationInterceptor::await",
+            "            direct channel ecotone.modelling.bus.command_by_name",
+            "              direct channel user.registration.target",
+            "                around MessageHandlerLogger::aroundCommandHandler",
+            "                  around TracingInterceptor::traceHandlerEndpoint",
+            "                    span process class@anonymous::register",
+            "                      handler class@anonymous::register returns nothing",
+            "                        gateway CommandBus::sendWithRouting returns nothing",
+            "                          before MessageHeadersPropagatorInterceptor::propagateHeaders returns array",
+            "                          around TracingInterceptor::traceCommandBus",
+            "                            span send command audit.record",
+            "                              around MessageHeadersPropagatorInterceptor::storeHeaders",
+            "                                around DeliveryConfirmationInterceptor::await",
+            "                                  direct channel ecotone.modelling.bus.command_by_name",
+            "                                    direct channel audit.recording.target",
+            "                                      around MessageHandlerLogger::aroundCommandHandler",
+            "                                        around TracingInterceptor::traceHandlerEndpoint",
+            "                                          span process class@anonymous::record",
+            "                                            handler class@anonymous::record returns nothing",
+            "                                      no reply",
+            "                                    no reply",
+            "                no reply",
+            "              no reply"
+        ]}
     ]
 }

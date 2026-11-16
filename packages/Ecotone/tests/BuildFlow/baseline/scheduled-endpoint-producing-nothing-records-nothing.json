@@ -1,5 +1,5 @@
 {
-    "formatVersion": 2,
+    "formatVersion": 3,
     "scenario": "scheduled endpoint producing nothing records nothing",
     "wiring": {
         "nodes": [
@@ -35,5 +35,6 @@
         "withoutLedger": [],
         "withoutChains": []
     },
-    "trace": []
+    "trace": [],
+    "execution": []
 }

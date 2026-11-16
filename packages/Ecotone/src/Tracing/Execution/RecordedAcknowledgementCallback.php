@@ -47,7 +47,10 @@ final class RecordedAcknowledgementCallback implements AcknowledgementCallback
     public function release(): void
     {
         $this->acknowledgementCallback->release();
-        $this->tracer->recordStep('acknowledged: released back to the channel' . $this->decidedBy());
+        $strategy = $this->acknowledgementCallback->getFailureStrategy();
+        $this->tracer->recordStep($strategy === FinalFailureStrategy::RELEASE
+            ? 'acknowledged: released back to the channel' . $this->decidedBy()
+            : 'acknowledged: released back to the channel, and the consumer stops (final failure strategy ' . $strategy->value . ')');
     }
 
     private function decidedBy(): string

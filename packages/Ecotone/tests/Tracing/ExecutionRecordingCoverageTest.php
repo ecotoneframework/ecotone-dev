@@ -300,6 +300,19 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         self::assertContains('UngatheredSplitterProcessor, chosen by the licence', $this->recorded([$splitter::class], [$splitter], [], $run));
     }
 
+    public function test_a_consumer_that_stops_on_a_failure_is_recorded_releasing_the_message(): void
+    {
+        $lines = $this->recorded([ExecutionRecordedOrders::class], [new ExecutionRecordedOrders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommandWithRouting('order.place', 'failing');
+            try {
+                $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            } catch (RuntimeException) {
+            }
+        });
+
+        self::assertContains('acknowledged: released back to the channel, and the consumer stops (final failure strategy resend)', $lines);
+    }
+
     /**
      * @param list<class-string> $classes
      * @param list<object> $services

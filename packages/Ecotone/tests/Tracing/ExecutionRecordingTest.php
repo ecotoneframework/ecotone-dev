@@ -518,7 +518,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [
                 'process 1: gateway CommandBus::sendWithRouting',
                 '  gateway CommandBus::sendWithRouting',
-                '    ↳ result: throws RuntimeException',
+                '    ↳ result: passes RuntimeException out of the process',
                 '    before MessageHeadersPropagatorInterceptor::propagateHeaders',
                 '    before class@anonymous::refuseTheCommand',
                 '      ↳ result: throws RuntimeException',

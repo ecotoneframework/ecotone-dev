@@ -28,7 +28,7 @@ final class RecordedProjectionStateStorage implements ProjectionStateStorage
             $this->tracer,
             'load partition ' . self::partitionOf($partitionKey) . ' of ' . $projectionName,
             fn () => $this->storage->loadPartition($projectionName, $partitionKey),
-            fn (?ProjectionPartitionState $state): string => $state === null ? 'found nothing' : 'found it at position ' . ($state->lastPosition ?? 'start'),
+            fn (?ProjectionPartitionState $state): ExecutionHint => $state === null ? ExecutionHint::critical(ExecutionHint::RESULT, 'found nothing') : ExecutionHint::detail(ExecutionHint::RESULT, 'found it at position ' . ($state->lastPosition ?? 'start')),
         );
     }
 

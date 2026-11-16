@@ -28,7 +28,7 @@ final class RecordedAggregateRepository implements AggregateRepository
         return $this->recorded(
             'repository finds ' . ExecutionRecordingTracer::shortClassOf($aggregateClassName),
             fn () => $this->repository->findBy($aggregateClassName, $identifiers),
-            fn (?ResolvedAggregate $aggregate): string => $aggregate === null ? 'found nothing' : 'found it at version ' . ($aggregate->getVersionBeforeHandling() ?? 'none'),
+            fn (?ResolvedAggregate $aggregate): ExecutionHint => $aggregate === null ? ExecutionHint::critical(ExecutionHint::RESULT, 'found nothing') : ExecutionHint::detail(ExecutionHint::RESULT, 'found it at version ' . ($aggregate->getVersionBeforeHandling() ?? 'none')),
             [ExecutionHint::detail(ExecutionHint::READ_FROM, ExecutionHint::json($identifiers))],
         );
     }
@@ -58,7 +58,8 @@ final class RecordedAggregateRepository implements AggregateRepository
             throw $failure;
         }
         if ($step !== null) {
-            $this->tracer->endStep($step, $outcome($result));
+            $described = $outcome($result);
+            $described instanceof ExecutionHint ? $this->tracer->endStep($step, '', [$described]) : $this->tracer->endStep($step, $described);
         }
 
         return $result;

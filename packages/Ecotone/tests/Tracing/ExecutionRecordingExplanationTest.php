@@ -38,7 +38,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $expected = [
             'process 5: receive backfill, GatheringMessageHandler::handle (part 1 of 2)',
             'handler GatheringMessageHandler::handle',
-            '↳ chosen by: licence',
+            '↳ chosen by: licence, over RequestReplyProducer',
             'read part 1 of 2',
             'record part 1 of 2 in InMemoryGatheredGroupStore',
             '↳ result: part stored, 1 of 2 in, group waits',
@@ -201,6 +201,25 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
             ],
             array_values(array_map(fn (int $position): string => $lines[$position + 2], array_keys($lines, 'entrypoint sends to backfill', true))),
         );
+    }
+
+    public function test_what_decides_the_flow_of_a_projection_batch_is_shown_by_default(): void
+    {
+        $lines = array_map(trim(...), self::executionOf('tag-partitioned projection backfilled asynchronously in two batches'));
+
+        self::assertContains('↳ by: GatheredPartitionBatchDispatcher, for backfill', $lines);
+        self::assertContains('↳ result: got 0 events', $lines);
+        self::assertContains('↳ result: found nothing', $lines);
+        self::assertSame('↳ chosen by: licence, over RequestReplyProducer', $lines[self::positionOf($lines, 'handler GatheringMessageHandler::handle') + 1]);
+    }
+
+    public function test_a_failure_is_shown_where_it_was_thrown_and_not_on_every_step_it_passes(): void
+    {
+        $lines = array_map(trim(...), self::executionOf('event forwarded to a channel whose other interceptor fails after the send'));
+
+        self::assertCount(1, array_keys($lines, '↳ result: throws RuntimeException', true));
+        self::assertSame('↳ result: throws RuntimeException', $lines[self::positionOf($lines, 'release collected message to notifications') + 1]);
+        self::assertContains('↳ result: passes RuntimeException out of the process', $lines);
     }
 
     public function test_no_step_names_a_class_of_the_recording(): void

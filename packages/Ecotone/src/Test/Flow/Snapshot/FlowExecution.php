@@ -6,6 +6,7 @@ namespace Ecotone\Test\Flow\Snapshot;
 
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
+use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Test\Flow\ExpectedSpan;
 use Ecotone\Tracing\Execution\ExecutionHint;
 
@@ -167,8 +168,8 @@ final class FlowExecution
     {
         $hints = [];
         $outcome = (string) ($span->attributes[SpanAttribute::EXECUTION_OUTCOME] ?? '');
-        if ($outcome !== '') {
-            $hints[] = ['key' => ExecutionHint::RESULT, 'value' => self::readable($outcome), 'critical' => str_starts_with($outcome, 'throws ')];
+        if ($outcome !== '' && self::thrownBy($span) === null) {
+            $hints[] = ['key' => ExecutionHint::RESULT, 'value' => self::readable($outcome), 'critical' => false];
         }
         foreach (json_decode((string) ($span->attributes[SpanAttribute::EXECUTION_HINTS] ?? '[]'), true, flags: JSON_THROW_ON_ERROR) as [$key, $value, $critical]) {
             $hints[] = ['key' => (string) $key, 'value' => self::readable((string) $value), 'critical' => (bool) $critical];
@@ -177,22 +178,92 @@ final class FlowExecution
         return $hints;
     }
 
+    private static function thrownBy(Span $span): ?string
+    {
+        $outcome = (string) ($span->attributes[SpanAttribute::EXECUTION_OUTCOME] ?? '');
+
+        return str_starts_with($outcome, 'throws ') ? substr($outcome, strlen('throws ')) : null;
+    }
+
+    /**
+     * @param array<string, list<Span>> $children
+     */
+    private static function aStepUnderThrows(Span $span, array $children, string $failure): bool
+    {
+        foreach ($children[$span->spanId] ?? [] as $child) {
+            if (($child->attributes[SpanAttribute::EXECUTION_STEP] ?? false) ? self::thrownBy($child) === $failure : self::aStepUnderThrows($child, $children, $failure)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, list<Span>> $children
+     * @return list<array{key: string, value: string, critical: bool}>
+     */
+    private static function failureHintsOf(Span $span, array $children, ?string $failureAbove, bool $hasStepAbove): array
+    {
+        $failure = self::thrownBy($span);
+        if ($failure === null && $span->status === SpanStatus::Error) {
+            return [];
+        }
+        if ($failure === null) {
+            foreach (self::failuresOfStepsUnder($span, $children) as $caught) {
+                return [['key' => ExecutionHint::RESULT, 'value' => 'caught ' . $caught, 'critical' => true]];
+            }
+
+            return [];
+        }
+        if (! self::aStepUnderThrows($span, $children, $failure)) {
+            return [['key' => ExecutionHint::RESULT, 'value' => 'throws ' . $failure, 'critical' => true]];
+        }
+        if ($failureAbove === $failure || $hasStepAbove) {
+            return [['key' => ExecutionHint::RESULT, 'value' => 'passes ' . $failure . ' on', 'critical' => false]];
+        }
+
+        return [['key' => ExecutionHint::RESULT, 'value' => 'passes ' . $failure . ' out of the process', 'critical' => true]];
+    }
+
+    /**
+     * @param array<string, list<Span>> $children
+     * @return list<string>
+     */
+    private static function failuresOfStepsUnder(Span $span, array $children): array
+    {
+        $failures = [];
+        foreach ($children[$span->spanId] ?? [] as $child) {
+            if ($child->attributes[SpanAttribute::EXECUTION_STEP] ?? false) {
+                $failure = self::thrownBy($child);
+                if ($failure !== null) {
+                    $failures[] = $failure;
+                }
+                continue;
+            }
+            $failures = [...$failures, ...self::failuresOfStepsUnder($child, $children)];
+        }
+
+        return $failures;
+    }
+
     /**
      * @param list<Span> $spans
      * @param array<string, list<Span>> $children
      * @param array<string, list<array{key: string, value: string, critical: bool}>> $links
      * @return list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>
      */
-    private static function stepsOf(array $spans, array $children, int $depth, array $links): array
+    private static function stepsOf(array $spans, array $children, int $depth, array $links, ?string $failureAbove = null, bool $hasStepAbove = false): array
     {
         $steps = [];
         foreach ($spans as $child) {
+            $isStep = (bool) ($child->attributes[SpanAttribute::EXECUTION_STEP] ?? false);
             $steps[] = [
                 'depth' => $depth,
-                'label' => (($child->attributes[SpanAttribute::EXECUTION_STEP] ?? false) ? '' : 'span ') . self::nameOf($child),
-                'hints' => [...self::hintsOf($child), ...($links[$child->spanId] ?? [])],
+                'label' => ($isStep ? '' : 'span ') . self::nameOf($child),
+                'hints' => [...($isStep ? self::failureHintsOf($child, $children, $failureAbove, $hasStepAbove && $failureAbove === null) : []), ...self::hintsOf($child), ...($links[$child->spanId] ?? [])],
             ];
-            $steps = [...$steps, ...self::stepsOf($children[$child->spanId] ?? [], $children, $depth + 1, $links)];
+            $steps = [...$steps, ...self::stepsOf($children[$child->spanId] ?? [], $children, $depth + 1, $links, $isStep ? (self::thrownBy($child) ?? ($child->status === SpanStatus::Error ? 'a failure' : null)) : $failureAbove, $hasStepAbove || $isStep)];
         }
 
         return $steps;

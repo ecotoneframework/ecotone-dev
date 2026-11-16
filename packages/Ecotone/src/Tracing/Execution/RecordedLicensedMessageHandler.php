@@ -13,7 +13,7 @@ use Ecotone\Messaging\MessageHandler;
 final class RecordedLicensedMessageHandler implements MessageHandler
 {
     /**
-     * @param array<string, string> $frameworkClassOf framework class of each class the licence may choose, keyed by the class that runs
+     * @param array<string, array{class: string, chosenBy: string}> $frameworkClassOf
      */
     public function __construct(private MessageHandler $messageHandler, private array $frameworkClassOf, private ExecutionRecordingTracer $tracer)
     {
@@ -21,7 +21,7 @@ final class RecordedLicensedMessageHandler implements MessageHandler
 
     public function handle(Message $message): void
     {
-        RecordedStep::of($this->tracer, 'handler ' . ExecutionRecordingTracer::shortClassOf($this->frameworkClassOf[$this->messageHandler::class] ?? $this->messageHandler::class) . '::handle', fn () => $this->messageHandler->handle($message), hints: [ExecutionHint::critical(ExecutionHint::CHOSEN_BY, 'licence')]);
+        RecordedStep::of($this->tracer, 'handler ' . ExecutionRecordingTracer::shortClassOf($this->frameworkClassOf[$this->messageHandler::class]['class'] ?? $this->messageHandler::class) . '::handle', fn () => $this->messageHandler->handle($message), hints: [ExecutionHint::critical(ExecutionHint::CHOSEN_BY, $this->frameworkClassOf[$this->messageHandler::class]['chosenBy'] ?? 'licence')]);
     }
 
     public function __toString(): string

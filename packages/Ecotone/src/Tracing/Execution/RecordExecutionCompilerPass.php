@@ -119,18 +119,23 @@ final class RecordExecutionCompilerPass implements CompilerPass
     }
 
     /**
-     * @return array<string, string>
+     * @return array<string, array{class: string, chosenBy: string}>
      */
     private static function frameworkClassesChosenBy(Definition $licenceChoice, ContainerBuilder $builder): array
     {
-        $classes = [];
-        foreach ([$licenceChoice->getArguments()[1], $licenceChoice->getArguments()[2]] as $reference) {
+        $candidates = [];
+        foreach (['open core' => $licenceChoice->getArguments()[1], 'enterprise' => $licenceChoice->getArguments()[2]] as $kind => $reference) {
             $chosen = is_string($reference) && $builder->has($reference) ? $builder->getDefinition($reference) : null;
             if (! $chosen instanceof Definition) {
                 continue;
             }
             $inner = $chosen->getArguments()[0] ?? null;
-            $classes[$chosen->getClassName()] = str_starts_with($chosen->getClassName(), __NAMESPACE__ . '\\Recorded') && $inner instanceof Definition ? $inner->getClassName() : $chosen->getClassName();
+            $candidates[$kind] = [$chosen->getClassName(), str_starts_with($chosen->getClassName(), __NAMESPACE__ . '\\Recorded') && $inner instanceof Definition ? $inner->getClassName() : $chosen->getClassName()];
+        }
+        $classes = [];
+        foreach ($candidates as $kind => [$runtime, $framework]) {
+            $other = $candidates[$kind === 'enterprise' ? 'open core' : 'enterprise'][1] ?? null;
+            $classes[$runtime] = ['class' => $framework, 'chosenBy' => ($kind === 'enterprise' ? 'licence' : 'no licence') . ($other === null ? '' : ', over ' . ExecutionRecordingTracer::shortClassOf($other))];
         }
 
         return $classes;

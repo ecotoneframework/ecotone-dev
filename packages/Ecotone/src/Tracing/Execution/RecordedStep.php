@@ -28,7 +28,8 @@ final class RecordedStep
             throw $failure;
         }
         if ($step !== null) {
-            $tracer->endStep($step, $outcome === null ? '' : $outcome($result));
+            $described = $outcome === null ? '' : $outcome($result);
+            $described instanceof ExecutionHint ? $tracer->endStep($step, '', [$described]) : $tracer->endStep($step, $described);
         }
 
         return $result;

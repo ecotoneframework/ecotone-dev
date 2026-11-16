@@ -296,8 +296,8 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         };
         $run = fn (FlowTestSupport $ecotone) => $ecotone->sendDirectToChannel('order.split', 'a,b');
 
-        self::assertStep($this->recorded([$splitter::class], [$splitter], [], $run, licenceKey: null), 'processor MethodInvokerProcessor', ['chosen by: licence']);
-        self::assertStep($this->recorded([$splitter::class], [$splitter], [], $run), 'processor UngatheredSplitterProcessor', ['chosen by: licence']);
+        self::assertStep($this->recorded([$splitter::class], [$splitter], [], $run, licenceKey: null), 'processor MethodInvokerProcessor', ['chosen by: no licence, over UngatheredSplitterProcessor']);
+        self::assertStep($this->recorded([$splitter::class], [$splitter], [], $run), 'processor UngatheredSplitterProcessor', ['chosen by: licence, over MethodInvokerProcessor']);
     }
 
     public function test_a_consumer_that_stops_on_a_failure_is_recorded_releasing_the_message(): void

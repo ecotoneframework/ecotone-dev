@@ -14,6 +14,8 @@ use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Handler\Gathering\GatheringMessageHandler;
+use Ecotone\Messaging\Handler\Gathering\GatheringPartCompletion;
 use Ecotone\Messaging\Handler\Processor\InterceptedChainDefinition;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor;
@@ -118,7 +120,30 @@ final class RecordExecutionCompilerPass implements CompilerPass
             $methodCall->replaceArguments($this->recorded($methodCall->getArguments(), null, $builder));
         }
 
-        return $value->getClassName() === RequestReplyProducer::class ? $this->withRecordedReply($value, $builder) : $value;
+        return match ($value->getClassName()) {
+            RequestReplyProducer::class => $this->withRecordedReply($value, $builder),
+            GatheringPartCompletion::class => self::withRecordedPartReports($value),
+            GatheringMessageHandler::class => self::withRecordedGathering($value),
+            default => $value,
+        };
+    }
+
+    private static function withRecordedPartReports(Definition $partCompletion): Definition
+    {
+        $arguments = $partCompletion->getArguments();
+        $arguments[0] = new Definition(RecordedPartReports::class, [$arguments[0], new Reference(Tracer::class)]);
+        $partCompletion->replaceArguments($arguments);
+
+        return $partCompletion;
+    }
+
+    private static function withRecordedGathering(Definition $gatheringHandler): Definition
+    {
+        $arguments = $gatheringHandler->getArguments();
+        $arguments[0] = new Definition(RecordedGatheredRelease::class, [$arguments[0], new Reference(Tracer::class)]);
+        $gatheringHandler->replaceArguments($arguments);
+
+        return new Definition(RecordedGatheringPart::class, [$gatheringHandler, new Reference(Tracer::class)]);
     }
 
     private function withRecordedReply(Definition $requestReplyProducer, ContainerBuilder $builder): Definition

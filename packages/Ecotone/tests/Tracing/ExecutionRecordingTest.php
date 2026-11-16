@@ -16,7 +16,9 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
+use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\Flow\Snapshot\FlowExecution;
+use Ecotone\Test\LicenceTesting;
 
 /**
  * licence Apache-2.0
@@ -282,5 +284,77 @@ final class ExecutionRecordingTest extends TracingTestCase
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
+    }
+
+    public function test_an_asynchronous_backfill_in_two_batches_records_how_each_batch_reports_its_part_and_how_the_parts_are_gathered(): void
+    {
+        $lines = self::executionOf('tag-partitioned projection backfilled asynchronously in two batches');
+
+        $expected = [
+            'process 3: receive backfill',
+            '                          handler PartitionBatchExecutorHandler::executeBatch returns nothing',
+            '                      no reply',
+            '                      part report of a request without a reply, part 1 of 2, to ecotone.projection.backfill.completion:course_seats',
+            '                              collected, held until the handler ends',
+            '                release collected message to backfill',
+            'process 4: receive backfill',
+            '                          handler PartitionBatchExecutorHandler::executeBatch returns nothing',
+            '                      no reply',
+            '                      part report of a request without a reply, part 2 of 2, to ecotone.projection.backfill.completion:course_seats',
+            '                              collected, held until the handler ends',
+            '                release collected message to backfill',
+            'process 5: receive backfill',
+            '                      store part 1 of 2',
+            'process 6: receive backfill',
+            '                      store part 2 of 2',
+            '                        release 2 of 2 parts, as all parts are accounted for',
+            '                          handler ProjectionRunCompletion::complete returns nothing',
+        ];
+
+        self::assertSame($expected, self::inOrderOf($lines, $expected));
+        self::assertCount(1, array_filter($lines, fn (string $line): bool => str_contains($line, 'ProjectionRunCompletion::complete')));
+    }
+
+    /**
+     * @param list<string> $lines
+     * @param list<string> $expected
+     * @return list<string>
+     */
+    private static function inOrderOf(array $lines, array $expected): array
+    {
+        $found = [];
+        foreach ($lines as $line) {
+            if (($expected[count($found)] ?? null) === $line) {
+                $found[] = $line;
+            }
+        }
+
+        return $found;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function executionOf(string $scenarioName): array
+    {
+        foreach (FlowScenarioCatalogue::all() as $scenario) {
+            if ($scenario->name !== $scenarioName) {
+                continue;
+            }
+            $recorder = new InMemorySpanRecorder();
+            $ecotone = EcotoneLite::bootstrapFlowTesting(
+                $scenario->classesToResolve,
+                [...$scenario->services, ...self::recordingSpansInto($recorder)],
+                [...$scenario->extensionObjects, self::tracingConfiguration()->withExecutionRecording()],
+                enabledModules: [],
+                licenceKey: LicenceTesting::VALID_LICENCE,
+            );
+            foreach (array_keys($scenario->stages) as $stage) {
+                self::assertNull($scenario->runStage($stage, $ecotone));
+            }
+
+            return FlowExecution::of($recorder->recordedSpans())->lines();
+        }
+        self::fail("No scenario named {$scenarioName} in the flow scenario catalogue");
     }
 }

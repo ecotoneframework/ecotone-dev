@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Presend;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
@@ -107,6 +108,44 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         $recordingOf = function (array $orderIds) use ($orders): array {
             $recorder = new InMemorySpanRecorder();
             $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto($recorder)], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), self::tracingConfiguration()->withExecutionRecording()], enabledModules: []);
+            foreach ($orderIds as $orderId) {
+                try {
+                    $ecotone->sendCommandWithRouting('order.place', $orderId);
+                } catch (RuntimeException) {
+                }
+            }
+
+            return FlowExecution::of($recorder->recordedSpans())->lines(true);
+        };
+
+        $alone = $recordingOf(['order-1']);
+        $afterAFailure = $recordingOf(['failing', 'order-1']);
+
+        self::assertSame(
+            str_replace('process 1: send command order.place, class@anonymous::place', 'process 2: send command order.place, class@anonymous::place (2 of 2)', $alone),
+            array_slice($afterAFailure, (int) array_search('process 2: send command order.place, class@anonymous::place (2 of 2)', $afterAFailure, true)),
+        );
+    }
+
+    public function test_a_send_that_failed_leaves_nothing_in_the_recording_of_the_next_process(): void
+    {
+        $orders = new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(string $order): void
+            {
+            }
+
+            #[Presend]
+            public function refuse(string $order): void
+            {
+                if ($order === 'failing') {
+                    throw new RuntimeException('the order is refused before it is sent');
+                }
+            }
+        };
+        $recordingOf = function (array $orderIds) use ($orders): array {
+            $recorder = new InMemorySpanRecorder();
+            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto($recorder)], [self::tracingConfiguration()->withExecutionRecording()], enabledModules: []);
             foreach ($orderIds as $orderId) {
                 try {
                     $ecotone->sendCommandWithRouting('order.place', $orderId);

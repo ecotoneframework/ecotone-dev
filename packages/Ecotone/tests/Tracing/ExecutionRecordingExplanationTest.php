@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Gathered;
+use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -280,6 +281,61 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $lines = array_map(trim(...), $this->recorded([$orders::class], [$orders], [InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 2)], fn (FlowTestSupport $ecotone) => $ecotone->sendCommandWithRouting('order.place', [])));
 
         self::assertContains('↳ retry: attempt 2 after RuntimeException, by InstantRetryInterceptor::retry', $lines);
+    }
+
+    public function test_the_attempts_of_an_asynchronous_endpoint_retry_are_recorded_as_retries(): void
+    {
+        $orders = new class () {
+            public int $attempts = 0;
+
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
+            public function place(): void
+            {
+                if (++$this->attempts < 3) {
+                    throw new RuntimeException('attempt fails');
+                }
+            }
+        };
+
+        $lines = array_map(trim(...), $this->recorded(
+            [$orders::class],
+            [$orders],
+            [SimpleMessageChannelBuilder::createQueueChannel('orders'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 3)],
+            function (FlowTestSupport $ecotone): void {
+                $ecotone->sendCommandWithRouting('order.place', []);
+                $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            },
+        ));
+
+        self::assertSame(
+            ['↳ retry: attempt 2 after RuntimeException, by InstantRetryInterceptor::retry', '↳ retry: attempt 3 after RuntimeException, by InstantRetryInterceptor::retry'],
+            array_values(preg_grep('/^↳ retry: /', $lines)),
+        );
+    }
+
+    public function test_an_instant_retry_declared_on_a_business_interface_is_recorded_as_a_retry(): void
+    {
+        $orders = new class () {
+            public int $attempts = 0;
+
+            #[CommandHandler('order.place')]
+            public function place(): void
+            {
+                if (++$this->attempts === 1) {
+                    throw new RuntimeException('first attempt fails');
+                }
+            }
+        };
+
+        $lines = array_map(trim(...), $this->recorded(
+            [$orders::class, ExecutionRecordedRetryingCommandBus::class],
+            [$orders],
+            [],
+            fn (FlowTestSupport $ecotone) => $ecotone->getGateway(ExecutionRecordedRetryingCommandBus::class)->sendWithRouting('order.place', []),
+        ));
+
+        self::assertSame(['↳ retry: attempt 2 after RuntimeException, by InstantRetryInterceptor::retry'], array_values(preg_grep('/^↳ retry: /', $lines)));
     }
 
     public function test_a_handler_that_catches_a_failure_and_sends_elsewhere_is_not_recorded_as_a_retry(): void
@@ -598,4 +654,9 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         }
         self::fail("No scenario named {$scenarioName} in the flow scenario catalogue");
     }
+}
+
+#[InstantRetry(retryTimes: 2)]
+interface ExecutionRecordedRetryingCommandBus extends CommandBus
+{
 }

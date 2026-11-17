@@ -422,6 +422,25 @@ final class FlowScenarioChange
         return $path;
     }
 
+    public function runsTheSameSteps(): bool
+    {
+        if ($this->state !== self::CHANGED || $this->hasTraceChanges() || $this->wiring->hasChanges() || $this->build !== [] || ! $this->hasExecutionChanges()) {
+            return false;
+        }
+        foreach ($this->execution as $process) {
+            if (! in_array($process['change'], [self::UNCHANGED, self::CHANGED], true)) {
+                return false;
+            }
+            foreach ($process['steps'] ?? [] as $entry) {
+                if (in_array($entry['change'], [self::ADDED, self::REMOVED, self::MOVED], true)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     /**
      * @return array{before: string, now: string}
      */
@@ -433,9 +452,12 @@ final class FlowScenarioChange
                 : ['before' => 'Before: this scenario was in the catalogue, with ' . count($this->before->trace) . ' traced steps.', 'now' => 'Now: it is gone.'];
         }
         if (! $this->hasTraceChanges() && ! $this->wiring->hasChanges() && $this->build === []) {
-            $changed = count(array_filter($this->execution, fn (array $process): bool => $process['change'] !== self::UNCHANGED));
+            $changed = array_values(array_filter($this->execution, fn (array $process): bool => $process['change'] !== self::UNCHANGED));
+            $now = $this->runsTheSameSteps()
+                ? implode('; ', array_map(fn (array $process): string => 'process `' . $process['process'] . '` ' . rtrim(FlowWording::ofChangedProcess($process['steps']), '.'), $changed)) . '.'
+                : count($changed) . ' process' . (count($changed) === 1 ? ' runs' : 'es run') . ' other steps.';
 
-            return ['before' => 'Before and now: the wiring, the build and the traced steps are the same.', 'now' => 'Now: ' . $changed . ' process' . ($changed === 1 ? ' runs' : 'es run') . ' other steps.'];
+            return ['before' => 'Before and now: the wiring, the build and the traced steps are the same.', 'now' => 'Now: ' . $now];
         }
         if (! $this->hasTraceChanges() && ! $this->wiring->hasChanges()) {
             $counts = [];

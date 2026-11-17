@@ -316,8 +316,11 @@ final class BuildFlowExecutionTest extends TestCase
         $this->replaceExecution('before', $forward('array'));
         $this->replaceExecution('after', $forward('string'));
 
-        $presented = $this->whatRan($this->presented('before-after'));
+        $markdown = $this->presented('before-after');
+        $presented = $this->whatRan($markdown);
 
+        self::assertSame('Now: process `send command order.place` runs the same steps, 1 of them with other hints.', $this->comparison()['groups'][0]['summary']['now']);
+        self::assertStringContainsString("No scenario of 1 changes its message path. 1 runs the same steps with other hints.\n", $markdown);
         self::assertSame(['changed'], array_column($this->comparison()['groups'][0]['execution'], 'change'));
         self::assertStringContainsString("  forward to orders\n      ↳ chosen by: routing slip\n      ↳ 1 detail hint changed: payload; the json presentation shows its values\n", $presented);
         self::assertStringNotContainsString('payload: string', $presented);

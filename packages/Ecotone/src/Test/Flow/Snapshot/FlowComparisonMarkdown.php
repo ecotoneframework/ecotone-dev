@@ -36,17 +36,19 @@ final class FlowComparisonMarkdown
         if ($comparison->groups === [] && $comparison->everyScenario === null) {
             return $title . "None of {$comparison->scenariosCompared} scenarios changed its wiring, its build or its traced steps.\n";
         }
-        $changesItsPath = fn (array $group): bool => $group['change']->state !== FlowScenarioChange::CHANGED || $group['change']->wiring->hasChanges() || $group['change']->hasTraceChanges() || $group['change']->hasExecutionChanges();
-        $pathGroups = array_values(array_filter($comparison->groups, $changesItsPath));
+        $changesItsPath = fn (array $group): bool => ! $group['change']->runsTheSameSteps() && ($group['change']->state !== FlowScenarioChange::CHANGED || $group['change']->wiring->hasChanges() || $group['change']->hasTraceChanges() || $group['change']->hasExecutionChanges());
+        $pathGroups = array_values(array_filter($comparison->groups, fn (array $group): bool => $changesItsPath($group) || $group['change']->runsTheSameSteps()));
         $count = fn (array $groups): int => array_sum(array_map(fn (array $group): int => count($group['scenarios']), $groups));
-        $withPath = $count($pathGroups);
-        $onlyBuild = $count($comparison->groups) - $withPath;
+        $withPath = $count(array_filter($comparison->groups, $changesItsPath));
+        $sameSteps = $count(array_filter($comparison->groups, fn (array $group): bool => $group['change']->runsTheSameSteps()));
+        $onlyBuild = $count($comparison->groups) - $withPath - $sameSteps;
         $forEveryScenario = count($comparison->everyScenario?->build ?? []);
         $summary = implode(' ', array_filter([
             $withPath === 0
                 ? "No scenario of {$comparison->scenariosCompared} changes its message path."
                 : "{$withPath} of {$comparison->scenariosCompared} scenarios change" . ($withPath === 1 ? 's its' : ' their') . ' message path.',
-            $onlyBuild === 0 ? null : $onlyBuild . ($withPath === 0 ? '' : ' more') . ' change' . ($onlyBuild === 1 ? 's only its' : ' only their') . ' build.',
+            $sameSteps === 0 ? null : $sameSteps . ($withPath === 0 ? '' : ' more') . ($sameSteps === 1 ? ' runs' : ' run') . ' the same steps with other hints.',
+            $onlyBuild === 0 ? null : $onlyBuild . ($withPath + $sameSteps === 0 ? '' : ' more') . ' change' . ($onlyBuild === 1 ? 's only its' : ' only their') . ' build.',
             $forEveryScenario === 0 ? null : $forEveryScenario . ' registration' . ($forEveryScenario === 1 ? ' changes' : 's change') . ' for every scenario.',
         ]));
         $sections = array_map(

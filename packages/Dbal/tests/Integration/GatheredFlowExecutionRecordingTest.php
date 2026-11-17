@@ -18,9 +18,9 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Dbal\Gathering\DbalGatheredGroupStore;
 use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Dbal\Gathering\DbalGatheredGroupStore;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Throwable;
 

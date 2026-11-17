@@ -90,8 +90,9 @@ final class FlowComparisonMarkdown
             }
             $alike = $lines === [] ? null : self::alikeOf($lines, $printedAlone[$process['change']] ?? []);
             if ($alike !== null) {
-                $state = ($process['change'] === FlowScenarioChange::ADDED ? 'runs only now' : 'runs other steps now') . ', like `' . $alike['process'] . '` except:';
                 $lines = array_values(array_diff_assoc($lines, $alike['lines']));
+                $state = ($process['change'] === FlowScenarioChange::ADDED ? 'runs only now' : 'runs other steps now')
+                    . ($lines === [] ? ', with the same steps as `' . $alike['process'] . '`.' : ', like `' . $alike['process'] . '` except:');
             } elseif ($lines !== []) {
                 $printedAlone[$process['change']][] = ['process' => $process['process'], 'lines' => $lines];
             }

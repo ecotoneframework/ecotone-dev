@@ -549,7 +549,10 @@ final class FlowScenarioChange
         $count = count($phrases);
         for ($period = 1; $period < $count; $period++) {
             if ($count % $period === 0 && array_merge(...array_fill(0, intdiv($count, $period), array_slice($phrases, 0, $period))) === $phrases) {
-                return array_slice($phrases, 0, $period);
+                $once = array_slice($phrases, 0, $period);
+                $once[$period - 1] .= ', ' . intdiv($count, $period) . ' times';
+
+                return $once;
             }
         }
 

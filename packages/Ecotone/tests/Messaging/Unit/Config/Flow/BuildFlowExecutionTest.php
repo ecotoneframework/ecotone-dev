@@ -255,6 +255,39 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertStringContainsString('2 gatherer runs take the part reports in', $now);
     }
 
+    public function test_the_summary_of_a_change_repeated_in_every_batch_says_how_many_times_it_happens(): void
+    {
+        $baseline = __DIR__ . '/../../../../BuildFlow/baseline/';
+        $file = 'tag-partitioned-projection-backfilled-asynchronously-in-two-batches.json';
+        $after = json_decode((string) file_get_contents($baseline . $file), true, flags: JSON_THROW_ON_ERROR);
+        $before = $after;
+        $before['trace'] = array_values(array_filter($after['trace'], fn (array $step, int $position): bool => ! in_array($position, [5, 6, 11, 12], true), ARRAY_FILTER_USE_BOTH));
+        foreach (['before' => $before, 'after' => $after] as $side => $snapshot) {
+            mkdir($this->location . '/' . $side, recursive: true);
+            copy($baseline . 'shared.json', $this->location . '/' . $side . '/shared.json');
+            file_put_contents($this->location . '/' . $side . '/' . $file, json_encode($snapshot, JSON_THROW_ON_ERROR));
+        }
+
+        self::assertMatchesRegularExpression('/sends a part report to .*, 2 times\./', $this->comparison()['groups'][0]['summary']['now']);
+    }
+
+    public function test_a_new_process_with_the_same_steps_as_an_earlier_one_is_said_to_be_like_it_without_an_empty_exception(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $notify = fn (string $process): array => ['process' => $process, 'steps' => [
+            ['depth' => 0, 'label' => 'receive notifications', 'hints' => []],
+            ['depth' => 1, 'label' => 'handler class@anonymous::notify', 'hints' => []],
+        ]];
+        $this->replaceExecution('before', []);
+        $this->replaceExecution('after', [$notify('receive notifications, class@anonymous::notify (1 of 2)'), $notify('receive notifications, class@anonymous::notify (2 of 2)')]);
+
+        $presented = $this->whatRan($this->presented('before-after'));
+
+        self::assertStringContainsString('Process `receive notifications, class@anonymous::notify (2 of 2)`: runs only now, with the same steps as `receive notifications, class@anonymous::notify (1 of 2)`.', $presented);
+        self::assertStringNotContainsString('except:', $presented);
+    }
+
     public function test_a_step_whose_only_changed_hint_is_a_detail_is_changed_and_says_how_many_detail_hints_changed(): void
     {
         $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);

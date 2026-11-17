@@ -307,14 +307,16 @@ final class FlowExecutionChange
     /**
      * @param list<array{key: string, value: string, critical: bool}> $before
      * @param list<array{key: string, value: string, critical: bool}> $after
-     * @return list<array{key: string, before: string, now: string}>
+     * @return list<array{key: string, before: string, now: string, critical: bool}>
      */
     private static function hintChangesBetween(array $before, array $after): array
     {
-        $valuesOf = function (array $hints): array {
+        $critical = [];
+        $valuesOf = function (array $hints) use (&$critical): array {
             $values = [];
             foreach ($hints as $hint) {
                 $values[$hint['key']][] = $hint['value'];
+                $critical[$hint['key']] = ($critical[$hint['key']] ?? false) || $hint['critical'];
             }
 
             return array_map(fn (array $list): string => implode('; ', $list), $values);
@@ -324,7 +326,7 @@ final class FlowExecutionChange
         $changes = [];
         foreach (array_unique([...array_keys($beforeValues), ...array_keys($afterValues)]) as $key) {
             if (($beforeValues[$key] ?? '') !== ($afterValues[$key] ?? '')) {
-                $changes[] = ['key' => (string) $key, 'before' => $beforeValues[$key] ?? '', 'now' => $afterValues[$key] ?? ''];
+                $changes[] = ['key' => (string) $key, 'before' => $beforeValues[$key] ?? '', 'now' => $afterValues[$key] ?? '', 'critical' => $critical[$key]];
             }
         }
 

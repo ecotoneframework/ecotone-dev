@@ -96,7 +96,7 @@ final class BuildFlowExecutionTest extends TestCase
 
         self::assertSame(['changed', 'added'], array_column($execution, 'change'));
         self::assertSame(
-            [['change' => 'changed', 'step' => 'release collected message to notifications', 'hintChanges' => [['key' => 'taken by', 'before' => '', 'now' => 'process `receive notifications, class@anonymous::whenPlaced`, a separate consumer run']]]],
+            [['change' => 'changed', 'step' => 'release collected message to notifications', 'hintChanges' => [['key' => 'taken by', 'before' => '', 'now' => 'process `receive notifications, class@anonymous::whenPlaced`, a separate consumer run', 'critical' => true]]]],
             array_values(array_map(fn (array $entry): array => ['change' => $entry['change'], 'step' => trim($entry['step']), 'hintChanges' => $entry['hintChanges']], array_filter($execution[0]['steps'], fn (array $entry): bool => $entry['change'] !== 'unchanged' && $entry['change'] !== 'left out'))),
         );
         self::assertSame(
@@ -255,17 +255,21 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertStringContainsString('2 gatherer runs take the part reports in', $now);
     }
 
-    public function test_a_step_whose_only_changed_hint_is_not_critical_is_unchanged(): void
+    public function test_a_step_whose_only_changed_hint_is_a_detail_is_changed_and_says_how_many_detail_hints_changed(): void
     {
         $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
         $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
         $forward = fn (string $payload): array => [['process' => 'send command order.place', 'steps' => [
             ['depth' => 1, 'label' => 'forward to orders', 'hints' => [['key' => 'chosen by', 'value' => 'routing slip', 'critical' => true], ['key' => 'payload', 'value' => $payload, 'critical' => false]]],
         ]]];
-        $this->replaceExecution('before', $forward('string'));
-        $this->replaceExecution('after', $forward('int'));
+        $this->replaceExecution('before', $forward('array'));
+        $this->replaceExecution('after', $forward('string'));
 
-        self::assertSame([], $this->comparison()['groups']);
+        $presented = $this->whatRan($this->presented('before-after'));
+
+        self::assertSame(['changed'], array_column($this->comparison()['groups'][0]['execution'], 'change'));
+        self::assertStringContainsString("  forward to orders\n      ↳ chosen by: routing slip\n      ↳ 1 detail hint changed: payload; the json presentation shows its values\n", $presented);
+        self::assertStringNotContainsString('payload: string', $presented);
     }
 
     public function test_a_new_consumer_run_shows_its_shared_preamble_once_and_a_second_alike_process_only_where_it_differs(): void

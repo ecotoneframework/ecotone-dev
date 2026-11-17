@@ -164,13 +164,21 @@ final class FlowComparisonMarkdown
         foreach ($entry['hints'] ?? [] as $hint) {
             $lines[] = $prefix . FlowExecution::hintLine($depth, $hint['key'], $hint['value']);
         }
+        $details = [];
         foreach ($entry['hintChanges'] ?? [] as $change) {
+            if (! ($change['critical'] ?? true)) {
+                $details[] = $change['key'];
+                continue;
+            }
             if ($change['before'] !== '') {
                 $lines[] = '- ' . FlowExecution::hintLine($depth, $change['key'], $change['before']);
             }
             if ($change['now'] !== '') {
                 $lines[] = '+ ' . FlowExecution::hintLine($depth, $change['key'], $change['now']);
             }
+        }
+        if ($details !== []) {
+            $lines[] = '  ' . FlowExecution::hintLine($depth, count($details) . ' detail hint' . (count($details) === 1 ? '' : 's') . ' changed', implode(', ', $details) . '; the json presentation shows ' . (count($details) === 1 ? 'its values' : 'their values'));
         }
 
         return $lines;

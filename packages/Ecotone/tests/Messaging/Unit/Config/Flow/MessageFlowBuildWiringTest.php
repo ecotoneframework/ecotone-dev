@@ -124,9 +124,10 @@ final class MessageFlowBuildWiringTest extends TestCase
         $build = $this->buildGraphOf($ecotone);
         $applicationNodeIds = array_map(fn (FlowNode $node): string => $node->id, $ecotone->getMessageFlowGraph()->nodes());
 
-        foreach ($build->nodes() as $node) {
-            self::assertSame(! in_array($node->id, $applicationNodeIds, true), ($node->attributes['build'] ?? false) === true, $node->id);
-        }
+        self::assertSame([], array_values(array_map(
+            fn (FlowNode $node): string => $node->id,
+            array_filter($build->nodes(), fn (FlowNode $node): bool => (! in_array($node->id, $applicationNodeIds, true)) !== (($node->attributes['build'] ?? false) === true)),
+        )));
         self::assertTrue($build->node('channel:placeOrder.target')->attributes['build']);
         self::assertArrayNotHasKey('build', $build->node('channel:notifications')->attributes);
     }

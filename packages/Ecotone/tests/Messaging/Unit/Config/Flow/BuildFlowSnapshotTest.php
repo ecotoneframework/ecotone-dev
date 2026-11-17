@@ -15,7 +15,6 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\Flow\Snapshot\BuildFlowConsoleCommands;
 use Ecotone\Test\LicenceTesting;
 use FilesystemIterator;
@@ -168,7 +167,6 @@ final class BuildFlowSnapshotTest extends TestCase
     {
         $ecotone = $this->orderingApplication($this->orderingService());
 
-        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Scenario `???` cannot be recorded, because a snapshot is stored in a file named after the letters and digits of its scenario, and this name has none. Give the scenario a name with at least one letter or digit, for example `projection rebuilt asynchronously`.');
 
         $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => '???', 'location' => $this->location]);

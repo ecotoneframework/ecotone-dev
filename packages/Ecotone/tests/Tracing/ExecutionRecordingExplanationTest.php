@@ -497,7 +497,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
     private static function positionOf(array $lines, string $trimmed): int
     {
         $position = array_search($trimmed, array_map(trim(...), $lines), true);
-        self::assertIsInt($position, "No step {$trimmed}");
+        self::assertIsInt($position);
 
         return $position;
     }

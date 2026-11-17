@@ -20,7 +20,7 @@ final class BuildFlowConsoleCommands
     #[ConsoleCommand('ecotone:build-flow:record', 'Framework development: stores the build wiring of this application and the steps traced so far as the snapshot of the named scenario')]
     public function record(ConsoleWriter $writer, MessageFlowBuildGraphBuilder $buildGraph, MessageFlowBuild $messageFlowBuild, InMemorySpanRecorder $spanRecorder, #[ConsoleParameterOption] string $scenario, #[ConsoleParameterOption] string $location): void
     {
-        $snapshot = FlowSnapshot::of($scenario, $buildGraph->build(), $spanRecorder->recordedSpans(), $messageFlowBuild->toArray());
+        $snapshot = FlowSnapshot::of(scenario: $scenario, wiring: $buildGraph->build(), spans: $spanRecorder->recordedSpans(), build: $messageFlowBuild->toArray());
         (new FlowSnapshots($location))->store($snapshot);
 
         $writer->success("Recorded scenario {$scenario} in {$location}/{$snapshot->fileName()}");

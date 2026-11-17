@@ -179,10 +179,10 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         foreach (['before-after', 'marked', 'path', 'build'] as $presentation) {
             $markdown = $this->presentation($presentation);
 
-            self::assertSame(1, substr_count($markdown, "### Build: what changes\n\n```text\nMessagingSystem\n"), $presentation);
-            self::assertLessThan(strpos($markdown, '### `Handling lines`'), strpos($markdown, '### Build: what changes'), $presentation);
-            self::assertStringNotContainsString('#### Build', $markdown, $presentation);
-            self::assertStringNotContainsString('Ecotone\\', $this->treeOf($markdown), $presentation);
+            self::assertSame(1, substr_count($markdown, "### Build: what changes\n\n```text\nMessagingSystem\n"));
+            self::assertLessThan(strpos($markdown, '### `Handling lines`'), strpos($markdown, '### Build: what changes'));
+            self::assertStringNotContainsString('#### Build', $markdown);
+            self::assertStringNotContainsString('Ecotone\\', $this->treeOf($markdown));
         }
     }
 

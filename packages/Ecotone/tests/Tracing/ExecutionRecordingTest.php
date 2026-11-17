@@ -706,18 +706,18 @@ final class ExecutionRecordingTest extends TracingTestCase
      */
     private static function assertStep(array $lines, string $label, array $hints): void
     {
+        $found = [];
         foreach (array_keys($lines, $label, true) as $position) {
             $under = [];
             for ($next = $position + 1; str_starts_with($lines[$next] ?? '', '↳ '); $next++) {
                 $under[] = substr($lines[$next], strlen('↳ '));
             }
-            if (array_diff($hints, $under) === []) {
-                self::assertTrue(true);
-
-                return;
-            }
+            $matching = array_values(array_intersect($under, $hints));
+            sort($matching);
+            $found[] = $label . ': ' . implode('; ', $matching);
         }
-        self::fail("No step {$label} with the hints " . implode('; ', $hints));
+        sort($hints);
+        self::assertContains($label . ': ' . implode('; ', $hints), $found);
     }
 
     /**

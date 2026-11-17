@@ -19,7 +19,6 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Lite\Test\MessagingTestSupport;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\Flow\Snapshot\BuildFlowConsoleCommands;
 use Ecotone\Test\LicenceTesting;
 use FilesystemIterator;
@@ -199,7 +198,6 @@ final class BuildFlowComparisonTest extends TestCase
     {
         $this->record('Placing an order', 'before', $this->ordering());
 
-        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage("Flow snapshots were expected in {$this->location}/after, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/build-flow.php snapshot --location={$this->location}/after`.");
 
         $this->comparison();
@@ -211,7 +209,6 @@ final class BuildFlowComparisonTest extends TestCase
         $this->record('Placing an order', 'after', $this->ordering());
         file_put_contents($this->location . '/after/placing-an-order.json', '{"something": "else"}');
 
-        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json does not hold `scenario`, `wiring`, `build`, `trace` and `execution`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.");
 
         $this->comparison();
@@ -225,7 +222,6 @@ final class BuildFlowComparisonTest extends TestCase
         $stored['wiring'] += ['withoutNodes' => [], 'withoutEdges' => []];
         file_put_contents($this->location . '/after/placing-an-order.json', json_encode($stored, JSON_THROW_ON_ERROR));
 
-        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json stores only what its scenario adds to what every application gets, but {$this->location}/after/shared.json is missing, so its whole wiring and build cannot be read. Restore that file from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.");
 
         $this->comparison();

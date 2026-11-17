@@ -13,6 +13,7 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
@@ -20,6 +21,7 @@ use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -82,6 +84,46 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         $this->expectExceptionMessage('Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but no span recorder is registered, so nothing it records could be read. Register one with TracingConfiguration::withSpanRecorder(), for example InMemorySpanRecorder in tests, or remove withExecutionRecording().');
 
         EcotoneLite::bootstrapFlowTesting([], [], [TracingConfiguration::createWithDefaults()->withExecutionRecording()], enabledModules: []);
+    }
+
+    public function test_a_process_that_failed_leaves_nothing_in_the_recording_of_the_next_one(): void
+    {
+        $orders = new class () {
+            #[CommandHandler('order.place')]
+            public function place(string $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', $order);
+                if ($order === 'failing') {
+                    throw new RuntimeException('the order cannot be placed');
+                }
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'notify')]
+            public function notify(string $order): void
+            {
+            }
+        };
+        $recordingOf = function (array $orderIds) use ($orders): array {
+            $recorder = new InMemorySpanRecorder();
+            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto($recorder)], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), self::tracingConfiguration()->withExecutionRecording()], enabledModules: []);
+            foreach ($orderIds as $orderId) {
+                try {
+                    $ecotone->sendCommandWithRouting('order.place', $orderId);
+                } catch (RuntimeException) {
+                }
+            }
+
+            return FlowExecution::of($recorder->recordedSpans())->lines(true);
+        };
+
+        $alone = $recordingOf(['order-1']);
+        $afterAFailure = $recordingOf(['failing', 'order-1']);
+
+        self::assertSame(
+            str_replace('process 1: send command order.place, class@anonymous::place', 'process 2: send command order.place, class@anonymous::place (2 of 2)', $alone),
+            array_slice($afterAFailure, (int) array_search('process 2: send command order.place, class@anonymous::place (2 of 2)', $afterAFailure, true)),
+        );
     }
 
     /**

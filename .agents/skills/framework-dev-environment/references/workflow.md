@@ -178,8 +178,37 @@ docker compose exec -T app php bin/add-enterprise-licence.php  # Enterprise modu
 # under packages/Ecotone/tests/BuildFlow/baseline. The check fails when they are not what the code produces
 docker compose exec -T app php bin/check-build-flow.php
 docker compose exec -T app php bin/build-flow.php snapshot   # regenerate them after an intended change
-docker compose exec -T app php bin/build-flow.php compare    # what changed against the baseline, as Markdown (--presentation=A|B|C|BUILD|json)
+docker compose exec -T app php bin/build-flow.php compare    # what changed against the baseline, as Markdown
 ```
+
+`compare` prints GitHub Markdown by default. `--presentation` picks the view:
+
+| Presentation | What it shows |
+|---|---|
+| `before-after` (default) | the changed wiring before and after, the traced steps before and after, and what ran, process by process |
+| `marked` | one diagram with the changes marked, and one list of the traced steps |
+| `path` | the message's path as a sequence diagram, with what changed in sentences |
+| `build` | the build tree, then the message's path and the marked wiring collapsed |
+| `json` | the raw comparison, for tooling |
+
+A scenario of the catalogue is a `FlowScenario` returned by a private static method of one of the
+`packages/Ecotone/src/Test/Flow/*FlowScenarios.php` classes and listed in that class's `all()`; the classes are
+listed in `FlowScenarioCatalogue::all()`. A scenario names itself, the classes and services to boot, the extension
+objects, and one `FlowStage::when(...)` per action with the spans it expects. Add one there, run
+`php bin/build-flow.php snapshot`, and commit the new file under `packages/Ecotone/tests/BuildFlow/baseline`.
+
+**What ran** (`execution` in each snapshot, and the "What ran" section of `compare`) is recorded with
+`TracingConfiguration::withExecutionRecording()`. Each process is one entry into the framework: a gateway call, a
+console command or one consumed message. Each step has a label, what ran, and hints. A hint is a key and a value; a
+critical hint decides where the message goes next or whether it goes anywhere, and is printed under its step as
+`↳ key: value`; the other hints are stored and printed only on request. Nesting means "ran inside", with two loops
+drawn as nesting:
+
+- A send through channel interceptors is a loop (`SendingInterceptorAdapter`), not a chain: each `before send` step
+  is drawn inside the one before it in the order the loop calls them, the put on the channel innermost, and the
+  `after send` phases follow below it in the order the loop runs them.
+- The receive phases (`before receive`, `take from channel`, `after receive`) are drawn when the message has been
+  taken, from what the interceptors declare, not observed one by one.
 
 `phpstan.neon` is level 3 over `src` for Ecotone, Enqueue, Dbal, Amqp, JmsConverter, PdoEventSourcing, Laravel,
 OpenTelemetry, Kafka, plus `packages/Symfony/DependencyInjection`, `Monorepo`, and the `Api/` of all twelve packages

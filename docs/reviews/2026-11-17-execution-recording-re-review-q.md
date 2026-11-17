@@ -52,3 +52,23 @@ accepted as a deviation (so do not move row 3h or redesign the state; Q6 only ma
   keep the count. `alikeOf` prints "except:" followed by nothing when the lines are identical.
 - Q11 (H). `FlowSnapshot.php:285`: `ecotone:build-flow:record` throws `JsonException` on a span name that is not
   valid UTF-8 (also with recording off). Encode it the way P1 does.
+
+## Second Behaviour re-review (head 58fc9ef0b)
+
+Q1 to Q5 verified as fixed (Q3 and Q4 reproduced by the session, the shared suite run on PostgreSQL and MySQL);
+"part not stored" confirmed unreachable. No blocking item.
+
+- Q12 (should fix). `FlowScenarioChange.php:438`, `FlowComparisonMarkdown.php:47-48`: since Q4, a change in detail
+  hints only (a handler returning string instead of array) makes the summary say "1 of 1 scenarios changes its
+  message path" and "Now: 1 process runs other steps", while the section below says "runs the same steps, 2 of
+  them with other hints". When no step was added, removed or moved, word the summary the way
+  `FlowWording::ofChangedProcess` does and do not call it a message path change. Assert `summary['now']` in the
+  detail-hint test of `BuildFlowExecutionTest`.
+- Q13 (nit). Only the command bus retry has a committed test. Add one for an asynchronous endpoint retry (attempts
+  2 and 3 recorded) and one for `#[InstantRetry]` on a business interface.
+- Q14 (nit). `TracingModule.php:103`: since Q8 the refusal says "spans go to the tracer it provides" and no longer
+  says which kind of tracer. Keep naming what the user provided (the `TracerProviderInterface` service) and say
+  where the spans go in terms the user recognises, still without naming a class they never registered.
+- Q15 (nit). `RecordedGatheredGroupStore.php:40`: the recording's own `recordedPartsOf` read after a successful
+  `completePart` can throw where the flow would not. A failed read of the recorder must not fail the flow: record
+  the outcome as not observed and let the flow go on. Test it through a seam the application owns.

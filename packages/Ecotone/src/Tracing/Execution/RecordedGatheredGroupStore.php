@@ -35,13 +35,14 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
     {
         $size = $report->getHeaders()->containsKey(GatheringHeaders::SIZE) ? ' of ' . $report->getHeaders()->get(GatheringHeaders::SIZE) : '';
         $step = $this->tracer->startStep('record part ' . $partNumber . $size . ' in ' . ExecutionRecordingTracer::shortClassOf($this->store::class), hints: [ExecutionHint::detail(ExecutionHint::GROUP, $groupId)]);
-        $before = $this->store->recordedPartsOf($groupId);
         $released = null;
         try {
+            $before = $this->store->recordedPartsOf($groupId);
             $this->store->completePart($groupId, $partNumber, $report, function (mixed ...$arguments) use ($whenComplete, &$released): void {
                 $released = count($arguments[1] ?? []);
                 $whenComplete(...$arguments);
             });
+            $outcome = $this->outcomeOfPart($groupId, $partNumber, $before, $released);
         } catch (Throwable $failure) {
             if ($step !== null) {
                 $this->tracer->failStep($step, $failure);
@@ -50,7 +51,7 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
             throw $failure;
         }
         if ($step !== null) {
-            $this->tracer->endStep($step, '', $this->outcomeOfPart($groupId, $partNumber, $before, $released));
+            $this->tracer->endStep($step, '', $outcome);
         }
     }
 

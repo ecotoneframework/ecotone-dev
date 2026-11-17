@@ -268,6 +268,9 @@ final class ExecutionRecordingTracer implements Tracer
             $this->clock->now(),
         );
         if ($step->parentSpanId === null) {
+            $this->openSteps = [];
+            $this->hintsOfOpenSteps = [];
+            $this->stepsWithChildren = [];
             $this->closeEntry($span);
 
             return;

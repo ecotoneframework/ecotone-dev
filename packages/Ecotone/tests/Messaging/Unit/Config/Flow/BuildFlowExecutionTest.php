@@ -364,7 +364,7 @@ final class BuildFlowExecutionTest extends TestCase
         }
 
         self::assertNotEmpty($labels);
-        self::assertSame([], array_values(array_filter($labels, fn (string $label): bool => mb_strlen($label) > 90 || preg_match('/ so |which is|here without|; /', $label) === 1)));
+        self::assertSame([], array_values(array_filter($labels, fn (string $label): bool => mb_strlen($label) > 90 || preg_match('/ so |which is|here without|; |Recorded[A-Z]/', $label) === 1)));
         self::assertSame([], array_values(array_diff(array_keys($keys), $vocabulary)));
         self::assertSame([], array_values(array_unique(array_filter($values, fn (string $value): bool => preg_match('/ so | did not | without failing |straight to |, nothing takes it/', $value) === 1))));
     }

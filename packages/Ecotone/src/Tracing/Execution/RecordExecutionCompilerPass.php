@@ -508,6 +508,13 @@ final class RecordExecutionCompilerPass implements CompilerPass
 
     private function classOf(mixed $interceptor, ContainerBuilder $builder): string
     {
+        $class = $this->recordedClassOf($interceptor, $builder);
+
+        return $class === RecordedInstantRetryInterceptor::class ? InstantRetryInterceptor::class : $class;
+    }
+
+    private function recordedClassOf(mixed $interceptor, ContainerBuilder $builder): string
+    {
         return match (true) {
             $interceptor instanceof Definition => $interceptor->getClassName(),
             $interceptor instanceof Reference && $builder->has($interceptor->getId()) && $builder->getDefinition($interceptor->getId()) instanceof Definition && ! class_exists($interceptor->getId()) => $builder->getDefinition($interceptor->getId())->getClassName(),

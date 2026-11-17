@@ -64,16 +64,17 @@
             {"depth":10,"label":"around TracingInterceptor::traceHandlerEndpoint","hints":[{"key":"failure","value":"passes RuntimeException on","critical":false}]},
             {"depth":11,"label":"span process class@anonymous::place"},
             {"depth":12,"label":"handler class@anonymous::place","hints":[{"key":"failure","value":"throws RuntimeException","critical":true}]},
-            {"depth":6,"label":"around DeliveryConfirmationInterceptor::await","hints":[{"key":"retry","value":"attempt 2 after RuntimeException, by InstantRetryInterceptor::retry","critical":true}]},
-            {"depth":7,"label":"direct channel ecotone.modelling.bus.command_by_name"},
-            {"depth":8,"label":"route to order.placing.target","hints":[{"key":"chosen by","value":"name order.place","critical":true}]},
-            {"depth":8,"label":"direct channel order.placing.target"},
-            {"depth":9,"label":"around MessageHandlerLogger::aroundCommandHandler"},
-            {"depth":10,"label":"around TracingInterceptor::traceHandlerEndpoint"},
-            {"depth":11,"label":"span process class@anonymous::place"},
-            {"depth":12,"label":"handler class@anonymous::place","hints":[{"key":"returns","value":"nothing","critical":false}]},
-            {"depth":9,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by class@anonymous::place","critical":true}]},
-            {"depth":8,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by the router","critical":true}]}
+            {"depth":6,"label":"instant retry","hints":[{"key":"retry","value":"attempt 2 after RuntimeException, by InstantRetryInterceptor::retry","critical":true}]},
+            {"depth":7,"label":"around DeliveryConfirmationInterceptor::await"},
+            {"depth":8,"label":"direct channel ecotone.modelling.bus.command_by_name"},
+            {"depth":9,"label":"route to order.placing.target","hints":[{"key":"chosen by","value":"name order.place","critical":true}]},
+            {"depth":9,"label":"direct channel order.placing.target"},
+            {"depth":10,"label":"around MessageHandlerLogger::aroundCommandHandler"},
+            {"depth":11,"label":"around TracingInterceptor::traceHandlerEndpoint"},
+            {"depth":12,"label":"span process class@anonymous::place"},
+            {"depth":13,"label":"handler class@anonymous::place","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":10,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by class@anonymous::place","critical":true}]},
+            {"depth":9,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by the router","critical":true}]}
         ]}
     ]
 }

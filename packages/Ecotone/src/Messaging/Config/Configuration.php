@@ -46,7 +46,6 @@ interface Configuration extends CompilerPass
     public function registerOnBehalfOf(string $moduleClass): void;
 
     /**
-     * @param string $name endpoint id, channel name, service id, console command name, `Interface::method` of a gateway, or spl_object_id() of an interceptor builder
      * @return class-string<Module>|self::REGISTERED_OUTSIDE_A_MODULE
      */
     public function getRegisteringModule(string $kind, string $name): string;
@@ -84,7 +83,6 @@ interface Configuration extends CompilerPass
 
     /**
      * @param string[]|string $asynchronousChannelNames
-     * @param string $targetEndpointId
      * @return Configuration
      */
     public function registerAsynchronousEndpoint(array|string $asynchronousChannelNames, string $targetEndpointId): Configuration;
@@ -166,12 +164,12 @@ interface Configuration extends CompilerPass
     public function getRegisteredMethodInterceptors(): array;
 
     /**
-     * @return list<MessageHandlerBuilder> in the order their consumers are registered, which is the order handlers of one channel are subscribed in
+     * @return list<MessageHandlerBuilder>
      */
     public function getRegisteredMessageHandlersInConsumerOrder(): array;
 
     /**
-     * @return array<string, Definition|Reference> service id => what a module registered under it
+     * @return array<string, Definition|Reference>
      */
     public function getRegisteredServiceDefinitions(): array;
 
@@ -228,7 +226,6 @@ interface Configuration extends CompilerPass
     /**
      * Checks if the channel is pollable.
      *
-     * @param string $channelName
      * @return bool
      */
     public function isPollableChannel(string $channelName): bool;

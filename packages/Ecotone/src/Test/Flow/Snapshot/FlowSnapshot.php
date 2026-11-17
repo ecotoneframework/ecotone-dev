@@ -21,8 +21,8 @@ final class FlowSnapshot
 
     /**
      * @param list<array{depth: int, name: string, destination?: string, kind: string, status: string}> $trace
-     * @param array<string, array<string, scalar>> $ledger kind and name of a registration => its entry
-     * @param array<string, list<string>> $chains handler name of the ledger => its built layers, outermost first
+     * @param array<string, array<string, scalar>> $ledger
+     * @param array<string, list<string>> $chains
      * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $execution
      */
     private function __construct(
@@ -175,7 +175,7 @@ final class FlowSnapshot
     }
 
     /**
-     * @return array<string, string> kind and name of a registration => its stored line
+     * @return array<string, string>
      */
     private function ledgerLines(): array
     {
@@ -183,7 +183,7 @@ final class FlowSnapshot
     }
 
     /**
-     * @return array<string, string> handler name => its stored line
+     * @return array<string, string>
      */
     private function chainLines(): array
     {
@@ -256,7 +256,7 @@ final class FlowSnapshot
 
     /**
      * @param list<FlowNode>|list<FlowEdge> $elements
-     * @return array<string, string> node id or edge identity => its stored line
+     * @return array<string, string>
      */
     private static function linesOf(array $elements): array
     {
@@ -286,7 +286,7 @@ final class FlowSnapshot
     }
 
     /**
-     * @return array<string, string> anonymous class name => name that stays the same wherever the class is declared
+     * @return array<string, string>
      */
     private static function anonymousClassNamesIn(array $recorded): array
     {

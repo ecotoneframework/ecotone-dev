@@ -20,7 +20,7 @@ use Ecotone\Test\LicenceTesting;
 final class FlowScenarioRecorder
 {
     /**
-     * @return array<string, FlowSnapshot> file name => snapshot
+     * @return array<string, FlowSnapshot>
      */
     public static function snapshotsOfTheCatalogue(): array
     {
@@ -38,7 +38,7 @@ final class FlowScenarioRecorder
     }
 
     /**
-     * @return array<string, string> file name => what the file holds
+     * @return array<string, string>
      */
     public static function filesOfTheCatalogue(): array
     {

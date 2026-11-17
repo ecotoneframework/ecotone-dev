@@ -15,8 +15,8 @@ final class FlowSnapshotComparison
 
     /**
      * @param list<array{scenarios: list<string>, varyingNames: list<string>, change: FlowScenarioChange}> $groups
-     * @param array<string, list<array<string, mixed>>> $buildChangesByScenario scenario => its build changes beyond what every scenario shares
-     * @param list<string> $projectionNames every projection of the compared scenarios
+     * @param array<string, list<array<string, mixed>>> $buildChangesByScenario
+     * @param list<string> $projectionNames
      */
     private function __construct(
         public readonly int $scenariosCompared,
@@ -28,8 +28,8 @@ final class FlowSnapshotComparison
     }
 
     /**
-     * @param array<string, FlowSnapshot> $before file name => snapshot
-     * @param array<string, FlowSnapshot> $after file name => snapshot
+     * @param array<string, FlowSnapshot> $before
+     * @param array<string, FlowSnapshot> $after
      */
     public static function between(array $before, array $after, ?FlowSnapshot $sharedBefore = null, ?FlowSnapshot $sharedAfter = null): self
     {

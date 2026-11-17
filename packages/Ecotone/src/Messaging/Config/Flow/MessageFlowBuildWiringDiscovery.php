@@ -50,11 +50,11 @@ final class MessageFlowBuildWiringDiscovery
     private array $nodes = [];
     /** @var array<string, FlowEdge> */
     private array $edges = [];
-    /** @var array<string, string> generated endpoint id => name that stays the same across builds */
+    /** @var array<string, string> */
     private array $stableNames = [];
-    /** @var array<string, list<string>> channel name => ids of the nodes consuming it */
+    /** @var array<string, list<string>> */
     private array $consumersOfChannel = [];
-    /** @var array<string, string> application handler node id => id of the channel a bus routes to */
+    /** @var array<string, string> */
     private array $entryChannels = [];
     /** @var array<string, true> */
     private array $takenEndpointNodeIds = [];

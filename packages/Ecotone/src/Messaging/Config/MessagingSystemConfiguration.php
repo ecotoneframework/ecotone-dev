@@ -197,7 +197,7 @@ final class MessagingSystemConfiguration implements Configuration
     private string $registeringModule = self::REGISTERED_OUTSIDE_A_MODULE;
 
     /**
-     * @var array<string, string> kind and name of a registration => class of the module that made it
+     * @var array<string, string>
      */
     private array $registeringModules = [];
 
@@ -438,7 +438,6 @@ final class MessagingSystemConfiguration implements Configuration
     }
 
     /**
-     * @param string $name
      *
      * @return bool
      */

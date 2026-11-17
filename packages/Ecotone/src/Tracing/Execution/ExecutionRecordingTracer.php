@@ -29,9 +29,9 @@ final class ExecutionRecordingTracer implements Tracer
     /** @var list<ExecutionStep> */
     private array $openSteps = [];
     private int $order = 0;
-    /** @var array<string, true> span id of an open step => a step ran inside it */
+    /** @var array<string, true> */
     private array $stepsWithChildren = [];
-    /** @var list<Span> steps of the process entry still open, recorded once a span starts inside it */
+    /** @var list<Span> */
     private array $stepsOfOpenEntry = [];
     private bool $spanStartedInOpenEntry = false;
     /** @var ?array{name: string, notes: list<array{depth: int, name: string, hints?: list<ExecutionHint>}>, attributes: array<string, scalar>} */
@@ -40,11 +40,11 @@ final class ExecutionRecordingTracer implements Tracer
     private ?ExecutionStep $receiveContinuation = null;
     private bool $invocationInOpenEntry = false;
     private bool $housekeepingInOpenEntry = false;
-    /** @var array<string, array{depth: int, collected: array<string, true>}> channel => message ids its collector holds while its sender runs */
+    /** @var array<string, array{depth: int, collected: array<string, true>}> */
     private array $collectors = [];
-    /** @var array<string, list<ExecutionHint>> span id of an open step => hints learned while it runs */
+    /** @var array<string, list<ExecutionHint>> */
     private array $hintsOfOpenSteps = [];
-    /** @var list<?string> failure that reached each open interceptor of flow testing, by its short class */
+    /** @var list<?string> */
     private array $flowTestingFailures = [];
 
     public function __construct(
@@ -120,8 +120,6 @@ final class ExecutionRecordingTracer implements Tracer
 
     /**
      * @param array<string, scalar> $attributes
-     */
-    /**
      * @param list<ExecutionHint> $hints
      */
     public function startStep(string $name, array $attributes = [], bool $invocation = false, array $hints = []): ?ExecutionStep

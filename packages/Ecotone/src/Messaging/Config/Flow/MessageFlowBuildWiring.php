@@ -30,7 +30,7 @@ final class MessageFlowBuildWiring implements DefinedObject
     /**
      * @param list<array{id: string, kind: string, label: string, attributes: array<string, mixed>}> $nodes
      * @param list<array{from: string, to: string, kind: string, attributes: array<string, mixed>}> $edges
-     * @param array<string, string> $entryChannels application handler node id => id of the channel a bus routes to
+     * @param array<string, string> $entryChannels
      */
     public function __construct(
         public readonly array $nodes,

@@ -28,8 +28,8 @@ use Ecotone\Messaging\Config\Container\Definition;
 final class MessageFlowBuild implements DefinedObject
 {
     /**
-     * @param list<array<string, scalar>> $ledger one entry per registration: module, kind, name and what the kind adds
-     * @param array<string, list<string>> $chains handler name of the ledger => its built layers, outermost first
+     * @param list<array<string, scalar>> $ledger
+     * @param array<string, list<string>> $chains
      */
     public function __construct(
         public readonly array $ledger,

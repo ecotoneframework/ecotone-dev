@@ -79,7 +79,7 @@ final class MessageFlowChainReader
         SaveAggregateTestSetupService::class => 'aggregate state stored for a test',
     ];
 
-    /** @var array<string, string> `Class::method` of a registered interceptor => `before interceptor` or `after interceptor` */
+    /** @var array<string, string> */
     private array $interceptorRoles = [];
     private string $invokedByRequestReply = '';
 
@@ -91,8 +91,8 @@ final class MessageFlowChainReader
     }
 
     /**
-     * @param array<string, string> $handlerNames endpoint id => name of its handler entry in the ledger
-     * @return array<string, list<string>> handler name => its built layers, outermost first
+     * @param array<string, string> $handlerNames
+     * @return array<string, list<string>>
      */
     public static function read(ContainerBuilder $builder, Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, array $handlerNames): array
     {

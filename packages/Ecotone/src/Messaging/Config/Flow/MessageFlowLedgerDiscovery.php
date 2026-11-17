@@ -57,11 +57,11 @@ final class MessageFlowLedgerDiscovery
         SerializerHandlerBuilder::class => 'serializer',
     ];
 
-    /** @var array<string, array<string, scalar>> kind and name => entry */
+    /** @var array<string, array<string, scalar>> */
     private array $entries = [];
-    /** @var array<string, string> generated endpoint id => name that stays the same across builds */
+    /** @var array<string, string> */
     private array $stableNames = [];
-    /** @var array<string, string> endpoint id => name of its handler entry */
+    /** @var array<string, string> */
     private array $handlerNames = [];
 
     private function __construct(

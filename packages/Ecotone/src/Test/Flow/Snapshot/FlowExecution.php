@@ -88,7 +88,7 @@ final class FlowExecution
     /**
      * @param list<Span> $processes
      * @param array<string, list<Span>> $children
-     * @return array{0: array<string, list<array{key: string, value: string, critical: bool}>>, 1: array<int, array{process: int, part: ?string}>} hints each sending and receiving step gets, and the process that put the received message of each consumer process on its channel
+     * @return array{0: array<string, list<array{key: string, value: string, critical: bool}>>, 1: array<int, array{process: int, part: ?string}>}
      */
     private static function linksBetween(array $processes, array $children): array
     {
@@ -352,7 +352,7 @@ final class FlowExecution
 
     /**
      * @param list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}> $steps
-     * @return array{0: ?string, 1: ?string} the handler the process ran, and the part when it is the gatherer
+     * @return array{0: ?string, 1: ?string}
      */
     private static function handledIn(array $steps): array
     {

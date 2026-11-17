@@ -35,8 +35,8 @@ final class FlowSnapshots
     }
 
     /**
-     * @param array<string, FlowSnapshot> $snapshots file name => snapshot
-     * @return array<string, string> file name => what the file holds
+     * @param array<string, FlowSnapshot> $snapshots
+     * @return array<string, string>
      */
     public static function filesOf(array $snapshots, FlowSnapshot $shared): array
     {
@@ -50,7 +50,7 @@ final class FlowSnapshots
     }
 
     /**
-     * @param array<string, string> $files file name => what the file holds
+     * @param array<string, string> $files
      */
     public function replaceWith(array $files): void
     {
@@ -66,7 +66,7 @@ final class FlowSnapshots
     }
 
     /**
-     * @return array<string, FlowSnapshot> file name => snapshot
+     * @return array<string, FlowSnapshot>
      */
     public function all(): array
     {

@@ -105,7 +105,7 @@ final class FlowScenarioChange
     }
 
     /**
-     * @return array<string, string> kind and name of a changed registration => what identifies the change
+     * @return array<string, string>
      */
     public function buildChangeIdentities(): array
     {
@@ -118,7 +118,7 @@ final class FlowScenarioChange
     }
 
     /**
-     * @param array<string, mixed> $registrations kind and name of a registration => anything
+     * @param array<string, mixed> $registrations
      */
     public function withoutBuildChangesOf(array $registrations): self
     {
@@ -179,7 +179,7 @@ final class FlowScenarioChange
     }
 
     /**
-     * @return array<string, int> lower-cased name => how often the change holds it
+     * @return array<string, int>
      */
     public function namesIn(): array
     {
@@ -598,7 +598,7 @@ final class FlowScenarioChange
     }
 
     /**
-     * @return array<string, string> channel name => class that sends part reports to it
+     * @return array<string, string>
      */
     public function partReportChannels(): array
     {

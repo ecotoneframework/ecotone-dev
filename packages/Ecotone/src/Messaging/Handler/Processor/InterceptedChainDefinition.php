@@ -19,7 +19,7 @@ final class InterceptedChainDefinition extends Definition
 
     /**
      * @param list<Definition|Reference> $processors
-     * @param list<string> $roles role of each processor, in the order of the processors
+     * @param list<string> $roles
      */
     public function __construct(array $processors, public readonly array $roles)
     {

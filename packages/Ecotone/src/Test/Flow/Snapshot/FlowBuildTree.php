@@ -456,7 +456,7 @@ final class FlowBuildTree
     }
 
     /**
-     * @param list<array{text: string, lines?: list<string>}> $layers outermost first
+     * @param list<array{text: string, lines?: list<string>}> $layers
      * @return list<array<string, mixed>>
      */
     private function nested(array $layers): array

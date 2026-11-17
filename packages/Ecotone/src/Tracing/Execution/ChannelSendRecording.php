@@ -35,12 +35,12 @@ final class ChannelSendRecording
 
     /** @var list<array{step: ?ExecutionStep, entered: list<array{step: ExecutionStep, position: int, hints: list<ExecutionHint>}>, put: ?ExecutionStep, passedOn: Message, ran: int, messageId: string, failed: ?string, failedAfter: array<int, bool>, after: list<array{position: int, phase: string, failure: ?string}>, left: bool}> */
     private array $openSends = [];
-    /** @var list<string> class of each channel interceptor, in the order they run */
+    /** @var list<string> */
     private array $interceptors;
 
     /**
-     * @param list<string|object> $interceptors class of each channel interceptor, or the interceptor when its class is known only to the container
-     * @param list<list<string>> $declaredPhases phase methods each interceptor declares itself, rather than inheriting the empty default
+     * @param list<string|object> $interceptors
+     * @param list<list<string>> $declaredPhases
      */
     public function __construct(
         private string $channelName,

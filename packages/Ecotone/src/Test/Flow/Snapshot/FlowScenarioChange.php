@@ -527,7 +527,7 @@ final class FlowScenarioChange
                 isset($step[self::PART_REPORT]) => ($step[self::PART_REPORT]['chosenFor'] === '' ? '' : 'the Enterprise part completion, ')
                     . '`' . FlowWording::withShortClassNames($step[self::PART_REPORT]['sender']) . '`' . ($step[self::PART_REPORT]['chosenFor'] === '' ? '' : ',')
                     . " sends a part report to `{$step[self::PART_REPORT]['channel']}`, which goes on to `{$subject}`",
-                isset($step[self::DERIVED]) => 'it is routed to ' . ($this->isGathered($step, $change) ? 'the gathered handler ' : '') . '`' . substr(FlowWording::ofStep($step, $wiring), strlen('process ')) . '`',
+                isset($step[self::DERIVED]) => 'it is routed to ' . ($this->isGathered($step, $change) ? 'the gathered handler ' : '') . '`' . substr(FlowWording::ofStep($step, $wiring), strlen('process ')) . '` (read from the wiring, not recorded)',
                 $operation === 'send' && in_array($subject, ['command', 'event', 'query'], true) => "{$actor} sends {$subject} `" . ($step['destination'] ?? '') . '`',
                 $operation === 'send' => "{$actor} sends a message to `{$subject}`",
                 $operation === 'receive' => "it is received from `{$subject}`",

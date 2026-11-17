@@ -72,3 +72,6 @@ Q1 to Q5 verified as fixed (Q3 and Q4 reproduced by the session, the shared suit
 - Q15 (nit). `RecordedGatheredGroupStore.php:40`: the recording's own `recordedPartsOf` read after a successful
   `completePart` can throw where the flow would not. A failed read of the recorder must not fail the flow: record
   the outcome as not observed and let the flow go on. Test it through a seam the application owns.
+  Not done: no userland seam separates the recorder's `recordedPartsOf` read from the flow's own reads of the same
+  tables (no application code runs between the part write and the read), and a test matched on Ecotone's SQL text
+  would break framework-testing rule 10, so the code is left as it is.

@@ -17,6 +17,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
+use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
 use Throwable;
@@ -74,6 +75,13 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         };
 
         $this->assertSameOutcomeWithRecordingOnAndOff([ExecutionRecordedBinaryOrder::class], fn (): array => [], $run, fn (): array => [], [SimpleMessageChannelBuilder::createQueueChannel('orders')]);
+    }
+
+    public function test_execution_recording_without_a_span_recorder_is_refused_at_bootstrap(): void
+    {
+        $this->expectExceptionMessage('Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but no span recorder is registered, so nothing it records could be read. Register one with TracingConfiguration::withSpanRecorder(), for example InMemorySpanRecorder in tests, or remove withExecutionRecording().');
+
+        EcotoneLite::bootstrapFlowTesting([], [], [TracingConfiguration::createWithDefaults()->withExecutionRecording()], enabledModules: []);
     }
 
     /**

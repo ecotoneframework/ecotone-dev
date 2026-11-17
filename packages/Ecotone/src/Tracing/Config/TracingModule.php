@@ -79,6 +79,9 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         $tracerReferences = ExtensionObjectResolver::resolve(TracerReference::class, $extensionObjects);
 
         $spanRecorderReferences = ExtensionObjectResolver::resolve(SpanRecorderReference::class, $extensionObjects);
+        if ($tracingConfiguration->executionRecording && $tracingConfiguration->spanRecorderReferenceNames === [] && $spanRecorderReferences === [] && $tracerReferences === []) {
+            throw ConfigurationException::create('Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but no span recorder is registered, so nothing it records could be read. Register one with TracingConfiguration::withSpanRecorder(), for example InMemorySpanRecorder in tests, or remove withExecutionRecording().');
+        }
         if ($tracingConfiguration->spanRecorderReferenceNames === [] && $tracerReferences === [] && $spanRecorderReferences === []) {
             $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracingDisabledCurrentTrace::class));
             $messagingConfiguration->registerServiceDefinition(MessageCollectionObserver::class, new Definition(UnobservedMessageCollection::class));
@@ -96,7 +99,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         $messagingConfiguration->registerServiceDefinition(SpanRecorder::class, new Definition(CompositeSpanRecorder::class, [$spanRecorders]));
         if ($tracingConfiguration->executionRecording) {
             if ($tracerReferences !== []) {
-                throw ConfigurationException::create("Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but spans go to the tracer {$tracerReferences[0]->referenceName}, and execution steps can be recorded only by Ecotone's own tracer. Remove withExecutionRecording() when tracing through {$tracerReferences[0]->referenceName}, or record the flow with a span recorder registered by TracingConfiguration::withSpanRecorder() instead of a tracer.");
+                throw ConfigurationException::create("Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but {$tracerReferences[0]->providedBy} is provided, so spans go to {$tracerReferences[0]->tracingTo}, and execution steps can be recorded only by Ecotone's own tracer. Record the flow without the " . preg_replace('/^an? /', '', $tracerReferences[0]->providedBy) . ", with a span recorder registered by TracingConfiguration::withSpanRecorder(), or remove withExecutionRecording().");
             }
             $messagingConfiguration->registerServiceDefinition(EcotoneTracer::class, new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));
             $messagingConfiguration->registerServiceDefinition(Tracer::class, new Definition(ExecutionRecordingTracer::class, [new Reference(EcotoneTracer::class), new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));

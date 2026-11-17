@@ -9,7 +9,7 @@ namespace Ecotone\Tracing\Config;
  */
 final class TracerReference
 {
-    public function __construct(public readonly string $referenceName)
+    public function __construct(public readonly string $referenceName, public readonly string $providedBy, public readonly string $tracingTo)
     {
     }
 }

@@ -49,7 +49,7 @@ final class FlowTestingTracerFromProvidedServicesTest extends TracingTestCase
     {
         $orders = $this->orders();
 
-        $this->expectExceptionMessageMatches('/^Execution recording is switched on with TracingConfiguration::withExecutionRecording\(\), but spans go to the tracer .+ Remove withExecutionRecording\(\) when tracing through .+, or record the flow with a span recorder registered by TracingConfiguration::withSpanRecorder\(\) instead of a tracer\.$/');
+        $this->expectExceptionMessage('Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but a TracerProviderInterface service is provided, so spans go to OpenTelemetry, and execution steps can be recorded only by Ecotone\'s own tracer. Record the flow without the TracerProviderInterface service, with a span recorder registered by TracingConfiguration::withSpanRecorder(), or remove withExecutionRecording().');
 
         EcotoneLite::bootstrapFlowTesting(
             [$orders::class],

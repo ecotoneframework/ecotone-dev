@@ -142,7 +142,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
         $this->recordARunThatGainsItsCompletion('backfill');
         $this->recordARunThatGainsItsCompletion('rebuild');
 
-        foreach (['A', 'B', 'C'] as $presentation) {
+        foreach (['before-after', 'marked', 'path'] as $presentation) {
             $markdown = $this->comparison($presentation);
 
             self::assertStringStartsWith(
@@ -165,7 +165,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
     {
         $this->recordARunThatGainsItsCompletion('rebuild');
 
-        $marked = $this->comparison('B');
+        $marked = $this->comparison('marked');
 
         self::assertStringContainsString('"Internal Handler<br/>consumer of rebuild"', $marked);
         self::assertStringContainsString('"Internal Handler<br/>ProjectionRunCompletion::complete"', $marked);
@@ -185,7 +185,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
     {
         $this->recordARunThatGainsItsCompletion('rebuild');
 
-        $pair = $this->comparison('A');
+        $pair = $this->comparison('before-after');
 
         self::assertStringContainsString("        process whenPlaced of projection orders\n```\n\nAfter:", $pair);
         self::assertStringContainsString("      send rebuild (part report by GatheringPartCompletion to ecotone.projection.rebuild.completion:orders)   ← new\n        receive rebuild   ← new\n          process ProjectionRunCompletion::complete (from the wiring: no span is recorded)   ← new\n```\n", $pair);
@@ -196,7 +196,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
     {
         $this->recordARunThatGainsItsCompletion('rebuild');
 
-        $path = $this->comparison('C');
+        $path = $this->comparison('path');
 
         self::assertStringContainsString('    participant p4 as consumer of rebuild', $path);
         self::assertStringContainsString('    participant p3 as channel rebuild', $path);
@@ -228,7 +228,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
     {
         $this->recordARunThatGainsItsCompletion('rebuild');
 
-        $markdown = $this->comparison('BUILD');
+        $markdown = $this->comparison('build');
 
         self::assertSame(1, preg_match('/^Now: after each .*the Enterprise part completion, `GatheringPartCompletion`, sends a part report to `ecotone\.projection\.rebuild\.completion:orders`/m', $markdown));
         self::assertStringContainsString('as GatheringPartCompletion', $markdown);
@@ -246,7 +246,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
         $stored['build']['ledger'][] = ['module' => 'Acme\\PlanningModule', 'kind' => 'service', 'name' => 'Acme\\Planner', 'class' => 'Acme\\Planner'];
         file_put_contents($this->location . '/after/projection-rebuild-run.json', json_encode($stored, JSON_THROW_ON_ERROR));
 
-        $markdown = $this->comparison('BUILD');
+        $markdown = $this->comparison('build');
 
         self::assertSame(
             "## Message flow: what changed\n\nNo scenario of 1 changes its message path. 1 changes only its build.\n\n"

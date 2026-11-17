@@ -50,7 +50,7 @@ final class BuildFlowPresentationTest extends TestCase
     {
         $this->recordAnOrderThatGainsAnAudit('Placing an order');
 
-        $markdown = $this->presentation('A');
+        $markdown = $this->presentation('before-after');
 
         self::assertStringStartsWith("## Message flow: what changed\n\n1 of 1 scenarios changes its message path.\n\n### Build: what changes\n\n```text\nMessagingSystem\n", $markdown);
         self::assertStringContainsString("\n### `Placing an order`\n\nBefore: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### Wiring\n\nBefore:\n\n```mermaid\nflowchart LR\n", $markdown);
@@ -70,7 +70,7 @@ final class BuildFlowPresentationTest extends TestCase
     {
         $this->recordAnOrderThatGainsAnAudit('Placing an order');
 
-        $markdown = $this->presentation('B');
+        $markdown = $this->presentation('marked');
 
         $diagrams = $this->mermaidBlocksOf($markdown);
         self::assertCount(1, $diagrams);
@@ -86,7 +86,7 @@ final class BuildFlowPresentationTest extends TestCase
     {
         $this->recordAnOrderThatGainsAnAudit('Placing an order');
 
-        $markdown = $this->presentation('B', from: 'after', to: 'before');
+        $markdown = $this->presentation('marked', from: 'after', to: 'before');
 
         self::assertStringContainsString('    classDef removed fill:#ffebe9,stroke:#cf222e,color:#1f2328,stroke-dasharray:5 5', $markdown);
         self::assertStringContainsString("-      route audit → audit.target\n-        process event handler audit\n", $markdown);
@@ -96,7 +96,7 @@ final class BuildFlowPresentationTest extends TestCase
     {
         $this->recordAnOrderThatGainsAnAudit('Placing an order');
 
-        $markdown = $this->presentation('C');
+        $markdown = $this->presentation('path');
 
         $diagrams = $this->mermaidBlocksOf($markdown);
         self::assertCount(1, $diagrams);
@@ -115,14 +115,14 @@ final class BuildFlowPresentationTest extends TestCase
         $this->record('Placing an order', 'before', $this->ordering());
         $this->record('Placing an order', 'after', $this->orderingWithManySubscribers());
 
-        foreach (['A', 'B'] as $presentation) {
+        foreach (['before-after', 'marked'] as $presentation) {
             $diagrams = $this->mermaidBlocksOf($this->presentation($presentation));
             self::assertGreaterThan(1, count($diagrams));
             foreach ($diagrams as $diagram) {
                 self::assertLessThanOrEqual(15, preg_match_all('/^\s+n\d+[\[\(\{>]/m', $diagram));
             }
         }
-        self::assertLessThanOrEqual(15, preg_match_all('/^    participant /m', $this->mermaidBlocksOf($this->presentation('C'))[0]));
+        self::assertLessThanOrEqual(15, preg_match_all('/^    participant /m', $this->mermaidBlocksOf($this->presentation('path'))[0]));
     }
 
     public function test_scenarios_with_the_same_change_share_one_section_that_lists_them(): void
@@ -130,7 +130,7 @@ final class BuildFlowPresentationTest extends TestCase
         $this->recordAnOrderThatGainsAnAudit('First ordering');
         $this->recordAnOrderThatGainsAnAudit('Second ordering');
 
-        $markdown = $this->presentation('B');
+        $markdown = $this->presentation('marked');
 
         self::assertStringContainsString("2 of 2 scenarios change their message path.\n\n### Build: what changes\n", $markdown);
         self::assertStringContainsString("\n### 2 scenarios with the same change\n\nApplies to: `First ordering`, `Second ordering`.\n\n", $markdown);
@@ -142,9 +142,19 @@ final class BuildFlowPresentationTest extends TestCase
         $this->record('Placing an order', 'before', $this->ordering());
         $this->record('Placing an order', 'after', $this->ordering());
 
-        foreach (['A', 'B', 'C'] as $presentation) {
+        foreach (['before-after', 'marked', 'path'] as $presentation) {
             self::assertSame("## Message flow: what changed\n\nNone of 1 scenarios changed its wiring, its build or its traced steps.\n", $this->presentation($presentation));
         }
+    }
+
+    public function test_compare_without_a_presentation_prints_the_before_after_pair_as_markdown(): void
+    {
+        $this->recordAnOrderThatGainsAnAudit('Placing an order');
+
+        $ecotone = $this->application([], []);
+        $ecotone->runConsoleCommand('ecotone:build-flow:compare', ['from' => $this->location . '/before', 'to' => $this->location . '/after']);
+
+        self::assertSame($this->presentation('before-after'), $ecotone->getInMemoryConsoleWriter()->getWrittenContent());
     }
 
     public function test_an_unknown_presentation_is_refused_naming_the_ones_that_exist(): void
@@ -152,7 +162,7 @@ final class BuildFlowPresentationTest extends TestCase
         $this->recordAnOrderThatGainsAnAudit('Placing an order');
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('ecotone:build-flow:compare was asked for presentation `D`, which it cannot produce. Pass --presentation=A for a before/after pair of diagrams and step lists, --presentation=B for one diagram with the changes marked and one step list, --presentation=C for the message\'s path as a sequence diagram with what changed in sentences, --presentation=BUILD for the build, the message\'s path and the marked wiring collapsed, or --presentation=json for the raw comparison.');
+        $this->expectExceptionMessage('ecotone:build-flow:compare was asked for presentation `D`, which it cannot produce. Pass --presentation=before-after (the default) for a before/after pair of diagrams and step lists, --presentation=marked for one diagram with the changes marked and one step list, --presentation=path for the message\'s path as a sequence diagram with what changed in sentences, --presentation=build for the build, the message\'s path and the marked wiring collapsed, or --presentation=json for the raw comparison.');
 
         $this->presentation('D');
     }

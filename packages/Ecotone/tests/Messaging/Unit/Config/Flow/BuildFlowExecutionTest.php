@@ -111,7 +111,7 @@ final class BuildFlowExecutionTest extends TestCase
         $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
         $this->record('Placing an order', 'after', $this->orderingWithAudit(), executionRecording: true);
 
-        $presented = $this->presented('A');
+        $presented = $this->presented('before-after');
 
         self::assertStringContainsString("#### What ran, process by process\n", $presented);
         self::assertStringContainsString("Process `receive notifications, class@anonymous::whenPlaced`: unchanged.\n", $presented);
@@ -141,7 +141,7 @@ final class BuildFlowExecutionTest extends TestCase
         $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
         $this->record('Placing an order', 'after', $this->orderingWrappedInAround(), executionRecording: true);
 
-        $presented = $this->presented('A');
+        $presented = $this->presented('before-after');
 
         self::assertMatchesRegularExpression('/\n\+ +around class@anonymous::wrap\n {4,}… around MessageHandlerLogger::aroundCommandHandler \(\d+ steps\): unchanged, now run under the around class@anonymous::wrap step\n/', $presented);
         self::assertDoesNotMatchRegularExpression('/\n- /', $this->whatRan($presented));
@@ -152,7 +152,7 @@ final class BuildFlowExecutionTest extends TestCase
         $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
         $this->record('Placing an order', 'after', $this->orderingWithAuditWrappedInAround(), executionRecording: true);
 
-        $presented = $this->presented('A');
+        $presented = $this->presented('before-after');
 
         self::assertMatchesRegularExpression('/\n {4,}… around MessageHandlerLogger::aroundCommandHandler \(\d+ steps\): moved, now run under the around class@anonymous::wrap step, and inside it:\n/', $presented);
         self::assertSame(1, substr_count($presented, 'MessageHandlerLogger::aroundCommandHandler'));
@@ -166,7 +166,7 @@ final class BuildFlowExecutionTest extends TestCase
         $this->record('Placing an order', 'before', $this->orderingWrappedInAround(), executionRecording: true);
         $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
 
-        $presented = $this->presented('A');
+        $presented = $this->presented('before-after');
 
         self::assertMatchesRegularExpression('/\n- +around class@anonymous::wrap\n {4,}… around MessageHandlerLogger::aroundCommandHandler \(\d+ steps\): unchanged, no longer run under the around class@anonymous::wrap step\n/', $presented);
         self::assertDoesNotMatchRegularExpression('/\n\+ /', $this->whatRan($presented));
@@ -177,7 +177,7 @@ final class BuildFlowExecutionTest extends TestCase
         $this->record('Placing an order', 'before', $this->orderingWithTwoArounds(), executionRecording: true);
         $this->record('Placing an order', 'after', $this->orderingWithTwoAroundsSwapped(), executionRecording: true);
 
-        $presented = $this->presented('A');
+        $presented = $this->presented('before-after');
 
         self::assertMatchesRegularExpression('/\n- +around class@anonymous::first\n- +around class@anonymous::second\n\+ +around class@anonymous::second\n\+ +around class@anonymous::first\n/', $presented);
         self::assertStringNotContainsString('run under', $this->whatRan($presented));
@@ -188,7 +188,7 @@ final class BuildFlowExecutionTest extends TestCase
         $this->record('Placing an order', 'before', $this->orderingPublishingBothEvents(), executionRecording: true, consumed: false);
         $this->record('Placing an order', 'after', $this->orderingPublishingTheSecondEventFromTheFirstHandler(), executionRecording: true, consumed: false);
 
-        $presented = $this->presented('A');
+        $presented = $this->presented('before-after');
 
         self::assertMatchesRegularExpression('/\nProcess `send command order\.place, class@anonymous::place`: runs the same steps, \d+ of them now under another step\.\n/', $presented);
         self::assertMatchesRegularExpression('/\n {4,}… gateway EventBus::publishWithRouting \(\d+ steps\): unchanged, now run under the handler class@anonymous::whenPlaced step\n/', $presented);
@@ -200,7 +200,7 @@ final class BuildFlowExecutionTest extends TestCase
         $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
         $this->record('Placing an order', 'after', $this->orderingForwardedThroughACommand(), executionRecording: true);
 
-        $presented = $this->presented('A');
+        $presented = $this->presented('before-after');
 
         preg_match_all('/^ *(.+?)   ← new$/m', $presented, $new);
         self::assertSame(['send command order.forward', 'process command handler forward', 'send event order.placed', 'route whenOrderWasPlaced → whenOrderWasPlaced.target'], $new[1]);
@@ -225,7 +225,7 @@ final class BuildFlowExecutionTest extends TestCase
         $this->replaceExecution('before', [['process' => 'dispatch', 'steps' => [$handler, ...$sends(2)]], $consumer('1 of 2'), $consumer('2 of 2')]);
         $this->replaceExecution('after', [['process' => 'dispatch', 'steps' => [$handler, ['depth' => 2, 'label' => 'dispatch 2 batches', 'hints' => []], ...$sends(3)]], $consumer('1 of 2'), $consumer('2 of 2')]);
 
-        $presented = $this->whatRan($this->presented('A'));
+        $presented = $this->whatRan($this->presented('before-after'));
 
         self::assertSame(2, substr_count($presented, '… entrypoint sends to notifications (3 steps): unchanged, now run under the dispatch step'));
         self::assertDoesNotMatchRegularExpression('/\n- /', $presented);
@@ -281,7 +281,7 @@ final class BuildFlowExecutionTest extends TestCase
             file_put_contents($this->location . '/' . $side . '/' . $file, json_encode($snapshot, JSON_THROW_ON_ERROR));
         }
 
-        $presented = $this->whatRan($this->presented('A'));
+        $presented = $this->whatRan($this->presented('before-after'));
         $second = substr($presented, (int) strpos($presented, 'Process `receive backfill, PartitionBatchExecutorHandler::executeBatch (2 of 2)`'));
 
         self::assertMatchesRegularExpression('/\n\+ +receive backfill\n\+ +↳ sent by: process `receive backfill, PartitionBatchExecutorHandler::executeBatch \(1 of 2\)`, the part report for part 1 of 2\n(\+ +↳ .*\n)*  … \d+ steps as in `receive backfill, PartitionBatchExecutorHandler::executeBatch \(1 of 2\)`\n/', $presented);
@@ -338,7 +338,7 @@ final class BuildFlowExecutionTest extends TestCase
         $after[0]['steps'][1]['hints'][0]['value'] = 'output channel of class@anonymous::place';
         $this->replaceExecution('after', $after);
 
-        $presented = $this->whatRan($this->presented('A'));
+        $presented = $this->whatRan($this->presented('before-after'));
 
         self::assertStringContainsString("  forward to orders\n      ↳ routing slip: orders → none\n-     ↳ chosen by: routing slip\n+     ↳ chosen by: output channel of class@anonymous::place\n", $presented);
         self::assertStringNotContainsString('- forward to orders', $presented);

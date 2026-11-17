@@ -18,10 +18,10 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  */
 final class FlowComparisonMarkdown
 {
-    public const BEFORE_AFTER_PAIR = 'A';
-    public const MARKED_DIAGRAM = 'B';
-    public const MESSAGE_PATH = 'C';
-    public const BUILD_VIEW = 'BUILD';
+    public const BEFORE_AFTER_PAIR = 'before-after';
+    public const MARKED_DIAGRAM = 'marked';
+    public const MESSAGE_PATH = 'path';
+    public const BUILD_VIEW = 'build';
     private const STEPS_PER_LIST = 40;
     private const SCENARIOS_PER_LINE = 6;
     private const EMPTY_FLOWCHART = "flowchart LR\n";
@@ -30,7 +30,7 @@ final class FlowComparisonMarkdown
     public static function of(FlowSnapshotComparison $comparison, string $presentation): string
     {
         if (! in_array($presentation, [self::BEFORE_AFTER_PAIR, self::MARKED_DIAGRAM, self::MESSAGE_PATH, self::BUILD_VIEW], true)) {
-            throw InvalidArgumentException::create("ecotone:build-flow:compare was asked for presentation `{$presentation}`, which it cannot produce. Pass --presentation=A for a before/after pair of diagrams and step lists, --presentation=B for one diagram with the changes marked and one step list, --presentation=C for the message's path as a sequence diagram with what changed in sentences, --presentation=BUILD for the build, the message's path and the marked wiring collapsed, or --presentation=json for the raw comparison.");
+            throw InvalidArgumentException::create("ecotone:build-flow:compare was asked for presentation `{$presentation}`, which it cannot produce. Pass --presentation=before-after (the default) for a before/after pair of diagrams and step lists, --presentation=marked for one diagram with the changes marked and one step list, --presentation=path for the message's path as a sequence diagram with what changed in sentences, --presentation=build for the build, the message's path and the marked wiring collapsed, or --presentation=json for the raw comparison.");
         }
         $title = "## Message flow: what changed\n\n";
         if ($comparison->groups === [] && $comparison->everyScenario === null) {

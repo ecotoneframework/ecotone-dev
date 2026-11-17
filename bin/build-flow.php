@@ -24,14 +24,14 @@ const BUILD_FLOW_USAGE = <<<'USAGE'
       php bin/build-flow.php check [--location=<directory>]
           Fails when a stored snapshot differs from what the code produces now.
 
-      php bin/build-flow.php compare [--from=<directory>] [--to=<directory>] [--presentation=A|B|C|BUILD|json]
+      php bin/build-flow.php compare [--from=<directory>] [--to=<directory>] [--presentation=before-after|marked|path|build|json]
           Prints what changed between two sets of snapshots, scoped to the change. Without --from
           it compares from the committed baseline, without --to it compares to what the code
           produces now. Presentations, as GitHub Markdown with Mermaid, each opening with one
-          tree of what the build changes (MessagingSystem > module > endpoint > layers): A a
-          before/after pair, B one marked diagram, C the message's path as a sequence
-          diagram, BUILD the message's path and then the marked diagram
-          collapsed. Without --presentation, or with json, it prints the raw comparison.
+          tree of what the build changes (MessagingSystem > module > endpoint > layers):
+          before-after (the default) a before/after pair with what ran process by process,
+          marked one marked diagram, path the message's path as a sequence diagram, build the
+          message's path and then the marked diagram collapsed. json prints the raw comparison.
 
     The committed baseline is
     USAGE . ' ' . BUILD_FLOW_BASELINE . ".\n";
@@ -66,7 +66,7 @@ try {
         $generated = $options['to'];
     }
     $tooling->runConsoleCommand('ecotone:build-flow:' . $command, match ($command) {
-        'compare' => ['from' => $options['from'] ?? $baseline, 'to' => $options['to'], 'presentation' => $options['presentation'] ?? 'json'],
+        'compare' => ['from' => $options['from'] ?? $baseline, 'to' => $options['to'], 'presentation' => $options['presentation'] ?? 'before-after'],
         default => ['location' => $options['location'] ?? $baseline],
     });
 } catch (Throwable $failure) {

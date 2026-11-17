@@ -176,7 +176,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledWithAnAudit());
 
-        foreach (['A', 'B', 'C', 'BUILD'] as $presentation) {
+        foreach (['before-after', 'marked', 'path', 'build'] as $presentation) {
             $markdown = $this->presentation($presentation);
 
             self::assertSame(1, substr_count($markdown, "### Build: what changes\n\n```text\nMessagingSystem\n"), $presentation);
@@ -191,7 +191,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledWithAnAudit());
 
-        $tree = $this->treeOf($this->presentation('BUILD'));
+        $tree = $this->treeOf($this->presentation('build'));
 
         self::assertMatchesRegularExpression(
             '/^MessagingSystem\n(?:[├└│ ].*\n)*?'
@@ -214,7 +214,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledByASplitter());
 
-        $tree = $this->treeOf($this->presentation('BUILD'));
+        $tree = $this->treeOf($this->presentation('build'));
 
         self::assertMatchesRegularExpression(
             '/[├└] ~ endpoint handleLines\n'
@@ -242,7 +242,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
             . "        └ interceptors (unchanged)\n"
             . "          └ class@anonymous#1::handle(…)\n"
             . "            └ + array \$lines\n",
-            $this->treeOf($this->presentation('C')),
+            $this->treeOf($this->presentation('path')),
         );
     }
 
@@ -251,7 +251,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         $this->record('Handling lines', 'before', $this->linesHandledWithAnAudit());
         $this->record('Handling lines', 'after', $this->linesHandledByAPlainHandler());
 
-        self::assertMatchesRegularExpression('/[├└] - endpoint audit\n.*[│ ]   on audit\.target\n/u', $this->treeOf($this->presentation('B')));
+        self::assertMatchesRegularExpression('/[├└] - endpoint audit\n.*[│ ]   on audit\.target\n/u', $this->treeOf($this->presentation('marked')));
     }
 
     public function test_registrations_without_a_chain_fold_into_one_count_per_module_with_their_names_below_the_tree(): void
@@ -259,7 +259,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledWithAnAudit());
 
-        $markdown = $this->presentation('BUILD');
+        $markdown = $this->presentation('build');
 
         self::assertMatchesRegularExpression('/[├└] \+ 2 channels\n/u', $this->treeOf($markdown));
         self::assertStringNotContainsString('audit.target (', $this->treeOf($markdown));
@@ -271,7 +271,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledWithAnAudit());
 
-        $markdown = $this->presentation('BUILD');
+        $markdown = $this->presentation('build');
 
         $positions = array_map(fn (string $part): int|false => strpos($markdown, $part), ['1 of 1 scenarios changes its message path.', '### Build: what changes', '### `Handling lines`', 'Before', 'Now: ', "#### The message's path", '<details><summary>Marked wiring and traced steps</summary>', '#### Wiring', 'classDef added']);
         self::assertStringEndsWith("\n</details>\n", $markdown);
@@ -292,7 +292,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         self::assertSame(
             "## Message flow: what changed\n\nNo scenario of 1 changes its message path. 1 changes only its build.\n\n"
             . "### Build: what changes\n\n```text\nMessagingSystem\n└ ReportingModule\n  └ + service Reports\n      Enterprise -> GatheredReports, open core -> PlainReports\n```\n",
-            $this->presentation('BUILD'),
+            $this->presentation('build'),
         );
     }
 
@@ -300,7 +300,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
     {
         $this->recordTwoScenariosSharingAChangedReportsService();
 
-        $markdown = $this->presentation('BUILD');
+        $markdown = $this->presentation('build');
 
         self::assertSame(1, substr_count($markdown, 'service Reports'));
         self::assertMatchesRegularExpression('/[├└] ReportingModule\n[│ ] └ ~ service Reports \(every scenario\)\n[│ ]     Reports -> FasterReports\n/u', $this->treeOf($markdown));
@@ -316,7 +316,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         $stored['build']['ledger'][array_key_last($stored['build']['ledger'])] = $choice;
         file_put_contents($file, json_encode($stored, JSON_THROW_ON_ERROR));
 
-        $tree = $this->treeOf($this->presentation('BUILD'));
+        $tree = $this->treeOf($this->presentation('build'));
 
         self::assertSame(1, substr_count($tree, 'service Reports'));
         self::assertMatchesRegularExpression('/~ service Reports \(every scenario\)\n[│ ]     Enterprise -> GatheredReports, open core -> FasterReports \(1 scenario\)\n[│ ]     Reports -> FasterReports \(the other scenarios\)\n/u', $tree);
@@ -330,7 +330,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
             $this->record($scenario, 'after', $scenario === 'Handling lines as before' ? $this->linesHandledByAPlainHandler() : $this->linesHandledByAPlainHandlerTakingAPayload());
         }
 
-        $markdown = $this->presentation('BUILD');
+        $markdown = $this->presentation('build');
 
         self::assertSame(1, substr_count($this->treeOf($markdown), 'endpoint handleLines'));
         self::assertStringContainsString("  └ ~ endpoint handleLines (2 scenarios)\n", $this->treeOf($markdown));

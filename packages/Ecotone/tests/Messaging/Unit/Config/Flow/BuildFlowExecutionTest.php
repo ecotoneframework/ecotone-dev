@@ -255,6 +255,24 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertStringContainsString('2 gatherer runs take the part reports in', $now);
     }
 
+    public function test_a_flow_with_a_routing_key_that_is_not_valid_utf8_is_recorded_with_execution_recording_on_and_off(): void
+    {
+        $listener = new class () {
+            #[EventHandler('order.*')]
+            public function hear(string $event): void
+            {
+            }
+        };
+        foreach (['off' => false, 'on' => true] as $side => $recording) {
+            $ecotone = $this->application([$listener::class], [$listener], $recording);
+            $ecotone->publishEventWithRouting("order.\xC3\x28", 'x');
+
+            $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Hearing an order', 'location' => $this->location . '/' . $side]);
+
+            self::assertStringContainsString('order.', (string) json_encode($this->storedSnapshot($side, 'hearing-an-order')['trace'], JSON_INVALID_UTF8_SUBSTITUTE));
+        }
+    }
+
     public function test_the_summary_of_a_change_repeated_in_every_batch_says_how_many_times_it_happens(): void
     {
         $baseline = __DIR__ . '/../../../../BuildFlow/baseline/';

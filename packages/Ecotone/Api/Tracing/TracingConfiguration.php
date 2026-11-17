@@ -17,13 +17,13 @@ final class TracingConfiguration
         public readonly array $spanRecorderReferenceNames,
         public readonly bool $spanAttributesFromAllHeaders,
         public readonly array $spanAttributeHeaders,
-        public readonly bool $executionRecording,
+        public readonly bool $executionRecording = false,
     ) {
     }
 
     public static function createWithDefaults(): self
     {
-        return new self([], true, [], false);
+        return new self([], true, []);
     }
 
     public function withSpanRecorder(string $referenceName): self

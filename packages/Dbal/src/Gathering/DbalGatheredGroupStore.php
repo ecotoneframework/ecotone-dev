@@ -156,7 +156,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
 
-        return ['open' => $group['state'] === 'open', 'size' => GatheredGroupSize::asNullable((int) $group['size']), 'partNumbers' => $partNumbers];
+        return ['state' => (string) $group['state'], 'size' => GatheredGroupSize::asNullable((int) $group['size']), 'partNumbers' => $partNumbers];
     }
 
     public function gatherChannelNameFor(string $groupId): string

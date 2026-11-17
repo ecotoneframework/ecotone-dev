@@ -56,7 +56,7 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
     }
 
     /**
-     * @param array{open: bool, size: ?int, partNumbers: list<int>}|null $before
+     * @param array{state: string, size: ?int, partNumbers: list<int>}|null $before
      * @return list<ExecutionHint>
      */
     private function outcomeOfPart(string $groupId, int $partNumber, ?array $before, ?int $released): array
@@ -65,15 +65,15 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
             return [ExecutionHint::critical(ExecutionHint::OUTCOME, 'part stored, ' . $released . ' of ' . $released . ' in, group released'), ExecutionHint::critical(ExecutionHint::RUNS_IN, 'this consumer run, gatherer called back')];
         }
         $alreadyThere = $before !== null && in_array($partNumber, $before['partNumbers'], true);
-        if ($before !== null && ! $before['open']) {
-            return [ExecutionHint::critical(ExecutionHint::OUTCOME, ($alreadyThere ? 'duplicate' : 'late') . ' part ignored, group already released')];
+        if ($before !== null && $before['state'] !== 'open') {
+            return [ExecutionHint::critical(ExecutionHint::OUTCOME, ($alreadyThere ? 'duplicate' : 'late') . ' part ignored, group already ' . $before['state'])];
         }
         if ($alreadyThere) {
             return [ExecutionHint::critical(ExecutionHint::OUTCOME, 'duplicate part ignored')];
         }
         $after = $this->store->recordedPartsOf($groupId);
         if ($after === null || ! in_array($partNumber, $after['partNumbers'], true)) {
-            return [ExecutionHint::critical(ExecutionHint::OUTCOME, 'part not stored')];
+            return [ExecutionHint::critical(ExecutionHint::OUTCOME, 'part not stored, group ' . ($after['state'] ?? 'gone'))];
         }
 
         return [ExecutionHint::critical(ExecutionHint::OUTCOME, 'part stored, ' . count($after['partNumbers']) . ' of ' . ($after['size'] ?? '?') . ' in, group waits')];

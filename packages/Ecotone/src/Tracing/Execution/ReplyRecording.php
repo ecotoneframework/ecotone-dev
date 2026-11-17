@@ -77,18 +77,18 @@ final class ReplyRecording
             return;
         }
         if ($open['reply'] === null) {
-            $this->tracer->recordStep('no hand-over', hints: [ExecutionHint::critical(ExecutionHint::RESULT, 'nothing returned by ' . $this->handler)]);
+            $this->tracer->recordStep('no hand-over', hints: [ExecutionHint::critical(ExecutionHint::OUTCOME, 'nothing returned by ' . $this->handler)]);
 
             return;
         }
         $payload = ExecutionRecorder::typeOf($open['reply']->getPayload());
         $slip = self::routingSlipChangeOf($request, $open['reply']);
         if ($request->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL)) {
-            $this->tracer->recordStep('reply to the reply channel of the request', hints: array_values(array_filter([ExecutionHint::critical(ExecutionHint::CHOSEN_BY, 'reply channel of the request'), $slip, ExecutionHint::detail(ExecutionHint::PAYLOAD, $payload)])));
+            $this->tracer->recordStep('reply to the reply channel of the request', hints: array_values(array_filter([$slip, ExecutionHint::detail(ExecutionHint::PAYLOAD, $payload)])));
 
             return;
         }
-        $this->tracer->recordStep('no hand-over', hints: array_values(array_filter([ExecutionHint::critical(ExecutionHint::RESULT, $payload . ' returned by ' . $this->handler . ', nothing takes it'), $slip])));
+        $this->tracer->recordStep('no hand-over', hints: array_values(array_filter([ExecutionHint::critical(ExecutionHint::OUTCOME, $payload . ' returned by ' . $this->handler . ', not taken'), $slip])));
     }
 
     private static function routingSlipChangeOf(Message $request, Message $handedOver): ?ExecutionHint

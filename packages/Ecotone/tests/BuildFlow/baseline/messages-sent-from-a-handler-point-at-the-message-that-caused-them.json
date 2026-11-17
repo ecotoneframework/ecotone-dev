@@ -59,8 +59,8 @@
     ],
     "execution": [
         {"process": "send event merchant.created, class@anonymous::merchantToUser", "steps": [
-            {"depth":1,"label":"gateway EventBus::publishWithRouting","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":1,"label":"gateway EventBus::publishWithRouting","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","critical":false}]},
             {"depth":2,"label":"around TracingInterceptor::traceEventBus"},
             {"depth":3,"label":"span send event merchant.created"},
             {"depth":4,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders"},
@@ -71,9 +71,9 @@
             {"depth":8,"label":"around MessageHandlerLogger::aroundEventHandler"},
             {"depth":9,"label":"around TracingInterceptor::traceHandlerEndpoint"},
             {"depth":10,"label":"span process class@anonymous::merchantToUser"},
-            {"depth":11,"label":"handler class@anonymous::merchantToUser","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":12,"label":"gateway CommandBus::sendWithRouting","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":13,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":11,"label":"handler class@anonymous::merchantToUser","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":12,"label":"gateway CommandBus::sendWithRouting","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":13,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","critical":false}]},
             {"depth":13,"label":"around TracingInterceptor::traceCommandBus"},
             {"depth":14,"label":"span send command user.register"},
             {"depth":15,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders"},
@@ -84,11 +84,11 @@
             {"depth":19,"label":"around MessageHandlerLogger::aroundCommandHandler"},
             {"depth":20,"label":"around TracingInterceptor::traceHandlerEndpoint"},
             {"depth":21,"label":"span process class@anonymous::register"},
-            {"depth":22,"label":"handler class@anonymous::register","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":19,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]},
-            {"depth":18,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]},
-            {"depth":8,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]},
-            {"depth":6,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]}
+            {"depth":22,"label":"handler class@anonymous::register","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":19,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by class@anonymous::register","critical":true}]},
+            {"depth":18,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by the router","critical":true}]},
+            {"depth":8,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by class@anonymous::merchantToUser","critical":true}]},
+            {"depth":6,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by the chain","critical":true}]}
         ]}
     ]
 }

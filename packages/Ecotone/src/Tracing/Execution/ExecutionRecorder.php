@@ -85,7 +85,7 @@ final class ExecutionRecorder
         }
         $hiddenFailure = $this->tracer->endFlowTesting();
         if ($hiddenFailure !== null) {
-            $this->tracer->recordStep('flow testing ' . self::shortNameOf($interceptor), hints: [ExecutionHint::critical(ExecutionHint::RESULT, $hiddenFailure . ' turned into a normal return')]);
+            $this->tracer->recordStep('flow testing ' . self::shortNameOf($interceptor), hints: [ExecutionHint::critical(ExecutionHint::OUTCOME, $hiddenFailure . ' turned into a normal return')]);
         }
 
         return $result;

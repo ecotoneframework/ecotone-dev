@@ -96,13 +96,13 @@
     ],
     "execution": [
         {"process": "send distributed, DistributedOutboundRouter::route", "steps": [
-            {"depth":1,"label":"gateway DistributedBus::sendCommand","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":2,"label":"before TracingInterceptor::provideContextForDistributedBus","hints":[{"key":"result","value":"returns a message of string","critical":false}]},
+            {"depth":1,"label":"gateway DistributedBus::sendCommand","hints":[{"key":"returns","value":"nothing","critical":false},{"key":"routing slip","value":"none → ecotone.distributed.invoke","critical":true}]},
+            {"depth":2,"label":"before TracingInterceptor::provideContextForDistributedBus","hints":[{"key":"returns","value":"a message of string","critical":false}]},
             {"depth":2,"label":"around TracingInterceptor::traceDistributedBus"},
             {"depth":3,"label":"span send distributed"},
             {"depth":4,"label":"direct channel Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution"},
-            {"depth":5,"label":"router DistributedOutboundRouter::route","hints":[{"key":"result","value":"returns array","critical":false}]},
-            {"depth":5,"label":"route to distributed_channel"},
+            {"depth":5,"label":"router DistributedOutboundRouter::route","hints":[{"key":"returns","value":"array","critical":false}]},
+            {"depth":5,"label":"route to distributed_channel","hints":[{"key":"chosen by","value":"service map, command to ticket_service","critical":true}]},
             {"depth":5,"label":"send distributed_channel","hints":[{"key":"taken by","value":"process 2, a separate consumer run","critical":true}]},
             {"depth":6,"label":"before send OutboundSerializationChannelInterceptor::preSend"},
             {"depth":7,"label":"before send MessageCollectorChannelInterceptor::preSend"},
@@ -110,15 +110,15 @@
             {"depth":9,"label":"before send TracingChannelInterceptor::preSend","hints":[{"key":"headers added","value":"traceparent, ecotone_tracing_delivery","critical":false}]},
             {"depth":10,"label":"span send distributed_channel"},
             {"depth":11,"label":"put on channel distributed_channel"},
-            {"depth":6,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"result","value":"no failure","critical":false}]},
-            {"depth":6,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"result","value":"no failure","critical":false}]}
+            {"depth":6,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":6,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]}
         ]},
         {"process": "receive distributed_channel, DistributedMessageHandler::handle", "steps": [
             {"depth":1,"label":"receive distributed_channel","hints":[{"key":"sent by","value":"process 1, the message","critical":true}]},
             {"depth":2,"label":"take from channel distributed_channel"},
-            {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"result","value":"a message, no failure","critical":false}]},
-            {"depth":2,"label":"gateway InboundChannelAdapterEntrypoint::executeEntrypoint","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":3,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":2,"label":"gateway InboundChannelAdapterEntrypoint::executeEntrypoint","hints":[{"key":"returns","value":"nothing","critical":false},{"key":"routing slip","value":"none → ecotone.distributed.invoke","critical":true}]},
+            {"depth":3,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","critical":false}]},
             {"depth":3,"label":"around TracingInterceptor::traceAsynchronousEndpoint"},
             {"depth":4,"label":"span receive distributed_channel"},
             {"depth":5,"label":"around AcknowledgeConfirmationInterceptor::ack"},
@@ -128,12 +128,12 @@
             {"depth":9,"label":"around AsynchronousEndpointInstantRetryByDefault::retry"},
             {"depth":10,"label":"around DeliveryConfirmationInterceptor::await"},
             {"depth":11,"label":"around CollectorSenderInterceptor::send for distributed_channel"},
-            {"depth":12,"label":"bridge Bridge::handle","hints":[{"key":"result","value":"returns a message of string","critical":false}]},
+            {"depth":12,"label":"bridge Bridge::handle","hints":[{"key":"returns","value":"a message of string","critical":false}]},
             {"depth":12,"label":"forward to ecotone.distributed.invoke","hints":[{"key":"chosen by","value":"routing slip","critical":true},{"key":"routing slip","value":"ecotone.distributed.invoke → none","critical":true},{"key":"payload","value":"string","critical":false}]},
             {"depth":13,"label":"direct channel ecotone.distributed.invoke"},
-            {"depth":14,"label":"handler DistributedMessageHandler::handle","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":15,"label":"gateway CommandBus::sendWithRouting","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":16,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":14,"label":"handler DistributedMessageHandler::handle","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":15,"label":"gateway CommandBus::sendWithRouting","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":16,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","critical":false}]},
             {"depth":16,"label":"around TracingInterceptor::traceCommandBus"},
             {"depth":17,"label":"span send command ticket.create"},
             {"depth":18,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders"},
@@ -145,11 +145,11 @@
             {"depth":23,"label":"around MessageHandlerLogger::aroundCommandHandler"},
             {"depth":24,"label":"around TracingInterceptor::traceHandlerEndpoint"},
             {"depth":25,"label":"span process class@anonymous::create"},
-            {"depth":26,"label":"handler class@anonymous::create","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":23,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]},
-            {"depth":22,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]},
-            {"depth":14,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]},
-            {"depth":6,"label":"acknowledge","hints":[{"key":"result","value":"accepted","critical":true}]}
+            {"depth":26,"label":"handler class@anonymous::create","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":23,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by class@anonymous::create","critical":true}]},
+            {"depth":22,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by the router","critical":true}]},
+            {"depth":14,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by DistributedMessageHandler::handle","critical":true}]},
+            {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","critical":true}]}
         ]}
     ]
 }

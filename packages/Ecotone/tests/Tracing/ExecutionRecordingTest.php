@@ -96,9 +96,8 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                        handler class@anonymous::place',
                 '                after class@anonymous::afterPlacing',
                 '                reply to the reply channel of the request',
-                '                  ↳ chosen by: reply channel of the request',
                 '              no hand-over',
-                '                ↳ result: nothing returned by the router',
+                '                ↳ outcome: nothing returned by the router',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -140,7 +139,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              route to {generated#1}.target',
                 '                ↳ chosen by: name order.place',
                 '              send {generated#1}.target',
-                '                presend class@anonymous::beforeSending',
+                '                before send class@anonymous::beforeSending',
                 '                deliver inline to {generated#1}.target',
                 '                  direct channel {generated#1}.target',
                 '                    around MessageHandlerLogger::aroundCommandHandler',
@@ -148,9 +147,9 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                        span process class@anonymous::place',
                 '                          handler class@anonymous::place',
                 '                    no hand-over',
-                '                      ↳ result: nothing returned by class@anonymous::place',
+                '                      ↳ outcome: nothing returned by class@anonymous::place',
                 '              no hand-over',
-                '                ↳ result: nothing returned by the router',
+                '                ↳ outcome: nothing returned by the router',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -195,9 +194,9 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              direct channel {generated#1}.target',
                 '                around class@anonymous::skipPlacing',
                 '                no hand-over',
-                '                  ↳ result: nothing returned by class@anonymous::place',
+                '                  ↳ outcome: nothing returned by class@anonymous::place',
                 '              no hand-over',
-                '                ↳ result: nothing returned by the router',
+                '                ↳ outcome: nothing returned by the router',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -237,7 +236,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                route to order.place.endpoint.target',
                 '                  ↳ chosen by: name order.place',
                 '                send order.place.endpoint.target',
-                '                  presend MessageHandlerLogger::asynchronous',
+                '                  before send MessageHandlerLogger::asynchronous',
                 '                  deliver inline to order.place.endpoint.target',
                 '                    direct channel order.place.endpoint.target',
                 '                      handler RoutingSlipPrepender::transform',
@@ -249,7 +248,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                            before send MessageCollectorChannelInterceptor::preSend',
                 '                              ↳ collected: held until the handler ends',
                 '                no hand-over',
-                '                  ↳ result: nothing returned by the router',
+                '                  ↳ outcome: nothing returned by the router',
                 '              release collected message to orders',
                 '                ↳ collected: released after the handler ended',
                 '                ↳ taken by: process 2, a separate consumer run',
@@ -288,9 +287,9 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                                span process class@anonymous::place',
                 '                                  handler class@anonymous::place',
                 '                            no hand-over',
-                '                              ↳ result: nothing returned by class@anonymous::place',
+                '                              ↳ outcome: nothing returned by class@anonymous::place',
                 '            acknowledge',
-                '              ↳ result: accepted',
+                '              ↳ outcome: accepted',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -345,9 +344,8 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                        span process class@anonymous::confirm',
                 '                          handler class@anonymous::confirm',
                 '                    reply to the reply channel of the request',
-                '                      ↳ chosen by: reply channel of the request',
                 '              no hand-over',
-                '                ↳ result: nothing returned by the router',
+                '                ↳ outcome: nothing returned by the router',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -364,13 +362,13 @@ final class ExecutionRecordingTest extends TracingTestCase
             'process 3: receive backfill, PartitionBatchExecutorHandler::executeBatch (1 of 2)',
             'handler PartitionBatchExecutorHandler::executeBatch',
             'part report to ecotone.projection.backfill.completion:course_seats',
-            '↳ result: part 1 of 2, no reply',
+            '↳ outcome: part 1 of 2, no reply',
             '↳ collected: held until the handler ends',
             'release collected message to backfill',
             '↳ taken by: process 5, a separate consumer run',
             'process 4: receive backfill, PartitionBatchExecutorHandler::executeBatch (2 of 2)',
             'part report to ecotone.projection.backfill.completion:course_seats',
-            '↳ result: part 2 of 2, no reply',
+            '↳ outcome: part 2 of 2, no reply',
             'release collected message to backfill',
             '↳ taken by: process 6, a separate consumer run',
             'process 5: receive backfill, GatheringMessageHandler::handle (part 1 of 2)',
@@ -447,8 +445,8 @@ final class ExecutionRecordingTest extends TracingTestCase
     {
         $lines = self::trimmed(self::executionOf('event forwarded to a channel whose send succeeds on retry'));
 
-        self::assertStep($lines, 'release collected message to notifications', ['taken by: process 3, a separate consumer run', 'result: failed with RuntimeException, recovered by SendRetryChannelInterceptor']);
-        self::assertSame([], preg_grep('/^↳ result: throws RuntimeException/', array_slice($lines, (int) array_search('release collected message to notifications', $lines, true), 4)));
+        self::assertStep($lines, 'release collected message to notifications', ['taken by: process 3, a separate consumer run', 'failure: RuntimeException, recovered by SendRetryChannelInterceptor']);
+        self::assertSame([], preg_grep('/^↳ failure: throws RuntimeException/', array_slice($lines, (int) array_search('release collected message to notifications', $lines, true), 4)));
     }
 
     public function test_a_message_without_a_gathering_group_fails_with_the_gatherer_own_message_when_recorded(): void
@@ -519,10 +517,10 @@ final class ExecutionRecordingTest extends TracingTestCase
             [
                 'process 1: gateway CommandBus::sendWithRouting',
                 '  gateway CommandBus::sendWithRouting',
-                '    ↳ result: passes RuntimeException out of the process',
+                '    ↳ failure: passes RuntimeException out of the process',
                 '    before MessageHeadersPropagatorInterceptor::propagateHeaders',
                 '    before class@anonymous::refuseTheCommand',
-                '      ↳ result: throws RuntimeException',
+                '      ↳ failure: throws RuntimeException',
             ],
             FlowExecution::of($recorder->recordedSpans())->lines(),
         );
@@ -569,10 +567,10 @@ final class ExecutionRecordingTest extends TracingTestCase
         $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines(true));
 
         self::assertCount(4, array_filter($lines, fn (string $line): bool => str_starts_with($line, 'process ')));
-        self::assertStep($lines, 'transformer class@anonymous::normalize', ['result: returns string']);
-        self::assertStep($lines, 'router class@anonymous::route', ['result: returns string']);
-        self::assertStep($lines, 'splitter class@anonymous::split', ['result: returns array']);
-        self::assertStep($lines, 'handler class@anonymous::noop', ['result: returns nothing']);
+        self::assertStep($lines, 'transformer class@anonymous::normalize', ['returns: string']);
+        self::assertStep($lines, 'router class@anonymous::route', ['returns: string']);
+        self::assertStep($lines, 'splitter class@anonymous::split', ['returns: array']);
+        self::assertStep($lines, 'handler class@anonymous::noop', ['returns: nothing']);
     }
 
     public function test_a_spy_of_flow_testing_on_a_channel_adds_no_send_to_the_recording(): void
@@ -595,7 +593,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             testConfiguration: TestConfiguration::createWithDefaults()->withFailOnNotFoundHandler(false),
         )->sendCommandWithRouting('order.unknown', 'order-1');
 
-        self::assertStep(self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines()), 'flow testing AllowMissingDestination::invoke', ['result: DestinationResolutionException turned into a normal return']);
+        self::assertStep(self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines()), 'flow testing AllowMissingDestination::invoke', ['outcome: DestinationResolutionException turned into a normal return']);
     }
 
     public function test_the_reply_of_an_asynchronous_aggregate_action_is_recorded_as_dropped(): void
@@ -615,7 +613,7 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $consumed = array_slice($lines, (int) array_search('process 3: receive orders, ExecutionRecordedOrder::confirm', $lines, true));
 
-        self::assertStep($consumed, 'no hand-over', ['result: string returned by ExecutionRecordedOrder::confirm, nothing takes it']);
+        self::assertStep($consumed, 'no hand-over', ['outcome: string returned by ExecutionRecordedOrder::confirm, not taken']);
         self::assertNotContains('reply to the reply channel of the request', $consumed);
     }
 
@@ -661,8 +659,8 @@ final class ExecutionRecordingTest extends TracingTestCase
     {
         $lines = self::trimmed(self::executionOf('routed factory and action with explicit endpoint ids', withEveryHint: true));
 
-        self::assertStep($lines, 'handler class@anonymous::place', ['result: returns class@anonymous']);
-        self::assertStep($lines, 'handler class@anonymous::placeAgain', ['result: returns nothing']);
+        self::assertStep($lines, 'handler class@anonymous::place', ['returns: class@anonymous']);
+        self::assertStep($lines, 'handler class@anonymous::placeAgain', ['returns: nothing']);
         self::assertSame([], array_values(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'step class@anonymous'))));
     }
 

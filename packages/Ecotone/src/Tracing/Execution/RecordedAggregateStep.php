@@ -48,13 +48,13 @@ final class RecordedAggregateStep implements MessageProcessor
     private function outcomeOf(?Message $result): array
     {
         return match ($this->step) {
-            self::IDENTIFIER => [ExecutionHint::detail(ExecutionHint::RESULT, $result !== null && $result->getHeaders()->containsKey(AggregateMessage::AGGREGATE_ID)
+            self::IDENTIFIER => [ExecutionHint::detail(ExecutionHint::IDENTIFIERS, $result !== null && $result->getHeaders()->containsKey(AggregateMessage::AGGREGATE_ID)
                 ? ExecutionHint::json(AggregateIdMetadata::createFrom($result->getHeaders()->get(AggregateMessage::AGGREGATE_ID))->getIdentifiers())
                 : 'no identifier')],
             self::LOAD => [match (true) {
-                $result === null => ExecutionHint::critical(ExecutionHint::RESULT, 'no aggregate found, message dropped'),
-                $result->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE) => ExecutionHint::detail(ExecutionHint::RESULT, 'found it'),
-                default => ExecutionHint::critical(ExecutionHint::RESULT, 'found nothing, the factory runs'),
+                $result === null => ExecutionHint::critical(ExecutionHint::FOUND, 'nothing, message dropped'),
+                $result->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE) => ExecutionHint::detail(ExecutionHint::FOUND, 'the aggregate'),
+                default => ExecutionHint::critical(ExecutionHint::FOUND, 'nothing, the factory runs'),
             }],
             default => [],
         };

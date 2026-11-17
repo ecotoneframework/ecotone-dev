@@ -55,7 +55,7 @@ final class BuildFlowExecutionTest extends TestCase
         $execution = $this->storedSnapshot('after', 'placing-an-order')['execution'];
 
         self::assertSame(['send command order.place, class@anonymous::place', 'receive notifications, class@anonymous::whenPlaced'], array_column($execution, 'process'));
-        self::assertSame(['depth' => 1, 'label' => 'gateway CommandBus::sendWithRouting', 'hints' => [['key' => 'result', 'value' => 'returns nothing', 'critical' => false]]], $execution[0]['steps'][0]);
+        self::assertSame(['depth' => 1, 'label' => 'gateway CommandBus::sendWithRouting', 'hints' => [['key' => 'returns', 'value' => 'nothing', 'critical' => false]]], $execution[0]['steps'][0]);
         self::assertContains('handler class@anonymous::whenPlaced', array_column($execution[1]['steps'], 'label'));
     }
 
@@ -233,15 +233,17 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_every_step_in_every_baseline_is_a_label_of_at_most_90_characters_with_hints_from_one_vocabulary(): void
     {
-        $vocabulary = ['chosen by', 'result', 'routing slip', 'headers added', 'headers removed', 'headers changed', 'payload', 'sent by', 'taken by', 'stopped', 'collected', 'runs', 'read from', 'propagating', 'received with', 'retry', 'group', 'kept', 'by'];
+        $vocabulary = ['chosen by', 'returns', 'outcome', 'failure', 'found', 'routing slip', 'kept', 'headers added', 'headers removed', 'headers changed', 'headers read', 'payload', 'sent by', 'taken by', 'stopped', 'collected', 'runs in', 'work in', 'range', 'identifiers', 'propagating', 'received with', 'retry', 'group', 'service'];
         $labels = [];
         $keys = [];
+        $values = [];
         foreach (glob(__DIR__ . '/../../../../BuildFlow/baseline/*.json') as $file) {
             foreach (json_decode((string) file_get_contents($file), true, flags: JSON_THROW_ON_ERROR)['execution'] ?? [] as $process) {
                 foreach ($process['steps'] as $step) {
                     $labels[] = $step['label'];
                     foreach ($step['hints'] ?? [] as $hint) {
                         $keys[$hint['key']] = true;
+                        $values[] = $hint['value'];
                         self::assertIsBool($hint['critical']);
                     }
                 }
@@ -251,6 +253,7 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertNotEmpty($labels);
         self::assertSame([], array_values(array_filter($labels, fn (string $label): bool => mb_strlen($label) > 90 || preg_match('/ so |which is|here without|; /', $label) === 1)));
         self::assertSame([], array_values(array_diff(array_keys($keys), $vocabulary)));
+        self::assertSame([], array_values(array_unique(array_filter($values, fn (string $value): bool => preg_match('/ so | did not | without failing |straight to |, nothing takes it/', $value) === 1))));
     }
 
     public function test_the_stored_snapshot_holds_each_step_as_its_depth_label_and_hints(): void
@@ -291,7 +294,7 @@ final class BuildFlowExecutionTest extends TestCase
         $sender = fn (int $consumer): array => ['process' => 'send command order.place', 'steps' => [['depth' => 1, 'label' => 'send q', 'hints' => [['key' => 'taken by', 'value' => 'process ' . $consumer . ', a separate consumer run', 'critical' => true]]]]];
         $gatherer = fn (int $sender): array => ['process' => 'receive q, GatheringMessageHandler::handle (part 1 of 1)', 'steps' => [['depth' => 1, 'label' => 'receive q', 'hints' => [
             ['key' => 'sent by', 'value' => 'process ' . $sender . ', the part report for part 1 of 1', 'critical' => true],
-            ['key' => 'runs', 'value' => 'only the gatherer, the work of part 1 of 1 ran in process ' . $sender, 'critical' => true],
+            ['key' => 'work in', 'value' => 'process ' . $sender . ', part 1 of 1', 'critical' => true],
         ]]]];
         $this->replaceExecution('before', [$sender(2), $gatherer(1)]);
         $this->replaceExecution('after', [['process' => 'initialize', 'steps' => [['depth' => 1, 'label' => 'handler class@anonymous::init', 'hints' => []]]], $sender(3), $gatherer(2)]);

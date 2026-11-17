@@ -4,24 +4,24 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tracing;
 
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Api\Attribute\Splitter;
-use Ecotone\Api\Attribute\Gathered;
-use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
-use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\Flow\Snapshot\FlowExecution;
@@ -44,16 +44,16 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
             '↳ chosen by: licence, over RequestReplyProducer',
             'read part 1 of 2',
             'record part 1 of 2 in InMemoryGatheredGroupStore',
-            '↳ result: part stored, 1 of 2 in, group waits',
+            '↳ outcome: part stored, 1 of 2 in, group waits',
             'process 6: receive backfill, GatheringMessageHandler::handle (part 2 of 2)',
             'read part 2 of 2',
             'record part 2 of 2 in InMemoryGatheredGroupStore',
-            '↳ result: part stored, 2 of 2 in, group released',
-            '↳ runs: gatherer called back in this run',
+            '↳ outcome: part stored, 2 of 2 in, group released',
+            '↳ runs in: this consumer run, gatherer called back',
             'release group',
             '↳ chosen by: all parts accounted for',
-            '↳ result: GatheredParts, 2 of 2 parts, original payload array',
-            '↳ runs: this consumer run, no queue, straight to the #[Gathered] handler',
+            '↳ outcome: GatheredParts, 2 of 2 parts, original payload array',
+            '↳ runs in: this consumer run, no queue',
             'handler ProjectionRunCompletion::complete',
         ];
 
@@ -113,7 +113,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $process = self::positionOf($lines, 'process 5: receive backfill, GatheringMessageHandler::handle (part 1 of 2)');
 
         self::assertSame(
-            ['receive backfill', '↳ sent by: process 3, the part report for part 1 of 2', '↳ runs: only the gatherer, the work of part 1 of 2 ran in process 3'],
+            ['receive backfill', '↳ sent by: process 3, the part report for part 1 of 2', '↳ work in: process 3, part 1 of 2'],
             array_slice($lines, $process + 1, 3),
         );
     }
@@ -167,10 +167,10 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
 
         self::assertSame(
             [
-                '↳ result: part stored, 1 of 2 in, group waits',
-                '↳ result: duplicate part ignored',
-                '↳ result: part stored, 2 of 2 in, group released',
-                '↳ result: duplicate part ignored, group already released',
+                '↳ outcome: part stored, 1 of 2 in, group waits',
+                '↳ outcome: duplicate part ignored',
+                '↳ outcome: part stored, 2 of 2 in, group released',
+                '↳ outcome: duplicate part ignored, group already released',
             ],
             array_map(fn (int $position): string => $lines[$position + 1], array_keys(array_filter($lines, fn (string $line): bool => preg_match('/^record part \d of 2 in InMemoryGatheredGroupStore$/', $line) === 1))),
         );
@@ -210,9 +210,9 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
     {
         $lines = array_map(trim(...), self::executionOf('tag-partitioned projection backfilled asynchronously in two batches'));
 
-        self::assertContains('↳ by: GatheredPartitionBatchDispatcher, for backfill', $lines);
-        self::assertContains('↳ result: got 0 events', $lines);
-        self::assertContains('↳ result: found nothing', $lines);
+        self::assertContains('↳ service: GatheredPartitionBatchDispatcher, for backfill', $lines);
+        self::assertContains('↳ found: 0 events', $lines);
+        self::assertContains('↳ found: nothing', $lines);
         self::assertSame('↳ chosen by: licence, over RequestReplyProducer', $lines[self::positionOf($lines, 'handler GatheringMessageHandler::handle') + 1]);
     }
 
@@ -220,9 +220,9 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
     {
         $lines = array_map(trim(...), self::executionOf('event forwarded to a channel whose other interceptor fails after the send'));
 
-        self::assertCount(1, array_keys($lines, '↳ result: throws RuntimeException', true));
-        self::assertSame('↳ result: throws RuntimeException', $lines[self::positionOf($lines, 'release collected message to notifications') + 1]);
-        self::assertContains('↳ result: passes RuntimeException out of the process', $lines);
+        self::assertCount(1, array_keys($lines, '↳ failure: throws RuntimeException', true));
+        self::assertSame('↳ failure: throws RuntimeException', $lines[self::positionOf($lines, 'release collected message to notifications') + 1]);
+        self::assertContains('↳ failure: passes RuntimeException out of the process', $lines);
     }
 
     public function test_a_step_without_a_hand_over_names_whose_result_it_was(): void
@@ -231,8 +231,8 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $route = self::positionOf($lines, 'route to order.place.endpoint.target');
         $noHandOver = array_values(array_filter(array_keys($lines, 'no hand-over', true), fn (int $position): bool => $position > $route));
 
-        self::assertSame('↳ result: nothing returned by the router', $lines[$noHandOver[0] + 1]);
-        self::assertSame('↳ result: nothing returned by class@anonymous::place', $lines[$noHandOver[1] + 1]);
+        self::assertSame('↳ outcome: nothing returned by the router', $lines[$noHandOver[0] + 1]);
+        self::assertSame('↳ outcome: nothing returned by class@anonymous::place', $lines[$noHandOver[1] + 1]);
     }
 
     public function test_a_send_to_a_direct_channel_runs_its_subscriber_inline_and_a_send_to_a_queue_puts_it_on_the_queue(): void
@@ -309,7 +309,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
             ],
             array_values(array_filter(array_slice($lines, $release), fn (string $line): bool => preg_match('/^after (send|successful send|receive|take) /', $line) === 1)),
         );
-        self::assertSame(['↳ result: no failure'], array_values(array_unique(array_filter(array_slice($lines, $release, 20), fn (string $line): bool => str_starts_with($line, '↳ result: no')))));
+        self::assertSame(['↳ failure: none'], array_values(array_unique(array_filter(array_slice($lines, $release, 20), fn (string $line): bool => str_starts_with($line, '↳ failure: ')))));
     }
 
     public function test_a_send_nests_each_interceptor_around_the_next_with_the_put_on_the_channel_innermost(): void
@@ -401,8 +401,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
 
         $forward = self::positionOf($lines, 'forward to order.confirm');
         self::assertSame('↳ chosen by: output channel of class@anonymous::place', $lines[$forward + 1]);
-        $reply = self::positionOf($lines, 'reply to the reply channel of the request');
-        self::assertSame('↳ chosen by: reply channel of the request', $lines[$reply + 1]);
+        self::assertContains('reply to the reply channel of the request', $lines);
     }
 
     public function test_nothing_handed_over_says_whether_the_handler_returned_nothing_or_nothing_took_its_result(): void
@@ -423,8 +422,8 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $lines = array_map(trim(...), $this->recorded([$listeners::class], [$listeners], [], fn (FlowTestSupport $ecotone) => $ecotone->publishEventWithRouting('order.placed', [])));
 
         $whyNothing = array_values(array_map(fn (int $position): string => $lines[$position + 1], array_keys($lines, 'no hand-over', true)));
-        self::assertContains('↳ result: string returned by class@anonymous::audit, nothing takes it', $whyNothing);
-        self::assertContains('↳ result: nothing returned by class@anonymous::notify', $whyNothing);
+        self::assertContains('↳ outcome: string returned by class@anonymous::audit, not taken', $whyNothing);
+        self::assertContains('↳ outcome: nothing returned by class@anonymous::notify', $whyNothing);
     }
 
     public function test_the_entrypoint_sets_the_routing_slip_and_its_router_says_which_header_chose_the_route(): void

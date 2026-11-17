@@ -29,8 +29,8 @@ final class RecordedGatheredRelease implements MessageHandler
                     GatheredReleaseReason::TIMEOUT => 'timeout',
                     GatheredReleaseReason::MANUAL_RELEASE => 'manual release',
                 }),
-                ExecutionHint::critical(ExecutionHint::RESULT, 'GatheredParts, ' . ($parts->size - count($parts->missingPartNumbers)) . ' of ' . $parts->size . ' parts, original payload ' . ExecutionRecorder::typeOf($parts->originalPayload)),
-                ExecutionHint::critical(ExecutionHint::RUNS, 'this consumer run, no queue, straight to the #[Gathered] handler'),
+                ExecutionHint::critical(ExecutionHint::OUTCOME, 'GatheredParts, ' . ($parts->size - count($parts->missingPartNumbers)) . ' of ' . $parts->size . ' parts, original payload ' . ExecutionRecorder::typeOf($parts->originalPayload)),
+                ExecutionHint::critical(ExecutionHint::RUNS_IN, 'this consumer run, no queue'),
             ])
             : null;
         try {

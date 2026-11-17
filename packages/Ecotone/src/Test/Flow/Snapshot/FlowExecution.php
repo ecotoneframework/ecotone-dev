@@ -145,7 +145,7 @@ final class FlowExecution
             $name = self::nameOf($span);
             if (str_starts_with($name, 'part report to ')) {
                 foreach (self::hintsOf($span) as $hint) {
-                    if ($hint['key'] === ExecutionHint::RESULT && preg_match('/^part (\d+ of \d+)/', $hint['value'], $part) === 1) {
+                    if ($hint['key'] === ExecutionHint::OUTCOME && preg_match('/^part (\d+ of \d+)/', $hint['value'], $part) === 1) {
                         return ['the part report for part ' . $part[1], $part[1]];
                     }
                 }
@@ -169,7 +169,9 @@ final class FlowExecution
         $hints = [];
         $outcome = (string) ($span->attributes[SpanAttribute::EXECUTION_OUTCOME] ?? '');
         if ($outcome !== '' && self::thrownBy($span) === null) {
-            $hints[] = ['key' => ExecutionHint::RESULT, 'value' => self::readable($outcome), 'critical' => false];
+            $hints[] = str_starts_with($outcome, 'returns ')
+                ? ['key' => ExecutionHint::RETURNS, 'value' => self::readable(substr($outcome, strlen('returns '))), 'critical' => false]
+                : ['key' => ExecutionHint::OUTCOME, 'value' => self::readable($outcome), 'critical' => false];
         }
         foreach (json_decode((string) ($span->attributes[SpanAttribute::EXECUTION_HINTS] ?? '[]'), true, flags: JSON_THROW_ON_ERROR) as [$key, $value, $critical]) {
             $hints[] = ['key' => (string) $key, 'value' => self::readable((string) $value), 'critical' => (bool) $critical];
@@ -211,19 +213,19 @@ final class FlowExecution
         }
         if ($failure === null) {
             foreach (self::failuresOfStepsUnder($span, $children) as $caught) {
-                return [['key' => ExecutionHint::RESULT, 'value' => 'caught ' . $caught, 'critical' => true]];
+                return [['key' => ExecutionHint::FAILURE, 'value' => 'caught ' . $caught, 'critical' => true]];
             }
 
             return [];
         }
         if (! self::aStepUnderThrows($span, $children, $failure)) {
-            return [['key' => ExecutionHint::RESULT, 'value' => 'throws ' . $failure, 'critical' => true]];
+            return [['key' => ExecutionHint::FAILURE, 'value' => 'throws ' . $failure, 'critical' => true]];
         }
         if ($failureAbove === $failure || $hasStepAbove) {
-            return [['key' => ExecutionHint::RESULT, 'value' => 'passes ' . $failure . ' on', 'critical' => false]];
+            return [['key' => ExecutionHint::FAILURE, 'value' => 'passes ' . $failure . ' on', 'critical' => false]];
         }
 
-        return [['key' => ExecutionHint::RESULT, 'value' => 'passes ' . $failure . ' out of the process', 'critical' => true]];
+        return [['key' => ExecutionHint::FAILURE, 'value' => 'passes ' . $failure . ' out of the process', 'critical' => true]];
     }
 
     /**
@@ -329,7 +331,7 @@ final class FlowExecution
             if ($part !== null) {
                 $ordinals[$position] = 'part ' . $part;
                 if (isset($sources[$position]) && $process['steps'] !== []) {
-                    $processes[$position]['steps'][0]['hints'][] = ['key' => ExecutionHint::RUNS, 'value' => 'only the gatherer, the work of part ' . $part . ' ran in process ' . $sources[$position]['process'], 'critical' => true];
+                    $processes[$position]['steps'][0]['hints'][] = ['key' => ExecutionHint::WORK_IN, 'value' => 'process ' . $sources[$position]['process'] . ', part ' . $part, 'critical' => true];
                 }
             }
         }

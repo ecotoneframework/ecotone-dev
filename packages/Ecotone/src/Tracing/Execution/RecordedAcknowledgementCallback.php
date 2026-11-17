@@ -29,26 +29,26 @@ final class RecordedAcknowledgementCallback implements AcknowledgementCallback
     public function accept(): void
     {
         $this->acknowledgementCallback->accept();
-        $this->tracer->recordStep('acknowledge', hints: [ExecutionHint::critical(ExecutionHint::RESULT, 'accepted')]);
+        $this->tracer->recordStep('acknowledge', hints: [ExecutionHint::critical(ExecutionHint::OUTCOME, 'accepted')]);
     }
 
     public function reject(): void
     {
         $this->acknowledgementCallback->reject();
-        $this->tracer->recordStep('acknowledge', hints: [ExecutionHint::critical(ExecutionHint::RESULT, 'rejected'), $this->decidedBy()]);
+        $this->tracer->recordStep('acknowledge', hints: [ExecutionHint::critical(ExecutionHint::OUTCOME, 'rejected'), $this->decidedBy()]);
     }
 
     public function resend(): void
     {
         $this->acknowledgementCallback->resend();
-        $this->tracer->recordStep('acknowledge', hints: [ExecutionHint::critical(ExecutionHint::RESULT, 'resent to the channel'), $this->decidedBy()]);
+        $this->tracer->recordStep('acknowledge', hints: [ExecutionHint::critical(ExecutionHint::OUTCOME, 'resent to the channel'), $this->decidedBy()]);
     }
 
     public function release(): void
     {
         $this->acknowledgementCallback->release();
         $strategy = $this->acknowledgementCallback->getFailureStrategy();
-        $this->tracer->recordStep('acknowledge', hints: [ExecutionHint::critical(ExecutionHint::RESULT, $strategy === FinalFailureStrategy::RELEASE ? 'released back to the channel' : 'released back to the channel, the consumer stops'), $this->decidedBy()]);
+        $this->tracer->recordStep('acknowledge', hints: [ExecutionHint::critical(ExecutionHint::OUTCOME, $strategy === FinalFailureStrategy::RELEASE ? 'released back to the channel' : 'released back to the channel, the consumer stops'), $this->decidedBy()]);
     }
 
     private function decidedBy(): ExecutionHint

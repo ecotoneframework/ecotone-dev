@@ -37,8 +37,8 @@
     ],
     "execution": [
         {"process": "send event order.placed, class@anonymous::audit", "steps": [
-            {"depth":1,"label":"gateway EventBus::publishWithRouting","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":1,"label":"gateway EventBus::publishWithRouting","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","critical":false}]},
             {"depth":2,"label":"around TracingInterceptor::traceEventBus"},
             {"depth":3,"label":"span send event order.placed"},
             {"depth":4,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders"},
@@ -49,9 +49,9 @@
             {"depth":8,"label":"around MessageHandlerLogger::aroundEventHandler"},
             {"depth":9,"label":"around TracingInterceptor::traceHandlerEndpoint"},
             {"depth":10,"label":"span process class@anonymous::audit"},
-            {"depth":11,"label":"handler class@anonymous::audit","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":8,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]},
-            {"depth":6,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]}
+            {"depth":11,"label":"handler class@anonymous::audit","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":8,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by class@anonymous::audit","critical":true}]},
+            {"depth":6,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by the chain","critical":true}]}
         ]}
     ]
 }

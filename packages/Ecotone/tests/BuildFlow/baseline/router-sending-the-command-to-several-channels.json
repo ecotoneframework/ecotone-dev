@@ -72,8 +72,8 @@
     ],
     "execution": [
         {"process": "send command shipment.dispatch, class@anonymous::dispatch", "steps": [
-            {"depth":1,"label":"gateway CommandBus::sendWithRouting","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":1,"label":"gateway CommandBus::sendWithRouting","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","critical":false}]},
             {"depth":2,"label":"around TracingInterceptor::traceCommandBus"},
             {"depth":3,"label":"span send command shipment.dispatch"},
             {"depth":4,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders"},
@@ -84,24 +84,24 @@
             {"depth":8,"label":"around MessageHandlerLogger::aroundCommandHandler"},
             {"depth":9,"label":"around TracingInterceptor::traceHandlerEndpoint"},
             {"depth":10,"label":"span process class@anonymous::dispatch"},
-            {"depth":11,"label":"handler class@anonymous::dispatch","hints":[{"key":"result","value":"returns string","critical":false}]},
+            {"depth":11,"label":"handler class@anonymous::dispatch","hints":[{"key":"returns","value":"string","critical":false}]},
             {"depth":8,"label":"forward to shipment.route","hints":[{"key":"chosen by","value":"output channel of class@anonymous::dispatch","critical":true},{"key":"kept","value":"reply channel of the request","critical":false},{"key":"payload","value":"string","critical":false}]},
             {"depth":9,"label":"publish-subscribe channel shipment.route"},
-            {"depth":10,"label":"router class@anonymous::route","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":10,"label":"router class@anonymous::route","hints":[{"key":"returns","value":"array","critical":false}]},
             {"depth":10,"label":"route to shipment.label, shipment.notify"},
             {"depth":10,"label":"direct channel shipment.label"},
             {"depth":11,"label":"around MessageHandlerLogger::aroundMessageHandler"},
             {"depth":12,"label":"around TracingInterceptor::traceHandlerEndpoint"},
             {"depth":13,"label":"span process class@anonymous::label"},
-            {"depth":14,"label":"handler class@anonymous::label","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":11,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]},
+            {"depth":14,"label":"handler class@anonymous::label","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":11,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by class@anonymous::label","critical":true}]},
             {"depth":10,"label":"direct channel shipment.notify"},
             {"depth":11,"label":"around MessageHandlerLogger::aroundMessageHandler"},
             {"depth":12,"label":"around TracingInterceptor::traceHandlerEndpoint"},
             {"depth":13,"label":"span process class@anonymous::notify"},
-            {"depth":14,"label":"handler class@anonymous::notify","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":11,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]},
-            {"depth":7,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]}
+            {"depth":14,"label":"handler class@anonymous::notify","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":11,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by class@anonymous::notify","critical":true}]},
+            {"depth":7,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by the router","critical":true}]}
         ]}
     ]
 }

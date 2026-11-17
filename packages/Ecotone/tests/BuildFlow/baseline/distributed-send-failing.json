@@ -71,21 +71,21 @@
     ],
     "execution": [
         {"process": "send distributed, DistributedOutboundRouter::route", "steps": [
-            {"depth":1,"label":"gateway DistributedBus::sendCommand","hints":[{"key":"result","value":"throws RuntimeException","critical":true}]},
-            {"depth":2,"label":"before TracingInterceptor::provideContextForDistributedBus","hints":[{"key":"result","value":"returns a message of string","critical":false}]},
-            {"depth":2,"label":"around TracingInterceptor::traceDistributedBus","hints":[{"key":"result","value":"throws RuntimeException","critical":true}]},
+            {"depth":1,"label":"gateway DistributedBus::sendCommand","hints":[{"key":"failure","value":"passes RuntimeException out of the process","critical":true},{"key":"routing slip","value":"none → ecotone.distributed.invoke","critical":true}]},
+            {"depth":2,"label":"before TracingInterceptor::provideContextForDistributedBus","hints":[{"key":"returns","value":"a message of string","critical":false}]},
+            {"depth":2,"label":"around TracingInterceptor::traceDistributedBus","hints":[{"key":"failure","value":"passes RuntimeException on","critical":false}]},
             {"depth":3,"label":"span send distributed"},
-            {"depth":4,"label":"direct channel Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","hints":[{"key":"result","value":"throws RuntimeException","critical":true}]},
-            {"depth":5,"label":"router DistributedOutboundRouter::route","hints":[{"key":"result","value":"returns array","critical":false}]},
-            {"depth":5,"label":"route to distributed_channel"},
-            {"depth":5,"label":"send distributed_channel","hints":[{"key":"result","value":"throws RuntimeException","critical":true}]},
+            {"depth":4,"label":"direct channel Ecotone\\Api\\Gateway\\DistributedBus_outboundDistribution","hints":[{"key":"failure","value":"passes RuntimeException on","critical":false}]},
+            {"depth":5,"label":"router DistributedOutboundRouter::route","hints":[{"key":"returns","value":"array","critical":false}]},
+            {"depth":5,"label":"route to distributed_channel","hints":[{"key":"chosen by","value":"service map, command to ticket_service","critical":true}]},
+            {"depth":5,"label":"send distributed_channel","hints":[{"key":"failure","value":"throws RuntimeException","critical":true}]},
             {"depth":6,"label":"before send OutboundSerializationChannelInterceptor::preSend"},
             {"depth":7,"label":"before send MessageCollectorChannelInterceptor::preSend"},
-            {"depth":8,"label":"before send TracingChannelInterceptor::preSend","hints":[{"key":"headers added","value":"traceparent, ecotone_tracing_delivery","critical":false}]},
+            {"depth":8,"label":"before send TracingChannelInterceptor::preSend","hints":[{"key":"failure","value":"caught RuntimeException","critical":true},{"key":"headers added","value":"traceparent, ecotone_tracing_delivery","critical":false}]},
             {"depth":9,"label":"span send distributed_channel"},
-            {"depth":10,"label":"put on channel distributed_channel","hints":[{"key":"result","value":"throws RuntimeException","critical":true}]},
-            {"depth":6,"label":"recover SendRetryChannelInterceptor::recover","hints":[{"key":"result","value":"send failed with RuntimeException","critical":true}]},
-            {"depth":6,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"result","value":"failed with RuntimeException","critical":true}]}
+            {"depth":10,"label":"put on channel distributed_channel","hints":[{"key":"failure","value":"throws RuntimeException","critical":true}]},
+            {"depth":6,"label":"recover SendRetryChannelInterceptor::recover","hints":[{"key":"failure","value":"RuntimeException","critical":true}]},
+            {"depth":6,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"RuntimeException","critical":true}]}
         ]}
     ]
 }

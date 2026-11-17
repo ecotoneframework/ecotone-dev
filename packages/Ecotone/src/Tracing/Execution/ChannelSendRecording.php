@@ -149,7 +149,7 @@ final class ChannelSendRecording
             return;
         }
         if ($failure === null) {
-            $this->tracer->endStep($send['step'], '', $send['failed'] === null ? [] : [ExecutionHint::critical(ExecutionHint::RESULT, 'failed with ' . $send['failed'] . ', ' . $this->recoveryOf($send['failedAfter']))]);
+            $this->tracer->endStep($send['step'], '', $send['failed'] === null ? [] : [ExecutionHint::critical(ExecutionHint::FAILURE, $send['failed'] . ', ' . $this->recoveryOf($send['failedAfter']))]);
 
             return;
         }
@@ -175,7 +175,7 @@ final class ChannelSendRecording
         foreach ([self::AFTER_RECEIVE_COMPLETION => 'after receive ', self::POST_RECEIVE => 'after take '] as $phase => $kind) {
             foreach (array_keys($this->interceptors) as $position) {
                 if ($this->shows($position, $phase)) {
-                    $notes[] = ['depth' => 0, 'name' => $kind . $this->methodOf($position, $phase), 'hints' => $phase === self::AFTER_RECEIVE_COMPLETION ? [ExecutionHint::detail(ExecutionHint::RESULT, 'a message, no failure')] : []];
+                    $notes[] = ['depth' => 0, 'name' => $kind . $this->methodOf($position, $phase), 'hints' => $phase === self::AFTER_RECEIVE_COMPLETION ? [ExecutionHint::detail(ExecutionHint::FAILURE, 'none')] : []];
                 }
             }
         }
@@ -253,10 +253,10 @@ final class ChannelSendRecording
             return ['after successful send ' . $this->methodOf($after['position'], self::POST_SEND), []];
         }
         if ($sendFailure !== null && $this->interceptors[$after['position']] === SendRetryChannelInterceptor::class) {
-            return ['recover ' . ExecutionRecordingTracer::shortClassOf(SendRetryChannelInterceptor::class) . '::recover', [ExecutionHint::critical(ExecutionHint::RESULT, 'send failed with ' . $sendFailure)]];
+            return ['recover ' . ExecutionRecordingTracer::shortClassOf(SendRetryChannelInterceptor::class) . '::recover', [ExecutionHint::critical(ExecutionHint::FAILURE, $sendFailure)]];
         }
 
-        return ['after send ' . $this->methodOf($after['position'], self::AFTER_SEND_COMPLETION), [$after['failure'] === null ? ExecutionHint::detail(ExecutionHint::RESULT, 'no failure') : ExecutionHint::critical(ExecutionHint::RESULT, 'failed with ' . $after['failure'])]];
+        return ['after send ' . $this->methodOf($after['position'], self::AFTER_SEND_COMPLETION), [$after['failure'] === null ? ExecutionHint::detail(ExecutionHint::FAILURE, 'none') : ExecutionHint::critical(ExecutionHint::FAILURE, $after['failure'])]];
     }
 
     private function shows(int $position, string $phase): bool
@@ -330,6 +330,6 @@ final class ChannelSendRecording
             }
         }
 
-        return 'handled by its channel interceptors without failing the flow';
+        return 'absorbed by the channel interceptors';
     }
 }

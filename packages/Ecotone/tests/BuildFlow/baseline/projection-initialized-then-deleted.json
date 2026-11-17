@@ -110,32 +110,32 @@
         {"process": "initialize orders, ProjectingManager::init", "steps": [
             {"depth":1,"label":"entrypoint sends to projecting_manager_initialize:orders"},
             {"depth":2,"label":"direct channel ecotone.messaging.entrypoint"},
-            {"depth":3,"label":"router HeaderRouter::route","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":3,"label":"router HeaderRouter::route","hints":[{"key":"returns","value":"array","critical":false}]},
             {"depth":3,"label":"route to projecting_manager_initialize:orders","hints":[{"key":"chosen by","value":"header ecotone.messaging.entrypoint","critical":true}]},
             {"depth":3,"label":"direct channel projecting_manager_initialize:orders"},
-            {"depth":4,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":4,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","critical":false}]},
             {"depth":4,"label":"around TracingInterceptor::traceProjectionOperation"},
             {"depth":5,"label":"span initialize orders"},
             {"depth":6,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders"},
-            {"depth":7,"label":"handler ProjectingManager::init","hints":[{"key":"result","value":"returns nothing","critical":false}]},
+            {"depth":7,"label":"handler ProjectingManager::init","hints":[{"key":"returns","value":"nothing","critical":false}]},
             {"depth":8,"label":"init the state of orders"},
-            {"depth":8,"label":"load partition (the whole stream) of orders","hints":[{"key":"result","value":"found it at position start","critical":false}]},
-            {"depth":4,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]}
+            {"depth":8,"label":"load partition (the whole stream) of orders","hints":[{"key":"found","value":"position start","critical":false}]},
+            {"depth":4,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by ProjectingManager::init","critical":true}]}
         ]},
         {"process": "delete orders, ProjectingManager::delete", "steps": [
             {"depth":1,"label":"entrypoint sends to projecting_manager_delete:orders"},
             {"depth":2,"label":"direct channel ecotone.messaging.entrypoint"},
-            {"depth":3,"label":"router HeaderRouter::route","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":3,"label":"router HeaderRouter::route","hints":[{"key":"returns","value":"array","critical":false}]},
             {"depth":3,"label":"route to projecting_manager_delete:orders","hints":[{"key":"chosen by","value":"header ecotone.messaging.entrypoint","critical":true}]},
             {"depth":3,"label":"direct channel projecting_manager_delete:orders"},
-            {"depth":4,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":4,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","critical":false}]},
             {"depth":4,"label":"around TracingInterceptor::traceProjectionOperation"},
             {"depth":5,"label":"span delete orders"},
             {"depth":6,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders"},
-            {"depth":7,"label":"handler ProjectingManager::delete","hints":[{"key":"result","value":"returns nothing","critical":false}]},
+            {"depth":7,"label":"handler ProjectingManager::delete","hints":[{"key":"returns","value":"nothing","critical":false}]},
             {"depth":8,"label":"delete the state of orders"},
             {"depth":8,"label":"delete the projection"},
-            {"depth":4,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]}
+            {"depth":4,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by ProjectingManager::delete","critical":true}]}
         ]}
     ]
 }

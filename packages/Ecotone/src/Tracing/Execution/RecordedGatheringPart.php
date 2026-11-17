@@ -29,7 +29,7 @@ final class RecordedGatheringPart implements MessageHandler
         };
         $this->tracer->recordStep($label, hints: array_values(array_filter([
             $headers->containsKey(GatheringHeaders::GROUP_ID) ? ExecutionHint::detail(ExecutionHint::GROUP, $header(GatheringHeaders::GROUP_ID)) : null,
-            ExecutionHint::detail(ExecutionHint::READ_FROM, implode(', ', $readFrom)),
+            ExecutionHint::detail(ExecutionHint::HEADERS_READ, implode(', ', $readFrom)),
         ])));
         $this->gatheringHandler->handle($message);
     }

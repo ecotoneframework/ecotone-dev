@@ -10,27 +10,34 @@ namespace Ecotone\Tracing\Execution;
 final class ExecutionHint
 {
     public const CHOSEN_BY = 'chosen by';
-    public const RESULT = 'result';
+    public const RETURNS = 'returns';
+    public const OUTCOME = 'outcome';
+    public const FAILURE = 'failure';
+    public const FOUND = 'found';
     public const ROUTING_SLIP = 'routing slip';
+    public const KEPT = 'kept';
     public const HEADERS_ADDED = 'headers added';
     public const HEADERS_REMOVED = 'headers removed';
     public const HEADERS_CHANGED = 'headers changed';
+    public const HEADERS_READ = 'headers read';
     public const PAYLOAD = 'payload';
     public const SENT_BY = 'sent by';
     public const TAKEN_BY = 'taken by';
     public const STOPPED = 'stopped';
     public const COLLECTED = 'collected';
-    public const RUNS = 'runs';
-    public const READ_FROM = 'read from';
+    public const RUNS_IN = 'runs in';
+    public const WORK_IN = 'work in';
+    public const RANGE = 'range';
+    public const IDENTIFIERS = 'identifiers';
     public const PROPAGATING = 'propagating';
     public const RECEIVED_WITH = 'received with';
     public const RETRY = 'retry';
     public const GROUP = 'group';
-    public const KEPT = 'kept';
-    public const BY = 'by';
+    public const SERVICE = 'service';
     public const KEYS = [
-        self::CHOSEN_BY, self::RESULT, self::ROUTING_SLIP, self::HEADERS_ADDED, self::HEADERS_REMOVED, self::HEADERS_CHANGED, self::PAYLOAD,
-        self::SENT_BY, self::TAKEN_BY, self::STOPPED, self::COLLECTED, self::RUNS, self::READ_FROM, self::PROPAGATING, self::RECEIVED_WITH, self::RETRY, self::GROUP, self::KEPT, self::BY,
+        self::CHOSEN_BY, self::RETURNS, self::OUTCOME, self::FAILURE, self::FOUND, self::ROUTING_SLIP, self::KEPT, self::HEADERS_ADDED, self::HEADERS_REMOVED,
+        self::HEADERS_CHANGED, self::HEADERS_READ, self::PAYLOAD, self::SENT_BY, self::TAKEN_BY, self::STOPPED, self::COLLECTED, self::RUNS_IN, self::WORK_IN,
+        self::RANGE, self::IDENTIFIERS, self::PROPAGATING, self::RECEIVED_WITH, self::RETRY, self::GROUP, self::SERVICE,
     ];
 
     private function __construct(public readonly string $key, public readonly string $value, public readonly bool $critical)

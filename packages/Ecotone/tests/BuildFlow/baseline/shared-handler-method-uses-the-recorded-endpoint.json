@@ -61,8 +61,8 @@
     ],
     "execution": [
         {"process": "send command order.second, class@anonymous::handle", "steps": [
-            {"depth":1,"label":"gateway CommandBus::sendWithRouting","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"result","value":"returns array","critical":false}]},
+            {"depth":1,"label":"gateway CommandBus::sendWithRouting","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","critical":false}]},
             {"depth":2,"label":"around TracingInterceptor::traceCommandBus"},
             {"depth":3,"label":"span send command order.second"},
             {"depth":4,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders"},
@@ -73,9 +73,9 @@
             {"depth":8,"label":"around MessageHandlerLogger::aroundCommandHandler"},
             {"depth":9,"label":"around TracingInterceptor::traceHandlerEndpoint"},
             {"depth":10,"label":"span process class@anonymous::handle"},
-            {"depth":11,"label":"handler class@anonymous::handle","hints":[{"key":"result","value":"returns nothing","critical":false}]},
-            {"depth":8,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]},
-            {"depth":7,"label":"no hand-over","hints":[{"key":"result","value":"the handler returned nothing","critical":true}]}
+            {"depth":11,"label":"handler class@anonymous::handle","hints":[{"key":"returns","value":"nothing","critical":false}]},
+            {"depth":8,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by class@anonymous::handle","critical":true}]},
+            {"depth":7,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by the router","critical":true}]}
         ]}
     ]
 }

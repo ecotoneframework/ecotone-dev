@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Ecotone\Tracing\Execution;
 
 use Closure;
-use Ecotone\Messaging\Handler\Gathering\GatheringHeaders;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\Gathering\GatheringHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Throwable;

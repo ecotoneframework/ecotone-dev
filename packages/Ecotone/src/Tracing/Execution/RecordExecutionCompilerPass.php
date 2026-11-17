@@ -62,7 +62,8 @@ use ReflectionMethod;
  */
 final class RecordExecutionCompilerPass implements CompilerPass
 {
-    public const PRESEND = 'presend';
+    public const PRESEND = 'before send';
+    public const CHAINED = 'chained';
     public const ROUTER = 'router';
     public const TRANSFORMER = 'transformer';
     public const SPLITTER = 'splitter';
@@ -217,6 +218,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
         if ($value instanceof InterceptedChainDefinition) {
             foreach ($arguments[0] as $position => $processor) {
                 $chainRole = $value->roles[$position] ?? InterceptedChainDefinition::STEP;
+                $chainRole = $chainRole === InterceptedChainDefinition::STEP ? self::CHAINED : $chainRole;
                 $arguments[0][$position] = $this->recorded($processor, $chainRole === InterceptedChainDefinition::HANDLER && in_array($role, self::OWN_ROLES, true) ? $role : $chainRole, $builder);
             }
         } else {

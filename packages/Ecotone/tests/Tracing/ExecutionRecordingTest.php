@@ -266,7 +266,6 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '    take from channel orders',
                 '    after receive TracingChannelInterceptor::afterReceiveCompletion',
                 '    gateway InboundChannelAdapterEntrypoint::executeEntrypoint',
-                '      ↳ routing slip: none → order.place.endpoint.target.execute',
                 '      before MessageHeadersPropagatorInterceptor::propagateHeaders',
                 '      around TracingInterceptor::traceAsynchronousEndpoint',
                 '        span receive orders',

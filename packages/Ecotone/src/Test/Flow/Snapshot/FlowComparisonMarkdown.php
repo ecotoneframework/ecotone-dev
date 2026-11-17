@@ -72,6 +72,7 @@ final class FlowComparisonMarkdown
             return '';
         }
         $sections = [];
+        $printedAlone = [];
         foreach ($change->execution as $process) {
             $state = match ($process['change']) {
                 FlowScenarioChange::UNCHANGED => 'unchanged.',
@@ -79,14 +80,68 @@ final class FlowComparisonMarkdown
                 FlowScenarioChange::REMOVED => 'ran only before.',
                 default => FlowWording::ofChangedProcess($process['steps']),
             };
+            $entries = $process['steps'] ?? [];
+            if ($process['change'] === FlowScenarioChange::ADDED) {
+                $entries = self::withSharedPreambleLeftOut($entries, array_values(array_filter($change->after->execution, fn (array $other): bool => in_array($other['process'], array_column($change->before->execution, 'process'), true))));
+            }
             $lines = [];
-            foreach ($process['steps'] ?? [] as $entry) {
+            foreach ($entries as $entry) {
                 array_push($lines, ...self::linesOfStep($entry));
+            }
+            $alike = $lines === [] ? null : self::alikeOf($lines, $printedAlone[$process['change']] ?? []);
+            if ($alike !== null) {
+                $state = ($process['change'] === FlowScenarioChange::ADDED ? 'runs only now' : 'runs other steps now') . ', like `' . $alike['process'] . '` except:';
+                $lines = array_values(array_diff_assoc($lines, $alike['lines']));
+            } elseif ($lines !== []) {
+                $printedAlone[$process['change']][] = ['process' => $process['process'], 'lines' => $lines];
             }
             $sections[] = 'Process `' . $process['process'] . '`: ' . $state . ($lines === [] ? '' : "\n\n```diff\n" . implode("\n", $lines) . "\n```");
         }
 
         return "\n#### What ran, process by process\n\n" . implode("\n\n", $sections) . "\n";
+    }
+
+    /**
+     * @param list<string> $lines
+     * @param list<array{process: string, lines: list<string>}> $printed
+     * @return array{process: string, lines: list<string>}|null
+     */
+    private static function alikeOf(array $lines, array $printed): ?array
+    {
+        $withoutNumbers = fn (array $of): array => array_map(fn (string $line): string => (string) preg_replace('/\d+/', '#', $line), $of);
+        foreach ($printed as $earlier) {
+            if (count($earlier['lines']) === count($lines) && $withoutNumbers($earlier['lines']) === $withoutNumbers($lines)) {
+                return $earlier;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $entries
+     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $after
+     * @return list<array<string, mixed>>
+     */
+    private static function withSharedPreambleLeftOut(array $entries, array $after): array
+    {
+        $keyOf = fn (string $step, array $hints): string => $step . json_encode(array_values(array_filter($hints, fn (array $hint): bool => $hint['critical'])), JSON_THROW_ON_ERROR);
+        $best = ['process' => '', 'steps' => 0];
+        foreach ($after as $other) {
+            $shared = 0;
+            while (isset($entries[$shared + 1], $other['steps'][$shared + 1])
+                && $keyOf((string) $entries[$shared + 1]['step'], $entries[$shared + 1]['hints'] ?? []) === $keyOf(str_repeat('  ', $other['steps'][$shared + 1]['depth']) . $other['steps'][$shared + 1]['label'], $other['steps'][$shared + 1]['hints'])) {
+                $shared++;
+            }
+            if ($shared > $best['steps']) {
+                $best = ['process' => $other['process'], 'steps' => $shared];
+            }
+        }
+        if ($best['steps'] < 3) {
+            return $entries;
+        }
+
+        return [$entries[0], ['change' => FlowScenarioChange::LEFT_OUT, 'steps' => $best['steps'], 'asIn' => $best['process']], ...array_slice($entries, 1 + $best['steps'])];
     }
 
     /**
@@ -102,7 +157,7 @@ final class FlowComparisonMarkdown
             default => '  ',
         };
         $lines = [match ($entry['change']) {
-            FlowScenarioChange::LEFT_OUT => '  … ' . $entry['steps'] . ' unchanged steps',
+            FlowScenarioChange::LEFT_OUT => '  … ' . $entry['steps'] . (isset($entry['asIn']) ? ' steps as in `' . $entry['asIn'] . '`' : ' unchanged steps'),
             FlowScenarioChange::MOVED => '  ' . FlowWording::ofMovedSteps($entry),
             default => $prefix . $entry['step'],
         }];

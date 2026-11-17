@@ -30,7 +30,7 @@ use RecursiveIteratorIterator;
 final class BuildFlowReadableComparisonTest extends TestCase
 {
     private const BEFORE = 'Before: nothing was sent after `process partition batch orders`.';
-    private const NOW = 'Now: after each `process partition batch orders`, the Enterprise part completion, `GatheringPartCompletion`, sends a part report to `ecotone.projection.rebuild.completion:orders`, which goes on to `rebuild` (the span shows only the send to `rebuild`; the sender and the channel are read from the build); it is received from `rebuild`; it is routed to the gathered handler `ProjectionRunCompletion::complete` (from the wiring: no span is recorded for that handler).';
+    private const NOW = 'Now: after each `process partition batch orders`, the Enterprise part completion, `GatheringPartCompletion`, sends a part report to `ecotone.projection.rebuild.completion:orders`, which goes on to `rebuild`; it is received from `rebuild`; it is routed to the gathered handler `ProjectionRunCompletion::complete`.';
 
     private string $location;
 

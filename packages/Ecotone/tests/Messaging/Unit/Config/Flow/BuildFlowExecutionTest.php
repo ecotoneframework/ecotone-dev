@@ -231,6 +231,64 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertDoesNotMatchRegularExpression('/\n- /', $presented);
     }
 
+    public function test_the_summary_states_a_repeated_change_once_without_explaining_the_tool_and_names_the_group_and_the_gatherer_runs(): void
+    {
+        $baseline = __DIR__ . '/../../../../BuildFlow/baseline/';
+        $file = 'tag-partitioned-projection-backfilled-asynchronously-in-two-batches.json';
+        $after = json_decode((string) file_get_contents($baseline . $file), true, flags: JSON_THROW_ON_ERROR);
+        $before = $after;
+        $before['trace'] = array_values(array_filter($after['trace'], fn (array $step, int $position): bool => ! in_array($position, [5, 6, 11, 12], true), ARRAY_FILTER_USE_BOTH));
+        $before['execution'] = array_values(array_filter($after['execution'], fn (array $process): bool => ! str_contains($process['process'], 'GatheringMessageHandler::handle')));
+        $before['execution'][0]['steps'] = array_values(array_filter($before['execution'][0]['steps'], fn (array $step): bool => $step['label'] !== 'open gathering group of 2 parts'));
+        foreach (['before' => $before, 'after' => $after] as $side => $snapshot) {
+            mkdir($this->location . '/' . $side, recursive: true);
+            copy($baseline . 'shared.json', $this->location . '/' . $side . '/shared.json');
+            file_put_contents($this->location . '/' . $side . '/' . $file, json_encode($snapshot, JSON_THROW_ON_ERROR));
+        }
+
+        $now = $this->comparison()['groups'][0]['summary']['now'];
+
+        self::assertStringNotContainsString('the span shows only', $now);
+        self::assertStringNotContainsString('from the wiring', $now);
+        self::assertSame(1, substr_count($now, 'sends a part report'));
+        self::assertStringContainsString('opens a gathering group of 2 parts', $now);
+        self::assertStringContainsString('2 gatherer runs take the part reports in', $now);
+    }
+
+    public function test_a_step_whose_only_changed_hint_is_not_critical_is_unchanged(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $forward = fn (string $payload): array => [['process' => 'send command order.place', 'steps' => [
+            ['depth' => 1, 'label' => 'forward to orders', 'hints' => [['key' => 'chosen by', 'value' => 'routing slip', 'critical' => true], ['key' => 'payload', 'value' => $payload, 'critical' => false]]],
+        ]]];
+        $this->replaceExecution('before', $forward('string'));
+        $this->replaceExecution('after', $forward('int'));
+
+        self::assertSame([], $this->comparison()['groups']);
+    }
+
+    public function test_a_new_consumer_run_shows_its_shared_preamble_once_and_a_second_alike_process_only_where_it_differs(): void
+    {
+        $baseline = __DIR__ . '/../../../../BuildFlow/baseline/';
+        $file = 'tag-partitioned-projection-backfilled-asynchronously-in-two-batches.json';
+        $after = json_decode((string) file_get_contents($baseline . $file), true, flags: JSON_THROW_ON_ERROR);
+        $before = $after;
+        $before['execution'] = array_values(array_filter($after['execution'], fn (array $process): bool => ! str_contains($process['process'], 'GatheringMessageHandler::handle')));
+        foreach (['before' => $before, 'after' => $after] as $side => $snapshot) {
+            mkdir($this->location . '/' . $side, recursive: true);
+            copy($baseline . 'shared.json', $this->location . '/' . $side . '/shared.json');
+            file_put_contents($this->location . '/' . $side . '/' . $file, json_encode($snapshot, JSON_THROW_ON_ERROR));
+        }
+
+        $presented = $this->whatRan($this->presented('A'));
+        $second = substr($presented, (int) strpos($presented, 'Process `receive backfill, PartitionBatchExecutorHandler::executeBatch (2 of 2)`'));
+
+        self::assertMatchesRegularExpression('/\n\+ +receive backfill\n\+ +↳ sent by: process `receive backfill, PartitionBatchExecutorHandler::executeBatch \(1 of 2\)`, the part report for part 1 of 2\n(\+ +↳ .*\n)*  … \d+ steps as in `receive backfill, PartitionBatchExecutorHandler::executeBatch \(1 of 2\)`\n/', $presented);
+        self::assertStringContainsString('like `receive backfill, PartitionBatchExecutorHandler::executeBatch (1 of 2)` except', $second);
+        self::assertLessThan(20, substr_count(substr($second, 0, (int) strpos($second . '```' . "\n\n", "```\n\n", 10)), "\n"));
+    }
+
     public function test_every_step_in_every_baseline_is_a_label_of_at_most_90_characters_with_hints_from_one_vocabulary(): void
     {
         $vocabulary = ['chosen by', 'returns', 'outcome', 'failure', 'found', 'routing slip', 'kept', 'headers added', 'headers removed', 'headers changed', 'headers read', 'payload', 'sent by', 'taken by', 'stopped', 'collected', 'runs in', 'work in', 'range', 'identifiers', 'propagating', 'received with', 'retry', 'group', 'service'];
@@ -282,9 +340,8 @@ final class BuildFlowExecutionTest extends TestCase
 
         $presented = $this->whatRan($this->presented('A'));
 
-        self::assertStringContainsString("  forward to orders\n-     ↳ chosen by: routing slip\n+     ↳ chosen by: output channel of class@anonymous::place\n", $presented);
+        self::assertStringContainsString("  forward to orders\n      ↳ routing slip: orders → none\n-     ↳ chosen by: routing slip\n+     ↳ chosen by: output channel of class@anonymous::place\n", $presented);
         self::assertStringNotContainsString('- forward to orders', $presented);
-        self::assertStringNotContainsString('routing slip: orders', $presented);
     }
 
     public function test_a_process_referred_to_by_number_is_compared_by_what_it_is_so_a_renumbered_process_stays_unchanged(): void

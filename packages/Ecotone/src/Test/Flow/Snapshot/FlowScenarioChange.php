@@ -494,7 +494,7 @@ final class FlowScenarioChange
 
         return [
             'before' => 'Before: ' . ($removed === [] ? $unchangedSide('past') : $after . ', ' . implode('; ', $removed)) . '.',
-            'now' => 'Now: ' . ($added === [] ? $unchangedSide('present') : $after . ', ' . implode('; ', $added)) . '.',
+            'now' => 'Now: ' . ($added === [] ? $unchangedSide('present') : $after . ', ' . implode('; ', $added)) . '.' . $this->whatRanAlso(),
         ];
     }
 
@@ -526,8 +526,8 @@ final class FlowScenarioChange
             $phrases[] = match (true) {
                 isset($step[self::PART_REPORT]) => ($step[self::PART_REPORT]['chosenFor'] === '' ? '' : 'the Enterprise part completion, ')
                     . '`' . FlowWording::withShortClassNames($step[self::PART_REPORT]['sender']) . '`' . ($step[self::PART_REPORT]['chosenFor'] === '' ? '' : ',')
-                    . " sends a part report to `{$step[self::PART_REPORT]['channel']}`, which goes on to `{$subject}` (the span shows only the send to `{$subject}`; the sender and the channel are read from the build)",
-                isset($step[self::DERIVED]) => 'it is routed to ' . ($this->isGathered($step, $change) ? 'the gathered handler ' : '') . '`' . substr(FlowWording::ofStep($step, $wiring), strlen('process ')) . '` (from the wiring: no span is recorded for that handler)',
+                    . " sends a part report to `{$step[self::PART_REPORT]['channel']}`, which goes on to `{$subject}`",
+                isset($step[self::DERIVED]) => 'it is routed to ' . ($this->isGathered($step, $change) ? 'the gathered handler ' : '') . '`' . substr(FlowWording::ofStep($step, $wiring), strlen('process ')) . '`',
                 $operation === 'send' && in_array($subject, ['command', 'event', 'query'], true) => "{$actor} sends {$subject} `" . ($step['destination'] ?? '') . '`',
                 $operation === 'send' => "{$actor} sends a message to `{$subject}`",
                 $operation === 'receive' => "it is received from `{$subject}`",
@@ -537,7 +537,41 @@ final class FlowScenarioChange
             };
         }
 
+        return self::withoutRepeats($phrases);
+    }
+
+    /**
+     * @param list<string> $phrases
+     * @return list<string>
+     */
+    private static function withoutRepeats(array $phrases): array
+    {
+        $count = count($phrases);
+        for ($period = 1; $period < $count; $period++) {
+            if ($count % $period === 0 && array_merge(...array_fill(0, intdiv($count, $period), array_slice($phrases, 0, $period))) === $phrases) {
+                return array_slice($phrases, 0, $period);
+            }
+        }
+
         return $phrases;
+    }
+
+    private function whatRanAlso(): string
+    {
+        $facts = [];
+        foreach ($this->execution as $process) {
+            foreach ($process['steps'] ?? [] as $entry) {
+                if ($entry['change'] === self::ADDED && preg_match('/^open gathering group of (\S+) parts$/', trim((string) ($entry['step'] ?? '')), $group) === 1) {
+                    $facts['group'] = 'opens a gathering group of ' . $group[1] . ' parts';
+                }
+            }
+        }
+        $gatherers = count(array_filter($this->execution, fn (array $process): bool => $process['change'] === self::ADDED && str_contains($process['process'], 'GatheringMessageHandler::handle')));
+        if ($gatherers > 0) {
+            $facts['gatherers'] = $gatherers . ' gatherer run' . ($gatherers === 1 ? ' takes' : 's take') . ' the part reports in';
+        }
+
+        return $facts === [] ? '' : ' What ran also: it ' . implode(', and ', $facts) . '.';
     }
 
     /**
@@ -680,7 +714,10 @@ final class FlowScenarioChange
             'process' => $process['process'],
             'steps' => array_map(fn (array $step): array => [
                 ...$step,
-                'hints' => array_map(fn (array $hint): array => in_array($hint['key'], [ExecutionHint::SENT_BY, ExecutionHint::TAKEN_BY, ExecutionHint::WORK_IN], true) ? [...$hint, 'value' => $named($hint['value'])] : $hint, $step['hints']),
+                'hints' => array_values(array_map(
+                    fn (array $hint): array => in_array($hint['key'], [ExecutionHint::SENT_BY, ExecutionHint::TAKEN_BY, ExecutionHint::WORK_IN], true) ? [...$hint, 'value' => $named($hint['value'])] : $hint,
+                    array_filter($step['hints'], fn (array $hint): bool => $hint['critical']),
+                )),
             ], $process['steps']),
         ], $processes);
     }

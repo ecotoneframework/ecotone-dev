@@ -301,7 +301,7 @@ final class FlowExecutionChange
 
         return $changes === []
             ? ['change' => FlowScenarioChange::UNCHANGED, 'step' => (string) $afterStep, 'hints' => $critical($hints['after'][$afterLine])]
-            : ['change' => FlowScenarioChange::CHANGED, 'step' => (string) $afterStep, 'hintChanges' => $changes];
+            : ['change' => FlowScenarioChange::CHANGED, 'step' => (string) $afterStep, 'hints' => array_values(array_filter($critical($hints['after'][$afterLine]), fn (array $hint): bool => ! in_array($hint['key'], array_column($changes, 'key'), true))), 'hintChanges' => $changes];
     }
 
     /**

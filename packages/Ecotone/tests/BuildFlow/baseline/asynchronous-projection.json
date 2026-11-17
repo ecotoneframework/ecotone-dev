@@ -163,7 +163,7 @@
             {"depth":1,"label":"receive projections","hints":[{"key":"sent by","value":"process 1, the event order.placed","critical":true}]},
             {"depth":2,"label":"take from channel projections"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
-            {"depth":2,"label":"gateway InboundChannelAdapterEntrypoint::executeEntrypoint","hints":[{"key":"returns","value":"nothing","critical":false},{"key":"routing slip","value":"none → projecting_manager_handler:orders.execute","critical":true}]},
+            {"depth":2,"label":"gateway InboundChannelAdapterEntrypoint::executeEntrypoint","hints":[{"key":"returns","value":"nothing","critical":false}]},
             {"depth":3,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","critical":false}]},
             {"depth":3,"label":"around TracingInterceptor::traceAsynchronousEndpoint"},
             {"depth":4,"label":"span receive projections"},

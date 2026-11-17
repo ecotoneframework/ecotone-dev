@@ -99,8 +99,10 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         $messagingConfiguration->registerServiceDefinition(SpanRecorder::class, new Definition(CompositeSpanRecorder::class, [$spanRecorders]));
         if ($tracingConfiguration->executionRecording) {
             if ($tracerReferences !== []) {
-                $service = substr((string) strrchr('\\' . $tracerReferences[0]->providedByServiceOfType, '\\'), 1) . ' service';
-                throw ConfigurationException::create("Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but a {$service} is provided, so spans go to the tracer it provides, and execution steps can be recorded only by Ecotone's own tracer. Record the flow without the {$service}, with a span recorder registered by TracingConfiguration::withSpanRecorder(), or remove withExecutionRecording().");
+                $type = $tracerReferences[0]->providedByServiceOfType;
+                $service = substr((string) strrchr('\\' . $type, '\\'), 1) . ' service';
+                $library = strstr($type, '\\', true) ?: $type;
+                throw ConfigurationException::create("Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but a {$service} is provided, so spans go to the {$library} tracer that service provides, and execution steps can be recorded only by Ecotone's own tracer. Record the flow without the {$service}, with a span recorder registered by TracingConfiguration::withSpanRecorder(), or remove withExecutionRecording().");
             }
             $messagingConfiguration->registerServiceDefinition(EcotoneTracer::class, new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));
             $messagingConfiguration->registerServiceDefinition(Tracer::class, new Definition(ExecutionRecordingTracer::class, [new Reference(EcotoneTracer::class), new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));

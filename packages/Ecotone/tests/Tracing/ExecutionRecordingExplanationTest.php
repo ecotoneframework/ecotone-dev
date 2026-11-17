@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
@@ -279,6 +280,33 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $lines = array_map(trim(...), $this->recorded([$orders::class], [$orders], [InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 2)], fn (FlowTestSupport $ecotone) => $ecotone->sendCommandWithRouting('order.place', [])));
 
         self::assertContains('↳ retry: attempt 2 after RuntimeException, by InstantRetryInterceptor::retry', $lines);
+    }
+
+    public function test_a_handler_that_catches_a_failure_and_sends_elsewhere_is_not_recorded_as_a_retry(): void
+    {
+        $stock = new class () {
+            #[CommandHandler('order.place')]
+            public function place(array $order, CommandBus $commandBus): void
+            {
+                try {
+                    $commandBus->sendWithRouting('stock.reserve', 'warehouse-a');
+                } catch (RuntimeException) {
+                    $commandBus->sendWithRouting('stock.reserve', 'warehouse-b');
+                }
+            }
+
+            #[CommandHandler('stock.reserve')]
+            public function reserve(string $warehouse): void
+            {
+                if ($warehouse === 'warehouse-a') {
+                    throw new RuntimeException('warehouse a is empty');
+                }
+            }
+        };
+
+        $lines = array_map(trim(...), $this->recorded([$stock::class], [$stock], [], fn (FlowTestSupport $ecotone) => $ecotone->sendCommandWithRouting('order.place', [])));
+
+        self::assertSame([], preg_grep('/^↳ retry: /', $lines));
     }
 
     public function test_a_distributed_send_shows_the_routing_slip_its_gateway_set_and_why_the_router_chose_the_channel(): void

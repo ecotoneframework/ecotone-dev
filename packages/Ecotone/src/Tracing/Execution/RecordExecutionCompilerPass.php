@@ -45,6 +45,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\LoadAggregate\LoadAggregateMessageProcessor;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
 use Ecotone\Modelling\AggregateIdentifierRetrevingService;
+use Ecotone\Modelling\Config\InstantRetry\InstantRetryInterceptor;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\EventSourcingExecutor\ApplyMethodExecutor;
 use Ecotone\Modelling\MessageHandling\Distribution\DistributedOutboundRouter;
@@ -258,6 +259,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
             ProjectionStateStorageRegistry::class => self::withEachRecordedAs($value, RecordedProjectionStateStorage::class),
             StreamSourceRegistry::class => self::withEachRecordedAs($value, RecordedStreamSource::class),
             ProjectingManager::class => self::withRecordedProjectorExecutor($value),
+            InstantRetryInterceptor::class => new Definition(RecordedInstantRetryInterceptor::class, [...array_slice(array_pad($value->getArguments(), 5, null), 0, 5), new Reference(Tracer::class)]),
             default => $value,
         };
     }

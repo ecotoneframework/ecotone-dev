@@ -18,6 +18,9 @@
 #   TICKETING_RENDER_FAILS_FOR_SEAT  a seat code, like C-7, whose ticket render fails on ticketing-worker; empty by default
 #   TICKETING_SALES_LEDGER_RESET_FAILS_FOR_CONCERT  a concert id whose rebuild batch of the sales ledger fails on ticketing-worker; empty by default
 #   RUSH_DEADLINE_SECONDS          how long a rush runs before its buyers still picking give up, default 600
+#   DEMO_RUNTIME                   php (default) serves the applications and Pulse with FrankenPHP; swoole serves them with OpenSwoole
+#   DEMO_SWOOLE_WORKERS            OpenSwoole worker processes of each web container when DEMO_RUNTIME=swoole, default 4
+#   PULSE_CONSUMER_COROUTINES      coroutines each of Pulse's reply consumers runs when DEMO_RUNTIME=swoole, default 6
 #
 # The repository root is mounted at /repo: the applications run from demo/ticketing, demo/storefront and apps/Pulse,
 # and resolve ecotone/* from packages/ through symlinked path repositories, so a package edit is live on the next request.
@@ -44,6 +47,8 @@ x-app: &app
 x-environment: &environment
   ECOTONE_LICENCE_KEY:
   COMPOSER_AUTH:
+  DEMO_RUNTIME: ${DEMO_RUNTIME:-php}
+  DEMO_SWOOLE_WORKERS: ${DEMO_SWOOLE_WORKERS:-4}
   AMQP_DSN: amqp://guest:guest@rabbitmq:5672
   OTEL_PHP_AUTOLOAD_ENABLED: "true"
   OTEL_TRACES_EXPORTER: none
@@ -89,7 +94,7 @@ x-storefront-environment: &storefront-environment
   LOG_LEVEL: notice
 
 x-web-healthcheck: &web-healthcheck
-  test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/', false, stream_context_create(['http' => ['header' => 'X-Demo-Healthcheck: 1']])) === false ? 1 : 0);"]
+  test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/' . (getenv('DEMO_RUNTIME') === 'swoole' ? 'robots.txt' : ''), false, stream_context_create(['http' => ['header' => 'X-Demo-Healthcheck: 1']])) === false ? 1 : 0);"]
   interval: 5s
   timeout: 5s
   start_period: 300s
@@ -163,6 +168,9 @@ services:
       ECOTONE_LICENCE_KEY:
       COMPOSER_AUTH:
       DEMO_APP: pulse
+      DEMO_RUNTIME: ${DEMO_RUNTIME:-php}
+      PULSE_HTTP_WORKERS: ${DEMO_SWOOLE_WORKERS:-4}
+      PULSE_CONSUMER_COROUTINES: ${PULSE_CONSUMER_COROUTINES:-6}
       APP_ENV: dev
       PULSE_TRANSPORT_DSN: amqp://guest:guest@rabbitmq:5672
       PULSE_SERVICES: ticketing,storefront

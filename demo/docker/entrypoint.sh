@@ -21,6 +21,19 @@ case "${DEMO_APP:-}" in
         ;;
 esac
 
+runtime="${DEMO_RUNTIME:-php}"
+case "$runtime" in
+    php) ;;
+    swoole)
+        export PHP_INI_SCAN_DIR="$PHP_INI_DIR/conf.d:$PHP_INI_DIR/swoole"
+        export PULSE_RUNTIME=swoole
+        ;;
+    *)
+        echo "DEMO_RUNTIME is \"$runtime\", but the demo runs on \"php\" (FrankenPHP, the default) or \"swoole\" (OpenSwoole). Set DEMO_RUNTIME to one of them." >&2
+        exit 1
+        ;;
+esac
+
 export COMPOSER=composer.pinned.json
 export SYMFONY_LOCKFILE=symfony.lock
 
@@ -67,6 +80,7 @@ install_importmap() {
 if [ "$DEMO_APP" = pulse ]; then
     install_importmap
     export DEMO_PUBLIC_DIR="$PWD/public"
+    export PULSE_PUBLIC_DIR="$PWD/public"
     exec /repo/apps/Pulse/docker/entrypoint.sh run
 fi
 
@@ -115,6 +129,15 @@ case "$role" in
             echo "Demo: $DEMO_APP seeded its demo data."
         fi
         export DEMO_PUBLIC_DIR="$PWD/public"
+        if [ "$runtime" = swoole ] && [ "$DEMO_APP" = ticketing ]; then
+            echo "Demo: ticketing is served by OpenSwoole on ${DEMO_SWOOLE_WORKERS:-4} workers."
+            exec php bin/openswoole-server.php
+        fi
+        if [ "$runtime" = swoole ]; then
+            echo "Demo: storefront is served by Laravel Octane on OpenSwoole on ${DEMO_SWOOLE_WORKERS:-4} workers."
+            rm -f storage/logs/octane-server-state.json
+            exec php artisan octane:start --server=swoole --host=0.0.0.0 --port="${DEMO_HTTP_PORT:-8080}" --workers="${DEMO_SWOOLE_WORKERS:-4}" --max-requests=0
+        fi
         exec frankenphp run --config /etc/caddy/Caddyfile
         ;;
     worker)

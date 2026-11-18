@@ -5,6 +5,12 @@ FROM dunglas/frankenphp:1-php8.5-bookworm
 
 RUN install-php-extensions amqp pdo_pgsql pdo_sqlite sockets intl zip pcntl opcache rdkafka redis opentelemetry
 
+# OpenSwoole is built in but loaded only when DEMO_RUNTIME=swoole (demo/docker/entrypoint.sh adds its ini directory).
+ARG OPENSWOOLE_VERSION=26.2.0
+RUN install-php-extensions openswoole-${OPENSWOOLE_VERSION} \
+    && mkdir "$PHP_INI_DIR/swoole" \
+    && mv "$PHP_INI_DIR/conf.d/"*openswoole*.ini "$PHP_INI_DIR/swoole/"
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 ENV COMPOSER_HOME=/tmp/composer \

@@ -117,6 +117,74 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertSame(['added'], array_values(array_unique(array_column($execution[1]['steps'], 'change'))));
     }
 
+    public function test_a_consumer_run_that_runs_only_after_the_change_is_stated_as_a_new_sub_flow_and_shown_as_one(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true, consumed: false);
+        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+
+        $whatRan = $this->whatRan($this->presented('before-after'));
+
+        self::assertStringStartsWith("#### What ran, process by process\n\n1 new sub-flow of `send command order.place, class@anonymous::place`.\n\n", $whatRan);
+        self::assertStringContainsString('Process `receive notifications, class@anonymous::whenPlaced`, a sub-flow of `send command order.place, class@anonymous::place`: runs only now.', $whatRan);
+    }
+
+    public function test_a_consumer_run_that_ran_only_before_the_change_is_stated_as_a_gone_sub_flow(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true, consumed: false);
+
+        self::assertStringStartsWith("#### What ran, process by process\n\n1 sub-flow of `send command order.place, class@anonymous::place` gone.\n\n", $this->whatRan($this->presented('before-after')));
+    }
+
+    public function test_a_sub_flow_attached_to_a_different_sender_is_a_change_and_each_sub_flow_is_shown_under_its_sender(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $step = ['depth' => 1, 'label' => 'handler Orders::handle', 'hints' => []];
+        $this->replaceExecution('before', [
+            ['process' => 'send command order.place', 'steps' => [$step]],
+            ['process' => 'send command order.cancel', 'steps' => [$step]],
+            ['process' => 'receive notifications', 'sentBy' => ['process' => 1, 'step' => 0], 'steps' => [$step]],
+        ]);
+        $this->replaceExecution('after', [
+            ['process' => 'send command order.place', 'steps' => [$step]],
+            ['process' => 'send command order.cancel', 'steps' => [$step]],
+            ['process' => 'receive notifications', 'sentBy' => ['process' => 2, 'step' => 0], 'steps' => [$step]],
+        ]);
+
+        $whatRan = $this->whatRan($this->presented('before-after'));
+
+        self::assertSame(['unchanged', 'unchanged', 'changed'], array_column($this->comparison()['groups'][0]['execution'], 'change'));
+        self::assertSame('Now: `receive notifications` is now a sub-flow of `send command order.cancel`, before of `send command order.place`.', $this->comparison()['groups'][0]['summary']['now']);
+        self::assertStringStartsWith("#### What ran, process by process\n\n`receive notifications` is now a sub-flow of `send command order.cancel`, before of `send command order.place`.\n\n", $whatRan);
+        self::assertSame(
+            ['Process `send command order.place`', 'Process `send command order.cancel`', 'Process `receive notifications`, a sub-flow of `send command order.cancel`'],
+            array_map(fn (string $section): string => explode(':', $section, 2)[0], array_values(preg_grep('/^Process `/', explode("\n", $whatRan)))),
+        );
+    }
+
+    public function test_sub_flows_are_shown_right_after_the_flow_that_sent_their_message_in_the_order_it_sent_them(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $step = ['depth' => 1, 'label' => 'handler Orders::handle', 'hints' => []];
+        $this->replaceExecution('before', []);
+        $this->replaceExecution('after', [
+            ['process' => 'send command order.place', 'steps' => [$step, $step]],
+            ['process' => 'send command order.cancel', 'steps' => [$step]],
+            ['process' => 'receive audit', 'sentBy' => ['process' => 1, 'step' => 1], 'steps' => [$step]],
+            ['process' => 'receive notifications', 'sentBy' => ['process' => 1, 'step' => 0], 'steps' => [$step]],
+        ]);
+
+        $whatRan = $this->whatRan($this->presented('before-after'));
+
+        self::assertSame(
+            ['Process `send command order.place`', 'Process `receive notifications`, a sub-flow of `send command order.place`', 'Process `receive audit`, a sub-flow of `send command order.place`', 'Process `send command order.cancel`'],
+            array_map(fn (string $section): string => explode(':', $section, 2)[0], array_values(preg_grep('/^Process `/', explode("\n", $whatRan)))),
+        );
+        self::assertStringStartsWith("#### What ran, process by process\n\n2 new sub-flows of `send command order.place`.\n\n", $whatRan);
+    }
+
     public function test_the_presentation_shows_what_ran_per_process_as_a_diff(): void
     {
         $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
@@ -125,7 +193,7 @@ final class BuildFlowExecutionTest extends TestCase
         $presented = $this->presented('before-after');
 
         self::assertStringContainsString("#### What ran, process by process\n", $presented);
-        self::assertStringContainsString("Process `receive notifications, class@anonymous::whenPlaced`: unchanged.\n", $presented);
+        self::assertStringContainsString("Process `receive notifications, class@anonymous::whenPlaced`, a sub-flow of `send command order.place, class@anonymous::place`: unchanged.\n", $presented);
         self::assertMatchesRegularExpression('/\n\+ +handler class@anonymous::audit\n/', $presented);
         self::assertMatchesRegularExpression('/```diff\n(  .*\n|  … \d+ unchanged steps\n|\+ .*\n|- .*\n)+```/', $presented);
     }

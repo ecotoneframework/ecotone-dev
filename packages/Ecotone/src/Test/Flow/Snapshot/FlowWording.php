@@ -118,6 +118,36 @@ final class FlowWording
     }
 
     /**
+     * @param list<array{process: string, change: string, sentBy?: string, sentAt?: int, sentByBefore?: ?string}> $execution
+     */
+    public static function ofSubFlowChanges(array $execution): string
+    {
+        $counted = [];
+        $moved = [];
+        foreach ($execution as $process) {
+            if (array_key_exists('sentByBefore', $process)) {
+                $moved[] = '`' . $process['process'] . '` is ' . match (true) {
+                    ! isset($process['sentBy']) => 'no longer a sub-flow, before of `' . $process['sentByBefore'] . '`',
+                    $process['sentByBefore'] === null => 'now a sub-flow of `' . $process['sentBy'] . '`',
+                    default => 'now a sub-flow of `' . $process['sentBy'] . '`, before of `' . $process['sentByBefore'] . '`',
+                };
+                continue;
+            }
+            if (isset($process['sentBy']) && in_array($process['change'], [FlowScenarioChange::ADDED, FlowScenarioChange::REMOVED], true)) {
+                $sender = (string) preg_replace('/ \((?:part )?\d+ of \d+\)$/', '', $process['sentBy']);
+                $counted[$process['change']][$sender] = ($counted[$process['change']][$sender] ?? 0) + 1;
+            }
+        }
+        $sentences = [
+            ...array_map(fn (string $sender, int $count): string => $count . ' new sub-flow' . ($count === 1 ? '' : 's') . ' of `' . $sender . '`', array_keys($counted[FlowScenarioChange::ADDED] ?? []), $counted[FlowScenarioChange::ADDED] ?? []),
+            ...array_map(fn (string $sender, int $count): string => $count . ' sub-flow' . ($count === 1 ? '' : 's') . ' of `' . $sender . '` gone', array_keys($counted[FlowScenarioChange::REMOVED] ?? []), $counted[FlowScenarioChange::REMOVED] ?? []),
+            ...$moved,
+        ];
+
+        return $sentences === [] ? '' : implode('; ', $sentences) . '.';
+    }
+
+    /**
      * @param list<array{change: string, step?: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool}> $steps
      */
     public static function ofChangedProcess(array $steps): string

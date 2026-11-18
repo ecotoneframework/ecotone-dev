@@ -428,7 +428,7 @@ final class FlowScenarioChange
             return false;
         }
         foreach ($this->execution as $process) {
-            if (! in_array($process['change'], [self::UNCHANGED, self::CHANGED], true)) {
+            if (! in_array($process['change'], [self::UNCHANGED, self::CHANGED], true) || array_key_exists('sentByBefore', $process)) {
                 return false;
             }
             foreach ($process['steps'] ?? [] as $entry) {
@@ -452,10 +452,10 @@ final class FlowScenarioChange
                 : ['before' => 'Before: this scenario was in the catalogue, with ' . count($this->before->trace) . ' traced steps.', 'now' => 'Now: it is gone.'];
         }
         if (! $this->hasTraceChanges() && ! $this->wiring->hasChanges() && $this->build === []) {
-            $changed = array_values(array_filter($this->execution, fn (array $process): bool => $process['change'] !== self::UNCHANGED));
+            $changed = array_values(array_filter($this->execution, fn (array $process): bool => $process['change'] !== self::UNCHANGED && ($process['steps'] ?? null) !== []));
             $now = $this->runsTheSameSteps()
                 ? implode('; ', array_map(fn (array $process): string => 'process `' . $process['process'] . '` ' . rtrim(FlowWording::ofChangedProcess($process['steps']), '.'), $changed)) . '.'
-                : count($changed) . ' process' . (count($changed) === 1 ? ' runs' : 'es run') . ' other steps.';
+                : implode(' ', array_filter([FlowWording::ofSubFlowChanges($this->execution), $changed === [] ? '' : count($changed) . ' process' . (count($changed) === 1 ? ' runs' : 'es run') . ' other steps.']));
 
             return ['before' => 'Before and now: the wiring, the build and the traced steps are the same.', 'now' => 'Now: ' . $now];
         }
@@ -699,31 +699,53 @@ final class FlowScenarioChange
     }
 
     /**
-     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $before
-     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $after
-     * @return list<array{process: string, change: string, steps?: list<array{change: string, step?: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool}>}>
+     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $before
+     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $after
+     * @return list<array{process: string, change: string, sentBy?: string, sentAt?: int, sentByBefore?: ?string, steps?: list<array{change: string, step?: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool}>}>
      */
     private static function executionChangesBetween(array $before, array $after): array
     {
+        $beforeSenders = self::sendersOf($before);
+        $afterSenders = self::sendersOf($after);
+        $beforeSteps = array_map(fn (array $process): ?int => $process['sentBy']['step'] ?? null, $before);
+        $afterSteps = array_map(fn (array $process): ?int => $process['sentBy']['step'] ?? null, $after);
         $before = self::withProcessesNamedByTitle($before);
         $after = self::withProcessesNamedByTitle($after);
         $processes = [];
         $beforePosition = $afterPosition = 0;
         foreach (self::changesBetween(array_column($before, 'process'), array_column($after, 'process')) as $entry) {
-            $process = match ($entry['change']) {
-                self::UNCHANGED => [$before[$beforePosition++], $after[$afterPosition++]],
-                self::REMOVED => [$before[$beforePosition++], null],
-                default => [null, $after[$afterPosition++]],
+            [$process, $senders, $sentAt] = match ($entry['change']) {
+                self::UNCHANGED => [[$before[$beforePosition], $after[$afterPosition]], [$beforeSenders[$beforePosition++], $afterSenders[$afterPosition]], $afterSteps[$afterPosition++]],
+                self::REMOVED => [[$before[$beforePosition], null], [$beforeSenders[$beforePosition], null], $beforeSteps[$beforePosition++]],
+                default => [[null, $after[$afterPosition]], [null, $afterSenders[$afterPosition]], $afterSteps[$afterPosition++]],
             };
-            $processes[] = match (true) {
-                $process[0] === null => ['process' => $entry['step'], 'change' => self::ADDED, 'steps' => array_map(fn (array $step): array => ['change' => self::ADDED, 'step' => str_repeat('  ', $step['depth']) . $step['label'], 'hints' => self::criticalOf($step['hints'])], $process[1]['steps'])],
-                $process[1] === null => ['process' => $entry['step'], 'change' => self::REMOVED, 'steps' => array_map(fn (array $step): array => ['change' => self::REMOVED, 'step' => str_repeat('  ', $step['depth']) . $step['label'], 'hints' => self::criticalOf($step['hints'])], $process[0]['steps'])],
-                $process[0]['steps'] === $process[1]['steps'] => ['process' => $entry['step'], 'change' => self::UNCHANGED],
-                default => ['process' => $entry['step'], 'change' => self::CHANGED, 'steps' => self::withUnchangedNeighboursOnly(FlowExecutionChange::between($process[0]['steps'], $process[1]['steps']))],
-            };
+            $sentBy = $process[1] === null ? $senders[0] : $senders[1];
+            $attachedElsewhere = $process[0] !== null && $process[1] !== null && $senders[0] !== $senders[1];
+            $processes[] = [
+                ...match (true) {
+                    $process[0] === null => ['process' => $entry['step'], 'change' => self::ADDED, 'steps' => array_map(fn (array $step): array => ['change' => self::ADDED, 'step' => str_repeat('  ', $step['depth']) . $step['label'], 'hints' => self::criticalOf($step['hints'])], $process[1]['steps'])],
+                    $process[1] === null => ['process' => $entry['step'], 'change' => self::REMOVED, 'steps' => array_map(fn (array $step): array => ['change' => self::REMOVED, 'step' => str_repeat('  ', $step['depth']) . $step['label'], 'hints' => self::criticalOf($step['hints'])], $process[0]['steps'])],
+                    $process[0]['steps'] === $process[1]['steps'] => ['process' => $entry['step'], 'change' => $attachedElsewhere ? self::CHANGED : self::UNCHANGED, ...($attachedElsewhere ? ['steps' => []] : [])],
+                    default => ['process' => $entry['step'], 'change' => self::CHANGED, 'steps' => self::withUnchangedNeighboursOnly(FlowExecutionChange::between($process[0]['steps'], $process[1]['steps']))],
+                },
+                ...($sentBy === null ? [] : ['sentBy' => $sentBy, 'sentAt' => (int) $sentAt]),
+                ...($attachedElsewhere ? ['sentByBefore' => $senders[0]] : []),
+            ];
         }
 
         return $processes;
+    }
+
+    /**
+     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array<string, mixed>>}> $processes
+     * @return list<?string>
+     */
+    private static function sendersOf(array $processes): array
+    {
+        return array_map(
+            fn (int $position): ?string => FlowExecution::isSubFlow($processes, $position) ? $processes[$processes[$position]['sentBy']['process'] - 1]['process'] : null,
+            array_keys($processes),
+        );
     }
 
     /**

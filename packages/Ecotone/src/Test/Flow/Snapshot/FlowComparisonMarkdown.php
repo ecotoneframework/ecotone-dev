@@ -75,11 +75,12 @@ final class FlowComparisonMarkdown
         }
         $sections = [];
         $printedAlone = [];
-        foreach ($change->execution as $process) {
-            $state = match ($process['change']) {
-                FlowScenarioChange::UNCHANGED => 'unchanged.',
-                FlowScenarioChange::ADDED => 'runs only now.',
-                FlowScenarioChange::REMOVED => 'ran only before.',
+        foreach (self::inFlowOrder($change->execution) as $process) {
+            $state = match (true) {
+                $process['change'] === FlowScenarioChange::UNCHANGED => 'unchanged.',
+                $process['change'] === FlowScenarioChange::ADDED => 'runs only now.',
+                $process['change'] === FlowScenarioChange::REMOVED => 'ran only before.',
+                $process['steps'] === [] => 'runs the same steps.',
                 default => FlowWording::ofChangedProcess($process['steps']),
             };
             $entries = $process['steps'] ?? [];
@@ -98,10 +99,50 @@ final class FlowComparisonMarkdown
             } elseif ($lines !== []) {
                 $printedAlone[$process['change']][] = ['process' => $process['process'], 'lines' => $lines];
             }
-            $sections[] = 'Process `' . $process['process'] . '`: ' . $state . ($lines === [] ? '' : "\n\n```diff\n" . implode("\n", $lines) . "\n```");
+            $sections[] = 'Process `' . $process['process'] . '`' . (isset($process['sentBy']) ? ', a sub-flow of `' . $process['sentBy'] . '`' : '') . ': ' . $state . ($lines === [] ? '' : "\n\n```diff\n" . implode("\n", $lines) . "\n```");
+        }
+        $subFlows = FlowWording::ofSubFlowChanges($change->execution);
+
+        return "\n#### What ran, process by process\n\n" . ($subFlows === '' ? '' : $subFlows . "\n\n") . implode("\n\n", $sections) . "\n";
+    }
+
+    /**
+     * @param list<array{process: string, change: string, sentBy?: string, sentAt?: int, sentByBefore?: ?string, steps?: list<array<string, mixed>>}> $execution
+     * @return list<array{process: string, change: string, sentBy?: string, sentAt?: int, sentByBefore?: ?string, steps?: list<array<string, mixed>>}>
+     */
+    private static function inFlowOrder(array $execution): array
+    {
+        $titles = array_column($execution, 'process');
+        $subFlows = [];
+        $flows = [];
+        foreach ($execution as $position => $process) {
+            $sender = isset($process['sentBy']) ? array_search($process['sentBy'], $titles, true) : false;
+            if ($sender === false || $sender === $position) {
+                $flows[] = $position;
+                continue;
+            }
+            $subFlows[$sender][] = $position;
+        }
+        $ordered = [];
+        $visit = function (int $position) use (&$visit, &$ordered, $execution, $subFlows): void {
+            if (isset($ordered[$position])) {
+                return;
+            }
+            $ordered[$position] = $execution[$position];
+            $children = $subFlows[$position] ?? [];
+            usort($children, fn (int $first, int $second): int => [$execution[$first]['sentAt'] ?? 0, $first] <=> [$execution[$second]['sentAt'] ?? 0, $second]);
+            foreach ($children as $child) {
+                $visit($child);
+            }
+        };
+        foreach ($flows as $flow) {
+            $visit($flow);
+        }
+        foreach (array_keys($execution) as $position) {
+            $visit($position);
         }
 
-        return "\n#### What ran, process by process\n\n" . implode("\n\n", $sections) . "\n";
+        return array_values($ordered);
     }
 
     /**

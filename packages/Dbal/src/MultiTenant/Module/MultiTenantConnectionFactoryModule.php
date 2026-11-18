@@ -10,7 +10,6 @@ use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\PropagateHeaders;
-use Ecotone\Api\Dbal\Attribute\MultiTenantConnection;
 use Ecotone\Api\Dbal\Attribute\MultiTenantObjectManager;
 use Ecotone\Api\Dbal\Attribute\OnTenantActivation;
 use Ecotone\Api\Dbal\Attribute\OnTenantDeactivation;
@@ -110,7 +109,7 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
             $interfaceToCall = $interfaceToCallRegistry->getFor($annotatedMethod->getClassName(), $annotatedMethod->getMethodName());
 
             foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
-                foreach ([MultiTenantConnection::class, MultiTenantObjectManager::class] as $attributeClassName) {
+                foreach ([MultiTenantObjectManager::class] as $attributeClassName) {
                     if ($interfaceParameter->hasAnnotation($attributeClassName)) {
                         $placements[] = $attributeClassName . ' on ' . $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName() . '($' . $interfaceParameter->getName() . ')';
                     }

@@ -11,7 +11,7 @@ tenants are wired to two separate database engines:
 
 The same `Customer` aggregate, the same command, the same handler — only
 `metadata: ['tenant' => '...']` decides where the row lands. The example then proves, from
-inside a query handler, that each tenant's `#[MultiTenantConnection]` really points at its
+inside a query handler, that each tenant's `#[CurrentConnection]` really points at its
 own engine, and that neither tenant can see the other's data.
 
 ## 2. How it fits together
@@ -24,7 +24,7 @@ flowchart LR
     Customer -->|save → tenant_a| PG[(PostgreSQL\ncustomers)]
     Customer -->|save → tenant_b| MY[(MySQL\ncustomers)]
     Client -->|sendWithRouting| QueryBus
-    QueryBus -->|listForActiveTenant / platformForActiveTenant| CustomerFinder["CustomerFinder\n#[MultiTenantConnection]"]
+    QueryBus -->|listForActiveTenant / platformForActiveTenant| CustomerFinder["CustomerFinder\n#[CurrentConnection]"]
     CustomerFinder -->|active tenant connection| PG
     CustomerFinder -->|active tenant connection| MY
 ```
@@ -109,14 +109,14 @@ active tenant's database rather than to Tempest's discovered default. The same p
 connection backs Ecotone's DBAL, so a single PDO serves both the ORM write and the
 surrounding transaction.
 
-## 6. Proving the routing with `#[MultiTenantConnection]`
+## 6. Proving the routing with `#[CurrentConnection]`
 
 `CustomerFinder` does not hardcode a connection. Each query handler receives the **active
 tenant's** Doctrine connection through the attribute:
 
 ```php
 #[QueryHandler('customer.platformForActiveTenant')]
-public function platformForActiveTenant(#[MultiTenantConnection] Connection $connection): string
+public function platformForActiveTenant(#[CurrentConnection] Connection $connection): string
 {
     return $connection->getDatabasePlatform()::class;
 }
@@ -149,7 +149,7 @@ tenant_b -> [Carol]
    `MysqlConfig`, auto-discovered as tagged `DatabaseConfig` singletons.
 2. `EcotoneConfiguration` maps each tenant header value to a
    `TempestConnectionReference::create(<tag>)`.
-3. `#[MultiTenantConnection]` (from `ecotone/dbal`) injects the active tenant's connection into
+3. `#[CurrentConnection]` (from `ecotone/dbal`) injects the active tenant's connection into
    query handlers — it needs `symfony/expression-language`, which is why that package is in
    `composer.json`.
 

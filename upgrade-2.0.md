@@ -95,7 +95,7 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
 
 ## 2. Multi-tenancy requires Ecotone Enterprise
 
-**Before:** `MultiTenantConfiguration`, `#[MultiTenantConnection]`, `#[MultiTenantObjectManager]`,
+**Before:** `MultiTenantConfiguration`, `#[MultiTenantConnection]` (now `#[CurrentConnection]`, §2b), `#[MultiTenantObjectManager]`,
 `#[OnTenantActivation]`, `#[OnTenantDeactivation]` and the Laravel/Symfony/Tempest tenant connection switching worked
 without a licence. Only `#[WithTenantResolver]` and multi-tenant projections were gated.
 
@@ -123,6 +123,22 @@ was initialized by `ecotone:projection:init --header tenant:b` in the wrong tena
 command, query, event or asynchronous message already did. Without the header nothing is activated.
 
 **How to adapt:** nothing, unless an activation hook must not run for console commands.
+
+### 2b. `#[MultiTenantConnection]` is replaced by `#[CurrentConnection]`
+
+**Before:** a handler took the active tenant's connection with
+`#[MultiTenantConnection] Connection $connection` (`Ecotone\Dbal\Attribute\MultiTenantConnection`). A
+single-tenant application had no attribute for the connection Ecotone uses.
+
+**Now:** `#[CurrentConnection] Connection $connection` (`Ecotone\Api\Dbal\Attribute\CurrentConnection`) injects the
+connection the handled message runs on, for single-tenant and multi-tenant applications alike: with a
+`MultiTenantConfiguration` it is the active tenant's connection. `#[MultiTenantConnection]` no longer exists.
+`#[CurrentConnection]` alone does not require an Enterprise licence; `MultiTenantConfiguration` still does.
+
+**How to adapt:** replace `#[MultiTenantConnection]` with `#[CurrentConnection]`. The default is the connection
+registered as `Ecotone\Api\Dbal\DbalConnectionFactory`, which is also the default reference name of
+`MultiTenantConfiguration`. If the `MultiTenantConfiguration` was created with another reference name, pass it:
+`#[CurrentConnection('tenant_connection')]`.
 
 ## 3. Projections: v1 (Prooph-based) removed, `ProjectionV2` renamed to `Projection`
 

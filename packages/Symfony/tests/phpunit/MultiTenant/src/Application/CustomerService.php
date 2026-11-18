@@ -11,7 +11,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
-use Ecotone\Api\Dbal\Attribute\MultiTenantConnection;
+use Ecotone\Api\Dbal\Attribute\CurrentConnection;
 use Ecotone\Api\Dbal\Attribute\MultiTenantObjectManager;
 use Symfony\App\MultiTenant\Application\Event\CustomerWasRegistered;
 
@@ -22,7 +22,7 @@ final class CustomerService
 {
     #[QueryHandler('customer.getAllRegistered')]
     public function getAllRegisteredPersonIds(
-        #[MultiTenantConnection] Connection $connection
+        #[CurrentConnection] Connection $connection
     ): array {
         return $connection->executeQuery(<<<SQL
                         SELECT customer_id FROM persons;

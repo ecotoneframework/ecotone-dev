@@ -40,6 +40,9 @@ class MessageHeadersPropagatorInterceptor
         }
 
         $propagated = $this->propagatedHeaders();
+        if ($propagated->headersOfHandledMessages === []) {
+            $propagated->lastCoroutineStartedBeforeTheHandledMessage = ExecutionScope::lastStartedCoroutineId();
+        }
         $propagated->headersOfHandledMessages[] = $userlandHeaders;
         $propagated->causationChain[] = MessageCausation::from($methodInvocation, $message);
         try {

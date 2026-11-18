@@ -3008,13 +3008,18 @@ an existing `Doctrine\DBAL\Connection`) is still one connection for the process.
 transaction on it while another execution holds one, Ecotone refuses with a `ConfigurationException` naming the ways
 out, where it used to let the two share the transaction.
 
-A fiber or coroutine started inside a handler is an execution of its own: it does not see the handler's propagated
-headers and, on a pooled connection, works outside the handler's transaction.
+A fiber or coroutine started inside a handler is an execution of its own. On a pooled connection it takes its own
+connection, so it does not see what the handler has not committed, and what it stores stays when the handler rolls
+back. A Swoole or OpenSwoole coroutine starts with a copy of the headers of the message being handled, so messages it
+sends carry the tenant, the correlation id and the other propagated headers; it gets that copy while the coroutine
+that started it is still running and still handling that message. A fiber does not: PHP does not tell which fiber
+started another, so a fiber starts without propagated headers and, with multi-tenancy, without a tenant.
 
 **How to adapt:** nothing when the process handles one message at a time. To handle several at once, register the
 connection from a DSN, keep workers times `connection_pool_size` below what the database accepts, and take the
 connection in your own code with `#[CurrentConnection] Connection $connection` on the handler, not from a property.
-Do the work that must share the handler's transaction in the handler itself, not in a fiber or coroutine it starts.
+Do the work that must share the handler's transaction in the handler itself, not in a fiber or coroutine it starts,
+and pass a fiber the headers it needs explicitly (`metadata:` on the bus call).
 
 ### `ecotone/dbal`, `ecotone/laravel` and `ecotone/tempest` require `doctrine/dbal` 4.2.3 or later
 

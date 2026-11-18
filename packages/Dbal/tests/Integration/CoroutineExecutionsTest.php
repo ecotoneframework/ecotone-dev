@@ -120,6 +120,24 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         $this->assertSame(['first'], $ecotone->getGateway(MemberRegister::class)->names());
     }
 
+    public function test_coroutine_started_by_a_handler_propagates_its_headers_and_stores_outside_of_its_transaction(): void
+    {
+        $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 10);
+
+        $this->runCoroutines(
+            function () use ($ecotone): void {
+                try {
+                    $ecotone->sendCommandWithRouting('member.registerWithCoroutine', ['memberId' => 1, 'name' => 'registered by handler'], metadata: ['tenant' => 'tenant-of-handler']);
+                } catch (RuntimeException) {
+                }
+            },
+        );
+
+        $this->assertSame(['registered by coroutine'], $ecotone->getGateway(MemberRegister::class)->names());
+        $this->assertSame([], $ecotone->sendQueryWithRouting('member.namesReadByCoroutine'));
+        $this->assertSame(['registered by coroutine' => 'tenant-of-handler'], $ecotone->sendQueryWithRouting('member.tenantSeenByEventHandler'));
+    }
+
     private function runCoroutines(callable ...$coroutines): void
     {
         $failure = null;
@@ -151,6 +169,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         $this->getConnection()->executeStatement('CREATE TABLE members (member_id INTEGER PRIMARY KEY, name VARCHAR(255))');
         $registration = new class () {
             private array $tenantSeenByEventHandler = [];
+            private array $namesReadByCoroutine = ['not read'];
 
             #[CommandHandler('member.register')]
             public function register(array $command, MemberRegister $memberRegister, EventBus $eventBus): void
@@ -164,6 +183,28 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
                 }
 
                 $eventBus->publish(new MemberWasRegistered($command['name']));
+            }
+
+            #[CommandHandler('member.registerWithCoroutine')]
+            public function registerWithCoroutine(array $command, MemberRegister $memberRegister, EventBus $eventBus): void
+            {
+                $memberRegister->register($command['memberId'], $command['name']);
+                $finished = new Coroutine\Channel(1);
+                Coroutine::create(function () use ($command, $memberRegister, $eventBus, $finished): void {
+                    $this->namesReadByCoroutine = $memberRegister->names();
+                    $memberRegister->register($command['memberId'] + 1, 'registered by coroutine');
+                    $eventBus->publish(new MemberWasRegistered('registered by coroutine'));
+                    $finished->push(true);
+                });
+                $finished->pop();
+
+                throw new RuntimeException('Registration was refused');
+            }
+
+            #[QueryHandler('member.namesReadByCoroutine')]
+            public function namesReadByCoroutine(): array
+            {
+                return $this->namesReadByCoroutine;
             }
 
             #[WithoutDatabaseTransaction]

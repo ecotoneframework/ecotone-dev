@@ -190,6 +190,13 @@ empties itself). The test is the same question asked of the property: if two mes
 hold anything of either message? A pool of idle connections does not; a stack of the handled message's headers
 does. Such state ships with the same interleaving test.
 
+A coroutine a handler starts is a new execution with a copy of the context it needs and none of the resources: a
+state class that implements `Ecotone\Messaging\Execution\CopiedToChildExecution` is copied into it
+(`PropagatedHeaders` copies the headers of the message being handled, which carry the tenant and the correlation id),
+every other state starts empty, so the child takes its own connection and is in no transaction. Implement the
+interface only for read-only context; a transaction flag, a collector or a connection must not be copied. Fibers
+have no parent to copy from.
+
 What is not covered: an object the application hands Ecotone (a handler, a Doctrine `EntityManager`, a
 framework-owned connection) is one instance per process, and Ecotone cannot scope it. Where sharing it would lose
 data, refuse it with a message naming the ways out, as `DbalTransactionInterceptor` does for a transaction another

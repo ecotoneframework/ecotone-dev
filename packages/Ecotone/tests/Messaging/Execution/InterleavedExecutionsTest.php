@@ -63,6 +63,36 @@ final class InterleavedExecutionsTest extends TestCase
         );
     }
 
+    public function test_fiber_started_by_a_handler_does_not_propagate_the_headers_of_the_message_being_handled(): void
+    {
+        $orders = new class () {
+            private array $tenantSeenByEventHandler = [];
+
+            #[CommandHandler('order.placeFromFiber')]
+            public function placeFromFiber(array $command, EventBus $eventBus): void
+            {
+                (new Fiber(static fn () => $eventBus->publish(new OrderWasPlaced($command['orderId']))))->start();
+            }
+
+            #[EventHandler]
+            public function when(OrderWasPlaced $event, #[Header('tenant')] ?string $tenant = null): void
+            {
+                $this->tenantSeenByEventHandler[$event->orderId] = $tenant;
+            }
+
+            #[QueryHandler('order.tenantSeenByEventHandler')]
+            public function tenantSeenByEventHandler(): array
+            {
+                return $this->tenantSeenByEventHandler;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders]);
+
+        $ecotone->sendCommandWithRouting('order.placeFromFiber', ['orderId' => 'placed by fiber'], metadata: ['tenant' => 'tenant-of-handler']);
+
+        $this->assertSame(['placed by fiber' => null], $ecotone->sendQueryWithRouting('order.tenantSeenByEventHandler'));
+    }
+
     public function test_two_suspended_executions_each_propagate_their_own_headers(): void
     {
         $orders = new class () {

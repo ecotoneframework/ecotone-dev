@@ -62,11 +62,18 @@ final class ExecutionScope
         return null;
     }
 
+    public static function lastStartedCoroutineId(): int
+    {
+        $coroutineClass = self::coroutineClass();
+
+        return $coroutineClass === null ? 0 : (int) ($coroutineClass::stats()['coroutine_last_cid'] ?? 0);
+    }
+
     private static function statesOfCurrentExecution(): WeakMap
     {
-        $coroutineContext = self::coroutineContext();
-        if ($coroutineContext !== null) {
-            return $coroutineContext[self::class] ??= new WeakMap();
+        $coroutineClass = self::coroutineClass();
+        if ($coroutineClass !== null && $coroutineClass::getCid() > 0) {
+            return self::statesOfCoroutine($coroutineClass, $coroutineClass::getCid());
         }
 
         $fiber = Fiber::getCurrent();
@@ -79,13 +86,61 @@ final class ExecutionScope
         return self::$statesOfProcess ??= new WeakMap();
     }
 
+    /**
+     * @param class-string $coroutineClass
+     */
+    private static function statesOfCoroutine(string $coroutineClass, int $coroutineId): WeakMap
+    {
+        $context = $coroutineClass::getContext($coroutineId);
+        if (isset($context[self::class])) {
+            return $context[self::class];
+        }
+
+        $states = new WeakMap();
+        $context[self::class] = $states;
+        foreach (self::statesOfExecutionThatStarted($coroutineClass, $coroutineId) as $owner => $state) {
+            $copy = $state instanceof CopiedToChildExecution ? $state->copyForChildExecution($coroutineId) : null;
+            if ($copy !== null) {
+                $states[$owner] = $copy;
+            }
+        }
+
+        return $states;
+    }
+
+    /**
+     * @param class-string $coroutineClass
+     */
+    private static function statesOfExecutionThatStarted(string $coroutineClass, int $coroutineId): WeakMap
+    {
+        $parentCoroutineId = (int) $coroutineClass::getPcid($coroutineId);
+        if ($parentCoroutineId > 0 && $coroutineClass::getContext($parentCoroutineId) !== null) {
+            return self::statesOfCoroutine($coroutineClass, $parentCoroutineId);
+        }
+        if ($parentCoroutineId > 0) {
+            return new WeakMap();
+        }
+
+        return self::$statesOfProcess ??= new WeakMap();
+    }
+
     private static function coroutineContext(): ?object
     {
-        if (class_exists(\OpenSwoole\Coroutine::class, false) && \OpenSwoole\Coroutine::getCid() > 0) {
-            return \OpenSwoole\Coroutine::getContext();
+        $coroutineClass = self::coroutineClass();
+
+        return $coroutineClass !== null && $coroutineClass::getCid() > 0 ? $coroutineClass::getContext() : null;
+    }
+
+    /**
+     * @return class-string|null
+     */
+    private static function coroutineClass(): ?string
+    {
+        if (class_exists(\OpenSwoole\Coroutine::class, false)) {
+            return \OpenSwoole\Coroutine::class;
         }
-        if (class_exists(\Swoole\Coroutine::class, false) && \Swoole\Coroutine::getCid() > 0) {
-            return \Swoole\Coroutine::getContext();
+        if (class_exists(\Swoole\Coroutine::class, false)) {
+            return \Swoole\Coroutine::class;
         }
 
         return null;

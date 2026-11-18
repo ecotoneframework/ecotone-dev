@@ -83,6 +83,7 @@ final class ExecutionRecordingTracer implements Tracer
 
     public function startGatewayEntry(string $name, ?string $handledMessageId): ?ExecutionStep
     {
+        $this->dropStepsOfEndedSpans();
         if ($this->tracer->currentSpan() !== null || $this->openSteps !== []) {
             return $this->startStep($name);
         }
@@ -103,6 +104,7 @@ final class ExecutionRecordingTracer implements Tracer
      */
     public function startEntry(string $name, array $attributes = []): ?ExecutionStep
     {
+        $this->dropStepsOfEndedSpans();
         if ($this->tracer->currentSpan() !== null || $this->openSteps !== []) {
             return $this->startStep($name, $attributes);
         }
@@ -261,6 +263,10 @@ final class ExecutionRecordingTracer implements Tracer
         unset($this->stepsWithChildren[$step->context->spanId]);
         $hints = [...($this->hintsOfOpenSteps[$step->context->spanId] ?? []), ...$hints];
         unset($this->hintsOfOpenSteps[$step->context->spanId]);
+        if ($this->openSteps === []) {
+            $this->stepsWithChildren = [];
+            $this->hintsOfOpenSteps = [];
+        }
         $span = new Span(
             $step->context->traceId,
             $step->context->spanId,
@@ -396,6 +402,18 @@ final class ExecutionRecordingTracer implements Tracer
         $this->spanStartedInOpenEntry = false;
         $this->invocationInOpenEntry = false;
         $this->housekeepingInOpenEntry = false;
+    }
+
+    private function dropStepsOfEndedSpans(): void
+    {
+        if ($this->tracer->currentSpan() !== null || $this->openSteps === [] || $this->openSteps[0]->owner === null) {
+            return;
+        }
+        $this->openSteps = [];
+        $this->stepsWithChildren = [];
+        $this->hintsOfOpenSteps = [];
+        $this->receiveEntry = null;
+        $this->receiveContinuation = null;
     }
 
     private function openStepOf(?ActiveSpan $current): ?ExecutionStep

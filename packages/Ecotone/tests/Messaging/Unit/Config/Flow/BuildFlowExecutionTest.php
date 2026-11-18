@@ -59,6 +59,17 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertContains('handler class@anonymous::whenPlaced', array_column($execution[1]['steps'], 'label'));
     }
 
+    public function test_the_stored_snapshot_holds_the_process_and_step_that_sent_the_message_of_a_consumer_run(): void
+    {
+        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+
+        $execution = $this->storedSnapshot('after', 'placing-an-order')['execution'];
+
+        self::assertArrayNotHasKey('sentBy', $execution[0]);
+        self::assertSame(1, $execution[1]['sentBy']['process']);
+        self::assertSame('release collected message to notifications', $execution[0]['steps'][$execution[1]['sentBy']['step']]['label']);
+    }
+
     public function test_recording_the_execution_leaves_the_stored_trace_as_it_is_without_it(): void
     {
         $this->record('Placing an order', 'before', $this->ordering(), executionRecording: false);

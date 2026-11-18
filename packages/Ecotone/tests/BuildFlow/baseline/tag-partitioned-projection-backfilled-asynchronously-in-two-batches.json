@@ -236,7 +236,7 @@
             {"depth":8,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by ProjectingManager::prepareBackfill","critical":true}]},
             {"depth":4,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by ProjectingConsoleCommands::backfillProjection","critical":true}]}
         ]},
-        {"process": "receive backfill, PartitionBatchExecutorHandler::executeBatch (1 of 2)", "steps": [
+        {"process": "receive backfill, PartitionBatchExecutorHandler::executeBatch (1 of 2)", "sentBy": {"process":1,"step":22}, "steps": [
             {"depth":1,"label":"receive backfill","hints":[{"key":"sent by","value":"process 1, the message the entrypoint sent to backfill","critical":true}]},
             {"depth":2,"label":"take from channel backfill"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
@@ -312,7 +312,7 @@
             {"depth":13,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","critical":true}]}
         ]},
-        {"process": "receive backfill, PartitionBatchExecutorHandler::executeBatch (2 of 2)", "steps": [
+        {"process": "receive backfill, PartitionBatchExecutorHandler::executeBatch (2 of 2)", "sentBy": {"process":1,"step":35}, "steps": [
             {"depth":1,"label":"receive backfill","hints":[{"key":"sent by","value":"process 1, the message the entrypoint sent to backfill","critical":true}]},
             {"depth":2,"label":"take from channel backfill"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
@@ -388,7 +388,7 @@
             {"depth":13,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","critical":true}]}
         ]},
-        {"process": "receive backfill, GatheringMessageHandler::handle (part 1 of 2)", "steps": [
+        {"process": "receive backfill, GatheringMessageHandler::handle (part 1 of 2)", "sentBy": {"process":2,"step":64}, "steps": [
             {"depth":1,"label":"receive backfill","hints":[{"key":"sent by","value":"process 2, the part report for part 1 of 2","critical":true},{"key":"work in","value":"process 2, part 1 of 2","critical":true}]},
             {"depth":2,"label":"take from channel backfill"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
@@ -411,7 +411,7 @@
             {"depth":15,"label":"record part 1 of 2 in InMemoryGatheredGroupStore","hints":[{"key":"group","value":"{generated#1}","critical":false},{"key":"outcome","value":"part stored, 1 of 2 in, group waits","critical":true}]},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","critical":true}]}
         ]},
-        {"process": "receive backfill, GatheringMessageHandler::handle (part 2 of 2)", "steps": [
+        {"process": "receive backfill, GatheringMessageHandler::handle (part 2 of 2)", "sentBy": {"process":3,"step":64}, "steps": [
             {"depth":1,"label":"receive backfill","hints":[{"key":"sent by","value":"process 3, the part report for part 2 of 2","critical":true},{"key":"work in","value":"process 3, part 2 of 2","critical":true}]},
             {"depth":2,"label":"take from channel backfill"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},

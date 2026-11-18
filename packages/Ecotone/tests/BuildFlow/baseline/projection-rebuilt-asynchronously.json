@@ -212,7 +212,7 @@
             {"depth":8,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by ProjectingManager::prepareRebuild","critical":true}]},
             {"depth":4,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by ProjectingConsoleCommands::rebuildProjection","critical":true}]}
         ]},
-        {"process": "receive rebuild, PartitionBatchExecutorHandler::executeBatch", "steps": [
+        {"process": "receive rebuild, PartitionBatchExecutorHandler::executeBatch", "sentBy": {"process":1,"step":22}, "steps": [
             {"depth":1,"label":"receive rebuild","hints":[{"key":"sent by","value":"process 1, the message the entrypoint sent to rebuild","critical":true}]},
             {"depth":2,"label":"take from channel rebuild"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
@@ -274,7 +274,7 @@
             {"depth":13,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","critical":true}]}
         ]},
-        {"process": "receive rebuild, GatheringMessageHandler::handle (part 1 of 1)", "steps": [
+        {"process": "receive rebuild, GatheringMessageHandler::handle (part 1 of 1)", "sentBy": {"process":2,"step":50}, "steps": [
             {"depth":1,"label":"receive rebuild","hints":[{"key":"sent by","value":"process 2, the part report for part 1 of 1","critical":true},{"key":"work in","value":"process 2, part 1 of 1","critical":true}]},
             {"depth":2,"label":"take from channel rebuild"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},

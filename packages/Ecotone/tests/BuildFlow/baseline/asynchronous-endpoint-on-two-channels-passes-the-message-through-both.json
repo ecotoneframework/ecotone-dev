@@ -108,7 +108,7 @@
             {"depth":8,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":8,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]}
         ]},
-        {"process": "receive outbox", "steps": [
+        {"process": "receive outbox", "sentBy": {"process":1,"step":20}, "steps": [
             {"depth":1,"label":"receive outbox","hints":[{"key":"sent by","value":"process 1, the command order.place","critical":true}]},
             {"depth":2,"label":"take from channel outbox"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
@@ -140,7 +140,7 @@
             {"depth":14,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","critical":true}]}
         ]},
-        {"process": "receive orders, class@anonymous::place", "steps": [
+        {"process": "receive orders, class@anonymous::place", "sentBy": {"process":2,"step":20}, "steps": [
             {"depth":1,"label":"receive orders","hints":[{"key":"sent by","value":"process 2, the message","critical":true}]},
             {"depth":2,"label":"take from channel orders"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},

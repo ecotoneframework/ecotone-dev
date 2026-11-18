@@ -23,7 +23,7 @@ final class FlowSnapshot
      * @param list<array{depth: int, name: string, destination?: string, kind: string, status: string}> $trace
      * @param array<string, array<string, scalar>> $ledger
      * @param array<string, list<string>> $chains
-     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $execution
+     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $execution
      */
     private function __construct(
         public readonly string $scenario,
@@ -225,7 +225,7 @@ final class FlowSnapshot
             '    },',
             '    "trace": ' . self::oneLineEach(array_map(self::encoded(...), $this->trace), '    ') . ',',
             '    "execution": ' . self::oneLineEach(array_map(
-                fn (array $process): string => '{"process": ' . self::encoded($process['process']) . ', "steps": ' . self::oneLineEach(array_map(
+                fn (array $process): string => '{"process": ' . self::encoded($process['process']) . (isset($process['sentBy']) ? ', "sentBy": ' . self::encoded($process['sentBy']) : '') . ', "steps": ' . self::oneLineEach(array_map(
                     fn (array $step): string => self::encoded(['depth' => $step['depth'], 'label' => $step['label'], ...($step['hints'] === [] ? [] : ['hints' => $step['hints']])]),
                     $process['steps'],
                 ), '        ') . '}',
@@ -238,12 +238,13 @@ final class FlowSnapshot
 
     /**
      * @param list<array{process: string, steps: list<mixed>}> $execution
-     * @return list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}>
+     * @return list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}>
      */
     private static function executionOf(array $execution, string $file): array
     {
         return array_map(fn (array $process): array => [
             'process' => (string) $process['process'],
+            ...(is_array($process['sentBy'] ?? null) ? ['sentBy' => ['process' => (int) $process['sentBy']['process'], 'step' => (int) $process['sentBy']['step']]] : []),
             'steps' => array_map(function (mixed $step) use ($file): array {
                 if (! is_array($step) || ! is_int($step['depth'] ?? null) || ! is_string($step['label'] ?? null)) {
                     throw InvalidArgumentException::create("Flow snapshot file {$file} holds steps of `execution` without a depth and a label, so it was written by an earlier version of the build flow tooling. Regenerate every snapshot with `php bin/build-flow.php snapshot`.");

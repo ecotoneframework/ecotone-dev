@@ -95,7 +95,7 @@
             {"depth":8,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":8,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]}
         ]},
-        {"process": "receive users, class@anonymous::register", "steps": [
+        {"process": "receive users, class@anonymous::register", "sentBy": {"process":1,"step":19}, "steps": [
             {"depth":1,"label":"receive users","hints":[{"key":"sent by","value":"process 1, the command user.register","critical":true}]},
             {"depth":2,"label":"take from channel users"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},

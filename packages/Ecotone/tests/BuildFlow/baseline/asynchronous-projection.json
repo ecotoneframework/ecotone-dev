@@ -159,7 +159,7 @@
             {"depth":12,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":6,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by the chain","critical":true}]}
         ]},
-        {"process": "receive projections, ProjectingManager::execute", "steps": [
+        {"process": "receive projections, ProjectingManager::execute", "sentBy": {"process":1,"step":14}, "steps": [
             {"depth":1,"label":"receive projections","hints":[{"key":"sent by","value":"process 1, the event order.placed","critical":true}]},
             {"depth":2,"label":"take from channel projections"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},

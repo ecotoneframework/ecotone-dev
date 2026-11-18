@@ -20,7 +20,7 @@ final class FlowExecution
     private const HINT_MARKER = '↳ ';
 
     /**
-     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $processes
+     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $processes
      */
     private function __construct(public readonly array $processes)
     {

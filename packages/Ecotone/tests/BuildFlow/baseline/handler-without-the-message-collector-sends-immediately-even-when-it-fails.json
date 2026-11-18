@@ -132,7 +132,7 @@
             {"depth":8,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":8,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]}
         ]},
-        {"process": "receive orders, class@anonymous::place", "steps": [
+        {"process": "receive orders, class@anonymous::place", "sentBy": {"process":1,"step":20}, "steps": [
             {"depth":1,"label":"receive orders","hints":[{"key":"sent by","value":"process 1, the command order.place","critical":true}]},
             {"depth":2,"label":"take from channel orders"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
@@ -180,7 +180,7 @@
             {"depth":23,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by the chain","critical":true}]},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"released back to the channel, the consumer stops","critical":true},{"key":"chosen by","value":"final failure strategy resend","critical":true}]}
         ]},
-        {"process": "receive notifications, class@anonymous::notify", "steps": [
+        {"process": "receive notifications, class@anonymous::notify", "sentBy": {"process":2,"step":35}, "steps": [
             {"depth":1,"label":"receive notifications","hints":[{"key":"sent by","value":"process 2, the event order.placed","critical":true}]},
             {"depth":2,"label":"take from channel notifications"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},

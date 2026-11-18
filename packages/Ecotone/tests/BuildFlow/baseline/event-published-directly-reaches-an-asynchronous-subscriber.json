@@ -85,7 +85,7 @@
             {"depth":12,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":6,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by the chain","critical":true}]}
         ]},
-        {"process": "receive notifications, class@anonymous::notify", "steps": [
+        {"process": "receive notifications, class@anonymous::notify", "sentBy": {"process":1,"step":14}, "steps": [
             {"depth":1,"label":"receive notifications","hints":[{"key":"sent by","value":"process 1, the event merchant.created","critical":true}]},
             {"depth":2,"label":"take from channel notifications"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},

@@ -176,3 +176,81 @@ jobs:
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
         SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
+  coroutines:
+    name: "Monorepo (OpenSwoole coroutines)"
+    runs-on: ubuntu-latest
+    services:
+      rabbitmq:
+        image: rabbitmq:3.11-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5672:5672
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: "secret"
+          MYSQL_USER: "ecotone"
+          MYSQL_PASSWORD: "secret"
+          MYSQL_DATABASE: "ecotone"
+          DB_PORT: 3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        ports:
+          - 3306:3306
+      postgres:
+        image: simplycodedsoftware/postgres:16.1
+        env:
+          POSTGRES_USER: ecotone
+          POSTGRES_PASSWORD: secret
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      RABBIT_HOST: amqp://127.0.0.1:5672
+      COMPOSER_PROCESS_TIMEOUT: 3600
+      # The tests that run messages in real coroutines are skipped wherever the extension is missing,
+      # so they are named here: a renamed or moved file fails the job instead of silently not running.
+      COROUTINE_TESTS: >-
+        packages/Ecotone/tests/Messaging/Execution/CoroutineExecutionsTest.php
+        packages/Dbal/tests/Integration/CoroutineExecutionsTest.php
+        packages/Amqp/tests/Integration/CoroutineExecutionsTest.php
+    steps:
+    - name: PHP 8.5 with OpenSwoole
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.5'
+        extensions: amqp, rdkafka, openswoole
+        coverage: none
+
+    - uses: actions/checkout@v5
+
+    - name: Check OpenSwoole is loaded
+      run: php --ri openswoole
+
+    - name: Remove grpc dependent packages (no runner installs ext-grpc)
+      run: composer remove --dev --no-update open-telemetry/transport-grpc
+
+    - name: Install dependencies
+      run: composer update --prefer-stable --prefer-dist --no-interaction
+
+    - name: Coroutine tests on Postgres with ext-amqp
+      run: vendor/bin/phpunit --no-coverage --fail-on-skipped $COROUTINE_TESTS
+      env:
+        DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
+        SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
+
+    - name: Coroutine tests on MySQL with php-amqplib
+      run: vendor/bin/phpunit --no-coverage --fail-on-skipped $COROUTINE_TESTS
+      env:
+        AMQP_IMPLEMENTATION: lib
+        DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
+        SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16

@@ -32,6 +32,32 @@ final class RuntimeTest extends KernelTestCase
         Runtime::fromEnvironment(['PULSE_RUNTIME' => 'roadrunner']);
     }
 
+    public function test_coroutines_and_workers_have_defaults(): void
+    {
+        self::assertSame(6, Runtime::consumerCoroutines([]));
+        self::assertSame(4, Runtime::httpWorkers([]));
+        self::assertSame(12, Runtime::consumerCoroutines(['PULSE_CONSUMER_COROUTINES' => '12']));
+        self::assertSame(2, Runtime::httpWorkers(['PULSE_HTTP_WORKERS' => '2']));
+    }
+
+    public function test_a_number_of_coroutines_that_is_not_a_whole_number_from_one_is_refused(): void
+    {
+        $this->expectException(PulseConfigurationException::class);
+        $this->expectExceptionMessage('PULSE_CONSUMER_COROUTINES "0" is not a number of coroutines consuming each reply channel in one process. Set it to a whole number from 1 to 9999, for example 6, which is the default. It is read only with PULSE_RUNTIME=swoole.');
+
+        Runtime::consumerCoroutines(['PULSE_CONSUMER_COROUTINES' => '0']);
+    }
+
+    public function test_a_number_of_workers_that_is_not_a_whole_number_from_one_is_refused_when_pulse_boots(): void
+    {
+        $this->configurePulse(['PULSE_HTTP_WORKERS' => 'many']);
+
+        $this->expectException(PulseConfigurationException::class);
+        $this->expectExceptionMessage('PULSE_HTTP_WORKERS "many" is not a number of OpenSwoole worker processes serving HTTP.');
+
+        self::bootKernel();
+    }
+
     public function test_the_broker_is_read_with_the_extension_on_php(): void
     {
         $this->configurePulse(['PULSE_TRANSPORT_DSN' => 'amqp://guest:guest@rabbitmq:5672']);

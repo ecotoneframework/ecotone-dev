@@ -12,6 +12,8 @@ declare(strict_types=1);
  */
 
 use App\Kernel;
+use App\Settings\PulseEnvironment;
+use App\Settings\Runtime;
 use OpenSwoole\Constant;
 use OpenSwoole\Http\Request;
 use OpenSwoole\Http\Response;
@@ -25,7 +27,7 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 $server = new Server('0.0.0.0', (int) (getenv('PULSE_HTTP_PORT') ?: 8080));
 $server->set([
-    'worker_num' => (int) (getenv('PULSE_HTTP_WORKERS') ?: 4),
+    'worker_num' => Runtime::httpWorkers(PulseEnvironment::read()),
     'enable_coroutine' => false,
     'enable_static_handler' => true,
     'document_root' => getenv('PULSE_PUBLIC_DIR') ?: dirname(__DIR__) . '/public',

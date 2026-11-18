@@ -14,6 +14,8 @@ declare(strict_types=1);
  */
 
 use App\Kernel;
+use App\Settings\PulseEnvironment;
+use App\Settings\Runtime as PulseRuntime;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use OpenSwoole\Coroutine;
@@ -34,14 +36,25 @@ $kernel = new Kernel($_SERVER['APP_ENV'], (bool) $_SERVER['APP_DEBUG']);
 $kernel->boot();
 $messagingSystem = $kernel->getContainer()->get(ConfiguredMessagingSystem::class);
 
-$coroutines = max(1, (int) (getenv('PULSE_CONSUMER_COROUTINES') ?: 6));
+$coroutines = PulseRuntime::consumerCoroutines(PulseEnvironment::read());
 $limits = ExecutionPollingMetadata::createWithDefaults()
     ->withMemoryLimitInMegabytes((int) (getenv('PULSE_WORKER_MEMORY_LIMIT') ?: 256))
     ->withExecutionTimeLimitInMilliseconds((int) (getenv('PULSE_WORKER_TIME_LIMIT_MS') ?: 3600000));
 
+$failed = false;
 Runtime::enableCoroutine(Runtime::HOOK_ALL);
-Coroutine::run(static function () use ($messagingSystem, $channel, $coroutines, $limits): void {
+Coroutine::run(static function () use ($messagingSystem, $channel, $coroutines, $limits, &$failed): void {
     for ($coroutine = 1; $coroutine <= $coroutines; $coroutine++) {
-        Coroutine::create(static fn () => $messagingSystem->run($channel, $limits));
+        Coroutine::create(static function () use ($messagingSystem, $channel, $limits, &$failed): void {
+            try {
+                $messagingSystem->run($channel, $limits);
+            } catch (Throwable $failure) {
+                fwrite(STDERR, sprintf("Pulse: a coroutine consuming %s stopped with %s: %s. The other coroutines are asked to stop, so the consumer is started again as a whole.\n", $channel, $failure::class, $failure->getMessage()));
+                $failed = true;
+                posix_kill(getmypid(), SIGTERM);
+            }
+        });
     }
 });
+
+exit($failed ? 1 : 0);

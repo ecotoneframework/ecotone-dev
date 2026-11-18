@@ -167,7 +167,7 @@ final class ChannelSendRecording
                 }
             }
         }
-        $this->tracer->awaitReceive('receive ' . $this->channelName, $notes, [SpanAttribute::EXECUTION_RECEIVED_MESSAGE => self::identityOf($message)]);
+        $this->tracer->awaitReceive('receive ' . $this->channelName, $notes, []);
         if (! $headers->containsKey(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION)) {
             return $message;
         }

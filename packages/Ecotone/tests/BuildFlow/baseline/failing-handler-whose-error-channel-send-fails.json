@@ -132,7 +132,7 @@
             {"depth":16,"label":"around TracingInterceptor::traceHandlerEndpoint","hints":[{"key":"failure","value":"passes RuntimeException on","critical":false}]},
             {"depth":17,"label":"span process class@anonymous::register"},
             {"depth":18,"label":"handler class@anonymous::register","hints":[{"key":"failure","value":"throws RuntimeException","critical":true}]},
-            {"depth":8,"label":"send error_channel","hints":[{"key":"failure","value":"throws RuntimeException","critical":true},{"key":"taken by","value":"process 3, a separate consumer run","critical":true}]},
+            {"depth":8,"label":"send error_channel","hints":[{"key":"failure","value":"throws RuntimeException","critical":true}]},
             {"depth":9,"label":"before send OutboundSerializationChannelInterceptor::preSend"},
             {"depth":10,"label":"before send MessageCollectorChannelInterceptor::preSend"},
             {"depth":11,"label":"before send TracingChannelInterceptor::preSend","hints":[{"key":"failure","value":"caught RuntimeException","critical":true},{"key":"headers changed","value":"traceparent","critical":false}]},
@@ -143,7 +143,7 @@
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"resent to the channel","critical":true},{"key":"chosen by","value":"final failure strategy resend","critical":true}]}
         ]},
         {"process": "receive users, class@anonymous::register (2 of 2)", "steps": [
-            {"depth":1,"label":"receive users","hints":[{"key":"sent by","value":"process 2, the message","critical":true}]},
+            {"depth":1,"label":"receive users"},
             {"depth":2,"label":"take from channel users"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":2,"label":"gateway InboundChannelAdapterEntrypoint::executeEntrypoint","hints":[{"key":"failure","value":"passes RuntimeException out of the process","critical":true}]},

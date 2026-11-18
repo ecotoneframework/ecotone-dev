@@ -48,12 +48,16 @@ final class FlowExecution
             $children[$parent][] = $span;
         }
 
-        [$links, $sources] = self::linksBetween($processes, $children);
+        [$links, $sources, $sentBy] = self::linksBetween($processes, $children);
         $processes = array_map(
-            fn (Span $process): array => ($process->attributes[SpanAttribute::EXECUTION_STEP] ?? false)
-                ? ['process' => self::nameOf(self::firstSpanUnder($process, $children) ?? $process), 'steps' => self::stepsOf([$process], $children, 1, $links)]
-                : ['process' => self::nameOf($process), 'steps' => self::stepsOf($children[$process->spanId] ?? [], $children, 1, $links)],
+            fn (Span $process, int $position): array => [
+                ...(($process->attributes[SpanAttribute::EXECUTION_STEP] ?? false)
+                    ? ['process' => self::nameOf(self::firstSpanUnder($process, $children) ?? $process), 'steps' => self::stepsOf([$process], $children, 1, $links)]
+                    : ['process' => self::nameOf($process), 'steps' => self::stepsOf($children[$process->spanId] ?? [], $children, 1, $links)]),
+                ...(isset($sentBy[$position]) ? ['sentBy' => $sentBy[$position]] : []),
+            ],
             $processes,
+            array_keys($processes),
         );
 
         return new self(self::withNumberedGeneratedNames(self::titled($processes, $sources)));
@@ -88,51 +92,114 @@ final class FlowExecution
     /**
      * @param list<Span> $processes
      * @param array<string, list<Span>> $children
-     * @return array{0: array<string, list<array{key: string, value: string, critical: bool}>>, 1: array<int, array{process: int, part: ?string}>}
+     * @return array{0: array<string, list<array{key: string, value: string, critical: bool}>>, 1: array<int, array{process: int, part: ?string}>, 2: array<int, array{process: int, step: int}>}
      */
     private static function linksBetween(array $processes, array $children): array
     {
         $processOf = [];
         $parentOf = [];
-        $messageSteps = [];
+        $stepOf = [];
+        $spanOf = [];
+        $inStepOrder = [];
         foreach ($processes as $position => $process) {
+            $inStepOrder[$position] = self::inStepOrder(($process->attributes[SpanAttribute::EXECUTION_STEP] ?? false) ? [$process] : ($children[$process->spanId] ?? []), $children);
+            foreach ($inStepOrder[$position] as $index => $span) {
+                $stepOf[$span->spanId] = $index;
+            }
             $pending = [$process];
             while ($pending !== []) {
                 $span = array_shift($pending);
                 $processOf[$span->spanId] = $position;
-                if (isset($span->attributes[SpanAttribute::EXECUTION_SENT_MESSAGE]) || isset($span->attributes[SpanAttribute::EXECUTION_RECEIVED_MESSAGE])) {
-                    $messageSteps[] = $span;
-                }
+                $spanOf[$span->spanId] = $span;
                 foreach ($children[$span->spanId] ?? [] as $child) {
                     $parentOf[$child->spanId] = $span;
                     $pending[] = $child;
                 }
             }
         }
-        usort($messageSteps, fn (Span $first, Span $second): int => self::orderOf($first) <=> self::orderOf($second));
         $links = [];
         $sources = [];
-        $sendersSinceLastReceive = [];
-        foreach ($messageSteps as $span) {
-            if (isset($span->attributes[SpanAttribute::EXECUTION_SENT_MESSAGE])) {
-                $sendersSinceLastReceive[(string) $span->attributes[SpanAttribute::EXECUTION_SENT_MESSAGE]][] = $span;
+        $sentBy = [];
+        foreach ($processes as $consumer => $process) {
+            $sender = self::senderOf([$process, ...$inStepOrder[$consumer]], $processOf, $consumer);
+            if ($sender === null) {
                 continue;
             }
-            $message = (string) $span->attributes[SpanAttribute::EXECUTION_RECEIVED_MESSAGE];
-            $senders = $sendersSinceLastReceive[$message] ?? [];
-            unset($sendersSinceLastReceive[$message]);
-            if ($senders === []) {
+            $sendingStep = self::sendingStepOf($spanOf[$sender], $parentOf, $stepOf);
+            if ($sendingStep === null || $inStepOrder[$consumer] === []) {
                 continue;
             }
-            $consumer = $processOf[$span->spanId];
-            $putter = $senders[count($senders) - 1];
-            [$kind, $part] = self::kindOfMessageSentBy($senders[0], $parentOf);
-            $sources[$consumer] = ['process' => $processOf[$putter->spanId] + 1, 'part' => $part];
-            $links[$span->spanId][] = ['key' => ExecutionHint::SENT_BY, 'value' => 'process ' . $sources[$consumer]['process'] . ', ' . $kind, 'critical' => true];
-            $links[$putter->spanId][] = ['key' => ExecutionHint::TAKEN_BY, 'value' => 'process ' . ($consumer + 1) . ', a separate consumer run', 'critical' => true];
+            $producer = $processOf[$sender];
+            [$kind, $part] = self::kindOfMessageSentBy(self::firstSendOf($sendingStep, $inStepOrder[$producer]), $parentOf);
+            $sentBy[$consumer] = ['process' => $producer + 1, 'step' => $stepOf[$sendingStep->spanId]];
+            $sources[$consumer] = ['process' => $producer + 1, 'part' => $part];
+            $links[$inStepOrder[$consumer][0]->spanId][] = ['key' => ExecutionHint::SENT_BY, 'value' => 'process ' . ($producer + 1) . ', ' . $kind, 'critical' => true];
+            $links[$sendingStep->spanId][] = ['key' => ExecutionHint::TAKEN_BY, 'value' => 'process ' . ($consumer + 1) . ', a separate consumer run', 'critical' => true];
         }
 
-        return [$links, $sources];
+        return [$links, $sources, $sentBy];
+    }
+
+    /**
+     * @param list<Span> $spans
+     * @param array<string, int> $processOf
+     */
+    private static function senderOf(array $spans, array $processOf, int $consumer): ?string
+    {
+        foreach ($spans as $span) {
+            if ($span->parentSpanId !== null && isset($processOf[$span->parentSpanId]) && $processOf[$span->parentSpanId] !== $consumer) {
+                return $span->parentSpanId;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, Span> $parentOf
+     * @param array<string, int> $stepOf
+     */
+    private static function sendingStepOf(Span $sender, array $parentOf, array $stepOf): ?Span
+    {
+        $nearestStep = null;
+        for ($span = $sender; $span !== null; $span = $parentOf[$span->spanId] ?? null) {
+            if (isset($span->attributes[SpanAttribute::EXECUTION_SENT_MESSAGE]) && isset($stepOf[$span->spanId])) {
+                return $span;
+            }
+            $nearestStep ??= isset($stepOf[$span->spanId]) ? $span : null;
+        }
+
+        return $nearestStep;
+    }
+
+    /**
+     * @param list<Span> $spans
+     */
+    private static function firstSendOf(Span $sendingStep, array $spans): Span
+    {
+        $message = $sendingStep->attributes[SpanAttribute::EXECUTION_SENT_MESSAGE] ?? null;
+        foreach ($message === null ? [] : $spans as $span) {
+            if (($span->attributes[SpanAttribute::EXECUTION_SENT_MESSAGE] ?? null) === $message) {
+                return $span;
+            }
+        }
+
+        return $sendingStep;
+    }
+
+    /**
+     * @param list<Span> $spans
+     * @param array<string, list<Span>> $children
+     * @return list<Span>
+     */
+    private static function inStepOrder(array $spans, array $children): array
+    {
+        $ordered = [];
+        foreach ($spans as $span) {
+            $ordered = [...$ordered, $span, ...self::inStepOrder($children[$span->spanId] ?? [], $children)];
+        }
+
+        return $ordered;
     }
 
     /**

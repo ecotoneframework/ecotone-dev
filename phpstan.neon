@@ -33,6 +33,7 @@ parameters:
 		- packages/Laravel/src/Config/PDO/SqlServerConnection.php
 		- packages/OpenTelemetry/src/Support/OTelTracer.php
 		- Monorepo/SwooleApp/Symfony/server.php
+		- Monorepo/SwooleApp/Benchmark/*
 		- Monorepo/*/Symfony/var/*
 		- Monorepo/*/Laravel/storage/*
 		- Monorepo/*/*/var/*

@@ -12,7 +12,9 @@ use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Redis\RedisConnectionFactory;
 use Ecotone\Api\Sqs\SqsConnectionFactory;
+use Psr\Log\LogLevel;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\HttpKernel\Log\Logger;
 
 return static function (ContainerConfigurator $container): void {
     $settings = PulseSettings::fromEnvironment(PulseEnvironment::read(), dirname(__DIR__));
@@ -25,6 +27,8 @@ return static function (ContainerConfigurator $container): void {
     $services->load('App\\', '../src/')->exclude('../src/{Kernel.php,Settings,Messaging}');
 
     $services->set(PulseSettings::class)->factory([PulseSettings::class, 'fromProcessEnvironment'])->args([dirname(__DIR__)]);
+
+    $services->set('logger', Logger::class)->args([LogLevel::WARNING, 'php://stderr']);
 
     $services->alias('pulse.clock', 'clock');
     $services->set(DbalConnectionFactory::class, InternalDatabaseConnectionFactory::class)->args([$settings->internalDatabasePath, PulseSettings::INTERNAL_DATABASE_BUSY_TIMEOUT_SECONDS]);

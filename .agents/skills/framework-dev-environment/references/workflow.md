@@ -21,6 +21,17 @@ interchangeable for database work: **`app8_2` points `DATABASE_DSN` at MySQL, no
 run in `app8_2` also changes which engine it exercises. Reach for it when a change has to hold on the 8.2 floor —
 a language feature, a dependency constraint, or a signature phpstan will not catch.
 
+`swoole` is PHP 8.5.3 with OpenSwoole and without Xdebug, which coroutines cannot run with. The tests that run
+messages in real coroutines carry `#[RequiresPhpExtension('openswoole')]`, so they are skipped in `app` and run only
+there:
+
+```bash
+docker compose exec -T swoole vendor/bin/phpunit --no-coverage packages/Dbal/tests/Integration/CoroutineExecutionsTest.php
+```
+
+Run phpstan in `app`, not in `swoole`: with the extension loaded phpstan knows the OpenSwoole classes and reports
+nothing where CI, which has no extension, fails.
+
 `.env` is optional (`env_file: required: false` in `docker-compose.yml`), so a fresh checkout needs nothing
 created. Copy `.env.dist` to `.env` only to override a default, such as turning Xdebug on.
 
@@ -221,9 +232,9 @@ not add licence headers.
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `test-monorepo.yml` | every branch push **and** pull request | A `shards` job runs `bin/check-monorepo-shards.php`, which checks that `.github/monorepo-shards.json` names every test suite of `phpunit.xml.dist` exactly once and emits the matrix; then one `Monorepo (<shard>)` job per shard: `bin/check-suite-parity.php` first, then PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then `phpunit --testsuite <the shard's suites>` against PostgreSQL with MySQL as the secondary connection. A new suite in `phpunit.xml.dist` must be added to a shard or the run fails |
+| `test-monorepo.yml` | every branch push **and** pull request | A `shards` job runs `bin/check-monorepo-shards.php`, which checks that `.github/monorepo-shards.json` names every test suite of `phpunit.xml.dist` exactly once and emits the matrix; then one `Monorepo (<shard>)` job per shard: `bin/check-suite-parity.php` first, then PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then `phpunit --testsuite <the shard's suites>` against PostgreSQL with MySQL as the secondary connection. A new suite in `phpunit.xml.dist` must be added to a shard or the run fails. A `Monorepo (OpenSwoole coroutines)` job installs the OpenSwoole extension and runs the files listed in its `COROUTINE_TESTS` with `--fail-on-skipped`, once with ext-amqp and once with php-amqplib: add a new coroutine test file to that list |
 | `split-testing.yml` | every branch push **and** pull request | Per-package `composer tests:ci` for every package with a `phpunit.xml.dist`, on PHP 8.2, PHP 8.5, and PHP 8.2 `--prefer-lowest`. Tempest is excluded — it needs PHP 8.5 and a monorepo-tied boot harness, so a Monorepo shard covers it |
-| `file-licence.yml` | every push **and** pull request | `php bin/check-licence.php` over `packages/*/src` |
+| `file-licence.yml` | every push **and** pull request | `php bin/check-licence.php` over `packages/*/src`, then `php bin/check-framework-transactions.php` and `php bin/check-framework-connections.php` over the framework `src` and `Api` |
 | `contribution-check.yml` | PR opened or edited | Fails unless the PR body has the CLA checkbox ticked |
 | `quickstart-examples.yml` | every branch push **and** pull request | The quickstart applications, as their own package |
 | `benchmark-pr.yml` | pull request | phpbench on PHP 8.5, for Ecotone, Laravel and Symfony |

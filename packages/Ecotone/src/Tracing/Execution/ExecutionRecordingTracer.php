@@ -34,7 +34,7 @@ final class ExecutionRecordingTracer implements Tracer
     /** @var list<Span> */
     private array $stepsOfOpenEntry = [];
     private bool $spanStartedInOpenEntry = false;
-    /** @var ?array{name: string, notes: list<array{depth: int, name: string, hints?: list<ExecutionHint>}>, attributes: array<string, scalar>} */
+    /** @var ?array{messageId: string, name: string, notes: list<array{depth: int, name: string, hints?: list<ExecutionHint>}>, attributes: array<string, scalar>} */
     private ?array $awaitedReceive = null;
     private ?ExecutionStep $receiveEntry = null;
     private ?ExecutionStep $receiveContinuation = null;
@@ -73,27 +73,35 @@ final class ExecutionRecordingTracer implements Tracer
      * @param list<array{depth: int, name: string, hints?: list<ExecutionHint>}> $notes
      * @param array<string, scalar> $attributes
      */
-    public function awaitReceive(string $name, array $notes, array $attributes): void
+    public function awaitReceive(string $messageId, string $name, array $notes, array $attributes): void
     {
-        $this->awaitedReceive = ['name' => $name, 'notes' => $notes, 'attributes' => $attributes];
+        $this->awaitedReceive = ['messageId' => $messageId, 'name' => $name, 'notes' => $notes, 'attributes' => $attributes];
+    }
+
+    public function startGatewayEntry(string $name, ?string $handledMessageId): ?ExecutionStep
+    {
+        if ($this->tracer->currentSpan() !== null || $this->openSteps !== []) {
+            return $this->startStep($name);
+        }
+        $awaitedReceive = $this->awaitedReceive;
+        $this->awaitedReceive = null;
+        if ($awaitedReceive === null || $handledMessageId === null || $awaitedReceive['messageId'] !== $handledMessageId) {
+            return $this->startEntry($name);
+        }
+        $this->receiveEntry = $this->startEntry($awaitedReceive['name'], attributes: $awaitedReceive['attributes']);
+        $this->recordNested($awaitedReceive['notes']);
+        $this->receiveContinuation = $this->startStep($name);
+
+        return $this->receiveContinuation;
     }
 
     /**
      * @param array<string, scalar> $attributes
      */
-    public function startEntry(string $name, bool $continuesAReceive = false, array $attributes = []): ?ExecutionStep
+    public function startEntry(string $name, array $attributes = []): ?ExecutionStep
     {
         if ($this->tracer->currentSpan() !== null || $this->openSteps !== []) {
             return $this->startStep($name, $attributes);
-        }
-        $awaitedReceive = $continuesAReceive ? $this->awaitedReceive : null;
-        if ($awaitedReceive !== null) {
-            $this->awaitedReceive = null;
-            $this->receiveEntry = $this->startEntry($awaitedReceive['name'], attributes: $awaitedReceive['attributes']);
-            $this->recordNested($awaitedReceive['notes']);
-            $this->receiveContinuation = $this->startStep($name);
-
-            return $this->receiveContinuation;
         }
         $this->stepsOfOpenEntry = [];
         $this->spanStartedInOpenEntry = false;

@@ -167,7 +167,7 @@ final class ChannelSendRecording
                 }
             }
         }
-        $this->tracer->awaitReceive('receive ' . $this->channelName, $notes, []);
+        $this->tracer->awaitReceive((string) $headers->get(MessageHeaders::MESSAGE_ID), 'receive ' . $this->channelName, $notes, []);
         if (! $headers->containsKey(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION)) {
             return $message;
         }

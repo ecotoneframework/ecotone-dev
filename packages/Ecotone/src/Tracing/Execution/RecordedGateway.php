@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing\Execution;
 
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\Handler\Gateway\GatewayReplyConverter;
 use Ecotone\Messaging\Handler\Gateway\MethodCallToMessageConverter;
@@ -31,7 +33,8 @@ final class RecordedGateway extends Gateway
 
     public function execute(array $methodArgumentValues)
     {
-        $step = $this->tracer->startEntry($this->entry, continuesAReceive: true);
+        $handled = $methodArgumentValues[0] ?? null;
+        $step = $this->tracer->startGatewayEntry($this->entry, $handled instanceof Message ? (string) $handled->getHeaders()->get(MessageHeaders::MESSAGE_ID) : null);
         try {
             $result = parent::execute($methodArgumentValues);
         } catch (Throwable $failure) {

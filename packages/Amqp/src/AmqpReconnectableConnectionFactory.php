@@ -113,7 +113,10 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
 
     private function connectionFactoryOfCurrentExecution(): AmqpConnectionFactory
     {
-        if ($this->connectionFactory instanceof AmqpLibConnectionFactory && ExecutionScope::isConcurrent()) {
+        if (ExecutionScope::isConcurrent() && $this->connectionFactory instanceof AmqpExtConnectionFactory) {
+            return new AmqpExtConnectionFactory($this->connectionFactory->getConfig()->getConfig());
+        }
+        if (ExecutionScope::isConcurrent() && $this->connectionFactory instanceof AmqpLibConnectionFactory) {
             return new AmqpLibConnectionFactory($this->connectionFactory->getConfig()->getConfig());
         }
 

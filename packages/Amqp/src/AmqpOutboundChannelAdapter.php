@@ -101,6 +101,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $prePublishConfirmationsEpoch = $confirmations?->getEpoch() ?? 0;
 
         $publishRecords = $this->publishMessages($messagesToPublish, $context, $confirmations);
+        $this->amqpTransactionInterceptor->commitWhenPublishedOutsideOfTransaction($context);
 
         if ($publishRecords !== [] && $confirmations !== null && $this->canDeferConfirmation()) {
             $this->registerPendingDelivery($publishRecords, $context, $confirmations, $prePublishConfirmationsEpoch);

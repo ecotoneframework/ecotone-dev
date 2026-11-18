@@ -101,6 +101,54 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
         $this->assertSame(['accepted'], $ecotone->getGateway(PersonRegister::class)->names());
     }
 
+    public function test_executions_on_an_application_connection_registered_with_copies_keep_their_own_transaction(): void
+    {
+        $ecotone = $this->bootstrapPersonRegistration(DbalConnection::createWithCopiesForConcurrentExecutions($this->getConnection()));
+
+        $suspended = new Fiber(function () use ($ecotone): void {
+            try {
+                $ecotone->sendCommandWithRouting('person.register', ['personId' => 1, 'name' => 'refused', 'suspendAndFail' => true]);
+            } catch (RuntimeException) {
+            }
+        });
+        $suspended->start();
+        $ecotone->sendCommandWithRouting('person.register', ['personId' => 2, 'name' => 'accepted']);
+        $suspended->resume();
+
+        $this->assertSame(['accepted'], $ecotone->getGateway(PersonRegister::class)->names());
+    }
+
+    public function test_message_handled_outside_of_concurrent_executions_uses_the_application_connection_itself(): void
+    {
+        $applicationConnection = $this->getConnection();
+        $ecotone = $this->bootstrapPersonRegistration(DbalConnection::createWithCopiesForConcurrentExecutions($applicationConnection));
+
+        $applicationConnection->beginTransaction();
+        $ecotone->sendCommandWithRouting('person.register', ['personId' => 1, 'name' => 'inside the transaction of the application']);
+        $namesBeforeRollback = $ecotone->getGateway(PersonRegister::class)->names();
+        $applicationConnection->rollBack();
+
+        $this->assertSame(['inside the transaction of the application'], $namesBeforeRollback);
+        $this->assertSame([], $ecotone->getGateway(PersonRegister::class)->names());
+    }
+
+    public function test_copies_of_an_application_connection_are_limited_to_the_connection_pool_size(): void
+    {
+        $ecotone = $this->bootstrapPersonRegistration(DbalConnection::createWithCopiesForConcurrentExecutions($this->getConnection(), connectionPoolSize: 1));
+
+        $suspended = new Fiber(fn () => $ecotone->sendCommandWithRouting('person.register', ['personId' => 1, 'name' => 'accepted', 'suspend' => true]));
+        $suspended->start();
+        try {
+            (new Fiber(fn () => $ecotone->sendCommandWithRouting('person.register', ['personId' => 2, 'name' => 'interleaved'])))->start();
+            $this->fail();
+        } catch (ConnectionPoolExhausted) {
+        } finally {
+            $suspended->resume();
+        }
+
+        $this->assertSame(['accepted'], $ecotone->getGateway(PersonRegister::class)->names());
+    }
+
     public function test_query_does_not_read_what_a_suspended_execution_has_not_committed(): void
     {
         $ecotone = $this->bootstrapPersonRegistration();
@@ -225,7 +273,7 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
         } catch (ConnectionPoolExhausted $exception) {
             $this->assertSame(
                 'All 2 connections of the connection pool for `' . $this->connectionName() . '` are in use by this process and the executions running concurrently in it (coroutines or fibers), and none was returned. '
-                . "Raise the pool size where the connection is registered: new Ecotone\\Api\\Dbal\\DbalConnectionFactory(['dsn' => \$dsn, 'connection_pool_size' => 20]); every worker process may then open that many connections, so keep workers times pool size below what the database accepts. "
+                . "Raise the pool size where the connection is registered: new Ecotone\\Api\\Dbal\\DbalConnectionFactory(['dsn' => \$dsn, 'connection_pool_size' => 20]), or SymfonyConnectionReference::defaultConnection('default')->withConnectionPoolSize(20) for a Symfony connection; every worker process may then open that many connections, so keep workers times pool size below what the database accepts. "
                 . 'Or let fewer executions run at once: in Swoole or OpenSwoole lower `max_coroutine`, and with fibers limit how many your event loop runs at a time and release finished Fiber objects, because a fiber keeps its connection until it is destroyed.',
                 $exception->getMessage()
             );

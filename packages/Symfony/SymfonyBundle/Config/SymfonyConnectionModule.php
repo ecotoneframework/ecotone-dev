@@ -94,10 +94,11 @@ final class SymfonyConnectionModule extends NoExternalConfigurationModule implem
                         ConnectionFactory::class,
                         [
                             Reference::to($referenceToConnection),
+                            $connection->connectionPoolSize,
                         ],
                         [
                             DbalConnection::class,
-                            'create',
+                            'createWithCopiesForConcurrentExecutions',
                         ]
                     )
                 );

@@ -3003,8 +3003,13 @@ for a returned connection and then fails with `ConnectionPoolExhausted`; a fiber
 AMQP channels are kept open and handed to the next execution in the same way. A process handling one message at a
 time uses one connection, as before.
 
-A connection the application or its framework built (a Doctrine `ManagerRegistry`, a Laravel or Tempest connection,
-an existing `Doctrine\DBAL\Connection`) is still one connection for the process. When a second execution begins a
+A Symfony DBAL connection registered without a `ManagerRegistry` (`SymfonyConnectionReference::defaultConnection()`
+or `createForConnection()`) stays the connection of the process, and every concurrent execution works on a copy
+Ecotone opens from its parameters and configuration, at most 10 per process
+(`->withConnectionPoolSize(20)` changes it). Code that holds Symfony's `Connection` service is not on that copy.
+
+Any other connection the application or its framework built (a Doctrine `ManagerRegistry`, a Laravel or Tempest
+connection, an existing `Doctrine\DBAL\Connection`) is still one connection for the process. When a second execution begins a
 transaction on it while another execution holds one, Ecotone refuses with a `ConfigurationException` naming the ways
 out, where it used to let the two share the transaction.
 
@@ -3020,6 +3025,21 @@ connection from a DSN, keep workers times `connection_pool_size` below what the 
 connection in your own code with `#[CurrentConnection] Connection $connection` on the handler, not from a property.
 Do the work that must share the handler's transaction in the handler itself, not in a fiber or coroutine it starts,
 and pass a fiber the headers it needs explicitly (`metadata:` on the bus call).
+
+### A handler takes the database connection with `#[CurrentConnection]`
+
+**Before:** a handler or console command could take a `Doctrine\DBAL\Connection` as a service
+(`#[Reference] Connection $connection`). That is one fixed connection, which was the connection of the message
+only as long as the process had a single one.
+
+**Now:** a `Doctrine\DBAL\Connection` parameter of a handler or a console command without `#[CurrentConnection]` is
+refused at bootstrap with a `ConfigurationException`. `#[CurrentConnection] Connection $connection`
+(`Ecotone\Api\Dbal\Attribute\CurrentConnection`) injects the connection the message is handled on, the one its
+transaction runs on, also when every coroutine or fiber has its own.
+
+**How to adapt:** replace `#[Reference]` on the parameter with `#[CurrentConnection]`, or
+`#[CurrentConnection('name')]` for a connection registered under another name. A service that takes the connection
+through its constructor is not checked; inside coroutines or fibers pass it the handler's connection instead.
 
 ### `ecotone/dbal`, `ecotone/laravel` and `ecotone/tempest` require `doctrine/dbal` 4.2.3 or later
 

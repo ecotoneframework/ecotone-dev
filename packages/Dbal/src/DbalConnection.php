@@ -5,6 +5,7 @@ namespace Ecotone\Dbal;
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\ConnectionPool;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Interop\Queue\ConnectionFactory;
 
@@ -31,6 +32,11 @@ class DbalConnection
             $connection,
             $config
         );
+    }
+
+    public static function createWithCopiesForConcurrentExecutions(Connection $connection, int $connectionPoolSize = ConnectionPool::DEFAULT_SIZE): AlreadyConnectedDbalConnectionFactory
+    {
+        return AlreadyConnectedDbalConnectionFactory::withCopiesForConcurrentExecutions($connection, $connectionPoolSize);
     }
 
     public static function createForManagerRegistry(ManagerRegistry $managerRegistry, ?string $connectionName = null): EcotoneManagerRegistryConnectionFactory

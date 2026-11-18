@@ -6,6 +6,7 @@ namespace Ecotone\Api\Symfony;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ConnectionReference;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\Assert;
@@ -17,10 +18,13 @@ use Symfony\Component\Uid\Uuid;
  */
 final class SymfonyConnectionReference extends ConnectionReference implements DefinedObject
 {
+    public const DEFAULT_CONNECTION_POOL_SIZE = 10;
+
     private function __construct(
         private string $referenceName,
         private ?string $managerRegistryReference,
         ?string $connectionName,
+        public readonly int $connectionPoolSize = self::DEFAULT_CONNECTION_POOL_SIZE,
     ) {
         parent::__construct($referenceName, $connectionName);
     }
@@ -37,13 +41,32 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
         );
     }
 
-    public static function createForConnection(string $connectionName, ?string $referenceName = null): self
+    public static function createForConnection(string $connectionName, ?string $referenceName = null, int $connectionPoolSize = self::DEFAULT_CONNECTION_POOL_SIZE): self
     {
         return new self(
             $referenceName ?? $connectionName . '.' . Uuid::v7()->toRfc4122(),
             null,
             $connectionName,
+            $connectionPoolSize,
         );
+    }
+
+    public function withConnectionPoolSize(int $connectionPoolSize): self
+    {
+        if ($this->isManagerRegistryBasedConnection()) {
+            throw ConfigurationException::create(
+                "Connection pool size cannot be set for `{$this->connectionName}`, because it is taken from a Doctrine ManagerRegistry: its EntityManager is bound to the one connection Symfony built, so Ecotone opens no further connections for it. "
+                . "Register the connection without the registry to have a connection per concurrent execution: SymfonyConnectionReference::defaultConnection('{$this->connectionName}')->withConnectionPoolSize({$connectionPoolSize}), or remove withConnectionPoolSize()."
+            );
+        }
+        if ($connectionPoolSize < 1) {
+            throw ConfigurationException::create(
+                "Connection pool size for `{$this->connectionName}` is {$connectionPoolSize}, but a pool needs at least one connection. "
+                . 'Pass a positive number to withConnectionPoolSize(), or leave it out for the default of ' . self::DEFAULT_CONNECTION_POOL_SIZE . '.'
+            );
+        }
+
+        return new self($this->referenceName, null, $this->connectionName, $connectionPoolSize);
     }
 
     public static function defaultManagerRegistry(
@@ -114,6 +137,7 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
             [
                 $this->connectionName,
                 $this->referenceName,
+                $this->connectionPoolSize,
             ],
             [
                 self::class,

@@ -340,6 +340,8 @@ looks like any other, which is why the eval grades it.
 
 Application code gets the same connection declaratively: `#[CurrentConnection] Connection $connection` on a handler
 parameter injects the connection of the message being handled, the one its transaction runs on.
+A handler or console command parameter typed `Connection` without it is refused at bootstrap, so a handler cannot
+end up on a connection other than its message's.
 
 A connection the application or its framework built (Doctrine `ManagerRegistry`, a Laravel connection, an existing
 `Connection`) is one per process and cannot be pooled from Ecotone's side. `DbalTransactionInterceptor` refuses a

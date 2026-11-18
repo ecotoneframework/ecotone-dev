@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 const BUILDS_CONNECTIONS = [
     'packages/Dbal/Api/DbalConnectionFactory.php' => [1, 'the callback the connection pool opens its connections with'],
+    'packages/Dbal/src/AlreadyConnectedDbalConnectionFactory.php' => [1, 'the callback its pool opens copies of the application connection with, one per concurrent execution'],
 ];
 
 const KEEPS_CONNECTIONS = [

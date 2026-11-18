@@ -210,6 +210,14 @@ drawn as nesting:
 - The receive phases (`before receive`, `take from channel`, `after receive`) are drawn when the message has been
   taken, from what the interceptors declare, not observed one by one.
 
+A process whose message was sent by another recorded process is a sub-flow of it: `sentBy` on the process holds the
+sending process's number and the index of its step that sent the message. The link is read from the trace context
+the message carries: a span of the consumer run whose trace parent is a span of another process. A message whose
+sender was not recorded, or that arrives without its trace context (the in-memory queue redelivers a failed message
+as it was before tracing added its context), starts a flow of its own. The text prints flows in run order and each
+sub-flow as `sub-flow process N: …` under its sender, in the order the sender sent them; process numbers stay the run
+order. `compare` states a new, gone or re-attached sub-flow and shows each one right after its sender.
+
 `phpstan.neon` is level 3 over `src` for Ecotone, Enqueue, Dbal, Amqp, JmsConverter, PdoEventSourcing, Laravel,
 OpenTelemetry, Kafka, plus `packages/Symfony/DependencyInjection`, `Monorepo`, and the `Api/` of all twelve packages
 that have one. Each package's own `phpstan.neon` is level 3 too and lists its `Api` beside its source directories.

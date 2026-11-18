@@ -50,16 +50,13 @@ final class ExecutionScope
         return self::coroutineContext() !== null || Fiber::getCurrent() !== null;
     }
 
-    /**
-     * @return class-string|null
-     */
     public static function coroutineChannelClass(): ?string
     {
         if (class_exists(\OpenSwoole\Coroutine::class, false) && \OpenSwoole\Coroutine::getCid() > 0) {
-            return \OpenSwoole\Coroutine\Channel::class;
+            return 'OpenSwoole\\Coroutine\\Channel';
         }
         if (class_exists(\Swoole\Coroutine::class, false) && \Swoole\Coroutine::getCid() > 0) {
-            return \Swoole\Coroutine\Channel::class;
+            return 'Swoole\\Coroutine\\Channel';
         }
 
         return null;

@@ -30,7 +30,6 @@ use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
-use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 
@@ -42,7 +41,6 @@ final class ExecutionRecordingTest extends TracingTestCase
 {
     public function test_before_around_and_after_interceptors_of_a_handler_are_recorded_with_their_role_class_and_method(): void
     {
-        $recorder = new InMemorySpanRecorder();
         $orders = new class () {
             #[CommandHandler('order.place')]
             public function place(string $order): string
@@ -68,9 +66,9 @@ final class ExecutionRecordingTest extends TracingTestCase
             }
         };
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class, $interceptors::class],
-            [$orders, $interceptors, ...self::recordingSpansInto($recorder)],
+            [$orders, $interceptors, ...self::recordingSpansInto(new InMemorySpanRecorder())],
             [self::tracingConfiguration()->withExecutionRecording()],
             enabledModules: [],
         )->sendCommandWithRouting('order.place', 'order-1');
@@ -99,13 +97,12 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              no hand-over',
                 '                ↳ outcome: nothing returned by the router',
             ],
-            FlowExecution::of($recorder->recordedSpans())->lines(),
+            $ecotone->getExecutionRecording()->lines,
         );
     }
 
     public function test_a_presend_interceptor_is_recorded_with_its_role_class_and_method(): void
     {
-        $recorder = new InMemorySpanRecorder();
         $orders = new class () {
             #[CommandHandler('order.place')]
             public function place(string $order): void
@@ -119,9 +116,9 @@ final class ExecutionRecordingTest extends TracingTestCase
             }
         };
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class, $interceptors::class],
-            [$orders, $interceptors, ...self::recordingSpansInto($recorder)],
+            [$orders, $interceptors, ...self::recordingSpansInto(new InMemorySpanRecorder())],
             [self::tracingConfiguration()->withExecutionRecording()],
             enabledModules: [],
         )->sendCommandWithRouting('order.place', 'order-1');
@@ -151,13 +148,12 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              no hand-over',
                 '                ↳ outcome: nothing returned by the router',
             ],
-            FlowExecution::of($recorder->recordedSpans())->lines(),
+            $ecotone->getExecutionRecording()->lines,
         );
     }
 
     public function test_an_around_interceptor_that_does_not_proceed_has_nothing_recorded_under_it(): void
     {
-        $recorder = new InMemorySpanRecorder();
         $orders = new class () {
             #[CommandHandler('order.place')]
             public function place(string $order): void
@@ -172,9 +168,9 @@ final class ExecutionRecordingTest extends TracingTestCase
             }
         };
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class, $interceptors::class],
-            [$orders, $interceptors, ...self::recordingSpansInto($recorder)],
+            [$orders, $interceptors, ...self::recordingSpansInto(new InMemorySpanRecorder())],
             [self::tracingConfiguration()->withExecutionRecording()],
             enabledModules: [],
         )->sendCommandWithRouting('order.place', 'order-1');
@@ -198,13 +194,12 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              no hand-over',
                 '                ↳ outcome: nothing returned by the router',
             ],
-            FlowExecution::of($recorder->recordedSpans())->lines(),
+            $ecotone->getExecutionRecording()->lines,
         );
     }
 
     public function test_a_command_sent_to_an_asynchronous_channel_is_recorded_as_a_send_through_its_channel_interceptors_and_its_consumption_as_another_process(): void
     {
-        $recorder = new InMemorySpanRecorder();
         $orders = new class () {
             #[Asynchronous('orders')]
             #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
@@ -213,9 +208,9 @@ final class ExecutionRecordingTest extends TracingTestCase
             }
         };
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
-            [$orders, ...self::recordingSpansInto($recorder)],
+            [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())],
             [self::tracingConfiguration()->withExecutionRecording(), SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
         )
@@ -291,13 +286,12 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              acknowledge',
                 '                ↳ outcome: accepted',
             ],
-            FlowExecution::of($recorder->recordedSpans())->lines(),
+            $ecotone->getExecutionRecording()->lines,
         );
     }
 
     public function test_a_reply_is_recorded_with_where_it_was_routed(): void
     {
-        $recorder = new InMemorySpanRecorder();
         $orders = new class () {
             #[CommandHandler('order.place', outputChannelName: 'order.confirm')]
             public function place(string $order): string
@@ -312,9 +306,9 @@ final class ExecutionRecordingTest extends TracingTestCase
             }
         };
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
-            [$orders, ...self::recordingSpansInto($recorder)],
+            [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())],
             [self::tracingConfiguration()->withExecutionRecording()],
             enabledModules: [],
         )->sendCommandWithRouting('order.place', 'order-1');
@@ -347,7 +341,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              no hand-over',
                 '                ↳ outcome: nothing returned by the router',
             ],
-            FlowExecution::of($recorder->recordedSpans())->lines(),
+            $ecotone->getExecutionRecording()->lines,
         );
     }
 
@@ -385,7 +379,6 @@ final class ExecutionRecordingTest extends TracingTestCase
 
     public function test_a_before_interceptor_of_the_entry_runs_as_the_first_step_of_its_process(): void
     {
-        $recorder = new InMemorySpanRecorder();
         $orders = new class () {
             #[CommandHandler('order.place')]
             public function place(string $order): void
@@ -399,9 +392,9 @@ final class ExecutionRecordingTest extends TracingTestCase
             }
         };
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class, $interceptors::class],
-            [$orders, $interceptors, ...self::recordingSpansInto($recorder)],
+            [$orders, $interceptors, ...self::recordingSpansInto(new InMemorySpanRecorder())],
             [self::tracingConfiguration()->withExecutionRecording()],
             enabledModules: [],
         )->sendCommandWithRouting('order.place', 'order-1');
@@ -414,13 +407,12 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '    before class@anonymous::beforeSendingTheCommand',
                 '    around TracingInterceptor::traceCommandBus',
             ],
-            array_slice(FlowExecution::of($recorder->recordedSpans())->lines(), 0, 5),
+            array_slice($ecotone->getExecutionRecording()->lines, 0, 5),
         );
     }
 
     public function test_polls_that_receive_nothing_and_the_housekeeping_of_flow_testing_are_not_recorded(): void
     {
-        $recorder = new InMemorySpanRecorder();
         $orders = new class () {
             #[Asynchronous('orders')]
             #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
@@ -429,16 +421,16 @@ final class ExecutionRecordingTest extends TracingTestCase
             }
         };
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
-            [$orders, ...self::recordingSpansInto($recorder)],
+            [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())],
             [self::tracingConfiguration()->withExecutionRecording(), SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
         )
             ->run('orders', ExecutionPollingMetadata::createWithTestingSetup())
             ->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertSame([], FlowExecution::of($recorder->recordedSpans())->lines());
+        self::assertSame([], $ecotone->getExecutionRecording()->lines);
     }
 
     public function test_a_send_that_succeeds_on_retry_is_recorded_as_delivered_with_its_recovery(): void
@@ -487,7 +479,6 @@ final class ExecutionRecordingTest extends TracingTestCase
 
     public function test_a_process_that_fails_before_its_first_span_is_recorded_with_its_failure(): void
     {
-        $recorder = new InMemorySpanRecorder();
         $orders = new class () {
             #[CommandHandler('order.place')]
             public function place(string $order): void
@@ -503,7 +494,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class, $interceptors::class],
-            [$orders, $interceptors, ...self::recordingSpansInto($recorder)],
+            [$orders, $interceptors, ...self::recordingSpansInto(new InMemorySpanRecorder())],
             [self::tracingConfiguration()->withExecutionRecording()],
             enabledModules: [],
         );
@@ -522,13 +513,12 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '    before class@anonymous::refuseTheCommand',
                 '      ↳ failure: throws RuntimeException',
             ],
-            FlowExecution::of($recorder->recordedSpans())->lines(),
+            $ecotone->getExecutionRecording()->lines,
         );
     }
 
     public function test_entries_that_start_no_span_are_recorded_when_they_run_a_handler(): void
     {
-        $recorder = new InMemorySpanRecorder();
         $endpoints = new class () {
             #[Transformer('order.normalize')]
             public function normalize(string $order): string
@@ -555,7 +545,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$endpoints::class],
-            [$endpoints, ...self::recordingSpansInto($recorder)],
+            [$endpoints, ...self::recordingSpansInto(new InMemorySpanRecorder())],
             [self::tracingConfiguration()->withExecutionRecording()],
             enabledModules: [],
         );
@@ -564,7 +554,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         $ecotone->sendDirectToChannel('order.route', 'b');
         $ecotone->sendDirectToChannel('order.split', 'c,d');
         $ecotone->runConsoleCommand('orders:noop', []);
-        $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines(true));
+        $lines = self::trimmed($ecotone->getExecutionRecording()->linesWithEveryHint);
 
         self::assertCount(4, array_filter($lines, fn (string $line): bool => str_starts_with($line, 'process ')));
         self::assertStep($lines, 'transformer class@anonymous::normalize', ['returns: string']);
@@ -583,33 +573,31 @@ final class ExecutionRecordingTest extends TracingTestCase
 
     public function test_an_outcome_changed_by_flow_testing_is_recorded(): void
     {
-        $recorder = new InMemorySpanRecorder();
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [],
-            [...self::recordingSpansInto($recorder)],
+            [...self::recordingSpansInto(new InMemorySpanRecorder())],
             [self::tracingConfiguration()->withExecutionRecording()],
             enabledModules: [],
             testConfiguration: TestConfiguration::createWithDefaults()->withFailOnNotFoundHandler(false),
         )->sendCommandWithRouting('order.unknown', 'order-1');
 
-        self::assertStep(self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines()), 'flow testing AllowMissingDestination::invoke', ['outcome: DestinationResolutionException turned into a normal return']);
+        self::assertStep(self::trimmed($ecotone->getExecutionRecording()->lines), 'flow testing AllowMissingDestination::invoke', ['outcome: DestinationResolutionException turned into a normal return']);
     }
 
     public function test_the_reply_of_an_asynchronous_aggregate_action_is_recorded_as_dropped(): void
     {
-        $recorder = new InMemorySpanRecorder();
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [ExecutionRecordedOrder::class],
-            [...self::recordingSpansInto($recorder)],
+            [...self::recordingSpansInto(new InMemorySpanRecorder())],
             [self::tracingConfiguration()->withExecutionRecording(), SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
         )
             ->sendCommandWithRouting('order.place', 'order-1')
             ->sendCommandWithRouting('order.confirm', 'order-1')
             ->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
-        $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines());
+        $lines = self::trimmed($ecotone->getExecutionRecording()->lines);
 
         $consumed = array_slice($lines, (int) array_search('sub-flow process 3: receive orders, ExecutionRecordedOrder::confirm', $lines, true));
 
@@ -619,7 +607,6 @@ final class ExecutionRecordingTest extends TracingTestCase
 
     public function test_a_message_collected_by_a_handler_that_failed_is_not_read_as_released_when_sent_again(): void
     {
-        $recorder = new InMemorySpanRecorder();
         $orders = new class () {
             #[Asynchronous('orders')]
             #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
@@ -638,7 +625,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
-            [$orders, ...self::recordingSpansInto($recorder)],
+            [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())],
             [self::tracingConfiguration()->withExecutionRecording(), SimpleMessageChannelBuilder::createQueueChannel('orders'), SimpleMessageChannelBuilder::createQueueChannel('notifications')],
             enabledModules: [],
         );
@@ -649,7 +636,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         } catch (RuntimeException) {
         }
         $ecotone->publishEventWithRouting('order.placed', 'order-1', metadata: [MessageHeaders::MESSAGE_ID => '0b3c8e2a-5f8c-4d5e-9a3f-2b1c0d9e8f7a']);
-        $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines());
+        $lines = self::trimmed($ecotone->getExecutionRecording()->lines);
 
         self::assertNotContains('release collected message to notifications', $lines);
         self::assertContains('send notifications', $lines);
@@ -666,7 +653,6 @@ final class ExecutionRecordingTest extends TracingTestCase
 
     public function test_different_generated_names_in_one_recording_stay_different(): void
     {
-        $recorder = new InMemorySpanRecorder();
         $orders = new class () {
             #[CommandHandler('order.place')]
             public function place(string $order): void
@@ -679,15 +665,15 @@ final class ExecutionRecordingTest extends TracingTestCase
             }
         };
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
-            [$orders, ...self::recordingSpansInto($recorder)],
+            [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())],
             [self::tracingConfiguration()->withExecutionRecording()],
             enabledModules: [],
         )
             ->sendCommandWithRouting('order.place', 'order-1')
             ->sendCommandWithRouting('order.cancel', 'order-1');
-        $lines = self::trimmed(FlowExecution::of($recorder->recordedSpans())->lines());
+        $lines = self::trimmed($ecotone->getExecutionRecording()->lines);
 
         self::assertContains('direct channel {generated#1}.target', $lines);
         self::assertContains('direct channel {generated#2}.target', $lines);
@@ -756,10 +742,9 @@ final class ExecutionRecordingTest extends TracingTestCase
             if ($scenario->name !== $scenarioName) {
                 continue;
             }
-            $recorder = new InMemorySpanRecorder();
             $ecotone = EcotoneLite::bootstrapFlowTesting(
                 $scenario->classesToResolve,
-                [...$scenario->services, ...self::recordingSpansInto($recorder)],
+                [...$scenario->services, ...self::recordingSpansInto(new InMemorySpanRecorder())],
                 [...$scenario->extensionObjects, self::tracingConfiguration()->withExecutionRecording()],
                 enabledModules: [],
                 licenceKey: LicenceTesting::VALID_LICENCE,
@@ -768,7 +753,9 @@ final class ExecutionRecordingTest extends TracingTestCase
                 self::assertNull($scenario->runStage($stage, $ecotone));
             }
 
-            return FlowExecution::of($recorder->recordedSpans())->lines($withEveryHint);
+            $recording = $ecotone->getExecutionRecording();
+
+            return $withEveryHint ? $recording->linesWithEveryHint : $recording->lines;
         }
         self::fail("No scenario named {$scenarioName} in the flow scenario catalogue");
     }

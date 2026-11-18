@@ -14,7 +14,6 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
-use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -39,10 +38,9 @@ final class RedeliveredFlowExecutionRecordingTest extends DbalMessagingTestCase
                 }
             }
         };
-        $recorder = new InMemorySpanRecorder();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
-            [$orders, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN')), InMemorySpanRecorder::class => $recorder],
+            [$orders, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN')), InMemorySpanRecorder::class => new InMemorySpanRecorder()],
             [DbalBackedMessageChannelBuilder::create('orders')->withReceiveTimeout(100), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false), TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::TRACING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -51,11 +49,11 @@ final class RedeliveredFlowExecutionRecordingTest extends DbalMessagingTestCase
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
         $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
         $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
-        $processes = FlowExecution::of($recorder->recordedSpans())->processes;
+        $processes = $ecotone->getExecutionRecording()->processes;
 
         self::assertSame(2, $orders->attempts);
         self::assertCount(3, $processes);
-        self::assertSame(1, $processes[1]['sentBy']['process']);
-        self::assertSame($processes[1]['sentBy'], $processes[2]['sentBy'] ?? null);
+        self::assertSame(1, $processes[1]->sentBy->process);
+        self::assertEquals($processes[1]->sentBy, $processes[2]->sentBy);
     }
 }

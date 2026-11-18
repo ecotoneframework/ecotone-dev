@@ -26,7 +26,6 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
-use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 
@@ -618,16 +617,18 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
      */
     private function recorded(array $classes, array $services, array $extensionObjects, callable $run, bool $withEveryHint = false): array
     {
-        $recorder = new InMemorySpanRecorder();
-        $run(EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             $classes,
-            [...$services, ...self::recordingSpansInto($recorder)],
+            [...$services, ...self::recordingSpansInto(new InMemorySpanRecorder())],
             [...$extensionObjects, self::tracingConfiguration()->withExecutionRecording()],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
-        ));
+        );
+        $run($ecotone);
 
-        return FlowExecution::of($recorder->recordedSpans())->lines($withEveryHint);
+        $recording = $ecotone->getExecutionRecording();
+
+        return $withEveryHint ? $recording->linesWithEveryHint : $recording->lines;
     }
 
     /**
@@ -639,10 +640,9 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
             if ($scenario->name !== $scenarioName) {
                 continue;
             }
-            $recorder = new InMemorySpanRecorder();
             $ecotone = EcotoneLite::bootstrapFlowTesting(
                 $scenario->classesToResolve,
-                [...$scenario->services, ...self::recordingSpansInto($recorder)],
+                [...$scenario->services, ...self::recordingSpansInto(new InMemorySpanRecorder())],
                 [...$scenario->extensionObjects, self::tracingConfiguration()->withExecutionRecording()],
                 enabledModules: [],
                 licenceKey: LicenceTesting::VALID_LICENCE,
@@ -651,7 +651,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
                 self::assertNull($scenario->runStage($stage, $ecotone));
             }
 
-            return FlowExecution::of($recorder->recordedSpans())->lines();
+            return $ecotone->getExecutionRecording()->lines;
         }
         self::fail("No scenario named {$scenarioName} in the flow scenario catalogue");
     }

@@ -20,7 +20,6 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
-use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Throwable;
@@ -106,8 +105,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
             }
         };
         $recordingOf = function (array $orderIds) use ($orders): array {
-            $recorder = new InMemorySpanRecorder();
-            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto($recorder)], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), self::tracingConfiguration()->withExecutionRecording()], enabledModules: []);
+            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), self::tracingConfiguration()->withExecutionRecording()], enabledModules: []);
             foreach ($orderIds as $orderId) {
                 try {
                     $ecotone->sendCommandWithRouting('order.place', $orderId);
@@ -115,7 +113,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
                 }
             }
 
-            return FlowExecution::of($recorder->recordedSpans())->lines(true);
+            return $ecotone->getExecutionRecording()->linesWithEveryHint;
         };
 
         $alone = $recordingOf(['order-1']);
@@ -144,8 +142,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
             }
         };
         $recordingOf = function (array $orderIds) use ($orders): array {
-            $recorder = new InMemorySpanRecorder();
-            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto($recorder)], [self::tracingConfiguration()->withExecutionRecording()], enabledModules: []);
+            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())], [self::tracingConfiguration()->withExecutionRecording()], enabledModules: []);
             foreach ($orderIds as $orderId) {
                 try {
                     $ecotone->sendCommandWithRouting('order.place', $orderId);
@@ -153,7 +150,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
                 }
             }
 
-            return FlowExecution::of($recorder->recordedSpans())->lines(true);
+            return $ecotone->getExecutionRecording()->linesWithEveryHint;
         };
 
         $alone = $recordingOf(['order-1']);
@@ -176,12 +173,11 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
     {
         $outcomes = [];
         foreach ([false, true] as $recording) {
-            $recorder = new InMemorySpanRecorder();
             $instances = $services();
             $tracing = self::tracingConfiguration();
             $ecotone = EcotoneLite::bootstrapFlowTesting(
                 $classes,
-                [...$instances, ...self::recordingSpansInto($recorder)],
+                [...$instances, ...self::recordingSpansInto(new InMemorySpanRecorder())],
                 [...$extensionObjects, $recording ? $tracing->withExecutionRecording() : $tracing],
                 enabledModules: [],
                 licenceKey: LicenceTesting::VALID_LICENCE,
@@ -194,7 +190,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
             }
             $outcomes[] = ['failure' => $failure, 'observed' => $instances === [] ? [] : $observed($instances[0])];
             if ($recording) {
-                self::assertNotEmpty(FlowExecution::of($recorder->recordedSpans())->lines(true));
+                self::assertNotEmpty($ecotone->getExecutionRecording()->linesWithEveryHint);
             }
         }
 

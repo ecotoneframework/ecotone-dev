@@ -19,7 +19,6 @@ use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Dbal\Gathering\DbalGatheredGroupStore;
-use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Throwable;
@@ -54,19 +53,19 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
      */
     private function gatheredWith(bool $recording): array
     {
-        [$ecotone, $recorder, $handler] = $this->application($recording);
+        [$ecotone, $handler] = $this->application($recording);
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $ecotone->run('workers')->run('summaries');
 
-        return [$handler->gathered, array_map(trim(...), FlowExecution::of($recorder->recordedSpans())->lines())];
+        return [$handler->gathered, $recording ? array_map(trim(...), $ecotone->getExecutionRecording()->lines) : []];
     }
 
     public function test_a_group_store_read_that_fails_fails_the_same_and_leaves_the_next_process_recorded_whole(): void
     {
         $outcomes = [];
         foreach ([false, true] as $recording) {
-            [$ecotone, $recorder] = $this->application($recording);
+            [$ecotone] = $this->application($recording);
             $ecotone->sendCommandWithRouting('split', [10, 20]);
             $ecotone->run('workers');
             $this->getConnection()->executeStatement('DROP TABLE ' . DbalGatheredGroupStore::PART_TABLE);
@@ -78,22 +77,22 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
             }
             $ecotone->sendCommandWithRouting('ping');
             $outcomes[] = $failure;
-            $lines = FlowExecution::of($recorder->recordedSpans())->lines();
+            $lines = $recording ? $ecotone->getExecutionRecording()->lines : [];
         }
-        [$alone, $aloneRecorder] = $this->application(true);
+        [$alone] = $this->application(true);
         $alone->sendCommandWithRouting('ping');
         $ping = fn (array $of): array => array_map(fn (string $line): string => (string) preg_replace(['/^process \d+: /', '/\{generated#\d+\}/'], ['process: ', '{generated}'], $line), array_slice($of, (int) array_search('process 1: send command ping, class@anonymous::ping', $of, true)));
 
         self::assertSame($outcomes[0], $outcomes[1]);
         self::assertNotNull($outcomes[0]);
         self::assertSame(
-            $ping(FlowExecution::of($aloneRecorder->recordedSpans())->lines()),
+            $ping($alone->getExecutionRecording()->lines),
             array_map(fn (string $line): string => (string) preg_replace(['/^process \d+: /', '/\{generated#\d+\}/'], ['process: ', '{generated}'], $line), array_slice($lines, (int) array_key_last(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'process ') && str_contains($line, 'send command ping'))))),
         );
     }
 
     /**
-     * @return array{0: FlowTestSupport, 1: InMemorySpanRecorder, 2: object}
+     * @return array{0: FlowTestSupport, 1: object}
      */
     private function application(bool $recording): array
     {
@@ -132,11 +131,10 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
                 $this->gathered[] = $parts->results;
             }
         };
-        $recorder = new InMemorySpanRecorder();
         $tracing = TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class);
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
-            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN')), InMemorySpanRecorder::class => $recorder],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN')), InMemorySpanRecorder::class => new InMemorySpanRecorder()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
                 SimpleMessageChannelBuilder::createQueueChannel('summaries'),
@@ -147,6 +145,6 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
 
-        return [$ecotone, $recorder, $handler];
+        return [$ecotone, $handler];
     }
 }

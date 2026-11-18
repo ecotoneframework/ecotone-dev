@@ -24,7 +24,6 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
-use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -52,7 +51,7 @@ final class GatheredPartOutcomeRecordingTest extends DbalMessagingTestCase
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $ecotone->run('workers')->run('summaries');
 
-        self::assertSame(['part stored, 1 of 2 in, group waits', 'part stored, 2 of 2 in, group released'], $this->outcomesOfParts());
+        self::assertSame(['part stored, 1 of 2 in, group waits', 'part stored, 2 of 2 in, group released'], $this->outcomesOfParts($ecotone));
     }
 
     #[DataProvider('stores')]
@@ -63,7 +62,7 @@ final class GatheredPartOutcomeRecordingTest extends DbalMessagingTestCase
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $ecotone->run('workers')->run('summaries');
 
-        self::assertSame(['part stored, 1 of 2 in, group waits', 'duplicate part ignored', 'part stored, 2 of 2 in, group released', 'duplicate part ignored, group already released'], $this->outcomesOfParts());
+        self::assertSame(['part stored, 1 of 2 in, group waits', 'duplicate part ignored', 'part stored, 2 of 2 in, group released', 'duplicate part ignored, group already released'], $this->outcomesOfParts($ecotone));
     }
 
     #[DataProvider('stores')]
@@ -75,7 +74,7 @@ final class GatheredPartOutcomeRecordingTest extends DbalMessagingTestCase
         $ecotone->getGateway(GatheredGroups::class)->requestRelease($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler')[0]['groupId']);
         $ecotone->run('summaries')->run('workers')->run('summaries');
 
-        self::assertSame(['late part ignored, group already released', 'late part ignored, group already released'], $this->outcomesOfParts());
+        self::assertSame(['late part ignored, group already released', 'late part ignored, group already released'], $this->outcomesOfParts($ecotone));
     }
 
     #[DataProvider('stores')]
@@ -87,17 +86,15 @@ final class GatheredPartOutcomeRecordingTest extends DbalMessagingTestCase
         $ecotone->getGateway(GatheredGroups::class)->discard($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('summary.handler')[0]['groupId']);
         $ecotone->run('workers')->run('summaries');
 
-        self::assertSame(['late part ignored, group already discarded', 'late part ignored, group already discarded'], $this->outcomesOfParts());
+        self::assertSame(['late part ignored, group already discarded', 'late part ignored, group already discarded'], $this->outcomesOfParts($ecotone));
     }
-
-    private InMemorySpanRecorder $recorder;
 
     /**
      * @return list<string>
      */
-    private function outcomesOfParts(): array
+    private function outcomesOfParts(FlowTestSupport $ecotone): array
     {
-        $lines = array_map(trim(...), FlowExecution::of($this->recorder->recordedSpans())->lines());
+        $lines = array_map(trim(...), $ecotone->getExecutionRecording()->lines);
 
         return array_values(array_map(
             fn (int $position): string => substr($lines[$position + 1], strlen('↳ outcome: ')),
@@ -174,11 +171,9 @@ final class GatheredPartOutcomeRecordingTest extends DbalMessagingTestCase
             {
             }
         };
-        $this->recorder = new InMemorySpanRecorder();
-
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
-            containerOrAvailableServices: [$handler, InMemorySpanRecorder::class => $this->recorder, ...($dbal ? [DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [])],
+            containerOrAvailableServices: [$handler, InMemorySpanRecorder::class => new InMemorySpanRecorder(), ...($dbal ? [DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [])],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
                 SimpleMessageChannelBuilder::createQueueChannel('summaries'),

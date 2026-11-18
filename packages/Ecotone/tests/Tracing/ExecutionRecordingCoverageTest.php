@@ -22,10 +22,9 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Tracing\ExecutionRecording;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
-use Ecotone\Api\Tracing\Span;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
-use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Throwable;
@@ -161,7 +160,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
 
     public function test_the_events_an_aggregate_recorded_are_published_from_its_save(): void
     {
-        $lines = FlowExecution::of(self::spansOf('state-stored aggregate recording an event'))->lines();
+        $lines = self::recordingOf('state-stored aggregate recording an event')->lines;
         $save = array_key_first(array_filter($lines, fn (string $line): bool => str_starts_with(trim($line), 'save the aggregate')));
         $publish = array_key_first(array_filter($lines, fn (string $line, int $position): bool => $position > (int) $save && str_starts_with(trim($line), 'gateway EventBus::publish'), ARRAY_FILTER_USE_BOTH));
 
@@ -322,16 +321,16 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
      */
     private function recorded(array $classes, array $services, array $extensionObjects, callable $run, ?string $licenceKey = LicenceTesting::VALID_LICENCE): array
     {
-        $recorder = new InMemorySpanRecorder();
-        $run(EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             $classes,
-            [...$services, ...self::recordingSpansInto($recorder)],
+            [...$services, ...self::recordingSpansInto(new InMemorySpanRecorder())],
             [...$extensionObjects, self::tracingConfiguration()->withExecutionRecording()],
             enabledModules: [],
             licenceKey: $licenceKey,
-        ));
+        );
+        $run($ecotone);
 
-        return array_map(trim(...), FlowExecution::of($recorder->recordedSpans())->lines(true));
+        return array_map(trim(...), $ecotone->getExecutionRecording()->linesWithEveryHint);
     }
 
     /**
@@ -359,22 +358,18 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
      */
     private static function executionOf(string $scenarioName): array
     {
-        return array_map(trim(...), FlowExecution::of(self::spansOf($scenarioName))->lines(true));
+        return array_map(trim(...), self::recordingOf($scenarioName)->linesWithEveryHint);
     }
 
-    /**
-     * @return list<Span>
-     */
-    private static function spansOf(string $scenarioName): array
+    private static function recordingOf(string $scenarioName): ExecutionRecording
     {
         foreach (FlowScenarioCatalogue::all() as $scenario) {
             if ($scenario->name !== $scenarioName) {
                 continue;
             }
-            $recorder = new InMemorySpanRecorder();
             $ecotone = EcotoneLite::bootstrapFlowTesting(
                 $scenario->classesToResolve,
-                [...$scenario->services, ...self::recordingSpansInto($recorder)],
+                [...$scenario->services, ...self::recordingSpansInto(new InMemorySpanRecorder())],
                 [...$scenario->extensionObjects, self::tracingConfiguration()->withExecutionRecording()],
                 enabledModules: [],
                 licenceKey: LicenceTesting::VALID_LICENCE,
@@ -383,7 +378,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
                 self::assertNull($scenario->runStage($stage, $ecotone));
             }
 
-            return $recorder->recordedSpans();
+            return $ecotone->getExecutionRecording();
         }
         self::fail("No scenario named {$scenarioName} in the flow scenario catalogue");
     }

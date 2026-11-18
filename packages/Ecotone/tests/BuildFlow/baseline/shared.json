@@ -465,6 +465,7 @@
             {"module":"Ecotone\\Projecting\\Config\\StreamFilterRegistryModule","kind":"service","name":"Ecotone\\Projecting\\StreamFilterRegistry","class":"Ecotone\\Projecting\\StreamFilterRegistry"},
             {"module":"Ecotone\\Projecting\\Config\\StreamSourceRegistryModule","kind":"service","name":"Ecotone\\Projecting\\StreamSourceRegistry","class":"Ecotone\\Projecting\\StreamSourceRegistry"},
             {"module":"Ecotone\\Projecting\\Config\\ProjectingModule","kind":"service","name":"Ecotone\\Projecting\\UngatheredPartitionBatchDispatcher","class":"Ecotone\\Projecting\\UngatheredPartitionBatchDispatcher"},
+            {"module":"Ecotone\\Tracing\\Config\\TracingModule","kind":"service","name":"Ecotone\\Tracing\\Execution\\ExecutionRecordingReader","class":"Ecotone\\Tracing\\Execution\\ExecutionRecordingNotSwitchedOn"},
             {"module":"Ecotone\\Tracing\\Config\\TracingModule","kind":"service","name":"Ecotone\\Tracing\\MessageSpanAttributes","class":"Ecotone\\Tracing\\MessageSpanAttributes"},
             {"module":"Ecotone\\Tracing\\Config\\TracingModule","kind":"service","name":"Ecotone\\Tracing\\Tracer","class":"Ecotone\\Tracing\\EcotoneTracer"},
             {"module":"Ecotone\\Tracing\\Config\\TracingModule","kind":"service","name":"Ecotone\\Tracing\\TracingInterceptor","class":"Ecotone\\Tracing\\TracingInterceptor"},

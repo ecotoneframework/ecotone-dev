@@ -65,6 +65,46 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
         self::assertSame('gateway CommandBus::sendWithRouting', $processes[2]->steps[0]->label);
     }
 
+    public function test_each_message_a_consumer_started_by_a_console_command_handles_is_its_own_sub_flow_recorded_when_it_ends(): void
+    {
+        $recorder = new InMemorySpanRecorder();
+        $orders = new class ($recorder) {
+            public array $spansRecordedBefore = [];
+
+            public function __construct(private InMemorySpanRecorder $recorder)
+            {
+            }
+
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(string $order): void
+            {
+                $this->spansRecordedBefore[] = count($this->recorder->recordedSpans());
+            }
+
+            #[CommandHandler('audit.record')]
+            public function record(string $audit): void
+            {
+            }
+        };
+        $ecotone = $this->application($orders, $recorder);
+
+        foreach (['order-1', 'order-2', 'order-3'] as $order) {
+            $ecotone->sendCommandWithRouting('order.place', $order);
+        }
+        $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => 'orders', 'finishWhenNoMessages' => true]);
+        $ecotone->sendCommandWithRouting('audit.record', 'audit-1');
+        $processes = $ecotone->getExecutionRecording()->processes;
+        $receives = array_values(array_filter($processes, fn (RecordedProcess $process): bool => str_starts_with($process->title, 'receive orders')));
+
+        self::assertCount(3, $receives);
+        self::assertSame([1, 2, 3], array_map(fn (RecordedProcess $receive): int => $receive->sentBy->process, $receives));
+        self::assertLessThan($orders->spansRecordedBefore[1], $orders->spansRecordedBefore[0]);
+        self::assertLessThan($orders->spansRecordedBefore[2], $orders->spansRecordedBefore[1]);
+        self::assertStringStartsWith('send command audit.record', $processes[count($processes) - 1]->title);
+        self::assertNull($processes[count($processes) - 1]->sentBy);
+    }
+
     private function ordering(): object
     {
         return new class () {

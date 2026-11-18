@@ -73,6 +73,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
     private const OWN_ROLES = [self::TRANSFORMER, self::SPLITTER, self::ORCHESTRATOR];
     private const SPLITTER_PROCESSOR_PREFIX = 'ecotone.gathering.splitter.core.';
     private const CHANNEL_ID_PREFIX = 'channel-';
+    private const ENDPOINT_RUNNER_PREFIX = 'endpointRunner.';
     private const COLLECTOR_SENDER_PREFIX = CollectorSenderInterceptor::class . '.';
     private const POLL_HOUSEKEEPING = [
         MessageHeadersPropagatorInterceptor::class . '::enablePollingConsumerPropagation',
@@ -114,6 +115,11 @@ final class RecordExecutionCompilerPass implements CompilerPass
             $recorded = $this->recorded($definition, str_starts_with($id, self::SPLITTER_PROCESSOR_PREFIX) ? self::SPLITTER : null, $builder);
             if ($recorded !== $definition) {
                 $builder->replace($id, $recorded);
+            }
+        }
+        foreach ($builder->getDefinitions() as $id => $definition) {
+            if (str_starts_with($id, self::ENDPOINT_RUNNER_PREFIX)) {
+                $builder->replace($id, new Definition(RecordedEndpointRunner::class, [$definition, new Reference(Tracer::class)]));
             }
         }
         foreach ($this->licensed as $licensed) {

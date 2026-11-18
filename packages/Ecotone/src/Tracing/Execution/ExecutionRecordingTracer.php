@@ -46,6 +46,9 @@ final class ExecutionRecordingTracer implements Tracer
     private array $hintsOfOpenSteps = [];
     /** @var list<?string> */
     private array $flowTestingFailures = [];
+    /** @var list<array<string, mixed>> */
+    private array $suspendedEntries = [];
+    private const PER_PROCESS_STATE = ['openSteps', 'stepsWithChildren', 'stepsOfOpenEntry', 'spanStartedInOpenEntry', 'receiveEntry', 'receiveContinuation', 'invocationInOpenEntry', 'housekeepingInOpenEntry', 'collectors', 'hintsOfOpenSteps'];
 
     public function __construct(
         private EcotoneTracer $tracer,
@@ -329,6 +332,32 @@ final class ExecutionRecordingTracer implements Tracer
         unset($this->collectors[$channelName]['collected'][$messageId]);
 
         return true;
+    }
+
+    public function suspendOpenEntry(): void
+    {
+        $suspended = [];
+        foreach (self::PER_PROCESS_STATE as $property) {
+            $suspended[$property] = $this->{$property};
+        }
+        $this->suspendedEntries[] = $suspended;
+        $this->openSteps = [];
+        $this->stepsWithChildren = [];
+        $this->stepsOfOpenEntry = [];
+        $this->spanStartedInOpenEntry = false;
+        $this->receiveEntry = null;
+        $this->receiveContinuation = null;
+        $this->invocationInOpenEntry = false;
+        $this->housekeepingInOpenEntry = false;
+        $this->collectors = [];
+        $this->hintsOfOpenSteps = [];
+    }
+
+    public function resumeSuspendedEntry(): void
+    {
+        foreach (array_pop($this->suspendedEntries) ?? [] as $property => $value) {
+            $this->{$property} = $value;
+        }
     }
 
     public function markHousekeeping(): void

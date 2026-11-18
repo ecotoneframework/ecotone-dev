@@ -1,0 +1,9 @@
+#!/usr/bin/env php
+<?php
+
+use Monorepo\SwooleApp\Symfony\Kernel;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+
+require dirname(__DIR__, 3) . '/vendor/autoload.php';
+
+(new Application(new Kernel(getenv('APP_ENV') ?: 'prod', false)))->run();

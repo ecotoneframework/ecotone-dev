@@ -205,7 +205,8 @@
         "symfony/var-exporter": "^6.4|^7.0|^8.0",
         "enqueue/dsn": "^0.10.27",
         "yoast/phpunit-polyfills": "^4.0.0",
-        "tempest/framework": "^3.11"
+        "tempest/framework": "^3.11",
+        "laravel/octane": "^2.25"
     },
     "suggest": {
         "ext-simplexml": "Required if application/xml is used as serialization media type"

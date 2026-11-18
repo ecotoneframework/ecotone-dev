@@ -97,7 +97,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $this->verifyDestinationExists();
 
         $context = $this->connectionFactory->createContext();
-        $confirmations = $this->getPublisherConfirmations();
+        $confirmations = $this->publisherConfirmationsOf($context);
         $prePublishConfirmationsEpoch = $confirmations?->getEpoch() ?? 0;
 
         $publishRecords = $this->publishMessages($messagesToPublish, $context, $confirmations);
@@ -223,12 +223,12 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         ];
     }
 
-    private function getPublisherConfirmations(): ?AmqpPublisherConfirmations
+    private function publisherConfirmationsOf(InteropAmqpContext $context): ?AmqpPublisherConfirmations
     {
         $innerConnectionFactory = $this->connectionFactory->getInnerConnectionFactory();
 
         return $innerConnectionFactory instanceof AmqpReconnectableConnectionFactory
-            ? $innerConnectionFactory->getPublisherConfirmations()
+            ? $innerConnectionFactory->publisherConfirmationsOf($context)
             : null;
     }
 

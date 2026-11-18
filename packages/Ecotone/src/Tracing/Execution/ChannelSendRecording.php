@@ -84,6 +84,9 @@ final class ChannelSendRecording
     public function interceptorRan(int $position, Message $passedOn): void
     {
         $current = count($this->openSends) - 1;
+        if ($current < 0) {
+            return;
+        }
         $send = $this->openSends[$current];
         $entered = count($send['entered']) - 1;
         if ($entered >= 0 && $send['entered'][$entered]['position'] === $position) {
@@ -103,14 +106,20 @@ final class ChannelSendRecording
 
     public function postSentAfter(int $position): void
     {
+        if ($this->openSends === []) {
+            return;
+        }
         $this->leaveEntered(null);
         $this->openSends[count($this->openSends) - 1]['after'][] = ['position' => $position, 'phase' => self::POST_SEND, 'failure' => null];
     }
 
     public function completedAfter(int $position, ?Throwable $failure): void
     {
-        $this->leaveEntered($failure);
         $current = count($this->openSends) - 1;
+        if ($current < 0) {
+            return;
+        }
+        $this->leaveEntered($failure);
         $this->openSends[$current]['failedAfter'][$position] = $failure !== null;
         $this->openSends[$current]['after'][] = ['position' => $position, 'phase' => self::AFTER_SEND_COMPLETION, 'failure' => $failure === null ? null : ExecutionRecordingTracer::shortClassOf($failure::class)];
         if ($failure !== null) {
@@ -182,7 +191,7 @@ final class ChannelSendRecording
     private function enter(int $position): void
     {
         $current = count($this->openSends) - 1;
-        if ($this->openSends[$current]['step'] === null || ! $this->shows($position, self::PRE_SEND)) {
+        if ($current < 0 || $this->openSends[$current]['step'] === null || ! $this->shows($position, self::PRE_SEND)) {
             return;
         }
         $step = $this->tracer->startStep('before send ' . $this->methodOf($position, self::PRE_SEND));

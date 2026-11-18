@@ -36,12 +36,20 @@ final class ReplyRecording
 
     public function replied(?Message $reply): void
     {
+        if ($this->openRequests === []) {
+            return;
+        }
         $this->openRequests[count($this->openRequests) - 1]['reply'] = $reply;
     }
 
     public function routedTo(string $mechanism, string $channelName, Message $forwarded, Closure $send): void
     {
         $position = count($this->openRequests) - 1;
+        if ($position < 0) {
+            $send();
+
+            return;
+        }
         $this->openRequests[$position]['handedOver'] = true;
         $request = $this->openRequests[$position]['request'];
         $reply = $this->openRequests[$position]['reply'] ?? $request;
@@ -67,6 +75,9 @@ final class ReplyRecording
 
     public function completedAsPart(): void
     {
+        if ($this->openRequests === []) {
+            return;
+        }
         $this->openRequests[count($this->openRequests) - 1]['handedOver'] = true;
     }
 

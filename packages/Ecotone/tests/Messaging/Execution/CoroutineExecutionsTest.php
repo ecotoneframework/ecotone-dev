@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Execution;
 
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -15,6 +18,7 @@ use OpenSwoole\Coroutine;
 use OpenSwoole\Runtime;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Throwable;
 
 /**
@@ -71,6 +75,87 @@ final class CoroutineExecutionsTest extends TestCase
         );
 
         $this->assertSame(['left behind' => null], $ecotone->sendQueryWithRouting('parcel.tenantSeenByEventHandler'));
+    }
+
+    public function test_first_messages_handled_at_once_after_boot_are_all_handled(): void
+    {
+        $counter = new class () {
+            private int $counted = 0;
+
+            #[CommandHandler('counter.count')]
+            public function count(): void
+            {
+                $this->counted++;
+            }
+
+            #[QueryHandler('counter.counted')]
+            public function counted(): int
+            {
+                return $this->counted;
+            }
+        };
+        $servicesTakingTimeToBuild = new class ([$counter::class => $counter]) implements ContainerInterface {
+            public function __construct(private array $services)
+            {
+            }
+
+            public function get(string $id): mixed
+            {
+                usleep(20_000);
+
+                return $this->services[$id];
+            }
+
+            public function has(string $id): bool
+            {
+                return isset($this->services[$id]);
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$counter::class], $servicesTakingTimeToBuild);
+
+        $this->runCoroutines(
+            fn () => $ecotone->sendCommandWithRouting('counter.count'),
+            fn () => $ecotone->sendCommandWithRouting('counter.count'),
+            fn () => $ecotone->sendCommandWithRouting('counter.count'),
+        );
+
+        $this->assertSame(3, $ecotone->sendQueryWithRouting('counter.counted'));
+    }
+
+    public function test_every_consumer_coroutine_stops_when_the_process_is_asked_to_terminate(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
+            public function place(): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrap(
+            [$orders::class],
+            [$orders],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            enabledModules: [],
+        );
+        $consumeUpToTenSeconds = ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(10_000)->withFinishWhenNoMessages(false);
+        $stoppedAfterSeconds = [];
+        $startedAt = microtime(true);
+        $consume = static function () use ($ecotone, $consumeUpToTenSeconds, &$stoppedAfterSeconds, $startedAt): void {
+            $ecotone->run('orders', $consumeUpToTenSeconds);
+            $stoppedAfterSeconds[] = microtime(true) - $startedAt;
+        };
+
+        $this->runCoroutines(
+            $consume,
+            $consume,
+            static function (): void {
+                usleep(300_000);
+                posix_kill(getmypid(), SIGTERM);
+            },
+        );
+
+        $this->assertCount(2, $stoppedAfterSeconds);
+        $this->assertLessThan(5, max($stoppedAfterSeconds));
     }
 
     private function runCoroutines(callable ...$coroutines): void

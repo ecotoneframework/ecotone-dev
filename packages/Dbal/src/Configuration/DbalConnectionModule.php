@@ -4,19 +4,24 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Configuration;
 
+use Doctrine\DBAL\Connection;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Dbal\Attribute\CurrentConnection;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\Test\Configuration\ProvidedReferences;
 use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
+use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Type;
 
 #[ModuleAnnotation]
 /**
@@ -27,13 +32,39 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
  */
 final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionObjectsForFlowTesting
 {
-    private function __construct()
+    /**
+     * @param array<string, string> $connectionsInjectedIntoParameters
+     */
+    private function __construct(private array $connectionsInjectedIntoParameters)
     {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self();
+        $connectionsInjectedIntoParameters = [];
+        foreach ($annotationRegistrationService->findAnnotatedMethods(EndpointAnnotation::class) as $annotatedMethod) {
+            $interfaceToCall = $interfaceToCallRegistry->getFor($annotatedMethod->getClassName(), $annotatedMethod->getMethodName());
+
+            foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
+                foreach ($interfaceParameter->getAnnotationsOfType(CurrentConnection::class) as $currentConnection) {
+                    $placement = sprintf('%s::%s($%s)', $annotatedMethod->getClassName(), $annotatedMethod->getMethodName(), $interfaceParameter->getName());
+                    if (! $interfaceParameter->canBePassedIn(Type::object(Connection::class))) {
+                        throw ConfigurationException::create(sprintf(
+                            '#[CurrentConnection] on %s injects the %s Ecotone opened for the message being handled, but the parameter is typed `%s`. '
+                            . 'Type the parameter as %s, or remove #[CurrentConnection] from it.',
+                            $placement,
+                            Connection::class,
+                            $interfaceParameter->getTypeHint(),
+                            Connection::class,
+                        ));
+                    }
+
+                    $connectionsInjectedIntoParameters[$currentConnection->getReferenceName()] ??= $placement;
+                }
+            }
+        }
+
+        return new self($connectionsInjectedIntoParameters);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -55,6 +86,26 @@ final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionO
                     'For Laravel, add LaravelConnectionReference::defaultConnection() to your ServiceContext. ' .
                     'See: https://docs.ecotone.tech/modules/dbal-support#configuration',
                     $connectionFactory
+                )
+            );
+        }
+
+        foreach ($this->connectionsInjectedIntoParameters as $connectionReferenceName => $placement) {
+            if (in_array($connectionReferenceName, $connectionFactories, true)) {
+                continue;
+            }
+
+            $messagingConfiguration->requireReference(
+                $connectionReferenceName,
+                sprintf(
+                    "#[CurrentConnection('%s')] on %s needs a connection registered as `%s`, and there is none. "
+                    . 'Register it as a service under that name: new %s($dsn), '
+                    . 'or use #[CurrentConnection] without a name for the default connection `%s`.',
+                    $connectionReferenceName,
+                    $placement,
+                    $connectionReferenceName,
+                    DbalConnectionReference::DEFAULT,
+                    DbalConnectionReference::DEFAULT,
                 )
             );
         }

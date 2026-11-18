@@ -109,14 +109,14 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
         $suspended->start();
         try {
             $ecotone->sendCommandWithRouting('person.register', ['personId' => 2, 'name' => 'interleaved']);
-            $this->fail('The interleaved execution joined the transaction of the suspended one');
+            $this->fail();
         } catch (ConfigurationException $exception) {
             $this->assertSame(
                 'Database connection `' . DbalConnectionFactory::class . '` is already inside a transaction opened by another execution running concurrently in this process (a coroutine or a fiber). '
                 . 'Two executions on one connection share one transaction: a rollback of either one discards what the other stored. '
                 . 'Ecotone gives every concurrent execution its own connection when it creates the connections itself, so register the connection from a DSN: new Ecotone\\Api\\Dbal\\DbalConnectionFactory($dsn). '
                 . 'A connection built by the application or its framework (Doctrine ManagerRegistry, Laravel database connection, an existing Doctrine\\DBAL\\Connection) is a single connection for the whole process, so with it handle one message at a time per process: in Swoole or OpenSwoole set `enable_coroutine` to false (the default of Laravel Octane). '
-                . 'Or run the handler without a database transaction: #[WithoutDatabaseTransaction] (Ecotone\\Api\\Attribute\\WithoutDatabaseTransaction), or DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false).',
+                . 'Running without a database transaction (#[WithoutDatabaseTransaction], or DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false), ->withTransactionOnAsynchronousEndpoints(false) or ->withTransactionOnConsoleCommands(false)) removes this refusal but not the cause: the executions still share the connection, their writes are no longer atomic, and MySQL refuses their concurrent queries.',
                 $exception->getMessage()
             );
         } finally {
@@ -134,12 +134,12 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
         $suspended->start();
         try {
             (new Fiber(fn () => $ecotone->sendCommandWithRouting('person.register', ['personId' => 2, 'name' => 'interleaved'])))->start();
-            $this->fail('The interleaved execution was given a connection above the pool size');
+            $this->fail();
         } catch (ConnectionPoolExhausted $exception) {
             $this->assertSame(
-                'All 2 database connections of this connection pool are held by executions running concurrently in this process (coroutines or fibers), and none was returned. '
+                'All 2 connections of the connection pool for `' . $this->connectionName() . '` are in use by this process and the executions running concurrently in it (coroutines or fibers), and none was returned. '
                 . "Raise the pool size where the connection is registered: new Ecotone\\Api\\Dbal\\DbalConnectionFactory(['dsn' => \$dsn, 'connection_pool_size' => 20]); every worker process may then open that many connections, so keep workers times pool size below what the database accepts. "
-                . 'Or let fewer executions run at once: in Swoole or OpenSwoole lower `max_coroutine` or `worker_max_concurrency`.',
+                . 'Or let fewer executions run at once: in Swoole or OpenSwoole lower `max_coroutine`, and with fibers limit how many your event loop runs at a time and release finished Fiber objects, because a fiber keeps its connection until it is destroyed.',
                 $exception->getMessage()
             );
         } finally {
@@ -200,6 +200,13 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
             ],
             [ModulePackageList::DBAL_PACKAGE],
         );
+    }
+
+    private function connectionName(): string
+    {
+        $parameters = $this->getConnection()->getParams();
+
+        return sprintf('%s://%s/%s', $parameters['driver'], $parameters['host'] ?? 'localhost', $parameters['dbname'] ?? $parameters['path'] ?? '');
     }
 
     private function openConnections(): int

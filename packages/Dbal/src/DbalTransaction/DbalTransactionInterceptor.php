@@ -35,13 +35,13 @@ use WeakMap;
  */
 class DbalTransactionInterceptor
 {
+    /** @var WeakMap<Connection, object> */
+    private WeakMap $executionsHoldingTransaction;
+
     /**
      * @param array<string, CachedConnectionFactory> $connectionFactories
      * @param string[] $disableTransactionOnAsynchronousEndpoints
      */
-    /** @var WeakMap<Connection, object> */
-    private WeakMap $executionsHoldingTransaction;
-
     public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction, private TransactionReconnectProtection $transactionReconnectProtection)
     {
         $this->executionsHoldingTransaction = new WeakMap();
@@ -164,7 +164,7 @@ class DbalTransactionInterceptor
             . 'Two executions on one connection share one transaction: a rollback of either one discards what the other stored. '
             . 'Ecotone gives every concurrent execution its own connection when it creates the connections itself, so register the connection from a DSN: new Ecotone\\Api\\Dbal\\DbalConnectionFactory($dsn). '
             . 'A connection built by the application or its framework (Doctrine ManagerRegistry, Laravel database connection, an existing Doctrine\\DBAL\\Connection) is a single connection for the whole process, so with it handle one message at a time per process: in Swoole or OpenSwoole set `enable_coroutine` to false (the default of Laravel Octane). '
-            . 'Or run the handler without a database transaction: #[WithoutDatabaseTransaction] (Ecotone\\Api\\Attribute\\WithoutDatabaseTransaction), or DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false).',
+            . 'Running without a database transaction (#[WithoutDatabaseTransaction], or DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false), ->withTransactionOnAsynchronousEndpoints(false) or ->withTransactionOnConsoleCommands(false)) removes this refusal but not the cause: the executions still share the connection, their writes are no longer atomic, and MySQL refuses their concurrent queries.',
         );
     }
 

@@ -12,7 +12,6 @@ use Ecotone\Dbal\Connection\DbalContext;
 use Exception;
 use Interop\Queue\Context;
 use LogicException;
-use Throwable;
 
 /**
  * licence MIT
@@ -66,7 +65,11 @@ class DbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
             'lazy' => true,
             'connection_pool_size' => ConnectionPool::DEFAULT_SIZE,
         ], $config);
-        $this->connectionPool = new ConnectionPool($this->connect(...), (int) $this->config['connection_pool_size']);
+        $this->connectionPool = new ConnectionPool(
+            connect: $this->connect(...),
+            size: (int) $this->config['connection_pool_size'],
+            connectionName: sprintf('%s://%s/%s', $this->config['connection']['driver'] ?? 'unknown', $this->config['connection']['host'] ?? 'localhost', $this->config['connection']['dbname'] ?? $this->config['connection']['path'] ?? ''),
+        );
     }
 
     /**
@@ -86,11 +89,7 @@ class DbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
     public function close(): void
     {
         $this->connectionPool->closeIdleConnections();
-
-        try {
-            $this->connectionPool->connectionOfCurrentExecution()->close();
-        } catch (Throwable $e) {
-        }
+        $this->connectionPool->closeConnectionOfCurrentExecution();
     }
 
     public function establishConnection(): Connection

@@ -28,6 +28,18 @@ final class ExecutionScope
         return $states[$owner] ??= $initialState();
     }
 
+    /**
+     * @template T of object
+     * @param class-string<T> $stateClass
+     * @return T|null
+     */
+    public static function existingStateOf(object $owner, string $stateClass): ?object
+    {
+        $state = self::statesOfCurrentExecution()[$owner] ?? null;
+
+        return $state instanceof $stateClass ? $state : null;
+    }
+
     public static function current(): object
     {
         return self::statesOfCurrentExecution();

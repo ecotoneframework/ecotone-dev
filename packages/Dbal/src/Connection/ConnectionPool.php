@@ -28,7 +28,7 @@ final class ConnectionPool
     /**
      * @param Closure(): Connection $connect
      */
-    public function __construct(private readonly Closure $connect, private readonly int $size)
+    public function __construct(private readonly Closure $connect, private readonly int $size, private readonly string $connectionName)
     {
         if ($size < 1) {
             throw ConfigurationException::create(
@@ -42,8 +42,20 @@ final class ConnectionPool
     {
         return ExecutionScope::stateOf(
             $this,
-            fn () => new PooledConnection($this->takeOut(), $this, isReturnedWhenExecutionEnds: ExecutionScope::isConcurrent())
+            fn () => new PooledConnection(
+                connection: $this->takeOut(),
+                connectionPool: $this,
+                isReturnedWhenExecutionEnds: ExecutionScope::isConcurrent(),
+            )
         )->connection;
+    }
+
+    public function closeConnectionOfCurrentExecution(): void
+    {
+        try {
+            ExecutionScope::existingStateOf($this, PooledConnection::class)?->connection->close();
+        } catch (Throwable) {
+        }
     }
 
     public function takeBack(Connection $connection): void
@@ -56,14 +68,14 @@ final class ConnectionPool
             $connection->close();
         }
 
-        if (! $connection->isConnected()) {
-            $this->connectionsHeldByExecutions--;
+        if ($this->waitingCoroutines > 0) {
+            $this->returnedToWaitingCoroutines->push($connection->isConnected() ? $connection : ($this->connect)());
 
             return;
         }
 
-        if ($this->waitingCoroutines > 0) {
-            $this->returnedToWaitingCoroutines->push($connection);
+        if (! $connection->isConnected()) {
+            $this->connectionsHeldByExecutions--;
 
             return;
         }
@@ -105,7 +117,7 @@ final class ConnectionPool
     {
         $channelClass = ExecutionScope::coroutineChannelClass();
         if ($channelClass === null) {
-            throw ConnectionPoolExhausted::withAllConnectionsHeld($this->size, waitedSeconds: null);
+            throw ConnectionPoolExhausted::withAllConnectionsInUse($this->connectionName, $this->size, waitedSeconds: null);
         }
 
         $this->returnedToWaitingCoroutines ??= new $channelClass($this->size);
@@ -117,7 +129,7 @@ final class ConnectionPool
         }
 
         if (! $connection instanceof Connection) {
-            throw ConnectionPoolExhausted::withAllConnectionsHeld($this->size, waitedSeconds: self::SECONDS_WAITING_FOR_RETURNED_CONNECTION);
+            throw ConnectionPoolExhausted::withAllConnectionsInUse($this->connectionName, $this->size, waitedSeconds: self::SECONDS_WAITING_FOR_RETURNED_CONNECTION);
         }
 
         return $connection;

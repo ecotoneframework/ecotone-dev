@@ -20,6 +20,7 @@ use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Config\ConfigurationException;
 use OpenSwoole\Coroutine;
 use OpenSwoole\Runtime;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
@@ -138,6 +139,42 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         $this->assertSame(['registered by coroutine' => 'tenant-of-handler'], $ecotone->sendQueryWithRouting('member.tenantSeenByEventHandler'));
     }
 
+    public function test_postgresql_is_refused_in_a_coroutine_that_cannot_wait_on_its_queries(): void
+    {
+        $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2, database: 'pgsql');
+        $refusal = null;
+
+        $this->runCoroutines(
+            function () use ($ecotone, &$refusal): void {
+                try {
+                    $ecotone->sendCommandWithRouting('member.register', ['memberId' => 1, 'name' => 'first']);
+                } catch (ConfigurationException $exception) {
+                    $refusal = $exception->getMessage();
+                }
+            },
+        );
+
+        $this->assertStringStartsWith('Database connection `pdo_pgsql://', (string) $refusal);
+        $this->assertStringEndsWith(
+            '` is PostgreSQL, and this coroutine runtime does not let a coroutine wait on a PostgreSQL query: the query stops every coroutine of the process. '
+            . 'A coroutine waiting for a row that another coroutine of the same process has locked then stops that one too, so neither ever finishes. '
+            . 'Use MySQL or MariaDB, which coroutines wait on, run on Swoole 5.1 or newer with SWOOLE_HOOK_PDO_PGSQL among the enabled hooks, or handle one message at a time per process: in Swoole or OpenSwoole set `enable_coroutine` to false.',
+            (string) $refusal
+        );
+        $this->assertSame([], $ecotone->getGateway(MemberRegister::class)->names());
+    }
+
+    private static function dsnOf(string $database): string
+    {
+        foreach ([getenv('DATABASE_DSN'), getenv('SECONDARY_DATABASE_DSN')] as $dsn) {
+            if (is_string($dsn) && str_starts_with($dsn, $database)) {
+                return $dsn;
+            }
+        }
+
+        throw new RuntimeException("The coroutine tests need a {$database} database in DATABASE_DSN or SECONDARY_DATABASE_DSN.");
+    }
+
     private function runCoroutines(callable ...$coroutines): void
     {
         $failure = null;
@@ -163,10 +200,13 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         }
     }
 
-    private function bootstrapMemberRegistration(int $connectionPoolSize): FlowTestSupport
+    private function bootstrapMemberRegistration(int $connectionPoolSize, string $database = 'mysql'): FlowTestSupport
     {
-        $this->getConnection()->executeStatement('DROP TABLE IF EXISTS members');
-        $this->getConnection()->executeStatement('CREATE TABLE members (member_id INTEGER PRIMARY KEY, name VARCHAR(255))');
+        $databaseDsn = self::dsnOf($database);
+        $connection = (new DbalConnectionFactory($databaseDsn))->createContext()->getDbalConnection();
+        $connection->executeStatement('DROP TABLE IF EXISTS members');
+        $connection->executeStatement('CREATE TABLE members (member_id INTEGER PRIMARY KEY, name VARCHAR(255))');
+        $connection->close();
         $registration = new class () {
             private array $tenantSeenByEventHandler = [];
             private array $namesReadByCoroutine = ['not read'];
@@ -240,7 +280,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
 
         return $this->bootstrapFlowTesting(
             [$registration::class, MemberRegister::class],
-            [$registration, DbalConnectionFactory::class => new DbalConnectionFactory(['dsn' => self::databaseDsn(), 'connection_pool_size' => $connectionPoolSize])],
+            [$registration, DbalConnectionFactory::class => new DbalConnectionFactory(['dsn' => $databaseDsn, 'connection_pool_size' => $connectionPoolSize])],
             [
                 DbalConfiguration::createWithDefaults(),
                 InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false),

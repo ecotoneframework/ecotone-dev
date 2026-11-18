@@ -6,6 +6,7 @@ namespace Ecotone\Dbal\Connection;
 
 use Closure;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Api\Dbal\ConnectionPoolExhausted;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Execution\ExecutionScope;
@@ -43,7 +44,7 @@ final class ConnectionPool
         return ExecutionScope::stateOf(
             $this,
             fn () => new PooledConnection(
-                connection: $this->takeOut(),
+                connection: $this->takeOutForCurrentExecution(),
                 connectionPool: $this,
                 isReturnedWhenExecutionEnds: ExecutionScope::isConcurrent(),
             )
@@ -69,7 +70,7 @@ final class ConnectionPool
         }
 
         if ($this->waitingCoroutines > 0) {
-            $this->returnedToWaitingCoroutines->push($connection->isConnected() ? $connection : ($this->connect)());
+            $this->returnedToWaitingCoroutines->push($connection);
 
             return;
         }
@@ -95,6 +96,22 @@ final class ConnectionPool
         $this->idleConnections = [];
     }
 
+    private function takeOutForCurrentExecution(): Connection
+    {
+        $connection = $this->takeOut();
+        if (! ExecutionScope::isCoroutineStoppedByPostgresQueries() || ! $connection->getDatabasePlatform() instanceof PostgreSQLPlatform) {
+            return $connection;
+        }
+
+        $this->takeBack($connection);
+
+        throw ConfigurationException::create(
+            "Database connection `{$this->connectionName}` is PostgreSQL, and this coroutine runtime does not let a coroutine wait on a PostgreSQL query: the query stops every coroutine of the process. "
+            . 'A coroutine waiting for a row that another coroutine of the same process has locked then stops that one too, so neither ever finishes. '
+            . 'Use MySQL or MariaDB, which coroutines wait on, run on Swoole 5.1 or newer with SWOOLE_HOOK_PDO_PGSQL among the enabled hooks, or handle one message at a time per process: in Swoole or OpenSwoole set `enable_coroutine` to false.'
+        );
+    }
+
     private function takeOut(): Connection
     {
         $connection = array_pop($this->idleConnections);
@@ -117,7 +134,7 @@ final class ConnectionPool
     {
         $channelClass = ExecutionScope::coroutineChannelClass();
         if ($channelClass === null) {
-            throw ConnectionPoolExhausted::withAllConnectionsInUse($this->connectionName, $this->size, waitedSeconds: null);
+            throw ConnectionPoolExhausted::withAllConnectionsInUse(connectionName: $this->connectionName, connectionPoolSize: $this->size, waitedSeconds: null);
         }
 
         $this->returnedToWaitingCoroutines ??= new $channelClass($this->size);
@@ -129,9 +146,19 @@ final class ConnectionPool
         }
 
         if (! $connection instanceof Connection) {
-            throw ConnectionPoolExhausted::withAllConnectionsInUse($this->connectionName, $this->size, waitedSeconds: self::SECONDS_WAITING_FOR_RETURNED_CONNECTION);
+            throw ConnectionPoolExhausted::withAllConnectionsInUse(connectionName: $this->connectionName, connectionPoolSize: $this->size, waitedSeconds: self::SECONDS_WAITING_FOR_RETURNED_CONNECTION);
         }
 
-        return $connection;
+        if ($connection->isConnected()) {
+            return $connection;
+        }
+
+        try {
+            return ($this->connect)();
+        } catch (Throwable $failure) {
+            $this->connectionsHeldByExecutions--;
+
+            throw $failure;
+        }
     }
 }

@@ -62,6 +62,19 @@ final class ExecutionScope
         return null;
     }
 
+    public static function isCoroutineStoppedByPostgresQueries(): bool
+    {
+        $coroutineClass = self::coroutineClass();
+        if ($coroutineClass === null || $coroutineClass::getCid() < 1) {
+            return false;
+        }
+        if ($coroutineClass === 'OpenSwoole\\Coroutine' || ! defined('SWOOLE_HOOK_PDO_PGSQL')) {
+            return true;
+        }
+
+        return (('Swoole\\Runtime')::getHookFlags() & constant('SWOOLE_HOOK_PDO_PGSQL')) === 0;
+    }
+
     public static function lastStartedCoroutineId(): int
     {
         $coroutineClass = self::coroutineClass();

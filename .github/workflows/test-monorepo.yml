@@ -242,13 +242,13 @@ jobs:
     - name: Install dependencies
       run: composer update --prefer-stable --prefer-dist --no-interaction
 
-    - name: Coroutine tests on Postgres with ext-amqp
+    - name: Coroutine tests with ext-amqp
       run: vendor/bin/phpunit --no-coverage --fail-on-skipped $COROUTINE_TESTS
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
         SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
 
-    - name: Coroutine tests on MySQL with php-amqplib
+    - name: Coroutine tests with php-amqplib
       run: vendor/bin/phpunit --no-coverage --fail-on-skipped $COROUTINE_TESTS
       env:
         AMQP_IMPLEMENTATION: lib

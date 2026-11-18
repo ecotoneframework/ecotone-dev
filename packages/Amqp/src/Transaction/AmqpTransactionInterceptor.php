@@ -8,6 +8,8 @@ use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Execution\ExecutionFlag;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
@@ -25,8 +27,6 @@ use Throwable;
  */
 class AmqpTransactionInterceptor
 {
-    private bool $isRunningTransaction = false;
-
     /**
      * @param array<string, CachedConnectionFactory> $connectionFactories
      */
@@ -45,12 +45,12 @@ class AmqpTransactionInterceptor
             $connectionFactories = $this->connectionFactories;
         }
 
-        if ($this->isRunningTransaction) {
+        if ($this->runningTransaction()->isRaised) {
             return $methodInvocation->proceed();
         }
 
         try {
-            $this->isRunningTransaction = true;
+            $this->runningTransaction()->isRaised = true;
             foreach ($connectionFactories as $connectionFactory) {
                 $retryStrategy = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(10, 10, 1000)
                     ->maxRetries(2)
@@ -124,17 +124,22 @@ class AmqpTransactionInterceptor
                 throw $exception;
             }
         } catch (Throwable $exception) {
-            $this->isRunningTransaction = false;
+            $this->runningTransaction()->isRaised = false;
 
             throw $exception;
         }
 
-        $this->isRunningTransaction = false;
+        $this->runningTransaction()->isRaised = false;
         return $result;
     }
 
     public function isRunningInTransaction(): bool
     {
-        return $this->isRunningTransaction;
+        return $this->runningTransaction()->isRaised;
+    }
+
+    private function runningTransaction(): ExecutionFlag
+    {
+        return ExecutionScope::stateOf($this, static fn () => new ExecutionFlag(false));
     }
 }

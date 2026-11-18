@@ -9,6 +9,7 @@ use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Modelling\AggregateNotFoundException;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Messaging\Support\FrameworkHeaders;
 use WeakMap;
 
@@ -21,11 +22,7 @@ class MessageHeadersPropagatorInterceptor
     public const ENABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT = 'ecotone.enablePollingConsumerPropagation';
     public const DISABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT = 'ecotone.disablePollingConsumerPropagation';
     public const IS_POLLING_CONSUMER_PROPAGATION_CONTEXT = 'ecotone.isPollingConsumerPropagation';
-    private array $currentlyPropagatedHeaders = [];
-    /** @var MessageCausation[] */
-    private array $causationChain = [];
     private WeakMap $exceptionsWithCausationChain;
-    private bool $isPollingConsumer = false;
 
     public function __construct()
     {
@@ -42,8 +39,9 @@ class MessageHeadersPropagatorInterceptor
             $userlandHeaders[MessageHeaders::MESSAGE_CORRELATION_ID] = $message->getHeaders()->getCorrelationId();
         }
 
-        $this->currentlyPropagatedHeaders[] = $userlandHeaders;
-        $this->causationChain[] = MessageCausation::from($methodInvocation, $message);
+        $propagated = $this->propagatedHeaders();
+        $propagated->headersOfHandledMessages[] = $userlandHeaders;
+        $propagated->causationChain[] = MessageCausation::from($methodInvocation, $message);
         try {
             if ($methodInvocation instanceof MethodInvocation) {
                 $reply = $methodInvocation->proceed();
@@ -53,8 +51,8 @@ class MessageHeadersPropagatorInterceptor
         } catch (AggregateNotFoundException $exception) {
             throw $this->withCausationChain($exception);
         } finally {
-            array_pop($this->currentlyPropagatedHeaders);
-            array_pop($this->causationChain);
+            array_pop($propagated->headersOfHandledMessages);
+            array_pop($propagated->causationChain);
         }
 
         return $reply;
@@ -62,12 +60,13 @@ class MessageHeadersPropagatorInterceptor
 
     private function withCausationChain(AggregateNotFoundException $exception): AggregateNotFoundException
     {
-        if (count($this->causationChain) < 2 || isset($this->exceptionsWithCausationChain[$exception])) {
+        $causationChain = $this->propagatedHeaders()->causationChain;
+        if (count($causationChain) < 2 || isset($this->exceptionsWithCausationChain[$exception])) {
             return $exception;
         }
 
         $exceptionWithCausationChain = AggregateNotFoundException::createFromPreviousException(
-            $exception->getMessage() . '. ' . MessageCausation::describeChain($this->causationChain, $exception),
+            $exception->getMessage() . '. ' . MessageCausation::describeChain($causationChain, $exception),
             $exception
         );
         $this->exceptionsWithCausationChain[$exceptionWithCausationChain] = true;
@@ -86,7 +85,7 @@ class MessageHeadersPropagatorInterceptor
     #[InternalHandler(self::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL)]
     public function getLastHeaders(): array
     {
-        $headers = end($this->currentlyPropagatedHeaders);
+        $headers = end($this->propagatedHeaders()->headersOfHandledMessages);
 
         if ($this->isCalledForFirstTime($headers)) {
             return [];
@@ -98,19 +97,24 @@ class MessageHeadersPropagatorInterceptor
     #[InternalHandler(self::ENABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT)]
     public function enablePollingConsumerPropagation(): void
     {
-        $this->isPollingConsumer = true;
+        $this->propagatedHeaders()->isPollingConsumer = true;
     }
 
     #[InternalHandler(self::DISABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT)]
     public function disablePollingConsumerPropagation(): void
     {
-        $this->isPollingConsumer = false;
+        $this->propagatedHeaders()->isPollingConsumer = false;
     }
 
     #[InternalHandler(self::IS_POLLING_CONSUMER_PROPAGATION_CONTEXT)]
     public function isPollingConsumer(): bool
     {
-        return $this->isPollingConsumer;
+        return $this->propagatedHeaders()->isPollingConsumer;
+    }
+
+    private function propagatedHeaders(): PropagatedHeaders
+    {
+        return ExecutionScope::stateOf($this, static fn () => new PropagatedHeaders());
     }
 
     private function isCalledForFirstTime($headers): bool

@@ -41,13 +41,13 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $lines = array_map(trim(...), self::executionOf('tag-partitioned projection backfilled asynchronously in two batches'));
 
         $expected = [
-            'process 5: receive backfill, GatheringMessageHandler::handle (part 1 of 2)',
+            'sub-flow process 5: receive backfill, GatheringMessageHandler::handle (part 1 of 2)',
             'handler GatheringMessageHandler::handle',
             '↳ chosen by: licence, over RequestReplyProducer',
             'read part 1 of 2',
             'record part 1 of 2 in InMemoryGatheredGroupStore',
             '↳ outcome: part stored, 1 of 2 in, group waits',
-            'process 6: receive backfill, GatheringMessageHandler::handle (part 2 of 2)',
+            'sub-flow process 6: receive backfill, GatheringMessageHandler::handle (part 2 of 2)',
             'read part 2 of 2',
             'record part 2 of 2 in InMemoryGatheredGroupStore',
             '↳ outcome: part stored, 2 of 2 in, group released',
@@ -78,8 +78,8 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
     {
         $lines = array_map(trim(...), self::executionOf('tag-partitioned projection backfilled asynchronously in two batches'));
 
-        self::assertSame(['receive backfill', '↳ sent by: process 2, the message the entrypoint sent to backfill'], array_slice($lines, self::positionOf($lines, 'process 3: receive backfill, PartitionBatchExecutorHandler::executeBatch (1 of 2)') + 1, 2));
-        self::assertSame(['receive backfill', '↳ sent by: process 3, the part report for part 1 of 2'], array_slice($lines, self::positionOf($lines, 'process 5: receive backfill, GatheringMessageHandler::handle (part 1 of 2)') + 1, 2));
+        self::assertSame(['receive backfill', '↳ sent by: process 2, the message the entrypoint sent to backfill'], array_slice($lines, self::positionOf($lines, 'sub-flow process 3: receive backfill, PartitionBatchExecutorHandler::executeBatch (1 of 2)') + 1, 2));
+        self::assertSame(['receive backfill', '↳ sent by: process 3, the part report for part 1 of 2'], array_slice($lines, self::positionOf($lines, 'sub-flow process 5: receive backfill, GatheringMessageHandler::handle (part 1 of 2)') + 1, 2));
     }
 
     public function test_the_step_that_put_a_message_on_the_channel_points_to_the_later_consumer_run_that_took_it(): void
@@ -90,7 +90,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
             ['↳ taken by: process 3, a separate consumer run', '↳ taken by: process 4, a separate consumer run', '↳ taken by: process 5, a separate consumer run', '↳ taken by: process 6, a separate consumer run'],
             array_values(array_filter($lines, fn (string $line): bool => str_starts_with($line, '↳ taken by: '))),
         );
-        $release = self::positionOf($lines, 'process 5: receive backfill, GatheringMessageHandler::handle (part 1 of 2)');
+        $release = self::positionOf($lines, 'sub-flow process 5: receive backfill, GatheringMessageHandler::handle (part 1 of 2)');
         self::assertContains('release collected message to backfill', array_slice($lines, 0, $release));
     }
 
@@ -112,7 +112,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
     public function test_a_gatherer_process_is_titled_by_what_it_received_and_its_handler_and_its_first_step_says_where_the_work_ran(): void
     {
         $lines = array_map(trim(...), self::executionOf('tag-partitioned projection backfilled asynchronously in two batches'));
-        $process = self::positionOf($lines, 'process 5: receive backfill, GatheringMessageHandler::handle (part 1 of 2)');
+        $process = self::positionOf($lines, 'sub-flow process 5: receive backfill, GatheringMessageHandler::handle (part 1 of 2)');
 
         self::assertSame(
             ['receive backfill', '↳ sent by: process 3, the part report for part 1 of 2', '↳ work in: process 3, part 1 of 2'],
@@ -439,7 +439,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
     public function test_the_receive_takes_the_message_from_the_channel_and_names_the_after_receive_phase_that_ran(): void
     {
         $lines = array_map(trim(...), $this->asynchronousOrder());
-        $receive = self::positionOf($lines, 'process 2: receive orders, class@anonymous::place') + 1;
+        $receive = self::positionOf($lines, 'sub-flow process 2: receive orders, class@anonymous::place') + 1;
 
         self::assertSame(
             ['receive orders', '↳ sent by: process 1, the command order.place', 'take from channel orders', 'after receive TracingChannelInterceptor::afterReceiveCompletion'],

@@ -68,17 +68,66 @@ final class FlowExecution
      */
     public function lines(bool $withEveryHint = false): array
     {
+        $subFlows = self::subFlowsOf($this->processes);
         $lines = [];
-        foreach ($this->processes as $position => $process) {
-            $lines[] = 'process ' . ($position + 1) . ': ' . $process['process'];
-            foreach ($process['steps'] as $step) {
-                $lines[] = str_repeat('  ', $step['depth']) . $step['label'];
-                foreach ($step['hints'] as $hint) {
-                    if ($withEveryHint || $hint['critical']) {
-                        $lines[] = self::hintLine($step['depth'], $hint['key'], $hint['value']);
-                    }
+        foreach (array_keys($this->processes) as $position) {
+            if (! self::isSubFlow($this->processes, $position)) {
+                $lines = [...$lines, ...$this->linesOfFlow($position, 0, $subFlows, $withEveryHint)];
+            }
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array<string, mixed>>}> $processes
+     * @return array<int, list<int>>
+     */
+    public static function subFlowsOf(array $processes): array
+    {
+        $subFlows = [];
+        foreach (array_keys($processes) as $position) {
+            if (self::isSubFlow($processes, $position)) {
+                $subFlows[$processes[$position]['sentBy']['process'] - 1][] = $position;
+            }
+        }
+        foreach ($subFlows as $sender => $positions) {
+            usort($positions, fn (int $first, int $second): int => [$processes[$first]['sentBy']['step'], $first] <=> [$processes[$second]['sentBy']['step'], $second]);
+            $subFlows[$sender] = $positions;
+        }
+
+        return $subFlows;
+    }
+
+    /**
+     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array<string, mixed>>}> $processes
+     */
+    public static function isSubFlow(array $processes, int $position): bool
+    {
+        $sender = ($processes[$position]['sentBy']['process'] ?? 0) - 1;
+
+        return $sender >= 0 && $sender < $position;
+    }
+
+    /**
+     * @param array<int, list<int>> $subFlows
+     * @return list<string>
+     */
+    private function linesOfFlow(int $position, int $level, array $subFlows, bool $withEveryHint): array
+    {
+        $indent = str_repeat('  ', $level);
+        $process = $this->processes[$position];
+        $lines = [$indent . ($level === 0 ? '' : 'sub-flow ') . 'process ' . ($position + 1) . ': ' . $process['process']];
+        foreach ($process['steps'] as $step) {
+            $lines[] = $indent . str_repeat('  ', $step['depth']) . $step['label'];
+            foreach ($step['hints'] as $hint) {
+                if ($withEveryHint || $hint['critical']) {
+                    $lines[] = $indent . self::hintLine($step['depth'], $hint['key'], $hint['value']);
                 }
             }
+        }
+        foreach ($subFlows[$position] ?? [] as $subFlow) {
+            $lines = [...$lines, ...$this->linesOfFlow($subFlow, $level + 1, $subFlows, $withEveryHint)];
         }
 
         return $lines;

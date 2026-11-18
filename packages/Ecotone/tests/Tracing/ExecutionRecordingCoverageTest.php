@@ -120,7 +120,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             $ecotone->sendCommandWithRouting('order.place', 'order-1', metadata: [MessageHeaders::PRIORITY => 5]);
             $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         });
-        $receive = array_search('process 2: receive orders, ExecutionRecordedOrders::place', $lines, true);
+        $receive = array_search('sub-flow process 2: receive orders, ExecutionRecordedOrders::place', $lines, true);
 
         self::assertIsInt($receive);
         self::assertSame(['receive orders', '↳ sent by: process 1, the command order.place', 'take from channel orders', '↳ received with: priority 5'], array_slice($lines, $receive + 1, 4));

@@ -113,6 +113,65 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         self::assertSame(1, $processes[1]['sentBy']['process']);
     }
 
+    public function test_the_default_text_prints_each_sub_flow_under_the_flow_that_sent_its_message_and_keeps_the_run_order_numbers(): void
+    {
+        $chain = new class () {
+            #[CommandHandler('order.place')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', $order);
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'notify')]
+            public function notify(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('customer.notified', $order);
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('customer.notified', endpointId: 'mail')]
+            public function mail(array $order): void
+            {
+            }
+        };
+
+        $lines = $this->linesOf([$chain, $this->auditing()], function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommandWithRouting('order.place', []);
+            $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+        });
+
+        self::assertSame(
+            [
+                'process 1: send command order.place, class@anonymous::place',
+                '  sub-flow process 2: receive notifications, class@anonymous::notify',
+                '    sub-flow process 4: receive notifications, class@anonymous::mail',
+                '  sub-flow process 3: receive notifications, class@anonymous::audit',
+            ],
+            array_values(array_filter($lines, fn (string $line): bool => preg_match('/^ *(sub-flow )?process \d+: /', $line) === 1)),
+        );
+        $notify = (int) array_search('  sub-flow process 2: receive notifications, class@anonymous::notify', $lines, true);
+        self::assertSame(['    receive notifications', '      ↳ sent by: process 1, the event order.placed'], array_slice($lines, $notify + 1, 2));
+    }
+
+    /**
+     * @param list<object> $handlers
+     * @return list<string>
+     */
+    private function linesOf(array $handlers, callable $run): array
+    {
+        $recorder = new InMemorySpanRecorder();
+        $run(EcotoneLite::bootstrapFlowTesting(
+            array_map(fn (object $handler): string => $handler::class, $handlers),
+            [...$handlers, ...self::recordingSpansInto($recorder)],
+            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), self::tracingConfiguration()->withExecutionRecording()],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        ));
+
+        return FlowExecution::of($recorder->recordedSpans())->lines();
+    }
+
     /**
      * @param list<object> $handlers
      * @param list<object> $extensionObjects

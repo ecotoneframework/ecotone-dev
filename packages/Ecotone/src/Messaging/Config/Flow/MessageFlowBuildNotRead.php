@@ -25,6 +25,6 @@ final class MessageFlowBuildNotRead implements MessageFlowBuildReader
 
     private static function refusal(): ConfigurationException
     {
-        return ConfigurationException::create('The build wiring Ecotone registers for this application was asked for, but it is read only while the application records its execution. Switch it on with ' . FrameworkTracing::SWITCH_ON . '.');
+        return ConfigurationException::create('The build wiring Ecotone registers for this application was asked for, but it is read only at the framework tracing level. Switch it on with ' . FrameworkTracing::SWITCH_ON . '.');
     }
 }

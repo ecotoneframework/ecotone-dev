@@ -197,8 +197,12 @@ listed in `FlowScenarioCatalogue::all()`. A scenario names itself, the classes a
 objects, and one `FlowStage::when(...)` per action with the spans it expects. Add one there, run
 `php bin/build-flow.php snapshot`, and commit the new file under `packages/Ecotone/tests/BuildFlow/baseline`.
 
-**What ran** (`execution` in each snapshot, and the "What ran" section of `compare`) is recorded with
-`TracingConfiguration::withExecutionRecording()`. Each process is one entry into the framework: a gateway call, a
+**What ran** (`execution` in each snapshot, and the "What ran" section of `compare`) is recorded at the
+framework tracing level, `TracingConfiguration::withLevel(TracingLevel::Framework)`; the default level,
+`TracingLevel::Application`, traces messages and handlers without the recording. The framework level also works
+with a tracer an integration provides (OpenTelemetry): its spans are exported as at the default level plus the
+`ecotone.execution.*` attributes, and the recorded steps go only to the span recorders, which the level therefore
+requires. Each process is one entry into the framework: a gateway call, a
 console command or one consumed message. Each step has a label, what ran, and hints. A hint is a key and a value; a
 critical hint decides where the message goes next or whether it goes anywhere, and is printed under its step as
 `↳ key: value`; the other hints are stored and printed only on request. Nesting means "ran inside", with two loops
@@ -218,10 +222,10 @@ again after a failure keeps the context it was sent with, so each delivery is a 
 sub-flow as `sub-flow process N: …` under its sender, in the order the sender sent them; process numbers stay the run
 order. `compare` states a new, gone or re-attached sub-flow and shows each one right after its sender.
 
-The build wiring (`ecotone:flow:dump --build`, and the wiring and build of a snapshot) is read only from an
-application that records its execution. `MessageFlowModule` adds the step that reads it before the recording step, so
-it is the wiring the application declared, never the recording's wrappers. Without the mode, `--build` and
-`ecotone:build-flow:record` are refused; `ecotone:flow:dump` without `--build` is the same either way.
+The build wiring (`ecotone:flow:dump --build`, and the wiring and build of a snapshot) is read only at the
+framework tracing level. `MessageFlowModule` adds the step that reads it before the recording step, so it is the
+wiring the application declared, never the recording's wrappers. At the application level, `--build` and
+`ecotone:build-flow:record` are refused; `ecotone:flow:dump` without `--build` is the same at both levels.
 
 A test reads the recording with `$ecotone->getExecutionRecording()` on its `FlowTestSupport`: an `ExecutionRecording`
 (`Ecotone\Api\Tracing`) holding `processes` in run order, each a `RecordedProcess` with its `title`, `steps`

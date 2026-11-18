@@ -8,7 +8,6 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Api\Tracing\TracingConfiguration;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 
@@ -43,20 +42,6 @@ final class FlowTestingTracerFromProvidedServicesTest extends TracingTestCase
         )->sendCommandWithRouting('order.place', 'coffee');
 
         self::assertNotEmpty($exporter->getSpans());
-    }
-
-    public function test_execution_recording_is_refused_when_spans_go_to_the_open_telemetry_tracer(): void
-    {
-        $orders = $this->orders();
-
-        $this->expectExceptionMessage('Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but a TracerProviderInterface service is provided, so spans go to the OpenTelemetry tracer that service provides, and execution steps can be recorded only by Ecotone\'s own tracer. Record the flow without the TracerProviderInterface service, with a span recorder registered by TracingConfiguration::withSpanRecorder(), or remove withExecutionRecording().');
-
-        EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
-            [$orders, TracerProviderInterface::class => self::prepareTracer(new InMemoryExporter())],
-            [TracingConfiguration::createWithDefaults()->withExecutionRecording()],
-            enabledModules: [ModulePackageList::TRACING_PACKAGE],
-        );
     }
 
     private function orders(): object

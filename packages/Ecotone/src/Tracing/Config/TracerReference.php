@@ -9,10 +9,7 @@ namespace Ecotone\Tracing\Config;
  */
 final class TracerReference
 {
-    /**
-     * @param class-string $providedByServiceOfType
-     */
-    public function __construct(public readonly string $referenceName, public readonly string $providedByServiceOfType)
+    public function __construct(public readonly string $referenceName)
     {
     }
 }

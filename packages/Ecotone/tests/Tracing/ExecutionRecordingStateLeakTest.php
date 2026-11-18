@@ -26,6 +26,7 @@ use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\RecordedHint;
 use Ecotone\Api\Tracing\RecordedProcess;
 use Ecotone\Api\Tracing\RecordedStep;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Throwable;
@@ -387,7 +388,7 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$handlers::class],
             [$handlers, ...self::recordingSpansInto($recorder ?? new InMemorySpanRecorder())],
-            [SimpleMessageChannelBuilder::createQueueChannel('orders'), ...$extensionObjects, self::tracingConfiguration()->withExecutionRecording()],
+            [SimpleMessageChannelBuilder::createQueueChannel('orders'), ...$extensionObjects, self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

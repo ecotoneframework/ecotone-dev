@@ -17,7 +17,6 @@ use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanRecorder;
 use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Tracing\ActiveSpan;
-use Ecotone\Tracing\EcotoneTracer;
 use Ecotone\Tracing\Tracer;
 use Throwable;
 
@@ -51,7 +50,7 @@ final class ExecutionRecordingTracer implements Tracer
     private const PER_PROCESS_STATE = ['openSteps', 'stepsWithChildren', 'stepsOfOpenEntry', 'spanStartedInOpenEntry', 'receiveEntry', 'receiveContinuation', 'invocationInOpenEntry', 'housekeepingInOpenEntry', 'collectors', 'hintsOfOpenSteps'];
 
     public function __construct(
-        private EcotoneTracer $tracer,
+        private Tracer $tracer,
         private EcotoneClockInterface $clock,
         private SpanRecorder $spanRecorder,
     ) {

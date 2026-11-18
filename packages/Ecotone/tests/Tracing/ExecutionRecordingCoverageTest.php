@@ -24,6 +24,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Tracing\ExecutionRecording;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
@@ -324,7 +325,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             $classes,
             [...$services, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [...$extensionObjects, self::tracingConfiguration()->withExecutionRecording()],
+            [...$extensionObjects, self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             licenceKey: $licenceKey,
         );
@@ -370,7 +371,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             $ecotone = EcotoneLite::bootstrapFlowTesting(
                 $scenario->classesToResolve,
                 [...$scenario->services, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-                [...$scenario->extensionObjects, self::tracingConfiguration()->withExecutionRecording()],
+                [...$scenario->extensionObjects, self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
                 enabledModules: [],
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );

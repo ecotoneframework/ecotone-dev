@@ -15,6 +15,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\Flow\Snapshot\BuildFlowConsoleCommands;
 use Ecotone\Test\LicenceTesting;
 use FilesystemIterator;
@@ -213,7 +214,7 @@ final class BuildFlowSnapshotTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$ordering::class, BuildFlowConsoleCommands::class],
             [$ordering, new BuildFlowConsoleCommands(), InMemorySpanRecorder::class => $recorder],
-            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording()],
+            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

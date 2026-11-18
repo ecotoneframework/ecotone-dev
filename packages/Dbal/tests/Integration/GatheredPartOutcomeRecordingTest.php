@@ -24,6 +24,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -177,7 +178,7 @@ final class GatheredPartOutcomeRecordingTest extends DbalMessagingTestCase
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
                 SimpleMessageChannelBuilder::createQueueChannel('summaries'),
-                TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording(),
+                TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework),
                 ...($dbal ? [DbalConfiguration::createWithDefaults()->withDeduplication(false)] : []),
             ],
             enabledModules: [ModulePackageList::TRACING_PACKAGE, ...($dbal ? [ModulePackageList::DBAL_PACKAGE] : [])],

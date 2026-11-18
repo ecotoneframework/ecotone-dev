@@ -21,6 +21,7 @@ use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -286,7 +287,7 @@ final class MessageFlowBuildWiringTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             $classes,
             [...$services, InMemorySpanRecorder::class => new InMemorySpanRecorder()],
-            [...$extensionObjects, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording()],
+            [...$extensionObjects, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework)],
             enabledModules: $enabledModules,
             licenceKey: $licenceKey,
         );

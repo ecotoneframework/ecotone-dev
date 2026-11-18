@@ -19,6 +19,7 @@ use Ecotone\Api\Tracing\RecordedStep;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
 
 /**
@@ -45,7 +46,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$ordering::class],
             [$ordering, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), self::tracingConfiguration()->withExecutionRecording()],
+            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -67,7 +68,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
         self::assertSame(['process 1: send command order.place, class@anonymous::place', '  gateway CommandBus::sendWithRouting', '    ↳ returns: nothing'], array_slice($recording->linesWithEveryHint, 0, 3));
     }
 
-    public function test_reading_the_recording_of_an_application_that_does_not_record_its_execution_is_refused(): void
+    public function test_reading_the_recording_at_the_application_tracing_level_is_refused(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [],
@@ -76,7 +77,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
             enabledModules: [],
         );
 
-        $this->expectExceptionMessage('The execution recording was asked for, but this application does not record its execution, so there is nothing to read. Switch it on with TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording() in a #[ServiceContext] or in the extension objects of EcotoneLite::bootstrapFlowTesting().');
+        $this->expectExceptionMessage('The execution recording was asked for, but this application traces at TracingLevel::Application, which does not record its execution, so there is nothing to read. Switch the framework level on with TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework) in a #[ServiceContext] or in the extension objects of EcotoneLite::bootstrapFlowTesting().');
 
         $ecotone->getExecutionRecording();
     }
@@ -100,7 +101,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [],
             ['spanExporter' => $exporter],
-            [TracingConfiguration::createWithDefaults()->withSpanRecorder('spanExporter')->withExecutionRecording()],
+            [TracingConfiguration::createWithDefaults()->withSpanRecorder('spanExporter')->withLevel(TracingLevel::Framework)],
             enabledModules: [],
         );
 

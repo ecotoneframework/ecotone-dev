@@ -22,6 +22,7 @@ use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Throwable;
@@ -32,7 +33,7 @@ use Throwable;
  */
 final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
 {
-    public function test_a_routing_key_that_is_not_valid_utf8_ends_the_same_with_recording_on_and_off(): void
+    public function test_a_routing_key_that_is_not_valid_utf8_ends_the_same_at_both_tracing_levels(): void
     {
         $listeners = new class () {
             public array $heard = [];
@@ -48,7 +49,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         $this->assertSameOutcomeWithRecordingOnAndOff([$listeners::class], fn (): array => [clone $listeners], $run, fn (object $listeners): array => $listeners->heard);
     }
 
-    public function test_a_collector_keyed_by_a_binary_value_ends_the_same_with_recording_on_and_off(): void
+    public function test_a_collector_keyed_by_a_binary_value_ends_the_same_at_both_tracing_levels(): void
     {
         $collector = new class () {
             public array $batches = [];
@@ -70,7 +71,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         $this->assertSameOutcomeWithRecordingOnAndOff([$collector::class], fn (): array => [clone $collector], $run, fn (object $collector): array => $collector->batches, [SimpleMessageChannelBuilder::createQueueChannel('batches')]);
     }
 
-    public function test_an_aggregate_with_a_binary_identifier_ends_the_same_with_recording_on_and_off(): void
+    public function test_an_aggregate_with_a_binary_identifier_ends_the_same_at_both_tracing_levels(): void
     {
         $run = function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', "\xFF\xFE");
@@ -100,7 +101,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         foreach ([false, true] as $recording) {
             $recorder = new InMemorySpanRecorder();
             $tracing = self::tracingConfiguration();
-            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto($recorder)], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), $recording ? $tracing->withExecutionRecording() : $tracing], enabledModules: []);
+            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto($recorder)], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), $recording ? $tracing->withLevel(TracingLevel::Framework) : $tracing], enabledModules: []);
             $ecotone->sendCommandWithRouting('order.place', 'order-1');
             $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
             $traced = array_values(array_filter($recorder->recordedSpans(), fn (Span $span): bool => ! isset($span->attributes[SpanAttribute::EXECUTION_STEP])));
@@ -112,11 +113,18 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         self::assertSame($traces[0], $traces[1]);
     }
 
-    public function test_execution_recording_without_a_span_recorder_is_refused_at_bootstrap(): void
+    public function test_two_tracing_configurations_are_refused_at_bootstrap_instead_of_one_of_their_levels_being_picked(): void
     {
-        $this->expectExceptionMessage('Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but no span recorder is registered, so nothing it records could be read. Register one with TracingConfiguration::withSpanRecorder(), for example InMemorySpanRecorder in tests, or remove withExecutionRecording().');
+        $this->expectExceptionMessage('TracingConfiguration was registered 2 times, but an application traces at one level with one configuration, so it is not clear which level to use. Keep a single #[ServiceContext] returning TracingConfiguration, with the level set by TracingConfiguration::withLevel(), and remove the others.');
 
-        EcotoneLite::bootstrapFlowTesting([], [], [TracingConfiguration::createWithDefaults()->withExecutionRecording()], enabledModules: []);
+        EcotoneLite::bootstrapFlowTesting([], self::recordingSpansInto(new InMemorySpanRecorder()), [self::tracingConfiguration(), self::tracingConfiguration()->withLevel(TracingLevel::Framework)], enabledModules: []);
+    }
+
+    public function test_the_framework_tracing_level_without_a_span_recorder_is_refused_at_bootstrap(): void
+    {
+        $this->expectExceptionMessage('The framework tracing level is switched on with TracingConfiguration::withLevel(TracingLevel::Framework), but no span recorder is registered, so the execution steps it records would reach nothing: a tracer, such as the OpenTelemetry one, exports spans only. Register one with TracingConfiguration::withSpanRecorder(), for example InMemorySpanRecorder in tests, or stay at the default TracingLevel::Application.');
+
+        EcotoneLite::bootstrapFlowTesting([], [], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: []);
     }
 
     public function test_a_process_that_failed_leaves_nothing_in_the_recording_of_the_next_one(): void
@@ -138,7 +146,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
             }
         };
         $recordingOf = function (array $orderIds) use ($orders): array {
-            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), self::tracingConfiguration()->withExecutionRecording()], enabledModules: []);
+            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), self::tracingConfiguration()->withLevel(TracingLevel::Framework)], enabledModules: []);
             foreach ($orderIds as $orderId) {
                 try {
                     $ecotone->sendCommandWithRouting('order.place', $orderId);
@@ -175,7 +183,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
             }
         };
         $recordingOf = function (array $orderIds) use ($orders): array {
-            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())], [self::tracingConfiguration()->withExecutionRecording()], enabledModules: []);
+            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())], [self::tracingConfiguration()->withLevel(TracingLevel::Framework)], enabledModules: []);
             foreach ($orderIds as $orderId) {
                 try {
                     $ecotone->sendCommandWithRouting('order.place', $orderId);
@@ -211,7 +219,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
             $ecotone = EcotoneLite::bootstrapFlowTesting(
                 $classes,
                 [...$instances, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-                [...$extensionObjects, $recording ? $tracing->withExecutionRecording() : $tracing],
+                [...$extensionObjects, $recording ? $tracing->withLevel(TracingLevel::Framework) : $tracing],
                 enabledModules: [],
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );

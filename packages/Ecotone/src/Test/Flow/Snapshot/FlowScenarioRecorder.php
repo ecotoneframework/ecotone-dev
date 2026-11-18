@@ -9,6 +9,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\Flow\FlowScenario;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
@@ -48,7 +49,7 @@ final class FlowScenarioRecorder
     public static function snapshotOf(FlowScenario $scenario): FlowSnapshot
     {
         $spanRecorder = new InMemorySpanRecorder();
-        $ecotone = self::applicationOf($scenario, $spanRecorder, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording());
+        $ecotone = self::applicationOf($scenario, $spanRecorder, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework));
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
         $dump = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
         $spanRecorder->clear();

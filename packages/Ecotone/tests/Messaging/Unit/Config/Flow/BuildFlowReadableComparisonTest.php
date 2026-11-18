@@ -16,6 +16,7 @@ use Ecotone\Api\Projecting\ProjectionBackfill;
 use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\Flow\Snapshot\BuildFlowConsoleCommands;
 use Ecotone\Test\LicenceTesting;
 use FilesystemIterator;
@@ -318,7 +319,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [...$classes, BuildFlowConsoleCommands::class],
             [...$services, new BuildFlowConsoleCommands(), InMemorySpanRecorder::class => new InMemorySpanRecorder()],
-            [...$extensionObjects, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording()],
+            [...$extensionObjects, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

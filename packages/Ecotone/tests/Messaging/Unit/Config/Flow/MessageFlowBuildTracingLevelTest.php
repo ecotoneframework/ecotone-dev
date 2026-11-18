@@ -13,6 +13,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\Flow\Snapshot\BuildFlowConsoleCommands;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -21,34 +22,34 @@ use PHPUnit\Framework\TestCase;
  * licence Apache-2.0
  * @internal
  */
-final class MessageFlowBuildRecordingModeTest extends TestCase
+final class MessageFlowBuildTracingLevelTest extends TestCase
 {
-    public function test_the_build_part_of_the_flow_dump_is_refused_for_an_application_that_does_not_record_its_execution(): void
+    public function test_the_build_part_of_the_flow_dump_is_refused_at_the_application_tracing_level(): void
     {
-        $ecotone = $this->application(executionRecording: false);
+        $ecotone = $this->application(TracingLevel::Application);
 
-        $this->expectExceptionMessage('ecotone:flow:dump --build was asked for what Ecotone registers for the application, which is read only while the application records its execution. Switch it on with TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording(), or run ecotone:flow:dump without --build for the message flow the application declares.');
+        $this->expectExceptionMessage('ecotone:flow:dump --build was asked for what Ecotone registers for the application, which is read only at the framework tracing level. Switch it on with TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework), or run ecotone:flow:dump without --build for the message flow the application declares.');
 
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
     }
 
-    public function test_the_flow_dump_without_its_build_part_is_the_same_with_and_without_execution_recording(): void
+    public function test_the_flow_dump_without_its_build_part_is_the_same_at_both_tracing_levels(): void
     {
         $dumps = [];
-        foreach ([false, true] as $executionRecording) {
+        foreach (TracingLevel::cases() as $level) {
             foreach (['mermaid', 'json'] as $format) {
-                $ecotone = $this->application($executionRecording);
+                $ecotone = $this->application($level);
                 $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => $format]);
-                $dumps[$executionRecording ? 'on' : 'off'][$format] = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
+                $dumps[$level->value][$format] = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
             }
         }
 
-        self::assertSame($dumps['off'], $dumps['on']);
+        self::assertSame($dumps['application'], $dumps['framework']);
     }
 
-    public function test_the_build_view_of_an_application_that_records_its_execution_reads_the_wiring_before_the_recording_wraps_it(): void
+    public function test_the_build_view_at_the_framework_tracing_level_reads_the_wiring_before_the_recording_wraps_it(): void
     {
-        $ecotone = $this->application(executionRecording: true);
+        $ecotone = $this->application(TracingLevel::Framework);
 
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
         $dump = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
@@ -58,16 +59,16 @@ final class MessageFlowBuildRecordingModeTest extends TestCase
         self::assertStringNotContainsString('unrecognised layer', $dump);
     }
 
-    public function test_recording_a_build_flow_snapshot_is_refused_for_an_application_that_does_not_record_its_execution(): void
+    public function test_recording_a_build_flow_snapshot_is_refused_at_the_application_tracing_level(): void
     {
-        $ecotone = $this->application(executionRecording: false);
+        $ecotone = $this->application(TracingLevel::Application);
 
-        $this->expectExceptionMessage('The build wiring Ecotone registers for this application was asked for, but it is read only while the application records its execution. Switch it on with TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording().');
+        $this->expectExceptionMessage('The build wiring Ecotone registers for this application was asked for, but it is read only at the framework tracing level. Switch it on with TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework).');
 
         $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => sys_get_temp_dir() . '/ecotone-build-flow-refused']);
     }
 
-    private function application(bool $executionRecording): FlowTestSupport
+    private function application(TracingLevel $level): FlowTestSupport
     {
         $ordering = new class () {
             #[CommandHandler('order.place')]
@@ -87,7 +88,7 @@ final class MessageFlowBuildRecordingModeTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$ordering::class, BuildFlowConsoleCommands::class],
             [$ordering, new BuildFlowConsoleCommands(), InMemorySpanRecorder::class => new InMemorySpanRecorder()],
-            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), $executionRecording ? $tracing->withExecutionRecording() : $tracing],
+            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), $tracing->withLevel($level)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

@@ -25,7 +25,6 @@ use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Tracing\CurrentTrace;
 use Ecotone\Api\Tracing\SpanRecorder;
-use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Messaging\Channel\Collector\MessageCollectionObserver;
 use Ecotone\Messaging\Channel\Collector\UnobservedMessageCollection;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -77,13 +76,13 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $tracingConfiguration = ExtensionObjectResolver::resolveUnique(TracingConfiguration::class, $extensionObjects, TracingConfiguration::createWithDefaults());
+        $tracingConfiguration = FrameworkTracing::configurationOf($extensionObjects);
         $tracerReferences = ExtensionObjectResolver::resolve(TracerReference::class, $extensionObjects);
-        $recordsExecution = FrameworkTracing::recordsExecution($extensionObjects);
+        $frameworkLevel = FrameworkTracing::isTheLevelOf($extensionObjects);
 
         $spanRecorderReferences = ExtensionObjectResolver::resolve(SpanRecorderReference::class, $extensionObjects);
-        if ($recordsExecution && $tracingConfiguration->spanRecorderReferenceNames === [] && $spanRecorderReferences === [] && $tracerReferences === []) {
-            throw ConfigurationException::create('Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but no span recorder is registered, so nothing it records could be read. Register one with TracingConfiguration::withSpanRecorder(), for example InMemorySpanRecorder in tests, or remove withExecutionRecording().');
+        if ($frameworkLevel && $tracingConfiguration->spanRecorderReferenceNames === [] && $spanRecorderReferences === []) {
+            throw ConfigurationException::create('The framework tracing level is switched on with TracingConfiguration::withLevel(TracingLevel::Framework), but no span recorder is registered, so the execution steps it records would reach nothing: a tracer, such as the OpenTelemetry one, exports spans only. Register one with TracingConfiguration::withSpanRecorder(), for example InMemorySpanRecorder in tests, or stay at the default TracingLevel::Application.');
         }
         $spanRecorders = [
             ...array_map(fn (string $referenceName): Reference => new Reference($referenceName), $tracingConfiguration->spanRecorderReferenceNames),
@@ -91,7 +90,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         ];
         $messagingConfiguration->registerServiceDefinition(
             ExecutionRecordingReader::class,
-            $recordsExecution ? new Definition(InMemoryExecutionRecordingReader::class, [$spanRecorders]) : new Definition(ExecutionRecordingNotSwitchedOn::class),
+            $frameworkLevel ? new Definition(InMemoryExecutionRecordingReader::class, [$spanRecorders]) : new Definition(ExecutionRecordingNotSwitchedOn::class),
         );
         if ($tracingConfiguration->spanRecorderReferenceNames === [] && $tracerReferences === [] && $spanRecorderReferences === []) {
             $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracingDisabledCurrentTrace::class));
@@ -103,15 +102,11 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         $messagingConfiguration->registerServiceDefinition(MessageCollectionObserver::class, new Definition(TracingMessageCollectionObserver::class, [new Reference(Tracer::class)]));
 
         $messagingConfiguration->registerServiceDefinition(SpanRecorder::class, new Definition(CompositeSpanRecorder::class, [$spanRecorders]));
-        if ($recordsExecution) {
-            if ($tracerReferences !== []) {
-                $type = $tracerReferences[0]->providedByServiceOfType;
-                $service = substr((string) strrchr('\\' . $type, '\\'), 1) . ' service';
-                $library = strstr($type, '\\', true) ?: $type;
-                throw ConfigurationException::create("Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but a {$service} is provided, so spans go to the {$library} tracer that service provides, and execution steps can be recorded only by Ecotone's own tracer. Record the flow without the {$service}, with a span recorder registered by TracingConfiguration::withSpanRecorder(), or remove withExecutionRecording().");
+        if ($frameworkLevel) {
+            if ($tracerReferences === []) {
+                $messagingConfiguration->registerServiceDefinition(EcotoneTracer::class, new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));
             }
-            $messagingConfiguration->registerServiceDefinition(EcotoneTracer::class, new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));
-            $messagingConfiguration->registerServiceDefinition(Tracer::class, new Definition(ExecutionRecordingTracer::class, [new Reference(EcotoneTracer::class), new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));
+            $messagingConfiguration->registerServiceDefinition(Tracer::class, new Definition(ExecutionRecordingTracer::class, [new Reference($tracerReferences === [] ? EcotoneTracer::class : $tracerReferences[0]->referenceName), new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));
             $messagingConfiguration->registerServiceDefinition(ExecutionRecorder::class, new Definition(ExecutionRecorder::class, [new Reference(Tracer::class)]));
         } else {
             $messagingConfiguration->registerServiceDefinition(

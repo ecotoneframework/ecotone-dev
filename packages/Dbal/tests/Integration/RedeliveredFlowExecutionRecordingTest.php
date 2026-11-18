@@ -14,6 +14,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -41,7 +42,7 @@ final class RedeliveredFlowExecutionRecordingTest extends DbalMessagingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
             [$orders, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN')), InMemorySpanRecorder::class => new InMemorySpanRecorder()],
-            [DbalBackedMessageChannelBuilder::create('orders')->withReceiveTimeout(100), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false), TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording()],
+            [DbalBackedMessageChannelBuilder::create('orders')->withReceiveTimeout(100), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false), TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::TRACING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

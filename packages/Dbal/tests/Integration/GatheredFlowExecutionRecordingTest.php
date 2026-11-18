@@ -18,6 +18,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Dbal\Gathering\DbalGatheredGroupStore;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -138,7 +139,7 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
                 SimpleMessageChannelBuilder::createQueueChannel('summaries'),
-                $recording ? $tracing->withExecutionRecording() : $tracing,
+                $recording ? $tracing->withLevel(TracingLevel::Framework) : $tracing,
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::TRACING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,

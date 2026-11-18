@@ -56,12 +56,12 @@ final class MessageFlowModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $flowVersionsConfigurations = ExtensionObjectResolver::resolve(FlowVersionsConfiguration::class, $extensionObjects);
-        $recordsExecution = FrameworkTracing::recordsExecution($extensionObjects);
+        $frameworkLevel = FrameworkTracing::isTheLevelOf($extensionObjects);
         if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             if ($flowVersionsConfigurations !== []) {
                 throw LicensingException::create('Flow versions are available only as part of Ecotone Enterprise. Provide a licence key, or remove the FlowVersionsConfiguration from your #[ServiceContext]. See https://docs.ecotone.tech/enterprise for details.');
             }
-            if ($recordsExecution) {
+            if ($frameworkLevel) {
                 $messagingConfiguration->addCompilerPass(new RecordExecutionCompilerPass());
             }
 
@@ -78,12 +78,12 @@ final class MessageFlowModule implements AnnotationModule
             new Definition(HandlerSourceScanner::class),
         ]));
         $dumpCommands = MessageFlowConsoleCommandsWithoutBuild::class;
-        if ($recordsExecution) {
+        if ($frameworkLevel) {
             $messagingConfiguration->addCompilerPass(new MessageFlowBuildCompilerPass($messagingConfiguration, $interfaceToCallRegistry, $declared->graph));
             $messagingConfiguration->addCompilerPass(new RecordExecutionCompilerPass());
             $dumpCommands = MessageFlowConsoleCommands::class;
         }
-        $messagingConfiguration->registerServiceDefinition(MessageFlowBuildReader::class, $recordsExecution
+        $messagingConfiguration->registerServiceDefinition(MessageFlowBuildReader::class, $frameworkLevel
             ? new Definition(RecordingMessageFlowBuildReader::class, [new Reference(MessageFlowBuildGraphBuilder::class), new Reference(MessageFlowBuild::class)])
             : new Definition(MessageFlowBuildNotRead::class));
         $messagingConfiguration->registerServiceDefinition($dumpCommands, new Definition($dumpCommands));

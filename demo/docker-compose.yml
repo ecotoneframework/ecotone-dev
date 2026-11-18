@@ -25,11 +25,21 @@
 # The repository root is mounted at /repo: the applications run from demo/ticketing, demo/storefront and apps/Pulse,
 # and resolve ecotone/* from packages/ through symlinked path repositories, so a package edit is live on the next request.
 #
+# Every application logs to stderr, so `docker compose -f demo/docker-compose.yml logs -f ticketing` shows it. Docker keeps
+# at most 20 MB of log per container: two files of 10 MB, the older one dropped when the newer one fills up.
+#
 # APP_KEY, APP_SECRET and the database and broker passwords below are demo-only values; never reuse them outside the demo.
 
 name: ${COMPOSE_PROJECT_NAME:-ecotone-demo}
 
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "2"
+
 x-app: &app
+  logging: *logging
   build:
     context: ..
     dockerfile: demo/docker/Dockerfile
@@ -110,6 +120,7 @@ x-worker-healthcheck: &worker-healthcheck
 services:
   postgres:
     image: postgres:16
+    logging: *logging
     environment:
       POSTGRES_USER: ecotone
       POSTGRES_PASSWORD: secret
@@ -125,6 +136,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:4-management
+    logging: *logging
     hostname: rabbitmq
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
@@ -138,6 +150,7 @@ services:
 
   jaeger:
     image: jaegertracing/all-in-one:1.76.0
+    logging: *logging
     tmpfs:
       - /tmp
     environment:
@@ -152,6 +165,7 @@ services:
 
   database-browser:
     image: sosedoff/pgweb:0.16.2
+    logging: *logging
     command: ["pgweb", "--bind=0.0.0.0", "--listen=8081", "--readonly", "--skip-open", "--open-retry=20", "--url=postgres://ecotone:secret@postgres:5432/ticketing?sslmode=disable"]
     ports:
       - "${DEMO_DATABASE_PORT:-8081}:8081"

@@ -7,6 +7,7 @@ namespace Ecotone\Dbal\Configuration;
 use Doctrine\DBAL\Connection;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Dbal\Attribute\CurrentConnection;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -43,7 +44,7 @@ final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionO
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $connectionsInjectedIntoParameters = [];
-        foreach ([...$annotationRegistrationService->findAnnotatedMethods(EndpointAnnotation::class), ...$annotationRegistrationService->findAnnotatedMethods(ConsoleCommand::class)] as $annotatedMethod) {
+        foreach ([...$annotationRegistrationService->findAnnotatedMethods(EndpointAnnotation::class), ...$annotationRegistrationService->findAnnotatedMethods(EventHandler::class), ...$annotationRegistrationService->findAnnotatedMethods(ConsoleCommand::class)] as $annotatedMethod) {
             $interfaceToCall = $interfaceToCallRegistry->getFor($annotatedMethod->getClassName(), $annotatedMethod->getMethodName());
 
             foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
@@ -51,7 +52,7 @@ final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionO
                     throw ConfigurationException::create(sprintf(
                         '%s::%s($%s) takes a %s without #[CurrentConnection]. '
                         . 'A connection injected as a service is one fixed connection, and the message being handled does not have to run on it: Ecotone gives every execution running concurrently (a coroutine or a fiber) its own connection, so what the handler stores through the injected one would be outside the transaction of the message. '
-                        . "Mark the parameter with #[CurrentConnection] (%s) to be given the connection the message is handled on, or with #[CurrentConnection('name')] for a connection registered under another name.",
+                        . "Mark the parameter with #[CurrentConnection] (%s) to be given the connection the message is handled on, or with #[CurrentConnection('name')] for a connection registered under another name. A connection Ecotone does not manage is taken through the constructor of the class instead.",
                         $annotatedMethod->getClassName(),
                         $annotatedMethod->getMethodName(),
                         $interfaceParameter->getName(),
@@ -113,7 +114,7 @@ final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionO
                 $connectionReferenceName,
                 sprintf(
                     "#[CurrentConnection('%s')] on %s needs a connection registered as `%s`, and there is none. "
-                    . 'Register it as a service under that name: new %s($dsn), '
+                    . 'Register it under that name: a service new %s($dsn), SymfonyConnectionReference::createForConnection($connectionName, $referenceName), LaravelConnectionReference::create($connectionName, $referenceName) or TempestConnectionReference::create($configTag, $referenceName), '
                     . 'or use #[CurrentConnection] without a name for the default connection `%s`.',
                     $connectionReferenceName,
                     $placement,

@@ -66,7 +66,7 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
             );
         }
 
-        return new self($this->referenceName, null, $this->connectionName, $connectionPoolSize);
+        return new self(referenceName: $this->referenceName, managerRegistryReference: null, connectionName: $this->connectionName, connectionPoolSize: $connectionPoolSize);
     }
 
     public static function defaultManagerRegistry(

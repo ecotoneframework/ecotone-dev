@@ -7,6 +7,7 @@ namespace Test\Ecotone\Dbal\Integration;
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\Attribute\CurrentConnection;
@@ -109,7 +110,7 @@ final class CurrentConnectionTest extends DbalMessagingTestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
             "#[CurrentConnection('reporting')] on " . $handler::class . '::register($connection) needs a connection registered as `reporting`, and there is none. '
-            . 'Register it as a service under that name: new Ecotone\\Api\\Dbal\\DbalConnectionFactory($dsn), '
+            . 'Register it under that name: a service new Ecotone\\Api\\Dbal\\DbalConnectionFactory($dsn), SymfonyConnectionReference::createForConnection($connectionName, $referenceName), LaravelConnectionReference::create($connectionName, $referenceName) or TempestConnectionReference::create($configTag, $referenceName), '
             . 'or use #[CurrentConnection] without a name for the default connection `Ecotone\\Api\\Dbal\\DbalConnectionFactory`.'
         );
 
@@ -136,8 +137,28 @@ final class CurrentConnectionTest extends DbalMessagingTestCase
         $this->expectExceptionMessage(
             $handler::class . '::register($connection) takes a Doctrine\\DBAL\\Connection without #[CurrentConnection]. '
             . 'A connection injected as a service is one fixed connection, and the message being handled does not have to run on it: Ecotone gives every execution running concurrently (a coroutine or a fiber) its own connection, so what the handler stores through the injected one would be outside the transaction of the message. '
-            . 'Mark the parameter with #[CurrentConnection] (Ecotone\\Api\\Dbal\\Attribute\\CurrentConnection) to be given the connection the message is handled on, or with #[CurrentConnection(\'name\')] for a connection registered under another name.'
+            . 'Mark the parameter with #[CurrentConnection] (Ecotone\\Api\\Dbal\\Attribute\\CurrentConnection) to be given the connection the message is handled on, or with #[CurrentConnection(\'name\')] for a connection registered under another name. A connection Ecotone does not manage is taken through the constructor of the class instead.'
         );
+
+        $this->bootstrapFlowTesting(
+            [$handler::class],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::databaseDsn())],
+            [DbalConfiguration::createWithDefaults()],
+            [ModulePackageList::DBAL_PACKAGE],
+        );
+    }
+
+    public function test_connection_taken_by_an_event_handler_as_a_service_is_refused(): void
+    {
+        $handler = new class () {
+            #[EventHandler('person.registered')]
+            public function notify(array $event, Connection $connection): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage($handler::class . '::notify($connection) takes a Doctrine\\DBAL\\Connection without #[CurrentConnection].');
 
         $this->bootstrapFlowTesting(
             [$handler::class],

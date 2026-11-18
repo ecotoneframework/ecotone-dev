@@ -29,12 +29,12 @@ use WeakMap;
  */
 class AmqpTransactionInterceptor
 {
-    /**
-     * @param array<string, CachedConnectionFactory> $connectionFactories
-     */
     /** @var WeakMap<Context, true> */
     private WeakMap $channelsInTransactionMode;
 
+    /**
+     * @param array<string, CachedConnectionFactory> $connectionFactories
+     */
     public function __construct(private array $connectionFactories, private LoggingGateway $logger, private RetryRunner $retryRunner)
     {
         $this->channelsInTransactionMode = new WeakMap();

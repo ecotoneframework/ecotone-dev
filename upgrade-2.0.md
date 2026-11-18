@@ -138,7 +138,8 @@ connection the handled message runs on, for single-tenant and multi-tenant appli
 **How to adapt:** replace `#[MultiTenantConnection]` with `#[CurrentConnection]`. The default is the connection
 registered as `Ecotone\Api\Dbal\DbalConnectionFactory`, which is also the default reference name of
 `MultiTenantConfiguration`. If the `MultiTenantConfiguration` was created with another reference name, pass it:
-`#[CurrentConnection('tenant_connection')]`.
+`#[CurrentConnection('tenant_connection')]`. The argument is named `connectionReferenceName`, where
+`#[MultiTenantConnection]` named it `referenceName`.
 
 ## 3. Projections: v1 (Prooph-based) removed, `ProjectionV2` renamed to `Projection`
 
@@ -3000,8 +3001,25 @@ DSN (`new DbalConnectionFactory($dsn)`) is a pool: every concurrent execution ta
 when it ends, and one process opens at most `connection_pool_size` connections, 10 by default
 (`new DbalConnectionFactory(['dsn' => $dsn, 'connection_pool_size' => 20])`). A coroutine waits up to five seconds
 for a returned connection and then fails with `ConnectionPoolExhausted`; a fiber cannot wait and fails at once.
-AMQP channels are kept open and handed to the next execution in the same way. A process handling one message at a
-time uses one connection, as before.
+A consumer running on a coroutine is one execution for as long as it consumes, so it keeps its connection: the pool
+has to be at least as large as the number of coroutines consuming in the process, plus the requests it handles at
+once. A process handling one message at a time uses one connection, as before.
+
+Every concurrent execution also has its own RabbitMQ connection, kept open when the execution ends and handed to the
+next one. Their number is not limited: a process holds as many as it has had executions running at once, so keep the
+coroutines per worker (`max_coroutine`) times the workers below what the broker accepts.
+
+What a coroutine can wait on decides whether it helps:
+
+- MySQL and MariaDB (`pdo_mysql`) and `php-amqplib` (`AmqpLibConnectionFactory`) are waited on: while one coroutine
+  waits for the database or the broker, the others run.
+- PostgreSQL is refused inside an OpenSwoole coroutine, and inside a Swoole coroutine without
+  `SWOOLE_HOOK_PDO_PGSQL` (Swoole 5.1 and later), with a `ConfigurationException`. Such a runtime cannot wait on a
+  PostgreSQL query, so a coroutine waiting for a row locked by another coroutine of the same process would stop that
+  one too, and neither would finish.
+- The `amqp` extension (`AmqpExtConnectionFactory`) and SQLite work, but each call stops every coroutine of the
+  process until it returns. With SQLite a second writer waits inside the call for the first, which cannot go on
+  meanwhile, so let one coroutine write at a time; `sqlite:///:memory:` is a separate empty database per connection.
 
 A Symfony DBAL connection registered without a `ManagerRegistry` (`SymfonyConnectionReference::defaultConnection()`
 or `createForConnection()`) stays the connection of the process, and every concurrent execution works on a copy
@@ -3009,9 +3027,12 @@ Ecotone opens from its parameters and configuration, at most 10 per process
 (`->withConnectionPoolSize(20)` changes it). Code that holds Symfony's `Connection` service is not on that copy.
 
 Any other connection the application or its framework built (a Doctrine `ManagerRegistry`, a Laravel or Tempest
-connection, an existing `Doctrine\DBAL\Connection`) is still one connection for the process. When a second execution begins a
-transaction on it while another execution holds one, Ecotone refuses with a `ConfigurationException` naming the ways
-out, where it used to let the two share the transaction.
+connection) is still one connection for the process, and so is an existing `Doctrine\DBAL\Connection` unless it is
+handed over with `Ecotone\Dbal\DbalConnection::createWithCopiesForConcurrentExecutions($connection)`, which gives
+every concurrent execution a copy as the Symfony reference does. When a second execution begins a transaction on such
+a single connection while another execution holds one, Ecotone refuses with a `ConfigurationException` naming the ways
+out, where it used to let the two share the transaction. That includes a fiber or coroutine a handler starts, which
+in 1.x joined the handler's transaction when it sent a command.
 
 A fiber or coroutine started inside a handler is an execution of its own. On a pooled connection it takes its own
 connection, so it does not see what the handler has not committed, and what it stores stays when the handler rolls
@@ -3021,7 +3042,8 @@ that started it is still running and still handling that message. A fiber does n
 started another, so a fiber starts without propagated headers and, with multi-tenancy, without a tenant.
 
 **How to adapt:** nothing when the process handles one message at a time. To handle several at once, register the
-connection from a DSN, keep workers times `connection_pool_size` below what the database accepts, and take the
+connection from a DSN (MySQL or MariaDB on OpenSwoole), read RabbitMQ with `AmqpLibConnectionFactory`, keep workers
+times `connection_pool_size` below what the database accepts, and take the
 connection in your own code with `#[CurrentConnection] Connection $connection` on the handler, not from a property.
 Do the work that must share the handler's transaction in the handler itself, not in a fiber or coroutine it starts,
 and pass a fiber the headers it needs explicitly (`metadata:` on the bus call).
@@ -3029,17 +3051,21 @@ and pass a fiber the headers it needs explicitly (`metadata:` on the bus call).
 ### A handler takes the database connection with `#[CurrentConnection]`
 
 **Before:** a handler or console command could take a `Doctrine\DBAL\Connection` as a service
-(`#[Reference] Connection $connection`). That is one fixed connection, which was the connection of the message
-only as long as the process had a single one.
+(`#[Reference] Connection $connection`, or `Connection $connection` resolved by its type). That is one fixed
+connection, which was the connection of the message only as long as the process had a single one.
 
 **Now:** a `Doctrine\DBAL\Connection` parameter of a handler or a console command without `#[CurrentConnection]` is
 refused at bootstrap with a `ConfigurationException`. `#[CurrentConnection] Connection $connection`
 (`Ecotone\Api\Dbal\Attribute\CurrentConnection`) injects the connection the message is handled on, the one its
 transaction runs on, also when every coroutine or fiber has its own.
 
-**How to adapt:** replace `#[Reference]` on the parameter with `#[CurrentConnection]`, or
-`#[CurrentConnection('name')]` for a connection registered under another name. A service that takes the connection
-through its constructor is not checked; inside coroutines or fibers pass it the handler's connection instead.
+**How to adapt:** put `#[CurrentConnection]` on the parameter, in place of `#[Reference]` when it had one. A
+connection registered under another name is `#[CurrentConnection('name')]`, where the name is the reference name of
+its registration: the argument of `DbalConnectionReference`, the `$referenceName` passed to
+`SymfonyConnectionReference::createForConnection()` or `LaravelConnectionReference::create()`, or the service id of
+a `DbalConnectionFactory`. A connection Ecotone does not manage, such as a reporting database, is taken through the
+constructor of the handler's class, which is not checked; so is any service holding a connection, and inside
+coroutines or fibers pass such a service the handler's connection instead.
 
 ### `ecotone/dbal`, `ecotone/laravel` and `ecotone/tempest` require `doctrine/dbal` 4.2.3 or later
 

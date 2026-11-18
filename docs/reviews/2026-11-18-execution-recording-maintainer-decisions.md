@@ -30,3 +30,23 @@ accepted (row 3h of known-deviations stays as it is), and widening the catalogue
   - Every test under `packages/*/tests` that reads a recording moves to the reader; none names `FlowExecution` or
     another `src/` class for it. `FlowExecution` stays internal for snapshots and comparison, built on the same
     data so the two never disagree.
+- M3. The tracing level is defined in the public configuration. Maintainer: "yes allow level to be defined, if that
+  works for integrations like opentelemetry".
+  - `TracingConfiguration` takes a level; the framework level is what `withExecutionRecording()` switches on today
+    (the recording and, since M1, the flow-build compile step). `withExecutionRecording()` is replaced by the level
+    (unreleased, no alias), one word per concept through configuration, refusal messages, skills and docs
+    (`framework-public-api` 6a, 6b). The default level is today's behaviour without the recording.
+  - It has to work with an integration that brings its own tracer. Today the recording is refused when the
+    application provides a `TracerProviderInterface` (OpenTelemetry). First report what the framework level does and
+    should do there: which framework-level steps reach an OpenTelemetry exporter as spans, whether the M2 reader
+    still returns the recording, and what stops it today. If making the level work with OpenTelemetry is a contained
+    change (the recording observes alongside the provided tracer), do it, with tests in the OpenTelemetry package at
+    both levels proving the exported spans of the default level are unchanged. If it needs a redesign of how the
+    recorder and a tracer share spans, stop and ask with the options.
+  - Every unsupported combination is refused at bootstrap with a message test, never read as the default level.
+- M4. Per-message state in tracing services is accepted. Maintainer: "it will be fine to allow for it for this
+  context to keep state, but let's review that there is no situation in which this state can leak".
+  - Row 3h of `known-deviations.md` states the acceptance and also covers what tracing on `main` already keeps:
+    `EcotoneTracer::$activeSpans`, `OpenTelemetryTracer::$activeSpans` and the mutable fields of the two active span
+    classes, each with what bounds it.
+  - A separate read-only leak review of every mutable field runs elsewhere; its findings follow as their own brief.

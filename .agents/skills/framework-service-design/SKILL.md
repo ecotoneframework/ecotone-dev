@@ -18,6 +18,7 @@ description: >-
 - Adding or changing a service class, its constructor, or how the container builds it
 - Adding a module, a `Definition`, a compiler pass, or reading class/method metadata
 - Introducing an interface, a cache, or a property that changes between messages
+- Tracking something "current" while a message is handled: a stack, a flag, a scope, a held resource
 
 ## Rules
 
@@ -40,6 +41,19 @@ immutable value object carried on a message header.
 - **Expected:** the service has no property written after construction and no static cache; per-message state
   travels on a header or a local value object.
 - **Verified by:** `eval:add-dependency`
+
+### 3a. State a service cannot avoid lives in `ExecutionScope`, never in a property
+First remove the state: carry it on a header or a local value object (rule 3). Only state that is ambient by
+nature (what the message being handled is, whether a transaction or a scope is open, which resource this
+execution holds) may stay, and then the service reads it per call with
+`ExecutionScope::stateOf($this, fn () => new <State>())` and keeps no property written after construction. One
+process handles several messages at once under coroutines (Swoole, OpenSwoole) and fibers; a property is shared by
+all of them, `ExecutionScope` gives each its own. The state ships with a test that interleaves two executions with
+`Fiber::suspend()` in a handler and proves neither sees the other's state.
+- **Expected:** state a service needs across calls of one message is a small state class fetched with
+  `ExecutionScope::stateOf($this, ...)` on every use, with no mutable or static property on the service, and the
+  answer includes (or names) a test that interleaves two executions with fibers.
+- **Verified by:** `eval:keep-ambient-state`
 
 ### 4. Do not mix queries with writes
 A read never runs DDL, a mutator returns `void`, and the name says which it is (`popRecordedEvents()`, not

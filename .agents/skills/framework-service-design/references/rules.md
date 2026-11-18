@@ -110,6 +110,85 @@ the reason to write that test first, not a reason to skip it.
 
 ---
 
+## 3a. State a service cannot avoid lives in `ExecutionScope`, never in a property
+
+Rule 3 removes state. Some state cannot be removed, because it is ambient: when a handler publishes an event, the
+event bus has no message in its hands to read the headers of the command being handled from, so something has to
+remember "the message this execution is handling". The same holds for "is a transaction open", "is a collector
+scope active", "which tenant is active", "which spans are open", "which database connection does this execution
+hold".
+
+Kept in a property, that state is shared by everything the process runs. Under php-fpm and a CLI consumer the
+process handles one message at a time, so a stack that is pushed and popped in `finally` looked safe. Under Swoole
+or OpenSwoole with coroutines, and under fibers, one process handles several messages interleaved: measured on
+OpenSwoole 26.2 with 300 interleaved requests, 296 event handlers received another request's `tenant` header, and a
+request that answered "ok" lost its row because it ran inside the transaction of a request that rolled back.
+
+`Ecotone\Messaging\Execution\ExecutionScope` gives each execution its own state: the coroutine's, the fiber's, or
+the process's when neither runs.
+
+Wrong:
+
+```php
+final class MessageHeadersPropagatorInterceptor
+{
+    private array $currentlyPropagatedHeaders = [];
+
+    public function storeHeaders(MethodInvocation $methodInvocation, Message $message)
+    {
+        $this->currentlyPropagatedHeaders[] = $message->getHeaders()->headers();
+        try {
+            return $methodInvocation->proceed();
+        } finally {
+            array_pop($this->currentlyPropagatedHeaders);
+        }
+    }
+}
+```
+
+Right:
+
+```php
+final class PropagatedHeaders
+{
+    public array $headersOfHandledMessages = [];
+}
+
+final class MessageHeadersPropagatorInterceptor
+{
+    public function storeHeaders(MethodInvocation $methodInvocation, Message $message)
+    {
+        $propagated = ExecutionScope::stateOf($this, static fn () => new PropagatedHeaders());
+        $propagated->headersOfHandledMessages[] = $message->getHeaders()->headers();
+        try {
+            return $methodInvocation->proceed();
+        } finally {
+            array_pop($propagated->headersOfHandledMessages);
+        }
+    }
+}
+```
+
+Three things to hold to:
+
+- Fetch the state on every use. A state object cached in a property is the property again.
+- The owner passed to `stateOf()` is the service itself, so two instances of one class (one collector per channel)
+  keep separate state.
+- A state object that holds a resource returns it in `__destruct`, which runs when the execution ends
+  (`Ecotone\Dbal\Connection\PooledConnection` returns its connection to the pool that way).
+
+The test is the fiber interleaving, at the userland level: a handler calls `Fiber::suspend()`, the test sends a
+second message while the first is suspended, resumes, and asserts through a query handler that each saw only its
+own state. `packages/Ecotone/tests/Messaging/Execution/InterleavedExecutionsTest.php` and
+`packages/Dbal/tests/Integration/InterleavedExecutionsTest.php` are the worked examples; it needs no Swoole.
+
+What is not covered: an object the application hands Ecotone (a handler, a Doctrine `EntityManager`, a
+framework-owned connection) is one instance per process, and Ecotone cannot scope it. Where sharing it would lose
+data, refuse it with a message naming the ways out, as `DbalTransactionInterceptor` does for a transaction another
+execution already holds on the same connection.
+
+---
+
 ## 4. Do not mix queries with writes
 
 A method that returns a value must not change state, and a method that changes state returns `void`. The name has

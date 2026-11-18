@@ -34,3 +34,6 @@ jobs:
 
       - name: Check framework code opens no transaction outside the boundaries
         run: php bin/check-framework-transactions.php
+
+      - name: Check framework code builds no database connection outside the connection pool
+        run: php bin/check-framework-connections.php

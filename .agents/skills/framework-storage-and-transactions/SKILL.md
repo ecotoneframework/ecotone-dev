@@ -17,6 +17,7 @@ description: >-
 - A feature needs a table, a document store, a queue or any external storage
 - Changing transaction wrapping, locking, concurrency, the event store or DBAL code
 - Handling a missing table or a database outage
+- Obtaining, holding or opening a database connection
 
 ## Rules
 
@@ -78,6 +79,17 @@ its reason in `bin/check-framework-transactions.php`.
   user callback in `transactional()`/`beginTransaction()`; a module's console command keeps the console
   transaction unless its work is batched or long-running, and then opts out with `#[WithoutDatabaseTransaction]`.
 - **Verified by:** `check:framework-transactions`, `eval:framework-store-transaction`
+
+### 16e. A database connection is asked for per use, from the pool, never built or kept
+Framework code gets its connection each time it needs one: `CachedConnectionFactory::createContext()` and
+`->getDbalConnection()` on the result. That returns the connection of the current execution, which the
+`ConnectionPool` behind a DSN-registered `DbalConnectionFactory` hands out per coroutine or fiber and takes back
+when the execution ends. A service never stores a `Connection` or a `DbalContext` in a property, never passes one
+into a long-lived object, and never calls `DriverManager::getConnection()`: a connection bound that way is shared
+by every execution in the process, so they share one transaction.
+- **Expected:** new framework storage code takes a connection factory (not a `Connection`) as its dependency,
+  resolves the connection inside each method that uses it, and builds no connection of its own.
+- **Verified by:** `check:framework-connections`, `eval:store-feature-state`
 
 ### 16b. No DDL in a command, event or asynchronous flow
 Every table — Ecotone's and a projection's — is migrated before the first message, through console commands or

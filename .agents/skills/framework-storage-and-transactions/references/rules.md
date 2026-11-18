@@ -292,3 +292,50 @@ identity across builders, converters, collaborators and channel sends. A syntact
 builders also rejects legitimate forwarding, timeout scheduling and publication of new messages. No such check is
 added: the eval grades whether the proposed recovery duplicates the framework's retries, while real-database tests
 prove that a conflict rolls back and a retry reads fresh state.
+
+---
+
+## 16e. A database connection is asked for per use, from the pool, never built or kept
+
+One process can handle several messages at once: Swoole and OpenSwoole coroutines, and fibers. Two executions on
+one connection share one transaction, so a rollback of either discards what the other stored (measured on
+OpenSwoole 26.2: a request answered "ok" and its row was gone), and on MySQL they fail with "Cannot execute queries
+while other unbuffered queries are active".
+
+So a connection Ecotone opens comes from `Ecotone\Dbal\Connection\ConnectionPool`, which sits behind a
+`DbalConnectionFactory` registered from a DSN. The pool gives every concurrent execution its own connection
+(`connectionOfCurrentExecution()`), holds at most `connection_pool_size` of them per process, makes a coroutine
+wait for a returned one, and takes the connection back, rolled back if a transaction was left open, when the
+execution ends.
+
+That only works if code asks at the moment of use:
+
+```php
+final class DbalReceiptStore
+{
+    public function __construct(private CachedConnectionFactory $connectionFactory)
+    {
+    }
+
+    public function record(string $commandId): void
+    {
+        $this->connectionFactory->createContext()->getDbalConnection()->insert('ecotone_receipt', ['command_id' => $commandId]);
+    }
+}
+```
+
+Wrong, each of them:
+
+- `public function __construct(private Connection $connection)` in a service: the first execution's connection,
+  for the life of the process.
+- `$this->connection ??= $this->connectionFactory->createContext()->getDbalConnection();`: the same, one call later.
+- `DriverManager::getConnection(...)` anywhere but the pool's connect callback.
+  `bin/check-framework-connections.php` refuses it and lists the one allowed place.
+
+`bin/check-framework-connections.php` decides the third. The first two need a reader: a `Connection` property is
+legitimate on an adapter around a connection the application built (`AlreadyConnectedDbalConnectionFactory`, the
+Laravel and Tempest driver adapters), which is why the eval grades them instead of a syntax check.
+
+A connection the application or its framework built (Doctrine `ManagerRegistry`, a Laravel connection, an existing
+`Connection`) is one per process and cannot be pooled from Ecotone's side. `DbalTransactionInterceptor` refuses a
+transaction on it when another concurrent execution already holds one, naming the DSN registration as the way out.

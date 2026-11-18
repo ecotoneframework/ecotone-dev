@@ -50,6 +50,7 @@ final class RecordedAggregateRepository implements AggregateRepository
         $step = $this->tracer->startStep($name, hints: $hints);
         try {
             $result = $call();
+            $described = $step === null ? '' : $outcome($result);
         } catch (Throwable $failure) {
             if ($step !== null) {
                 $this->tracer->failStep($step, $failure);
@@ -58,7 +59,6 @@ final class RecordedAggregateRepository implements AggregateRepository
             throw $failure;
         }
         if ($step !== null) {
-            $described = $outcome($result);
             $described instanceof ExecutionHint ? $this->tracer->endStep($step, '', [$described]) : $this->tracer->endStep($step, $described);
         }
 

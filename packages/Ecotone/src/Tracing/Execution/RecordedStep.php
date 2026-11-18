@@ -20,6 +20,7 @@ final class RecordedStep
         $step = $tracer->startStep($name, hints: $hints);
         try {
             $result = $call();
+            $described = $step === null || $outcome === null ? '' : $outcome($result);
         } catch (Throwable $failure) {
             if ($step !== null) {
                 $tracer->failStep($step, $failure);
@@ -28,7 +29,6 @@ final class RecordedStep
             throw $failure;
         }
         if ($step !== null) {
-            $described = $outcome === null ? '' : $outcome($result);
             $described instanceof ExecutionHint ? $tracer->endStep($step, '', [$described]) : $tracer->endStep($step, $described);
         }
 

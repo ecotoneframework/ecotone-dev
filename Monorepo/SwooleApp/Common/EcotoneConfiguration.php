@@ -14,7 +14,7 @@ final class EcotoneConfiguration
     #[ServiceContext]
     public function dbal(): DbalConfiguration
     {
-        return DbalConfiguration::createWithDefaults();
+        return DbalConfiguration::createWithDefaults()->withDocumentStore(isDocumentStoreEnabled: true, enableDocumentStoreStateStoredRepository: true, documentStoreRelatedAggregates: [Wallet::class]);
     }
 
     #[ServiceContext]

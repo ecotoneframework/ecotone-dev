@@ -83,6 +83,25 @@ final class Probe
         return ['balance' => $this->queryBus->sendWithRouting('account.balance', $input['accountId'])];
     }
 
+    private function actionWalletOpen(array $input): array
+    {
+        $this->commandBus->sendWithRouting('wallet.open', ['walletId' => $input['walletId']]);
+
+        return [];
+    }
+
+    private function actionWalletTopUp(array $input): array
+    {
+        $this->commandBus->sendWithRouting('wallet.topUp', ['amount' => (int) $input['amount']], metadata: ['aggregate.id' => $input['walletId']]);
+
+        return [];
+    }
+
+    private function actionWalletBalance(array $input): array
+    {
+        return ['balance' => $this->queryBus->sendWithRouting('wallet.balance', metadata: ['aggregate.id' => $input['walletId']])];
+    }
+
     private function actionKill(array $input): array
     {
         $sessionId = $this->database->sessionId();

@@ -2,3 +2,4 @@ Laravel/storage/
 Laravel/bootstrap/cache/*
 !Laravel/bootstrap/cache/.gitkeep
 Symfony/var/
+Benchmark/var/

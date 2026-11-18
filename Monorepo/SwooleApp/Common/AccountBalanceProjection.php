@@ -7,9 +7,11 @@ namespace Monorepo\SwooleApp\Common;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
 
 #[Projection('swoole_account_balance')]
+#[Partitioned]
 #[FromAggregateStream(Account::class)]
 final class AccountBalanceProjection
 {

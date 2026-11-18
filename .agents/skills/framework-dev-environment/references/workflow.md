@@ -218,6 +218,11 @@ again after a failure keeps the context it was sent with, so each delivery is a 
 sub-flow as `sub-flow process N: …` under its sender, in the order the sender sent them; process numbers stay the run
 order. `compare` states a new, gone or re-attached sub-flow and shows each one right after its sender.
 
+The build wiring (`ecotone:flow:dump --build`, and the wiring and build of a snapshot) is read only from an
+application that records its execution. `MessageFlowModule` adds the step that reads it before the recording step, so
+it is the wiring the application declared, never the recording's wrappers. Without the mode, `--build` and
+`ecotone:build-flow:record` are refused; `ecotone:flow:dump` without `--build` is the same either way.
+
 A test reads the recording with `$ecotone->getExecutionRecording()` on its `FlowTestSupport`: an `ExecutionRecording`
 (`Ecotone\Api\Tracing`) holding `processes` in run order, each a `RecordedProcess` with its `title`, `steps`
 (`RecordedStep`: `depth`, `label`, `hints` of `RecordedHint` `key`, `value`, `critical`) and `sentBy` (a

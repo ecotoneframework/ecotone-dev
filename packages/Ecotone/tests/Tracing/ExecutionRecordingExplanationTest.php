@@ -389,6 +389,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
             [
                 'after send SendRetryChannelInterceptor::afterSendCompletion',
                 'after send TracingChannelInterceptor::afterSendCompletion',
+                'after successful send InMemoryQueueAcknowledgeInterceptor::postSend',
                 'after receive TracingChannelInterceptor::afterReceiveCompletion',
             ],
             array_values(array_filter(array_slice($lines, $release), fn (string $line): bool => preg_match('/^after (send|successful send|receive|take) /', $line) === 1)),

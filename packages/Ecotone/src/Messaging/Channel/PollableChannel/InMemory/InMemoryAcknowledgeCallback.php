@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Channel\PollableChannel\InMemory;
 
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Channel\DelayableQueueChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
@@ -24,6 +25,13 @@ final class InMemoryAcknowledgeCallback implements AcknowledgementCallback
         private bool                      $isAutoAcked = true,
         private InMemoryAcknowledgeStatus $status = InMemoryAcknowledgeStatus::AWAITING
     ) {
+    }
+
+    public function redeliverAsPutOn(MessageChannel $channel, Message $message): void
+    {
+        if ($channel === $this->queueChannel) {
+            $this->message = $message;
+        }
     }
 
     /**

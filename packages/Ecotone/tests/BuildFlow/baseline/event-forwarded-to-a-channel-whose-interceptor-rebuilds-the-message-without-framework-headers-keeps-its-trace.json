@@ -129,7 +129,8 @@
             {"depth":12,"label":"span send users"},
             {"depth":13,"label":"put on channel users"},
             {"depth":8,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
-            {"depth":8,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]}
+            {"depth":8,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":8,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"}
         ]},
         {"process": "receive users, class@anonymous::register", "sentBy": {"process":1,"step":20}, "steps": [
             {"depth":1,"label":"receive users","hints":[{"key":"sent by","value":"process 1, the command user.register","critical":true}]},
@@ -185,6 +186,7 @@
             {"depth":14,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":14,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":14,"label":"after successful send AbstractChannelInterceptor@anonymous::postSend"},
+            {"depth":14,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","critical":true}]}
         ]},
         {"process": "receive notifications", "sentBy": {"process":2,"step":41}, "steps": [

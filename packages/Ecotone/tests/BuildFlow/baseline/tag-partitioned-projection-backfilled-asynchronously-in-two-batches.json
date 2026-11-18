@@ -220,6 +220,7 @@
             {"depth":21,"label":"put on channel backfill"},
             {"depth":16,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":16,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":16,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"},
             {"depth":13,"label":"entrypoint sends to backfill","hints":[{"key":"routing slip","value":"none → ecotone.projection.partition_batch.executor","critical":true},{"key":"group","value":"part 2 of 2 of {generated#1}, reports to ecotone.projection.backfill.completion:course_seats","critical":true}]},
             {"depth":14,"label":"direct channel ecotone.messaging.entrypoint"},
             {"depth":15,"label":"router HeaderRouter::route","hints":[{"key":"returns","value":"array","critical":false}]},
@@ -233,6 +234,7 @@
             {"depth":21,"label":"put on channel backfill"},
             {"depth":16,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":16,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":16,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"},
             {"depth":8,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by ProjectingManager::prepareBackfill","critical":true}]},
             {"depth":4,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by ProjectingConsoleCommands::backfillProjection","critical":true}]}
         ]},
@@ -310,9 +312,10 @@
             {"depth":18,"label":"put on channel backfill"},
             {"depth":13,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":13,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":13,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","critical":true}]}
         ]},
-        {"process": "receive backfill, PartitionBatchExecutorHandler::executeBatch (2 of 2)", "sentBy": {"process":1,"step":35}, "steps": [
+        {"process": "receive backfill, PartitionBatchExecutorHandler::executeBatch (2 of 2)", "sentBy": {"process":1,"step":36}, "steps": [
             {"depth":1,"label":"receive backfill","hints":[{"key":"sent by","value":"process 1, the message the entrypoint sent to backfill","critical":true}]},
             {"depth":2,"label":"take from channel backfill"},
             {"depth":2,"label":"after receive TracingChannelInterceptor::afterReceiveCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
@@ -386,6 +389,7 @@
             {"depth":18,"label":"put on channel backfill"},
             {"depth":13,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":13,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":13,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","critical":true}]}
         ]},
         {"process": "receive backfill, GatheringMessageHandler::handle (part 1 of 2)", "sentBy": {"process":2,"step":64}, "steps": [

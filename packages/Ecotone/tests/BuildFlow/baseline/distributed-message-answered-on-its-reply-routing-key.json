@@ -112,7 +112,8 @@
             {"depth":10,"label":"span send distributed_channel"},
             {"depth":11,"label":"put on channel distributed_channel"},
             {"depth":6,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
-            {"depth":6,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]}
+            {"depth":6,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":6,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"}
         ]},
         {"process": "receive distributed_channel, DistributedMessageHandler::handle (1 of 2)", "sentBy": {"process":1,"step":7}, "steps": [
             {"depth":1,"label":"receive distributed_channel","hints":[{"key":"sent by","value":"process 1, the message","critical":true}]},
@@ -169,6 +170,7 @@
             {"depth":18,"label":"put on channel distributed_channel"},
             {"depth":13,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":13,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":13,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","critical":true}]}
         ]},
         {"process": "receive distributed_channel, DistributedMessageHandler::handle (2 of 2)", "sentBy": {"process":2,"step":45}, "steps": [

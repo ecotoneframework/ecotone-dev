@@ -54,7 +54,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         );
     }
 
-    public function test_a_message_the_in_memory_queue_delivers_again_without_its_trace_context_is_a_flow_and_its_first_delivery_a_sub_flow(): void
+    public function test_a_message_the_in_memory_queue_delivers_again_after_a_failure_is_each_time_a_sub_flow_of_the_send_that_put_it_on_the_channel(): void
     {
         $orders = new class () {
             public int $attempts = 0;
@@ -77,7 +77,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
 
         self::assertCount(3, $processes);
         self::assertSame(1, $processes[1]['sentBy']['process']);
-        self::assertArrayNotHasKey('sentBy', $processes[2]);
+        self::assertSame($processes[1]['sentBy'], $processes[2]['sentBy'] ?? null);
     }
 
     public function test_a_process_whose_message_was_sent_outside_the_recording_is_a_flow(): void

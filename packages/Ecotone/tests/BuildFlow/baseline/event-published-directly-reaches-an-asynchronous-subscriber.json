@@ -83,6 +83,7 @@
             {"depth":17,"label":"put on channel notifications"},
             {"depth":12,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":12,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":12,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"},
             {"depth":6,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by the chain","critical":true}]}
         ]},
         {"process": "receive notifications, class@anonymous::notify", "sentBy": {"process":1,"step":14}, "steps": [

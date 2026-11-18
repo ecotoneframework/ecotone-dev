@@ -120,7 +120,8 @@
             {"depth":12,"label":"span send async_channel"},
             {"depth":13,"label":"put on channel async_channel"},
             {"depth":8,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
-            {"depth":8,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]}
+            {"depth":8,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":8,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"}
         ]},
         {"process": "receive async_channel, class@anonymous::register", "sentBy": {"process":1,"step":19}, "steps": [
             {"depth":1,"label":"receive async_channel","hints":[{"key":"sent by","value":"process 1, the command user.register","critical":true}]},
@@ -172,6 +173,7 @@
             {"depth":18,"label":"put on channel async_channel"},
             {"depth":13,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":13,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":13,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","critical":true}]}
         ]},
         {"process": "receive async_channel, class@anonymous::notify", "sentBy": {"process":2,"step":40}, "steps": [

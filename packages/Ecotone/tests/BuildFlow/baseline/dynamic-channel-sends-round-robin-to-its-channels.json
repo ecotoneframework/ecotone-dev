@@ -120,7 +120,8 @@
             {"depth":12,"label":"span send orders_a"},
             {"depth":13,"label":"put on channel orders_a"},
             {"depth":8,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
-            {"depth":8,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]}
+            {"depth":8,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":8,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"}
         ]},
         {"process": "send command order.place (2 of 2)", "steps": [
             {"depth":1,"label":"gateway CommandBus::sendWithRouting","hints":[{"key":"returns","value":"nothing","critical":false}]},
@@ -156,7 +157,8 @@
             {"depth":13,"label":"span send orders_b"},
             {"depth":14,"label":"put on channel orders_b"},
             {"depth":9,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
-            {"depth":9,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]}
+            {"depth":9,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":9,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"}
         ]},
         {"process": "receive orders, class@anonymous::place (1 of 2)", "sentBy": {"process":1,"step":25}, "steps": [
             {"depth":1,"label":"receive orders","hints":[{"key":"sent by","value":"process 1, the command order.place","critical":true}]},

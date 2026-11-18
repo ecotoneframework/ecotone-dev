@@ -66,7 +66,8 @@
             {"depth":10,"label":"span send tickets"},
             {"depth":11,"label":"put on channel tickets"},
             {"depth":6,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
-            {"depth":6,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]}
+            {"depth":6,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":6,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"}
         ]},
         {"process": "receive tickets, class@anonymous::create", "sentBy": {"process":1,"step":5}, "steps": [
             {"depth":1,"label":"receive tickets","hints":[{"key":"sent by","value":"process 1, the message","critical":true}]},

@@ -260,6 +260,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                          put on channel orders',
                 '                after send SendRetryChannelInterceptor::afterSendCompletion',
                 '                after send TracingChannelInterceptor::afterSendCompletion',
+                '                after successful send InMemoryQueueAcknowledgeInterceptor::postSend',
                 '  sub-flow process 2: receive orders, class@anonymous::place',
                 '    receive orders',
                 '      ↳ sent by: process 1, the command order.place',

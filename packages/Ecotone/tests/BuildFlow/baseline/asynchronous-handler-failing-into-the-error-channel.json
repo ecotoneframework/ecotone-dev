@@ -94,7 +94,8 @@
             {"depth":12,"label":"span send orders"},
             {"depth":13,"label":"put on channel orders"},
             {"depth":8,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
-            {"depth":8,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]}
+            {"depth":8,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":8,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"}
         ]},
         {"process": "receive orders, class@anonymous::place", "sentBy": {"process":1,"step":19}, "steps": [
             {"depth":1,"label":"receive orders","hints":[{"key":"sent by","value":"process 1, the command order.place","critical":true}]},
@@ -129,6 +130,7 @@
             {"depth":16,"label":"put on channel orders"},
             {"depth":11,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
             {"depth":11,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":11,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"},
             {"depth":9,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by DelayedRetryErrorHandler::handle","critical":true}]},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","critical":true}]}
         ]}

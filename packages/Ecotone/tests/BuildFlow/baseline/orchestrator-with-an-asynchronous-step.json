@@ -148,7 +148,8 @@
             {"depth":12,"label":"span send reviews"},
             {"depth":13,"label":"put on channel reviews"},
             {"depth":8,"label":"after send SendRetryChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
-            {"depth":8,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]}
+            {"depth":8,"label":"after send TracingChannelInterceptor::afterSendCompletion","hints":[{"key":"failure","value":"none","critical":false}]},
+            {"depth":8,"label":"after successful send InMemoryQueueAcknowledgeInterceptor::postSend"}
         ]},
         {"process": "receive reviews, class@anonymous::review", "sentBy": {"process":1,"step":34}, "steps": [
             {"depth":1,"label":"receive reviews","hints":[{"key":"sent by","value":"process 1, the command approval.request","critical":true}]},

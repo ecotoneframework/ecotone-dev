@@ -92,3 +92,25 @@ continues from it.
 - **D19 NIT**: quickstarts still take the tenant connection factory by `#[Reference]`.
 - **D20 NIT**: same as B10.
 - Round 1 still open: D1 (Laravel), D2, D6, D8 (public skills), D9.
+
+## Re-verification at ee370314d
+
+Resolved: G20, G24, G26, G29, G31, B2, B10, B11, B12, B14, V20, V21, V23, V25 (documented), D13, D17, D20
+(documented). Resolved in code without a test: V24. Partly: G34, V22, V26, V28, D11, D12, D14, D16.
+
+- **G1 (round 1) BLOCKING, narrowed**: no interleaving test for `HeaderBasedMultiTenantConnectionFactory` /
+  `ActiveTenants`, `RetryStatusTracker`, `OpenTelemetryTracer`.
+- **G36 SHOULD-FIX** `Ecotone/CoroutineExecutionsTest.php:125`: the termination test asserts a wall-clock bound, sends
+  a real signal after a sleep, and does not require `pcntl` and `posix`.
+- **G37 NIT**: the PostgreSQL refusal is raised at runtime. **G38 NIT**: prose added to docblocks. **G39 NIT**:
+  nullable `OneExecutionAtATime` in the trait. **G40 NIT**: Pulse kernel calls three validators for their refusals.
+- **B16 SHOULD-FIX** `upgrade-2.0.md`: "How to adapt" says "nothing" for one message at a time, but an OpenSwoole
+  server has `enable_coroutine` on by default, so a PostgreSQL DSN is refused there.
+- **B17 NIT**: the PostgreSQL refusal covers only connections Ecotone opens itself. **B18 NIT / V23 follow-up**
+  `InterceptedConsumer.php:79`: a throwing stop hook skips `onShutdown()`, leaving the listener count and flag set.
+  **B19 / V31 NIT** `OneExecutionAtATime.php:39`: the turn is awaited without a timeout.
+- **D21 SHOULD-FIX**: Pulse with a PostgreSQL transport and `PULSE_RUNTIME=swoole` restarts in a loop instead of
+  refusing at start.
+- **D22 NIT**: same as G23. **D23 NIT** `ConnectionPoolExhausted.php:20`: does not name consumer coroutines.
+- Still open and left for the maintainer: G21, G22, G23, G25, G27, G28, G30, G32, G33, G35, B13, B15, B6, V6, V27,
+  V29, V30, D10, D15, D18, D19, D1, D2, D8, D9.

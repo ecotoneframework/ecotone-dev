@@ -2,3 +2,7 @@ parameters:
     level: 3
     paths:
         - src
+    ignoreErrors:
+        -
+            message: '#^Instantiated class OpenSwoole\\Coroutine\\Channel not found\.$#'
+            path: src/Storage/WriterTurnBetweenCoroutines.php

@@ -7,7 +7,8 @@ RUN install-php-extensions amqp pdo_pgsql pdo_sqlite sockets intl zip pcntl opca
 
 # OpenSwoole is built in but loaded only when DEMO_RUNTIME=swoole (demo/docker/entrypoint.sh adds its ini directory).
 ARG OPENSWOOLE_VERSION=26.2.0
-RUN install-php-extensions openswoole-${OPENSWOOLE_VERSION} \
+RUN apt-get update && apt-get install -y --no-install-recommends libbrotli-dev && rm -rf /var/lib/apt/lists/* \
+    && install-php-extensions openswoole-${OPENSWOOLE_VERSION} \
     && mkdir "$PHP_INI_DIR/swoole" \
     && mv "$PHP_INI_DIR/conf.d/"*openswoole*.ini "$PHP_INI_DIR/swoole/"
 

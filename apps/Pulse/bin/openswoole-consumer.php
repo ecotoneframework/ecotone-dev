@@ -15,7 +15,7 @@ declare(strict_types=1);
 
 use App\Kernel;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use OpenSwoole\Coroutine;
 use OpenSwoole\Runtime;
 use Symfony\Component\Dotenv\Dotenv;

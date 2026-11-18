@@ -218,6 +218,13 @@ again after a failure keeps the context it was sent with, so each delivery is a 
 sub-flow as `sub-flow process N: …` under its sender, in the order the sender sent them; process numbers stay the run
 order. `compare` states a new, gone or re-attached sub-flow and shows each one right after its sender.
 
+A test reads the recording with `$ecotone->getExecutionRecording()` on its `FlowTestSupport`: an `ExecutionRecording`
+(`Ecotone\Api\Tracing`) holding `processes` in run order, each a `RecordedProcess` with its `title`, `steps`
+(`RecordedStep`: `depth`, `label`, `hints` of `RecordedHint` `key`, `value`, `critical`) and `sentBy` (a
+`RecordedSender` with `process` and `step`, null for a flow), plus `lines` (the default text) and
+`linesWithEveryHint`. It is read from the application's `InMemorySpanRecorder`; the snapshots are built from the same
+data, so the two never disagree.
+
 `phpstan.neon` is level 3 over `src` for Ecotone, Enqueue, Dbal, Amqp, JmsConverter, PdoEventSourcing, Laravel,
 OpenTelemetry, Kafka, plus `packages/Symfony/DependencyInjection`, `Monorepo`, and the `Api/` of all twelve packages
 that have one. Each package's own `phpstan.neon` is level 3 too and lists its `Api` beside its source directories.

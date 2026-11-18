@@ -173,12 +173,12 @@ docker compose exec -T app php bin/check-licence.php
 docker compose exec -T app php bin/add-apache-licence.php      # open source
 docker compose exec -T app php bin/add-enterprise-licence.php  # Enterprise modules
 
-# Build flow snapshots: what modules register, the chain of each handler, the wiring and the traced steps
-# of every flow catalogue scenario, committed
-# under packages/Ecotone/tests/BuildFlow/baseline. The check fails when they are not what the code produces
+# Flow snapshots: what modules register, the chain of each handler, the wiring and the traced steps of every
+# flow catalogue scenario, committed as JSON files (directory packages/Ecotone/tests/BuildFlow/baseline).
+# The check fails when they are not what the code produces
 docker compose exec -T app php bin/check-build-flow.php
-docker compose exec -T app php bin/build-flow.php snapshot   # regenerate them after an intended change
-docker compose exec -T app php bin/build-flow.php compare    # what changed against the baseline, as Markdown
+docker compose exec -T app php bin/build-flow.php snapshot   # re-record the snapshots after an intended change
+docker compose exec -T app php bin/build-flow.php compare    # what changed against the committed snapshots, as Markdown
 ```
 
 `compare` prints GitHub Markdown by default. `--presentation` picks the view:
@@ -195,7 +195,7 @@ A scenario of the catalogue is a `FlowScenario` returned by a private static met
 `packages/Ecotone/src/Test/Flow/*FlowScenarios.php` classes and listed in that class's `all()`; the classes are
 listed in `FlowScenarioCatalogue::all()`. A scenario names itself, the classes and services to boot, the extension
 objects, and one `FlowStage::when(...)` per action with the spans it expects. Add one there, run
-`php bin/build-flow.php snapshot`, and commit the new file under `packages/Ecotone/tests/BuildFlow/baseline`.
+`php bin/build-flow.php snapshot`, and commit the new snapshot file it writes.
 
 **What ran** (`execution` in each snapshot, and the "What ran" section of `compare`) is recorded with
 `TracingConfiguration::withExecutionRecording()`. Each process is one entry into the framework: a gateway call, a

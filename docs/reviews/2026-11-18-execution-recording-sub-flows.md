@@ -21,3 +21,30 @@ the recording's structure.
 - F4. Comparison. A sub-flow that is new, gone, or attached to a different sender is a change the Markdown
   comparison states ("2 new sub-flows of `receive backfill, …executeBatch`"), and the before/after presentation
   keeps the nesting.
+
+## Behaviour review of the sub-flow work (head 204212f72)
+
+F1 to F4 verified: the link is read from the trace parent and is right for two channels, two sends to one channel,
+delayed messages, instant retry, an unrecorded sender, a distributed hop and a sub-flow of a sub-flow; `check` is
+deterministic.
+
+- F5 (should fix). `InMemoryQueueAcknowledgeInterceptor.php:47`: the in-memory acknowledge callback keeps the
+  message from before `TracingChannelInterceptor` added its trace context, so a redelivery after a failure
+  arrives without it and is recorded as an unrelated flow (baseline
+  `failing-handler-whose-error-channel-send-fails.json`, process 3 has no `sentBy`). Over DBAL the same scenario
+  records the redelivery as a sub-flow, so the structure differs per channel. Requeue the message as it was put
+  on the channel. This changes what an in-memory redelivery carries with recording off too, so: say in the report
+  exactly which headers a redelivered message gains, prove with a test that nothing else about redelivery changes
+  (payload, delivery count, order, acknowledgement), and prove the redelivery is a sub-flow on in-memory and on
+  DBAL. If the fix needs more than the requeued message carrying the headers it was sent with, stop and ask.
+- F6 (should fix). `ExecutionRecordingSubFlowTest.php:42`: the "two consumers" test uses one channel. Add an event
+  published to asynchronous handlers on two different channels, each sub-flow linked to its own send step, also
+  when the channels are consumed in reverse order.
+- F7 (nit). `FlowComparisonMarkdown.php:119`: `array_search` on titles nests a sub-flow under the first process
+  with the sender's title; when a sender is removed and re-added under the same title, the unchanged sub-flow
+  prints under the removed copy. Use the after-side sender.
+- F8 (eval). `bin/test-agent-skills framework-dev-environment`: `red-ci-check` scored 0.67 (1 run) and 0.78
+  (3 runs), below 0.8; failing grader `rule-e4`, while the judged answer says "fix in code, never add to the
+  baseline". The branch changed only `references/workflow.md` of that skill. Run the same case with `RUNS=3` on
+  `main` (a separate `git worktree`, removed afterwards) and report both scores. If main scores the same, report
+  it as pre-existing and change nothing; if main passes, find what in this branch's change lowers it.

@@ -112,11 +112,10 @@ final class FlowComparisonMarkdown
      */
     private static function inFlowOrder(array $execution): array
     {
-        $titles = array_column($execution, 'process');
         $subFlows = [];
         $flows = [];
         foreach ($execution as $position => $process) {
-            $sender = isset($process['sentBy']) ? array_search($process['sentBy'], $titles, true) : false;
+            $sender = isset($process['sentBy']) ? self::senderPositionOf($execution, $process) : false;
             if ($sender === false || $sender === $position) {
                 $flows[] = $position;
                 continue;
@@ -143,6 +142,22 @@ final class FlowComparisonMarkdown
         }
 
         return array_values($ordered);
+    }
+
+    /**
+     * @param list<array{process: string, change: string, sentBy?: string}> $execution
+     * @param array{process: string, change: string, sentBy?: string} $subFlow
+     */
+    private static function senderPositionOf(array $execution, array $subFlow): int|false
+    {
+        $otherSide = $subFlow['change'] === FlowScenarioChange::REMOVED ? FlowScenarioChange::ADDED : FlowScenarioChange::REMOVED;
+        foreach ($execution as $position => $process) {
+            if ($process['process'] === ($subFlow['sentBy'] ?? null) && $process['change'] !== $otherSide) {
+                return $position;
+            }
+        }
+
+        return false;
     }
 
     /**

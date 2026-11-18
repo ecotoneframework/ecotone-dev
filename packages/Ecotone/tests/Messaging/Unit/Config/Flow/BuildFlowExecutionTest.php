@@ -163,6 +163,27 @@ final class BuildFlowExecutionTest extends TestCase
         );
     }
 
+    public function test_a_sub_flow_whose_sender_was_removed_and_added_again_under_the_same_title_is_shown_under_the_sender_that_runs_now(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $step = ['depth' => 1, 'label' => 'handler Orders::handle', 'hints' => []];
+        $this->replaceExecution('before', [
+            ['process' => 'send command order.place', 'steps' => [$step]],
+            ['process' => 'send command order.cancel', 'steps' => [$step]],
+            ['process' => 'receive notifications', 'sentBy' => ['process' => 1, 'step' => 0], 'steps' => [$step]],
+        ]);
+        $this->replaceExecution('after', [
+            ['process' => 'send command order.cancel', 'steps' => [$step]],
+            ['process' => 'send command order.place', 'steps' => [$step]],
+            ['process' => 'receive notifications', 'sentBy' => ['process' => 2, 'step' => 0], 'steps' => [$step]],
+        ]);
+
+        $sections = array_values(preg_grep('/^Process `/', explode("\n", $this->whatRan($this->presented('before-after')))));
+
+        self::assertSame('Process `receive notifications`, a sub-flow of `send command order.place`: unchanged.', $sections[(int) array_search('Process `send command order.place`: runs only now.', $sections, true) + 1]);
+    }
+
     public function test_sub_flows_are_shown_right_after_the_flow_that_sent_their_message_in_the_order_it_sent_them(): void
     {
         $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);

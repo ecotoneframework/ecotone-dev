@@ -47,7 +47,10 @@ use Ecotone\Projecting\ProjectionTriggerEndpoint;
 use Ecotone\Tracing\CompositeSpanRecorder;
 use Ecotone\Tracing\EcotoneTracer;
 use Ecotone\Tracing\Execution\ExecutionRecorder;
+use Ecotone\Tracing\Execution\ExecutionRecordingNotSwitchedOn;
+use Ecotone\Tracing\Execution\ExecutionRecordingReader;
 use Ecotone\Tracing\Execution\ExecutionRecordingTracer;
+use Ecotone\Tracing\Execution\InMemoryExecutionRecordingReader;
 use Ecotone\Tracing\Execution\RecordExecutionCompilerPass;
 use Ecotone\Tracing\MessageSpanAttributes;
 use Ecotone\Tracing\Tracer;
@@ -82,6 +85,14 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         if ($tracingConfiguration->executionRecording && $tracingConfiguration->spanRecorderReferenceNames === [] && $spanRecorderReferences === [] && $tracerReferences === []) {
             throw ConfigurationException::create('Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but no span recorder is registered, so nothing it records could be read. Register one with TracingConfiguration::withSpanRecorder(), for example InMemorySpanRecorder in tests, or remove withExecutionRecording().');
         }
+        $spanRecorders = [
+            ...array_map(fn (string $referenceName): Reference => new Reference($referenceName), $tracingConfiguration->spanRecorderReferenceNames),
+            ...array_map(fn (SpanRecorderReference $reference): Reference => new Reference($reference->referenceName), $spanRecorderReferences),
+        ];
+        $messagingConfiguration->registerServiceDefinition(
+            ExecutionRecordingReader::class,
+            $tracingConfiguration->executionRecording ? new Definition(InMemoryExecutionRecordingReader::class, [$spanRecorders]) : new Definition(ExecutionRecordingNotSwitchedOn::class),
+        );
         if ($tracingConfiguration->spanRecorderReferenceNames === [] && $tracerReferences === [] && $spanRecorderReferences === []) {
             $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracingDisabledCurrentTrace::class));
             $messagingConfiguration->registerServiceDefinition(MessageCollectionObserver::class, new Definition(UnobservedMessageCollection::class));
@@ -90,11 +101,6 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         }
         $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracerCurrentTrace::class, [new Reference(Tracer::class)]));
         $messagingConfiguration->registerServiceDefinition(MessageCollectionObserver::class, new Definition(TracingMessageCollectionObserver::class, [new Reference(Tracer::class)]));
-
-        $spanRecorders = [
-            ...array_map(fn (string $referenceName): Reference => new Reference($referenceName), $tracingConfiguration->spanRecorderReferenceNames),
-            ...array_map(fn (SpanRecorderReference $reference): Reference => new Reference($reference->referenceName), $spanRecorderReferences),
-        ];
 
         $messagingConfiguration->registerServiceDefinition(SpanRecorder::class, new Definition(CompositeSpanRecorder::class, [$spanRecorders]));
         if ($tracingConfiguration->executionRecording) {

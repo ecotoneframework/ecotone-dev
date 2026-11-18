@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Test\Flow\Snapshot;
 
+use Ecotone\Api\Tracing\ExecutionRecording;
+use Ecotone\Api\Tracing\RecordedHint;
+use Ecotone\Api\Tracing\RecordedProcess;
+use Ecotone\Api\Tracing\RecordedSender;
+use Ecotone\Api\Tracing\RecordedStep;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanStatus;
@@ -61,6 +66,23 @@ final class FlowExecution
         );
 
         return new self(self::withNumberedGeneratedNames(self::titled($processes, $sources)));
+    }
+
+    public function toRecording(): ExecutionRecording
+    {
+        return new ExecutionRecording(
+            processes: array_map(fn (array $process): RecordedProcess => new RecordedProcess(
+                title: $process['process'],
+                steps: array_map(fn (array $step): RecordedStep => new RecordedStep(
+                    depth: $step['depth'],
+                    label: $step['label'],
+                    hints: array_map(fn (array $hint): RecordedHint => new RecordedHint(key: $hint['key'], value: $hint['value'], critical: $hint['critical']), $step['hints']),
+                ), $process['steps']),
+                sentBy: isset($process['sentBy']) ? new RecordedSender(process: $process['sentBy']['process'], step: $process['sentBy']['step']) : null,
+            ), $this->processes),
+            lines: $this->lines(),
+            linesWithEveryHint: $this->lines(true),
+        );
     }
 
     /**

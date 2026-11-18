@@ -161,6 +161,39 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         self::assertSame(1, $processes[1]->sentBy->process);
     }
 
+    public function test_each_of_two_distributed_commands_consumed_by_another_application_recorded_together_is_a_sub_flow_of_its_own_send_after_the_sender_ran_more_than_the_consumer(): void
+    {
+        $tickets = new class () {
+            #[Distributed]
+            #[CommandHandler('ticket.create', endpointId: 'ticket.creation')]
+            public function create(string $ticket): void
+            {
+            }
+        };
+        $registration = new class () {
+            #[CommandHandler('user.register')]
+            public function register(string $user): void
+            {
+            }
+        };
+        $channel = SimpleMessageChannelBuilder::createQueueChannel('distributed_tickets');
+        $recorder = new InMemorySpanRecorder();
+        $users = EcotoneLite::bootstrapFlowTesting([$registration::class], [$registration, ...self::recordingSpansInto($recorder)], [$channel, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_tickets'), ServiceConfiguration::createWithDefaults()->withServiceName('user_service'), self::tracingConfiguration()->withExecutionRecording()], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ticketService = EcotoneLite::bootstrapFlowTesting([$tickets::class], [$tickets, ...self::recordingSpansInto($recorder)], [$channel, ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), self::tracingConfiguration()->withExecutionRecording()], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        $users->sendCommandWithRouting('user.register', 'user-1');
+        $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
+        $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed shipping address');
+        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithTestingSetup());
+        $processes = $ticketService->getExecutionRecording()->processes;
+
+        self::assertSame(
+            ['send command user.register, class@anonymous::register', 'send distributed, DistributedOutboundRouter::route', 'send distributed, DistributedOutboundRouter::route', 'receive distributed_tickets, DistributedMessageHandler::handle', 'receive distributed_tickets, DistributedMessageHandler::handle'],
+            array_map(fn (RecordedProcess $process): string => preg_replace('/ \(\d of 2\)$/', '', $process->title), $processes),
+        );
+        self::assertSame([2, 3], [$processes[3]->sentBy?->process, $processes[4]->sentBy?->process]);
+    }
+
     public function test_the_default_text_prints_each_sub_flow_under_the_flow_that_sent_its_message_and_keeps_the_run_order_numbers(): void
     {
         $chain = new class () {

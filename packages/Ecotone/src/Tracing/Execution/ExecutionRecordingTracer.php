@@ -121,7 +121,7 @@ final class ExecutionRecordingTracer implements Tracer
                 SpanAttribute::MESSAGING_SYSTEM => SpanAttribute::ECOTONE,
                 SpanAttribute::EXECUTION_STEP => true,
                 SpanAttribute::EXECUTION_PROCESS => true,
-                SpanAttribute::EXECUTION_ORDER => ++$this->order,
+                SpanAttribute::EXECUTION_ORDER => $this->nextOrder(),
                 ...$attributes,
             ],
             $this->clock->now(),
@@ -158,7 +158,7 @@ final class ExecutionRecordingTracer implements Tracer
             [
                 SpanAttribute::MESSAGING_SYSTEM => SpanAttribute::ECOTONE,
                 SpanAttribute::EXECUTION_STEP => true,
-                SpanAttribute::EXECUTION_ORDER => ++$this->order,
+                SpanAttribute::EXECUTION_ORDER => $this->nextOrder(),
                 ...$attributes,
                 ...($hints === [] ? [] : [SpanAttribute::EXECUTION_HINTS => ExecutionHint::encoded($hints)]),
             ],
@@ -404,6 +404,11 @@ final class ExecutionRecordingTracer implements Tracer
         $this->housekeepingInOpenEntry = false;
     }
 
+    private function nextOrder(): int
+    {
+        return $this->order = max($this->order + 1, hrtime(true));
+    }
+
     private function dropStepsOfEndedSpans(): void
     {
         if ($this->tracer->currentSpan() !== null || $this->openSteps === [] || $this->openSteps[0]->owner === null) {
@@ -429,7 +434,7 @@ final class ExecutionRecordingTracer implements Tracer
      */
     private function withExecutionAttributes(array $attributes): array
     {
-        $attributes[SpanAttribute::EXECUTION_ORDER] = ++$this->order;
+        $attributes[SpanAttribute::EXECUTION_ORDER] = $this->nextOrder();
         $current = $this->tracer->currentSpan();
         if ($current === null && $this->openSteps === []) {
             $attributes[SpanAttribute::EXECUTION_PROCESS] = true;

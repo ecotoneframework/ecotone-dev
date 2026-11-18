@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\BusinessMethod;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\Attribute\DbalQuery;
+use Ecotone\Api\Dbal\Attribute\DbalTransaction;
 use Ecotone\Api\Dbal\Attribute\DbalWrite;
 use Ecotone\Api\Dbal\ConnectionPoolExhausted;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
@@ -16,9 +19,10 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\FetchMode;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Enqueue\ConnectionFactory;
+use Ecotone\Dbal\DbalConnection;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Fiber;
 use RuntimeException;
@@ -80,6 +84,89 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
         $this->assertSame(['accepted'], $ecotone->sendQueryWithRouting('person.welcomed'));
     }
 
+    public function test_executions_on_a_manager_registry_built_from_a_dsn_keep_their_own_transaction(): void
+    {
+        $ecotone = $this->bootstrapPersonRegistration(DbalConnection::fromConnectionFactory(new DbalConnectionFactory(self::databaseDsn())));
+
+        $suspended = new Fiber(function () use ($ecotone): void {
+            try {
+                $ecotone->sendCommandWithRouting('person.register', ['personId' => 1, 'name' => 'refused', 'suspendAndFail' => true]);
+            } catch (RuntimeException) {
+            }
+        });
+        $suspended->start();
+        $ecotone->sendCommandWithRouting('person.register', ['personId' => 2, 'name' => 'accepted']);
+        $suspended->resume();
+
+        $this->assertSame(['accepted'], $ecotone->getGateway(PersonRegister::class)->names());
+    }
+
+    public function test_query_does_not_read_what_a_suspended_execution_has_not_committed(): void
+    {
+        $ecotone = $this->bootstrapPersonRegistration();
+
+        $suspended = new Fiber(fn () => $ecotone->sendCommandWithRouting('person.register', ['personId' => 1, 'name' => 'accepted', 'suspend' => true]));
+        $suspended->start();
+        $namesReadWhileSuspended = $ecotone->sendQueryWithRouting('person.names');
+        $suspended->resume();
+
+        $this->assertSame([], $namesReadWhileSuspended);
+        $this->assertSame(['accepted'], $ecotone->sendQueryWithRouting('person.names'));
+    }
+
+    public function test_commands_routed_by_their_class_keep_their_own_transaction(): void
+    {
+        $ecotone = $this->bootstrapPersonRegistration();
+
+        $suspended = new Fiber(function () use ($ecotone): void {
+            try {
+                $ecotone->sendCommand(new RegisterPersonInExecution(['personId' => 1, 'name' => 'refused', 'suspendAndFail' => true]));
+            } catch (RuntimeException) {
+            }
+        });
+        $suspended->start();
+        $ecotone->sendCommand(new RegisterPersonInExecution(['personId' => 2, 'name' => 'accepted']));
+        $suspended->resume();
+
+        $this->assertSame(['accepted'], $ecotone->getGateway(PersonRegister::class)->names());
+    }
+
+    public function test_messages_sent_through_a_gateway_keep_their_own_transaction(): void
+    {
+        $ecotone = $this->bootstrapPersonRegistration();
+
+        $suspended = new Fiber(function () use ($ecotone): void {
+            try {
+                $ecotone->getGateway(PersonRegistrationGateway::class)->register(['personId' => 1, 'name' => 'refused', 'suspendAndFail' => true]);
+            } catch (RuntimeException) {
+            }
+        });
+        $suspended->start();
+        $ecotone->getGateway(PersonRegistrationGateway::class)->register(['personId' => 2, 'name' => 'accepted']);
+        $suspended->resume();
+
+        $this->assertSame(['accepted'], $ecotone->getGateway(PersonRegister::class)->names());
+    }
+
+    public function test_messages_handled_by_interleaved_consumers_keep_their_own_transaction(): void
+    {
+        $ecotone = $this->bootstrapPersonRegistration();
+        $ecotone->sendCommandWithRouting('person.registerLater', ['personId' => 1, 'name' => 'refused', 'suspendAndFail' => true]);
+        $ecotone->sendCommandWithRouting('person.registerLater', ['personId' => 2, 'name' => 'accepted']);
+
+        $suspended = new Fiber(function () use ($ecotone): void {
+            try {
+                $ecotone->run('registrations');
+            } catch (RuntimeException) {
+            }
+        });
+        $suspended->start();
+        $ecotone->run('registrations');
+        $suspended->resume();
+
+        $this->assertSame(['accepted'], $ecotone->getGateway(PersonRegister::class)->names());
+    }
+
     public function test_connection_of_a_finished_execution_is_reused_by_the_next_one(): void
     {
         if ($this->isUsingSqlite()) {
@@ -103,7 +190,7 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
 
     public function test_transaction_on_a_connection_the_application_shares_between_executions_is_refused(): void
     {
-        $ecotone = $this->bootstrapPersonRegistration($this->getConnectionFactory(isRegistry: true));
+        $ecotone = $this->bootstrapPersonRegistration(DbalConnection::create($this->getConnection()));
 
         $suspended = new Fiber(fn () => $ecotone->sendCommandWithRouting('person.register', ['personId' => 1, 'name' => 'accepted', 'suspend' => true]));
         $suspended->start();
@@ -157,7 +244,7 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
         new DbalConnectionFactory(['dsn' => self::databaseDsn(), 'connection_pool_size' => 0]);
     }
 
-    private function bootstrapPersonRegistration(?ConnectionFactory $connectionFactory = null): FlowTestSupport
+    private function bootstrapPersonRegistration(?object $connectionFactory = null): FlowTestSupport
     {
         $this->setupUserTable();
         $registration = new class () {
@@ -177,6 +264,25 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
                 }
             }
 
+            #[CommandHandler]
+            public function registerByClass(RegisterPersonInExecution $command, PersonRegister $personRegister, EventBus $eventBus): void
+            {
+                $this->register($command->registration, $personRegister, $eventBus);
+            }
+
+            #[Asynchronous('registrations')]
+            #[CommandHandler('person.registerLater', endpointId: 'person.registerLater.endpoint')]
+            public function registerLater(array $command, PersonRegister $personRegister, EventBus $eventBus): void
+            {
+                $this->register($command, $personRegister, $eventBus);
+            }
+
+            #[QueryHandler('person.names')]
+            public function names(#[Reference] PersonRegister $personRegister): array
+            {
+                return $personRegister->names();
+            }
+
             #[Asynchronous('welcomes')]
             #[EventHandler(endpointId: 'person.welcome')]
             public function welcome(PersonWasRegistered $event): void
@@ -192,11 +298,12 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
         };
 
         return $this->bootstrapFlowTesting(
-            [$registration::class, PersonRegister::class],
+            [$registration::class, PersonRegister::class, PersonRegistrationGateway::class],
             [$registration, DbalConnectionFactory::class => $connectionFactory ?? new DbalConnectionFactory(self::databaseDsn())],
             [
                 DbalConfiguration::createWithDefaults(),
                 DbalBackedMessageChannelBuilder::create('welcomes')->withReceiveTimeout(1),
+                SimpleMessageChannelBuilder::createQueueChannel('registrations'),
             ],
             [ModulePackageList::DBAL_PACKAGE],
         );
@@ -228,6 +335,20 @@ interface PersonRegister
 
     #[DbalQuery('SELECT name FROM persons ORDER BY person_id', fetchMode: FetchMode::FIRST_COLUMN)]
     public function names(): array;
+}
+
+interface PersonRegistrationGateway
+{
+    #[DbalTransaction]
+    #[BusinessMethod('person.register')]
+    public function register(array $command): void;
+}
+
+final class RegisterPersonInExecution
+{
+    public function __construct(public array $registration)
+    {
+    }
 }
 
 final class PersonWasRegistered

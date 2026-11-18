@@ -15,7 +15,7 @@ class DbalConnection
 {
     public static function fromConnectionFactory(DbalConnectionFactory $dbalConnectionFactory): EcotoneManagerRegistryConnectionFactory
     {
-        return new EcotoneManagerRegistryConnectionFactory(new ManagerRegistryEmulator(($dbalConnectionFactory->createContext()->getDbalConnection())));
+        return ManagerRegistryEmulator::fromConnectionFactory($dbalConnectionFactory);
     }
 
     public static function fromDsn(string $dsn): ConnectionFactory

@@ -80,17 +80,6 @@ its reason in `bin/check-framework-transactions.php`.
   transaction unless its work is batched or long-running, and then opts out with `#[WithoutDatabaseTransaction]`.
 - **Verified by:** `check:framework-transactions`, `eval:framework-store-transaction`
 
-### 16e. A database connection is asked for per use, from the pool, never built or kept
-Framework code gets its connection each time it needs one: `CachedConnectionFactory::createContext()` and
-`->getDbalConnection()` on the result. That returns the connection of the current execution, which the
-`ConnectionPool` behind a DSN-registered `DbalConnectionFactory` hands out per coroutine or fiber and takes back
-when the execution ends. A service never stores a `Connection` or a `DbalContext` in a property, never passes one
-into a long-lived object, and never calls `DriverManager::getConnection()`: a connection bound that way is shared
-by every execution in the process, so they share one transaction.
-- **Expected:** new framework storage code takes a connection factory (not a `Connection`) as its dependency,
-  resolves the connection inside each method that uses it, and builds no connection of its own.
-- **Verified by:** `check:framework-connections`, `eval:store-feature-state`
-
 ### 16b. No DDL in a command, event or asynchronous flow
 Every table — Ecotone's and a projection's — is migrated before the first message, through console commands or
 the application's migrations. Nothing a remote request triggers creates, alters or drops one.
@@ -103,6 +92,18 @@ MySQL and MariaDB implicitly commit on DDL, so a PostgreSQL or SQLite run cannot
   verification.
 - **Verified by:** `eval:store-feature-state`
 
+### 16e. A database connection is asked for per use, from the pool, never built or kept
+Framework code gets its connection each time it needs one: `CachedConnectionFactory::createContext()` and
+`->getDbalConnection()` on the result. That returns the connection of the current execution, which the
+`ConnectionPool` behind a DSN-registered `DbalConnectionFactory` hands out per coroutine or fiber and takes back
+when the execution ends. A service never stores a `Connection` or a `DbalContext` in a property, never passes one
+into a long-lived object, and never calls `DriverManager::getConnection()`: a connection bound that way is shared
+by every execution in the process, so they share one transaction. A handler of an application gets that same
+connection with `#[CurrentConnection] Connection $connection`.
+- **Expected:** new framework storage code takes a connection factory (not a `Connection`) as its dependency,
+  resolves the connection inside each method that uses it, and builds no connection of its own.
+- **Verified by:** `check:framework-connections`, `eval:store-feature-state`
+
 ## References
 
-- [references/rules.md](references/rules.md) — rules 8, 9, 16, 16a, 16b, 16d in full.
+- [references/rules.md](references/rules.md) — rules 8, 8a, 9, 16, 16a, 16b, 16d, 16e in full.

@@ -330,11 +330,16 @@ Wrong, each of them:
   for the life of the process.
 - `$this->connection ??= $this->connectionFactory->createContext()->getDbalConnection();`: the same, one call later.
 - `DriverManager::getConnection(...)` anywhere but the pool's connect callback.
-  `bin/check-framework-connections.php` refuses it and lists the one allowed place.
 
-`bin/check-framework-connections.php` decides the third. The first two need a reader: a `Connection` property is
-legitimate on an adapter around a connection the application built (`AlreadyConnectedDbalConnectionFactory`, the
-Laravel and Tempest driver adapters), which is why the eval grades them instead of a syntax check.
+`bin/check-framework-connections.php` refuses the first and the third: a property typed `Doctrine\DBAL\Connection` or
+`DbalContext` outside its `KEEPS_CONNECTIONS` list, and a `DriverManager::getConnection()` outside
+`BUILDS_CONNECTIONS`. Both lists are exact and carry a reason per file: the hold of one execution on its pooled
+connection, the adapter around a connection the application built, an object that lives for one batch inside the
+method that resolved the connection. The second needs a reader, because an untyped or lazily assigned property
+looks like any other, which is why the eval grades it.
+
+Application code gets the same connection declaratively: `#[CurrentConnection] Connection $connection` on a handler
+parameter injects the connection of the message being handled, the one its transaction runs on.
 
 A connection the application or its framework built (Doctrine `ManagerRegistry`, a Laravel connection, an existing
 `Connection`) is one per process and cannot be pooled from Ecotone's side. `DbalTransactionInterceptor` refuses a

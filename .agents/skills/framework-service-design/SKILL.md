@@ -49,10 +49,13 @@ execution holds) may stay, and then the service reads it per call with
 `ExecutionScope::stateOf($this, fn () => new <State>())` and keeps no property written after construction. One
 process handles several messages at once under coroutines (Swoole, OpenSwoole) and fibers; a property is shared by
 all of them, `ExecutionScope` gives each its own. The state ships with a test that interleaves two executions with
-`Fiber::suspend()` in a handler and proves neither sees the other's state.
+`Fiber::suspend()` in a handler and proves neither sees the other's state. The one exception is state that belongs
+to the process and not to a message: resources handed from one execution to the next (the connection pool, AMQP
+channels kept open) and a record of which execution holds what (the guard of a shared connection). It may sit in a
+property, holds nothing of the message being handled, and ships with the same interleaving test.
 - **Expected:** state a service needs across calls of one message is a small state class fetched with
-  `ExecutionScope::stateOf($this, ...)` on every use, with no mutable or static property on the service, and the
-  answer includes (or names) a test that interleaves two executions with fibers.
+  `ExecutionScope::stateOf($this, ...)` on every use, with no property on the service that holds anything of the
+  message being handled, and the answer includes (or names) a test that interleaves two executions with fibers.
 - **Verified by:** `eval:keep-ambient-state`
 
 ### 4. Do not mix queries with writes

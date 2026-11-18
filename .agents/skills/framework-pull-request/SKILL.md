@@ -29,6 +29,7 @@ message lets the defect be reconstructed without the diff: what broke, why, what
 CI is `fail-fast`, so the first failure hides everything after it. Run the list in
 [references/checklist.md](references/checklist.md): the changed test, the package's `composer tests:ci`,
 downstream suites for a core change, `php bin/check-licence.php`, `php bin/check-suite-parity.php`,
+`php bin/check-framework-transactions.php`, `php bin/check-framework-connections.php`,
 `php bin/check-agent-skills.php`, php-cs-fixer, phpstan, MySQL/MariaDB for engine-sensitive work, the PHP 8.2 floor.
 - **Expected:** before pushing, the agent runs (or reports running) the checklist and stops on a failure.
 - **Verified by:** `eval:open-pr`

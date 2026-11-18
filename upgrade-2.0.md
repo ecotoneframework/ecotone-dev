@@ -2986,6 +2986,36 @@ sent inside the application's own `DB::transaction()` joins it as a savepoint, a
 **How to adapt:** nothing for most applications. A callback registered with `DB::afterCommit()` inside a handler that
 relied on running immediately runs after the commit now: call it directly instead.
 
+### Messages handled at once in one process keep their own headers, transaction and connection
+
+**Before:** Ecotone kept the state of the message being handled (propagated headers, the open transaction, collected
+messages, the active tenant, open spans, the database connection) once per process. A process that handles one
+message at a time (php-fpm, a CLI consumer, Laravel Octane, a Swoole worker with `enable_coroutine` off) was
+unaffected. With Swoole or OpenSwoole coroutines, or with fibers, messages handled at once shared it: an event
+handler received another request's headers, and a request that answered successfully lost its rows when another
+request sharing its transaction rolled back.
+
+**Now:** every coroutine and every fiber is an execution with its own state. A database connection registered from a
+DSN (`new DbalConnectionFactory($dsn)`) is a pool: every concurrent execution takes its own connection and returns it
+when it ends, and one process opens at most `connection_pool_size` connections, 10 by default
+(`new DbalConnectionFactory(['dsn' => $dsn, 'connection_pool_size' => 20])`). A coroutine waits up to five seconds
+for a returned connection and then fails with `ConnectionPoolExhausted`; a fiber cannot wait and fails at once.
+AMQP channels are kept open and handed to the next execution in the same way. A process handling one message at a
+time uses one connection, as before.
+
+A connection the application or its framework built (a Doctrine `ManagerRegistry`, a Laravel or Tempest connection,
+an existing `Doctrine\DBAL\Connection`) is still one connection for the process. When a second execution begins a
+transaction on it while another execution holds one, Ecotone refuses with a `ConfigurationException` naming the ways
+out, where it used to let the two share the transaction.
+
+A fiber or coroutine started inside a handler is an execution of its own: it does not see the handler's propagated
+headers and, on a pooled connection, works outside the handler's transaction.
+
+**How to adapt:** nothing when the process handles one message at a time. To handle several at once, register the
+connection from a DSN, keep workers times `connection_pool_size` below what the database accepts, and take the
+connection in your own code with `#[CurrentConnection] Connection $connection` on the handler, not from a property.
+Do the work that must share the handler's transaction in the handler itself, not in a fiber or coroutine it starts.
+
 ### `ecotone/dbal`, `ecotone/laravel` and `ecotone/tempest` require `doctrine/dbal` 4.2.3 or later
 
 **Before:** they accepted any `doctrine/dbal` 4.x. Before 4.2.3, Doctrine raised a PostgreSQL connection the server

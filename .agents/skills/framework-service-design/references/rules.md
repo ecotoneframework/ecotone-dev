@@ -182,6 +182,14 @@ second message while the first is suspended, resumes, and asserts through a quer
 own state. `packages/Ecotone/tests/Messaging/Execution/InterleavedExecutionsTest.php` and
 `packages/Dbal/tests/Integration/InterleavedExecutionsTest.php` are the worked examples; it needs no Swoole.
 
+State that belongs to the process, not to a message, is the exception and stays in a property: a pool that hands a
+resource from one execution to the next (`Ecotone\Dbal\Connection\ConnectionPool`, the open channels
+`Ecotone\Amqp\AmqpReconnectableConnectionFactory` keeps for the next execution) and a record of which execution
+holds what (`DbalTransactionInterceptor::$executionsHoldingTransaction`, a `WeakMap` keyed by the execution so it
+empties itself). The test is the same question asked of the property: if two messages are handled at once, does it
+hold anything of either message? A pool of idle connections does not; a stack of the handled message's headers
+does. Such state ships with the same interleaving test.
+
 What is not covered: an object the application hands Ecotone (a handler, a Doctrine `EntityManager`, a
 framework-owned connection) is one instance per process, and Ecotone cannot scope it. Where sharing it would lose
 data, refuse it with a message naming the ways out, as `DbalTransactionInterceptor` does for a transaction another

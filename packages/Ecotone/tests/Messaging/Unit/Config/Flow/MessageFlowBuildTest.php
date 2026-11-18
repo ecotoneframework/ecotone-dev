@@ -21,6 +21,8 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Messaging\GatheredParts;
+use Ecotone\Api\Tracing\InMemorySpanRecorder;
+use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -152,7 +154,7 @@ final class MessageFlowBuildTest extends TestCase
             {
             }
         };
-        $ledger = $this->ledgerOf(EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE));
+        $ledger = $this->ledgerOf(self::recordingApplication([$handler::class], [$handler], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE));
 
         $named = array_values(array_filter($ledger, fn (array $entry): bool => $entry['kind'] === 'handler' && str_ends_with($entry['target'] ?? '', '::open')));
         self::assertCount(1, $named);
@@ -197,7 +199,7 @@ final class MessageFlowBuildTest extends TestCase
             }
         };
 
-        $chain = $this->chainsOf(EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE))['openTicket'];
+        $chain = $this->chainsOf(self::recordingApplication([$handler::class], [$handler], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE))['openTicket'];
 
         self::assertNotEmpty(array_filter($chain, fn (string $layer): bool => str_ends_with($layer, '::open(' . OpenTicketForBuild::class . ' $command, ' . CommandBus::class . ' $commandBus)')));
     }
@@ -227,7 +229,7 @@ final class MessageFlowBuildTest extends TestCase
             }
         };
 
-        $chain = $this->chainsOf(EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE))['openTicket'];
+        $chain = $this->chainsOf(self::recordingApplication([$handler::class], [$handler], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE))['openTicket'];
         $positionOf = function (string $start, string $end) use ($chain): int {
             $positions = array_keys(array_filter($chain, fn (string $layer): bool => str_starts_with($layer, $start) && str_ends_with($layer, $end)));
             self::assertCount(1, $positions, $start . '...' . $end);
@@ -330,7 +332,7 @@ final class MessageFlowBuildTest extends TestCase
             }
         };
 
-        return EcotoneLite::bootstrapFlowTesting([$ordering::class], [$ordering], [SimpleMessageChannelBuilder::createQueueChannel('gathering')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        return self::recordingApplication([$ordering::class], [$ordering], [SimpleMessageChannelBuilder::createQueueChannel('gathering')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
     private function orderingApplication(): FlowTestSupport
@@ -348,7 +350,7 @@ final class MessageFlowBuildTest extends TestCase
             }
         };
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return self::recordingApplication(
             [$ordering::class],
             [$ordering],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications')],
@@ -388,6 +390,22 @@ final class MessageFlowBuildTest extends TestCase
     private function wiringOf(FlowTestSupport $ecotone): MessageFlowGraph
     {
         return MessageFlowGraph::fromJson($this->dumpOf($ecotone));
+    }
+
+    /**
+     * @param list<class-string> $classes
+     * @param array<int|string, object> $services
+     * @param list<object> $extensionObjects
+     */
+    private static function recordingApplication(array $classes = [], array $services = [], array $extensionObjects = [], array $enabledModules = [], ?string $licenceKey = null): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            $classes,
+            [...$services, InMemorySpanRecorder::class => new InMemorySpanRecorder()],
+            [...$extensionObjects, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording()],
+            enabledModules: $enabledModules,
+            licenceKey: $licenceKey,
+        );
     }
 }
 

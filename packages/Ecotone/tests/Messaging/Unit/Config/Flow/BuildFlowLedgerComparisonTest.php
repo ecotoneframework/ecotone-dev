@@ -464,7 +464,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [...$classes, BuildFlowConsoleCommands::class],
             [...$services, new BuildFlowConsoleCommands(), InMemorySpanRecorder::class => new InMemorySpanRecorder()],
-            [TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)],
+            [TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording()],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

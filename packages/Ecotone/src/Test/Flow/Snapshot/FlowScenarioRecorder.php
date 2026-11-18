@@ -47,12 +47,10 @@ final class FlowScenarioRecorder
 
     public static function snapshotOf(FlowScenario $scenario): FlowSnapshot
     {
-        $built = self::applicationOf($scenario, new InMemorySpanRecorder(), TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class));
-        $built->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
-        $dump = $built->getInMemoryConsoleWriter()->getWrittenContent();
         $spanRecorder = new InMemorySpanRecorder();
         $ecotone = self::applicationOf($scenario, $spanRecorder, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording());
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
+        $dump = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
         $spanRecorder->clear();
         foreach (array_keys($scenario->stages) as $stageIndex) {
             $failure = $scenario->runStage($stageIndex, $ecotone);

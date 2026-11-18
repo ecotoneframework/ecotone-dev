@@ -19,6 +19,8 @@ use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Messaging\Flow\FlowNode;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
+use Ecotone\Api\Tracing\InMemorySpanRecorder;
+use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -134,7 +136,7 @@ final class MessageFlowBuildWiringTest extends TestCase
 
     public function test_build_dump_keeps_a_channel_the_application_registers_without_connecting_it_in_its_own_graph(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = self::recordingApplication(
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('unconnected')],
@@ -170,7 +172,7 @@ final class MessageFlowBuildWiringTest extends TestCase
             {
             }
         };
-        $build = fn (): string => $this->buildDumpOf(EcotoneLite::bootstrapFlowTesting(
+        $build = fn (): string => $this->buildDumpOf(self::recordingApplication(
             [$handlerWithoutEndpointId::class],
             [$handlerWithoutEndpointId],
             [SimpleMessageChannelBuilder::createQueueChannel('stable_async')],
@@ -219,7 +221,7 @@ final class MessageFlowBuildWiringTest extends TestCase
             }
         };
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return self::recordingApplication(
             [$ordering::class],
             [$ordering],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications')],
@@ -272,5 +274,21 @@ final class MessageFlowBuildWiringTest extends TestCase
         }
 
         return null;
+    }
+
+    /**
+     * @param list<class-string> $classes
+     * @param array<int|string, object> $services
+     * @param list<object> $extensionObjects
+     */
+    private static function recordingApplication(array $classes = [], array $services = [], array $extensionObjects = [], array $enabledModules = [], ?string $licenceKey = null): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            $classes,
+            [...$services, InMemorySpanRecorder::class => new InMemorySpanRecorder()],
+            [...$extensionObjects, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording()],
+            enabledModules: $enabledModules,
+            licenceKey: $licenceKey,
+        );
     }
 }

@@ -318,7 +318,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [...$classes, BuildFlowConsoleCommands::class],
             [...$services, new BuildFlowConsoleCommands(), InMemorySpanRecorder::class => new InMemorySpanRecorder()],
-            [...$extensionObjects, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)],
+            [...$extensionObjects, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording()],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

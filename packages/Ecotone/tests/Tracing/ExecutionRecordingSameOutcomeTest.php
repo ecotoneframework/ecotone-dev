@@ -19,6 +19,8 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
+use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
@@ -77,6 +79,37 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         };
 
         $this->assertSameOutcomeWithRecordingOnAndOff([ExecutionRecordedBinaryOrder::class], fn (): array => [], $run, fn (): array => [], [SimpleMessageChannelBuilder::createQueueChannel('orders')]);
+    }
+
+    public function test_recording_the_execution_leaves_the_spans_of_the_trace_as_they_are_without_it(): void
+    {
+        $orders = new class () {
+            #[CommandHandler('order.place')]
+            public function place(string $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', $order);
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'notify')]
+            public function notify(string $order): void
+            {
+            }
+        };
+        $traces = [];
+        foreach ([false, true] as $recording) {
+            $recorder = new InMemorySpanRecorder();
+            $tracing = self::tracingConfiguration();
+            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto($recorder)], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), $recording ? $tracing->withExecutionRecording() : $tracing], enabledModules: []);
+            $ecotone->sendCommandWithRouting('order.place', 'order-1');
+            $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+            $traced = array_values(array_filter($recorder->recordedSpans(), fn (Span $span): bool => ! isset($span->attributes[SpanAttribute::EXECUTION_STEP])));
+            $nameOf = array_column(array_map(fn (Span $span): array => [$span->spanId, $span->name], $traced), 1, 0);
+            $traces[] = array_map(fn (Span $span): array => [$span->name, $span->kind, $span->status, $nameOf[$span->parentSpanId ?? ''] ?? null], $traced);
+        }
+
+        self::assertNotEmpty($traces[0]);
+        self::assertSame($traces[0], $traces[1]);
     }
 
     public function test_execution_recording_without_a_span_recorder_is_refused_at_bootstrap(): void

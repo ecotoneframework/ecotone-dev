@@ -51,7 +51,6 @@ use Ecotone\Tracing\Execution\ExecutionRecordingNotSwitchedOn;
 use Ecotone\Tracing\Execution\ExecutionRecordingReader;
 use Ecotone\Tracing\Execution\ExecutionRecordingTracer;
 use Ecotone\Tracing\Execution\InMemoryExecutionRecordingReader;
-use Ecotone\Tracing\Execution\RecordExecutionCompilerPass;
 use Ecotone\Tracing\MessageSpanAttributes;
 use Ecotone\Tracing\Tracer;
 use Ecotone\Tracing\TracerCurrentTrace;
@@ -80,9 +79,10 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
     {
         $tracingConfiguration = ExtensionObjectResolver::resolveUnique(TracingConfiguration::class, $extensionObjects, TracingConfiguration::createWithDefaults());
         $tracerReferences = ExtensionObjectResolver::resolve(TracerReference::class, $extensionObjects);
+        $recordsExecution = FrameworkTracing::recordsExecution($extensionObjects);
 
         $spanRecorderReferences = ExtensionObjectResolver::resolve(SpanRecorderReference::class, $extensionObjects);
-        if ($tracingConfiguration->executionRecording && $tracingConfiguration->spanRecorderReferenceNames === [] && $spanRecorderReferences === [] && $tracerReferences === []) {
+        if ($recordsExecution && $tracingConfiguration->spanRecorderReferenceNames === [] && $spanRecorderReferences === [] && $tracerReferences === []) {
             throw ConfigurationException::create('Execution recording is switched on with TracingConfiguration::withExecutionRecording(), but no span recorder is registered, so nothing it records could be read. Register one with TracingConfiguration::withSpanRecorder(), for example InMemorySpanRecorder in tests, or remove withExecutionRecording().');
         }
         $spanRecorders = [
@@ -91,7 +91,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         ];
         $messagingConfiguration->registerServiceDefinition(
             ExecutionRecordingReader::class,
-            $tracingConfiguration->executionRecording ? new Definition(InMemoryExecutionRecordingReader::class, [$spanRecorders]) : new Definition(ExecutionRecordingNotSwitchedOn::class),
+            $recordsExecution ? new Definition(InMemoryExecutionRecordingReader::class, [$spanRecorders]) : new Definition(ExecutionRecordingNotSwitchedOn::class),
         );
         if ($tracingConfiguration->spanRecorderReferenceNames === [] && $tracerReferences === [] && $spanRecorderReferences === []) {
             $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracingDisabledCurrentTrace::class));
@@ -103,7 +103,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         $messagingConfiguration->registerServiceDefinition(MessageCollectionObserver::class, new Definition(TracingMessageCollectionObserver::class, [new Reference(Tracer::class)]));
 
         $messagingConfiguration->registerServiceDefinition(SpanRecorder::class, new Definition(CompositeSpanRecorder::class, [$spanRecorders]));
-        if ($tracingConfiguration->executionRecording) {
+        if ($recordsExecution) {
             if ($tracerReferences !== []) {
                 $type = $tracerReferences[0]->providedByServiceOfType;
                 $service = substr((string) strrchr('\\' . $type, '\\'), 1) . ' service';
@@ -113,7 +113,6 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
             $messagingConfiguration->registerServiceDefinition(EcotoneTracer::class, new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));
             $messagingConfiguration->registerServiceDefinition(Tracer::class, new Definition(ExecutionRecordingTracer::class, [new Reference(EcotoneTracer::class), new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));
             $messagingConfiguration->registerServiceDefinition(ExecutionRecorder::class, new Definition(ExecutionRecorder::class, [new Reference(Tracer::class)]));
-            $messagingConfiguration->addCompilerPass(new RecordExecutionCompilerPass());
         } else {
             $messagingConfiguration->registerServiceDefinition(
                 Tracer::class,

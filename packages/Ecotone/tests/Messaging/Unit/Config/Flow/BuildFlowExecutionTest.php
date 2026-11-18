@@ -50,7 +50,7 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_recorded_snapshot_holds_what_ran_in_each_process(): void
     {
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->ordering());
 
         $execution = $this->storedSnapshot('after', 'placing-an-order')['execution'];
 
@@ -61,7 +61,7 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_the_stored_snapshot_holds_the_process_and_step_that_sent_the_message_of_a_consumer_run(): void
     {
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->ordering());
 
         $execution = $this->storedSnapshot('after', 'placing-an-order')['execution'];
 
@@ -70,19 +70,10 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertSame('release collected message to notifications', $execution[0]['steps'][$execution[1]['sentBy']['step']]['label']);
     }
 
-    public function test_recording_the_execution_leaves_the_stored_trace_as_it_is_without_it(): void
-    {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: false);
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
-
-        self::assertSame($this->storedSnapshot('before', 'placing-an-order')['trace'], $this->storedSnapshot('after', 'placing-an-order')['trace']);
-        self::assertSame([], $this->storedSnapshot('before', 'placing-an-order')['execution']);
-    }
-
     public function test_a_changed_process_shows_its_differing_steps_among_unchanged_neighbours_and_an_unchanged_process_is_one_line(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->orderingWithAudit(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->orderingWithAudit());
 
         $execution = $this->comparison()['groups'][0]['execution'];
 
@@ -100,8 +91,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_a_process_that_runs_only_after_the_change_is_shown_whole(): void
     {
-        $this->record('Placing an order', 'before', $this->orderingWithAudit(), executionRecording: true, consumed: false);
-        $this->record('Placing an order', 'after', $this->orderingWithAudit(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->orderingWithAudit(), consumed: false);
+        $this->record('Placing an order', 'after', $this->orderingWithAudit());
 
         $execution = $this->comparison()['groups'][0]['execution'];
 
@@ -119,8 +110,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_a_consumer_run_that_runs_only_after_the_change_is_stated_as_a_new_sub_flow_and_shown_as_one(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true, consumed: false);
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering(), consumed: false);
+        $this->record('Placing an order', 'after', $this->ordering());
 
         $whatRan = $this->whatRan($this->presented('before-after'));
 
@@ -130,16 +121,16 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_a_consumer_run_that_ran_only_before_the_change_is_stated_as_a_gone_sub_flow(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true, consumed: false);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->ordering(), consumed: false);
 
         self::assertStringStartsWith("#### What ran, process by process\n\n1 sub-flow of `send command order.place, class@anonymous::place` gone.\n\n", $this->whatRan($this->presented('before-after')));
     }
 
     public function test_a_sub_flow_attached_to_a_different_sender_is_a_change_and_each_sub_flow_is_shown_under_its_sender(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->ordering());
         $step = ['depth' => 1, 'label' => 'handler Orders::handle', 'hints' => []];
         $this->replaceExecution('before', [
             ['process' => 'send command order.place', 'steps' => [$step]],
@@ -165,8 +156,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_a_sub_flow_whose_sender_was_removed_and_added_again_under_the_same_title_is_shown_under_the_sender_that_runs_now(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->ordering());
         $step = ['depth' => 1, 'label' => 'handler Orders::handle', 'hints' => []];
         $this->replaceExecution('before', [
             ['process' => 'send command order.place', 'steps' => [$step]],
@@ -186,8 +177,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_sub_flows_are_shown_right_after_the_flow_that_sent_their_message_in_the_order_it_sent_them(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->ordering());
         $step = ['depth' => 1, 'label' => 'handler Orders::handle', 'hints' => []];
         $this->replaceExecution('before', []);
         $this->replaceExecution('after', [
@@ -208,8 +199,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_the_presentation_shows_what_ran_per_process_as_a_diff(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->orderingWithAudit(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->orderingWithAudit());
 
         $presented = $this->presented('before-after');
 
@@ -221,8 +212,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_processes_of_the_same_kind_are_titled_by_what_they_handled_and_paired_on_it(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->orderingWithAsynchronousAudit(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->orderingWithAsynchronousAudit());
 
         $execution = $this->comparison()['groups'][0]['execution'];
 
@@ -238,8 +229,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_steps_that_only_run_deeper_under_a_new_step_are_reported_as_moved_under_it_with_their_count(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->orderingWrappedInAround(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->orderingWrappedInAround());
 
         $presented = $this->presented('before-after');
 
@@ -249,8 +240,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_steps_that_moved_and_changed_inside_show_the_move_once_and_only_their_changed_steps(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->orderingWithAuditWrappedInAround(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->orderingWithAuditWrappedInAround());
 
         $presented = $this->presented('before-after');
 
@@ -263,8 +254,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_steps_that_lost_the_step_they_ran_under_are_reported_as_moved_out_of_it(): void
     {
-        $this->record('Placing an order', 'before', $this->orderingWrappedInAround(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->orderingWrappedInAround());
+        $this->record('Placing an order', 'after', $this->ordering());
 
         $presented = $this->presented('before-after');
 
@@ -274,8 +265,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_steps_that_changed_their_order_of_execution_stay_removed_and_added(): void
     {
-        $this->record('Placing an order', 'before', $this->orderingWithTwoArounds(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->orderingWithTwoAroundsSwapped(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->orderingWithTwoArounds());
+        $this->record('Placing an order', 'after', $this->orderingWithTwoAroundsSwapped());
 
         $presented = $this->presented('before-after');
 
@@ -285,8 +276,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_a_process_whose_steps_only_moved_says_they_moved_under_another_step(): void
     {
-        $this->record('Placing an order', 'before', $this->orderingPublishingBothEvents(), executionRecording: true, consumed: false);
-        $this->record('Placing an order', 'after', $this->orderingPublishingTheSecondEventFromTheFirstHandler(), executionRecording: true, consumed: false);
+        $this->record('Placing an order', 'before', $this->orderingPublishingBothEvents(), consumed: false);
+        $this->record('Placing an order', 'after', $this->orderingPublishingTheSecondEventFromTheFirstHandler(), consumed: false);
 
         $presented = $this->presented('before-after');
 
@@ -297,8 +288,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_the_traced_steps_marked_new_are_the_same_when_what_ran_shows_steps_moved_under_a_new_step(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->orderingForwardedThroughACommand(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->orderingForwardedThroughACommand());
 
         $presented = $this->presented('before-after');
 
@@ -309,8 +300,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_two_alike_steps_that_moved_are_each_paired_with_their_own_counterpart(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->ordering());
         $takenBy = fn (int $process): array => [['key' => 'taken by', 'value' => 'process ' . $process . ', a separate consumer run', 'critical' => true]];
         $sends = fn (int $depth): array => [
             ['depth' => $depth, 'label' => 'entrypoint sends to notifications', 'hints' => []],
@@ -355,7 +346,7 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertStringContainsString('2 gatherer runs take the part reports in', $now);
     }
 
-    public function test_a_flow_with_a_routing_key_that_is_not_valid_utf8_is_recorded_with_execution_recording_on_and_off(): void
+    public function test_a_flow_with_a_routing_key_that_is_not_valid_utf8_is_recorded(): void
     {
         $listener = new class () {
             #[EventHandler('order.*')]
@@ -363,14 +354,12 @@ final class BuildFlowExecutionTest extends TestCase
             {
             }
         };
-        foreach (['off' => false, 'on' => true] as $side => $recording) {
-            $ecotone = $this->application([$listener::class], [$listener], $recording);
-            $ecotone->publishEventWithRouting("order.\xC3\x28", 'x');
+        $ecotone = $this->application([$listener::class], [$listener]);
+        $ecotone->publishEventWithRouting("order.\xC3\x28", 'x');
 
-            $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Hearing an order', 'location' => $this->location . '/' . $side]);
+        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Hearing an order', 'location' => $this->location . '/after']);
 
-            self::assertStringContainsString('order.', (string) json_encode($this->storedSnapshot($side, 'hearing-an-order')['trace'], JSON_INVALID_UTF8_SUBSTITUTE));
-        }
+        self::assertStringContainsString('order.', (string) json_encode($this->storedSnapshot('after', 'hearing-an-order')['trace'], JSON_INVALID_UTF8_SUBSTITUTE));
     }
 
     public function test_the_summary_of_a_change_repeated_in_every_batch_says_how_many_times_it_happens(): void
@@ -391,8 +380,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_a_new_process_with_the_same_steps_as_an_earlier_one_is_said_to_be_like_it_without_an_empty_exception(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->ordering());
         $notify = fn (string $process): array => ['process' => $process, 'steps' => [
             ['depth' => 0, 'label' => 'receive notifications', 'hints' => []],
             ['depth' => 1, 'label' => 'handler class@anonymous::notify', 'hints' => []],
@@ -408,8 +397,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_a_step_whose_only_changed_hint_is_a_detail_is_changed_and_says_how_many_detail_hints_changed(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->ordering());
         $forward = fn (string $payload): array => [['process' => 'send command order.place', 'steps' => [
             ['depth' => 1, 'label' => 'forward to orders', 'hints' => [['key' => 'chosen by', 'value' => 'routing slip', 'critical' => true], ['key' => 'payload', 'value' => $payload, 'critical' => false]]],
         ]]];
@@ -474,7 +463,7 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_the_stored_snapshot_holds_each_step_as_its_depth_label_and_hints(): void
     {
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'after', $this->ordering());
 
         $steps = $this->storedSnapshot('after', 'placing-an-order')['execution'][1]['steps'];
 
@@ -484,8 +473,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_a_step_whose_hints_differ_is_one_changed_step_with_the_hint_before_and_now(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->ordering());
         $routed = fn (string $channel): array => [['process' => 'send command order.place', 'steps' => [
             ['depth' => 1, 'label' => 'handler class@anonymous::place', 'hints' => []],
             ['depth' => 1, 'label' => 'forward to ' . $channel, 'hints' => [['key' => 'chosen by', 'value' => 'routing slip', 'critical' => true], ['key' => 'routing slip', 'value' => $channel . ' → none', 'critical' => true]]],
@@ -504,8 +493,8 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_a_process_referred_to_by_number_is_compared_by_what_it_is_so_a_renumbered_process_stays_unchanged(): void
     {
-        $this->record('Placing an order', 'before', $this->ordering(), executionRecording: true);
-        $this->record('Placing an order', 'after', $this->ordering(), executionRecording: true);
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->ordering());
         $sender = fn (int $consumer): array => ['process' => 'send command order.place', 'steps' => [['depth' => 1, 'label' => 'send q', 'hints' => [['key' => 'taken by', 'value' => 'process ' . $consumer . ', a separate consumer run', 'critical' => true]]]]];
         $gatherer = fn (int $sender): array => ['process' => 'receive q, GatheringMessageHandler::handle (part 1 of 1)', 'steps' => [['depth' => 1, 'label' => 'receive q', 'hints' => [
             ['key' => 'sent by', 'value' => 'process ' . $sender . ', the part report for part 1 of 1', 'critical' => true],
@@ -761,9 +750,9 @@ final class BuildFlowExecutionTest extends TestCase
         };
     }
 
-    private function record(string $scenario, string $side, object $ordering, bool $executionRecording, bool $consumed = true): void
+    private function record(string $scenario, string $side, object $ordering, bool $consumed = true): void
     {
-        $ecotone = $this->application([$ordering::class], [$ordering], $executionRecording);
+        $ecotone = $this->application([$ordering::class], [$ordering]);
         $ecotone->sendCommandWithRouting('order.place', []);
         if ($consumed) {
             $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
@@ -782,7 +771,7 @@ final class BuildFlowExecutionTest extends TestCase
 
     private function presented(string $presentation): string
     {
-        $ecotone = $this->application([], [], false);
+        $ecotone = $this->application([], []);
 
         $ecotone->runConsoleCommand('ecotone:build-flow:compare', ['from' => $this->location . '/before', 'to' => $this->location . '/after', 'presentation' => $presentation]);
 
@@ -806,14 +795,12 @@ final class BuildFlowExecutionTest extends TestCase
      * @param list<class-string> $classes
      * @param list<object> $services
      */
-    private function application(array $classes, array $services, bool $executionRecording): FlowTestSupport
+    private function application(array $classes, array $services): FlowTestSupport
     {
-        $tracing = TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class);
-
         return EcotoneLite::bootstrapFlowTesting(
             [...$classes, BuildFlowConsoleCommands::class],
             [...$services, new BuildFlowConsoleCommands(), InMemorySpanRecorder::class => new InMemorySpanRecorder()],
-            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), $executionRecording ? $tracing->withExecutionRecording() : $tracing],
+            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withExecutionRecording()],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

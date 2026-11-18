@@ -19,6 +19,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Test\Flow\Snapshot\FlowExecution;
 use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 
 /**
@@ -52,6 +53,53 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
             ['release collected message to notifications', 'release collected message to notifications'],
             [$processes[0]['steps'][$processes[1]['sentBy']['step']]['label'], $processes[0]['steps'][$processes[2]['sentBy']['step']]['label']],
         );
+    }
+
+    /**
+     * @return iterable<string, array{list<string>}>
+     */
+    public static function consumingOrders(): iterable
+    {
+        yield 'notifications first' => [['notifications', 'audits']];
+        yield 'audits first' => [['audits', 'notifications']];
+    }
+
+    /**
+     * @param list<string> $consumingOrder
+     */
+    #[DataProvider('consumingOrders')]
+    public function test_an_event_published_to_handlers_on_two_channels_makes_each_consumer_run_a_sub_flow_of_the_send_to_its_channel_in_either_consuming_order(array $consumingOrder): void
+    {
+        $handlers = new class () {
+            #[CommandHandler('order.place')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', $order);
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'notify')]
+            public function notify(array $order): void
+            {
+            }
+
+            #[Asynchronous('audits')]
+            #[EventHandler('order.placed', endpointId: 'audit')]
+            public function audit(array $order): void
+            {
+            }
+        };
+
+        $processes = $this->recorded([$handlers], function (FlowTestSupport $ecotone) use ($consumingOrder): void {
+            $ecotone->sendCommandWithRouting('order.place', []);
+            foreach ($consumingOrder as $channel) {
+                $ecotone->run($channel, ExecutionPollingMetadata::createWithTestingSetup());
+            }
+        }, [SimpleMessageChannelBuilder::createQueueChannel('notifications'), SimpleMessageChannelBuilder::createQueueChannel('audits')]);
+        $sendOf = fn (string $consumer): string => $processes[0]['steps'][array_values(array_filter($processes, fn (array $process): bool => str_starts_with($process['process'], 'receive ' . $consumer)))[0]['sentBy']['step']]['label'];
+
+        self::assertSame([1, 1], [$processes[1]['sentBy']['process'], $processes[2]['sentBy']['process']]);
+        self::assertSame(['release collected message to notifications', 'release collected message to audits'], [$sendOf('notifications'), $sendOf('audits')]);
     }
 
     public function test_a_message_the_in_memory_queue_delivers_again_after_a_failure_is_each_time_a_sub_flow_of_the_send_that_put_it_on_the_channel(): void

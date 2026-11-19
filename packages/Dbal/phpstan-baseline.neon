@@ -88,25 +88,25 @@ parameters:
 			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: Api/ManagerRegistryProvider.php
+			path: src/ManagerRegistryEmulator.php
 
 		-
-			message: '#^Method Ecotone\\Api\\Dbal\\ManagerRegistryProvider\:\:getConnectionNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
+			message: '#^Method Ecotone\\Dbal\\ManagerRegistryEmulator\:\:getConnectionNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
 			identifier: return.type
 			count: 1
-			path: Api/ManagerRegistryProvider.php
+			path: src/ManagerRegistryEmulator.php
 
 		-
-			message: '#^Method Ecotone\\Api\\Dbal\\ManagerRegistryProvider\:\:getConnections\(\) should return array\<string, object\> but returns array\<int, Doctrine\\DBAL\\Connection\>\.$#'
+			message: '#^Method Ecotone\\Dbal\\ManagerRegistryEmulator\:\:getConnections\(\) should return array\<string, object\> but returns array\<int, Doctrine\\DBAL\\Connection\>\.$#'
 			identifier: return.type
 			count: 1
-			path: Api/ManagerRegistryProvider.php
+			path: src/ManagerRegistryEmulator.php
 
 		-
-			message: '#^Method Ecotone\\Api\\Dbal\\ManagerRegistryProvider\:\:getManagerNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
+			message: '#^Method Ecotone\\Dbal\\ManagerRegistryEmulator\:\:getManagerNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
 			identifier: return.type
 			count: 1
-			path: Api/ManagerRegistryProvider.php
+			path: src/ManagerRegistryEmulator.php
 
 		-
 			message: '#^Call to an undefined method Interop\\Queue\\ConnectionFactory\:\:getRegistry\(\)\.$#'

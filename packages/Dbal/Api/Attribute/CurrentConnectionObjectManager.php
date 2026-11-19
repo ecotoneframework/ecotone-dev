@@ -17,8 +17,9 @@ use Ecotone\Dbal\ObjectManager\ObjectManagerOfCurrentConnection;
  */
 final class CurrentConnectionObjectManager extends Reference
 {
-    public function __construct(string $connectionReferenceName = DbalConnectionModule::CONNECTION_MESSAGES_ARE_HANDLED_ON)
+    public function __construct(?string $connectionReferenceName = null)
     {
+        $connectionReferenceName ??= DbalConnectionModule::CONNECTION_MESSAGES_ARE_HANDLED_ON;
         parent::__construct(
             $connectionReferenceName,
             sprintf("reference('%s').of(service, '%s')", ObjectManagerOfCurrentConnection::REFERENCE_NAME, addslashes($connectionReferenceName)),

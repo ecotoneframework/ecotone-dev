@@ -142,9 +142,11 @@ connection the handled message runs on, for single-tenant and multi-tenant appli
 
 **How to adapt:** replace `#[MultiTenantConnection]` with `#[CurrentConnection]`. Without an argument it is the
 connection messages are handled on: the active tenant's when the application has a `MultiTenantConfiguration`, whatever
-reference name that configuration is registered under, and the connection registered as
-`Ecotone\Api\Dbal\DbalConnectionFactory` otherwise. Any other connection is taken by its reference name,
-`#[CurrentConnection('reporting')]`. The argument is named `connectionReferenceName`, where `#[MultiTenantConnection]`
+reference name that configuration is registered under, and otherwise the connection `DbalConfiguration` opens
+transactions on (`Ecotone\Api\Dbal\DbalConnectionFactory` unless `withDefaultConnectionReferenceNames()` names
+another). Any other connection is taken by its reference name, `#[CurrentConnection('reporting')]`. Two cases are
+refused at bootstrap for an attribute without a name: tenants registered under a reference name `DbalConfiguration`
+does not open transactions on, and a `DbalConfiguration` naming several connections without tenants. The argument is named `connectionReferenceName`, where `#[MultiTenantConnection]`
 named it `referenceName`.
 
 ### 2c. `#[MultiTenantObjectManager]` is replaced by `#[CurrentConnectionObjectManager]`
@@ -159,7 +161,7 @@ ObjectManager of the connection the message is handled on: the active tenant's w
 also the connection of an application without tenants, when that connection is registered with Doctrine ORM
 (`SymfonyConnectionReference::defaultManagerRegistry()`). It still requires an Enterprise licence. Without an argument
 it follows the same rule as `#[CurrentConnection]` (§2b): the active tenant's ObjectManager when the application has a
-`MultiTenantConfiguration`, the default connection's otherwise. Its argument is named `connectionReferenceName`.
+`MultiTenantConfiguration`, otherwise the one of the connection `DbalConfiguration` opens transactions on. Its argument is named `connectionReferenceName`.
 
 With Symfony's ManagerRegistry the ObjectManager is one for the process, so messages handled at once on coroutines
 would share its unit of work: handle one message at a time with it. A connection registered as a service created
@@ -2561,8 +2563,13 @@ Two classes an application calls to build a connection moved from `Ecotone\Dbal`
 | `Ecotone\Dbal\DbalConnection` | `Ecotone\Api\Dbal\DbalConnection` |
 | `Ecotone\Dbal\ManagerRegistryEmulator` | `Ecotone\Api\Dbal\ManagerRegistryProvider` |
 
-Their static methods keep their names and arguments. They are declared to return the `Api` types
-(`ManagerRegistryConnectionFactory`, `Interop\Queue\ConnectionFactory`) instead of the internal classes behind them.
+Their static methods keep their names. They are declared to return the `Api` types
+(`ManagerRegistryConnectionFactory`, `Interop\Queue\ConnectionFactory`) instead of the internal classes behind them, and
+`ManagerRegistryProvider` is no longer a Doctrine `ManagerRegistry` itself: it only builds connections. Three
+signatures changed: `ManagerRegistryProvider::fromDsnAndConfig()` names its second argument `pathsToMapping`,
+`ManagerRegistryProvider::createEntityManager()` no longer takes `$pathsToMapping` (the entity manager handed in
+carries its own mapping), and `DbalConnection::resolve()` is removed: call `DbalConnection::create()` or
+`createForManagerRegistry()` for the kind of connection you have.
 
 `DbalConnectionReference::DEFAULT`, `AmqpConnectionReference::DEFAULT` / `DEFAULT_STREAM`,
 `SqsConnectionReference::DEFAULT` and `RedisConnectionReference::DEFAULT` are the factory class names, so their string
@@ -3123,8 +3130,10 @@ refused at bootstrap with a `ConfigurationException`. `#[CurrentConnection] Conn
 (`Ecotone\Api\Dbal\Attribute\CurrentConnection`) injects the connection the message is handled on, the one its
 transaction runs on, also when every coroutine or fiber has its own.
 
-**How to adapt:** put `#[CurrentConnection]` on the parameter, in place of `#[Reference]` when it had one. A
-connection registered under another name is `#[CurrentConnection('name')]`, where the name is the reference name of
+**How to adapt:** put `#[CurrentConnection]` on the parameter, in place of `#[Reference]` when it had one. In an
+application with a `MultiTenantConfiguration`, `#[CurrentConnection]` without a name is the active tenant's
+connection (§2b): a connection shared by all tenants is registered as a connection of its own and taken by its
+reference name, `#[CurrentConnection('shared')]`. A connection registered under another name is `#[CurrentConnection('name')]`, where the name is the reference name of
 its registration: the argument of `DbalConnectionReference`, the `$referenceName` passed to
 `SymfonyConnectionReference::createForConnection()` or `LaravelConnectionReference::create()`, or the service id of
 a `DbalConnectionFactory`. A connection Ecotone does not manage, such as a reporting database, is taken through the

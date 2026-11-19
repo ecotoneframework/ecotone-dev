@@ -133,16 +133,16 @@ parameters:
 			path: packages/Dbal/src/EntityManagerRegistryEmulator.php
 
 		-
-			message: '#^Method Ecotone\\Api\\Dbal\\ManagerRegistryProvider\:\:getConnectionNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
+			message: '#^Method Ecotone\\Dbal\\ManagerRegistryEmulator\:\:getConnectionNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
 			identifier: return.type
 			count: 1
-			path: packages/Dbal/Api/ManagerRegistryProvider.php
+			path: packages/Dbal/src/ManagerRegistryEmulator.php
 
 		-
-			message: '#^Method Ecotone\\Api\\Dbal\\ManagerRegistryProvider\:\:getManagerNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
+			message: '#^Method Ecotone\\Dbal\\ManagerRegistryEmulator\:\:getManagerNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
 			identifier: return.type
 			count: 1
-			path: packages/Dbal/Api/ManagerRegistryProvider.php
+			path: packages/Dbal/src/ManagerRegistryEmulator.php
 
 		-
 			message: '#^Call to an undefined method Interop\\Queue\\ConnectionFactory\:\:getRegistry\(\)\.$#'

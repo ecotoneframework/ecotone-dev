@@ -9,6 +9,7 @@ use Doctrine\Persistence\ObjectManager;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Dbal\Attribute\CurrentConnection;
 use Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -16,6 +17,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use Interop\Queue\ConnectionFactory;
+use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
@@ -56,13 +58,60 @@ final class CurrentConnectionOfTenantTest extends DbalMessagingTestCase
         $this->assertSame(['of tenant b'], $this->personsIn($this->connectionForTenantB()));
     }
 
+    public function test_what_handler_stored_through_the_connection_of_the_active_tenant_is_rolled_back_with_the_message(): void
+    {
+        $ecotone = $this->bootstrapPersonRegistrationOfTenantsRegisteredAs('tenant_connection');
+
+        try {
+            $ecotone->sendCommandWithRouting('person.register', ['personId' => 1, 'name' => 'refused', 'fail' => true], metadata: ['tenant' => 'tenant_a']);
+            $this->fail();
+        } catch (RuntimeException) {
+        }
+
+        $this->assertSame([], $this->personsIn($this->connectionForTenantA()));
+    }
+
+    public function test_connection_taken_without_a_name_is_refused_when_transactions_are_not_opened_on_the_connection_of_the_tenants(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('person.register')]
+            public function register(array $command, #[CurrentConnection] Connection $connection): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            '#[CurrentConnection] without a connection name on ' . $handler::class . '::register($connection) takes the connection of the active tenant, registered as `tenant_connection`, but DbalConfiguration opens the transaction of a message on `Ecotone\\Api\\Dbal\\DbalConnectionFactory`, so what the handler stores would be outside that transaction. '
+            . "Open transactions on the connection of the tenants: DbalConfiguration::createWithDefaults()->withDefaultConnectionReferenceNames(['tenant_connection']), or register the MultiTenantConfiguration without a reference name of its own. "
+            . "To take another connection, name it: #[CurrentConnection('Ecotone\\Api\\Dbal\\DbalConnectionFactory')]."
+        );
+
+        $this->bootstrapFlowTesting(
+            [$handler::class],
+            [
+                $handler,
+                DbalConnectionFactory::class => $this->connectionForTenantA(),
+                'tenant_a_connection' => $this->connectionForTenantA(),
+                'tenant_b_connection' => $this->connectionForTenantB(),
+            ],
+            extensionObjects: [
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'], 'tenant_connection'),
+                DbalConfiguration::createWithDefaults()->withDeduplication(false),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
     public function test_second_multi_tenant_configuration_is_refused(): void
     {
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
-            'This application registers 2 MultiTenantConfiguration (as `orders_of_tenant`, `reports_of_tenant`), and Ecotone handles a message on the connection of one active tenant, so only one can be registered. '
+            'This application registers 2 MultiTenantConfigurations (as `orders_of_tenant`, `reports_of_tenant`), and Ecotone handles a message on the connection of one active tenant, so only one can be registered. '
             . 'Keep a single MultiTenantConfiguration and map every tenant to its connection in it. '
-            . "A database that is not split by tenant is registered as a connection of its own and taken with #[CurrentConnection('its_reference_name')]."
+            . "A database that is not split by tenant is registered as a connection of its own and taken with #[CurrentConnection('its_reference_name')]. "
+            . "A tenant maps to one connection: a second database split by tenant is not switched by Ecotone, so choose its connection in your own code from the tenant header, #[Header('tenant')] string \$tenant."
         );
 
         $this->bootstrapFlowTesting(
@@ -93,6 +142,9 @@ final class CurrentConnectionOfTenantTest extends DbalMessagingTestCase
             public function register(array $command, #[CurrentConnection] Connection $connection): void
             {
                 $connection->insert('persons', ['person_id' => $command['personId'], 'name' => $command['name']]);
+                if ($command['fail'] ?? false) {
+                    throw new RuntimeException('Registration was refused');
+                }
             }
 
             #[CommandHandler('person.registerEntity')]

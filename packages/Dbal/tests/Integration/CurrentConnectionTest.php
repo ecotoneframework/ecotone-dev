@@ -75,6 +75,62 @@ final class CurrentConnectionTest extends DbalMessagingTestCase
         $this->assertSame(['reported'], $ecotone->sendQueryWithRouting('person.names'));
     }
 
+    public function test_connection_taken_without_a_name_is_the_one_dbal_configuration_opens_transactions_on(): void
+    {
+        $ordersConnection = $this->connectionForTenantB()->createContext()->getDbalConnection();
+        $this->setupUserTable();
+        $this->setupUserTable($ordersConnection);
+        $handler = new class () {
+            #[CommandHandler('person.register')]
+            public function register(array $command, #[CurrentConnection] Connection $connection): void
+            {
+                $connection->insert('persons', ['person_id' => $command['personId'], 'name' => $command['name']]);
+                if ($command['fail'] ?? false) {
+                    throw new RuntimeException('Registration was refused');
+                }
+            }
+        };
+        $ecotone = $this->bootstrapFlowTesting(
+            [$handler::class],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::databaseDsn()), 'orders' => $this->connectionForTenantB()],
+            [DbalConfiguration::createWithDefaults()->withDefaultConnectionReferenceNames(['orders'])->withDeduplication(false)],
+            [ModulePackageList::DBAL_PACKAGE],
+        );
+
+        $ecotone->sendCommandWithRouting('person.register', ['personId' => 1, 'name' => 'accepted']);
+        try {
+            $ecotone->sendCommandWithRouting('person.register', ['personId' => 2, 'name' => 'refused', 'fail' => true]);
+            $this->fail();
+        } catch (RuntimeException) {
+        }
+
+        $this->assertSame(['accepted'], $ordersConnection->fetchFirstColumn('SELECT name FROM persons ORDER BY person_id'));
+        $this->assertSame([], $this->getConnection()->fetchFirstColumn('SELECT name FROM persons'));
+    }
+
+    public function test_connection_taken_without_a_name_is_refused_when_dbal_configuration_names_several_connections(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('person.register')]
+            public function register(array $command, #[CurrentConnection] Connection $connection): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            '#[CurrentConnection] without a connection name on ' . $handler::class . '::register($connection) cannot tell which connection is meant: DbalConfiguration names several (`orders`, `billing`). '
+            . "Name the connection: #[CurrentConnection('orders')]."
+        );
+
+        $this->bootstrapFlowTesting(
+            [$handler::class],
+            [$handler, 'orders' => new DbalConnectionFactory(self::databaseDsn()), 'billing' => new DbalConnectionFactory(self::databaseDsn())],
+            [DbalConfiguration::createWithDefaults()->withDefaultConnectionReferenceNames(['orders', 'billing'])->withTransactionOnCommandBus(false)->withTransactionOnAsynchronousEndpoints(false)->withDeduplication(false)->withDeadLetter(false)],
+            [ModulePackageList::DBAL_PACKAGE],
+        );
+    }
+
     public function test_current_connection_on_a_parameter_that_cannot_hold_a_connection_is_refused(): void
     {
         $handler = new class () {

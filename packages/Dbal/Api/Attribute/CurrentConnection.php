@@ -14,8 +14,9 @@ use Ecotone\Dbal\Configuration\DbalConnectionModule;
  */
 final class CurrentConnection extends Reference
 {
-    public function __construct(string $connectionReferenceName = DbalConnectionModule::CONNECTION_MESSAGES_ARE_HANDLED_ON)
+    public function __construct(?string $connectionReferenceName = null)
     {
+        $connectionReferenceName ??= DbalConnectionModule::CONNECTION_MESSAGES_ARE_HANDLED_ON;
         parent::__construct($connectionReferenceName, 'service.createContext().getDbalConnection()');
     }
 }

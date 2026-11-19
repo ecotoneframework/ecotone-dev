@@ -130,7 +130,38 @@ final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionO
             ));
         }
         $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
-        $connectionMessagesAreHandledOn = $multiTenantConfigurations === [] ? DbalConnectionReference::DEFAULT : $multiTenantConfigurations[0]->getReferenceName();
+        $attributeWithoutAConnectionName = match (true) {
+            isset($this->connectionsInjectedIntoParameters[self::CONNECTION_MESSAGES_ARE_HANDLED_ON]) => 'CurrentConnection',
+            isset($this->objectManagersInjectedIntoParameters[self::CONNECTION_MESSAGES_ARE_HANDLED_ON]) => 'CurrentConnectionObjectManager',
+            default => null,
+        };
+        $placementWithoutAConnectionName = $this->connectionsInjectedIntoParameters[self::CONNECTION_MESSAGES_ARE_HANDLED_ON] ?? $this->objectManagersInjectedIntoParameters[self::CONNECTION_MESSAGES_ARE_HANDLED_ON] ?? '';
+        $connectionMessagesAreHandledOn = $multiTenantConfigurations === [] ? $connectionFactories[0] : $multiTenantConfigurations[0]->getReferenceName();
+        if ($attributeWithoutAConnectionName !== null && $multiTenantConfigurations !== [] && ! in_array($connectionMessagesAreHandledOn, $connectionFactories, true)) {
+            throw ConfigurationException::create(sprintf(
+                '#[%s] without a connection name on %s takes the connection of the active tenant, registered as `%s`, but DbalConfiguration opens the transaction of a message on `%s`, so what the handler stores would be outside that transaction. '
+                . "Open transactions on the connection of the tenants: DbalConfiguration::createWithDefaults()->withDefaultConnectionReferenceNames(['%s']), or register the MultiTenantConfiguration without a reference name of its own. "
+                . "To take another connection, name it: #[%s('%s')].",
+                $attributeWithoutAConnectionName,
+                $placementWithoutAConnectionName,
+                $connectionMessagesAreHandledOn,
+                implode('`, `', $connectionFactories),
+                $connectionMessagesAreHandledOn,
+                $attributeWithoutAConnectionName,
+                $connectionFactories[0],
+            ));
+        }
+        if ($attributeWithoutAConnectionName !== null && $multiTenantConfigurations === [] && count($connectionFactories) > 1) {
+            throw ConfigurationException::create(sprintf(
+                '#[%s] without a connection name on %s cannot tell which connection is meant: DbalConfiguration names several (`%s`). '
+                . "Name the connection: #[%s('%s')].",
+                $attributeWithoutAConnectionName,
+                $placementWithoutAConnectionName,
+                implode('`, `', $connectionFactories),
+                $attributeWithoutAConnectionName,
+                $connectionFactories[0],
+            ));
+        }
         $messagingConfiguration->registerServiceDefinition(self::CONNECTION_MESSAGES_ARE_HANDLED_ON, new Reference($connectionMessagesAreHandledOn));
         $messagingConfiguration->registerServiceDefinition(ObjectManagerOfCurrentConnection::REFERENCE_NAME, new Definition(ObjectManagerOfCurrentConnection::class, [$connectionMessagesAreHandledOn]));
 

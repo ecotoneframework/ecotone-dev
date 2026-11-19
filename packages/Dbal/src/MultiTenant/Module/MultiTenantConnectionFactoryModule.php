@@ -113,9 +113,10 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
         $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
         if (count($multiTenantConfigurations) > 1) {
             throw ConfigurationException::create(sprintf(
-                'This application registers %d MultiTenantConfiguration (as `%s`), and Ecotone handles a message on the connection of one active tenant, so only one can be registered. '
+                'This application registers %d MultiTenantConfigurations (as `%s`), and Ecotone handles a message on the connection of one active tenant, so only one can be registered. '
                 . 'Keep a single MultiTenantConfiguration and map every tenant to its connection in it. '
-                . "A database that is not split by tenant is registered as a connection of its own and taken with #[CurrentConnection('its_reference_name')].",
+                . "A database that is not split by tenant is registered as a connection of its own and taken with #[CurrentConnection('its_reference_name')]. "
+                . "A tenant maps to one connection: a second database split by tenant is not switched by Ecotone, so choose its connection in your own code from the tenant header, #[Header('tenant')] string \$tenant.",
                 count($multiTenantConfigurations),
                 implode('`, `', array_map(static fn (MultiTenantConfiguration $configuration): string => $configuration->getReferenceName(), $multiTenantConfigurations)),
             ));

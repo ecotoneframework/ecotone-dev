@@ -150,7 +150,7 @@ final class ConsumerCoroutinesTest extends TestCase
 
     public function test_message_failing_on_a_coroutine_is_retried_while_the_other_coroutines_go_on(): void
     {
-        $ecotone = $this->bootstrapShipments(instantRetry: InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 2));
+        $ecotone = $this->bootstrapShipments(instantRetry: InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 1));
         $ecotone->sendCommandWithRouting('shipment.ship', ['parcelId' => 'fragile-1']);
         $ecotone->sendCommandWithRouting('shipment.ship', ['parcelId' => 'fragile-2']);
         $this->shipParcels($ecotone, 4);

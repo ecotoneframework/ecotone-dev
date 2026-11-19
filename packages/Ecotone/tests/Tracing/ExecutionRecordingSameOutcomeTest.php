@@ -14,6 +14,7 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Presend;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -25,7 +26,9 @@ use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
+use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Throwable;
 
@@ -164,6 +167,44 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         $acknowledge = (int) array_search('acknowledge', $lines, true);
 
         self::assertSame(['acknowledge', '↳ outcome: left to the handler'], array_slice($lines, $acknowledge, 2));
+    }
+
+    /**
+     * @return iterable<string, array{Throwable, string}>
+     */
+    public static function failuresOnAHandAcknowledgedChannel(): iterable
+    {
+        yield 'a failure resends the message' => [new RuntimeException('the order cannot be placed'), '↳ outcome: resent to the channel'];
+        yield 'a rejection rejects it' => [new RejectMessageException('the order is refused'), '↳ outcome: rejected'];
+    }
+
+    #[DataProvider('failuresOnAHandAcknowledgedChannel')]
+    public function test_a_failing_handler_on_a_channel_that_leaves_the_acknowledgement_to_it_is_recorded_with_one_acknowledgement(Throwable $failure, string $outcome): void
+    {
+        $orders = new class ($failure) {
+            private bool $failed = false;
+
+            public function __construct(private Throwable $failure)
+            {
+            }
+
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(string $order): void
+            {
+                if (! $this->failed) {
+                    $this->failed = true;
+                    throw $this->failure;
+                }
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders', isAutoAcked: false), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: []);
+
+        $ecotone->sendCommandWithRouting('order.place', 'order-1');
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+        $lines = array_map(trim(...), $ecotone->popExecutionRecording()->lines);
+
+        self::assertSame([$outcome], array_values(array_filter($lines, fn (string $line): bool => str_starts_with($line, '↳ outcome: ') && in_array($line, ['↳ outcome: resent to the channel', '↳ outcome: rejected', '↳ outcome: left to the handler', '↳ outcome: accepted'], true))));
     }
 
     public function test_a_process_that_failed_leaves_nothing_in_the_recording_of_the_next_one(): void

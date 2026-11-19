@@ -12,6 +12,8 @@ use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
  */
 final class RecordedAcknowledgementCallback implements AcknowledgementCallback
 {
+    public bool $acknowledged = false;
+
     public function __construct(private AcknowledgementCallback $acknowledgementCallback, private ExecutionRecordingTracer $tracer)
     {
     }
@@ -29,24 +31,28 @@ final class RecordedAcknowledgementCallback implements AcknowledgementCallback
     public function accept(): void
     {
         $this->acknowledgementCallback->accept();
+        $this->acknowledged = true;
         $this->tracer->recordStep('acknowledge', hints: [ExecutionHint::shownInLines(ExecutionHint::OUTCOME, 'accepted')]);
     }
 
     public function reject(): void
     {
         $this->acknowledgementCallback->reject();
+        $this->acknowledged = true;
         $this->tracer->recordStep('acknowledge', hints: [ExecutionHint::shownInLines(ExecutionHint::OUTCOME, 'rejected'), $this->decidedBy()]);
     }
 
     public function resend(): void
     {
         $this->acknowledgementCallback->resend();
+        $this->acknowledged = true;
         $this->tracer->recordStep('acknowledge', hints: [ExecutionHint::shownInLines(ExecutionHint::OUTCOME, 'resent to the channel'), $this->decidedBy()]);
     }
 
     public function release(): void
     {
         $this->acknowledgementCallback->release();
+        $this->acknowledged = true;
         $strategy = $this->acknowledgementCallback->getFailureStrategy();
         $this->tracer->recordStep('acknowledge', hints: [ExecutionHint::shownInLines(ExecutionHint::OUTCOME, $strategy === FinalFailureStrategy::RELEASE ? 'released back to the channel' : 'released back to the channel, the consumer stops'), $this->decidedBy()]);
     }

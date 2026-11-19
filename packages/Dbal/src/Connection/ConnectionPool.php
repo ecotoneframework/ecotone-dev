@@ -105,10 +105,17 @@ final class ConnectionPool
 
         $this->takeBack($connection);
 
+        $whyCoroutinesCannotWait = match (true) {
+            extension_loaded('openswoole') => 'OpenSwoole does not let a coroutine wait on a PostgreSQL query',
+            ! defined('SWOOLE_HOOK_PDO_PGSQL') => 'this Swoole is built without --enable-swoole-pgsql (`php --ri swoole` shows no `coroutine_pgsql`), so a coroutine cannot wait on a PostgreSQL query',
+            default => 'SWOOLE_HOOK_PDO_PGSQL is not among the enabled hooks, so a coroutine cannot wait on a PostgreSQL query',
+        };
+
         throw ConfigurationException::create(
-            "Database connection `{$this->connectionName}` is PostgreSQL, and this coroutine runtime does not let a coroutine wait on a PostgreSQL query: the query stops every coroutine of the process. "
+            "Database connection `{$this->connectionName}` is PostgreSQL, and {$whyCoroutinesCannotWait}: the query stops every coroutine of the process. "
             . 'A coroutine waiting for a row that another coroutine of the same process has locked then stops that one too, so neither ever finishes. '
-            . 'Use MySQL or MariaDB, which coroutines wait on, run on Swoole 5.1 or newer built with --enable-swoole-pgsql and with SWOOLE_HOOK_PDO_PGSQL among the enabled hooks, or handle one message at a time per process: in Swoole or OpenSwoole set `enable_coroutine` to false.'
+            . 'Use MySQL or MariaDB, which coroutines wait on; or run on Swoole 5.1 or newer built with --enable-swoole-pgsql and with SWOOLE_HOOK_PDO_PGSQL among the enabled hooks (SWOOLE_HOOK_ALL has it); '
+            . 'or handle one message at a time per process: run the consumer without the `coroutines` option of ecotone:run and without PollingMetadata::withCoroutines(), and set `enable_coroutine` to false on a Swoole or OpenSwoole server.'
         );
     }
 

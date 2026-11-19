@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
@@ -14,10 +15,15 @@ use Ecotone\Api\Dbal\Attribute\DbalQuery;
 use Ecotone\Api\Dbal\Attribute\DbalWrite;
 use Ecotone\Api\Dbal\ConnectionPoolExhausted;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\FetchMode;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -141,6 +147,43 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         $this->assertSame(['registered by coroutine' => 'tenant-of-handler'], $ecotone->sendQueryWithRouting('member.tenantSeenByEventHandler'));
     }
 
+    public function test_consumer_coroutines_of_a_database_channel_handle_messages_at_once_each_in_its_own_transaction(): void
+    {
+        $ecotone = $this->bootstrapEnrolments(connectionPoolSize: 10, coroutines: 3);
+        $this->enrolFiveAcceptedAndOneRefused($ecotone);
+
+        $ecotone->run('enrolments', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+
+        $this->assertSame(['first', 'second', 'third', 'fourth', 'fifth'], $ecotone->getGateway(MemberRegister::class)->names());
+        $this->assertSame(3, $ecotone->sendQueryWithRouting('member.mostEnrolledAtOnce'));
+        $this->assertSame(1, $ecotone->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    #[RequiresPhpExtension('swoole')]
+    #[Group('swoole')]
+    public function test_consumer_coroutines_of_a_postgresql_channel_handle_messages_at_once_each_in_its_own_transaction(): void
+    {
+        $ecotone = $this->bootstrapEnrolments(connectionPoolSize: 10, coroutines: 3, database: 'pgsql');
+        $this->enrolFiveAcceptedAndOneRefused($ecotone);
+
+        $ecotone->run('enrolments', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+
+        $this->assertSame(['first', 'second', 'third', 'fourth', 'fifth'], $ecotone->getGateway(MemberRegister::class)->names());
+        $this->assertSame(3, $ecotone->sendQueryWithRouting('member.mostEnrolledAtOnce'));
+        $this->assertSame(1, $ecotone->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    public function test_consumer_with_more_coroutines_than_pooled_connections_is_refused_naming_the_coroutines(): void
+    {
+        $ecotone = $this->bootstrapEnrolments(connectionPoolSize: 2, coroutines: 3);
+        $this->enrolFiveAcceptedAndOneRefused($ecotone);
+
+        $this->expectException(ConnectionPoolExhausted::class);
+        $this->expectExceptionMessage('Or let fewer executions run at once: run a consumer on at most 2 coroutines (the `coroutines` option of ecotone:run, PollingMetadata::withCoroutines())');
+
+        $ecotone->run('enrolments', ExecutionPollingMetadata::createWithDefaults()->withFinishWhenNoMessages(false)->withExecutionTimeLimitInMilliseconds(20_000));
+    }
+
     public function test_coroutines_wait_on_mysql_queries_without_stopping_each_other(): void
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2);
@@ -195,7 +238,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2, database: 'pgsql');
 
-        $this->assertPostgresqlIsRefused($ecotone, hooks: SWOOLE_HOOK_ALL ^ constant('SWOOLE_HOOK_PDO_PGSQL'));
+        $this->assertPostgresqlIsRefused($ecotone, hooks: SWOOLE_HOOK_ALL ^ constant('SWOOLE_HOOK_PDO_PGSQL'), because: 'SWOOLE_HOOK_PDO_PGSQL is not among the enabled hooks, so a coroutine cannot wait on a PostgreSQL query');
     }
 
     #[RequiresPhpExtension('openswoole')]
@@ -204,10 +247,10 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2, database: 'pgsql');
 
-        $this->assertPostgresqlIsRefused($ecotone, hooks: SWOOLE_HOOK_ALL);
+        $this->assertPostgresqlIsRefused($ecotone, hooks: SWOOLE_HOOK_ALL, because: 'OpenSwoole does not let a coroutine wait on a PostgreSQL query');
     }
 
-    private function assertPostgresqlIsRefused(FlowTestSupport $ecotone, int $hooks): void
+    private function assertPostgresqlIsRefused(FlowTestSupport $ecotone, int $hooks, string $because): void
     {
         $refusal = null;
 
@@ -224,9 +267,10 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
 
         $this->assertStringStartsWith('Database connection `pdo_pgsql://', (string) $refusal);
         $this->assertStringEndsWith(
-            '` is PostgreSQL, and this coroutine runtime does not let a coroutine wait on a PostgreSQL query: the query stops every coroutine of the process. '
+            "` is PostgreSQL, and {$because}: the query stops every coroutine of the process. "
             . 'A coroutine waiting for a row that another coroutine of the same process has locked then stops that one too, so neither ever finishes. '
-            . 'Use MySQL or MariaDB, which coroutines wait on, run on Swoole 5.1 or newer built with --enable-swoole-pgsql and with SWOOLE_HOOK_PDO_PGSQL among the enabled hooks, or handle one message at a time per process: in Swoole or OpenSwoole set `enable_coroutine` to false.',
+            . 'Use MySQL or MariaDB, which coroutines wait on; or run on Swoole 5.1 or newer built with --enable-swoole-pgsql and with SWOOLE_HOOK_PDO_PGSQL among the enabled hooks (SWOOLE_HOOK_ALL has it); '
+            . 'or handle one message at a time per process: run the consumer without the `coroutines` option of ecotone:run and without PollingMetadata::withCoroutines(), and set `enable_coroutine` to false on a Swoole or OpenSwoole server.',
             (string) $refusal
         );
         $this->assertSame([], $ecotone->getGateway(MemberRegister::class)->names());
@@ -273,6 +317,61 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         if ($failure !== null) {
             throw $failure;
         }
+    }
+
+    private function enrolFiveAcceptedAndOneRefused(FlowTestSupport $ecotone): void
+    {
+        foreach (['first', 'second', 'refused', 'third', 'fourth', 'fifth'] as $memberId => $name) {
+            $ecotone->sendCommandWithRouting('member.enrol', ['memberId' => $memberId + 1, 'name' => $name]);
+        }
+    }
+
+    private function bootstrapEnrolments(int $connectionPoolSize, int $coroutines, string $database = 'mysql'): FlowTestSupport
+    {
+        $databaseDsn = self::dsnOf($database);
+        $connection = (new DbalConnectionFactory($databaseDsn))->createContext()->getDbalConnection();
+        $connection->executeStatement('DROP TABLE IF EXISTS members');
+        $connection->executeStatement('CREATE TABLE members (member_id INTEGER PRIMARY KEY, name VARCHAR(255))');
+        $connection->close();
+        $enrolment = new class () {
+            private int $enrolledAtOnce = 0;
+            private int $mostEnrolledAtOnce = 0;
+
+            #[Asynchronous('enrolments')]
+            #[CommandHandler('member.enrol', endpointId: 'member.enrol.endpoint')]
+            public function enrol(array $command, MemberRegister $memberRegister): void
+            {
+                $this->enrolledAtOnce++;
+                $this->mostEnrolledAtOnce = max($this->mostEnrolledAtOnce, $this->enrolledAtOnce);
+                try {
+                    $memberRegister->register($command['memberId'], $command['name']);
+                    usleep(50_000);
+                    if ($command['name'] === 'refused') {
+                        throw new RuntimeException('Enrolment was refused');
+                    }
+                } finally {
+                    $this->enrolledAtOnce--;
+                }
+            }
+
+            #[QueryHandler('member.mostEnrolledAtOnce')]
+            public function mostEnrolledAtOnce(): int
+            {
+                return $this->mostEnrolledAtOnce;
+            }
+        };
+
+        return $this->bootstrapFlowTesting(
+            [$enrolment::class, MemberRegister::class],
+            [$enrolment, DbalConnectionFactory::class => new DbalConnectionFactory(['dsn' => $databaseDsn, 'connection_pool_size' => $connectionPoolSize])],
+            [
+                DbalConfiguration::createWithDefaults(),
+                DbalBackedMessageChannelBuilder::create('enrolments'),
+                PollingMetadata::create('enrolments')->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL)->withCoroutines($coroutines),
+                InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false),
+            ],
+            [ModulePackageList::DBAL_PACKAGE],
+        );
     }
 
     private function bootstrapMemberRegistration(int $connectionPoolSize, string $database = 'mysql'): FlowTestSupport

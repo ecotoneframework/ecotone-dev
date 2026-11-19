@@ -274,7 +274,7 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
             $this->assertSame(
                 'All 2 connections of the connection pool for `' . $this->connectionName() . '` are in use by this process and the executions running concurrently in it (coroutines or fibers), and none was returned. '
                 . "Raise the pool size where the connection is registered: new Ecotone\\Api\\Dbal\\DbalConnectionFactory(['dsn' => \$dsn, 'connection_pool_size' => 20]), or SymfonyConnectionReference::defaultConnection('default')->withConnectionPoolSize(20) for a Symfony connection; every worker process may then open that many connections, so keep workers times pool size below what the database accepts. "
-                . 'Or let fewer executions run at once: in Swoole or OpenSwoole lower `max_coroutine`, and with fibers limit how many your event loop runs at a time and release finished Fiber objects, because a fiber keeps its connection until it is destroyed. A coroutine consuming a channel keeps one connection for as long as it runs, so the pool has to cover the consumer coroutines of the process too.',
+                . 'Or let fewer executions run at once: run a consumer on at most 2 coroutines (the `coroutines` option of ecotone:run, PollingMetadata::withCoroutines()), on a Swoole or OpenSwoole server lower `max_coroutine`, and with fibers limit how many your event loop runs at a time and release finished Fiber objects, because a fiber keeps its connection until it is destroyed. A coroutine consuming a channel keeps one connection for as long as it runs, so the pool has to cover the consumer coroutines of the process too.',
                 $exception->getMessage()
             );
         } finally {

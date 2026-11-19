@@ -126,7 +126,9 @@ final class ConsumerCoroutinesTest extends TestCase
     public function test_failure_of_one_coroutine_stops_the_others_and_is_thrown_by_the_consumer(): void
     {
         $ecotone = $this->bootstrapShipments();
+        $this->shipParcels($ecotone, 2);
         $ecotone->sendCommandWithRouting('shipment.ship', ['parcelId' => 'lost']);
+        $this->shipParcels($ecotone, 4);
 
         $failure = null;
         try {
@@ -142,6 +144,64 @@ final class ConsumerCoroutinesTest extends TestCase
         }
 
         $this->assertSame('Parcel lost cannot be shipped', $failure?->getMessage());
+        $this->assertSame(2, $ecotone->sendQueryWithRouting('shipment.shipped'));
+    }
+
+    public function test_handled_message_limit_is_the_limit_of_every_coroutine(): void
+    {
+        $ecotone = $this->bootstrapShipments();
+        $this->shipParcels($ecotone, 6);
+
+        $ecotone->run('shipments', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withCoroutines(3));
+
+        $this->assertSame(3, $ecotone->sendQueryWithRouting('shipment.shipped'));
+    }
+
+    public function test_coroutines_option_of_the_console_command_replaces_the_ones_of_the_polling_metadata(): void
+    {
+        $ecotone = $this->bootstrapShipments(PollingMetadata::create('shipments')->withCoroutines(3));
+        $this->shipParcels($ecotone, 6);
+
+        $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => 'shipments', 'finishWhenNoMessages' => true, 'coroutines' => 2]);
+
+        $this->assertSame(6, $ecotone->sendQueryWithRouting('shipment.shipped'));
+        $this->assertSame(2, $ecotone->sendQueryWithRouting('shipment.mostShippedAtOnce'));
+    }
+
+    public function test_one_coroutine_passed_when_running_the_consumer_replaces_the_ones_of_the_polling_metadata(): void
+    {
+        $ecotone = $this->bootstrapShipments(PollingMetadata::create('shipments')->withCoroutines(3));
+        $this->shipParcels($ecotone, 3);
+
+        $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(1));
+
+        $this->assertSame(3, $ecotone->sendQueryWithRouting('shipment.shipped'));
+        $this->assertSame(1, $ecotone->sendQueryWithRouting('shipment.mostShippedAtOnce'));
+    }
+
+    #[RequiresPhpExtension('openswoole')]
+    #[Group('openswoole')]
+    public function test_hooks_the_application_enabled_are_still_enabled_after_a_consumer(): void
+    {
+        $consumedBefore = $this->bootstrapShipments();
+        $this->shipParcels($consumedBefore, 2);
+        $ecotone = $this->bootstrapShipments();
+        $this->shipParcels($ecotone, 4);
+
+        Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
+        try {
+            $consumedBefore->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(2));
+            $scheduler = new Coroutine\Scheduler();
+            $scheduler->add(static function () use ($ecotone): void {
+                $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(2));
+            });
+            $scheduler->start();
+        } finally {
+            Runtime::enableCoroutine(0);
+        }
+
+        $this->assertSame(4, $ecotone->sendQueryWithRouting('shipment.shipped'));
+        $this->assertSame(2, $ecotone->sendQueryWithRouting('shipment.mostShippedAtOnce'));
     }
 
     private function shipParcels(FlowTestSupport $ecotone, int $parcels): void

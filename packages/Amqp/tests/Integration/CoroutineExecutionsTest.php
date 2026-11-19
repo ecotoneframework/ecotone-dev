@@ -55,6 +55,17 @@ final class CoroutineExecutionsTest extends AmqpMessagingTestCase
         $this->assertEquals($this->ordersWithTheirTenants(publishers: 4, ordersOfEachPublisher: 25), $ecotone->sendQueryWithRouting('order.shipped'));
     }
 
+    public function test_consumers_on_coroutines_handle_every_message_once_with_its_own_headers(): void
+    {
+        $ecotone = $this->bootstrapOrders(publisherConfirms: false, transactions: false);
+        $this->runCoroutines(...$this->publishersOfOrders($ecotone, publishers: 4, ordersOfEachPublisher: 25));
+
+        $ecotone->run('coroutine_orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
+        $ecotone->run('coroutine_shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
+
+        $this->assertEquals($this->ordersWithTheirTenants(publishers: 4, ordersOfEachPublisher: 25), $ecotone->sendQueryWithRouting('order.shipped'));
+    }
+
     public function test_coroutines_publishing_with_confirms_and_consuming_at_once_handle_every_message_once(): void
     {
         $ecotone = $this->bootstrapOrders(publisherConfirms: true, transactions: false);

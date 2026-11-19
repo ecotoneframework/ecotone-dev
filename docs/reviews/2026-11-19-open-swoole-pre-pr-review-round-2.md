@@ -123,3 +123,18 @@ tenants, tracing). New: **G41 NIT** `InterleavedTracingTest.php` filters spans b
 once can carry the wrong parent (stated in `upgrade-2.0.md`; not fixed). Open and left for the maintainer: the list
 above, plus G36 (wall-clock bound), V6 for the Laravel and Tempest tenant switchers, V22, V26, V27, V28, V29, V30,
 V31 / B19.
+
+## Maintainer decisions after the closing check
+
+- **D10** resolved: `ecotone:run --coroutines=N`, `ExecutionPollingMetadata::withCoroutines()` and
+  `PollingMetadata::withCoroutines()`; refused without the `openswoole` or `swoole` extension, below one coroutine and
+  for a scheduled endpoint. Pulse consumes with it in place of its own script.
+- **V32** resolved by a test suite: `CoroutineTracingTest` runs on OpenSwoole with `open-telemetry/context-swoole` and
+  is its own CI step; without that storage three of its four tests fail.
+- **D15** resolved: `#[MultiTenantObjectManager]` is `#[CurrentConnectionObjectManager]`.
+- **D8** resolved for coroutines: public skill `ecotone-open-swoole` with eval case `consume-on-coroutines` (1.00).
+- **V30** resolved: `store-feature-state` 1.00 after its prompt asks for the tests; `update-open-pr` 1.00 unchanged.
+  `bin/test-agent-skills` copies `api/skills` and `api/evals` into its throwaway plugin, because
+  `claude plugin eval` refuses an evals directory linked from outside the plugin.
+- **V26 / B10** accepted as is: RabbitMQ connections stay unbounded.
+- The PostgreSQL refusal stays.

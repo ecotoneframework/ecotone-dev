@@ -71,8 +71,8 @@ public_plugin="$(mktemp -d)"
 trap 'rm -rf "$public_plugin"' EXIT
 mkdir "$public_plugin/.claude-plugin"
 printf '{"name":"ecotone-skills"}\n' > "$public_plugin/.claude-plugin/plugin.json"
-ln -s "$PWD/api/skills" "$public_plugin/skills"
-ln -s "$PWD/api/evals" "$public_plugin/evals"
+cp -R "$PWD/api/skills" "$public_plugin/skills"
+cp -R "$PWD/api/evals" "$public_plugin/evals"
 
 run_suite .agents "$PWD/.agents/evals/results" "${framework[@]+"${framework[@]}"}"
 run_suite "$public_plugin" "$PWD/api/evals/results" "${public[@]+"${public[@]}"}"

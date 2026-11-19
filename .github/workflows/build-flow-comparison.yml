@@ -1,0 +1,56 @@
+name: Build Flow Comparison
+
+# Compares the message flow of the flow scenario catalogue with the committed baseline of the merge ref and builds the
+# pull request comment. It runs the pull request's code, so it has no write permission; the comment is posted by
+# build-flow-comment.yml from the artifact this uploads. Report only: it fails only when the tooling breaks.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: build-flow-comparison-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          coverage: none
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction --ignore-platform-reqs
+
+      - name: Test the comment builder
+        run: php bin/test-build-flow-comment.php
+
+      - name: Compare the message flow with the committed baseline
+        run: php bin/build-flow.php compare > build-flow-comparison.md
+
+      - name: Build the pull request comment
+        env:
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: php bin/build-flow-comment.php --comparison=build-flow-comparison.md --pull-request="$PULL_REQUEST" --head-sha="$HEAD_SHA" --run-url="$RUN_URL" --output=build-flow-comment.json
+
+      - name: Upload the full comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-flow-comparison
+          path: build-flow-comparison.md
+
+      - name: Upload the comment for build-flow-comment.yml
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-flow-comment
+          path: build-flow-comment.json

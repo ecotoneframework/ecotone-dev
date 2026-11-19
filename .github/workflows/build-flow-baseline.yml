@@ -1,0 +1,65 @@
+name: Build Flow Baseline
+
+# Keeps the committed build-flow baseline (packages/Ecotone/tests/BuildFlow/baseline) equal to what main produces.
+# Pull requests leave the baseline alone; after a merge this regenerates it from the latest main and commits it.
+on:
+  push:
+    branches:
+      - main
+    # A commit that changes only the baseline (this workflow's own) does not start it again.
+    paths-ignore:
+      - 'packages/Ecotone/tests/BuildFlow/baseline/**'
+
+# Runs one after the other, never cancelled: each run regenerates from the latest main, so a run queued behind
+# another still commits the snapshot of everything merged before it.
+concurrency:
+  group: build-flow-baseline-main
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  commit-baseline:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          # GITHUB_TOKEN is used unless the maintainer adds BUILD_FLOW_BASELINE_TOKEN, a token of an actor allowed
+          # to push to main past its branch protection.
+          token: ${{ secrets.BUILD_FLOW_BASELINE_TOKEN || github.token }}
+
+      - name: Set Up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          coverage: none
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction --ignore-platform-reqs
+
+      - name: Commit the baseline when it changed
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            php bin/build-flow.php snapshot
+            if git diff --quiet -- packages/Ecotone/tests/BuildFlow/baseline && [ -z "$(git ls-files --others --exclude-standard -- packages/Ecotone/tests/BuildFlow/baseline)" ]; then
+              echo 'The baseline is current.'
+              exit 0
+            fi
+            git add -A -- packages/Ecotone/tests/BuildFlow/baseline
+            git commit -m "chore(flow): the build-flow baseline after $(git rev-parse --short HEAD)"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "main moved while the baseline was generated; regenerating from the latest main (attempt ${attempt})."
+            git fetch origin main
+            git reset --hard origin/main
+          done
+          echo 'main kept moving; the next push to main regenerates the baseline.'
+          exit 1

@@ -174,11 +174,12 @@ docker compose exec -T app php bin/add-apache-licence.php      # open source
 docker compose exec -T app php bin/add-enterprise-licence.php  # Enterprise modules
 
 # Build flow snapshots: what modules register, the chain of each handler, the wiring and the traced steps
-# of every flow catalogue scenario, committed
-# under packages/Ecotone/tests/BuildFlow/baseline. The check fails when they are not what the code produces
-docker compose exec -T app php bin/check-build-flow.php
-docker compose exec -T app php bin/build-flow.php snapshot   # regenerate them after an intended change
+# of every flow catalogue scenario, committed under packages/Ecotone/tests/BuildFlow/baseline by main's CI
+# after each merge. A pull request leaves the baseline alone; its comment shows what the change does to the flow
 docker compose exec -T app php bin/build-flow.php compare    # what changed against the baseline, as Markdown
+docker compose exec -T app php bin/check-build-flow.php      # whether the baseline is what the code produces
+docker compose exec -T app php bin/build-flow.php snapshot   # regenerate it locally, to compare against, not to commit
+docker compose exec -T app php bin/test-build-flow-comment.php  # the tests of the pull request comment builder
 ```
 
 `compare` prints GitHub Markdown by default. `--presentation` picks the view:
@@ -194,8 +195,9 @@ docker compose exec -T app php bin/build-flow.php compare    # what changed agai
 A scenario of the catalogue is a `FlowScenario` returned by a private static method of one of the
 `packages/Ecotone/src/Test/Flow/*FlowScenarios.php` classes and listed in that class's `all()`; the classes are
 listed in `FlowScenarioCatalogue::all()`. A scenario names itself, the classes and services to boot, the extension
-objects, and one `FlowStage::when(...)` per action with the spans it expects. Add one there, run
-`php bin/build-flow.php snapshot`, and commit the new file under `packages/Ecotone/tests/BuildFlow/baseline`. The
+objects, and one `FlowStage::when(...)` per action with the spans it expects. Add one there; the pull request comment
+shows it as a new scenario, and main's CI commits its snapshot under `packages/Ecotone/tests/BuildFlow/baseline` after
+the merge. Contributors leave the baseline alone. The
 `ecotone:build-flow:*` commands and the snapshot tooling behind them are test code in `packages/Ecotone/tests/BuildFlow`
 (`Test\Ecotone\BuildFlow`): the package does not ship them, and only `bin/build-flow.php` and the framework's own
 tests register them. The catalogue stays testing support in `src/Test/Flow`, because other packages' conformance tests
@@ -302,7 +304,10 @@ not add licence headers.
 |---|---|---|
 | `test-monorepo.yml` | every branch push **and** pull request | A `shards` job runs `bin/check-monorepo-shards.php`, which checks that `.github/monorepo-shards.json` names every test suite of `phpunit.xml.dist` exactly once and emits the matrix; then one `Monorepo (<shard>)` job per shard: `bin/check-suite-parity.php` first, then PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then `phpunit --testsuite <the shard's suites>` against PostgreSQL with MySQL as the secondary connection. A new suite in `phpunit.xml.dist` must be added to a shard or the run fails |
 | `split-testing.yml` | every branch push **and** pull request | Per-package `composer tests:ci` for every package with a `phpunit.xml.dist`, on PHP 8.2, PHP 8.5, and PHP 8.2 `--prefer-lowest`. Tempest is excluded — it needs PHP 8.5 and a monorepo-tied boot harness, so a Monorepo shard covers it |
-| `file-licence.yml` | every push **and** pull request | `php bin/check-licence.php` over `packages/*/src`, `php bin/check-framework-transactions.php`, and `php bin/check-build-flow.php` (the committed flow snapshots are current) |
+| `file-licence.yml` | every push **and** pull request | `php bin/check-licence.php` over `packages/*/src` and `php bin/check-framework-transactions.php` |
+| `build-flow-baseline.yml` | push to `main`, except a push that changes only the baseline | `php bin/build-flow.php snapshot` from the latest `main`; when `packages/Ecotone/tests/BuildFlow/baseline` changed, commits it as `chore(flow): the build-flow baseline after <sha>` and pushes, regenerating and retrying when `main` moved. Runs one at a time, never cancelled |
+| `build-flow-comparison.yml` | pull request opened, pushed to or reopened | `php bin/build-flow.php compare` of the merge ref against its committed baseline, `php bin/build-flow-comment.php` to build the comment; uploads both as artifacts. Read-only; fails only when the tooling breaks |
+| `build-flow-comment.yml` | `workflow_run` of Build Flow Comparison | posts that comment on the pull request, or updates the one it posted before (found by its marker line), also for forks; runs `main`'s file and never the pull request's code |
 | `contribution-check.yml` | PR opened or edited | Fails unless the PR body has the CLA checkbox ticked |
 | `quickstart-examples.yml` | every branch push **and** pull request | The quickstart applications, as their own package |
 | `benchmark-pr.yml` | pull request | phpbench on PHP 8.5, for Ecotone, Laravel and Symfony |

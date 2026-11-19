@@ -313,3 +313,12 @@ All four sessions: no BLOCKING finding. Resolved: G52, V50, D42, D43, B29. New f
   per-coroutine registration builds its ObjectManager outside a Symfony application's `doctrine.orm` configuration,
   unsaid. **D45 NIT**: the refusal names the Doctrine connection, not the reference name the developer wrote.
 - **V52 NIT**: the multi-tenant path still asks for a manager named like the connection, as before this branch. Left.
+
+### Closing check at afa968394
+
+All four sessions: no BLOCKING finding. Resolved: G54, D44, D45. Open and left for the maintainer:
+
+- **D41**: an attribute without a connection name beside a `MultiTenantConfiguration` under its own reference name.
+- **G53**: `ManagerRegistryEmulator::fromDsnAndConfig()` named as an application's entry point from `src`.
+- **D24**, **G28**, **G46** as before. **V51 NIT**, **V52 NIT** as recorded above. **G55 NIT**:
+  `getManagerOfConnectionRegisteredAs()` takes the reference name only to quote it in its refusal.

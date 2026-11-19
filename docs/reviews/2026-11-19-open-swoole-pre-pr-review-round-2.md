@@ -379,3 +379,8 @@ All four sessions: no BLOCKING finding. Resolved: B34, B35, V55, V57, G60, G61, 
   transactions that published nothing for two heartbeat periods a publish inside a transaction reconnects, leaves on a
   channel that is not transactional and is published again by the retry.
 - **V56** stays for the maintainer: on SQLite, one shared connection for concurrent executions or a refusal.
+
+### Closing check at 74806ebe7
+
+All four sessions: no BLOCKING finding. Resolved: B36, V58. Left: the heartbeat paragraph of `upgrade-2.0.md` does not
+say the rule is skipped inside a RabbitMQ transaction (NIT); **V56** for the maintainer; **V51**, **V52**, **V54** NITs.

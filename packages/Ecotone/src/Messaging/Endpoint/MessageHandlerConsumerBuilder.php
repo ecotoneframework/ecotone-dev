@@ -22,5 +22,5 @@ interface MessageHandlerConsumerBuilder
 
     public function isPollingConsumer(): bool;
 
-    public function registerConsumer(MessagingContainerBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder, MessageChannelBuilder $relatedMessageChannel): void;
+    public function registerConsumer(MessagingContainerBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder, bool $consumesAStream): void;
 }

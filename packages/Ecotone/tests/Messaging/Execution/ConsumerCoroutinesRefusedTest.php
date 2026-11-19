@@ -8,12 +8,14 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -25,10 +27,10 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
     private const SCHEDULED_ENDPOINT_REFUSAL = 'Endpoint `report.schedule` is set to run on 2 coroutines, but it runs on a schedule instead of consuming a channel, so every coroutine would run each scheduled execution again. '
         . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this endpoint. '
         . 'To do its work on coroutines, let it send messages to an #[Asynchronous] handler and run that channel\'s consumer on coroutines.';
-    private const STREAM_CONSUMER_REFUSAL = 'Consumer `shipments` is set to consume on 3 coroutines, but it reads a stream (a Kafka topic or a RabbitMQ stream), where the position of the last handled message is what gets committed. '
+    private const STREAM_CONSUMER_REFUSAL = 'Consumer `shipments` is set to consume on 3 coroutines, but it reads a stream (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel), where the position of the last handled message is what gets committed. '
         . 'A coroutine finishing a later message would commit past an earlier message another coroutine is still handling, so that message is never handled when the process stops, and the messages are handled out of order. '
         . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
-        . 'To handle more of its messages at once, start more processes of this consumer, with more partitions of the Kafka topic for them to share.';
+        . 'To handle more of its messages at once: for a Kafka topic start more processes of this consumer, with at least as many partitions of the topic as processes; a RabbitMQ stream is read in order by one consumer, so let its handler send the work to an #[Asynchronous] queue channel and consume that channel on coroutines.';
 
     public function test_consuming_on_coroutines_passed_when_running_the_consumer_is_refused_without_a_coroutine_runtime(): void
     {
@@ -169,6 +171,40 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
         );
     }
 
+    public function test_consumer_of_a_dynamic_channel_receiving_from_a_stream_is_refused_to_consume_on_coroutines_passed_when_running_it(): void
+    {
+        $ecotone = $this->bootstrapShipmentsOnADynamicChannel(SimpleMessageChannelBuilder::createStreamingChannel('shipments_of_tenant'));
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::STREAM_CONSUMER_REFUSAL);
+
+        $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
+    }
+
+    public function test_consumer_of_a_dynamic_channel_receiving_from_a_stream_with_coroutines_in_its_polling_metadata_is_refused_when_the_application_boots(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::STREAM_CONSUMER_REFUSAL);
+
+        $this->bootstrapShipmentsOnADynamicChannel(
+            SimpleMessageChannelBuilder::createStreamingChannel('shipments_of_tenant'),
+            PollingMetadata::create('shipments')->withCoroutines(3),
+        );
+    }
+
+    public function test_consumer_of_a_dynamic_channel_receiving_from_queues_boots_with_coroutines_in_its_polling_metadata(): void
+    {
+        $ecotone = $this->bootstrapShipmentsOnADynamicChannel(
+            SimpleMessageChannelBuilder::createQueueChannel('shipments_of_tenant'),
+            PollingMetadata::create('shipments')->withCoroutines(3),
+        );
+        $ecotone->sendCommandWithRouting('shipment.ship');
+
+        $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(1));
+
+        $this->assertSame(1, $ecotone->sendQueryWithRouting('shipment.shipped'));
+    }
+
     public function test_consumer_of_a_stream_consumes_one_message_at_a_time(): void
     {
         $ecotone = $this->bootstrapShipments(channel: SimpleMessageChannelBuilder::createStreamingChannel('shipments'));
@@ -202,6 +238,37 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
         if (extension_loaded('openswoole') || extension_loaded('swoole')) {
             $this->markTestSkipped('This PHP can run coroutines');
         }
+    }
+
+    private function bootstrapShipmentsOnADynamicChannel(SimpleMessageChannelBuilder $receivedFrom, ?PollingMetadata $pollingMetadata = null): FlowTestSupport
+    {
+        $shipments = new class () {
+            private int $shipped = 0;
+
+            #[Asynchronous('shipments')]
+            #[CommandHandler('shipment.ship', endpointId: 'shipment.ship.endpoint')]
+            public function ship(): void
+            {
+                $this->shipped++;
+            }
+
+            #[QueryHandler('shipment.shipped')]
+            public function shipped(): int
+            {
+                return $this->shipped;
+            }
+        };
+
+        return EcotoneLite::bootstrapFlowTesting(
+            [$shipments::class],
+            [$shipments],
+            extensionObjects: array_values(array_filter([
+                DynamicMessageChannelBuilder::createRoundRobin('shipments', ['shipments_of_tenant']),
+                $receivedFrom,
+                $pollingMetadata,
+            ])),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 
     private function bootstrapShipments(?PollingMetadata $pollingMetadata = null, ?SimpleMessageChannelBuilder $channel = null): FlowTestSupport

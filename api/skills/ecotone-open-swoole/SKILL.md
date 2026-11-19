@@ -65,7 +65,9 @@ final class ConsumerConfiguration
   consumer exits with that failure, so a supervisor restarts it
 - A `#[Scheduled]` endpoint is refused on coroutines: each coroutine would run every scheduled execution again
 - A consumer of a Kafka topic or a RabbitMQ stream is refused on coroutines: a message finished out of turn would
-  commit its position past one still being handled. Start more processes of that consumer
+  commit its position past one still being handled, also when it is read through a dynamic channel. For Kafka start
+  more processes (with at least as many partitions); for a RabbitMQ stream, which one consumer reads in order, let
+  the handler send the work to a queue channel and consume that channel on coroutines
 
 ## 2. A database connection per coroutine
 
@@ -96,7 +98,8 @@ new DbalConnectionFactory(['dsn' => 'mysql://user:secret@database/app', 'connect
 | RabbitMQ with `Ecotone\Api\Amqp\AmqpLibConnectionFactory` (`php-amqplib`) | waits | waits |
 | RabbitMQ with `Ecotone\Api\Amqp\AmqpExtConnectionFactory` (the `amqp` extension) | stops every coroutine during the call | same |
 | SQLite | stops every coroutine during the call | same, unless Swoole is built with `--enable-swoole-sqlite` (not covered by Ecotone's tests) |
-| Kafka topic, RabbitMQ stream | consumer refused on coroutines | same |
+| Kafka topic, RabbitMQ stream (consuming) | consumer refused on coroutines | same |
+| Kafka (`rdkafka`), sending from a handler | stops every coroutine during the call | same |
 
 With PostgreSQL on OpenSwoole, or on a Swoole built without `--enable-swoole-pgsql`, set `enable_coroutine` to
 `false` on the server and run consumers without `--coroutines`: the process stays booted, and handles one message at

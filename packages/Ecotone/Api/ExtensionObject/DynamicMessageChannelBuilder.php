@@ -231,4 +231,28 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     {
         return false;
     }
+
+    /**
+     * @param array<string, MessageChannelBuilder> $channelsOfTheApplication
+     */
+    public function canReceiveFromAStream(array $channelsOfTheApplication): bool
+    {
+        $candidates = [...array_values($this->internalMessageChannels), ...array_values($channelsOfTheApplication)];
+        if ($this->channelReceivingStrategy->getClassName() === RoundRobinReceivingStrategy::class) {
+            $candidates = array_values($this->internalMessageChannels);
+            foreach ($this->channelReceivingStrategy->getArguments()[0] as $receivingChannelName) {
+                if (isset($channelsOfTheApplication[$receivingChannelName])) {
+                    $candidates[] = $channelsOfTheApplication[$receivingChannelName];
+                }
+            }
+        }
+
+        foreach ($candidates as $channel) {
+            if ($channel !== $this && $channel->isStreamingChannel()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

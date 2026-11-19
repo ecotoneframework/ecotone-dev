@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
@@ -119,7 +123,7 @@ final class StreamingChannelValidationTest extends TestCase
     {
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
-            'Consumer `consumer1` is set to consume on 2 coroutines, but it reads a stream (a Kafka topic or a RabbitMQ stream), where the position of the last handled message is what gets committed. '
+            'Consumer `consumer1` is set to consume on 2 coroutines, but it reads a stream (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel), where the position of the last handled message is what gets committed. '
             . 'A coroutine finishing a later message would commit past an earlier message another coroutine is still handling, so that message is never handled when the process stops, and the messages are handled out of order. '
         );
 
@@ -145,11 +149,69 @@ final class StreamingChannelValidationTest extends TestCase
         );
     }
 
+    public function test_dynamic_channel_over_kafka_channels_with_coroutines_in_its_polling_metadata_is_refused_when_the_application_boots(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            'Consumer `async` is set to consume on 2 coroutines, but it reads a stream (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel), where the position of the last handled message is what gets committed. '
+        );
+
+        $handler = new class () {
+            #[Asynchronous('async')]
+            #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [
+                $handler,
+                KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),
+            ],
+            extensionObjects: [
+                DynamicMessageChannelBuilder::createRoundRobin('async', ['async_tenant_a', 'async_tenant_b']),
+                KafkaMessageChannelBuilder::create(channelName: 'async_tenant_a', topicName: 'topic-a-' . Uuid::v7()->toRfc4122(), messageGroupId: 'group-a-' . Uuid::v7()->toRfc4122()),
+                KafkaMessageChannelBuilder::create(channelName: 'async_tenant_b', topicName: 'topic-b-' . Uuid::v7()->toRfc4122(), messageGroupId: 'group-b-' . Uuid::v7()->toRfc4122()),
+                PollingMetadata::create('async')->withCoroutines(2),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_kafka_consumer_is_refused_to_consume_on_coroutines_passed_when_running_it(): void
+    {
+        $handler = new class () {
+            #[KafkaConsumer('orders_consumer', 'orders')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [
+                $handler,
+                KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            'Consumer `orders_consumer` is set to consume on 2 coroutines, but it reads a stream (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel), where the position of the last handled message is what gets committed. '
+        );
+
+        $ecotone->run('orders_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withCoroutines(2));
+    }
+
     public function test_kafka_consumer_with_coroutines_in_its_polling_metadata_is_refused_when_the_application_boots(): void
     {
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
-            'Consumer `orders_consumer` is set to consume on 2 coroutines, but it reads a stream (a Kafka topic or a RabbitMQ stream), where the position of the last handled message is what gets committed. '
+            'Consumer `orders_consumer` is set to consume on 2 coroutines, but it reads a stream (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel), where the position of the last handled message is what gets committed. '
             . 'A coroutine finishing a later message would commit past an earlier message another coroutine is still handling, so that message is never handled when the process stops, and the messages are handled out of order. '
         );
 

@@ -39,7 +39,7 @@ class PollOrThrowMessageHandlerConsumerBuilder implements MessageHandlerConsumer
         return true;
     }
 
-    public function registerConsumer(MessagingContainerBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder, MessageChannelBuilder $relatedMessageChannel): void
+    public function registerConsumer(MessagingContainerBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder, bool $consumesAStream): void
     {
         $messageHandlerReference = $messageHandlerBuilder->compile($builder);
         $consumerRunner = new Definition(PollOrThrowExceptionConsumer::class, [
@@ -51,7 +51,7 @@ class PollOrThrowMessageHandlerConsumerBuilder implements MessageHandlerConsumer
             definition: $consumerRunner,
             withContinuousPolling: false,
             drainsAQueue: true,
-            consumesAStream: $relatedMessageChannel->isStreamingChannel(),
+            consumesAStream: $consumesAStream,
         );
     }
 }

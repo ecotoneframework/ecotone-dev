@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
+use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
@@ -1170,7 +1171,11 @@ final class MessagingSystemConfiguration implements Configuration
             $inputChannelBuilder = $this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()] ?? throw ConfigurationException::create("Missing channel with name {$messageHandlerBuilder->getInputMessageChannelName()} for {$messageHandlerBuilder}");
             foreach ($this->consumerFactories as $consumerFactory) {
                 if ($consumerFactory->isSupporting($messageHandlerBuilder, $inputChannelBuilder)) {
-                    $consumerFactory->registerConsumer($messagingBuilder, $messageHandlerBuilder, $inputChannelBuilder);
+                    $consumerFactory->registerConsumer(
+                        $messagingBuilder,
+                        $messageHandlerBuilder,
+                        $inputChannelBuilder instanceof DynamicMessageChannelBuilder ? $inputChannelBuilder->canReceiveFromAStream($this->channelBuilders) : $inputChannelBuilder->isStreamingChannel(),
+                    );
                     break;
                 }
             }

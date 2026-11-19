@@ -35,10 +35,10 @@ final class ConsumerCoroutines
         }
         if ($consumesAStream) {
             throw ConfigurationException::create(
-                "Consumer `{$endpointId}` is set to consume on {$coroutines} coroutines, but it reads a stream (a Kafka topic or a RabbitMQ stream), where the position of the last handled message is what gets committed. "
+                "Consumer `{$endpointId}` is set to consume on {$coroutines} coroutines, but it reads a stream (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel), where the position of the last handled message is what gets committed. "
                 . 'A coroutine finishing a later message would commit past an earlier message another coroutine is still handling, so that message is never handled when the process stops, and the messages are handled out of order. '
                 . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
-                . 'To handle more of its messages at once, start more processes of this consumer, with more partitions of the Kafka topic for them to share.'
+                . 'To handle more of its messages at once: for a Kafka topic start more processes of this consumer, with at least as many partitions of the topic as processes; a RabbitMQ stream is read in order by one consumer, so let its handler send the work to an #[Asynchronous] queue channel and consume that channel on coroutines.'
             );
         }
     }

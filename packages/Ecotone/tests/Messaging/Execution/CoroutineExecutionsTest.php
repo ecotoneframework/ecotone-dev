@@ -122,6 +122,8 @@ final class CoroutineExecutionsTest extends TestCase
         $this->assertSame(3, $ecotone->sendQueryWithRouting('counter.counted'));
     }
 
+    #[RequiresPhpExtension('pcntl')]
+    #[RequiresPhpExtension('posix')]
     public function test_every_consumer_coroutine_stops_when_the_process_is_asked_to_terminate(): void
     {
         $orders = new class () {

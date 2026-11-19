@@ -3013,8 +3013,10 @@ What a coroutine can wait on decides whether it helps:
 
 - MySQL and MariaDB (`pdo_mysql`) and `php-amqplib` (`AmqpLibConnectionFactory`) are waited on: while one coroutine
   waits for the database or the broker, the others run.
-- PostgreSQL is refused inside an OpenSwoole coroutine, and inside a Swoole coroutine without
-  `SWOOLE_HOOK_PDO_PGSQL` (Swoole 5.1 and later), with a `ConfigurationException`. Such a runtime cannot wait on a
+- A PostgreSQL connection Ecotone opens itself (from a DSN, or as a copy) is refused inside an OpenSwoole coroutine,
+  and inside a Swoole coroutine without `SWOOLE_HOOK_PDO_PGSQL` (Swoole 5.1 and later), with a
+  `ConfigurationException`. A PostgreSQL connection of a Doctrine `ManagerRegistry`, Laravel or Tempest is not
+  checked and stops the process the same way. Such a runtime cannot wait on a
   PostgreSQL query, so a coroutine waiting for a row locked by another coroutine of the same process would stop that
   one too, and neither would finish.
 - The `amqp` extension (`AmqpExtConnectionFactory`) and SQLite work, but each call stops every coroutine of the
@@ -3041,7 +3043,9 @@ sends carry the tenant, the correlation id and the other propagated headers; it 
 that started it is still running and still handling that message. A fiber does not: PHP does not tell which fiber
 started another, so a fiber starts without propagated headers and, with multi-tenancy, without a tenant.
 
-**How to adapt:** nothing when the process handles one message at a time. To handle several at once, register the
+**How to adapt:** nothing when the process handles one message at a time. An OpenSwoole or Swoole HTTP server runs
+every request in a coroutine unless `enable_coroutine` is false, also when the requests never overlap: with a
+PostgreSQL DSN set `enable_coroutine` to false there, or move to MySQL or MariaDB. To handle several at once, register the
 connection from a DSN (MySQL or MariaDB on OpenSwoole), read RabbitMQ with `AmqpLibConnectionFactory`, keep workers
 times `connection_pool_size` below what the database accepts, and take the
 connection in your own code with `#[CurrentConnection] Connection $connection` on the handler, not from a property.

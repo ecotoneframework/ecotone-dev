@@ -121,26 +121,32 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         self::assertNotSame([], $executionAttributesOf($exported['framework']));
     }
 
-    public function test_a_running_application_at_the_framework_level_with_open_telemetry_grows_no_more_over_consumed_messages_than_at_the_application_level(): void
+    /**
+     * @return iterable<string, array{TracingConfiguration}>
+     */
+    public static function levels(): iterable
     {
-        $growth = [];
-        foreach (['application' => TracingConfiguration::createWithDefaults(), 'framework' => TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)] as $level => $tracing) {
-            $exporter = new InMemoryExporter();
-            $application = $this->runningApplication($exporter, $tracing);
-            $memoryAfter = [];
-            foreach ([1, 2, 3, 4] as $round) {
-                for ($order = 0; $order < 200; $order++) {
-                    $application->getCommandBus()->sendWithRouting('order.place', 'coffee');
-                }
-                $application->run('notifications', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 200));
-                $exporter->getStorage()->exchangeArray([]);
-                gc_collect_cycles();
-                $memoryAfter[$round] = memory_get_usage();
+        yield 'application level' => [TracingConfiguration::createWithDefaults()];
+        yield 'framework level' => [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)];
+    }
+
+    #[DataProvider('levels')]
+    public function test_a_running_application_with_open_telemetry_keeps_its_memory_flat_over_fully_consumed_messages(TracingConfiguration $tracing): void
+    {
+        $exporter = new InMemoryExporter();
+        $application = $this->runningApplication($exporter, $tracing);
+        $memoryAfter = [];
+        foreach ([1, 2, 3, 4] as $round) {
+            for ($order = 0; $order < 300; $order++) {
+                $application->getCommandBus()->sendWithRouting('order.place', 'coffee');
             }
-            $growth[$level] = $memoryAfter[4] - $memoryAfter[2];
+            $application->run('notifications', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 300, executionTimeLimitInMilliseconds: 600000));
+            $exporter->getStorage()->exchangeArray([]);
+            gc_collect_cycles();
+            $memoryAfter[$round] = memory_get_usage();
         }
 
-        self::assertLessThan(256 * 1024, $growth['framework'] - $growth['application']);
+        self::assertLessThan(64 * 1024, $memoryAfter[4] - $memoryAfter[2]);
     }
 
     private function runningApplication(InMemoryExporter $exporter, TracingConfiguration $tracing): ConfiguredMessagingSystem

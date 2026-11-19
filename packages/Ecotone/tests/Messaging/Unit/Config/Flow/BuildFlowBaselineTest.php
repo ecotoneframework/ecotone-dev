@@ -148,6 +148,39 @@ final class BuildFlowBaselineTest extends TestCase
         $tooling->runConsoleCommand('ecotone:build-flow:check', ['location' => $this->location]);
     }
 
+    public function test_snapshot_command_refuses_a_location_it_cannot_write_a_snapshot_file_into(): void
+    {
+        mkdir($this->location . '/shared.json', recursive: true);
+
+        $this->expectExceptionMessage('Flow snapshot file ' . $this->location . '/shared.json could not be written. Make the location ' . $this->location . ' writable for the user running this command, or pass another --location.');
+
+        $this->tooling()->runConsoleCommand('ecotone:build-flow:snapshot', ['location' => $this->location]);
+    }
+
+    public function test_compare_command_refuses_a_shared_file_without_wiring_and_build(): void
+    {
+        mkdir($this->location . '/before', recursive: true);
+        file_put_contents($this->location . '/before/shared.json', '{}');
+
+        $this->expectExceptionMessage('Shared file ' . $this->location . '/before/shared.json does not hold `wiring` and `build`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.');
+
+        $this->tooling()->runConsoleCommand('ecotone:build-flow:compare', ['from' => $this->location . '/before', 'to' => $this->location . '/before', 'presentation' => 'json']);
+    }
+
+    public function test_compare_command_refuses_a_snapshot_whose_execution_steps_have_no_depth_and_label(): void
+    {
+        $tooling = $this->tooling();
+        $tooling->runConsoleCommand('ecotone:build-flow:snapshot', ['location' => $this->location]);
+        $file = $this->location . '/projection-rebuilt-asynchronously.json';
+        $snapshot = json_decode((string) file_get_contents($file), true, flags: JSON_THROW_ON_ERROR);
+        $snapshot['execution'][0]['steps'] = [['step' => 'written before steps had a depth and a label']];
+        file_put_contents($file, json_encode($snapshot, JSON_THROW_ON_ERROR));
+
+        $this->expectExceptionMessage('Flow snapshot file ' . $file . ' holds steps of `execution` without a depth and a label, so it was written by an earlier version of the build flow tooling. Regenerate every snapshot with `php bin/build-flow.php snapshot`.');
+
+        $tooling->runConsoleCommand('ecotone:build-flow:compare', ['from' => $this->location, 'to' => $this->location, 'presentation' => 'json']);
+    }
+
     private function tooling(): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(

@@ -20,6 +20,7 @@ use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -73,7 +74,7 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
         return [$handler->gathered, $recording ? array_map(trim(...), $ecotone->popExecutionRecording()->lines) : []];
     }
 
-    public function test_a_group_store_read_that_fails_fails_the_same_and_leaves_the_next_process_recorded_whole(): void
+    public function test_a_group_store_call_that_fails_fails_the_same_and_leaves_the_next_process_recorded_whole(): void
     {
         $outcomes = [];
         foreach ([false, true] as $recording) {
@@ -92,6 +93,7 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
             $ecotone->sendCommandWithRouting('ping');
             $outcomes[] = $failure;
             $lines = $recording ? $ecotone->popExecutionRecording()->lines : [];
+            $failingStep = $recording ? array_map(trim(...), array_slice($lines, (int) array_search(true, array_map(fn (string $line): bool => str_contains($line, '↳ failure: throws RuntimeException'), $lines), true) - 1, 2)) : [];
         }
         [$alone] = $this->application(true);
         $alone->sendCommandWithRouting('ping');
@@ -99,6 +101,7 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
 
         self::assertSame($outcomes[0], $outcomes[1]);
         self::assertNotNull($outcomes[0]);
+        self::assertSame(['record part 1 of 2 in DbalGatheredGroupStore', '↳ failure: throws RuntimeException'], $failingStep);
         self::assertSame(
             $ping($alone->popExecutionRecording()->lines),
             array_map(fn (string $line): string => (string) preg_replace(['/^process \d+: /', '/\{generated#\d+\}/'], ['process: ', '{generated}'], $line), array_slice($lines, (int) array_key_last(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'process ') && str_contains($line, 'send command ping'))))),
@@ -153,6 +156,7 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
                 SimpleMessageChannelBuilder::createQueueChannel('summaries'),
                 $recording ? $tracing->withLevel(TracingLevel::Framework) : $tracing,
+                ...($connectionFactory === null ? [] : [DbalConfiguration::createWithDefaults()->withDeduplication(false)->withTransactionOnAsynchronousEndpoints(false)->withTransactionOnCommandBus(false)]),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::TRACING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,

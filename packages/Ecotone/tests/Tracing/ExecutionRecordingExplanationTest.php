@@ -24,7 +24,7 @@ use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
-use Ecotone\Api\Tracing\InMemorySpanRecorder;
+use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\LicenceTesting;
@@ -620,14 +620,14 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             $classes,
-            [...$services, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [...$extensionObjects, self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            [...$services],
+            [...$extensionObjects, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $run($ecotone);
 
-        $recording = $ecotone->getExecutionRecording();
+        $recording = $ecotone->popExecutionRecording();
 
         return $withEveryHint ? $recording->linesWithEveryHint : $recording->lines;
     }
@@ -643,8 +643,8 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
             }
             $ecotone = EcotoneLite::bootstrapFlowTesting(
                 $scenario->classesToResolve,
-                [...$scenario->services, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-                [...$scenario->extensionObjects, self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+                [...$scenario->services],
+                [...$scenario->extensionObjects, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
                 enabledModules: [],
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );
@@ -652,7 +652,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
                 self::assertNull($scenario->runStage($stage, $ecotone));
             }
 
-            return $ecotone->getExecutionRecording()->lines;
+            return $ecotone->popExecutionRecording()->lines;
         }
         self::fail("No scenario named {$scenarioName} in the flow scenario catalogue");
     }

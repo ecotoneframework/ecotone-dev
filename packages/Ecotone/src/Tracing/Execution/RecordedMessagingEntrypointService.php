@@ -65,7 +65,7 @@ final class RecordedMessagingEntrypointService extends MessagingEntrypointServic
      */
     private static function slipOf(?string $routingSlip): array
     {
-        return $routingSlip === null || $routingSlip === '' ? [] : [ExecutionHint::critical(ExecutionHint::ROUTING_SLIP, 'none → ' . str_replace(',', ', ', $routingSlip))];
+        return $routingSlip === null || $routingSlip === '' ? [] : [ExecutionHint::shownInLines(ExecutionHint::ROUTING_SLIP, 'none → ' . str_replace(',', ', ', $routingSlip))];
     }
 
     /**
@@ -78,7 +78,7 @@ final class RecordedMessagingEntrypointService extends MessagingEntrypointServic
             return [];
         }
 
-        return [ExecutionHint::critical(ExecutionHint::GROUP, 'part ' . ($headers[GatheringHeaders::PART_NUMBER] ?? '?') . ' of ' . ($headers[GatheringHeaders::SIZE] ?? '?') . ' of ' . $headers[GatheringHeaders::GROUP_ID] . ', reports to ' . ($headers[GatheringHeaders::CHANNEL_NAME] ?? '?'))];
+        return [ExecutionHint::shownInLines(ExecutionHint::GROUP, 'part ' . ($headers[GatheringHeaders::PART_NUMBER] ?? '?') . ' of ' . ($headers[GatheringHeaders::SIZE] ?? '?') . ' of ' . $headers[GatheringHeaders::GROUP_ID] . ', reports to ' . ($headers[GatheringHeaders::CHANNEL_NAME] ?? '?'))];
     }
 
     /**

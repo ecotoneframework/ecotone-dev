@@ -14,11 +14,28 @@ use Ecotone\Messaging\Config\ConfigurationException;
  */
 final class FrameworkTracing
 {
-    public const SWITCH_ON = 'TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework)';
+    public const SWITCH_ON = 'TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)';
+    public const FLOW_TESTING_SPAN_RECORDER = 'ecotone.tracing.flow_testing_span_recorder';
 
     public static function isTheLevelOf(array $extensionObjects): bool
     {
         return self::configurationOf($extensionObjects)->level === TracingLevel::Framework;
+    }
+
+    public static function recordsExecutionIn(array $extensionObjects): bool
+    {
+        return self::isTheLevelOf($extensionObjects) && self::spanRecorderNamesOf($extensionObjects) !== [];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function spanRecorderNamesOf(array $extensionObjects): array
+    {
+        return [
+            ...self::configurationOf($extensionObjects)->spanRecorderReferenceNames,
+            ...array_map(fn (SpanRecorderReference $reference): string => $reference->referenceName, ExtensionObjectResolver::resolve(SpanRecorderReference::class, $extensionObjects)),
+        ];
     }
 
     public static function configurationOf(array $extensionObjects): TracingConfiguration

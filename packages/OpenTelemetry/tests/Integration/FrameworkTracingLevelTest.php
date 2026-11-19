@@ -13,13 +13,14 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\RecordedProcess;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\ImmutableSpan;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
+use PHPUnit\Framework\Attributes\DataProvider;
+use RuntimeException;
 
 /**
  * licence Apache-2.0
@@ -29,32 +30,60 @@ final class FrameworkTracingLevelTest extends TracingTestCase
 {
     public function test_the_framework_level_records_the_execution_of_a_flow_traced_through_open_telemetry(): void
     {
-        $ecotone = $this->placedAndNotified(new InMemoryExporter(), TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework));
+        $ecotone = $this->placedAndNotified(new InMemoryExporter(), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework));
 
-        $processes = $ecotone->getExecutionRecording()->processes;
+        $processes = $ecotone->popExecutionRecording()->processes;
 
         self::assertSame(
             ['send command order.place, class@anonymous::place', 'receive notifications, class@anonymous::notify'],
             array_map(fn (RecordedProcess $process): string => $process->title, $processes),
         );
-        self::assertSame(1, $processes[1]->sentBy?->process);
+        self::assertSame(1, $processes[1]->sentBy?->processNumber);
     }
 
-    public function test_the_framework_level_exports_the_same_spans_to_open_telemetry_as_the_application_level_and_only_it_adds_execution_attributes(): void
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function flows(): iterable
+    {
+        yield 'a command publishing an event handled asynchronously' => ['placedAndNotified'];
+        yield 'a command whose handler fails' => ['refused'];
+    }
+
+    #[DataProvider('flows')]
+    public function test_the_framework_level_exports_the_same_spans_to_open_telemetry_as_the_application_level_and_only_it_adds_execution_attributes(string $flow): void
     {
         $exported = [];
-        foreach (['application' => TracingConfiguration::createWithDefaults(), 'framework' => TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework)] as $level => $tracing) {
+        foreach (['application' => TracingConfiguration::createWithDefaults(), 'framework' => TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)] as $level => $tracing) {
             $exporter = new InMemoryExporter();
-            $this->placedAndNotified($exporter, $tracing);
+            $this->{$flow}($exporter, $tracing);
             $exported[$level] = $exporter->getSpans();
         }
-        $shapeOf = function (array $spans): array {
+        $stable = fn (mixed $value): mixed => is_string($value) ? (string) preg_replace('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\b[0-9a-f]{32}\b|\b[0-9a-f]{16}\b/', '{id}', $value) : $value;
+        $withoutExecution = function (array $attributes) use ($stable): array {
+            $kept = [];
+            foreach ($attributes as $key => $value) {
+                if (! str_starts_with((string) $key, 'ecotone.execution.')) {
+                    $kept[$key] = in_array($key, ['timestamp', 'exception.stacktrace'], true) ? '{' . $key . '}' : $stable($value);
+                }
+            }
+
+            return $kept;
+        };
+        $shapeOf = function (array $spans) use ($withoutExecution, $stable): array {
             $nameOf = [];
             foreach ($spans as $span) {
                 $nameOf[$span->getSpanId()] = $span->getName();
             }
 
-            return array_map(fn (ImmutableSpan $span): array => [$span->getName(), $span->getKind(), $span->getStatus()->getCode(), $nameOf[$span->getParentSpanId()] ?? null], $spans);
+            return array_map(fn (ImmutableSpan $span): array => [
+                'name' => $span->getName(),
+                'kind' => $span->getKind(),
+                'status' => $span->getStatus()->getCode(),
+                'parent' => $nameOf[$span->getParentSpanId()] ?? null,
+                'attributes' => $withoutExecution($span->getAttributes()->toArray()),
+                'events' => array_map(fn ($event): array => [$stable($event->getName()), $withoutExecution($event->getAttributes()->toArray())], $span->getEvents()),
+            ], $spans);
         };
         $executionAttributesOf = fn (array $spans): array => array_values(array_unique(array_merge(...array_map(fn (ImmutableSpan $span): array => array_values(array_filter(array_keys($span->getAttributes()->toArray()), fn (string $key): bool => str_starts_with($key, 'ecotone.execution.'))), $spans))));
 
@@ -62,13 +91,6 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         self::assertSame($shapeOf($exported['application']), $shapeOf($exported['framework']));
         self::assertSame([], $executionAttributesOf($exported['application']));
         self::assertNotSame([], $executionAttributesOf($exported['framework']));
-    }
-
-    public function test_the_framework_level_with_a_tracer_provider_but_no_span_recorder_is_refused_at_bootstrap(): void
-    {
-        $this->expectExceptionMessage('The framework tracing level is switched on with TracingConfiguration::withLevel(TracingLevel::Framework), but no span recorder is registered, so the execution steps it records would reach nothing: a tracer, such as the OpenTelemetry one, exports spans only. Register one with TracingConfiguration::withSpanRecorder(), for example InMemorySpanRecorder in tests, or stay at the default TracingLevel::Application.');
-
-        $this->placedAndNotified(new InMemoryExporter(), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework));
     }
 
     private function placedAndNotified(InMemoryExporter $exporter, TracingConfiguration $tracing): FlowTestSupport
@@ -88,7 +110,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$handlers::class],
-            [$handlers, TracerProviderInterface::class => self::prepareTracer($exporter), InMemorySpanRecorder::class => new InMemorySpanRecorder()],
+            [$handlers, TracerProviderInterface::class => self::prepareTracer($exporter)],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications'), $tracing],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
         );
@@ -96,5 +118,26 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
 
         return $ecotone;
+    }
+
+    private function refused(InMemoryExporter $exporter, TracingConfiguration $tracing): void
+    {
+        $handlers = new class () {
+            #[CommandHandler('order.refuse')]
+            public function refuse(string $order): void
+            {
+                throw new RuntimeException('the order is refused');
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handlers::class],
+            [$handlers, TracerProviderInterface::class => self::prepareTracer($exporter)],
+            [$tracing],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
+        );
+        try {
+            $ecotone->sendCommandWithRouting('order.refuse', 'coffee');
+        } catch (RuntimeException) {
+        }
     }
 }

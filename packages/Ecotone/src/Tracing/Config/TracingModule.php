@@ -24,14 +24,16 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Tracing\CurrentTrace;
+use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\SpanRecorder;
+use Ecotone\Lite\Test\Configuration\ProvidedReferences;
+use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
 use Ecotone\Messaging\Channel\Collector\MessageCollectionObserver;
 use Ecotone\Messaging\Channel\Collector\UnobservedMessageCollection;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -61,7 +63,7 @@ use Ecotone\Tracing\TracingMessageCollectionObserver;
 /**
  * licence Apache-2.0
  */
-final class TracingModule extends NoExternalConfigurationModule implements AnnotationModule
+final class TracingModule extends NoExternalConfigurationModule implements AnnotationModule, ResolvesExtensionObjectsForFlowTesting
 {
     private const USER_MESSAGE_GATEWAYS_POINTCUT = MessageGateway::class . '&&not(' . CommandBus::class . ')&&not(' . EventBus::class . ')&&not(' . QueryBus::class . ')';
 
@@ -74,25 +76,31 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         return new self();
     }
 
+    public function resolveForFlowTesting(array $extensionObjects, ProvidedReferences $providedReferences): array
+    {
+        if (! FrameworkTracing::isTheLevelOf($extensionObjects) || FrameworkTracing::spanRecorderNamesOf($extensionObjects) !== []) {
+            return $extensionObjects;
+        }
+
+        return [...$extensionObjects, new SpanRecorderReference(FrameworkTracing::FLOW_TESTING_SPAN_RECORDER)];
+    }
+
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $tracingConfiguration = FrameworkTracing::configurationOf($extensionObjects);
         $tracerReferences = ExtensionObjectResolver::resolve(TracerReference::class, $extensionObjects);
         $frameworkLevel = FrameworkTracing::isTheLevelOf($extensionObjects);
-
-        $spanRecorderReferences = ExtensionObjectResolver::resolve(SpanRecorderReference::class, $extensionObjects);
-        if ($frameworkLevel && $tracingConfiguration->spanRecorderReferenceNames === [] && $spanRecorderReferences === []) {
-            throw ConfigurationException::create('The framework tracing level is switched on with TracingConfiguration::withLevel(TracingLevel::Framework), but no span recorder is registered, so the execution steps it records would reach nothing: a tracer, such as the OpenTelemetry one, exports spans only. Register one with TracingConfiguration::withSpanRecorder(), for example InMemorySpanRecorder in tests, or stay at the default TracingLevel::Application.');
+        $recordsExecution = FrameworkTracing::recordsExecutionIn($extensionObjects);
+        $spanRecorderNames = FrameworkTracing::spanRecorderNamesOf($extensionObjects);
+        if (in_array(FrameworkTracing::FLOW_TESTING_SPAN_RECORDER, $spanRecorderNames, true)) {
+            $messagingConfiguration->registerServiceDefinition(FrameworkTracing::FLOW_TESTING_SPAN_RECORDER, new Definition(InMemorySpanRecorder::class));
         }
-        $spanRecorders = [
-            ...array_map(fn (string $referenceName): Reference => new Reference($referenceName), $tracingConfiguration->spanRecorderReferenceNames),
-            ...array_map(fn (SpanRecorderReference $reference): Reference => new Reference($reference->referenceName), $spanRecorderReferences),
-        ];
+        $spanRecorders = array_map(fn (string $referenceName): Reference => new Reference($referenceName), $spanRecorderNames);
         $messagingConfiguration->registerServiceDefinition(
             ExecutionRecordingReader::class,
             $frameworkLevel ? new Definition(InMemoryExecutionRecordingReader::class, [$spanRecorders]) : new Definition(ExecutionRecordingNotSwitchedOn::class),
         );
-        if ($tracingConfiguration->spanRecorderReferenceNames === [] && $tracerReferences === [] && $spanRecorderReferences === []) {
+        if ($spanRecorderNames === [] && $tracerReferences === []) {
             $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracingDisabledCurrentTrace::class));
             $messagingConfiguration->registerServiceDefinition(MessageCollectionObserver::class, new Definition(UnobservedMessageCollection::class));
 
@@ -102,7 +110,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         $messagingConfiguration->registerServiceDefinition(MessageCollectionObserver::class, new Definition(TracingMessageCollectionObserver::class, [new Reference(Tracer::class)]));
 
         $messagingConfiguration->registerServiceDefinition(SpanRecorder::class, new Definition(CompositeSpanRecorder::class, [$spanRecorders]));
-        if ($frameworkLevel) {
+        if ($recordsExecution) {
             if ($tracerReferences === []) {
                 $messagingConfiguration->registerServiceDefinition(EcotoneTracer::class, new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));
             }

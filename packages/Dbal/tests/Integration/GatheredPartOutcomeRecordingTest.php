@@ -22,7 +22,6 @@ use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\GatheredParts;
-use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
@@ -95,7 +94,7 @@ final class GatheredPartOutcomeRecordingTest extends DbalMessagingTestCase
      */
     private function outcomesOfParts(FlowTestSupport $ecotone): array
     {
-        $lines = array_map(trim(...), $ecotone->getExecutionRecording()->lines);
+        $lines = array_map(trim(...), $ecotone->popExecutionRecording()->lines);
 
         return array_values(array_map(
             fn (int $position): string => substr($lines[$position + 1], strlen('↳ outcome: ')),
@@ -174,11 +173,11 @@ final class GatheredPartOutcomeRecordingTest extends DbalMessagingTestCase
         };
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
-            containerOrAvailableServices: [$handler, InMemorySpanRecorder::class => new InMemorySpanRecorder(), ...($dbal ? [DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [])],
+            containerOrAvailableServices: [$handler, ...($dbal ? [DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [])],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
                 SimpleMessageChannelBuilder::createQueueChannel('summaries'),
-                TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework),
+                TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework),
                 ...($dbal ? [DbalConfiguration::createWithDefaults()->withDeduplication(false)] : []),
             ],
             enabledModules: [ModulePackageList::TRACING_PACKAGE, ...($dbal ? [ModulePackageList::DBAL_PACKAGE] : [])],

@@ -57,13 +57,15 @@ final class MessageFlowModule implements AnnotationModule
     {
         $flowVersionsConfigurations = ExtensionObjectResolver::resolve(FlowVersionsConfiguration::class, $extensionObjects);
         $frameworkLevel = FrameworkTracing::isTheLevelOf($extensionObjects);
+        $recordsExecution = FrameworkTracing::recordsExecutionIn($extensionObjects);
         if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             if ($flowVersionsConfigurations !== []) {
                 throw LicensingException::create('Flow versions are available only as part of Ecotone Enterprise. Provide a licence key, or remove the FlowVersionsConfiguration from your #[ServiceContext]. See https://docs.ecotone.tech/enterprise for details.');
             }
-            if ($frameworkLevel) {
+            if ($recordsExecution) {
                 $messagingConfiguration->addCompilerPass(new RecordExecutionCompilerPass());
             }
+            $messagingConfiguration->registerServiceDefinition(MessageFlowBuildReader::class, new Definition(MessageFlowBuildNotRead::class, ['it is read only with an Ecotone Enterprise licence. Provide a licence key; see https://docs.ecotone.tech/enterprise for details.']));
 
             return;
         }
@@ -79,13 +81,15 @@ final class MessageFlowModule implements AnnotationModule
         ]));
         $dumpCommands = MessageFlowConsoleCommandsWithoutBuild::class;
         if ($frameworkLevel) {
-            $messagingConfiguration->addCompilerPass(new MessageFlowBuildCompilerPass($messagingConfiguration, $interfaceToCallRegistry, $declared->graph));
-            $messagingConfiguration->addCompilerPass(new RecordExecutionCompilerPass());
+            $messagingConfiguration->addCompilerPass(new MessageFlowBuildCompilerPass(configuration: $messagingConfiguration, interfaceToCallRegistry: $interfaceToCallRegistry, declared: $declared->graph));
             $dumpCommands = MessageFlowConsoleCommands::class;
+        }
+        if ($recordsExecution) {
+            $messagingConfiguration->addCompilerPass(new RecordExecutionCompilerPass());
         }
         $messagingConfiguration->registerServiceDefinition(MessageFlowBuildReader::class, $frameworkLevel
             ? new Definition(RecordingMessageFlowBuildReader::class, [new Reference(MessageFlowBuildGraphBuilder::class), new Reference(MessageFlowBuild::class)])
-            : new Definition(MessageFlowBuildNotRead::class));
+            : new Definition(MessageFlowBuildNotRead::class, ['it is read only at the framework tracing level. Switch it on with ' . FrameworkTracing::SWITCH_ON . '.']));
         $messagingConfiguration->registerServiceDefinition($dumpCommands, new Definition($dumpCommands));
         [$messageHandlerBuilder, $consoleCommandConfiguration] = ConsoleCommandModule::prepareConsoleCommandForReference(
             new Reference($dumpCommands),

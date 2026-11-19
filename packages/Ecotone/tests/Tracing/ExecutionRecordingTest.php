@@ -28,7 +28,7 @@ use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Tracing\InMemorySpanRecorder;
+use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\LicenceTesting;
@@ -69,8 +69,8 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class, $interceptors::class],
-            [$orders, $interceptors, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            [$orders, $interceptors],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
         )->sendCommandWithRouting('order.place', 'order-1');
 
@@ -98,7 +98,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              no hand-over',
                 '                ↳ outcome: nothing returned by the router',
             ],
-            $ecotone->getExecutionRecording()->lines,
+            $ecotone->popExecutionRecording()->lines,
         );
     }
 
@@ -119,8 +119,8 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class, $interceptors::class],
-            [$orders, $interceptors, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            [$orders, $interceptors],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
         )->sendCommandWithRouting('order.place', 'order-1');
 
@@ -149,7 +149,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              no hand-over',
                 '                ↳ outcome: nothing returned by the router',
             ],
-            $ecotone->getExecutionRecording()->lines,
+            $ecotone->popExecutionRecording()->lines,
         );
     }
 
@@ -171,8 +171,8 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class, $interceptors::class],
-            [$orders, $interceptors, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            [$orders, $interceptors],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
         )->sendCommandWithRouting('order.place', 'order-1');
 
@@ -195,7 +195,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              no hand-over',
                 '                ↳ outcome: nothing returned by the router',
             ],
-            $ecotone->getExecutionRecording()->lines,
+            $ecotone->popExecutionRecording()->lines,
         );
     }
 
@@ -211,8 +211,8 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
-            [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            [$orders],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
         )
             ->sendCommandWithRouting('order.place', 'order-1')
@@ -287,7 +287,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              acknowledge',
                 '                ↳ outcome: accepted',
             ],
-            $ecotone->getExecutionRecording()->lines,
+            $ecotone->popExecutionRecording()->lines,
         );
     }
 
@@ -309,8 +309,8 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
-            [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            [$orders],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
         )->sendCommandWithRouting('order.place', 'order-1');
 
@@ -342,7 +342,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '              no hand-over',
                 '                ↳ outcome: nothing returned by the router',
             ],
-            $ecotone->getExecutionRecording()->lines,
+            $ecotone->popExecutionRecording()->lines,
         );
     }
 
@@ -395,8 +395,8 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class, $interceptors::class],
-            [$orders, $interceptors, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            [$orders, $interceptors],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
         )->sendCommandWithRouting('order.place', 'order-1');
 
@@ -408,7 +408,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '    before class@anonymous::beforeSendingTheCommand',
                 '    around TracingInterceptor::traceCommandBus',
             ],
-            array_slice($ecotone->getExecutionRecording()->lines, 0, 5),
+            array_slice($ecotone->popExecutionRecording()->lines, 0, 5),
         );
     }
 
@@ -424,14 +424,14 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
-            [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            [$orders],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
         )
             ->run('orders', ExecutionPollingMetadata::createWithTestingSetup())
             ->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertSame([], $ecotone->getExecutionRecording()->lines);
+        self::assertSame([], $ecotone->popExecutionRecording()->lines);
     }
 
     public function test_a_send_that_succeeds_on_retry_is_recorded_as_delivered_with_its_recovery(): void
@@ -466,8 +466,8 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$summaries::class],
-            [$summaries, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('summaries')],
+            [$summaries],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -495,8 +495,8 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class, $interceptors::class],
-            [$orders, $interceptors, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            [$orders, $interceptors],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
         );
 
@@ -514,7 +514,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '    before class@anonymous::refuseTheCommand',
                 '      ↳ failure: throws RuntimeException',
             ],
-            $ecotone->getExecutionRecording()->lines,
+            $ecotone->popExecutionRecording()->lines,
         );
     }
 
@@ -546,8 +546,8 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$endpoints::class],
-            [$endpoints, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            [$endpoints],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
         );
 
@@ -555,7 +555,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         $ecotone->sendDirectToChannel('order.route', 'b');
         $ecotone->sendDirectToChannel('order.split', 'c,d');
         $ecotone->runConsoleCommand('orders:noop', []);
-        $lines = self::trimmed($ecotone->getExecutionRecording()->linesWithEveryHint);
+        $lines = self::trimmed($ecotone->popExecutionRecording()->linesWithEveryHint);
 
         self::assertCount(4, array_filter($lines, fn (string $line): bool => str_starts_with($line, 'process ')));
         self::assertStep($lines, 'transformer class@anonymous::normalize', ['returns: string']);
@@ -577,13 +577,13 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [],
-            [...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            [],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             testConfiguration: TestConfiguration::createWithDefaults()->withFailOnNotFoundHandler(false),
         )->sendCommandWithRouting('order.unknown', 'order-1');
 
-        self::assertStep(self::trimmed($ecotone->getExecutionRecording()->lines), 'flow testing AllowMissingDestination::invoke', ['outcome: DestinationResolutionException turned into a normal return']);
+        self::assertStep(self::trimmed($ecotone->popExecutionRecording()->lines), 'flow testing AllowMissingDestination::invoke', ['outcome: DestinationResolutionException turned into a normal return']);
     }
 
     public function test_the_reply_of_an_asynchronous_aggregate_action_is_recorded_as_dropped(): void
@@ -591,14 +591,14 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [ExecutionRecordedOrder::class],
-            [...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            [],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
         )
             ->sendCommandWithRouting('order.place', 'order-1')
             ->sendCommandWithRouting('order.confirm', 'order-1')
             ->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
-        $lines = self::trimmed($ecotone->getExecutionRecording()->lines);
+        $lines = self::trimmed($ecotone->popExecutionRecording()->lines);
 
         $consumed = array_slice($lines, (int) array_search('sub-flow process 3: receive orders, ExecutionRecordedOrder::confirm', $lines, true));
 
@@ -626,8 +626,8 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
-            [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders'), SimpleMessageChannelBuilder::createQueueChannel('notifications')],
+            [$orders],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders'), SimpleMessageChannelBuilder::createQueueChannel('notifications')],
             enabledModules: [],
         );
 
@@ -637,7 +637,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         } catch (RuntimeException) {
         }
         $ecotone->publishEventWithRouting('order.placed', 'order-1', metadata: [MessageHeaders::MESSAGE_ID => '0b3c8e2a-5f8c-4d5e-9a3f-2b1c0d9e8f7a']);
-        $lines = self::trimmed($ecotone->getExecutionRecording()->lines);
+        $lines = self::trimmed($ecotone->popExecutionRecording()->lines);
 
         self::assertNotContains('release collected message to notifications', $lines);
         self::assertContains('send notifications', $lines);
@@ -668,13 +668,13 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
-            [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            [$orders],
+            [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
         )
             ->sendCommandWithRouting('order.place', 'order-1')
             ->sendCommandWithRouting('order.cancel', 'order-1');
-        $lines = self::trimmed($ecotone->getExecutionRecording()->lines);
+        $lines = self::trimmed($ecotone->popExecutionRecording()->lines);
 
         self::assertContains('direct channel {generated#1}.target', $lines);
         self::assertContains('direct channel {generated#2}.target', $lines);
@@ -745,8 +745,8 @@ final class ExecutionRecordingTest extends TracingTestCase
             }
             $ecotone = EcotoneLite::bootstrapFlowTesting(
                 $scenario->classesToResolve,
-                [...$scenario->services, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-                [...$scenario->extensionObjects, self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+                [...$scenario->services],
+                [...$scenario->extensionObjects, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
                 enabledModules: [],
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );
@@ -754,7 +754,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 self::assertNull($scenario->runStage($stage, $ecotone));
             }
 
-            $recording = $ecotone->getExecutionRecording();
+            $recording = $ecotone->popExecutionRecording();
 
             return $withEveryHint ? $recording->linesWithEveryHint : $recording->lines;
         }

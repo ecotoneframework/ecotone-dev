@@ -31,8 +31,8 @@
     ],
     "execution": [
         {"process": "poll scheduled_handler (1 of 2)", "steps": [
-            {"depth":1,"label":"gateway InboundGatewayEntrypoint::executeEntrypoint","hints":[{"key":"returns","value":"nothing","critical":false}]},
-            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","critical":false}]},
+            {"depth":1,"label":"gateway InboundGatewayEntrypoint::executeEntrypoint","hints":[{"key":"returns","value":"nothing","shownInLines":false}]},
+            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","shownInLines":false}]},
             {"depth":2,"label":"around TracingInterceptor::traceAsynchronousEndpoint"},
             {"depth":3,"label":"span poll scheduled_handler"},
             {"depth":4,"label":"around AcknowledgeConfirmationInterceptor::ack"},
@@ -43,8 +43,8 @@
             {"depth":9,"label":"around DeliveryConfirmationInterceptor::await"}
         ]},
         {"process": "poll scheduled_handler (2 of 2)", "steps": [
-            {"depth":1,"label":"gateway InboundGatewayEntrypoint::executeEntrypoint","hints":[{"key":"returns","value":"nothing","critical":false}]},
-            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","critical":false}]},
+            {"depth":1,"label":"gateway InboundGatewayEntrypoint::executeEntrypoint","hints":[{"key":"returns","value":"nothing","shownInLines":false}]},
+            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","shownInLines":false}]},
             {"depth":2,"label":"around TracingInterceptor::traceAsynchronousEndpoint"},
             {"depth":3,"label":"span poll scheduled_handler"},
             {"depth":4,"label":"around AcknowledgeConfirmationInterceptor::ack"},

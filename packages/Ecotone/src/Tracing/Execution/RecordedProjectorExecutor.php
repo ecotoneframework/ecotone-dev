@@ -18,26 +18,26 @@ final class RecordedProjectorExecutor implements ProjectorExecutor
 
     public function project(Event $event, mixed $userState = null, bool $isRebuilding = false): mixed
     {
-        return RecordedStep::of($this->tracer, 'project ' . ExecutionRecordingTracer::shortClassOf($event->eventName), fn () => $this->projectorExecutor->project($event, $userState, $isRebuilding));
+        return StepAround::of($this->tracer, 'project ' . ExecutionRecordingTracer::shortClassOf($event->eventName), fn () => $this->projectorExecutor->project($event, $userState, $isRebuilding));
     }
 
     public function init(): void
     {
-        RecordedStep::of($this->tracer, 'init the projection', fn () => $this->projectorExecutor->init());
+        StepAround::of($this->tracer, 'init the projection', fn () => $this->projectorExecutor->init());
     }
 
     public function delete(): void
     {
-        RecordedStep::of($this->tracer, 'delete the projection', fn () => $this->projectorExecutor->delete());
+        StepAround::of($this->tracer, 'delete the projection', fn () => $this->projectorExecutor->delete());
     }
 
     public function flush(mixed $userState, bool $isRebuilding): void
     {
-        RecordedStep::of($this->tracer, 'flush the projection', fn () => $this->projectorExecutor->flush($userState, $isRebuilding));
+        StepAround::of($this->tracer, 'flush the projection', fn () => $this->projectorExecutor->flush($userState, $isRebuilding));
     }
 
     public function reset(?string $partitionKey = null): void
     {
-        RecordedStep::of($this->tracer, 'reset the projection' . ($partitionKey === null ? '' : ' partition ' . $partitionKey), fn () => $this->projectorExecutor->reset($partitionKey));
+        StepAround::of($this->tracer, 'reset the projection' . ($partitionKey === null ? '' : ' partition ' . $partitionKey), fn () => $this->projectorExecutor->reset($partitionKey));
     }
 }

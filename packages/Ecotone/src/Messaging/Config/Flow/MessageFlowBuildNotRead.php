@@ -9,22 +9,25 @@ namespace Ecotone\Messaging\Config\Flow;
 
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Tracing\Config\FrameworkTracing;
 
 final class MessageFlowBuildNotRead implements MessageFlowBuildReader
 {
+    public function __construct(private string $reason)
+    {
+    }
+
     public function wiring(): MessageFlowGraph
     {
-        throw self::refusal();
+        throw $this->refusal();
     }
 
     public function build(): array
     {
-        throw self::refusal();
+        throw $this->refusal();
     }
 
-    private static function refusal(): ConfigurationException
+    private function refusal(): ConfigurationException
     {
-        return ConfigurationException::create('The build wiring Ecotone registers for this application was asked for, but it is read only at the framework tracing level. Switch it on with ' . FrameworkTracing::SWITCH_ON . '.');
+        return ConfigurationException::create('The build wiring Ecotone registers for this application was asked for, but ' . $this->reason);
     }
 }

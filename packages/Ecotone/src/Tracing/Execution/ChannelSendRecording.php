@@ -63,7 +63,7 @@ final class ChannelSendRecording
                 attributes: [
                     SpanAttribute::EXECUTION_SENT_MESSAGE => $messageId,
                     SpanAttribute::EXECUTION_HINTS => ExecutionHint::encoded(array_values(array_filter([
-                        $released ? ExecutionHint::critical(ExecutionHint::COLLECTED, 'released after the handler ended') : null,
+                        $released ? ExecutionHint::shownInLines(ExecutionHint::COLLECTED, 'released after the handler ended') : null,
                         self::retryOf($message),
                     ]))),
                 ],
@@ -146,7 +146,7 @@ final class ChannelSendRecording
             return;
         }
         if ($failure === null) {
-            $this->tracer->endStep($send['step'], '', $send['failed'] === null ? [] : [ExecutionHint::critical(ExecutionHint::FAILURE, $send['failed'] . ', ' . $this->recoveryOf($send['failedAfter']))]);
+            $this->tracer->endStep($send['step'], '', $send['failed'] === null ? [] : [ExecutionHint::shownInLines(ExecutionHint::FAILURE, $send['failed'] . ', ' . $this->recoveryOf($send['failedAfter']))]);
 
             return;
         }
@@ -234,10 +234,10 @@ final class ChannelSendRecording
         if ($stoppedBy === self::COLLECTOR) {
             $this->tracer->collect($this->channelName, $send['messageId']);
 
-            return ExecutionHint::critical(ExecutionHint::COLLECTED, 'held until the handler ends');
+            return ExecutionHint::shownInLines(ExecutionHint::COLLECTED, 'held until the handler ends');
         }
 
-        return ExecutionHint::critical(ExecutionHint::STOPPED, 'no message passed on');
+        return ExecutionHint::shownInLines(ExecutionHint::STOPPED, 'no message passed on');
     }
 
     /**
@@ -250,10 +250,10 @@ final class ChannelSendRecording
             return ['after successful send ' . $this->methodOf($after['position'], self::POST_SEND), []];
         }
         if ($sendFailure !== null && $this->interceptors[$after['position']] === SendRetryChannelInterceptor::class) {
-            return ['recover ' . ExecutionRecordingTracer::shortClassOf(SendRetryChannelInterceptor::class) . '::recover', [ExecutionHint::critical(ExecutionHint::FAILURE, $sendFailure)]];
+            return ['recover ' . ExecutionRecordingTracer::shortClassOf(SendRetryChannelInterceptor::class) . '::recover', [ExecutionHint::shownInLines(ExecutionHint::FAILURE, $sendFailure)]];
         }
 
-        return ['after send ' . $this->methodOf($after['position'], self::AFTER_SEND_COMPLETION), [$after['failure'] === null ? ExecutionHint::detail(ExecutionHint::FAILURE, 'none') : ExecutionHint::critical(ExecutionHint::FAILURE, $after['failure'])]];
+        return ['after send ' . $this->methodOf($after['position'], self::AFTER_SEND_COMPLETION), [$after['failure'] === null ? ExecutionHint::detail(ExecutionHint::FAILURE, 'none') : ExecutionHint::shownInLines(ExecutionHint::FAILURE, $after['failure'])]];
     }
 
     private function shows(int $position, string $phase): bool
@@ -313,7 +313,7 @@ final class ChannelSendRecording
             return null;
         }
 
-        return ExecutionHint::critical(ExecutionHint::RETRY, $headers->get(DelayedRetryErrorHandler::ECOTONE_RETRY_HEADER) . ($headers->containsKey(MessageHeaders::DELIVERY_DELAY) ? ', delayed ' . $headers->get(MessageHeaders::DELIVERY_DELAY) . ' ms' : ''));
+        return ExecutionHint::shownInLines(ExecutionHint::RETRY, $headers->get(DelayedRetryErrorHandler::ECOTONE_RETRY_HEADER) . ($headers->containsKey(MessageHeaders::DELIVERY_DELAY) ? ', delayed ' . $headers->get(MessageHeaders::DELIVERY_DELAY) . ' ms' : ''));
     }
 
     /**

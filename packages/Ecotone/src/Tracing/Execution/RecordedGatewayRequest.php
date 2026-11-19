@@ -21,7 +21,7 @@ final class RecordedGatewayRequest implements MessageProcessor
     {
         $headers = $message->getHeaders();
         if (! $headers->containsKey(MessageHeaders::CONSUMER_POLLING_METADATA) && $headers->containsKey(MessageHeaders::ROUTING_SLIP) && (string) $headers->get(MessageHeaders::ROUTING_SLIP) !== '') {
-            $this->tracer->hintOpenStep(ExecutionHint::critical(ExecutionHint::ROUTING_SLIP, 'none → ' . str_replace(',', ', ', (string) $headers->get(MessageHeaders::ROUTING_SLIP))));
+            $this->tracer->hintOpenStep(ExecutionHint::shownInLines(ExecutionHint::ROUTING_SLIP, 'none → ' . str_replace(',', ', ', (string) $headers->get(MessageHeaders::ROUTING_SLIP))));
         }
 
         return $this->gatewayInternalProcessor->process($message);

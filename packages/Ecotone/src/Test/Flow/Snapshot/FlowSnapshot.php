@@ -9,6 +9,7 @@ use Ecotone\Api\Messaging\Flow\FlowNode;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Tracing\Execution\RecordedExecution;
 
 /**
  * licence Apache-2.0
@@ -23,7 +24,7 @@ final class FlowSnapshot
      * @param list<array{depth: int, name: string, destination?: string, kind: string, status: string}> $trace
      * @param array<string, array<string, scalar>> $ledger
      * @param array<string, list<string>> $chains
-     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $execution
+     * @param list<array{process: string, sentBy?: array{processNumber: int, stepNumber: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}> $execution
      */
     private function __construct(
         public readonly string $scenario,
@@ -54,7 +55,7 @@ final class FlowSnapshot
         ksort($ledger, SORT_STRING);
         ksort($chains, SORT_STRING);
 
-        return new self($scenario, MessageFlowGraph::create($nodes, $edges), self::withStableNames(FlowTrace::stepsOf($spans), $anonymousClasses), $ledger, $chains, self::withStableNames(FlowExecution::of($spans)->processes, $anonymousClasses));
+        return new self($scenario, MessageFlowGraph::create($nodes, $edges), self::withStableNames(FlowTrace::stepsOf($spans), $anonymousClasses), $ledger, $chains, self::withStableNames(RecordedExecution::of($spans)->processes, $anonymousClasses));
     }
 
     public static function fromJson(string $json, string $file, ?self $shared = null): self
@@ -238,19 +239,19 @@ final class FlowSnapshot
 
     /**
      * @param list<array{process: string, steps: list<mixed>}> $execution
-     * @return list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}>
+     * @return list<array{process: string, sentBy?: array{processNumber: int, stepNumber: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}>
      */
     private static function executionOf(array $execution, string $file): array
     {
         return array_map(fn (array $process): array => [
             'process' => (string) $process['process'],
-            ...(is_array($process['sentBy'] ?? null) ? ['sentBy' => ['process' => (int) $process['sentBy']['process'], 'step' => (int) $process['sentBy']['step']]] : []),
+            ...(is_array($process['sentBy'] ?? null) ? ['sentBy' => ['processNumber' => (int) $process['sentBy']['processNumber'], 'stepNumber' => (int) $process['sentBy']['stepNumber']]] : []),
             'steps' => array_map(function (mixed $step) use ($file): array {
                 if (! is_array($step) || ! is_int($step['depth'] ?? null) || ! is_string($step['label'] ?? null)) {
                     throw InvalidArgumentException::create("Flow snapshot file {$file} holds steps of `execution` without a depth and a label, so it was written by an earlier version of the build flow tooling. Regenerate every snapshot with `php bin/build-flow.php snapshot`.");
                 }
 
-                return ['depth' => $step['depth'], 'label' => $step['label'], 'hints' => array_map(fn (array $hint): array => ['key' => (string) $hint['key'], 'value' => (string) $hint['value'], 'critical' => (bool) $hint['critical']], $step['hints'] ?? [])];
+                return ['depth' => $step['depth'], 'label' => $step['label'], 'hints' => array_map(fn (array $hint): array => ['key' => (string) $hint['key'], 'value' => (string) $hint['value'], 'shownInLines' => (bool) $hint['shownInLines']], $step['hints'] ?? [])];
             }, $process['steps']),
         ], $execution);
     }

@@ -40,11 +40,11 @@ final class ExecutionHint
         self::RANGE, self::IDENTIFIERS, self::PROPAGATING, self::RECEIVED_WITH, self::RETRY, self::GROUP, self::SERVICE,
     ];
 
-    private function __construct(public readonly string $key, public readonly string $value, public readonly bool $critical)
+    private function __construct(public readonly string $key, public readonly string $value, public readonly bool $shownInLines)
     {
     }
 
-    public static function critical(string $key, string $value): self
+    public static function shownInLines(string $key, string $value): self
     {
         return new self($key, $value, true);
     }
@@ -59,7 +59,7 @@ final class ExecutionHint
      */
     public static function encoded(array $hints): string
     {
-        return self::json(array_map(fn (self $hint): array => [$hint->key, $hint->value, $hint->critical], $hints));
+        return self::json(array_map(fn (self $hint): array => [$hint->key, $hint->value, $hint->shownInLines], $hints));
     }
 
     public static function json(mixed $value): string

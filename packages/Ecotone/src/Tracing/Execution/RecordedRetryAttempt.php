@@ -22,11 +22,11 @@ final class RecordedRetryAttempt implements MethodInvocation
         try {
             return $attempt === 1
                 ? $this->methodInvocation->proceed()
-                : RecordedStep::of(
+                : StepAround::of(
                     $this->tracer,
                     'instant retry',
                     fn () => $this->methodInvocation->proceed(),
-                    hints: [ExecutionHint::critical(ExecutionHint::RETRY, 'attempt ' . $attempt . ' after ' . $this->attempts->lastFailure . ', by InstantRetryInterceptor::retry')],
+                    hints: [ExecutionHint::shownInLines(ExecutionHint::RETRY, 'attempt ' . $attempt . ' after ' . $this->attempts->lastFailure . ', by InstantRetryInterceptor::retry')],
                 );
         } catch (Throwable $failure) {
             $this->attempts->lastFailure = ExecutionRecordingTracer::shortClassOf($failure::class);

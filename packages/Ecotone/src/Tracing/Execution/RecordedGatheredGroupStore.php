@@ -62,21 +62,21 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
     private function outcomeOfPart(string $groupId, int $partNumber, ?array $before, ?int $released): array
     {
         if ($released !== null) {
-            return [ExecutionHint::critical(ExecutionHint::OUTCOME, 'part stored, ' . $released . ' of ' . $released . ' in, group released'), ExecutionHint::critical(ExecutionHint::RUNS_IN, 'this consumer run, gatherer called back')];
+            return [ExecutionHint::shownInLines(ExecutionHint::OUTCOME, 'part stored, ' . $released . ' of ' . $released . ' in, group released'), ExecutionHint::shownInLines(ExecutionHint::RUNS_IN, 'this consumer run, gatherer called back')];
         }
         $alreadyThere = $before !== null && in_array($partNumber, $before['partNumbers'], true);
         if ($before !== null && $before['state'] !== 'open') {
-            return [ExecutionHint::critical(ExecutionHint::OUTCOME, ($alreadyThere ? 'duplicate' : 'late') . ' part ignored, group already ' . $before['state'])];
+            return [ExecutionHint::shownInLines(ExecutionHint::OUTCOME, ($alreadyThere ? 'duplicate' : 'late') . ' part ignored, group already ' . $before['state'])];
         }
         if ($alreadyThere) {
-            return [ExecutionHint::critical(ExecutionHint::OUTCOME, 'duplicate part ignored')];
+            return [ExecutionHint::shownInLines(ExecutionHint::OUTCOME, 'duplicate part ignored')];
         }
         $after = $this->store->recordedPartsOf($groupId);
         if ($after === null || ! in_array($partNumber, $after['partNumbers'], true)) {
-            return [ExecutionHint::critical(ExecutionHint::OUTCOME, 'part not stored, group ' . ($after['state'] ?? 'gone'))];
+            return [ExecutionHint::shownInLines(ExecutionHint::OUTCOME, 'part not stored, group ' . ($after['state'] ?? 'gone'))];
         }
 
-        return [ExecutionHint::critical(ExecutionHint::OUTCOME, 'part stored, ' . count($after['partNumbers']) . ' of ' . ($after['size'] ?? '?') . ' in, group waits')];
+        return [ExecutionHint::shownInLines(ExecutionHint::OUTCOME, 'part stored, ' . count($after['partNumbers']) . ' of ' . ($after['size'] ?? '?') . ' in, group waits')];
     }
 
     public function gatherChannelNameFor(string $groupId): string
@@ -91,7 +91,7 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
 
     public function releaseGroup(string $groupId, callable $whenReleased, GatheredReleaseReason|CollectedReleaseReason|null $releaseReason): void
     {
-        $this->recorded('release group in ' . ExecutionRecordingTracer::shortClassOf($this->store::class), array_values(array_filter([ExecutionHint::detail(ExecutionHint::GROUP, $groupId), $releaseReason === null ? null : ExecutionHint::critical(ExecutionHint::CHOSEN_BY, $releaseReason->value)])), fn () => $this->store->releaseGroup($groupId, fn (mixed ...$arguments) => $this->recorded('call the gatherer back', [ExecutionHint::critical(ExecutionHint::RUNS_IN, 'this consumer run')], fn () => $whenReleased(...$arguments)), $releaseReason));
+        $this->recorded('release group in ' . ExecutionRecordingTracer::shortClassOf($this->store::class), array_values(array_filter([ExecutionHint::detail(ExecutionHint::GROUP, $groupId), $releaseReason === null ? null : ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, $releaseReason->value)])), fn () => $this->store->releaseGroup($groupId, fn (mixed ...$arguments) => $this->recorded('call the gatherer back', [ExecutionHint::shownInLines(ExecutionHint::RUNS_IN, 'this consumer run')], fn () => $whenReleased(...$arguments)), $releaseReason));
     }
 
     public function discard(string $groupId): void

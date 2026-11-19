@@ -37,19 +37,19 @@
     ],
     "execution": [
         {"process": "send event merchant.created, class@anonymous::notify", "steps": [
-            {"depth":1,"label":"gateway EventBus::publishWithRouting","hints":[{"key":"failure","value":"passes RuntimeException out of the process","critical":true}]},
-            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","critical":false}]},
-            {"depth":2,"label":"around TracingInterceptor::traceEventBus","hints":[{"key":"failure","value":"passes RuntimeException on","critical":false}]},
+            {"depth":1,"label":"gateway EventBus::publishWithRouting","hints":[{"key":"failure","value":"passes RuntimeException out of the process","shownInLines":true}]},
+            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","shownInLines":false}]},
+            {"depth":2,"label":"around TracingInterceptor::traceEventBus","hints":[{"key":"failure","value":"passes RuntimeException on","shownInLines":false}]},
             {"depth":3,"label":"span send event merchant.created"},
-            {"depth":4,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders","hints":[{"key":"failure","value":"passes RuntimeException on","critical":false}]},
-            {"depth":5,"label":"direct channel ecotone.modelling.bus.event_by_name","hints":[{"key":"failure","value":"passes RuntimeException on","critical":false}]},
-            {"depth":6,"label":"route to merchant.notifying.target","hints":[{"key":"chosen by","value":"name merchant.created","critical":true}]},
+            {"depth":4,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders","hints":[{"key":"failure","value":"passes RuntimeException on","shownInLines":false}]},
+            {"depth":5,"label":"direct channel ecotone.modelling.bus.event_by_name","hints":[{"key":"failure","value":"passes RuntimeException on","shownInLines":false}]},
+            {"depth":6,"label":"route to merchant.notifying.target","hints":[{"key":"chosen by","value":"name merchant.created","shownInLines":true}]},
             {"depth":6,"label":"span route merchant.notifying merchant.notifying.target"},
-            {"depth":7,"label":"direct channel merchant.notifying.target","hints":[{"key":"failure","value":"passes RuntimeException on","critical":false}]},
-            {"depth":8,"label":"around MessageHandlerLogger::aroundEventHandler","hints":[{"key":"failure","value":"passes RuntimeException on","critical":false}]},
-            {"depth":9,"label":"around TracingInterceptor::traceHandlerEndpoint","hints":[{"key":"failure","value":"passes RuntimeException on","critical":false}]},
+            {"depth":7,"label":"direct channel merchant.notifying.target","hints":[{"key":"failure","value":"passes RuntimeException on","shownInLines":false}]},
+            {"depth":8,"label":"around MessageHandlerLogger::aroundEventHandler","hints":[{"key":"failure","value":"passes RuntimeException on","shownInLines":false}]},
+            {"depth":9,"label":"around TracingInterceptor::traceHandlerEndpoint","hints":[{"key":"failure","value":"passes RuntimeException on","shownInLines":false}]},
             {"depth":10,"label":"span process class@anonymous::notify"},
-            {"depth":11,"label":"handler class@anonymous::notify","hints":[{"key":"failure","value":"throws RuntimeException","critical":true}]}
+            {"depth":11,"label":"handler class@anonymous::notify","hints":[{"key":"failure","value":"throws RuntimeException","shownInLines":true}]}
         ]}
     ]
 }

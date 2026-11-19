@@ -16,9 +16,9 @@ final class FlowExecutionChange
     private const SIMILAR_ENOUGH = 0.5;
 
     /**
-     * @param list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}> $beforeSteps
-     * @param list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}> $afterSteps
-     * @return list<array{change: string, step: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool, hints?: list<array{key: string, value: string, critical: bool}>, hintChanges?: list<array{key: string, before: string, now: string}>}>
+     * @param list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}> $beforeSteps
+     * @param list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}> $afterSteps
+     * @return list<array{change: string, step: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool, hints?: list<array{key: string, value: string, shownInLines: bool}>, hintChanges?: list<array{key: string, before: string, now: string}>}>
      */
     public static function between(array $beforeSteps, array $afterSteps): array
     {
@@ -285,38 +285,38 @@ final class FlowExecutionChange
     }
 
     /**
-     * @param array{before: list<list<array{key: string, value: string, critical: bool}>>, after: list<list<array{key: string, value: string, critical: bool}>>} $hints
+     * @param array{before: list<list<array{key: string, value: string, shownInLines: bool}>>, after: list<list<array{key: string, value: string, shownInLines: bool}>>} $hints
      * @return array<string, mixed>
      */
     private static function entryOf(?int $beforeLine, ?int $afterLine, ?string $beforeStep, ?string $afterStep, array $hints): array
     {
-        $critical = fn (array $stepHints): array => array_values(array_filter($stepHints, fn (array $hint): bool => $hint['critical']));
+        $shownInLines = fn (array $stepHints): array => array_values(array_filter($stepHints, fn (array $hint): bool => $hint['shownInLines']));
         if ($beforeLine === null) {
-            return ['change' => FlowScenarioChange::ADDED, 'step' => (string) $afterStep, 'hints' => $critical($hints['after'][$afterLine])];
+            return ['change' => FlowScenarioChange::ADDED, 'step' => (string) $afterStep, 'hints' => $shownInLines($hints['after'][$afterLine])];
         }
         if ($afterLine === null) {
-            return ['change' => FlowScenarioChange::REMOVED, 'step' => (string) $beforeStep, 'hints' => $critical($hints['before'][$beforeLine])];
+            return ['change' => FlowScenarioChange::REMOVED, 'step' => (string) $beforeStep, 'hints' => $shownInLines($hints['before'][$beforeLine])];
         }
         $changes = self::hintChangesBetween($hints['before'][$beforeLine], $hints['after'][$afterLine]);
 
         return $changes === []
-            ? ['change' => FlowScenarioChange::UNCHANGED, 'step' => (string) $afterStep, 'hints' => $critical($hints['after'][$afterLine])]
-            : ['change' => FlowScenarioChange::CHANGED, 'step' => (string) $afterStep, 'hints' => array_values(array_filter($critical($hints['after'][$afterLine]), fn (array $hint): bool => ! in_array($hint['key'], array_column($changes, 'key'), true))), 'hintChanges' => $changes];
+            ? ['change' => FlowScenarioChange::UNCHANGED, 'step' => (string) $afterStep, 'hints' => $shownInLines($hints['after'][$afterLine])]
+            : ['change' => FlowScenarioChange::CHANGED, 'step' => (string) $afterStep, 'hints' => array_values(array_filter($shownInLines($hints['after'][$afterLine]), fn (array $hint): bool => ! in_array($hint['key'], array_column($changes, 'key'), true))), 'hintChanges' => $changes];
     }
 
     /**
-     * @param list<array{key: string, value: string, critical: bool}> $before
-     * @param list<array{key: string, value: string, critical: bool}> $after
-     * @return list<array{key: string, before: string, now: string, critical: bool}>
+     * @param list<array{key: string, value: string, shownInLines: bool}> $before
+     * @param list<array{key: string, value: string, shownInLines: bool}> $after
+     * @return list<array{key: string, before: string, now: string, shownInLines: bool}>
      */
     private static function hintChangesBetween(array $before, array $after): array
     {
-        $critical = [];
-        $valuesOf = function (array $hints) use (&$critical): array {
+        $shownInLines = [];
+        $valuesOf = function (array $hints) use (&$shownInLines): array {
             $values = [];
             foreach ($hints as $hint) {
                 $values[$hint['key']][] = $hint['value'];
-                $critical[$hint['key']] = ($critical[$hint['key']] ?? false) || $hint['critical'];
+                $shownInLines[$hint['key']] = ($shownInLines[$hint['key']] ?? false) || $hint['shownInLines'];
             }
 
             return array_map(fn (array $list): string => implode('; ', $list), $values);
@@ -326,7 +326,7 @@ final class FlowExecutionChange
         $changes = [];
         foreach (array_unique([...array_keys($beforeValues), ...array_keys($afterValues)]) as $key) {
             if (($beforeValues[$key] ?? '') !== ($afterValues[$key] ?? '')) {
-                $changes[] = ['key' => (string) $key, 'before' => $beforeValues[$key] ?? '', 'now' => $afterValues[$key] ?? '', 'critical' => $critical[$key]];
+                $changes[] = ['key' => (string) $key, 'before' => $beforeValues[$key] ?? '', 'now' => $afterValues[$key] ?? '', 'shownInLines' => $shownInLines[$key]];
             }
         }
 

@@ -13,6 +13,7 @@ use Ecotone\Api\Messaging\Flow\FlowNodeChange;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Tracing\Execution\ExecutionHint;
+use Ecotone\Tracing\Execution\RecordedExecution;
 
 /**
  * licence Apache-2.0
@@ -699,16 +700,16 @@ final class FlowScenarioChange
     }
 
     /**
-     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $before
-     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $after
+     * @param list<array{process: string, sentBy?: array{processNumber: int, stepNumber: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}> $before
+     * @param list<array{process: string, sentBy?: array{processNumber: int, stepNumber: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}> $after
      * @return list<array{process: string, change: string, sentBy?: string, sentAt?: int, sentByBefore?: ?string, steps?: list<array{change: string, step?: string, steps?: int, times?: int, movement?: string, parent?: string, changedInside?: bool}>}>
      */
     private static function executionChangesBetween(array $before, array $after): array
     {
         $beforeSenders = self::sendersOf($before);
         $afterSenders = self::sendersOf($after);
-        $beforeSteps = array_map(fn (array $process): ?int => $process['sentBy']['step'] ?? null, $before);
-        $afterSteps = array_map(fn (array $process): ?int => $process['sentBy']['step'] ?? null, $after);
+        $beforeSteps = array_map(fn (array $process): ?int => $process['sentBy']['stepNumber'] ?? null, $before);
+        $afterSteps = array_map(fn (array $process): ?int => $process['sentBy']['stepNumber'] ?? null, $after);
         $before = self::withProcessesNamedByTitle($before);
         $after = self::withProcessesNamedByTitle($after);
         $processes = [];
@@ -723,8 +724,8 @@ final class FlowScenarioChange
             $attachedElsewhere = $process[0] !== null && $process[1] !== null && $senders[0] !== $senders[1];
             $processes[] = [
                 ...match (true) {
-                    $process[0] === null => ['process' => $entry['step'], 'change' => self::ADDED, 'steps' => array_map(fn (array $step): array => ['change' => self::ADDED, 'step' => str_repeat('  ', $step['depth']) . $step['label'], 'hints' => self::criticalOf($step['hints'])], $process[1]['steps'])],
-                    $process[1] === null => ['process' => $entry['step'], 'change' => self::REMOVED, 'steps' => array_map(fn (array $step): array => ['change' => self::REMOVED, 'step' => str_repeat('  ', $step['depth']) . $step['label'], 'hints' => self::criticalOf($step['hints'])], $process[0]['steps'])],
+                    $process[0] === null => ['process' => $entry['step'], 'change' => self::ADDED, 'steps' => array_map(fn (array $step): array => ['change' => self::ADDED, 'step' => str_repeat('  ', $step['depth']) . $step['label'], 'hints' => self::shownInLinesOf($step['hints'])], $process[1]['steps'])],
+                    $process[1] === null => ['process' => $entry['step'], 'change' => self::REMOVED, 'steps' => array_map(fn (array $step): array => ['change' => self::REMOVED, 'step' => str_repeat('  ', $step['depth']) . $step['label'], 'hints' => self::shownInLinesOf($step['hints'])], $process[0]['steps'])],
                     $process[0]['steps'] === $process[1]['steps'] => ['process' => $entry['step'], 'change' => $attachedElsewhere ? self::CHANGED : self::UNCHANGED, ...($attachedElsewhere ? ['steps' => []] : [])],
                     default => ['process' => $entry['step'], 'change' => self::CHANGED, 'steps' => self::withUnchangedNeighboursOnly(FlowExecutionChange::between($process[0]['steps'], $process[1]['steps']))],
                 },
@@ -737,20 +738,20 @@ final class FlowScenarioChange
     }
 
     /**
-     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array<string, mixed>>}> $processes
+     * @param list<array{process: string, sentBy?: array{processNumber: int, stepNumber: int}, steps: list<array<string, mixed>>}> $processes
      * @return list<?string>
      */
     private static function sendersOf(array $processes): array
     {
         return array_map(
-            fn (int $position): ?string => FlowExecution::isSubFlow($processes, $position) ? $processes[$processes[$position]['sentBy']['process'] - 1]['process'] : null,
+            fn (int $position): ?string => RecordedExecution::isSubFlow($processes, $position) ? $processes[$processes[$position]['sentBy']['processNumber'] - 1]['process'] : null,
             array_keys($processes),
         );
     }
 
     /**
-     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $processes
-     * @return list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}>
+     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}> $processes
+     * @return list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}>
      */
     private static function withProcessesNamedByTitle(array $processes): array
     {
@@ -770,12 +771,12 @@ final class FlowScenarioChange
     }
 
     /**
-     * @param list<array{key: string, value: string, critical: bool}> $hints
-     * @return list<array{key: string, value: string, critical: bool}>
+     * @param list<array{key: string, value: string, shownInLines: bool}> $hints
+     * @return list<array{key: string, value: string, shownInLines: bool}>
      */
-    private static function criticalOf(array $hints): array
+    private static function shownInLinesOf(array $hints): array
     {
-        return array_values(array_filter($hints, fn (array $hint): bool => $hint['critical']));
+        return array_values(array_filter($hints, fn (array $hint): bool => $hint['shownInLines']));
     }
 
     /**

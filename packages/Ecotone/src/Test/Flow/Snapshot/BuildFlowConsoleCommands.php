@@ -7,9 +7,9 @@ namespace Ecotone\Test\Flow\Snapshot;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ConsoleParameterOption;
 use Ecotone\Api\Console\ConsoleWriter;
-use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Messaging\Config\Flow\MessageFlowBuildReader;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Tracing\Execution\ExecutionRecordingReader;
 
 /**
  * licence Apache-2.0
@@ -17,9 +17,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 final class BuildFlowConsoleCommands
 {
     #[ConsoleCommand('ecotone:build-flow:record', 'Framework development: stores the build wiring of this application and the steps traced so far as the snapshot of the named scenario')]
-    public function record(ConsoleWriter $writer, MessageFlowBuildReader $buildReader, InMemorySpanRecorder $spanRecorder, #[ConsoleParameterOption] string $scenario, #[ConsoleParameterOption] string $location): void
+    public function record(ConsoleWriter $writer, MessageFlowBuildReader $buildReader, ExecutionRecordingReader $recordingReader, #[ConsoleParameterOption] string $scenario, #[ConsoleParameterOption] string $location): void
     {
-        $snapshot = FlowSnapshot::of(scenario: $scenario, wiring: $buildReader->wiring(), spans: $spanRecorder->recordedSpans(), build: $buildReader->build());
+        $snapshot = FlowSnapshot::of(scenario: $scenario, wiring: $buildReader->wiring(), spans: $recordingReader->popSpans(), build: $buildReader->build());
         (new FlowSnapshots($location))->store($snapshot);
 
         $writer->success("Recorded scenario {$scenario} in {$location}/{$snapshot->fileName()}");

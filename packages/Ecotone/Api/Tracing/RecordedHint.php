@@ -12,7 +12,7 @@ final class RecordedHint
     public function __construct(
         public readonly string $key,
         public readonly string $value,
-        public readonly bool $critical,
+        public readonly bool $shownInLines,
     ) {
     }
 }

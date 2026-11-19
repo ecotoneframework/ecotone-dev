@@ -21,7 +21,6 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Messaging\GatheredParts;
-use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
@@ -402,8 +401,8 @@ final class MessageFlowBuildTest extends TestCase
     {
         return EcotoneLite::bootstrapFlowTesting(
             $classes,
-            [...$services, InMemorySpanRecorder::class => new InMemorySpanRecorder()],
-            [...$extensionObjects, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework)],
+            [...$services],
+            [...$extensionObjects, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: $enabledModules,
             licenceKey: $licenceKey,
         );

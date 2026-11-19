@@ -59,7 +59,7 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $ecotone->run('workers')->run('summaries');
 
-        return [$handler->gathered, $recording ? array_map(trim(...), $ecotone->getExecutionRecording()->lines) : []];
+        return [$handler->gathered, $recording ? array_map(trim(...), $ecotone->popExecutionRecording()->lines) : []];
     }
 
     public function test_a_group_store_read_that_fails_fails_the_same_and_leaves_the_next_process_recorded_whole(): void
@@ -78,7 +78,7 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
             }
             $ecotone->sendCommandWithRouting('ping');
             $outcomes[] = $failure;
-            $lines = $recording ? $ecotone->getExecutionRecording()->lines : [];
+            $lines = $recording ? $ecotone->popExecutionRecording()->lines : [];
         }
         [$alone] = $this->application(true);
         $alone->sendCommandWithRouting('ping');
@@ -87,7 +87,7 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
         self::assertSame($outcomes[0], $outcomes[1]);
         self::assertNotNull($outcomes[0]);
         self::assertSame(
-            $ping($alone->getExecutionRecording()->lines),
+            $ping($alone->popExecutionRecording()->lines),
             array_map(fn (string $line): string => (string) preg_replace(['/^process \d+: /', '/\{generated#\d+\}/'], ['process: ', '{generated}'], $line), array_slice($lines, (int) array_key_last(array_filter($lines, fn (string $line): bool => str_starts_with($line, 'process ') && str_contains($line, 'send command ping'))))),
         );
     }
@@ -135,7 +135,7 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
         $tracing = TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class);
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
-            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN')), InMemorySpanRecorder::class => new InMemorySpanRecorder()],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
                 SimpleMessageChannelBuilder::createQueueChannel('summaries'),

@@ -12,6 +12,7 @@ use Ecotone\Api\Messaging\Flow\FlowNodeChange;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Tracing\Execution\RecordedExecution;
 
 /**
  * licence Apache-2.0
@@ -179,12 +180,12 @@ final class FlowComparisonMarkdown
 
     /**
      * @param list<array<string, mixed>> $entries
-     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $after
+     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}> $after
      * @return list<array<string, mixed>>
      */
     private static function withSharedPreambleLeftOut(array $entries, array $after): array
     {
-        $keyOf = fn (string $step, array $hints): string => $step . json_encode(array_values(array_filter($hints, fn (array $hint): bool => $hint['critical'])), JSON_THROW_ON_ERROR);
+        $keyOf = fn (string $step, array $hints): string => $step . json_encode(array_values(array_filter($hints, fn (array $hint): bool => $hint['shownInLines'])), JSON_THROW_ON_ERROR);
         $best = ['process' => '', 'steps' => 0];
         foreach ($after as $other) {
             $shared = 0;
@@ -221,23 +222,23 @@ final class FlowComparisonMarkdown
             default => $prefix . $entry['step'],
         }];
         foreach ($entry['hints'] ?? [] as $hint) {
-            $lines[] = $prefix . FlowExecution::hintLine($depth, $hint['key'], $hint['value']);
+            $lines[] = $prefix . RecordedExecution::hintLine($depth, $hint['key'], $hint['value']);
         }
         $details = [];
         foreach ($entry['hintChanges'] ?? [] as $change) {
-            if (! ($change['critical'] ?? true)) {
+            if (! ($change['shownInLines'] ?? true)) {
                 $details[] = $change['key'];
                 continue;
             }
             if ($change['before'] !== '') {
-                $lines[] = '- ' . FlowExecution::hintLine($depth, $change['key'], $change['before']);
+                $lines[] = '- ' . RecordedExecution::hintLine($depth, $change['key'], $change['before']);
             }
             if ($change['now'] !== '') {
-                $lines[] = '+ ' . FlowExecution::hintLine($depth, $change['key'], $change['now']);
+                $lines[] = '+ ' . RecordedExecution::hintLine($depth, $change['key'], $change['now']);
             }
         }
         if ($details !== []) {
-            $lines[] = '  ' . FlowExecution::hintLine($depth, count($details) . ' detail hint' . (count($details) === 1 ? '' : 's') . ' changed', implode(', ', $details) . '; the json presentation shows ' . (count($details) === 1 ? 'its values' : 'their values'));
+            $lines[] = '  ' . RecordedExecution::hintLine($depth, count($details) . ' detail hint' . (count($details) === 1 ? '' : 's') . ' changed', implode(', ', $details) . '; the json presentation shows ' . (count($details) === 1 ? 'its values' : 'their values'));
         }
 
         return $lines;

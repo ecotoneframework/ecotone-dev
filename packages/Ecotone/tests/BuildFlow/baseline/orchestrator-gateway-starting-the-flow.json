@@ -52,24 +52,24 @@
     ],
     "execution": [
         {"process": "send orchestrator, OrchestratorGatewayEntrypoint::handle", "steps": [
-            {"depth":1,"label":"gateway FlowApprovalWorkflow::start","hints":[{"key":"returns","value":"string","critical":false}]},
+            {"depth":1,"label":"gateway FlowApprovalWorkflow::start","hints":[{"key":"returns","value":"string","shownInLines":false}]},
             {"depth":2,"label":"around TracingInterceptor::traceOrchestratorGateway"},
             {"depth":3,"label":"span send orchestrator"},
             {"depth":4,"label":"direct channel ecotone.orchestrator.entrypoint"},
-            {"depth":5,"label":"orchestrator OrchestratorGatewayEntrypoint::handle","hints":[{"key":"returns","value":"array","critical":false}]},
-            {"depth":5,"label":"forward to approval.validate","hints":[{"key":"chosen by","value":"routing slip","critical":true},{"key":"routing slip","value":"approval.validate, approval.notify → approval.notify","critical":true},{"key":"kept","value":"reply channel of the request","critical":false},{"key":"payload","value":"string","critical":false}]},
+            {"depth":5,"label":"orchestrator OrchestratorGatewayEntrypoint::handle","hints":[{"key":"returns","value":"array","shownInLines":false}]},
+            {"depth":5,"label":"forward to approval.validate","hints":[{"key":"chosen by","value":"routing slip","shownInLines":true},{"key":"routing slip","value":"approval.validate, approval.notify → approval.notify","shownInLines":true},{"key":"kept","value":"reply channel of the request","shownInLines":false},{"key":"payload","value":"string","shownInLines":false}]},
             {"depth":6,"label":"direct channel approval.validate"},
             {"depth":7,"label":"around MessageHandlerLogger::aroundMessageHandler"},
             {"depth":8,"label":"around TracingInterceptor::traceHandlerEndpoint"},
             {"depth":9,"label":"span process class@anonymous::validate"},
-            {"depth":10,"label":"handler class@anonymous::validate","hints":[{"key":"returns","value":"string","critical":false}]},
-            {"depth":7,"label":"forward to approval.notify","hints":[{"key":"chosen by","value":"routing slip","critical":true},{"key":"routing slip","value":"approval.notify → none","critical":true},{"key":"kept","value":"reply channel of the request","critical":false},{"key":"payload","value":"string","critical":false}]},
+            {"depth":10,"label":"handler class@anonymous::validate","hints":[{"key":"returns","value":"string","shownInLines":false}]},
+            {"depth":7,"label":"forward to approval.notify","hints":[{"key":"chosen by","value":"routing slip","shownInLines":true},{"key":"routing slip","value":"approval.notify → none","shownInLines":true},{"key":"kept","value":"reply channel of the request","shownInLines":false},{"key":"payload","value":"string","shownInLines":false}]},
             {"depth":8,"label":"direct channel approval.notify"},
             {"depth":9,"label":"around MessageHandlerLogger::aroundMessageHandler"},
             {"depth":10,"label":"around TracingInterceptor::traceHandlerEndpoint"},
             {"depth":11,"label":"span process class@anonymous::notify"},
-            {"depth":12,"label":"handler class@anonymous::notify","hints":[{"key":"returns","value":"string","critical":false}]},
-            {"depth":9,"label":"reply to the reply channel of the request","hints":[{"key":"payload","value":"string","critical":false}]}
+            {"depth":12,"label":"handler class@anonymous::notify","hints":[{"key":"returns","value":"string","shownInLines":false}]},
+            {"depth":9,"label":"reply to the reply channel of the request","hints":[{"key":"payload","value":"string","shownInLines":false}]}
         ]}
     ]
 }

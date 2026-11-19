@@ -23,7 +23,7 @@ final class RecordedRouteSelector implements RouteSelector
     {
         $routes = $this->routeSelector->route($message);
         $reason = $this->reasonOf($message);
-        $this->tracer->recordStep('route to ' . ($routes === [] ? 'no channel' : implode(', ', $routes)), hints: $reason === '' ? [] : [ExecutionHint::critical(ExecutionHint::CHOSEN_BY, $reason)]);
+        $this->tracer->recordStep('route to ' . ($routes === [] ? 'no channel' : implode(', ', $routes)), hints: $reason === '' ? [] : [ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, $reason)]);
 
         return $routes;
     }

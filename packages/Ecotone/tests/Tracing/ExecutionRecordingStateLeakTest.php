@@ -26,6 +26,7 @@ use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\RecordedHint;
 use Ecotone\Api\Tracing\RecordedProcess;
 use Ecotone\Api\Tracing\RecordedStep;
+use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
@@ -45,9 +46,9 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
         $ecotone->getServiceFromContainer(ConfiguredMessagingSystem::class)->getMessageChannelByName('orders')->receive();
         $ecotone->sendCommandWithRouting('audit.record', 'audit-1');
 
-        $processes = $ecotone->getExecutionRecording()->processes;
+        $processes = $ecotone->popExecutionRecording()->processes;
 
-        self::assertSame(['send command order.place', 'send command audit.record, class@anonymous::record'], self::titlesOf($ecotone));
+        self::assertSame(['send command order.place', 'send command audit.record, class@anonymous::record'], self::titlesOf($processes));
         self::assertSame('gateway CommandBus::sendWithRouting', $processes[1]->steps[0]->label);
     }
 
@@ -76,7 +77,7 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
         $ecotone->sendCommandWithRouting('orders.drain', 'cancelled');
         $ecotone->sendCommandWithRouting('audit.record', 'audit-1');
-        $processes = $ecotone->getExecutionRecording()->processes;
+        $processes = $ecotone->popExecutionRecording()->processes;
 
         self::assertSame('send command audit.record, class@anonymous::record', $processes[2]->title);
         self::assertSame('gateway CommandBus::sendWithRouting', $processes[2]->steps[0]->label);
@@ -111,11 +112,11 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
         }
         $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => 'orders', 'finishWhenNoMessages' => true]);
         $ecotone->sendCommandWithRouting('audit.record', 'audit-1');
-        $processes = $ecotone->getExecutionRecording()->processes;
+        $processes = $ecotone->popExecutionRecording()->processes;
         $receives = array_values(array_filter($processes, fn (RecordedProcess $process): bool => str_starts_with($process->title, 'receive orders')));
 
         self::assertCount(3, $receives);
-        self::assertSame([1, 2, 3], array_map(fn (RecordedProcess $receive): int => $receive->sentBy->process, $receives));
+        self::assertSame([1, 2, 3], array_map(fn (RecordedProcess $receive): int => $receive->sentBy->processNumber, $receives));
         self::assertLessThan($orders->spansRecordedBefore[1], $orders->spansRecordedBefore[0]);
         self::assertLessThan($orders->spansRecordedBefore[2], $orders->spansRecordedBefore[1]);
         self::assertStringStartsWith('send command audit.record', $processes[count($processes) - 1]->title);
@@ -145,8 +146,10 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
         $alone->sendCommandWithRouting('order.place', 'order-2');
         $alone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertSame(self::stepsOf($alone->getExecutionRecording()->processes[1]), self::stepsOf($afterTheFailure->getExecutionRecording()->processes[3]));
-        self::assertSame(2, $afterTheFailure->getExecutionRecording()->processes[3]->sentBy?->process);
+        $next = $afterTheFailure->popExecutionRecording()->processes[3];
+
+        self::assertSame(self::stepsOf($alone->popExecutionRecording()->processes[1]), self::stepsOf($next));
+        self::assertSame(2, $next->sentBy?->processNumber);
     }
 
     public function test_the_call_after_a_failing_around_interceptor_is_recorded_as_it_is_alone(): void
@@ -330,14 +333,14 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
         $afterTheFailure->sendCommandWithRouting('audit.record', 'audit-1');
         $alone = $this->application($handlers, extensionObjects: $extensionObjects);
         $alone->sendCommandWithRouting('audit.record', 'audit-1');
-        $processes = $afterTheFailure->getExecutionRecording()->processes;
+        $processes = $afterTheFailure->popExecutionRecording()->processes;
         $next = $processes[count($processes) - 1];
 
         self::assertNotNull($failure);
         self::assertNotEmpty(array_filter(array_slice($processes, 0, -1), fn (RecordedProcess $process): bool => self::failedIn($process)));
         self::assertSame('send command audit.record, class@anonymous::record', $next->title);
         self::assertNull($next->sentBy);
-        self::assertSame(self::stepsOf($alone->getExecutionRecording()->processes[0]), self::stepsOf($next));
+        self::assertSame(self::stepsOf($alone->popExecutionRecording()->processes[0]), self::stepsOf($next));
     }
 
     private static function failedIn(RecordedProcess $process): bool
@@ -385,21 +388,24 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
      */
     private function application(object $handlers, ?InMemorySpanRecorder $recorder = null, array $extensionObjects = []): FlowTestSupport
     {
+        $tracing = TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework);
+
         return EcotoneLite::bootstrapFlowTesting(
             [$handlers::class],
-            [$handlers, ...self::recordingSpansInto($recorder ?? new InMemorySpanRecorder())],
-            [SimpleMessageChannelBuilder::createQueueChannel('orders'), ...$extensionObjects, self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            [$handlers, ...($recorder === null ? [] : self::recordingSpansInto($recorder))],
+            [SimpleMessageChannelBuilder::createQueueChannel('orders'), ...$extensionObjects, $recorder === null ? $tracing : $tracing->withSpanRecorder(InMemorySpanRecorder::class)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 
     /**
+     * @param list<RecordedProcess> $processes
      * @return list<string>
      */
-    private static function titlesOf(FlowTestSupport $ecotone): array
+    private static function titlesOf(array $processes): array
     {
-        return array_map(fn (RecordedProcess $process): string => $process->title, $ecotone->getExecutionRecording()->processes);
+        return array_map(fn (RecordedProcess $process): string => $process->title, $processes);
     }
 }
 

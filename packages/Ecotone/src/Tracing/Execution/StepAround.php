@@ -10,7 +10,7 @@ use Throwable;
 /**
  * licence Apache-2.0
  */
-final class RecordedStep
+final class StepAround
 {
     /**
      * @param list<ExecutionHint> $hints

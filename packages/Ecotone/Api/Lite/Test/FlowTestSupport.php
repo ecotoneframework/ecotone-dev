@@ -550,9 +550,9 @@ final class FlowTestSupport
         return $this->configuredMessagingSystem->getServiceFromContainer(InMemoryConsoleWriter::class);
     }
 
-    public function getExecutionRecording(): ExecutionRecording
+    public function popExecutionRecording(): ExecutionRecording
     {
-        return $this->configuredMessagingSystem->getServiceFromContainer(ExecutionRecordingReader::class)->read();
+        return $this->configuredMessagingSystem->getServiceFromContainer(ExecutionRecordingReader::class)->pop();
     }
 
     public function getMessageFlowGraph(): MessageFlowGraph

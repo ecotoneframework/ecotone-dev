@@ -54,7 +54,7 @@ final class ReplyRecording
         $request = $this->openRequests[$position]['request'];
         $reply = $this->openRequests[$position]['reply'] ?? $request;
         $step = $this->tracer->startStep('forward to ' . $channelName, hints: array_values(array_filter([
-            ExecutionHint::critical(ExecutionHint::CHOSEN_BY, $mechanism === self::OUTPUT_CHANNEL ? 'output channel of ' . $this->handler : 'routing slip'),
+            ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, $mechanism === self::OUTPUT_CHANNEL ? 'output channel of ' . $this->handler : 'routing slip'),
             self::routingSlipChangeOf($mechanism === self::ROUTING_SLIP ? $reply : $request, $forwarded),
             $forwarded->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL) ? ExecutionHint::detail(ExecutionHint::KEPT, 'reply channel of the request') : null,
             ...self::forwardedOf($request, $forwarded),
@@ -88,7 +88,7 @@ final class ReplyRecording
             return;
         }
         if ($open['reply'] === null) {
-            $this->tracer->recordStep('no hand-over', hints: [ExecutionHint::critical(ExecutionHint::OUTCOME, 'nothing returned by ' . $this->handler)]);
+            $this->tracer->recordStep('no hand-over', hints: [ExecutionHint::shownInLines(ExecutionHint::OUTCOME, 'nothing returned by ' . $this->handler)]);
 
             return;
         }
@@ -99,7 +99,7 @@ final class ReplyRecording
 
             return;
         }
-        $this->tracer->recordStep('no hand-over', hints: array_values(array_filter([ExecutionHint::critical(ExecutionHint::OUTCOME, $payload . ' returned by ' . $this->handler . ', not taken'), $slip])));
+        $this->tracer->recordStep('no hand-over', hints: array_values(array_filter([ExecutionHint::shownInLines(ExecutionHint::OUTCOME, $payload . ' returned by ' . $this->handler . ', not taken'), $slip])));
     }
 
     private static function routingSlipChangeOf(Message $request, Message $handedOver): ?ExecutionHint
@@ -110,10 +110,10 @@ final class ReplyRecording
             return null;
         }
         if ($before === $after) {
-            return ExecutionHint::critical(ExecutionHint::KEPT, 'routing slip ' . implode(', ', $after));
+            return ExecutionHint::shownInLines(ExecutionHint::KEPT, 'routing slip ' . implode(', ', $after));
         }
 
-        return ExecutionHint::critical(ExecutionHint::ROUTING_SLIP, ($before === [] ? 'none' : implode(', ', $before)) . ' → ' . ($after === [] ? 'none' : implode(', ', $after)));
+        return ExecutionHint::shownInLines(ExecutionHint::ROUTING_SLIP, ($before === [] ? 'none' : implode(', ', $before)) . ' → ' . ($after === [] ? 'none' : implode(', ', $after)));
     }
 
     /**

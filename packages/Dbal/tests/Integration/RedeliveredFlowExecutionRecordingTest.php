@@ -12,7 +12,6 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
@@ -41,8 +40,8 @@ final class RedeliveredFlowExecutionRecordingTest extends DbalMessagingTestCase
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
-            [$orders, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN')), InMemorySpanRecorder::class => new InMemorySpanRecorder()],
-            [DbalBackedMessageChannelBuilder::create('orders')->withReceiveTimeout(100), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false), TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework)],
+            [$orders, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            [DbalBackedMessageChannelBuilder::create('orders')->withReceiveTimeout(100), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::TRACING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -50,11 +49,11 @@ final class RedeliveredFlowExecutionRecordingTest extends DbalMessagingTestCase
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
         $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
         $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
-        $processes = $ecotone->getExecutionRecording()->processes;
+        $processes = $ecotone->popExecutionRecording()->processes;
 
         self::assertSame(2, $orders->attempts);
         self::assertCount(3, $processes);
-        self::assertSame(1, $processes[1]->sentBy->process);
+        self::assertSame(1, $processes[1]->sentBy->processNumber);
         self::assertEquals($processes[1]->sentBy, $processes[2]->sentBy);
     }
 }

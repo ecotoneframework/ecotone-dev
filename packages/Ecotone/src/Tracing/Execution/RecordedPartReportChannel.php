@@ -23,8 +23,8 @@ final class RecordedPartReportChannel implements MessageChannel
         $headers = $message->getHeaders();
         $header = fn (string $name): mixed => $headers->containsKey($name) ? $headers->get($name) : '?';
         $step = $this->tracer->startStep('part report to ' . $this->channelName, hints: [
-            ExecutionHint::critical(ExecutionHint::CHOSEN_BY, 'header ' . GatheringHeaders::GROUP_ID),
-            ExecutionHint::critical(ExecutionHint::OUTCOME, 'part ' . $header(GatheringHeaders::PART_NUMBER) . ' of ' . $header(GatheringHeaders::SIZE) . ', ' . ($headers->containsKey(GatheringHeaders::NO_RESULT) && $headers->get(GatheringHeaders::NO_RESULT) ? 'no reply' : 'reply ' . ExecutionRecorder::typeOf($message->getPayload()))),
+            ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, 'header ' . GatheringHeaders::GROUP_ID),
+            ExecutionHint::shownInLines(ExecutionHint::OUTCOME, 'part ' . $header(GatheringHeaders::PART_NUMBER) . ' of ' . $header(GatheringHeaders::SIZE) . ', ' . ($headers->containsKey(GatheringHeaders::NO_RESULT) && $headers->get(GatheringHeaders::NO_RESULT) ? 'no reply' : 'reply ' . ExecutionRecorder::typeOf($message->getPayload()))),
         ]);
         try {
             $this->messageChannel->send($message);

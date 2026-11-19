@@ -53,9 +53,9 @@ final class RecordedAggregateStep implements MessageProcessor
                 ? ExecutionHint::json(AggregateIdMetadata::createFrom($result->getHeaders()->get(AggregateMessage::AGGREGATE_ID))->getIdentifiers())
                 : 'no identifier')],
             self::LOAD => [match (true) {
-                $result === null => ExecutionHint::critical(ExecutionHint::FOUND, 'nothing, message dropped'),
+                $result === null => ExecutionHint::shownInLines(ExecutionHint::FOUND, 'nothing, message dropped'),
                 $result->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE) => ExecutionHint::detail(ExecutionHint::FOUND, 'the aggregate'),
-                default => ExecutionHint::critical(ExecutionHint::FOUND, 'nothing, the factory runs'),
+                default => ExecutionHint::shownInLines(ExecutionHint::FOUND, 'nothing, the factory runs'),
             }],
             default => [],
         };

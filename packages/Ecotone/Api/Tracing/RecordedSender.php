@@ -10,8 +10,8 @@ namespace Ecotone\Api\Tracing;
 final class RecordedSender
 {
     public function __construct(
-        public readonly int $process,
-        public readonly int $step,
+        public readonly int $processNumber,
+        public readonly int $stepNumber,
     ) {
     }
 }

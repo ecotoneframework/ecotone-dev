@@ -17,13 +17,13 @@ final class TracingConfiguration
         public readonly array $spanRecorderReferenceNames,
         public readonly bool $spanAttributesFromAllHeaders,
         public readonly array $spanAttributeHeaders,
-        public readonly TracingLevel $level = TracingLevel::Application,
+        public readonly TracingLevel $level,
     ) {
     }
 
     public static function createWithDefaults(): self
     {
-        return new self([], true, []);
+        return new self(spanRecorderReferenceNames: [], spanAttributesFromAllHeaders: true, spanAttributeHeaders: [], level: TracingLevel::Application);
     }
 
     public function withSpanRecorder(string $referenceName): self

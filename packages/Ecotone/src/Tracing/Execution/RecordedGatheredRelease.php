@@ -24,13 +24,13 @@ final class RecordedGatheredRelease implements MessageHandler
         $parts = $message->getPayload();
         $step = $parts instanceof GatheredParts
             ? $this->tracer->startStep('release group', hints: [
-                ExecutionHint::critical(ExecutionHint::CHOSEN_BY, match ($parts->releaseReason) {
+                ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, match ($parts->releaseReason) {
                     GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR => 'all parts accounted for',
                     GatheredReleaseReason::TIMEOUT => 'timeout',
                     GatheredReleaseReason::MANUAL_RELEASE => 'manual release',
                 }),
-                ExecutionHint::critical(ExecutionHint::OUTCOME, 'GatheredParts, ' . ($parts->size - count($parts->missingPartNumbers)) . ' of ' . $parts->size . ' parts, original payload ' . ExecutionRecorder::typeOf($parts->originalPayload)),
-                ExecutionHint::critical(ExecutionHint::RUNS_IN, 'this consumer run, no queue'),
+                ExecutionHint::shownInLines(ExecutionHint::OUTCOME, 'GatheredParts, ' . ($parts->size - count($parts->missingPartNumbers)) . ' of ' . $parts->size . ' parts, original payload ' . ExecutionRecorder::typeOf($parts->originalPayload)),
+                ExecutionHint::shownInLines(ExecutionHint::RUNS_IN, 'this consumer run, no queue'),
             ])
             : null;
         try {

@@ -18,6 +18,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\RecordedProcess;
+use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -37,8 +38,8 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         });
 
         self::assertNull($processes[0]->sentBy);
-        self::assertSame(1, $processes[1]->sentBy->process);
-        self::assertSame('release collected message to notifications', $processes[0]->steps[$processes[1]->sentBy->step]->label);
+        self::assertSame(1, $processes[1]->sentBy->processNumber);
+        self::assertSame('release collected message to notifications', $processes[0]->steps[$processes[1]->sentBy->stepNumber - 1]->label);
     }
 
     public function test_an_event_published_to_two_consumers_makes_each_a_sub_flow_of_its_own_send(): void
@@ -48,11 +49,11 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
             $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
         });
 
-        self::assertSame([1, 1], [$processes[1]->sentBy->process, $processes[2]->sentBy->process]);
-        self::assertNotSame($processes[1]->sentBy->step, $processes[2]->sentBy->step);
+        self::assertSame([1, 1], [$processes[1]->sentBy->processNumber, $processes[2]->sentBy->processNumber]);
+        self::assertNotSame($processes[1]->sentBy->stepNumber, $processes[2]->sentBy->stepNumber);
         self::assertSame(
             ['release collected message to notifications', 'release collected message to notifications'],
-            [$processes[0]->steps[$processes[1]->sentBy->step]->label, $processes[0]->steps[$processes[2]->sentBy->step]->label],
+            [$processes[0]->steps[$processes[1]->sentBy->stepNumber - 1]->label, $processes[0]->steps[$processes[2]->sentBy->stepNumber - 1]->label],
         );
     }
 
@@ -97,9 +98,9 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
                 $ecotone->run($channel, ExecutionPollingMetadata::createWithTestingSetup());
             }
         }, [SimpleMessageChannelBuilder::createQueueChannel('notifications'), SimpleMessageChannelBuilder::createQueueChannel('audits')]);
-        $sendOf = fn (string $consumer): string => $processes[0]->steps[array_values(array_filter($processes, fn (RecordedProcess $process): bool => str_starts_with($process->title, 'receive ' . $consumer)))[0]->sentBy->step]->label;
+        $sendOf = fn (string $consumer): string => $processes[0]->steps[array_values(array_filter($processes, fn (RecordedProcess $process): bool => str_starts_with($process->title, 'receive ' . $consumer)))[0]->sentBy->stepNumber - 1]->label;
 
-        self::assertSame([1, 1], [$processes[1]->sentBy->process, $processes[2]->sentBy->process]);
+        self::assertSame([1, 1], [$processes[1]->sentBy->processNumber, $processes[2]->sentBy->processNumber]);
         self::assertSame(['release collected message to notifications', 'release collected message to audits'], [$sendOf('notifications'), $sendOf('audits')]);
     }
 
@@ -125,7 +126,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         }, [SimpleMessageChannelBuilder::createQueueChannel('orders')]);
 
         self::assertCount(3, $processes);
-        self::assertSame(1, $processes[1]->sentBy->process);
+        self::assertSame(1, $processes[1]->sentBy->processNumber);
         self::assertEquals($processes[1]->sentBy, $processes[2]->sentBy);
     }
 
@@ -137,7 +138,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         });
 
         self::assertNull($processes[0]->sentBy);
-        self::assertSame(1, $processes[1]->sentBy->process);
+        self::assertSame(1, $processes[1]->sentBy->processNumber);
     }
 
     public function test_a_distributed_command_consumed_by_another_application_recorded_together_is_a_sub_flow_of_the_distributed_send(): void
@@ -156,10 +157,10 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
 
         $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
         $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithTestingSetup());
-        $processes = $ticketService->getExecutionRecording()->processes;
+        $processes = $ticketService->popExecutionRecording()->processes;
 
         self::assertSame(['send distributed, DistributedOutboundRouter::route', 'receive distributed_tickets, DistributedMessageHandler::handle'], array_map(fn (RecordedProcess $process): string => $process->title, $processes));
-        self::assertSame(1, $processes[1]->sentBy->process);
+        self::assertSame(1, $processes[1]->sentBy->processNumber);
     }
 
     public function test_each_of_two_distributed_commands_consumed_by_another_application_recorded_together_is_a_sub_flow_of_its_own_send_after_the_sender_ran_more_than_the_consumer(): void
@@ -186,13 +187,13 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
         $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed shipping address');
         $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithTestingSetup());
-        $processes = $ticketService->getExecutionRecording()->processes;
+        $processes = $ticketService->popExecutionRecording()->processes;
 
         self::assertSame(
             ['send command user.register, class@anonymous::register', 'send distributed, DistributedOutboundRouter::route', 'send distributed, DistributedOutboundRouter::route', 'receive distributed_tickets, DistributedMessageHandler::handle', 'receive distributed_tickets, DistributedMessageHandler::handle'],
             array_map(fn (RecordedProcess $process): string => preg_replace('/ \(\d of 2\)$/', '', $process->title), $processes),
         );
-        self::assertSame([2, 3], [$processes[3]->sentBy?->process, $processes[4]->sentBy?->process]);
+        self::assertSame([2, 3], [$processes[3]->sentBy?->processNumber, $processes[4]->sentBy?->processNumber]);
     }
 
     public function test_the_default_text_prints_each_sub_flow_under_the_flow_that_sent_its_message_and_keeps_the_run_order_numbers(): void
@@ -244,14 +245,14 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             array_map(fn (object $handler): string => $handler::class, $handlers),
-            [...$handlers, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            [...$handlers],
+            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $run($ecotone);
 
-        return $ecotone->getExecutionRecording()->lines;
+        return $ecotone->popExecutionRecording()->lines;
     }
 
     /**
@@ -264,14 +265,14 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         $extensionObjects = $extensionObjects === [] ? [SimpleMessageChannelBuilder::createQueueChannel('notifications')] : $extensionObjects;
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             array_map(fn (object $handler): string => $handler::class, $handlers),
-            [...$handlers, ...self::recordingSpansInto(new InMemorySpanRecorder())],
-            [...$extensionObjects, self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            [...$handlers],
+            [...$extensionObjects, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $run($ecotone);
 
-        return $ecotone->getExecutionRecording()->processes;
+        return $ecotone->popExecutionRecording()->processes;
     }
 
     private function ordering(): object

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Test\Flow\Snapshot;
+namespace Ecotone\Tracing\Execution;
 
 use Ecotone\Api\Tracing\ExecutionRecording;
 use Ecotone\Api\Tracing\RecordedHint;
@@ -12,20 +12,19 @@ use Ecotone\Api\Tracing\RecordedStep;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanStatus;
-use Ecotone\Test\Flow\ExpectedSpan;
-use Ecotone\Tracing\Execution\ExecutionHint;
 
 /**
  * licence Apache-2.0
  */
-final class FlowExecution
+final class RecordedExecution
 {
+    private const HEADERS_PROPAGATION_SPAN = 'process MessageHeadersPropagatorInterceptor::';
     private const PLUMBING = ['Bridge::handle', 'RoutingSlipPrepender::transform', 'HeaderRouter::route'];
     private const GENERATED_ID = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{64}/';
     private const HINT_MARKER = '↳ ';
 
     /**
-     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $processes
+     * @param list<array{process: string, sentBy?: array{processNumber: int, stepNumber: int}, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}> $processes
      */
     private function __construct(public readonly array $processes)
     {
@@ -36,7 +35,7 @@ final class FlowExecution
      */
     public static function of(array $spans): self
     {
-        $spans = array_values(array_filter($spans, fn (Span $span): bool => ! ExpectedSpan::isFrameworkNoise($span) && isset($span->attributes[SpanAttribute::EXECUTION_ORDER])));
+        $spans = array_values(array_filter($spans, fn (Span $span): bool => ! str_starts_with($span->name, self::HEADERS_PROPAGATION_SPAN) && isset($span->attributes[SpanAttribute::EXECUTION_ORDER])));
         usort($spans, fn (Span $first, Span $second): int => self::orderOf($first) <=> self::orderOf($second));
         $present = [];
         foreach ($spans as $span) {
@@ -76,9 +75,9 @@ final class FlowExecution
                 steps: array_map(fn (array $step): RecordedStep => new RecordedStep(
                     depth: $step['depth'],
                     label: $step['label'],
-                    hints: array_map(fn (array $hint): RecordedHint => new RecordedHint(key: $hint['key'], value: $hint['value'], critical: $hint['critical']), $step['hints']),
+                    hints: array_map(fn (array $hint): RecordedHint => new RecordedHint(key: $hint['key'], value: $hint['value'], shownInLines: $hint['shownInLines']), $step['hints']),
                 ), $process['steps']),
-                sentBy: isset($process['sentBy']) ? new RecordedSender(process: $process['sentBy']['process'], step: $process['sentBy']['step']) : null,
+                sentBy: isset($process['sentBy']) ? new RecordedSender(processNumber: $process['sentBy']['processNumber'], stepNumber: $process['sentBy']['stepNumber']) : null,
             ), $this->processes),
             lines: $this->lines(),
             linesWithEveryHint: $this->lines(true),
@@ -102,7 +101,7 @@ final class FlowExecution
     }
 
     /**
-     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array<string, mixed>>}> $processes
+     * @param list<array{process: string, sentBy?: array{processNumber: int, stepNumber: int}, steps: list<array<string, mixed>>}> $processes
      * @return array<int, list<int>>
      */
     public static function subFlowsOf(array $processes): array
@@ -110,11 +109,11 @@ final class FlowExecution
         $subFlows = [];
         foreach (array_keys($processes) as $position) {
             if (self::isSubFlow($processes, $position)) {
-                $subFlows[$processes[$position]['sentBy']['process'] - 1][] = $position;
+                $subFlows[$processes[$position]['sentBy']['processNumber'] - 1][] = $position;
             }
         }
         foreach ($subFlows as $sender => $positions) {
-            usort($positions, fn (int $first, int $second): int => [$processes[$first]['sentBy']['step'], $first] <=> [$processes[$second]['sentBy']['step'], $second]);
+            usort($positions, fn (int $first, int $second): int => [$processes[$first]['sentBy']['stepNumber'], $first] <=> [$processes[$second]['sentBy']['stepNumber'], $second]);
             $subFlows[$sender] = $positions;
         }
 
@@ -122,11 +121,11 @@ final class FlowExecution
     }
 
     /**
-     * @param list<array{process: string, sentBy?: array{process: int, step: int}, steps: list<array<string, mixed>>}> $processes
+     * @param list<array{process: string, sentBy?: array{processNumber: int, stepNumber: int}, steps: list<array<string, mixed>>}> $processes
      */
     public static function isSubFlow(array $processes, int $position): bool
     {
-        $sender = ($processes[$position]['sentBy']['process'] ?? 0) - 1;
+        $sender = ($processes[$position]['sentBy']['processNumber'] ?? 0) - 1;
 
         return $sender >= 0 && $sender < $position;
     }
@@ -143,7 +142,7 @@ final class FlowExecution
         foreach ($process['steps'] as $step) {
             $lines[] = $indent . str_repeat('  ', $step['depth']) . $step['label'];
             foreach ($step['hints'] as $hint) {
-                if ($withEveryHint || $hint['critical']) {
+                if ($withEveryHint || $hint['shownInLines']) {
                     $lines[] = $indent . self::hintLine($step['depth'], $hint['key'], $hint['value']);
                 }
             }
@@ -163,7 +162,7 @@ final class FlowExecution
     /**
      * @param list<Span> $processes
      * @param array<string, list<Span>> $children
-     * @return array{0: array<string, list<array{key: string, value: string, critical: bool}>>, 1: array<int, array{process: int, part: ?string}>, 2: array<int, array{process: int, step: int}>}
+     * @return array{0: array<string, list<array{key: string, value: string, shownInLines: bool}>>, 1: array<int, array{process: int, part: ?string}>, 2: array<int, array{processNumber: int, stepNumber: int}>}
      */
     private static function linksBetween(array $processes, array $children): array
     {
@@ -202,10 +201,10 @@ final class FlowExecution
             }
             $producer = $processOf[$sender];
             [$kind, $part] = self::kindOfMessageSentBy(self::firstSendOf($sendingStep, $inStepOrder[$producer]), $parentOf);
-            $sentBy[$consumer] = ['process' => $producer + 1, 'step' => $stepOf[$sendingStep->spanId]];
+            $sentBy[$consumer] = ['processNumber' => $producer + 1, 'stepNumber' => $stepOf[$sendingStep->spanId] + 1];
             $sources[$consumer] = ['process' => $producer + 1, 'part' => $part];
-            $links[$inStepOrder[$consumer][0]->spanId][] = ['key' => ExecutionHint::SENT_BY, 'value' => 'process ' . ($producer + 1) . ', ' . $kind, 'critical' => true];
-            $links[$sendingStep->spanId][] = ['key' => ExecutionHint::TAKEN_BY, 'value' => 'process ' . ($consumer + 1) . ', a separate consumer run', 'critical' => true];
+            $links[$inStepOrder[$consumer][0]->spanId][] = ['key' => ExecutionHint::SENT_BY, 'value' => 'process ' . ($producer + 1) . ', ' . $kind, 'shownInLines' => true];
+            $links[$sendingStep->spanId][] = ['key' => ExecutionHint::TAKEN_BY, 'value' => 'process ' . ($consumer + 1) . ', a separate consumer run', 'shownInLines' => true];
         }
 
         return [$links, $sources, $sentBy];
@@ -300,7 +299,7 @@ final class FlowExecution
     }
 
     /**
-     * @return list<array{key: string, value: string, critical: bool}>
+     * @return list<array{key: string, value: string, shownInLines: bool}>
      */
     private static function hintsOf(Span $span): array
     {
@@ -308,11 +307,11 @@ final class FlowExecution
         $outcome = (string) ($span->attributes[SpanAttribute::EXECUTION_OUTCOME] ?? '');
         if ($outcome !== '' && self::thrownBy($span) === null) {
             $hints[] = str_starts_with($outcome, 'returns ')
-                ? ['key' => ExecutionHint::RETURNS, 'value' => self::readable(substr($outcome, strlen('returns '))), 'critical' => false]
-                : ['key' => ExecutionHint::OUTCOME, 'value' => self::readable($outcome), 'critical' => false];
+                ? ['key' => ExecutionHint::RETURNS, 'value' => self::readable(substr($outcome, strlen('returns '))), 'shownInLines' => false]
+                : ['key' => ExecutionHint::OUTCOME, 'value' => self::readable($outcome), 'shownInLines' => false];
         }
-        foreach (json_decode((string) ($span->attributes[SpanAttribute::EXECUTION_HINTS] ?? '[]'), true, flags: JSON_THROW_ON_ERROR) as [$key, $value, $critical]) {
-            $hints[] = ['key' => (string) $key, 'value' => self::readable((string) $value), 'critical' => (bool) $critical];
+        foreach (json_decode((string) ($span->attributes[SpanAttribute::EXECUTION_HINTS] ?? '[]'), true, flags: JSON_THROW_ON_ERROR) as [$key, $value, $shownInLines]) {
+            $hints[] = ['key' => (string) $key, 'value' => self::readable((string) $value), 'shownInLines' => (bool) $shownInLines];
         }
 
         return $hints;
@@ -341,7 +340,7 @@ final class FlowExecution
 
     /**
      * @param array<string, list<Span>> $children
-     * @return list<array{key: string, value: string, critical: bool}>
+     * @return list<array{key: string, value: string, shownInLines: bool}>
      */
     private static function failureHintsOf(Span $span, array $children, ?string $failureAbove, bool $hasStepAbove): array
     {
@@ -351,19 +350,19 @@ final class FlowExecution
         }
         if ($failure === null) {
             foreach (self::failuresOfStepsUnder($span, $children) as $caught) {
-                return [['key' => ExecutionHint::FAILURE, 'value' => 'caught ' . $caught, 'critical' => true]];
+                return [['key' => ExecutionHint::FAILURE, 'value' => 'caught ' . $caught, 'shownInLines' => true]];
             }
 
             return [];
         }
         if (! self::aStepUnderThrows($span, $children, $failure)) {
-            return [['key' => ExecutionHint::FAILURE, 'value' => 'throws ' . $failure, 'critical' => true]];
+            return [['key' => ExecutionHint::FAILURE, 'value' => 'throws ' . $failure, 'shownInLines' => true]];
         }
         if ($failureAbove === $failure || $hasStepAbove) {
-            return [['key' => ExecutionHint::FAILURE, 'value' => 'passes ' . $failure . ' on', 'critical' => false]];
+            return [['key' => ExecutionHint::FAILURE, 'value' => 'passes ' . $failure . ' on', 'shownInLines' => false]];
         }
 
-        return [['key' => ExecutionHint::FAILURE, 'value' => 'passes ' . $failure . ' out of the process', 'critical' => true]];
+        return [['key' => ExecutionHint::FAILURE, 'value' => 'passes ' . $failure . ' out of the process', 'shownInLines' => true]];
     }
 
     /**
@@ -390,8 +389,8 @@ final class FlowExecution
     /**
      * @param list<Span> $spans
      * @param array<string, list<Span>> $children
-     * @param array<string, list<array{key: string, value: string, critical: bool}>> $links
-     * @return list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>
+     * @param array<string, list<array{key: string, value: string, shownInLines: bool}>> $links
+     * @return list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>
      */
     private static function stepsOf(array $spans, array $children, int $depth, array $links, ?string $failureAbove = null, bool $hasStepAbove = false): array
     {
@@ -416,8 +415,8 @@ final class FlowExecution
     }
 
     /**
-     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $processes
-     * @return list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}>
+     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}> $processes
+     * @return list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}>
      */
     private static function withNumberedGeneratedNames(array $processes): array
     {
@@ -443,9 +442,9 @@ final class FlowExecution
     }
 
     /**
-     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}> $processes
+     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}> $processes
      * @param array<int, array{process: int, part: ?string}> $sources
-     * @return list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}>}>
+     * @return list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}>
      */
     private static function titled(array $processes, array $sources): array
     {
@@ -456,7 +455,7 @@ final class FlowExecution
             if ($part !== null) {
                 $ordinals[$position] = 'part ' . $part;
                 if (isset($sources[$position]) && $process['steps'] !== []) {
-                    $processes[$position]['steps'][0]['hints'][] = ['key' => ExecutionHint::WORK_IN, 'value' => 'process ' . $sources[$position]['process'] . ', part ' . $part, 'critical' => true];
+                    $processes[$position]['steps'][0]['hints'][] = ['key' => ExecutionHint::WORK_IN, 'value' => 'process ' . $sources[$position]['process'] . ', part ' . $part, 'shownInLines' => true];
                 }
             }
         }
@@ -476,7 +475,7 @@ final class FlowExecution
     }
 
     /**
-     * @param list<array{depth: int, label: string, hints: list<array{key: string, value: string, critical: bool}>}> $steps
+     * @param list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}> $steps
      * @return array{0: ?string, 1: ?string}
      */
     private static function handledIn(array $steps): array

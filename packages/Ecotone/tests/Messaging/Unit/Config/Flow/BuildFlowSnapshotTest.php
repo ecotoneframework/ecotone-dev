@@ -214,7 +214,7 @@ final class BuildFlowSnapshotTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$ordering::class, BuildFlowConsoleCommands::class],
             [$ordering, new BuildFlowConsoleCommands(), InMemorySpanRecorder::class => $recorder],
-            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework)],
+            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

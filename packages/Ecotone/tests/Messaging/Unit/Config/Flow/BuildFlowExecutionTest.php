@@ -15,7 +15,6 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\Flow\Snapshot\BuildFlowConsoleCommands;
@@ -56,7 +55,7 @@ final class BuildFlowExecutionTest extends TestCase
         $execution = $this->storedSnapshot('after', 'placing-an-order')['execution'];
 
         self::assertSame(['send command order.place, class@anonymous::place', 'receive notifications, class@anonymous::whenPlaced'], array_column($execution, 'process'));
-        self::assertSame(['depth' => 1, 'label' => 'gateway CommandBus::sendWithRouting', 'hints' => [['key' => 'returns', 'value' => 'nothing', 'critical' => false]]], $execution[0]['steps'][0]);
+        self::assertSame(['depth' => 1, 'label' => 'gateway CommandBus::sendWithRouting', 'hints' => [['key' => 'returns', 'value' => 'nothing', 'shownInLines' => false]]], $execution[0]['steps'][0]);
         self::assertContains('handler class@anonymous::whenPlaced', array_column($execution[1]['steps'], 'label'));
     }
 
@@ -67,8 +66,8 @@ final class BuildFlowExecutionTest extends TestCase
         $execution = $this->storedSnapshot('after', 'placing-an-order')['execution'];
 
         self::assertArrayNotHasKey('sentBy', $execution[0]);
-        self::assertSame(1, $execution[1]['sentBy']['process']);
-        self::assertSame('release collected message to notifications', $execution[0]['steps'][$execution[1]['sentBy']['step']]['label']);
+        self::assertSame(1, $execution[1]['sentBy']['processNumber']);
+        self::assertSame('release collected message to notifications', $execution[0]['steps'][$execution[1]['sentBy']['stepNumber'] - 1]['label']);
     }
 
     public function test_a_changed_process_shows_its_differing_steps_among_unchanged_neighbours_and_an_unchanged_process_is_one_line(): void
@@ -99,7 +98,7 @@ final class BuildFlowExecutionTest extends TestCase
 
         self::assertSame(['changed', 'added'], array_column($execution, 'change'));
         self::assertSame(
-            [['change' => 'changed', 'step' => 'release collected message to notifications', 'hintChanges' => [['key' => 'taken by', 'before' => '', 'now' => 'process `receive notifications, class@anonymous::whenPlaced`, a separate consumer run', 'critical' => true]]]],
+            [['change' => 'changed', 'step' => 'release collected message to notifications', 'hintChanges' => [['key' => 'taken by', 'before' => '', 'now' => 'process `receive notifications, class@anonymous::whenPlaced`, a separate consumer run', 'shownInLines' => true]]]],
             array_values(array_map(fn (array $entry): array => ['change' => $entry['change'], 'step' => trim($entry['step']), 'hintChanges' => $entry['hintChanges']], array_filter($execution[0]['steps'], fn (array $entry): bool => $entry['change'] !== 'unchanged' && $entry['change'] !== 'left out'))),
         );
         self::assertSame(
@@ -136,12 +135,12 @@ final class BuildFlowExecutionTest extends TestCase
         $this->replaceExecution('before', [
             ['process' => 'send command order.place', 'steps' => [$step]],
             ['process' => 'send command order.cancel', 'steps' => [$step]],
-            ['process' => 'receive notifications', 'sentBy' => ['process' => 1, 'step' => 0], 'steps' => [$step]],
+            ['process' => 'receive notifications', 'sentBy' => ['processNumber' => 1, 'stepNumber' => 1], 'steps' => [$step]],
         ]);
         $this->replaceExecution('after', [
             ['process' => 'send command order.place', 'steps' => [$step]],
             ['process' => 'send command order.cancel', 'steps' => [$step]],
-            ['process' => 'receive notifications', 'sentBy' => ['process' => 2, 'step' => 0], 'steps' => [$step]],
+            ['process' => 'receive notifications', 'sentBy' => ['processNumber' => 2, 'stepNumber' => 1], 'steps' => [$step]],
         ]);
 
         $whatRan = $this->whatRan($this->presented('before-after'));
@@ -163,12 +162,12 @@ final class BuildFlowExecutionTest extends TestCase
         $this->replaceExecution('before', [
             ['process' => 'send command order.place', 'steps' => [$step]],
             ['process' => 'send command order.cancel', 'steps' => [$step]],
-            ['process' => 'receive notifications', 'sentBy' => ['process' => 1, 'step' => 0], 'steps' => [$step]],
+            ['process' => 'receive notifications', 'sentBy' => ['processNumber' => 1, 'stepNumber' => 1], 'steps' => [$step]],
         ]);
         $this->replaceExecution('after', [
             ['process' => 'send command order.cancel', 'steps' => [$step]],
             ['process' => 'send command order.place', 'steps' => [$step]],
-            ['process' => 'receive notifications', 'sentBy' => ['process' => 2, 'step' => 0], 'steps' => [$step]],
+            ['process' => 'receive notifications', 'sentBy' => ['processNumber' => 2, 'stepNumber' => 1], 'steps' => [$step]],
         ]);
 
         $sections = array_values(preg_grep('/^Process `/', explode("\n", $this->whatRan($this->presented('before-after')))));
@@ -185,8 +184,8 @@ final class BuildFlowExecutionTest extends TestCase
         $this->replaceExecution('after', [
             ['process' => 'send command order.place', 'steps' => [$step, $step]],
             ['process' => 'send command order.cancel', 'steps' => [$step]],
-            ['process' => 'receive audit', 'sentBy' => ['process' => 1, 'step' => 1], 'steps' => [$step]],
-            ['process' => 'receive notifications', 'sentBy' => ['process' => 1, 'step' => 0], 'steps' => [$step]],
+            ['process' => 'receive audit', 'sentBy' => ['processNumber' => 1, 'stepNumber' => 2], 'steps' => [$step]],
+            ['process' => 'receive notifications', 'sentBy' => ['processNumber' => 1, 'stepNumber' => 1], 'steps' => [$step]],
         ]);
 
         $whatRan = $this->whatRan($this->presented('before-after'));
@@ -303,7 +302,7 @@ final class BuildFlowExecutionTest extends TestCase
     {
         $this->record('Placing an order', 'before', $this->ordering());
         $this->record('Placing an order', 'after', $this->ordering());
-        $takenBy = fn (int $process): array => [['key' => 'taken by', 'value' => 'process ' . $process . ', a separate consumer run', 'critical' => true]];
+        $takenBy = fn (int $process): array => [['key' => 'taken by', 'value' => 'process ' . $process . ', a separate consumer run', 'shownInLines' => true]];
         $sends = fn (int $depth): array => [
             ['depth' => $depth, 'label' => 'entrypoint sends to notifications', 'hints' => []],
             ['depth' => $depth + 1, 'label' => 'send notifications', 'hints' => $takenBy(2)],
@@ -312,7 +311,7 @@ final class BuildFlowExecutionTest extends TestCase
             ['depth' => $depth + 1, 'label' => 'send notifications', 'hints' => $takenBy(3)],
             ['depth' => $depth + 2, 'label' => 'put on channel notifications', 'hints' => []],
         ];
-        $consumer = fn (string $ordinal): array => ['process' => 'receive notifications (' . $ordinal . ')', 'steps' => [['depth' => 1, 'label' => 'receive notifications', 'hints' => [['key' => 'sent by', 'value' => 'process 1, the message', 'critical' => true]]]]];
+        $consumer = fn (string $ordinal): array => ['process' => 'receive notifications (' . $ordinal . ')', 'steps' => [['depth' => 1, 'label' => 'receive notifications', 'hints' => [['key' => 'sent by', 'value' => 'process 1, the message', 'shownInLines' => true]]]]];
         $handler = ['depth' => 1, 'label' => 'handler class@anonymous::dispatch', 'hints' => []];
         $this->replaceExecution('before', [['process' => 'dispatch', 'steps' => [$handler, ...$sends(2)]], $consumer('1 of 2'), $consumer('2 of 2')]);
         $this->replaceExecution('after', [['process' => 'dispatch', 'steps' => [$handler, ['depth' => 2, 'label' => 'dispatch 2 batches', 'hints' => []], ...$sends(3)]], $consumer('1 of 2'), $consumer('2 of 2')]);
@@ -401,7 +400,7 @@ final class BuildFlowExecutionTest extends TestCase
         $this->record('Placing an order', 'before', $this->ordering());
         $this->record('Placing an order', 'after', $this->ordering());
         $forward = fn (string $payload): array => [['process' => 'send command order.place', 'steps' => [
-            ['depth' => 1, 'label' => 'forward to orders', 'hints' => [['key' => 'chosen by', 'value' => 'routing slip', 'critical' => true], ['key' => 'payload', 'value' => $payload, 'critical' => false]]],
+            ['depth' => 1, 'label' => 'forward to orders', 'hints' => [['key' => 'chosen by', 'value' => 'routing slip', 'shownInLines' => true], ['key' => 'payload', 'value' => $payload, 'shownInLines' => false]]],
         ]]];
         $this->replaceExecution('before', $forward('array'));
         $this->replaceExecution('after', $forward('string'));
@@ -450,7 +449,7 @@ final class BuildFlowExecutionTest extends TestCase
                     foreach ($step['hints'] ?? [] as $hint) {
                         $keys[$hint['key']] = true;
                         $values[] = $hint['value'];
-                        self::assertIsBool($hint['critical']);
+                        self::assertIsBool($hint['shownInLines']);
                     }
                 }
             }
@@ -468,7 +467,7 @@ final class BuildFlowExecutionTest extends TestCase
 
         $steps = $this->storedSnapshot('after', 'placing-an-order')['execution'][1]['steps'];
 
-        self::assertSame(['depth' => 1, 'label' => 'receive notifications', 'hints' => [['key' => 'sent by', 'value' => 'process 1, the event order.placed', 'critical' => true]]], $steps[0]);
+        self::assertSame(['depth' => 1, 'label' => 'receive notifications', 'hints' => [['key' => 'sent by', 'value' => 'process 1, the event order.placed', 'shownInLines' => true]]], $steps[0]);
         self::assertSame(['depth' => 2, 'label' => 'take from channel notifications'], $steps[1]);
     }
 
@@ -478,7 +477,7 @@ final class BuildFlowExecutionTest extends TestCase
         $this->record('Placing an order', 'after', $this->ordering());
         $routed = fn (string $channel): array => [['process' => 'send command order.place', 'steps' => [
             ['depth' => 1, 'label' => 'handler class@anonymous::place', 'hints' => []],
-            ['depth' => 1, 'label' => 'forward to ' . $channel, 'hints' => [['key' => 'chosen by', 'value' => 'routing slip', 'critical' => true], ['key' => 'routing slip', 'value' => $channel . ' → none', 'critical' => true]]],
+            ['depth' => 1, 'label' => 'forward to ' . $channel, 'hints' => [['key' => 'chosen by', 'value' => 'routing slip', 'shownInLines' => true], ['key' => 'routing slip', 'value' => $channel . ' → none', 'shownInLines' => true]]],
         ]]];
         $this->replaceExecution('before', $routed('orders'));
         $this->replaceExecution('after', $routed('orders'));
@@ -496,10 +495,10 @@ final class BuildFlowExecutionTest extends TestCase
     {
         $this->record('Placing an order', 'before', $this->ordering());
         $this->record('Placing an order', 'after', $this->ordering());
-        $sender = fn (int $consumer): array => ['process' => 'send command order.place', 'steps' => [['depth' => 1, 'label' => 'send q', 'hints' => [['key' => 'taken by', 'value' => 'process ' . $consumer . ', a separate consumer run', 'critical' => true]]]]];
+        $sender = fn (int $consumer): array => ['process' => 'send command order.place', 'steps' => [['depth' => 1, 'label' => 'send q', 'hints' => [['key' => 'taken by', 'value' => 'process ' . $consumer . ', a separate consumer run', 'shownInLines' => true]]]]];
         $gatherer = fn (int $sender): array => ['process' => 'receive q, GatheringMessageHandler::handle (part 1 of 1)', 'steps' => [['depth' => 1, 'label' => 'receive q', 'hints' => [
-            ['key' => 'sent by', 'value' => 'process ' . $sender . ', the part report for part 1 of 1', 'critical' => true],
-            ['key' => 'work in', 'value' => 'process ' . $sender . ', part 1 of 1', 'critical' => true],
+            ['key' => 'sent by', 'value' => 'process ' . $sender . ', the part report for part 1 of 1', 'shownInLines' => true],
+            ['key' => 'work in', 'value' => 'process ' . $sender . ', part 1 of 1', 'shownInLines' => true],
         ]]]];
         $this->replaceExecution('before', [$sender(2), $gatherer(1)]);
         $this->replaceExecution('after', [['process' => 'initialize', 'steps' => [['depth' => 1, 'label' => 'handler class@anonymous::init', 'hints' => []]]], $sender(3), $gatherer(2)]);
@@ -800,8 +799,8 @@ final class BuildFlowExecutionTest extends TestCase
     {
         return EcotoneLite::bootstrapFlowTesting(
             [...$classes, BuildFlowConsoleCommands::class],
-            [...$services, new BuildFlowConsoleCommands(), InMemorySpanRecorder::class => new InMemorySpanRecorder()],
-            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework)],
+            [...$services, new BuildFlowConsoleCommands()],
+            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

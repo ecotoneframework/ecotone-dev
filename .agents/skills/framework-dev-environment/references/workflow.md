@@ -199,9 +199,11 @@ objects, and one `FlowStage::when(...)` per action with the spans it expects. Ad
 
 **What ran** (`execution` in each snapshot, and the "What ran" section of `compare`) is recorded at the
 framework tracing level, `TracingConfiguration::withLevel(TracingLevel::Framework)`; the default level,
-`TracingLevel::Application`, traces messages and handlers without the recording. The framework level also works
-with a tracer an integration provides (OpenTelemetry): its spans are exported as at the default level plus the
-`ecotone.execution.*` attributes, and the recorded steps go only to the span recorders. Each process is one entry
+`TracingLevel::Application`, traces messages and handlers without the recording. In a running application the
+framework level records when a span recorder or an integration's tracer is configured: with neither it records
+nowhere; with a span recorder (`TracingConfiguration::withSpanRecorder()`) every step becomes a span sent to it; with
+OpenTelemetry the exported spans are the same as at the default level plus the `ecotone.execution.*` attributes, and
+the steps go only to the span recorders, if any. Each process is one entry
 into the framework: a gateway call, a console command or one consumed message. Each step has a label, what ran, and
 hints. A hint is a key and a value; a hint shown in lines (`shownInLines`) decides where the message goes next or
 whether it goes anywhere, or says it failed, and is printed under its step as `↳ key: value`; the other hints are
@@ -231,12 +233,13 @@ both levels.
 
 A test reads the recording with `$ecotone->popExecutionRecording()` on its `FlowTestSupport`, which returns what ran
 since the last pop. In flow testing the framework level needs one line,
-`TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)`: with no span recorder configured,
-flow testing registers its own `InMemorySpanRecorder` for the reader. The recording is an `ExecutionRecording`
-(`Ecotone\Api\Tracing`) holding `processes` in run order, each a `RecordedProcess` with its `title`, `steps`
-(`RecordedStep`: `depth`, `label`, `hints` of `RecordedHint` `key`, `value`, `shownInLines`) and `sentBy` (a
-`RecordedSender` with `processNumber` and `stepNumber`, null for a flow), plus `lines` (the default text) and
-`linesWithEveryHint`. The snapshots are built from the same data, so the two never disagree.
+`TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)`: `EcotoneLite::bootstrapFlowTesting()`
+(and only it) registers an `InMemorySpanRecorder` of its own beside the application's span recorders, and the reader
+reads and clears only that one, so an application's own recorders keep their spans. The recording is an
+`ExecutionRecording` (`Ecotone\Api\Tracing`) holding `processes` in run order, each a `RecordedProcess` with its
+`title`, `steps` (`RecordedStep`: `depth`, `label`, `hints` of `RecordedHint` `key`, `value`, `shownInLines`) and
+`sentBy` (a `RecordedSender` with `processNumber` and `stepNumber`, null for a flow), plus `lines` (the default text)
+and `linesWithEveryHint`. The snapshots are built from the same data, so the two never disagree.
 
 `phpstan.neon` is level 3 over `src` for Ecotone, Enqueue, Dbal, Amqp, JmsConverter, PdoEventSourcing, Laravel,
 OpenTelemetry, Kafka, plus `packages/Symfony/DependencyInjection`, `Monorepo`, and the `Api/` of all twelve packages

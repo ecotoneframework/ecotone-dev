@@ -179,6 +179,9 @@ To see every step Ecotone ran for a message (gateway, interceptors, channels, ro
 switch on the framework tracing level and pop the recording:
 
 ```php
+use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
+
 $ecotone = EcotoneLite::bootstrapFlowTesting(
     [OrderService::class],
     [new OrderService()],
@@ -192,14 +195,21 @@ $this->assertStringContainsString('OrderService::place', $recording->processes[0
 echo implode("\n", $recording->lines);
 ```
 
-- One line is enough in a flow test: it keeps the recording in memory for `popExecutionRecording()`.
+- One line is enough in a flow test: the flow test keeps the recording in a recorder of its own for
+  `popExecutionRecording()`, beside any span recorder you configure.
 - `popExecutionRecording()` returns what ran since the last pop and clears it, like `popRecordedEvents()`.
 - Each of `processes` (one per gateway call, console command or consumed message) has a `title`, `steps` (`depth`,
-  `label`, `hints`) and `sentBy` (`processNumber`, `stepNumber`) when another process sent its message.
+  `label`, `hints`) and `sentBy` when another process sent its message. `sentBy->processNumber` and
+  `sentBy->stepNumber` count from 1, as the text prints them: the sending step is
+  `$recording->processes[$sentBy->processNumber - 1]->steps[$sentBy->stepNumber - 1]`.
 - `lines` is the short text: steps plus the hints that decide where the message went. `linesWithEveryHint` adds every
   other hint.
-- With OpenTelemetry, the framework level exports the same spans with `ecotone.execution.*` attributes added; the
-  steps themselves are not exported.
+- At the framework level the stack trace of a failed message (the `exception-stacktrace` header an error channel or
+  dead letter receives) also holds the recording's own frames.
+- In a running application the level records too: with no span recorder and no tracer it records nowhere; with a span
+  recorder registered by `TracingConfiguration::withSpanRecorder()`, every step becomes a span sent to it; with
+  OpenTelemetry, the exported spans are the same as at the default level with `ecotone.execution.*` attributes added,
+  and the steps themselves are not exported.
 
 ### Failures, Retries and Dead Letter
 

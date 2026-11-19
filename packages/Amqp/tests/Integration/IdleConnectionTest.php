@@ -95,6 +95,21 @@ final class IdleConnectionTest extends AmqpMessagingTestCase
         $this->assertSame(1, $ecotone->sendQueryWithRouting('order.timesWorkedOn'));
     }
 
+    public function test_publish_in_a_transaction_is_committed_once_after_transactions_that_published_nothing_kept_the_connection_in_use(): void
+    {
+        $ecotone = $this->bootstrapOrders(publisherConfirms: false, heartbeatInSeconds: 1, transactions: true);
+
+        for ($check = 1; $check <= 6; $check++) {
+            $ecotone->sendCommandWithRouting('order.check');
+            usleep(500_000);
+        }
+        $ecotone->sendCommandWithRouting('order.placeAfterWorkingFor', ['orderId' => 'after checks', 'seconds' => 0]);
+        $ecotone->run('idle_orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $this->assertSame(['after checks'], $ecotone->sendQueryWithRouting('order.placed'));
+        $this->assertSame(1, $ecotone->sendQueryWithRouting('order.timesWorkedOn'));
+    }
+
     private function bootstrapOrdersWithHeartbeatOfOneSecond(bool $publisherConfirms): FlowTestSupport
     {
         return $this->bootstrapOrders($publisherConfirms, heartbeatInSeconds: 1, transactions: false);
@@ -112,6 +127,11 @@ final class IdleConnectionTest extends AmqpMessagingTestCase
                 $this->timesWorkedOn++;
                 $commandBus->sendWithRouting('order.place', $command['orderId']);
                 usleep((int) ($command['seconds'] * 1_000_000));
+            }
+
+            #[CommandHandler('order.check')]
+            public function check(): void
+            {
             }
 
             #[QueryHandler('order.timesWorkedOn')]

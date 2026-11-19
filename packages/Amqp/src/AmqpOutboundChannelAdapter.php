@@ -228,6 +228,10 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
     private function reopenConnectionTheBrokerClosedWhileItStayedIdle(): void
     {
+        if ($this->amqpTransactionInterceptor->isRunningInTransaction()) {
+            return;
+        }
+
         $innerConnectionFactory = $this->connectionFactory->getInnerConnectionFactory();
         if ($innerConnectionFactory instanceof AmqpReconnectableConnectionFactory && $innerConnectionFactory->hasBrokerClosedTheConnectionIdleSinceTheLastPublish()) {
             $this->connectionFactory->reconnect();

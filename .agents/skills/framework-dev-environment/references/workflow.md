@@ -200,10 +200,13 @@ objects, and one `FlowStage::when(...)` per action with the spans it expects. Ad
 **What ran** (`execution` in each snapshot, and the "What ran" section of `compare`) is recorded at the
 framework tracing level, `TracingConfiguration::withLevel(TracingLevel::Framework)`; the default level,
 `TracingLevel::Application`, traces messages and handlers without the recording. In a running application the
-framework level records only when a span recorder is registered (`TracingConfiguration::withSpanRecorder()`): every
-step becomes a span sent to it. Without one it records nothing: an application traced only through OpenTelemetry
-gets the build view (`ecotone:flow:dump --build`) and exports exactly the spans of the default level, with no
-`ecotone.execution.*` attributes and no recording cost. Each process is one entry
+framework level records whenever a span recorder (`TracingConfiguration::withSpanRecorder()`) or a tracer such as
+OpenTelemetry is configured: every step Ecotone runs is a span started and ended through the configured tracer and
+sent to the span recorders, so an OpenTelemetry exporter receives the steps too. That is many more spans per message
+(a synchronous command exports 16 instead of 2, an event handled asynchronously 69 instead of 7). An application span
+keeps its name, kind, status and attributes; its parent may now be a step. A step the recording leaves out (a call
+that ran nothing, an argument conversion with nothing inside) is not exported either. The default level exports what
+it did before. Each process is one entry
 into the framework: a gateway call, a console command or one consumed message. Each step has a label, what ran, and
 hints. A hint is a key and a value; a hint shown in lines (`shownInLines`) decides where the message goes next or
 whether it goes anywhere, or says it failed, and is printed under its step as `↳ key: value`; the other hints are

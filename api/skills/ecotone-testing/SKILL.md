@@ -211,10 +211,11 @@ echo implode("\n", $recording->lines);
   other hint.
 - At the framework level the stack trace of a failed message (the `exception-stacktrace` header an error channel or
   dead letter receives) also holds the recording's own frames.
-- In a running application the level records only with a span recorder registered by
-  `TracingConfiguration::withSpanRecorder()`: every step becomes a span sent to it. An application traced only through
-  OpenTelemetry records nothing at the framework level: it gets `ecotone:flow:dump --build` and exports exactly the
-  spans of the default level, with no `ecotone.execution.*` attributes.
+- At the framework level every step is also a trace span: it goes through the configured tracer, so OpenTelemetry
+  exports it, and to the span recorders registered by `TracingConfiguration::withSpanRecorder()`. Expect many more
+  spans per message (a synchronous command exports 16 spans instead of 2). Each application span keeps its name, kind,
+  status and attributes; its parent may now be a step span. The default level, `TracingLevel::Application`, exports
+  what it always did.
 
 ### Failures, Retries and Dead Letter
 

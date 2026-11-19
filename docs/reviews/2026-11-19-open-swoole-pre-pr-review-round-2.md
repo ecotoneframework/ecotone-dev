@@ -244,3 +244,22 @@ Open and left for the maintainer:
   `DynamicMessageChannelBuilder`, a class that is mutable as a whole. **G46 NIT**: the "built without
   --enable-swoole-pgsql" cause is untested. **V39 NIT**: the termination signal through `withCoroutines()` is
   untested. **V35 NIT**: consumer coroutines with retries are untested. **G25**, **G28** as before.
+
+### The maintainer's decisions on the open findings
+
+- **D28, decided: works without tenants, stays Enterprise.** `#[CurrentConnectionObjectManager]` injects the Doctrine
+  ObjectManager of the connection the message is handled on, with or without `MultiTenantConfiguration`. Its argument
+  is the connection reference name and defaults to the default connection, like `#[CurrentConnection]`. A connection
+  without Doctrine ORM, a name that is not registered and a missing licence are each refused with a message naming the
+  way out.
+- **D35**: the stream refusal names the stream channels the consumer reads, when they differ from the consumer's name.
+- **G49**: `DynamicMessageChannelBuilder` is immutable: every `with*()` returns a copy, and the two getters are
+  `public readonly` properties. `upgrade-2.0.md` says so.
+- **V39**, **V35**: tests of a termination signal stopping every coroutine of a consumer, and of a failing message
+  retried on its coroutine while the others go on.
+- **G25, in part**: the four copies of `runCoroutines()` are one `Ecotone\Test\CoroutineTesting`. The handlers still
+  pause with `usleep()`: under the hooks that pause is the wait a coroutine yields on, which is what the tests observe.
+- **G28, not done**: `openswoole/ide-helper` requires `ext-openswoole`, so it cannot be a development dependency of a
+  repository whose jobs mostly run without the extension. Framework code names no extension symbol; the two benchmark
+  server files stay excluded from phpstan.
+- **G46** stays untestable in CI. **D24** is left as it is.

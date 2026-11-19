@@ -16,6 +16,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\DbalConnection;
+use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Dbal\ObjectManager\ObjectManagerOfCurrentConnection;
 use Ecotone\Lite\Test\Configuration\ProvidedReferences;
 use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
@@ -155,12 +156,13 @@ final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionO
                 $connectionReferenceName,
                 sprintf(
                     "#[CurrentConnectionObjectManager('%s')] on %s needs a connection registered as `%s`, and there is none. "
-                    . 'Register it under that name with Doctrine ORM: SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with %s::createForManagerRegistry($managerRegistry, $connectionName), '
+                    . 'Register it under that name with Doctrine ORM: SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with %s::createForManagerRegistry($managerRegistry, $connectionName) or, to give every coroutine an ObjectManager of its own, with %s::fromDsnAndConfig($dsn, $pathsToMapping), '
                     . 'or use #[CurrentConnectionObjectManager] without a name for the default connection `%s`.',
                     $connectionReferenceName,
                     $placement,
                     $connectionReferenceName,
                     DbalConnection::class,
+                    ManagerRegistryEmulator::class,
                     DbalConnectionReference::DEFAULT,
                 )
             );

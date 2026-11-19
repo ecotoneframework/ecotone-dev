@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
+use Doctrine\Persistence\ObjectRepository;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager;
 use Ecotone\Api\Dbal\Attribute\DbalQuery;
@@ -15,6 +18,7 @@ use Ecotone\Api\Dbal\FetchMode;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
@@ -80,6 +84,29 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
         $this->assertSame([], $ecotone->getGateway(PersonsStoredThroughObjectManager::class)->names());
     }
 
+    public function test_object_manager_is_the_one_of_the_named_connection_when_the_registry_has_another_default_manager(): void
+    {
+        $ecotone = $this->bootstrapPersonRegistrationOnARegistryOfTwoManagers();
+
+        $ecotone->sendCommandWithRouting('person.registerEntityInReporting', ['personId' => 1, 'name' => 'reported']);
+
+        $this->assertSame(['reported'], $ecotone->getGateway(PersonsOfReportingStoredThroughObjectManager::class)->names());
+        $this->assertSame([], $ecotone->getGateway(PersonsStoredThroughObjectManager::class)->names());
+    }
+
+    public function test_object_manager_of_a_connection_no_entity_manager_of_the_registry_uses_is_refused(): void
+    {
+        $ecotone = $this->bootstrapPersonRegistrationOnARegistryOfTwoManagers();
+
+        $this->expectExceptionMessage(
+            '#[CurrentConnectionObjectManager] cannot inject the Doctrine ObjectManager of connection `archive`: none of the entity managers of its ManagerRegistry (`primary`, `reporting`) uses that connection. '
+            . 'Configure an entity manager on the connection (in Symfony: an entry of doctrine.orm.entity_managers with `connection: archive`), '
+            . 'or take #[CurrentConnection] Doctrine\\DBAL\\Connection to run SQL on it without Doctrine ORM.'
+        );
+
+        $ecotone->sendCommandWithRouting('person.registerEntityInArchive', ['personId' => 1, 'name' => 'archived']);
+    }
+
     public function test_object_manager_of_a_connection_registered_without_doctrine_orm_is_refused(): void
     {
         $handler = new class () {
@@ -98,7 +125,7 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
 
         $this->expectExceptionMessage(
             '#[CurrentConnectionObjectManager] cannot inject the Doctrine ObjectManager of connection `Ecotone\\Api\\Dbal\\DbalConnectionFactory`: it is registered as Ecotone\\Api\\Dbal\\DbalConnectionFactory, which has no Doctrine ORM behind it. '
-            . 'Register the connection with Doctrine ORM: SymfonyConnectionReference::defaultManagerRegistry($connectionName) or SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with Ecotone\\Dbal\\DbalConnection::createForManagerRegistry($managerRegistry, $connectionName). '
+            . 'Register the connection with Doctrine ORM: SymfonyConnectionReference::defaultManagerRegistry($connectionName) or SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with Ecotone\\Dbal\\DbalConnection::createForManagerRegistry($managerRegistry, $connectionName). To give every coroutine an ObjectManager of its own, register a service created with Ecotone\\Dbal\\ManagerRegistryEmulator::fromDsnAndConfig($dsn, $pathsToMapping). '
             . 'To run SQL on the connection of the handled message without Doctrine ORM, take #[CurrentConnection] Doctrine\\DBAL\\Connection instead.'
         );
 
@@ -117,7 +144,7 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
             "#[CurrentConnectionObjectManager('reporting')] on " . $handler::class . '::registerEntity($objectManager) needs a connection registered as `reporting`, and there is none. '
-            . 'Register it under that name with Doctrine ORM: SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with Ecotone\\Dbal\\DbalConnection::createForManagerRegistry($managerRegistry, $connectionName), '
+            . 'Register it under that name with Doctrine ORM: SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with Ecotone\\Dbal\\DbalConnection::createForManagerRegistry($managerRegistry, $connectionName) or, to give every coroutine an ObjectManager of its own, with Ecotone\\Dbal\\ManagerRegistryEmulator::fromDsnAndConfig($dsn, $pathsToMapping), '
             . 'or use #[CurrentConnectionObjectManager] without a name for the default connection `Ecotone\\Api\\Dbal\\DbalConnectionFactory`.'
         );
 
@@ -152,6 +179,47 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
             [$handler, DbalConnectionFactory::class => ManagerRegistryEmulator::fromDsnAndConfig(self::databaseDsn(), [__DIR__ . '/../Fixture/ORM/Person'])],
             [DbalConfiguration::createWithDefaults()],
             [ModulePackageList::DBAL_PACKAGE],
+        );
+    }
+
+    private function bootstrapPersonRegistrationOnARegistryOfTwoManagers(): FlowTestSupport
+    {
+        $primaryConnection = $this->getConnection();
+        $reportingConnection = $this->connectionForTenantB()->createContext()->getDbalConnection();
+        $this->setupUserTable($primaryConnection);
+        $this->setupUserTable($reportingConnection);
+        $registry = new RegistryOfTwoManagers(
+            ['primary' => $primaryConnection, 'reporting' => $reportingConnection, 'archive' => (new DbalConnectionFactory(self::databaseDsn()))->createContext()->getDbalConnection()],
+            [
+                'primary' => $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person'], $primaryConnection)->getRegistry()->getManager(),
+                'reporting' => $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person'], $reportingConnection)->getRegistry()->getManager(),
+            ],
+        );
+        $registration = new class () {
+            #[CommandHandler('person.registerEntityInReporting')]
+            public function registerEntityInReporting(array $command, #[CurrentConnectionObjectManager('reporting')] ObjectManager $objectManager): void
+            {
+                $objectManager->persist(Person::register(new RegisterPerson($command['personId'], $command['name']), false));
+                $objectManager->flush();
+            }
+
+            #[CommandHandler('person.registerEntityInArchive')]
+            public function registerEntityInArchive(array $command, #[CurrentConnectionObjectManager('archive')] ObjectManager $objectManager): void
+            {
+            }
+        };
+
+        return $this->bootstrapFlowTesting(
+            [$registration::class, PersonsStoredThroughObjectManager::class, PersonsOfReportingStoredThroughObjectManager::class],
+            [
+                $registration,
+                DbalConnectionFactory::class => DbalConnection::createForManagerRegistry($registry, 'primary'),
+                'reporting' => DbalConnection::createForManagerRegistry($registry, 'reporting'),
+                'archive' => DbalConnection::createForManagerRegistry($registry, 'archive'),
+            ],
+            [DbalConfiguration::createWithDefaults()],
+            [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 
@@ -206,4 +274,70 @@ interface PersonsOfReportingStoredThroughObjectManager
 {
     #[DbalQuery('SELECT name FROM persons ORDER BY person_id', fetchMode: FetchMode::FIRST_COLUMN, connectionReferenceName: 'reporting')]
     public function names(): array;
+}
+
+final class RegistryOfTwoManagers implements ManagerRegistry
+{
+    /**
+     * @param array<string, Connection> $connections
+     * @param array<string, ObjectManager> $managers
+     */
+    public function __construct(private array $connections, private array $managers)
+    {
+    }
+
+    public function getDefaultConnectionName(): string
+    {
+        return 'primary';
+    }
+
+    public function getConnection($name = null): object
+    {
+        return $this->connections[$name ?? 'primary'];
+    }
+
+    public function getConnections(): array
+    {
+        return $this->connections;
+    }
+
+    public function getConnectionNames(): array
+    {
+        return array_combine(array_keys($this->connections), array_keys($this->connections));
+    }
+
+    public function getDefaultManagerName(): string
+    {
+        return 'primary';
+    }
+
+    public function getManager($name = null): ObjectManager
+    {
+        return $this->managers[$name ?? 'primary'];
+    }
+
+    public function getManagers(): array
+    {
+        return $this->managers;
+    }
+
+    public function resetManager($name = null): ObjectManager
+    {
+        return $this->getManager($name);
+    }
+
+    public function getManagerNames(): array
+    {
+        return array_combine(array_keys($this->managers), array_keys($this->managers));
+    }
+
+    public function getRepository($persistentObject, $persistentManagerName = null): ObjectRepository
+    {
+        return $this->getManager($persistentManagerName)->getRepository($persistentObject);
+    }
+
+    public function getManagerForClass($class): ?ObjectManager
+    {
+        return $this->getManager();
+    }
 }

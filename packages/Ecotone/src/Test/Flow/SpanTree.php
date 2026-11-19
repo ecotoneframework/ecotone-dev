@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Ecotone\Test\Flow;
 
 use function array_filter;
+use function array_map;
 use function array_values;
 
 use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\SpanAttribute;
 
 use function implode;
 use function str_repeat;
@@ -39,7 +41,7 @@ final class SpanTree
      */
     public static function of(array $spans): self
     {
-        $spans = array_values(array_filter($spans, fn (Span $span) => ! ExpectedSpan::isFrameworkNoise($span)));
+        $spans = array_values(array_filter(self::withApplicationParents($spans), fn (Span $span) => ! ExpectedSpan::isFrameworkNoise($span)));
         $childrenByParent = [];
         $spansById = [];
         foreach ($spans as $span) {
@@ -50,6 +52,32 @@ final class SpanTree
         }
 
         return new self($spans, $childrenByParent, $spansById);
+    }
+
+    /**
+     * @param Span[] $spans
+     * @return list<Span>
+     */
+    public static function withApplicationParents(array $spans): array
+    {
+        $steps = [];
+        foreach ($spans as $span) {
+            if ($span->attributes[SpanAttribute::EXECUTION_STEP] ?? false) {
+                $steps[$span->spanId] = $span;
+            }
+        }
+
+        return array_values(array_map(function (Span $span) use ($steps): Span {
+            if (($span->attributes[SpanAttribute::EXECUTION_STEP] ?? false) || ! isset($steps[$span->parentSpanId ?? ''])) {
+                return $span;
+            }
+            $parent = $span->parentSpanId;
+            while ($parent !== null && isset($steps[$parent])) {
+                $parent = $steps[$parent]->parentSpanId;
+            }
+
+            return new Span(...[...get_object_vars($span), 'parentSpanId' => $parent]);
+        }, $spans));
     }
 
     /**

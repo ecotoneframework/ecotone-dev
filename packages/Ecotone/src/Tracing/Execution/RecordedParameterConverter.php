@@ -19,7 +19,7 @@ final class RecordedParameterConverter implements ParameterConverter
 
     public function getArgumentFrom(Message $message): mixed
     {
-        $step = $this->tracer->startStep('convert argument ' . $this->parameterName);
+        $step = $this->tracer->startStep('convert argument ' . $this->parameterName, shownOnlyWhenSomethingRunsInside: true);
         try {
             $argument = $this->parameterConverter->getArgumentFrom($message);
         } catch (Throwable $failure) {

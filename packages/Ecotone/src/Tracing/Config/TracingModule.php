@@ -50,6 +50,7 @@ use Ecotone\Tracing\Execution\ExecutionRecordingNotSwitchedOn;
 use Ecotone\Tracing\Execution\ExecutionRecordingReader;
 use Ecotone\Tracing\Execution\ExecutionRecordingTracer;
 use Ecotone\Tracing\Execution\InMemoryExecutionRecordingReader;
+use Ecotone\Tracing\Execution\StepSpanCapture;
 use Ecotone\Tracing\MessageSpanAttributes;
 use Ecotone\Tracing\Tracer;
 use Ecotone\Tracing\TracerCurrentTrace;
@@ -99,7 +100,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracerCurrentTrace::class, [new Reference(Tracer::class)]));
         $messagingConfiguration->registerServiceDefinition(MessageCollectionObserver::class, new Definition(TracingMessageCollectionObserver::class, [new Reference(Tracer::class)]));
 
-        $messagingConfiguration->registerServiceDefinition(SpanRecorder::class, new Definition(CompositeSpanRecorder::class, [$spanRecorders]));
+        $messagingConfiguration->registerServiceDefinition(SpanRecorder::class, $recordsExecution ? new Definition(StepSpanCapture::class, [new Definition(CompositeSpanRecorder::class, [$spanRecorders])]) : new Definition(CompositeSpanRecorder::class, [$spanRecorders]));
         if ($recordsExecution) {
             if ($tracerReferences === []) {
                 $messagingConfiguration->registerServiceDefinition(EcotoneTracer::class, new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));

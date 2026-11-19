@@ -30,7 +30,7 @@ final class SpanEventLogger implements LoggerInterface
 
     public function log($level, Stringable|string $message, array $context = []): void
     {
-        $currentSpan = $this->tracer->currentSpan();
+        $currentSpan = $this->tracer->currentApplicationSpan();
         if ($currentSpan === null) {
             return;
         }

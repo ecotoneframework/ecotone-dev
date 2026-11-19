@@ -39,12 +39,12 @@ final class TracingChannelInterceptor extends AbstractChannelInterceptor
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
         $payload = $message->getPayload();
-        if ($payload instanceof BatchMessage && $this->tracer->currentSpan() === null) {
+        if ($payload instanceof BatchMessage && $this->tracer->currentApplicationSpan() === null) {
             return $this->relayBatch($message, $payload);
         }
 
         $isFirstChannel = self::deliveryChannelOf($message) === null;
-        $span = $this->startSendSpan($message, $isFirstChannel ? $this->deliveryAttributes($message) : [], $this->tracer->currentSpan() === null);
+        $span = $this->startSendSpan($message, $isFirstChannel ? $this->deliveryAttributes($message) : [], $this->tracer->currentApplicationSpan() === null);
         $this->openSendSpans[] = [$span];
 
         $carrier = TracingInterceptor::carrierOf($span);

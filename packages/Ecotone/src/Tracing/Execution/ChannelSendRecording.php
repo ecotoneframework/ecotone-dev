@@ -14,6 +14,7 @@ use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Messaging\Channel\PollableChannel\SendRetries\SendRetryChannelInterceptor;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptor;
 use Ecotone\Messaging\Handler\Recoverability\DelayedRetryErrorHandler;
+use Ecotone\Tracing\TracingInterceptor;
 use Throwable;
 
 /**
@@ -174,7 +175,7 @@ final class ChannelSendRecording
                 }
             }
         }
-        $this->tracer->awaitReceive((string) $headers->get(MessageHeaders::MESSAGE_ID), 'receive ' . $this->channelName, $notes, self::distributedSenderOf($message));
+        $this->tracer->awaitReceive((string) $headers->get(MessageHeaders::MESSAGE_ID), 'receive ' . $this->channelName, $notes, self::distributedSenderOf($message), TracingInterceptor::remoteParentOf($message));
 
         return $message;
     }

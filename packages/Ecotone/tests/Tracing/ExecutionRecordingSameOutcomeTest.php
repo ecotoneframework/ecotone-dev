@@ -87,7 +87,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         $this->assertSameOutcomeWithRecordingOnAndOff([ExecutionRecordedBinaryOrder::class], fn (): array => [], $run, fn (): array => [], [SimpleMessageChannelBuilder::createQueueChannel('orders')]);
     }
 
-    public function test_recording_the_execution_leaves_the_spans_of_the_trace_as_they_are_without_it(): void
+    public function test_recording_the_execution_keeps_each_traced_span_under_the_traced_span_it_had_without_it_with_the_steps_between_them(): void
     {
         $orders = new class () {
             #[CommandHandler('order.place')]
@@ -109,9 +109,10 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
             $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto($recorder)], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), $recording ? $tracing->withLevel(TracingLevel::Framework) : $tracing], enabledModules: []);
             $ecotone->sendCommandWithRouting('order.place', 'order-1');
             $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
-            $traced = array_values(array_filter($recorder->recordedSpans(), fn (Span $span): bool => ! isset($span->attributes[SpanAttribute::EXECUTION_STEP])));
+            $recorded = $recorder->recordedSpans();
+            $traced = array_values(array_filter($recorded, fn (Span $span): bool => ! isset($span->attributes[SpanAttribute::EXECUTION_STEP])));
             $nameOf = array_column(array_map(fn (Span $span): array => [$span->spanId, $span->name], $traced), 1, 0);
-            $traces[] = array_map(fn (Span $span): array => [$span->name, $span->kind, $span->status, $nameOf[$span->parentSpanId ?? ''] ?? null], $traced);
+            $traces[] = array_map(fn (Span $span): array => [$span->name, $span->kind, $span->status, $nameOf[self::tracedParentIdOf($recorded, $span) ?? ''] ?? null], $traced);
         }
 
         self::assertNotEmpty($traces[0]);

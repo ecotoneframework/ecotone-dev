@@ -9,6 +9,7 @@ use function array_splice;
 use function count;
 
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanKind;
@@ -40,29 +41,47 @@ final class EcotoneTracer implements Tracer
         return $this->start($name, $kind, $attributes, null);
     }
 
+    public function startDetachedSpan(string $name, SpanKind $kind, array $attributes, ?SpanContext $parent, DatePoint $startedAt): ActiveSpan
+    {
+        return $this->spanOf(name: $name, kind: $kind, attributes: $attributes, parent: $parent, startedAt: $startedAt);
+    }
+
     /**
      * @param array<string, scalar> $attributes
      */
     private function start(string $name, SpanKind $kind, array $attributes, ?SpanContext $parent): ActiveSpan
     {
-        $span = new EcotoneActiveSpan(
-            $parent?->newChild() ?? SpanContext::newTrace(),
-            $parent?->spanId,
-            $name,
-            $kind,
-            $attributes,
-            $this->clock->now(),
-            $this->clock,
-            $this,
-        );
+        $span = $this->spanOf(name: $name, kind: $kind, attributes: $attributes, parent: $parent, startedAt: $this->clock->now());
         $this->activeSpans[] = $span;
 
         return $span;
     }
 
+    /**
+     * @param array<string, scalar> $attributes
+     */
+    private function spanOf(string $name, SpanKind $kind, array $attributes, ?SpanContext $parent, DatePoint $startedAt): EcotoneActiveSpan
+    {
+        return new EcotoneActiveSpan(
+            $parent?->newChild() ?? SpanContext::newTrace(),
+            $parent?->spanId,
+            $name,
+            $kind,
+            $attributes,
+            $startedAt,
+            $this->clock,
+            $this,
+        );
+    }
+
     public function currentSpan(): ?ActiveSpan
     {
         return $this->activeSpans[count($this->activeSpans) - 1] ?? null;
+    }
+
+    public function currentApplicationSpan(): ?ActiveSpan
+    {
+        return $this->currentSpan();
     }
 
     public function endSpan(EcotoneActiveSpan $activeSpan, Span $span): void

@@ -168,7 +168,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         self::assertSame(['send distributed, DistributedOutboundRouter::route'], array_map(fn (RecordedProcess $process): string => $process->title, $sent));
         self::assertSame(['receive distributed_tickets, DistributedMessageHandler::handle'], array_map(fn (RecordedProcess $process): string => $process->title, $received));
         self::assertNull($received[0]->sentBy);
-        self::assertSame([$send->traceId, $send->spanId], [$receive->traceId, $receive->parentSpanId]);
+        self::assertSame([$send->traceId, $send->spanId], [$receive->traceId, self::tracedParentIdOf($recorder->recordedSpans(), $receive)]);
     }
 
     public function test_two_applications_sharing_a_span_recorder_order_each_consumer_span_after_the_send_it_continues_even_when_the_sender_ran_more_than_the_consumer(): void
@@ -204,7 +204,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
 
         self::assertCount(2, $receives);
         foreach ($receives as $receive) {
-            self::assertGreaterThan($orderOf($sends[$receive->parentSpanId]), $orderOf($receive));
+            self::assertGreaterThan($orderOf($sends[self::tracedParentIdOf($recorder->recordedSpans(), $receive)]), $orderOf($receive));
         }
     }
 

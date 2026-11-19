@@ -26,7 +26,7 @@ final class FrameworkTracing
     public static function recordsExecutionIn(array $extensionObjects): bool
     {
         return self::isTheLevelOf($extensionObjects)
-            && (self::spanRecorderNamesOf($extensionObjects) !== [] || self::isFlowTesting($extensionObjects));
+            && (self::spanRecorderNamesOf($extensionObjects) !== [] || ExtensionObjectResolver::contains(TracerReference::class, $extensionObjects) || self::isFlowTesting($extensionObjects));
     }
 
     public static function readsTheRecordingIn(array $extensionObjects): bool

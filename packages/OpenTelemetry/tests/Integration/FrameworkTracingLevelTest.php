@@ -6,9 +6,12 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -18,6 +21,7 @@ use Ecotone\Api\Tracing\RecordedProcess;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
+use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\ImmutableSpan;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
@@ -44,25 +48,220 @@ final class FrameworkTracingLevelTest extends TracingTestCase
     }
 
     /**
-     * @return iterable<string, array{string}>
+     * @return iterable<string, array{string, bool}>
      */
     public static function flows(): iterable
     {
-        yield 'a command publishing an event handled asynchronously' => ['placedAndNotified'];
-        yield 'a command whose handler fails' => ['refused'];
+        foreach (['in flow testing' => false, 'in a running application' => true] as $where => $running) {
+            yield 'a synchronous command ' . $where => ['commandHandled', $running];
+            yield 'an event handled asynchronously ' . $where => ['placedAndNotified', $running];
+            yield 'a command whose handler fails ' . $where => ['refused', $running];
+            yield 'a distributed command ' . $where => ['distributed', $running];
+        }
     }
 
     #[DataProvider('flows')]
-    public function test_the_framework_level_exports_the_same_spans_to_open_telemetry_as_the_application_level_and_only_it_adds_execution_attributes(string $flow): void
+    public function test_at_the_framework_level_open_telemetry_exports_each_application_span_as_at_the_application_level_with_the_steps_between_them(string $flow, bool $running): void
     {
-        $exported = [];
-        foreach (['application' => TracingConfiguration::createWithDefaults(), 'framework' => TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)] as $level => $tracing) {
-            $exporter = new InMemoryExporter();
-            $this->{$flow}($exporter, $tracing);
-            $exported[$level] = $exporter->getSpans();
+        $application = $this->exported($flow, $running, TracingConfiguration::createWithDefaults());
+        $framework = $this->exported($flow, $running, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework));
+
+        self::assertNotEmpty($application);
+        self::assertSame([], self::stepsIn($application));
+        self::assertNotSame([], self::stepsIn($framework));
+        self::assertSame(self::applicationShapeOf($application), self::applicationShapeOf($framework));
+    }
+
+    #[DataProvider('flows')]
+    public function test_at_the_framework_level_every_step_is_exported_in_one_trace_under_the_open_step_or_span_in_the_order_it_ran(string $flow, bool $running): void
+    {
+        $spans = $this->exported($flow, $running, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework));
+        $byId = [];
+        foreach ($spans as $span) {
+            $byId[$span->getSpanId()] = $span;
         }
+        $orderOf = fn (ImmutableSpan $span): ?int => $span->getAttributes()->get('ecotone.execution.order');
+        $childrenOf = [];
+        foreach (self::stepsIn($spans) as $step) {
+            if (! $step->getParentContext()->isValid()) {
+                continue;
+            }
+            self::assertArrayHasKey($step->getParentSpanId(), $byId);
+            $childrenOf[$step->getParentSpanId()][] = $step;
+        }
+        foreach ($childrenOf as $parentId => $children) {
+            $parentOrder = $orderOf($byId[$parentId]);
+            $inStartOrder = $children;
+            usort($inStartOrder, fn (ImmutableSpan $first, ImmutableSpan $second): int => [$first->getStartEpochNanos(), $orderOf($first)] <=> [$second->getStartEpochNanos(), $orderOf($second)]);
+            $inRunOrder = $children;
+            usort($inRunOrder, fn (ImmutableSpan $first, ImmutableSpan $second): int => $orderOf($first) <=> $orderOf($second));
+            self::assertSame(array_map(fn (ImmutableSpan $span): string => $span->getSpanId(), $inRunOrder), array_map(fn (ImmutableSpan $span): string => $span->getSpanId(), $inStartOrder));
+            if ($parentOrder !== null) {
+                self::assertGreaterThan($parentOrder, $orderOf($inRunOrder[0]));
+            }
+        }
+        self::assertCount(1, array_unique(array_map(fn (ImmutableSpan $span): string => $span->getTraceId(), $spans)));
+    }
+
+    /**
+     * @return iterable<string, array{bool}>
+     */
+    public static function places(): iterable
+    {
+        yield 'in flow testing' => [false];
+        yield 'in a running application' => [true];
+    }
+
+    #[DataProvider('places')]
+    public function test_a_failing_handler_at_the_framework_level_exports_its_failed_steps_with_an_error_status_and_leaves_no_span_open(bool $running): void
+    {
+        $exporter = new InMemoryExporter();
+        $handlers = new class () {
+            #[CommandHandler('order.refuse')]
+            public function refuse(string $order): void
+            {
+                throw new RuntimeException('the order is refused');
+            }
+
+            #[CommandHandler('order.place')]
+            public function place(string $order): void
+            {
+            }
+        };
+        $ecotone = $this->application($running, [$handlers], $exporter, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework));
+        try {
+            $ecotone->getCommandBus()->sendWithRouting('order.refuse', 'coffee');
+        } catch (RuntimeException) {
+        }
+        $afterTheFailure = count($exporter->getSpans());
+        $ecotone->getCommandBus()->sendWithRouting('order.place', 'coffee');
+        $failed = array_slice($exporter->getSpans(), 0, $afterTheFailure);
+        $next = array_slice($exporter->getSpans(), $afterTheFailure);
+
+        self::assertContains('handler class@anonymous::refuse', array_map(fn (ImmutableSpan $span): string => $span->getName(), array_filter(self::stepsIn($failed), fn (ImmutableSpan $span): bool => $span->getStatus()->getCode() === StatusCode::STATUS_ERROR)));
+        self::assertNotContains($failed[0]->getTraceId(), array_map(fn (ImmutableSpan $span): string => $span->getTraceId(), $next));
+        self::assertCount(1, array_filter($next, fn (ImmutableSpan $span): bool => ! $span->getParentContext()->isValid()));
+    }
+
+    /**
+     * @return iterable<string, array{TracingConfiguration, bool}>
+     */
+    public static function levels(): iterable
+    {
+        yield 'application level' => [TracingConfiguration::createWithDefaults(), false];
+        yield 'framework level' => [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), true];
+    }
+
+    #[DataProvider('levels')]
+    public function test_a_running_application_with_open_telemetry_keeps_its_memory_flat_over_fully_consumed_messages_whether_or_not_it_exports_steps(TracingConfiguration $tracing, bool $exportsSteps): void
+    {
+        $exporter = new InMemoryExporter();
+        $application = $this->runningApplication($exporter, $tracing);
+        $memoryAfter = [];
+        $stepsExported = 0;
+        foreach ([1, 2, 3, 4] as $round) {
+            for ($order = 0; $order < 300; $order++) {
+                $application->getCommandBus()->sendWithRouting('order.place', 'coffee');
+            }
+            $application->run('notifications', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 300, executionTimeLimitInMilliseconds: 600000));
+            $stepsExported += count(self::stepsIn($exporter->getSpans()));
+            $exporter->getStorage()->exchangeArray([]);
+            gc_collect_cycles();
+            $memoryAfter[$round] = memory_get_usage();
+        }
+
+        self::assertSame($exportsSteps, $stepsExported > 0);
+        self::assertLessThan(64 * 1024, $memoryAfter[4] - $memoryAfter[2]);
+    }
+
+    /**
+     * @return list<ImmutableSpan>
+     */
+    private function exported(string $flow, bool $running, TracingConfiguration $tracing): array
+    {
+        $exporter = new InMemoryExporter();
+        $this->{$flow}($exporter, $tracing, $running);
+
+        return $exporter->getSpans();
+    }
+
+    /**
+     * @param list<object> $handlers
+     * @param list<object> $extensionObjects
+     */
+    private function application(bool $running, array $handlers, InMemoryExporter $exporter, TracingConfiguration $tracing, array $extensionObjects = []): ConfiguredMessagingSystem|FlowTestSupport
+    {
+        $classes = array_map(fn (object $handler): string => $handler::class, $handlers);
+        $services = [...$handlers, TracerProviderInterface::class => self::prepareTracer($exporter)];
+        $extensionObjects = [...$extensionObjects, $tracing];
+
+        return $running
+            ? EcotoneLite::bootstrap($classes, $services, $extensionObjects, enabledModules: [ModulePackageList::TRACING_PACKAGE], licenceKey: LicenceTesting::VALID_LICENCE)
+            : EcotoneLite::bootstrapFlowTesting($classes, $services, $extensionObjects, enabledModules: [ModulePackageList::TRACING_PACKAGE], licenceKey: LicenceTesting::VALID_LICENCE);
+    }
+
+    private function commandHandled(InMemoryExporter $exporter, TracingConfiguration $tracing, bool $running): void
+    {
+        $handlers = new class () {
+            #[CommandHandler('order.place')]
+            public function place(string $order): void
+            {
+            }
+        };
+        $this->application($running, [$handlers], $exporter, $tracing)->getCommandBus()->sendWithRouting('order.place', 'coffee');
+    }
+
+    private function distributed(InMemoryExporter $exporter, TracingConfiguration $tracing, bool $running): void
+    {
+        $tickets = new class () {
+            #[Distributed]
+            #[CommandHandler('ticket.create', endpointId: 'ticket.creation')]
+            public function create(string $ticket): void
+            {
+            }
+        };
+        $channel = SimpleMessageChannelBuilder::createQueueChannel('distributed_tickets');
+        $registration = new class () {
+            #[CommandHandler('user.register')]
+            public function register(string $user): void
+            {
+            }
+        };
+        $users = $this->application($running, [$registration], $exporter, $tracing, [$channel, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_tickets'), ServiceConfiguration::createWithDefaults()->withServiceName('user_service')]);
+        $ticketService = $this->application($running, [$tickets], $exporter, $tracing, [$channel, ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service')]);
+        $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
+        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithTestingSetup());
+    }
+
+    /**
+     * @param list<ImmutableSpan> $spans
+     * @return list<ImmutableSpan>
+     */
+    private static function stepsIn(array $spans): array
+    {
+        return array_values(array_filter($spans, fn (ImmutableSpan $span): bool => $span->getAttributes()->has('ecotone.execution.step')));
+    }
+
+    /**
+     * @param list<ImmutableSpan> $spans
+     * @return list<array<string, mixed>>
+     */
+    private static function applicationShapeOf(array $spans): array
+    {
+        $byId = [];
+        foreach ($spans as $span) {
+            $byId[$span->getSpanId()] = $span;
+        }
+        $tracedParentOf = function (ImmutableSpan $span) use ($byId): ?string {
+            $parent = $byId[$span->getParentSpanId()] ?? null;
+            while ($parent !== null && $parent->getAttributes()->has('ecotone.execution.step')) {
+                $parent = $byId[$parent->getParentSpanId()] ?? null;
+            }
+
+            return $parent?->getName();
+        };
         $stable = fn (mixed $value): mixed => is_string($value) ? (string) preg_replace('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\b[0-9a-f]{32}\b|\b[0-9a-f]{16}\b/', '{id}', $value) : $value;
-        $withoutExecution = function (array $attributes) use ($stable): array {
+        $ownAttributes = function (array $attributes) use ($stable): array {
             $kept = [];
             foreach ($attributes as $key => $value) {
                 if (! str_starts_with((string) $key, 'ecotone.execution.')) {
@@ -72,85 +271,15 @@ final class FrameworkTracingLevelTest extends TracingTestCase
 
             return $kept;
         };
-        $shapeOf = function (array $spans) use ($withoutExecution, $stable): array {
-            $nameOf = [];
-            foreach ($spans as $span) {
-                $nameOf[$span->getSpanId()] = $span->getName();
-            }
 
-            return array_map(fn (ImmutableSpan $span): array => [
-                'name' => $span->getName(),
-                'kind' => $span->getKind(),
-                'status' => $span->getStatus()->getCode(),
-                'parent' => $nameOf[$span->getParentSpanId()] ?? null,
-                'attributes' => $withoutExecution($span->getAttributes()->toArray()),
-                'events' => array_map(fn ($event): array => [$stable($event->getName()), $withoutExecution($event->getAttributes()->toArray())], $span->getEvents()),
-            ], $spans);
-        };
-        $executionAttributesOf = fn (array $spans): array => array_values(array_unique(array_merge(...array_map(fn (ImmutableSpan $span): array => array_values(array_filter(array_keys($span->getAttributes()->toArray()), fn (string $key): bool => str_starts_with($key, 'ecotone.execution.'))), $spans))));
-
-        self::assertNotEmpty($exported['application']);
-        self::assertSame($shapeOf($exported['application']), $shapeOf($exported['framework']));
-        self::assertSame([], $executionAttributesOf($exported['application']));
-        self::assertNotSame([], $executionAttributesOf($exported['framework']));
-    }
-
-    public function test_a_running_application_traced_only_through_open_telemetry_exports_at_the_framework_level_exactly_the_spans_of_the_application_level(): void
-    {
-        $exported = [];
-        foreach (['application' => TracingConfiguration::createWithDefaults(), 'framework' => TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)] as $level => $tracing) {
-            $exporter = new InMemoryExporter();
-            $application = $this->runningApplication($exporter, $tracing);
-            $application->getCommandBus()->sendWithRouting('order.place', 'coffee');
-            $application->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
-            $exported[$level] = $exporter->getSpans();
-        }
-        $stable = fn (mixed $value): mixed => is_string($value) ? (string) preg_replace('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\b[0-9a-f]{32}\b|\b[0-9a-f]{16}\b/', '{id}', $value) : $value;
-        $shapeOf = function (array $spans) use ($stable): array {
-            $nameOf = [];
-            foreach ($spans as $span) {
-                $nameOf[$span->getSpanId()] = $span->getName();
-            }
-
-            return array_map(fn (ImmutableSpan $span): array => [
-                'name' => $span->getName(),
-                'kind' => $span->getKind(),
-                'status' => $span->getStatus()->getCode(),
-                'parent' => $nameOf[$span->getParentSpanId()] ?? null,
-                'attributes' => array_map(fn (mixed $value): mixed => $stable($value), array_diff_key($span->getAttributes()->toArray(), ['timestamp' => true])),
-            ], $spans);
-        };
-
-        self::assertNotEmpty($exported['application']);
-        self::assertSame($shapeOf($exported['application']), $shapeOf($exported['framework']));
-    }
-
-    /**
-     * @return iterable<string, array{TracingConfiguration}>
-     */
-    public static function levels(): iterable
-    {
-        yield 'application level' => [TracingConfiguration::createWithDefaults()];
-        yield 'framework level' => [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)];
-    }
-
-    #[DataProvider('levels')]
-    public function test_a_running_application_with_open_telemetry_keeps_its_memory_flat_over_fully_consumed_messages(TracingConfiguration $tracing): void
-    {
-        $exporter = new InMemoryExporter();
-        $application = $this->runningApplication($exporter, $tracing);
-        $memoryAfter = [];
-        foreach ([1, 2, 3, 4] as $round) {
-            for ($order = 0; $order < 300; $order++) {
-                $application->getCommandBus()->sendWithRouting('order.place', 'coffee');
-            }
-            $application->run('notifications', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 300, executionTimeLimitInMilliseconds: 600000));
-            $exporter->getStorage()->exchangeArray([]);
-            gc_collect_cycles();
-            $memoryAfter[$round] = memory_get_usage();
-        }
-
-        self::assertLessThan(64 * 1024, $memoryAfter[4] - $memoryAfter[2]);
+        return array_values(array_map(fn (ImmutableSpan $span): array => [
+            'name' => $span->getName(),
+            'kind' => $span->getKind(),
+            'status' => $span->getStatus()->getCode(),
+            'parent' => $tracedParentOf($span),
+            'attributes' => $ownAttributes($span->getAttributes()->toArray()),
+            'events' => array_map(fn ($event): array => [$stable($event->getName()), $ownAttributes($event->getAttributes()->toArray())], $span->getEvents()),
+        ], array_filter($spans, fn (ImmutableSpan $span): bool => ! $span->getAttributes()->has('ecotone.execution.step'))));
     }
 
     private function runningApplication(InMemoryExporter $exporter, TracingConfiguration $tracing): ConfiguredMessagingSystem
@@ -178,7 +307,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         );
     }
 
-    private function placedAndNotified(InMemoryExporter $exporter, TracingConfiguration $tracing): FlowTestSupport
+    private function placedAndNotified(InMemoryExporter $exporter, TracingConfiguration $tracing, bool $running = false): ConfiguredMessagingSystem|FlowTestSupport
     {
         $handlers = new class () {
             #[CommandHandler('order.place')]
@@ -193,19 +322,14 @@ final class FrameworkTracingLevelTest extends TracingTestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handlers::class],
-            [$handlers, TracerProviderInterface::class => self::prepareTracer($exporter)],
-            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), $tracing],
-            enabledModules: [ModulePackageList::TRACING_PACKAGE],
-        );
-        $ecotone->sendCommandWithRouting('order.place', 'coffee');
+        $ecotone = $this->application($running, [$handlers], $exporter, $tracing, [SimpleMessageChannelBuilder::createQueueChannel('notifications')]);
+        $ecotone->getCommandBus()->sendWithRouting('order.place', 'coffee');
         $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
 
         return $ecotone;
     }
 
-    private function refused(InMemoryExporter $exporter, TracingConfiguration $tracing): void
+    private function refused(InMemoryExporter $exporter, TracingConfiguration $tracing, bool $running): void
     {
         $handlers = new class () {
             #[CommandHandler('order.refuse')]
@@ -214,14 +338,9 @@ final class FrameworkTracingLevelTest extends TracingTestCase
                 throw new RuntimeException('the order is refused');
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handlers::class],
-            [$handlers, TracerProviderInterface::class => self::prepareTracer($exporter)],
-            [$tracing],
-            enabledModules: [ModulePackageList::TRACING_PACKAGE],
-        );
+        $ecotone = $this->application($running, [$handlers], $exporter, $tracing);
         try {
-            $ecotone->sendCommandWithRouting('order.refuse', 'coffee');
+            $ecotone->getCommandBus()->sendWithRouting('order.refuse', 'coffee');
         } catch (RuntimeException) {
         }
     }

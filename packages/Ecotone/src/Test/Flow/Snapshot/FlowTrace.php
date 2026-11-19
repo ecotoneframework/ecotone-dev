@@ -19,7 +19,7 @@ final class FlowTrace
      */
     public static function stepsOf(array $spans): array
     {
-        $tree = SpanTree::of(array_filter($spans, fn (Span $span): bool => ! ($span->attributes[SpanAttribute::EXECUTION_STEP] ?? false)));
+        $tree = SpanTree::of(array_filter(SpanTree::withApplicationParents($spans), fn (Span $span): bool => ! ($span->attributes[SpanAttribute::EXECUTION_STEP] ?? false)));
         $steps = [];
         foreach ($tree->roots() as $root) {
             $steps = [...$steps, ...self::stepsFrom(span: $root, depth: 0, tree: $tree)];

@@ -352,3 +352,21 @@ All four sessions: no BLOCKING finding. Resolved: V53, D46, D47, D48, D49, D50, 
 `$pathsToMapping` in 1.x, which is what the upgrade guide compares with.
 
 Open and left for the maintainer: **D24**, **G28**, **G46**, **V51 NIT**, **V52 NIT**, **V54 NIT**, **G55 NIT**.
+
+## First CI run of the pull request, and the review of its fixes at 571aab936
+
+CI at 8bfdda02b: both coroutine jobs passed. Failed: "Too many connections" on PHP 8.2 (a `WeakMap` entry whose value
+references its key is never freed before PHP 8.3, and a pooled connection referenced its pool); the two-writer tests on
+SQLite; `IdleConnectionTest` with ext-amqp without confirmations when the broker is reached through a published port.
+
+All four sessions: no BLOCKING finding on the three fix commits. Findings:
+
+- **B34 SHOULD-FIX / V55 SHOULD-FIX**: treating an ext-amqp context idle for half its heartbeat as disconnected replaces
+  the channel of an AMQP transaction whose handler runs that long, so it can never commit; a consumer is reconnected
+  after every slow message.
+- **G60 SHOULD-FIX**: `isDisconnected()` records the use of the context it is asked about. **G61 SHOULD-FIX**: the idle
+  time is real time and the commit names no test. **G62 NIT**: the pool fix names its test only in the commit message.
+  **B35 NIT**: the reconnect has no upgrade note.
+- **V56 SHOULD-FIX**: on SQLite a second execution writing at once waits out the busy timeout while it blocks the
+  process, where executions shared one connection before this branch; the tests are skipped, not the behaviour decided.
+  **V57 NIT**: the Symfony test never reached SQLite, its DSN mapping lacked the driver.

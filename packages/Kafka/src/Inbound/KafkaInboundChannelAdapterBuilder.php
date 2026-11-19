@@ -50,6 +50,9 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
 
     private int $commitIntervalInMessages = 1;
 
+    /** @var string[] */
+    private array $topics = [];
+
     public function __construct(
         private string $channelName,
         ?string  $requestChannelName = null,
@@ -69,6 +72,16 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
             $channelName,
             $requestChannelName,
         );
+    }
+
+    /**
+     * @param string[] $topics
+     */
+    public function withTopics(array $topics): self
+    {
+        $this->topics = $topics;
+
+        return $this;
     }
 
     protected function compileGateway(MessagingContainerBuilder $builder): Definition|Reference|DefinedObject
@@ -198,6 +211,6 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
      */
     protected function streamsConsumed(): array
     {
-        return [$this->channelName];
+        return $this->topics === [] ? [$this->channelName] : $this->topics;
     }
 }

@@ -169,6 +169,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                     channelName: $kafkaConsumer->getEndpointId(),
                     requestChannelName: $kafkaConsumer->getEndpointId(),
                 )
+                    ->withTopics($kafkaConsumer->getTopics())
                     ->withFinalFailureStrategy($kafkaConsumer->getFinalFailureStrategy())
                     ->withCommitInterval($kafkaConsumer->commitIntervalInMessages)
                     ->withEndpointAnnotations($kafkaConsumerAnnotatedMethod->getAllAnnotationDefinitions())

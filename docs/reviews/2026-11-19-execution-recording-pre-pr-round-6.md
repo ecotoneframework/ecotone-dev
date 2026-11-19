@@ -28,3 +28,28 @@ The maintainer changed the U5 decision after W2: the level may be set whatever t
 - Y4. Every text says it: the `--build` refusal (the level exports every step Ecotone runs as a span through the
   configured tracer, many more spans per message, and sends them to span recorders), `workflow.md`, row 3h, the public
   skill's OpenTelemetry bullet and `api-reference.md`, and W2's wording removed.
+
+Added after Y1 to Y4, maintainer decisions:
+
+- Z1. The `ecotone:build-flow:*` commands (`BuildFlowConsoleCommands`) and whatever exists only for them (scenario
+  catalogue runner, snapshot files, comparison and its Markdown presentations, as far as nothing an application uses
+  needs them) move out of `src/` into `packages/Ecotone/tests/`, registered only by the framework's own tests and
+  `bin/build-flow.php`. What an application uses stays shipped (`ecotone:flow:dump` with `--build`, the recording
+  reader, `popExecutionRecording()`); classes needed by both are listed. Stop and report if the move pulls along
+  something an application-facing feature depends on or a split package's autoload cannot reach it. Row 10 removed or
+  reduced; `workflow.md` and skill texts naming the old path updated; `bin/build-flow.php`, the CI baseline check and
+  the #771 files work as before; baselines unchanged.
+- Z2. Main keeps the snapshot: a workflow on `push` to `main` regenerates the baseline and commits it when it changed,
+  without looping and without losing a snapshot between close merges. Pull requests no longer fail when the baseline
+  differs; `workflow.md` says contributors leave it alone. Report the token and repository setting the push needs and
+  whether other workflows run on that commit.
+- Z3. A pull request gets one comment with `bin/build-flow.php compare` (before-after, GitHub Markdown, Mermaid),
+  updated in place on every push by a hidden marker; "no flow changed" updates an existing comment and creates none.
+  Report only: fails only when the tooling breaks.
+- Z4. Forks: a `pull_request` workflow without write permission uploads the body and pull request number as an
+  artifact; a `workflow_run` workflow with `pull-requests: write` only posts it, never runs pull request code, treats
+  the artifact as data (number validated and checked against the triggering run), least permissions per job.
+- Z5. The comment body is built by a tested PHP script under `bin/`: heading, marker, compare output, the "no flow
+  changed" form, GitHub's 65,536 character limit (whole scenarios kept from the top, how many left out, full
+  comparison in the uploaded artifact), Mermaid blocks under what GitHub renders; the #771 comment written to
+  `var/771/pr-comment.md` with its size.

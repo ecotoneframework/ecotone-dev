@@ -6,9 +6,10 @@ declare(strict_types=1);
  * licence Apache-2.0
  *
  * php http.php [requests] [requests sent at once] [MySQL|PostgreSQL] [part of a server name]
- * Serves the Symfony application of Monorepo/SwooleApp without OpenSwoole (PHP built-in server, which boots the
- * application for every request as php-fpm does), on OpenSwoole with one request per worker, and on OpenSwoole
- * with coroutines, each with 1, 4, 8 and 16 workers, and measures three requests on MySQL and PostgreSQL.
+ * Serves the Symfony application of Monorepo/SwooleApp on the PHP built-in server (which boots the application
+ * for every request as php-fpm does), on the coroutine extension of this container (OpenSwoole in `openswoole`,
+ * Swoole in `swoole`) with one request per worker, and on it with coroutines, each with 1, 4, 8 and 16 workers,
+ * and measures three requests on MySQL and PostgreSQL.
  */
 
 const PORT = 9501;
@@ -21,15 +22,16 @@ $databases = [
     'MySQL' => getenv('DATABASE_MYSQL'),
     'PostgreSQL' => 'pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16',
 ];
+$runtime = extension_loaded('swoole') ? 'Swoole' : 'OpenSwoole';
 $servers = [];
 foreach ([1, 4, 8, 16] as $workers) {
-    $servers["no OpenSwoole, {$workers} workers"] = "PHP_CLI_SERVER_WORKERS={$workers} php -S 0.0.0.0:" . PORT . " -t {$application}/public {$application}/public/index.php";
+    $servers["PHP built-in server, {$workers} workers"] = "PHP_CLI_SERVER_WORKERS={$workers} php -S 0.0.0.0:" . PORT . " -t {$application}/public {$application}/public/index.php";
 }
 foreach ([1, 4, 8, 16] as $workers) {
-    $servers["OpenSwoole, {$workers} workers"] = "SWOOLE_WORKERS={$workers} SWOOLE_COROUTINES=0 php {$application}/server.php";
+    $servers["{$runtime}, {$workers} workers"] = "SWOOLE_WORKERS={$workers} SWOOLE_COROUTINES=0 php {$application}/server.php";
 }
 foreach ([1, 4, 8, 16] as $workers) {
-    $servers["OpenSwoole, {$workers} workers, coroutines"] = "SWOOLE_WORKERS={$workers} SWOOLE_COROUTINES=1 php {$application}/server.php";
+    $servers["{$runtime}, {$workers} workers, coroutines"] = "SWOOLE_WORKERS={$workers} SWOOLE_COROUTINES=1 php {$application}/server.php";
 }
 
 exec('rm -rf ' . escapeshellarg($application . '/var/cache'));
@@ -57,7 +59,7 @@ foreach ($databases as $databaseName => $databaseDsn) {
 
         $run = bin2hex(random_bytes(3));
         foreach (['open' => 'accountId', 'walletOpen' => 'walletId', 'deposit' => 'accountId', 'walletTopUp' => 'walletId', 'balance' => 'accountId'] as $warmedUp => $identifier) {
-            send($warmedUp, str_starts_with($serverName, 'no OpenSwoole') ? 1 : 200, $sentAtOnce, '{"' . $identifier . '":"warm-' . $run . '-{i}","amount":5}');
+            send($warmedUp, str_starts_with($serverName, 'PHP built-in server') ? 1 : 200, $sentAtOnce, '{"' . $identifier . '":"warm-' . $run . '-{i}","amount":5}');
         }
         foreach (['open' => 'accountId', 'walletOpen' => 'walletId'] as $preparation => $identifier) {
             foreach (array_slice(send($preparation, $requests, $sentAtOnce, '{"' . $identifier . '":"' . $run . '-{i}"}')['errors'], 0, 3, true) as $error => $count) {
@@ -88,7 +90,7 @@ foreach ($databases as $databaseName => $databaseDsn) {
                 fwrite(STDERR, "    {$count} x {$error}\n");
             }
         }
-        if (str_starts_with($serverName, 'no OpenSwoole')) {
+        if (str_starts_with($serverName, 'PHP built-in server')) {
             stopServers();
             sleep(SECONDS_FOR_CLOSED_DATABASE_CONNECTIONS_TO_FREE_THEIR_PORTS);
         }

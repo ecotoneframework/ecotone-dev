@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Symfony on OpenSwoole. Environment:
+ * Symfony on OpenSwoole, or on Swoole when that is the extension loaded. Environment:
  *   SWOOLE_WORKERS      worker processes, default 2
  *   SWOOLE_COROUTINES   1 runs each request in its own coroutine with every blocking call hooked, default 0
  *   SWOOLE_MAX_REQUEST  requests a worker serves before the manager replaces it, default 0 (never)
@@ -10,11 +10,6 @@
  */
 
 use Monorepo\SwooleApp\Symfony\Kernel;
-use OpenSwoole\Constant;
-use OpenSwoole\Http\Request;
-use OpenSwoole\Http\Response;
-use OpenSwoole\Http\Server;
-use OpenSwoole\Runtime;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
@@ -22,13 +17,19 @@ require dirname(__DIR__, 3) . '/vendor/autoload.php';
 $coroutines = (bool) (getenv('SWOOLE_COROUTINES') ?: 0);
 $bootInMaster = (getenv('SWOOLE_BOOT') ?: 'worker') === 'master';
 
-$server = new Server('0.0.0.0', 9501);
+$runsOnSwoole = extension_loaded('swoole');
+$serverClass = $runsOnSwoole ? 'Swoole\\Http\\Server' : 'OpenSwoole\\Http\\Server';
+$everyHook = $runsOnSwoole ? constant('SWOOLE_HOOK_ALL') : constant('OpenSwoole\\Runtime::HOOK_ALL');
+
+$requestsSpreadOverWorkersByTheMaster = $runsOnSwoole ? constant('SWOOLE_PROCESS') : constant('OpenSwoole\\Server::POOL_MODE');
+
+$server = new $serverClass('0.0.0.0', 9501, $requestsSpreadOverWorkersByTheMaster);
 $server->set([
     'worker_num' => (int) (getenv('SWOOLE_WORKERS') ?: 2),
     'max_request' => (int) (getenv('SWOOLE_MAX_REQUEST') ?: 0),
     'enable_coroutine' => $coroutines,
-    'hook_flags' => $coroutines ? Runtime::HOOK_ALL : 0,
-    'log_level' => Constant::LOG_WARNING,
+    'hook_flags' => $coroutines ? $everyHook : 0,
+    'log_level' => $runsOnSwoole ? constant('SWOOLE_LOG_WARNING') : constant('OpenSwoole\\Constant::LOG_WARNING'),
 ]);
 
 $kernel = null;
@@ -46,7 +47,7 @@ if ($bootInMaster) {
     $server->on('workerStart', $boot);
 }
 
-$server->on('request', static function (Request $request, Response $response) use (&$kernel): void {
+$server->on('request', static function (object $request, object $response) use (&$kernel): void {
     $symfonyRequest = new SymfonyRequest(
         $request->get ?? [],
         $request->post ?? [],

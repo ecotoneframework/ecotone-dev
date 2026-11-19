@@ -263,3 +263,25 @@ Open and left for the maintainer:
   repository whose jobs mostly run without the extension. Framework code names no extension symbol; the two benchmark
   server files stay excluded from phpstan.
 - **G46** stays untestable in CI. **D24** is left as it is.
+
+## Re-verification at 3f862505f
+
+All four sessions: no BLOCKING finding. Resolved: D28, D35, G49, G25, V35, V39. New findings:
+
+- **V47 SHOULD-FIX** `EcotoneManagerRegistryConnectionFactory.php:34`: the object manager is asked for by the connection
+  name, which fails in a Symfony application whose entity manager is named differently from its connection; no Symfony
+  test of the attribute without tenants.
+- **V46 SHOULD-FIX** `CurrentConnectionObjectManagerTest.php:73`: the named connection has the DSN of the default one, so
+  the test passes when the name is ignored.
+- **B26 SHOULD-FIX** `upgrade-2.0.md:144`: a bare attribute beside a `MultiTenantConfiguration` under another reference
+  name now injects the default connection's object manager; the note does not say so as a step. **B27 NIT**: the
+  argument rename is not mentioned.
+- **D36 SHOULD-FIX** `DbalConnectionModule.php:130`: the refusal of an unregistered name suggests registrations without
+  Doctrine ORM. **D37 SHOULD-FIX**: Symfony's manager registry is one ObjectManager for the process; the note recommends
+  it without saying so.
+- **G50 SHOULD-FIX / D38 NIT** `ObjectManagerOfCurrentConnection.php:46`: the refusal names the internal
+  `ManagerRegistryEmulator` without a namespace, and the test constructs it.
+- **D39 NIT**: "it reads a stream, `a`, `b`" trips. **D40 NIT / B28 NIT**: a statement-form `with*()` on
+  `DynamicMessageChannelBuilder` loses its value without a warning. **V48 NIT**: the retry test passes with a retry
+  count shared between coroutines. **V49 NIT**: the refusal of a `#[KafkaConsumer]` names no topic. **G51 NIT**:
+  `CoroutineTesting` has no test of its own.

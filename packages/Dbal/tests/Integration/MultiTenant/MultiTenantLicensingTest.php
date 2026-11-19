@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
 use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Dbal\Attribute\MultiTenantObjectManager;
+use Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
@@ -41,13 +41,13 @@ final class MultiTenantLicensingTest extends TestCase
     {
         $service = new class () {
             #[CommandHandler('handleWithTenantObjectManager')]
-            public function handle(#[MultiTenantObjectManager] mixed $objectManager): void
+            public function handle(#[CurrentConnectionObjectManager] mixed $objectManager): void
             {
             }
         };
 
         $this->expectException(LicensingException::class);
-        $this->expectExceptionMessage('MultiTenantObjectManager');
+        $this->expectExceptionMessage('CurrentConnectionObjectManager');
         $this->expectExceptionMessage('https://docs.ecotone.tech/enterprise');
 
         EcotoneLite::bootstrapFlowTesting(

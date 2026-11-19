@@ -141,6 +141,11 @@ registered as `Ecotone\Api\Dbal\DbalConnectionFactory`, which is also the defaul
 `#[CurrentConnection('tenant_connection')]`. The argument is named `connectionReferenceName`, where
 `#[MultiTenantConnection]` named it `referenceName`.
 
+`#[MultiTenantObjectManager]` (`Ecotone\Dbal\Attribute\MultiTenantObjectManager`) is renamed the same way to
+`#[CurrentConnectionObjectManager]` (`Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager`): it injects the Doctrine
+ObjectManager of the active tenant's connection, as before, and still requires `MultiTenantConfiguration` and an
+Enterprise licence. Replace the attribute name; its argument is unchanged.
+
 ## 3. Projections: v1 (Prooph-based) removed, `ProjectionV2` renamed to `Projection`
 
 **Before:** Two projection systems coexisted: the Prooph-based v1 (`Ecotone\EventSourcing\Attribute\Projection`

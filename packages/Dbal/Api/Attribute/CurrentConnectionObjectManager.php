@@ -12,7 +12,7 @@ use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 /**
  * licence Apache-2.0
  */
-final class MultiTenantObjectManager extends Reference
+final class CurrentConnectionObjectManager extends Reference
 {
     public function __construct($referenceName = MultiTenantConnectionFactory::class)
     {

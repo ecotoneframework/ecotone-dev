@@ -102,7 +102,7 @@ Ecotone\Dbal\DbaBusinessMethod\FetchMode,Ecotone\Api\Dbal\FetchMode
 Ecotone\Dbal\Attribute\DbalWrite,Ecotone\Api\Dbal\Attribute\DbalWrite
 Ecotone\Dbal\Attribute\MultiTenantConnection,Ecotone\Api\Dbal\Attribute\CurrentConnection
 Ecotone\Dbal\DbalTransaction\DbalTransaction,Ecotone\Api\Dbal\Attribute\DbalTransaction
-Ecotone\Dbal\Attribute\MultiTenantObjectManager,Ecotone\Api\Dbal\Attribute\MultiTenantObjectManager
+Ecotone\Dbal\Attribute\MultiTenantObjectManager,Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager
 Ecotone\Dbal\Attribute\OnTenantActivation,Ecotone\Api\Dbal\Attribute\OnTenantActivation
 Ecotone\Dbal\Attribute\OnTenantDeactivation,Ecotone\Api\Dbal\Attribute\OnTenantDeactivation
 Ecotone\Dbal\Attribute\WithTenantResolver,Ecotone\Api\Dbal\Attribute\WithTenantResolver

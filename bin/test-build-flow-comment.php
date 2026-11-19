@@ -70,6 +70,37 @@ $cases = [
             [str_contains($comment['body'], "```mermaid\nflowchart LR\n  a --> b\n```"), 'the small diagram stays'],
         ]);
     },
+    'over the limit, a scenario is cut after its message path diagram, never inside or before it' => function (): ?string {
+        $scenarios = [];
+        for ($index = 1; $index <= 6; $index++) {
+            $scenarios[] = pathScenario('scenario ' . $index, str_repeat('y', 2_000), str_repeat('z', 13_000));
+        }
+        $result = run(comparison(...$scenarios));
+        $comment = read($result['output']);
+        preg_match_all('/^### `scenario (\d+)`$/m', $comment['body'], $shown);
+        $last = (int) end($shown[1]);
+
+        return expectAll([
+            [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
+            [mb_strlen($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . mb_strlen($comment['body'])],
+            [substr_count($comment['body'], "```mermaid\n") === count($shown[1]), 'every shown scenario shows its diagram'],
+            [substr_count($comment['body'], str_repeat('y', 2_000)) === count($shown[1]), 'no diagram cut in the middle'],
+            [substr_count($comment['body'], str_repeat('z', 13_000)) === count($shown[1]) - 1, 'only the text after the diagram of the last shown scenario is left out'],
+            [str_contains($comment['body'], "The rest of `scenario {$last}`, its wiring and what ran, is left out"), 'says what of the last scenario is left out'],
+            [str_contains($comment['body'], (6 - $last) . ' of 6 changed scenarios are left out'), 'says how many scenarios were left out entirely'],
+        ]);
+    },
+    'the build tree opens the comment and is not taken for a scenario' => function (): ?string {
+        $result = run("## Message flow: what changed\n\nNo scenario of 94 changes its message path. 2 change only their build.\n\n### Build: what changes\n\n```text\nMessagingSystem\n└── + module\n```\n");
+        $comment = read($result['output']);
+
+        return expectAll([
+            [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
+            [$comment['changed'] === true, 'a build change is a change'],
+            [str_contains($comment['body'], "### Build: what changes\n"), 'the build tree is shown'],
+            [! str_contains($comment['body'], 'left out'), 'nothing left out'],
+        ]);
+    },
     'a pull request number that is not a positive integer is refused' => function (): ?string {
         $result = run(comparison(scenario('order placed', 'diagram')), pullRequest: '17; rm -rf /');
 
@@ -116,6 +147,11 @@ echo count($cases) . " comment cases passed.\n";
 function scenario(string $name, string $content): string
 {
     return "### `{$name}`\n\nNow: it changed.\n\n#### Wiring\n\n{$content}\n";
+}
+
+function pathScenario(string $name, string $diagram, string $whatRan): string
+{
+    return "### `{$name}`\n\nNow: it changed.\n\n#### The message's path\n\n```mermaid\nsequenceDiagram\n{$diagram}\n```\n\n<details><summary>Marked wiring and traced spans</summary>\n\n#### Wiring\n\nUnchanged.\n\n</details>\n\n#### What ran, process by process\n\n{$whatRan}\n";
 }
 
 function comparison(string ...$scenarios): string

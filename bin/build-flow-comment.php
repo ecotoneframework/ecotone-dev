@@ -11,6 +11,7 @@ const COMPARISON_HEADING = '## Message flow: what changed';
 const GITHUB_COMMENT_LIMIT = 65_536;
 const GITHUB_MERMAID_LIMIT = 50_000;
 const COMPARISON_ARTIFACT = 'build-flow-comparison';
+const BUILD_TREE_HEADING = '### Build: what changes';
 const USAGE = <<<'USAGE'
     Builds the pull request comment that shows how the message flow changed.
 
@@ -50,7 +51,7 @@ if (! str_starts_with(ltrim($comparison), COMPARISON_HEADING)) {
 }
 
 [$preamble, $scenarios] = scenariosOf($comparison);
-$changed = $scenarios !== [];
+$changed = $scenarios !== [] || str_contains($preamble, "\n" . BUILD_TREE_HEADING . "\n");
 $body = $changed
     ? commentOf($preamble, $scenarios, $options['run-url'])
     : COMMENT_MARKER . "\n" . COMPARISON_HEADING . "\n\nNo message flow changed in the latest push of this pull request. " . trim(substr(trim($preamble), strlen(COMPARISON_HEADING))) . "\n";
@@ -62,7 +63,7 @@ file_put_contents($options['output'], json_encode(['pullRequest' => (int) $optio
  */
 function scenariosOf(string $comparison): array
 {
-    $parts = preg_split('/^(?=### )/m', $comparison);
+    $parts = preg_split('/^(?=### (?!Build: what changes$))/m', $comparison);
     $preamble = (string) array_shift($parts);
 
     return [$preamble, array_values($parts)];
@@ -74,19 +75,37 @@ function scenariosOf(string $comparison): array
 function commentOf(string $preamble, array $scenarios, string $runUrl): string
 {
     $scenarios = array_map(fn (string $scenario): string => withRenderableDiagrams($scenario, $runUrl), $scenarios);
-    $kept = [];
+    $shown = [];
     $length = mb_strlen(COMMENT_MARKER . "\n" . $preamble);
-    foreach ($scenarios as $scenario) {
-        $footer = leftOutNote(count($scenarios) - count($kept) - 1, count($scenarios), $runUrl);
-        if ($length + mb_strlen($scenario) + mb_strlen($footer) > GITHUB_COMMENT_LIMIT) {
-            break;
+    foreach ($scenarios as $position => $scenario) {
+        $footer = leftOutNote(count($scenarios) - $position - 1, count($scenarios), $runUrl);
+        if ($length + mb_strlen($scenario) + mb_strlen($footer) <= GITHUB_COMMENT_LIMIT) {
+            $shown[] = $scenario;
+            $length += mb_strlen($scenario);
+            continue;
         }
-        $kept[] = $scenario;
-        $length += mb_strlen($scenario);
+        $head = headWithDiagramOf($scenario, $runUrl);
+        if ($head !== null && $length + mb_strlen($head) + mb_strlen($footer) <= GITHUB_COMMENT_LIMIT) {
+            $shown[] = $head;
+        }
+        break;
     }
-    $leftOut = count($scenarios) - count($kept);
+    $leftOut = count($scenarios) - count($shown);
 
-    return COMMENT_MARKER . "\n" . $preamble . implode('', $kept) . ($leftOut === 0 ? '' : leftOutNote($leftOut, count($scenarios), $runUrl));
+    return COMMENT_MARKER . "\n" . $preamble . implode('', $shown) . leftOutNote($leftOut, count($scenarios), $runUrl);
+}
+
+/**
+ * The scenario up to the end of its message path diagram, so a diagram is never the part that is left out.
+ */
+function headWithDiagramOf(string $scenario, string $runUrl): ?string
+{
+    if (preg_match('/\A(.*?^```mermaid\n.*?^```\n(?:\n_Legend: [^\n]*\n)?)/ms', $scenario, $head) !== 1) {
+        return null;
+    }
+    $name = preg_match('/\A### (.*)$/m', $scenario, $heading) === 1 ? $heading[1] : 'this scenario';
+
+    return $head[1] . "\nThe rest of {$name}, its wiring and what ran, is left out to stay within GitHub's 65,536 character limit for a comment; it is in the `" . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n";
 }
 
 function leftOutNote(int $leftOut, int $all, string $runUrl): string

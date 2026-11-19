@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Test\Flow\Snapshot;
 
+use DateTimeImmutable;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
@@ -13,6 +14,7 @@ use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\Flow\FlowScenario;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
+use Ecotone\Test\LicenceTesting;
 
 /**
  * licence Apache-2.0
@@ -69,7 +71,10 @@ final class FlowScenarioRecorder
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $scenario->classesToResolve,
             containerOrAvailableServices: [...$scenario->services, InMemorySpanRecorder::class => $spanRecorder],
-            extensionObjects: [...$scenario->extensionObjects, $tracing]
+            extensionObjects: [...$scenario->extensionObjects, $tracing],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable(self::RECORDED_AT),
         );
     }
 }

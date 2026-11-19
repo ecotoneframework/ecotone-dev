@@ -12,6 +12,7 @@ use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -252,6 +253,102 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
      * @param list<object> $handlers
      * @return list<string>
      */
+    public function test_a_distributed_command_from_another_application_is_a_process_of_its_own_whose_lines_name_the_sending_application_and_the_command(): void
+    {
+        $ticketService = $this->ticketServiceReceivingFrom(function (SimpleMessageChannelBuilder $channel): void {
+            $users = EcotoneLite::bootstrapFlowTesting([], [], [$channel, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_tickets'), ServiceConfiguration::createWithDefaults()->withServiceName('user_service'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+            $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
+        });
+
+        $received = $ticketService->popExecutionRecording();
+
+        self::assertCount(1, $received->processes);
+        self::assertNull($received->processes[0]->sentBy);
+        self::assertSame(['    ↳ sent by: application user_service, the command ticket.create'], self::sentByLinesOf($received->lines));
+    }
+
+    public function test_a_distributed_event_from_another_application_is_a_process_of_its_own_whose_lines_name_the_sending_application_and_the_event(): void
+    {
+        $ticketService = $this->ticketServiceReceivingFrom(function (SimpleMessageChannelBuilder $channel): void {
+            $users = EcotoneLite::bootstrapFlowTesting([], [], [$channel, DistributedServiceMap::initialize()->withEventMapping(channelName: 'distributed_tickets', subscriptionKeys: ['user.*']), ServiceConfiguration::createWithDefaults()->withServiceName('user_service'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+            $users->getDistributedBus()->publishEvent('user.billing_address_changed', 'User changed billing address');
+        });
+
+        $received = $ticketService->popExecutionRecording();
+
+        self::assertCount(1, $received->processes);
+        self::assertNull($received->processes[0]->sentBy);
+        self::assertSame(['    ↳ sent by: application user_service, the event user.billing_address_changed'], self::sentByLinesOf($received->lines));
+    }
+
+    public function test_a_distributed_command_that_names_no_sending_service_is_recorded_as_sent_by_another_application(): void
+    {
+        $ticketService = $this->ticketServiceReceivingFrom(function (SimpleMessageChannelBuilder $channel): void {
+            $sender = EcotoneLite::bootstrapFlowTesting([], [], [$channel, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+            $sender->sendDirectToChannel('distributed_tickets', 'User changed billing address', [
+                MessageHeaders::CONTENT_TYPE => 'text/plain',
+                MessageHeaders::ROUTING_SLIP => DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE,
+                DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE => 'command',
+                DistributedBusHeader::DISTRIBUTED_ROUTING_KEY => 'ticket.create',
+            ]);
+        });
+
+        $received = $ticketService->popExecutionRecording();
+
+        self::assertNull($received->processes[0]->sentBy);
+        self::assertSame(['    ↳ sent by: another application, the command ticket.create'], self::sentByLinesOf($received->lines));
+    }
+
+    public function test_a_distributed_command_sent_and_consumed_inside_one_application_is_a_sub_flow_of_its_send_with_no_application_named(): void
+    {
+        $tickets = self::ticketCreation();
+        $ticketService = EcotoneLite::bootstrapFlowTesting([$tickets::class], [$tickets], [SimpleMessageChannelBuilder::createQueueChannel('distributed_tickets'), DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_tickets'), ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        $ticketService->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
+        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithTestingSetup());
+        $recording = $ticketService->popExecutionRecording();
+
+        self::assertSame(1, $recording->processes[1]->sentBy?->processNumber);
+        self::assertSame(['      ↳ sent by: process 1, the message'], self::sentByLinesOf($recording->lines));
+    }
+
+    private function ticketServiceReceivingFrom(callable $send): FlowTestSupport
+    {
+        $tickets = self::ticketCreation();
+        $channel = SimpleMessageChannelBuilder::createQueueChannel('distributed_tickets');
+        $ticketService = EcotoneLite::bootstrapFlowTesting([$tickets::class], [$tickets], [$channel, ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $send($channel);
+        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithTestingSetup());
+
+        return $ticketService;
+    }
+
+    private static function ticketCreation(): object
+    {
+        return new class () {
+            #[Distributed]
+            #[CommandHandler('ticket.create', endpointId: 'ticket.creation')]
+            public function create(string $ticket): void
+            {
+            }
+
+            #[Distributed]
+            #[EventHandler('user.billing_address_changed', endpointId: 'ticket.billing_address_noted')]
+            public function noteBillingAddress(string $event): void
+            {
+            }
+        };
+    }
+
+    /**
+     * @param list<string> $lines
+     * @return list<string>
+     */
+    private static function sentByLinesOf(array $lines): array
+    {
+        return array_values(array_filter($lines, fn (string $line): bool => str_contains($line, '↳ sent by: ')));
+    }
+
     private function linesOf(array $handlers, callable $run): array
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(

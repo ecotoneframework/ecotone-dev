@@ -7,6 +7,7 @@ namespace Ecotone\Tracing\Execution;
 use function array_pop;
 use function count;
 
+use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanAttribute;
@@ -173,9 +174,29 @@ final class ChannelSendRecording
                 }
             }
         }
-        $this->tracer->awaitReceive((string) $headers->get(MessageHeaders::MESSAGE_ID), 'receive ' . $this->channelName, $notes, []);
+        $this->tracer->awaitReceive((string) $headers->get(MessageHeaders::MESSAGE_ID), 'receive ' . $this->channelName, $notes, self::distributedSenderOf($message));
 
         return $message;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function distributedSenderOf(Message $message): array
+    {
+        $headers = $message->getHeaders();
+        if (! $headers->containsKey(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE) || ! $headers->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY)) {
+            return [];
+        }
+        $routingKey = (string) $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY);
+        $application = $headers->containsKey(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME) ? 'application ' . $headers->get(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME) : 'another application';
+        $sent = match ((string) $headers->get(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE)) {
+            'command' => 'the command ' . $routingKey,
+            'event' => 'the event ' . $routingKey,
+            default => 'the message sent to ' . $routingKey,
+        };
+
+        return [RecordedExecution::SENT_FROM_ANOTHER_APPLICATION => $application . ', ' . $sent];
     }
 
     private function enter(int $position): void

@@ -18,6 +18,7 @@ use Ecotone\Api\Tracing\SpanStatus;
  */
 final class RecordedExecution
 {
+    public const SENT_FROM_ANOTHER_APPLICATION = 'ecotone.execution.sent_from_another_application';
     private const HEADERS_PROPAGATION_SPAN = 'process MessageHeadersPropagatorInterceptor::';
     private const PLUMBING = ['Bridge::handle', 'RoutingSlipPrepender::transform', 'HeaderRouter::route'];
     private const GENERATED_ID = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{64}/';
@@ -193,6 +194,11 @@ final class RecordedExecution
         foreach ($processes as $consumer => $process) {
             $sender = self::senderOf(spans: [$process, ...$inStepOrder[$consumer]], processOf: $processOf, consumer: $consumer);
             if ($sender === null) {
+                $firstStep = $inStepOrder[$consumer][0] ?? null;
+                $sentFrom = $firstStep?->attributes[self::SENT_FROM_ANOTHER_APPLICATION] ?? null;
+                if ($sentFrom !== null) {
+                    $links[$firstStep->spanId][] = ['key' => ExecutionHint::SENT_BY, 'value' => (string) $sentFrom, 'shownInLines' => true];
+                }
                 continue;
             }
             $sendingStep = self::sendingStepOf(sender: $spanOf[$sender], parentOf: $parentOf, stepOf: $stepOf);

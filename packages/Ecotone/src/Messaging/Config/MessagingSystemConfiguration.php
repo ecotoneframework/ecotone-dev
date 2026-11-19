@@ -23,6 +23,7 @@ use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
+use Ecotone\Messaging\Channel\DynamicChannel\StreamsReceivedByDynamicChannel;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\OutboxForwardingChannel;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
@@ -1174,7 +1175,7 @@ final class MessagingSystemConfiguration implements Configuration
                     $consumerFactory->registerConsumer(
                         $messagingBuilder,
                         $messageHandlerBuilder,
-                        $inputChannelBuilder instanceof DynamicMessageChannelBuilder ? $inputChannelBuilder->canReceiveFromAStream($this->channelBuilders) : $inputChannelBuilder->isStreamingChannel(),
+                        $inputChannelBuilder instanceof DynamicMessageChannelBuilder ? StreamsReceivedByDynamicChannel::canReceiveFromAStream($inputChannelBuilder, $this->channelBuilders) : $inputChannelBuilder->isStreamingChannel(),
                     );
                     break;
                 }

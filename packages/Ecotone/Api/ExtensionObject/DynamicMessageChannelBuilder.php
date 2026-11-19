@@ -34,12 +34,14 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
 {
     /**
      * @param MessageChannelBuilder[] $internalMessageChannels
+     * @param string[] $receivingChannelNames
      */
     private function __construct(
         private string     $thisMessageChannelName,
         private Definition $channelSendingStrategy,
         private Definition $channelReceivingStrategy,
-        private array      $internalMessageChannels = []
+        private array      $internalMessageChannels = [],
+        private array      $receivingChannelNames = [],
     ) {
         Assert::allInstanceOfType($internalMessageChannels, MessageChannelBuilder::class);
     }
@@ -57,6 +59,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
             $thisMessageChannelName,
             new Definition(RoundRobinSendingStrategy::class, [$sendingChannelNames]),
             new Definition(RoundRobinReceivingStrategy::class, [$receivingChannelNames]),
+            receivingChannelNames: $receivingChannelNames,
         );
     }
 
@@ -76,6 +79,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
             $thisMessageChannelName,
             new Definition(RoundRobinSendingStrategy::class, [$channelNames]),
             new Definition(RoundRobinReceivingStrategy::class, [$channelNames]),
+            receivingChannelNames: $channelNames,
         );
     }
 
@@ -116,6 +120,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
                 $defaultChannelName,
             ]),
             new Definition(RoundRobinReceivingStrategy::class, [array_unique(array_merge(array_values($headerMapping)))]),
+            receivingChannelNames: array_values(array_unique(array_values($headerMapping))),
         );
     }
 
@@ -136,6 +141,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
                 new Definition(RoundRobinReceivingStrategy::class, [$channelNames]),
                 $requestChannelName,
             ]),
+            receivingChannelNames: $channelNames,
         );
     }
 
@@ -178,6 +184,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
 
     public function withCustomReceivingStrategy(string $requestChannelName): self
     {
+        $this->receivingChannelNames = [];
         $this->channelReceivingStrategy = new Definition(CustomReceivingStrategy::class, [
             Reference::to(MessagingEntrypointService::class),
             $requestChannelName,
@@ -233,26 +240,23 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     }
 
     /**
-     * @param array<string, MessageChannelBuilder> $channelsOfTheApplication
+     * @return MessageChannelBuilder[]
      */
-    public function canReceiveFromAStream(array $channelsOfTheApplication): bool
+    public function getInternalMessageChannels(): array
     {
-        $candidates = [...array_values($this->internalMessageChannels), ...array_values($channelsOfTheApplication)];
-        if ($this->channelReceivingStrategy->getClassName() === RoundRobinReceivingStrategy::class) {
-            $candidates = array_values($this->internalMessageChannels);
-            foreach ($this->channelReceivingStrategy->getArguments()[0] as $receivingChannelName) {
-                if (isset($channelsOfTheApplication[$receivingChannelName])) {
-                    $candidates[] = $channelsOfTheApplication[$receivingChannelName];
-                }
-            }
-        }
+        return $this->internalMessageChannels;
+    }
 
-        foreach ($candidates as $channel) {
-            if ($channel !== $this && $channel->isStreamingChannel()) {
-                return true;
-            }
-        }
+    /**
+     * @return string[]
+     */
+    public function getReceivingChannelNames(): array
+    {
+        return $this->receivingChannelNames;
+    }
 
-        return false;
+    public function hasCustomReceivingStrategy(): bool
+    {
+        return $this->channelReceivingStrategy->getClassName() === CustomReceivingStrategy::class;
     }
 }

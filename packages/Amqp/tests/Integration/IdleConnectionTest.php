@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
+use Ecotone\Amqp\Configuration\AmqpConfiguration;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Fiber;
 use Interop\Amqp\Impl\AmqpQueue;
@@ -82,10 +84,41 @@ final class IdleConnectionTest extends AmqpMessagingTestCase
         $this->assertSame(['before idle', 'after idle'], $ecotone->sendQueryWithRouting('order.placed'));
     }
 
+    public function test_transaction_of_a_handler_that_works_for_most_of_the_heartbeat_is_committed_once(): void
+    {
+        $ecotone = $this->bootstrapOrders(publisherConfirms: false, heartbeatInSeconds: 2, transactions: true);
+
+        $ecotone->sendCommandWithRouting('order.placeAfterWorkingFor', ['orderId' => 'worked on', 'seconds' => 1.2]);
+        $ecotone->run('idle_orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $this->assertSame(['worked on'], $ecotone->sendQueryWithRouting('order.placed'));
+        $this->assertSame(1, $ecotone->sendQueryWithRouting('order.timesWorkedOn'));
+    }
+
     private function bootstrapOrdersWithHeartbeatOfOneSecond(bool $publisherConfirms): FlowTestSupport
+    {
+        return $this->bootstrapOrders($publisherConfirms, heartbeatInSeconds: 1, transactions: false);
+    }
+
+    private function bootstrapOrders(bool $publisherConfirms, int $heartbeatInSeconds, bool $transactions): FlowTestSupport
     {
         $orders = new class () {
             private array $placed = [];
+            private int $timesWorkedOn = 0;
+
+            #[CommandHandler('order.placeAfterWorkingFor')]
+            public function placeAfterWorkingFor(array $command, CommandBus $commandBus): void
+            {
+                $this->timesWorkedOn++;
+                $commandBus->sendWithRouting('order.place', $command['orderId']);
+                usleep((int) ($command['seconds'] * 1_000_000));
+            }
+
+            #[QueryHandler('order.timesWorkedOn')]
+            public function timesWorkedOn(): int
+            {
+                return $this->timesWorkedOn;
+            }
 
             #[Asynchronous('idle_orders')]
             #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
@@ -103,8 +136,11 @@ final class IdleConnectionTest extends AmqpMessagingTestCase
 
         return $this->bootstrapFlowTesting(
             [$orders::class],
-            [$orders, ...$this->getConnectionFactoryReferences(['heartbeat' => 1])],
-            [AmqpBackedMessageChannelBuilder::create('idle_orders')->withPublisherConfirms($publisherConfirms)],
+            [$orders, ...$this->getConnectionFactoryReferences(['heartbeat' => $heartbeatInSeconds])],
+            [
+                AmqpConfiguration::createWithDefaults()->withTransactionOnCommandBus($transactions),
+                AmqpBackedMessageChannelBuilder::create('idle_orders')->withPublisherConfirms($publisherConfirms),
+            ],
             [ModulePackageList::AMQP_PACKAGE],
         );
     }

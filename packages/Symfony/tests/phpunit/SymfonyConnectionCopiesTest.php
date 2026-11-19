@@ -71,7 +71,7 @@ final class SymfonyConnectionCopiesTest extends TestCase
     private function bootstrapParcelsOn(SymfonyConnectionReference $connectionReference): FlowTestSupport
     {
         $connection = DriverManager::getConnection(
-            (new DsnParser(['pgsql' => 'pdo_pgsql', 'mysql' => 'pdo_mysql']))->parse(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'),
+            (new DsnParser(['pgsql' => 'pdo_pgsql', 'mysql' => 'pdo_mysql', 'sqlite' => 'pdo_sqlite']))->parse(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'),
             (new Configuration())->setMiddlewares([new TransactionReconnectProtectionMiddleware()]),
         );
         $connection->executeStatement('DROP TABLE IF EXISTS symfony_parcels');

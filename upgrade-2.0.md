@@ -3073,6 +3073,11 @@ Every concurrent execution also has its own RabbitMQ connection, kept open when 
 next one. Their number is not limited: a process holds as many as it has had executions running at once, so keep the
 coroutines per worker (`max_coroutine`) times the workers below what the broker accepts.
 
+With the `amqp` extension and a `heartbeat` configured, a connection that published nothing for two heartbeat
+periods is opened again before the next publish. The extension sends heartbeats only while it waits for the broker,
+so the broker has closed such a connection by then, and a message published on it without publisher confirmations
+could be lost without an error. Nothing changes without a heartbeat or with `php-amqplib`.
+
 What a coroutine can wait on decides whether it helps:
 
 - MySQL and MariaDB (`pdo_mysql`) and `php-amqplib` (`AmqpLibConnectionFactory`) are waited on: while one coroutine
@@ -3086,7 +3091,9 @@ What a coroutine can wait on decides whether it helps:
   one too, and neither would finish.
 - The `amqp` extension (`AmqpExtConnectionFactory`) and SQLite work, but each call stops every coroutine of the
   process until it returns. With SQLite a second writer waits inside the call for the first, which cannot go on
-  meanwhile, so let one coroutine write at a time; `sqlite:///:memory:` is a separate empty database per connection.
+  meanwhile, and fails with `database is locked` when SQLite's busy timeout runs out. That holds for fibers as well,
+  which shared one connection in 1.x and each have their own now: let one coroutine or fiber write at a time.
+  `sqlite:///:memory:` is a separate empty database per connection.
 
 OpenTelemetry keeps the span that is current per fiber, not per Swoole or OpenSwoole coroutine. Ecotone's own record
 of open spans is per coroutine, but spans exported from coroutines running at once carry the wrong parent unless

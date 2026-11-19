@@ -96,11 +96,13 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
         $this->verifyDestinationExists();
 
+        $this->reopenConnectionTheBrokerClosedWhileItStayedIdle();
         $context = $this->connectionFactory->createContext();
         $confirmations = $this->publisherConfirmationsOf($context);
         $prePublishConfirmationsEpoch = $confirmations?->getEpoch() ?? 0;
 
         $publishRecords = $this->publishMessages($messagesToPublish, $context, $confirmations);
+        $this->recordPublish();
         $this->amqpTransactionInterceptor->commitWhenPublishedOutsideOfTransaction($context);
 
         if ($publishRecords !== [] && $confirmations !== null && $this->canDeferConfirmation()) {
@@ -222,6 +224,22 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             'deliveryTag' => $confirmations->recordPublishedMessage($resolveTagThroughCorrelation ? $correlationId : ''),
             'correlationId' => $correlationId,
         ];
+    }
+
+    private function reopenConnectionTheBrokerClosedWhileItStayedIdle(): void
+    {
+        $innerConnectionFactory = $this->connectionFactory->getInnerConnectionFactory();
+        if ($innerConnectionFactory instanceof AmqpReconnectableConnectionFactory && $innerConnectionFactory->hasBrokerClosedTheConnectionIdleSinceTheLastPublish()) {
+            $this->connectionFactory->reconnect();
+        }
+    }
+
+    private function recordPublish(): void
+    {
+        $innerConnectionFactory = $this->connectionFactory->getInnerConnectionFactory();
+        if ($innerConnectionFactory instanceof AmqpReconnectableConnectionFactory) {
+            $innerConnectionFactory->recordPublish();
+        }
     }
 
     private function publisherConfirmationsOf(InteropAmqpContext $context): ?AmqpPublisherConfirmations

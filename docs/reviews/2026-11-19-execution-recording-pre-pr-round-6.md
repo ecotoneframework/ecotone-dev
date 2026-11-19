@@ -53,3 +53,14 @@ Added after Y1 to Y4, maintainer decisions:
   changed" form, GitHub's 65,536 character limit (whole scenarios kept from the top, how many left out, full
   comparison in the uploaded artifact), Mermaid blocks under what GitHub renders; the #771 comment written to
   `var/771/pr-comment.md` with its size.
+
+Added after Z5, maintainer decisions (head 0f6673e3e):
+
+- Z6. The pull request comment always shows a diagram: `build-flow-comparison.yml` builds it from
+  `php bin/build-flow.php compare --presentation=path`. When a scenario also changes its wiring, the comment still
+  shows that wiring change; report what `path` shows for a wiring change and, if the wiring diagram is missing, add it
+  collapsed in `<details>` (use `build` if it is the right presentation, no fifth one; say which and why). The Z5 size
+  limits hold with the diagram first: a diagram is never the part that is cut. Regenerate `var/771/pr-comment.md`.
+- Z7. The sequence diagram's Before and After blocks (`rect rgb(255, 235, 233)`, `rect rgb(218, 251, 225)`) stay
+  readable in GitHub's dark theme: check and change the fills if needed (translucent `rgba(...)`), with the test that
+  pins the output. Baselines store no Markdown and should not change.

@@ -24,11 +24,11 @@ final class RecordedStreamSource implements StreamSource
     public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
     {
         return StepAround::of(
-            $this->tracer,
-            'load events of ' . $projectionName . ($partitionKey === null ? '' : ' partition ' . $partitionKey),
-            fn () => $this->streamSource->load($projectionName, $lastPosition, $count, $partitionKey),
-            fn (StreamPage $page): ExecutionHint => $page->events === [] ? ExecutionHint::shownInLines(ExecutionHint::FOUND, '0 events') : ExecutionHint::detail(ExecutionHint::FOUND, count($page->events) . ' events'),
-            [ExecutionHint::detail(ExecutionHint::RANGE, 'after position ' . ($lastPosition ?? 'start') . ', up to ' . $count)],
+            tracer: $this->tracer,
+            name: 'load events of ' . $projectionName . ($partitionKey === null ? '' : ' partition ' . $partitionKey),
+            call: fn () => $this->streamSource->load($projectionName, $lastPosition, $count, $partitionKey),
+            outcome: fn (StreamPage $page): ExecutionHint => $page->events === [] ? ExecutionHint::shownInLines(ExecutionHint::FOUND, '0 events') : ExecutionHint::detail(ExecutionHint::FOUND, count($page->events) . ' events'),
+            hints: [ExecutionHint::detail(ExecutionHint::RANGE, 'after position ' . ($lastPosition ?? 'start') . ', up to ' . $count)]
         );
     }
 }

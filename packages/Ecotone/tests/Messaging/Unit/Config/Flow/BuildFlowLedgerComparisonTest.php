@@ -273,7 +273,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
 
         $markdown = $this->presentation('build');
 
-        $positions = array_map(fn (string $part): int|false => strpos($markdown, $part), ['1 of 1 scenarios changes its message path.', '### Build: what changes', '### `Handling lines`', 'Before', 'Now: ', "#### The message's path", '<details><summary>Marked wiring and traced steps</summary>', '#### Wiring', 'classDef added']);
+        $positions = array_map(fn (string $part): int|false => strpos($markdown, $part), ['1 of 1 scenario changes its message path.', '### Build: what changes', '### `Handling lines`', 'Before', 'Now: ', "#### The message's path", '<details><summary>Marked wiring and traced spans</summary>', '#### Wiring', 'classDef added']);
         self::assertStringEndsWith("\n</details>\n", $markdown);
         self::assertNotContains(false, $positions);
         $sorted = $positions;

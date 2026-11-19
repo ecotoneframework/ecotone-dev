@@ -23,9 +23,9 @@ final class RecordedRetryAttempt implements MethodInvocation
             return $attempt === 1
                 ? $this->methodInvocation->proceed()
                 : StepAround::of(
-                    $this->tracer,
-                    'instant retry',
-                    fn () => $this->methodInvocation->proceed(),
+                    tracer: $this->tracer,
+                    name: 'instant retry',
+                    call: fn () => $this->methodInvocation->proceed(),
                     hints: [ExecutionHint::shownInLines(ExecutionHint::RETRY, 'attempt ' . $attempt . ' after ' . $this->attempts->lastFailure . ', by InstantRetryInterceptor::retry')],
                 );
         } catch (Throwable $failure) {
@@ -37,7 +37,7 @@ final class RecordedRetryAttempt implements MethodInvocation
 
     public function cloneCurrentState(): MethodInvocation
     {
-        return new self($this->methodInvocation->cloneCurrentState(), $this->attempts, $this->tracer);
+        return new self(methodInvocation: $this->methodInvocation->cloneCurrentState(), attempts: $this->attempts, tracer: $this->tracer);
     }
 
     public function getObjectToInvokeOn(): string|object

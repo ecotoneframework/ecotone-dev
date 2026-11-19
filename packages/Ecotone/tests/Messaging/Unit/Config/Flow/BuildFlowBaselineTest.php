@@ -7,7 +7,6 @@ namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\Flow\Snapshot\BuildFlowConsoleCommands;
 use Ecotone\Test\LicenceTesting;
@@ -141,10 +140,9 @@ final class BuildFlowBaselineTest extends TestCase
         file_put_contents($this->location . '/a-scenario-that-was-removed.json', '{}');
         file_put_contents($this->location . '/shared.json', str_replace('CommandBus::send', 'CommandBus::dispatch', (string) file_get_contents($this->location . '/shared.json')));
 
-        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
             'The flow snapshots in ' . $this->location . ' are not what the code produces: differs: projection-rebuilt-asynchronously.json, shared.json; missing: projection-backfilled-asynchronously.json; no longer produced: a-scenario-that-was-removed.json. '
-            . 'If the message flow was meant to change, regenerate the snapshots with `php bin/build-flow.php snapshot` and commit them; `php bin/build-flow.php compare` shows what changed. If it was not, the change altered the framework\'s wiring or traced steps by accident.'
+            . 'If the message flow was meant to change, regenerate the snapshots with `php bin/build-flow.php snapshot --location=' . $this->location . '` and commit them; `php bin/build-flow.php compare --from=' . $this->location . '` shows what changed. If it was not, the change altered the framework\'s wiring or traced spans by accident.'
         );
 
         $tooling->runConsoleCommand('ecotone:build-flow:check', ['location' => $this->location]);

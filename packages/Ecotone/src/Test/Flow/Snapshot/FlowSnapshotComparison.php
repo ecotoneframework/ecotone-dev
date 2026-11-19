@@ -93,7 +93,7 @@ final class FlowSnapshotComparison
         }
         $groups = $merged;
 
-        return new self(count($before + $after), array_values($groups), $sharedByEveryScenario === [] ? null : $everyScenario, $buildChangesByScenario, array_keys($projectionNames));
+        return new self(scenariosCompared: count($before + $after), groups: array_values($groups), everyScenario: $sharedByEveryScenario === [] ? null : $everyScenario, buildChangesByScenario: $buildChangesByScenario, projectionNames: array_keys($projectionNames));
     }
 
     /**

@@ -23,12 +23,12 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
 
     public function collectMessage(string $endpointId, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): void
     {
-        $this->recorded('collect a message for ' . $endpointId, $groupKey === null ? [] : [ExecutionHint::detail(ExecutionHint::GROUP, 'key ' . $groupKey)], fn () => $this->store->collectMessage($endpointId, $groupKey, $gatherChannelName, $maxSize, $message, $deadline, $whenOpened, $whenReleased));
+        $this->recorded(name: 'collect a message for ' . $endpointId, hints: $groupKey === null ? [] : [ExecutionHint::detail(ExecutionHint::GROUP, 'key ' . $groupKey)], call: fn () => $this->store->collectMessage($endpointId, $groupKey, $gatherChannelName, $maxSize, $message, $deadline, $whenOpened, $whenReleased));
     }
 
     public function openGroup(string $groupId, string $endpointId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened, ?string $groupKey): void
     {
-        $this->recorded('open gathering group of ' . ($size === self::UNKNOWN_SIZE ? 'an unknown number of' : $size) . ' parts', [ExecutionHint::detail(ExecutionHint::GROUP, $groupId)], fn () => $this->store->openGroup($groupId, $endpointId, $gatherChannelName, $size, $original, $deadline, $whenOpened, $groupKey));
+        $this->recorded(name: 'open gathering group of ' . ($size === self::UNKNOWN_SIZE ? 'an unknown number of' : $size) . ' parts', hints: [ExecutionHint::detail(ExecutionHint::GROUP, $groupId)], call: fn () => $this->store->openGroup($groupId, $endpointId, $gatherChannelName, $size, $original, $deadline, $whenOpened, $groupKey));
     }
 
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void
@@ -42,7 +42,7 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
                 $released = count($arguments[1] ?? []);
                 $whenComplete(...$arguments);
             });
-            $outcome = $this->outcomeOfPart($groupId, $partNumber, $before, $released);
+            $outcome = $this->outcomeOfPart(groupId: $groupId, partNumber: $partNumber, before: $before, released: $released);
         } catch (Throwable $failure) {
             if ($step !== null) {
                 $this->tracer->failStep($step, $failure);
@@ -91,12 +91,12 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
 
     public function releaseGroup(string $groupId, callable $whenReleased, GatheredReleaseReason|CollectedReleaseReason|null $releaseReason): void
     {
-        $this->recorded('release group in ' . ExecutionRecordingTracer::shortClassOf($this->store::class), array_values(array_filter([ExecutionHint::detail(ExecutionHint::GROUP, $groupId), $releaseReason === null ? null : ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, $releaseReason->value)])), fn () => $this->store->releaseGroup($groupId, fn (mixed ...$arguments) => $this->recorded('call the gatherer back', [ExecutionHint::shownInLines(ExecutionHint::RUNS_IN, 'this consumer run')], fn () => $whenReleased(...$arguments)), $releaseReason));
+        $this->recorded(name: 'release group in ' . ExecutionRecordingTracer::shortClassOf($this->store::class), hints: array_values(array_filter([ExecutionHint::detail(ExecutionHint::GROUP, $groupId), $releaseReason === null ? null : ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, $releaseReason->value)])), call: fn () => $this->store->releaseGroup($groupId, fn (mixed ...$arguments) => $this->recorded('call the gatherer back', [ExecutionHint::shownInLines(ExecutionHint::RUNS_IN, 'this consumer run')], fn () => $whenReleased(...$arguments)), $releaseReason));
     }
 
     public function discard(string $groupId): void
     {
-        $this->recorded('discard gathering group', [ExecutionHint::detail(ExecutionHint::GROUP, $groupId)], fn () => $this->store->discard($groupId));
+        $this->recorded(name: 'discard gathering group', hints: [ExecutionHint::detail(ExecutionHint::GROUP, $groupId)], call: fn () => $this->store->discard($groupId));
     }
 
     public function cleanupClosedGroups(int $closedAtOrBefore): void

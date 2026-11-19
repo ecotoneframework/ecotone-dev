@@ -220,7 +220,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
         );
         self::assertDoesNotMatchRegularExpression('/^    (p\d+)--?>>\1:/m', $path);
         self::assertStringNotContainsString('nodes added', $path);
-        self::assertStringNotContainsString('- Traced steps:', $path);
+        self::assertStringNotContainsString('- Traced spans:', $path);
         self::assertStringContainsString('_Legend: solid arrow = a traced step, dashed arrow = taken from the wiring or the build because no span is recorded; `+` = new._', $path);
     }
 

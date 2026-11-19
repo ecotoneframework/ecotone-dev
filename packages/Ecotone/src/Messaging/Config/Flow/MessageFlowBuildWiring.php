@@ -43,7 +43,7 @@ final class MessageFlowBuildWiring implements DefinedObject
     {
         $data = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
 
-        return new self($data['nodes'], $data['edges'], $data['entryChannels']);
+        return new self(nodes: $data['nodes'], edges: $data['edges'], entryChannels: $data['entryChannels']);
     }
 
     public function getDefinition(): Definition

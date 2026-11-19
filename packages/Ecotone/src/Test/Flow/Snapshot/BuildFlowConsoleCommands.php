@@ -56,7 +56,7 @@ final class BuildFlowConsoleCommands
             throw InvalidArgumentException::create(
                 "The flow snapshots in {$location} are not what the code produces: "
                 . implode('; ', array_map(fn (string $problem, array $fileNames): string => $problem . ': ' . implode(', ', $fileNames), array_keys($problems), $problems))
-                . '. If the message flow was meant to change, regenerate the snapshots with `php bin/build-flow.php snapshot` and commit them; `php bin/build-flow.php compare` shows what changed. If it was not, the change altered the framework\'s wiring or traced steps by accident.'
+                . '. If the message flow was meant to change, regenerate the snapshots with `php bin/build-flow.php snapshot --location=' . $location . '` and commit them; `php bin/build-flow.php compare --from=' . $location . '` shows what changed. If it was not, the change altered the framework\'s wiring or traced spans by accident.'
             );
         }
 

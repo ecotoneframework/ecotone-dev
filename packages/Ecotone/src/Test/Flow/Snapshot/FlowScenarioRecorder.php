@@ -43,13 +43,13 @@ final class FlowScenarioRecorder
      */
     public static function filesOfTheCatalogue(): array
     {
-        return FlowSnapshots::filesOf(self::snapshotsOfTheCatalogue(), self::snapshotOf(new FlowScenario('application without handlers', [], [], [], [])));
+        return FlowSnapshots::filesOf(self::snapshotsOfTheCatalogue(), self::snapshotOf(new FlowScenario(name: 'application without handlers', classesToResolve: [], services: [], extensionObjects: [], stages: [])));
     }
 
     public static function snapshotOf(FlowScenario $scenario): FlowSnapshot
     {
         $spanRecorder = new InMemorySpanRecorder();
-        $ecotone = self::applicationOf($scenario, $spanRecorder, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework));
+        $ecotone = self::applicationOf(scenario: $scenario, spanRecorder: $spanRecorder, tracing: TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework));
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
         $dump = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
         $spanRecorder->clear();
@@ -60,7 +60,7 @@ final class FlowScenarioRecorder
             }
         }
 
-        return FlowSnapshot::of($scenario->name, MessageFlowGraph::fromJson($dump), $spanRecorder->recordedSpans(), json_decode($dump, true, flags: JSON_THROW_ON_ERROR)['build']);
+        return FlowSnapshot::of(scenario: $scenario->name, wiring: MessageFlowGraph::fromJson($dump), spans: $spanRecorder->recordedSpans(), build: json_decode($dump, true, flags: JSON_THROW_ON_ERROR)['build']);
     }
 
     private static function applicationOf(FlowScenario $scenario, InMemorySpanRecorder $spanRecorder, TracingConfiguration $tracing): FlowTestSupport

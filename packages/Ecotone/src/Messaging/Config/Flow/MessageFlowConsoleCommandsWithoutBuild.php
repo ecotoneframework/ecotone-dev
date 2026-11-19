@@ -21,6 +21,6 @@ final class MessageFlowConsoleCommandsWithoutBuild
             throw ConfigurationException::create('ecotone:flow:dump --build was asked for what Ecotone registers for the application, which is read only at the framework tracing level. Switch it on with ' . FrameworkTracing::SWITCH_ON . ', or run ecotone:flow:dump without --build for the message flow the application declares.');
         }
 
-        MessageFlowConsoleCommands::write($messagingSystem->getMessageFlowGraph(), $writer, $format, null);
+        MessageFlowConsoleCommands::write(graph: $messagingSystem->getMessageFlowGraph(), writer: $writer, format: $format, build: null);
     }
 }

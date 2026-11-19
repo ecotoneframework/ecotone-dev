@@ -46,12 +46,12 @@ final class ExecutionHint
 
     public static function shownInLines(string $key, string $value): self
     {
-        return new self($key, $value, true);
+        return new self(key: $key, value: $value, shownInLines: true);
     }
 
     public static function detail(string $key, string $value): self
     {
-        return new self($key, $value, false);
+        return new self(key: $key, value: $value, shownInLines: false);
     }
 
     /**

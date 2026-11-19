@@ -112,18 +112,18 @@ final class ExecutionRecordingTracer implements Tracer
         $this->invocationInOpenEntry = false;
         $this->housekeepingInOpenEntry = false;
         $entry = new ExecutionStep(
-            SpanContext::newTrace(),
-            null,
-            null,
-            $name,
-            [
+            context: SpanContext::newTrace(),
+            parentSpanId: null,
+            owner: null,
+            name: $name,
+            attributes: [
                 SpanAttribute::MESSAGING_SYSTEM => SpanAttribute::ECOTONE,
                 SpanAttribute::EXECUTION_STEP => true,
                 SpanAttribute::EXECUTION_PROCESS => true,
                 SpanAttribute::EXECUTION_ORDER => $this->nextOrder(),
                 ...$attributes,
             ],
-            $this->clock->now(),
+            startedAt: $this->clock->now(),
         );
         $this->openSteps[] = $entry;
 
@@ -150,18 +150,18 @@ final class ExecutionRecordingTracer implements Tracer
         }
         $this->stepsWithChildren[$parentContext->spanId] = true;
         $step = new ExecutionStep(
-            $parentContext->newChild(),
-            $parentContext->spanId,
-            $current,
-            $name,
-            [
+            context: $parentContext->newChild(),
+            parentSpanId: $parentContext->spanId,
+            owner: $current,
+            name: $name,
+            attributes: [
                 SpanAttribute::MESSAGING_SYSTEM => SpanAttribute::ECOTONE,
                 SpanAttribute::EXECUTION_STEP => true,
                 SpanAttribute::EXECUTION_ORDER => $this->nextOrder(),
                 ...$attributes,
                 ...($hints === [] ? [] : [SpanAttribute::EXECUTION_HINTS => ExecutionHint::encoded($hints)]),
             ],
-            $this->clock->now(),
+            startedAt: $this->clock->now(),
         );
         $this->openSteps[] = $step;
 
@@ -212,7 +212,7 @@ final class ExecutionRecordingTracer implements Tracer
      */
     public function endStep(ExecutionStep $step, string $outcome, array $hints = []): void
     {
-        $this->finish($step, $outcome, SpanStatus::Ok, null, $hints);
+        $this->finish(step: $step, outcome: $outcome, status: SpanStatus::Ok, statusDescription: null, hints: $hints);
     }
 
     public function endStepWhenSomethingRanInside(ExecutionStep $step): void
@@ -231,7 +231,7 @@ final class ExecutionRecordingTracer implements Tracer
 
     public function failStep(ExecutionStep $step, Throwable $failure): void
     {
-        $this->finish($step, 'throws ' . self::shortClassOf($failure::class), SpanStatus::Error, $failure->getMessage());
+        $this->finish(step: $step, outcome: 'throws ' . self::shortClassOf($failure::class), status: SpanStatus::Error, statusDescription: $failure->getMessage());
     }
 
     /**
@@ -267,21 +267,21 @@ final class ExecutionRecordingTracer implements Tracer
             $this->hintsOfOpenSteps = [];
         }
         $span = new Span(
-            $step->context->traceId,
-            $step->context->spanId,
-            $step->parentSpanId,
-            $step->name,
-            SpanKind::Internal,
-            [
+            traceId: $step->context->traceId,
+            spanId: $step->context->spanId,
+            parentSpanId: $step->parentSpanId,
+            name: $step->name,
+            kind: SpanKind::Internal,
+            attributes: [
                 ...$step->attributes,
                 ...($outcome === '' ? [] : [SpanAttribute::EXECUTION_OUTCOME => $outcome]),
                 ...($hints === [] ? [] : [SpanAttribute::EXECUTION_HINTS => self::withHints((string) ($step->attributes[SpanAttribute::EXECUTION_HINTS] ?? '[]'), $hints)]),
             ],
-            $status,
-            $statusDescription,
-            [],
-            $step->startedAt,
-            $this->clock->now(),
+            status: $status,
+            statusDescription: $statusDescription,
+            events: [],
+            startedAt: $step->startedAt,
+            endedAt: $this->clock->now(),
         );
         if ($step->parentSpanId === null) {
             $this->openSteps = [];
@@ -296,7 +296,7 @@ final class ExecutionRecordingTracer implements Tracer
             $receiveEntry = $this->receiveEntry;
             $this->receiveEntry = null;
             $this->receiveContinuation = null;
-            $this->finish($receiveEntry, '', $status, $statusDescription);
+            $this->finish(step: $receiveEntry, outcome: '', status: $status, statusDescription: $statusDescription);
 
             return;
         }

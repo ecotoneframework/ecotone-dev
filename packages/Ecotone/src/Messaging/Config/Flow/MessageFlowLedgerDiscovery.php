@@ -95,16 +95,16 @@ final class MessageFlowLedgerDiscovery
         }
         foreach ($this->configuration->getRegisteredGateways() as $gateway) {
             $name = $gateway->getInterfaceName() . '::' . $gateway->getRelatedMethodName();
-            $this->entry(Configuration::GATEWAY, $name, $this->configuration->getRegisteringModule(Configuration::GATEWAY, $name), ['requestChannel' => $this->stable($gateway->getRequestChannelName())]);
+            $this->entry(kind: Configuration::GATEWAY, name: $name, module: $this->configuration->getRegisteringModule(Configuration::GATEWAY, $name), details: ['requestChannel' => $this->stable($gateway->getRequestChannelName())]);
         }
         foreach ($this->configuration->getRegisteredMessageChannels() as $channel) {
-            $this->entry(Configuration::CHANNEL, $this->stable($channel->getMessageChannelName()), $this->configuration->getRegisteringModule(Configuration::CHANNEL, $channel->getMessageChannelName()), [
+            $this->entry(kind: Configuration::CHANNEL, name: $this->stable($channel->getMessageChannelName()), module: $this->configuration->getRegisteringModule(Configuration::CHANNEL, $channel->getMessageChannelName()), details: [
                 'builder' => $this->shortName($channel::class),
                 'pollable' => $channel->isPollable(),
             ]);
         }
         foreach ($this->configuration->getRegisteredConsumers() as $consumer) {
-            $this->entry(Configuration::CONSUMER, $this->stable($consumer->getEndpointId()), $this->configuration->getRegisteringModule(Configuration::CONSUMER, $consumer->getEndpointId()), ['builder' => 'inbound channel adapter']);
+            $this->entry(kind: Configuration::CONSUMER, name: $this->stable($consumer->getEndpointId()), module: $this->configuration->getRegisteringModule(Configuration::CONSUMER, $consumer->getEndpointId()), details: ['builder' => 'inbound channel adapter']);
         }
         foreach ($this->configuration->getRegisteredMethodInterceptors() as $position => $interceptors) {
             foreach ($interceptors as $interceptor) {
@@ -112,14 +112,14 @@ final class MessageFlowLedgerDiscovery
             }
         }
         foreach ($this->configuration->getRegisteredServiceDefinitions() as $id => $definition) {
-            $this->entry(Configuration::SERVICE, $this->stable($id), $this->configuration->getRegisteringModule(Configuration::SERVICE, $id), match (true) {
+            $this->entry(kind: Configuration::SERVICE, name: $this->stable($id), module: $this->configuration->getRegisteringModule(Configuration::SERVICE, $id), details: match (true) {
                 ! $definition instanceof Definition => ['aliasOf' => $this->stable((string) $definition)],
                 $definition->hasFactory() && $definition->getFactory() === [LicenceDecider::class, 'decide'] => ['class' => $definition->getClassName(), 'enterprise' => (string) $definition->getArguments()[2], 'openCore' => (string) $definition->getArguments()[1]],
                 default => ['class' => $definition->getClassName()],
             });
         }
         foreach ($this->configuration->getRegisteredConsoleCommands() as $consoleCommand) {
-            $this->entry(Configuration::CONSOLE_COMMAND, $consoleCommand->getName(), $this->configuration->getRegisteringModule(Configuration::CONSOLE_COMMAND, $consoleCommand->getName()), ['inputChannel' => $this->stable($consoleCommand->getChannelName())]);
+            $this->entry(kind: Configuration::CONSOLE_COMMAND, name: $consoleCommand->getName(), module: $this->configuration->getRegisteringModule(Configuration::CONSOLE_COMMAND, $consoleCommand->getName()), details: ['inputChannel' => $this->stable($consoleCommand->getChannelName())]);
         }
         uasort($this->entries, fn (array $first, array $second): int => [$first['module'], $first['kind'], $first['name']] <=> [$second['module'], $second['kind'], $second['name']]);
 
@@ -143,14 +143,14 @@ final class MessageFlowLedgerDiscovery
             default => '',
         };
         $this->handlerNames[$endpointId] = $this->entry(
-            Configuration::HANDLER,
-            match (true) {
+            kind: Configuration::HANDLER,
+            name: match (true) {
                 ! $this->isGenerated($endpointId) => $endpointId,
                 $target !== null && str_contains($inputChannel, $target) => $target,
                 default => ($target ?? $builder) . ' on ' . $inputChannel,
             },
-            $this->configuration->getRegisteringModule(Configuration::HANDLER, $endpointId),
-            array_filter(['builder' => $builder, 'inputChannel' => $inputChannel, 'outputChannel' => $this->stable($outputChannel), 'target' => $target], fn (?string $value): bool => $value !== null && $value !== ''),
+            module: $this->configuration->getRegisteringModule(Configuration::HANDLER, $endpointId),
+            details: array_filter(['builder' => $builder, 'inputChannel' => $inputChannel, 'outputChannel' => $this->stable($outputChannel), 'target' => $target], fn (?string $value): bool => $value !== null && $value !== '')
         );
     }
 
@@ -161,7 +161,7 @@ final class MessageFlowLedgerDiscovery
             $interceptor instanceof MethodInterceptorBuilder => $interceptor->getInterceptingInterfaceReference()->getClassName() . '::' . $interceptor->getInterceptingInterfaceReference()->getMethodName(),
             default => $interceptor::class,
         };
-        $this->entry(Configuration::INTERCEPTOR, $position . ' ' . $target, $this->configuration->getRegisteringModule(Configuration::INTERCEPTOR, (string) spl_object_id($interceptor)), ['position' => $position, 'target' => $target]);
+        $this->entry(kind: Configuration::INTERCEPTOR, name: $position . ' ' . $target, module: $this->configuration->getRegisteringModule(Configuration::INTERCEPTOR, (string) spl_object_id($interceptor)), details: ['position' => $position, 'target' => $target]);
     }
 
     /**

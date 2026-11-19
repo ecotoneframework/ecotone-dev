@@ -96,7 +96,7 @@ final class MessageFlowChainReader
      */
     public static function read(ContainerBuilder $builder, Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, array $handlerNames): array
     {
-        return (new self($builder, $configuration, $interfaceToCallRegistry))->chainsOf($handlerNames);
+        return (new self(builder: $builder, configuration: $configuration, interfaceToCallRegistry: $interfaceToCallRegistry))->chainsOf($handlerNames);
     }
 
     /**
@@ -167,10 +167,10 @@ final class MessageFlowChainReader
             AroundMessageProcessor::class => [...$this->aroundInterceptors($arguments[2]), ...$this->layersOf($arguments[0], $role)],
             ChainedMessageProcessor::class => array_merge(...array_map(fn (mixed $processor): array => $this->layersOf($processor, $role), array_values($arguments[0]))),
             MethodInvokerProcessor::class, InvocationRouter::class => $this->layersOf($arguments[0], $role),
-            MethodInvoker::class => [...$this->aroundInterceptors($arguments[4] ?? []), $this->invoked($arguments[0], (string) $arguments[1], $role)],
+            MethodInvoker::class => [...$this->aroundInterceptors($arguments[4] ?? []), $this->invoked(objectResolver: $arguments[0], method: (string) $arguments[1], role: $role)],
             RouterProcessor::class => ['router ' . ($arguments[0] instanceof Definition ? $arguments[0]->getClassName() : self::UNRECOGNISED . get_debug_type($arguments[0]))],
             RequestReplyProducer::class => [
-                ...$this->layersOfRequestReply($arguments[1], (string) ($arguments[6] ?? ''), $role),
+                ...$this->layersOfRequestReply(processor: $arguments[1], invoked: (string) ($arguments[6] ?? ''), role: $role),
                 ...($arguments[0] instanceof Reference
                     ? ['output channel ' . $this->channelNameOf($arguments[0]), 'part completion ' . $this->partCompletion($arguments[5]) . ', when the handler returns nothing']
                     : ['routing slip: the result goes to the next channel on it', 'part completion ' . $this->partCompletion($arguments[5]), 'reply channel of the message']),

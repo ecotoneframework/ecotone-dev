@@ -35,7 +35,7 @@ final class FlowComparisonMarkdown
         }
         $title = "## Message flow: what changed\n\n";
         if ($comparison->groups === [] && $comparison->everyScenario === null) {
-            return $title . "None of {$comparison->scenariosCompared} scenarios changed its wiring, its build or its traced steps.\n";
+            return $title . ($comparison->scenariosCompared === 1 ? "The 1 scenario did not change its wiring, its build or its traced spans.\n" : "None of {$comparison->scenariosCompared} scenarios changed its wiring, its build or its traced spans.\n");
         }
         $changesItsPath = fn (array $group): bool => ! $group['change']->runsTheSameSteps() && ($group['change']->state !== FlowScenarioChange::CHANGED || $group['change']->wiring->hasChanges() || $group['change']->hasTraceChanges() || $group['change']->hasExecutionChanges());
         $pathGroups = array_values(array_filter($comparison->groups, fn (array $group): bool => $changesItsPath($group) || $group['change']->runsTheSameSteps()));
@@ -47,7 +47,7 @@ final class FlowComparisonMarkdown
         $summary = implode(' ', array_filter([
             $withPath === 0
                 ? "No scenario of {$comparison->scenariosCompared} changes its message path."
-                : "{$withPath} of {$comparison->scenariosCompared} scenarios change" . ($withPath === 1 ? 's its' : ' their') . ' message path.',
+                : "{$withPath} of {$comparison->scenariosCompared} scenario" . ($comparison->scenariosCompared === 1 ? '' : 's') . ' change' . ($withPath === 1 ? 's its' : ' their') . ' message path.',
             $sameSteps === 0 ? null : $sameSteps . ($withPath === 0 ? '' : ' more') . ($sameSteps === 1 ? ' runs' : ' run') . ' the same steps with other hints.',
             $onlyBuild === 0 ? null : $onlyBuild . ($withPath + $sameSteps === 0 ? '' : ' more') . ' change' . ($onlyBuild === 1 ? 's only its' : ' only their') . ' build.',
             $forEveryScenario === 0 ? null : $forEveryScenario . ' registration' . ($forEveryScenario === 1 ? ' changes' : 's change') . ' for every scenario.',
@@ -59,7 +59,7 @@ final class FlowComparisonMarkdown
                     self::BEFORE_AFTER_PAIR => self::beforeAfterPair($group['change']),
                     self::MARKED_DIAGRAM => self::markedDiagram($group['change']),
                     self::MESSAGE_PATH => self::messagePath($group['change']),
-                    default => self::messagePath($group['change']) . "\n<details><summary>Marked wiring and traced steps</summary>\n\n" . self::markedDiagram($group['change']) . "\n</details>\n",
+                    default => self::messagePath($group['change']) . "\n<details><summary>Marked wiring and traced spans</summary>\n\n" . self::markedDiagram($group['change']) . "\n</details>\n",
                 }
             . self::whatRan($group['change']),
             $pathGroups,
@@ -305,18 +305,18 @@ final class FlowComparisonMarkdown
             $drawn[] = $change->wiringPartBefore($position);
             $drawn[] = $change->wiringPartAfter($position);
             $markdown .= self::partHeading($change, $position)
-                . "Before:\n\n" . self::flowchart(self::readable($change, $change->wiringPartBefore($position), $change->before->wiring)->toMermaid())
-                . "After:\n\n" . self::flowchart(self::readable($change, $change->wiringPartAfter($position), $change->after->wiring)->toMermaid())
+                . "Before:\n\n" . self::flowchart(self::readable(change: $change, part: $change->wiringPartBefore($position), whole: $change->before->wiring)->toMermaid())
+                . "After:\n\n" . self::flowchart(self::readable(change: $change, part: $change->wiringPartAfter($position), whole: $change->after->wiring)->toMermaid())
                 . self::leftOutLine($part['unchangedNeighboursLeftOut']);
         }
         $markdown .= self::flowchartLegend($drawn, null);
         if (! $change->hasTraceChanges()) {
-            return $markdown . "#### Traced steps\n\nUnchanged.\n";
+            return $markdown . "#### Traced spans\n\nUnchanged.\n";
         }
 
-        return $markdown . "#### Traced steps\n\n"
-            . "Before:\n\n" . self::stepList($change, FlowScenarioChange::ADDED, $change->before->wiring)
-            . "After:\n\n" . self::stepList($change, FlowScenarioChange::REMOVED, $change->after->wiring);
+        return $markdown . "#### Traced spans\n\n"
+            . "Before:\n\n" . self::stepList(change: $change, skippedChange: FlowScenarioChange::ADDED, wiring: $change->before->wiring)
+            . "After:\n\n" . self::stepList(change: $change, skippedChange: FlowScenarioChange::REMOVED, wiring: $change->after->wiring);
     }
 
     private static function markedDiagram(FlowScenarioChange $change): string
@@ -326,12 +326,12 @@ final class FlowComparisonMarkdown
         foreach ($change->wiringParts() as $position => $part) {
             $drawn[] = $change->wiringPartOfBothSides($position);
             $markdown .= self::partHeading($change, $position)
-                . self::flowchart(self::readable($change, $change->wiringPartOfBothSides($position), $change->wiring->combinedGraph(), $change->after->wiring)->toMermaidWithChangesOf($change->wiring))
+                . self::flowchart(self::readable(change: $change, part: $change->wiringPartOfBothSides($position), whole: $change->wiring->combinedGraph(), entryPointsOf: $change->after->wiring)->toMermaidWithChangesOf($change->wiring))
                 . self::leftOutLine($part['unchangedNeighboursLeftOut']);
         }
         $markdown .= self::flowchartLegend($drawn, $change);
         if (! $change->hasTraceChanges()) {
-            return $markdown . "#### Traced steps\n\nUnchanged.\n";
+            return $markdown . "#### Traced spans\n\nUnchanged.\n";
         }
         $lines = [];
         foreach ($change->scopedTrace() as $entry) {
@@ -343,7 +343,7 @@ final class FlowComparisonMarkdown
             };
         }
 
-        return $markdown . "#### Traced steps\n\n```diff\n" . implode("\n", self::capped($lines)) . "\n```\n";
+        return $markdown . "#### Traced spans\n\n```diff\n" . implode("\n", self::capped($lines)) . "\n```\n";
     }
 
     private static function messagePath(FlowScenarioChange $change): string
@@ -351,8 +351,8 @@ final class FlowComparisonMarkdown
         $before = $change->messagePath(FlowScenarioChange::ADDED);
         $after = $change->messagePath(FlowScenarioChange::REMOVED);
         if ($before === [] && $after === []) {
-            $before = self::arrowsAsPath([...$change->wiring->removedEdges, ...array_map(fn (FlowEdgeChange $changed): FlowEdge => $changed->before, $change->wiring->changedEdges)], '- ', $change);
-            $after = self::arrowsAsPath([...$change->wiring->addedEdges, ...array_map(fn (FlowEdgeChange $changed): FlowEdge => $changed->after, $change->wiring->changedEdges)], '+ ', $change);
+            $before = self::arrowsAsPath(arrows: [...$change->wiring->removedEdges, ...array_map(fn (FlowEdgeChange $changed): FlowEdge => $changed->before, $change->wiring->changedEdges)], mark: '- ', change: $change);
+            $after = self::arrowsAsPath(arrows: [...$change->wiring->addedEdges, ...array_map(fn (FlowEdgeChange $changed): FlowEdge => $changed->after, $change->wiring->changedEdges)], mark: '+ ', change: $change);
         }
         $participants = [];
         $sides = [];
@@ -390,7 +390,7 @@ final class FlowComparisonMarkdown
             ])),
         ]));
 
-        return "#### The message's path\n\n" . ($lines === [] ? "Nothing to follow: neither the traced steps nor an arrow changed.\n" : "```mermaid\nsequenceDiagram\n" . implode("\n", [...$declared, ...$lines]) . "\n```\n\n"
+        return "#### The message's path\n\n" . ($lines === [] ? "Nothing to follow: neither the traced spans nor an arrow changed.\n" : "```mermaid\nsequenceDiagram\n" . implode("\n", [...$declared, ...$lines]) . "\n```\n\n"
             . ($legend === '' ? '' : "_Legend: {$legend}._\n"));
     }
 

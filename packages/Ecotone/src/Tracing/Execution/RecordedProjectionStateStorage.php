@@ -25,36 +25,36 @@ final class RecordedProjectionStateStorage implements ProjectionStateStorage
     public function loadPartition(string $projectionName, ?string $partitionKey = null): ?ProjectionPartitionState
     {
         return StepAround::of(
-            $this->tracer,
-            'load partition ' . self::partitionOf($partitionKey) . ' of ' . $projectionName,
-            fn () => $this->storage->loadPartition($projectionName, $partitionKey),
-            fn (?ProjectionPartitionState $state): ExecutionHint => $state === null ? ExecutionHint::shownInLines(ExecutionHint::FOUND, 'nothing') : ExecutionHint::detail(ExecutionHint::FOUND, 'position ' . ($state->lastPosition ?? 'start')),
+            tracer: $this->tracer,
+            name: 'load partition ' . self::partitionOf($partitionKey) . ' of ' . $projectionName,
+            call: fn () => $this->storage->loadPartition($projectionName, $partitionKey),
+            outcome: fn (?ProjectionPartitionState $state): ExecutionHint => $state === null ? ExecutionHint::shownInLines(ExecutionHint::FOUND, 'nothing') : ExecutionHint::detail(ExecutionHint::FOUND, 'position ' . ($state->lastPosition ?? 'start')),
         );
     }
 
     public function initPartition(string $projectionName, ?string $partitionKey = null): ?ProjectionPartitionState
     {
-        return StepAround::of($this->tracer, 'init partition ' . self::partitionOf($partitionKey) . ' of ' . $projectionName, fn () => $this->storage->initPartition($projectionName, $partitionKey));
+        return StepAround::of(tracer: $this->tracer, name: 'init partition ' . self::partitionOf($partitionKey) . ' of ' . $projectionName, call: fn () => $this->storage->initPartition($projectionName, $partitionKey));
     }
 
     public function savePartition(ProjectionPartitionState $projectionState): void
     {
-        StepAround::of($this->tracer, 'save partition ' . self::partitionOf($projectionState->partitionKey) . ' at position ' . ($projectionState->lastPosition ?? 'start') . ' of ' . $projectionState->projectionName, fn () => $this->storage->savePartition($projectionState));
+        StepAround::of(tracer: $this->tracer, name: 'save partition ' . self::partitionOf($projectionState->partitionKey) . ' at position ' . ($projectionState->lastPosition ?? 'start') . ' of ' . $projectionState->projectionName, call: fn () => $this->storage->savePartition($projectionState));
     }
 
     public function delete(string $projectionName): void
     {
-        StepAround::of($this->tracer, 'delete the state of ' . $projectionName, fn () => $this->storage->delete($projectionName));
+        StepAround::of(tracer: $this->tracer, name: 'delete the state of ' . $projectionName, call: fn () => $this->storage->delete($projectionName));
     }
 
     public function init(string $projectionName): void
     {
-        StepAround::of($this->tracer, 'init the state of ' . $projectionName, fn () => $this->storage->init($projectionName));
+        StepAround::of(tracer: $this->tracer, name: 'init the state of ' . $projectionName, call: fn () => $this->storage->init($projectionName));
     }
 
     public function beginTransaction(): Transaction
     {
-        return StepAround::of($this->tracer, 'begin the projection transaction', fn () => new RecordedTransaction($this->storage->beginTransaction(), $this->tracer));
+        return StepAround::of(tracer: $this->tracer, name: 'begin the projection transaction', call: fn () => new RecordedTransaction($this->storage->beginTransaction(), $this->tracer));
     }
 
     private static function partitionOf(?string $partitionKey): string

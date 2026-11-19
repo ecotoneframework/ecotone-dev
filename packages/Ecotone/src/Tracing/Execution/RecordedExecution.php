@@ -56,8 +56,8 @@ final class RecordedExecution
         $processes = array_map(
             fn (Span $process, int $position): array => [
                 ...(($process->attributes[SpanAttribute::EXECUTION_STEP] ?? false)
-                    ? ['process' => self::nameOf(self::firstSpanUnder($process, $children) ?? $process), 'steps' => self::stepsOf([$process], $children, 1, $links)]
-                    : ['process' => self::nameOf($process), 'steps' => self::stepsOf($children[$process->spanId] ?? [], $children, 1, $links)]),
+                    ? ['process' => self::nameOf(self::firstSpanUnder($process, $children) ?? $process), 'steps' => self::stepsOf(spans: [$process], children: $children, depth: 1, links: $links)]
+                    : ['process' => self::nameOf($process), 'steps' => self::stepsOf(spans: $children[$process->spanId] ?? [], children: $children, depth: 1, links: $links)]),
                 ...(isset($sentBy[$position]) ? ['sentBy' => $sentBy[$position]] : []),
             ],
             $processes,
@@ -93,7 +93,7 @@ final class RecordedExecution
         $lines = [];
         foreach (array_keys($this->processes) as $position) {
             if (! self::isSubFlow($this->processes, $position)) {
-                $lines = [...$lines, ...$this->linesOfFlow($position, 0, $subFlows, $withEveryHint)];
+                $lines = [...$lines, ...$this->linesOfFlow(position: $position, level: 0, subFlows: $subFlows, withEveryHint: $withEveryHint)];
             }
         }
 
@@ -143,12 +143,12 @@ final class RecordedExecution
             $lines[] = $indent . str_repeat('  ', $step['depth']) . $step['label'];
             foreach ($step['hints'] as $hint) {
                 if ($withEveryHint || $hint['shownInLines']) {
-                    $lines[] = $indent . self::hintLine($step['depth'], $hint['key'], $hint['value']);
+                    $lines[] = $indent . self::hintLine(depth: $step['depth'], key: $hint['key'], value: $hint['value']);
                 }
             }
         }
         foreach ($subFlows[$position] ?? [] as $subFlow) {
-            $lines = [...$lines, ...$this->linesOfFlow($subFlow, $level + 1, $subFlows, $withEveryHint)];
+            $lines = [...$lines, ...$this->linesOfFlow(position: $subFlow, level: $level + 1, subFlows: $subFlows, withEveryHint: $withEveryHint)];
         }
 
         return $lines;
@@ -191,11 +191,11 @@ final class RecordedExecution
         $sources = [];
         $sentBy = [];
         foreach ($processes as $consumer => $process) {
-            $sender = self::senderOf([$process, ...$inStepOrder[$consumer]], $processOf, $consumer);
+            $sender = self::senderOf(spans: [$process, ...$inStepOrder[$consumer]], processOf: $processOf, consumer: $consumer);
             if ($sender === null) {
                 continue;
             }
-            $sendingStep = self::sendingStepOf($spanOf[$sender], $parentOf, $stepOf);
+            $sendingStep = self::sendingStepOf(sender: $spanOf[$sender], parentOf: $parentOf, stepOf: $stepOf);
             if ($sendingStep === null || $inStepOrder[$consumer] === []) {
                 continue;
             }
@@ -330,7 +330,7 @@ final class RecordedExecution
     private static function aStepUnderThrows(Span $span, array $children, string $failure): bool
     {
         foreach ($children[$span->spanId] ?? [] as $child) {
-            if (($child->attributes[SpanAttribute::EXECUTION_STEP] ?? false) ? self::thrownBy($child) === $failure : self::aStepUnderThrows($child, $children, $failure)) {
+            if (($child->attributes[SpanAttribute::EXECUTION_STEP] ?? false) ? self::thrownBy($child) === $failure : self::aStepUnderThrows(span: $child, children: $children, failure: $failure)) {
                 return true;
             }
         }
@@ -355,7 +355,7 @@ final class RecordedExecution
 
             return [];
         }
-        if (! self::aStepUnderThrows($span, $children, $failure)) {
+        if (! self::aStepUnderThrows(span: $span, children: $children, failure: $failure)) {
             return [['key' => ExecutionHint::FAILURE, 'value' => 'throws ' . $failure, 'shownInLines' => true]];
         }
         if ($failureAbove === $failure || $hasStepAbove) {
@@ -402,13 +402,13 @@ final class RecordedExecution
                 'depth' => $depth,
                 'label' => $label,
                 'hints' => [
-                    ...($isStep ? self::failureHintsOf($child, $children, $failureAbove, $hasStepAbove && $failureAbove === null) : []),
+                    ...($isStep ? self::failureHintsOf(span: $child, children: $children, failureAbove: $failureAbove, hasStepAbove: $hasStepAbove && $failureAbove === null) : []),
                     ...self::hintsOf($child),
                     ...($links[$child->spanId] ?? []),
                 ],
             ];
             $failure = self::thrownBy($child) ?? ($child->status === SpanStatus::Error ? 'a failure' : null);
-            $steps = [...$steps, ...self::stepsOf($children[$child->spanId] ?? [], $children, $depth + 1, $links, $isStep ? $failure : $failureAbove, $hasStepAbove || $isStep)];
+            $steps = [...$steps, ...self::stepsOf(spans: $children[$child->spanId] ?? [], children: $children, depth: $depth + 1, links: $links, failureAbove: $isStep ? $failure : $failureAbove, hasStepAbove: $hasStepAbove || $isStep)];
         }
 
         return $steps;

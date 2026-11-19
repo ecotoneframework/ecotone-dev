@@ -30,34 +30,34 @@ final class RecordedMessagingEntrypointService extends MessagingEntrypointServic
 
     public function send(mixed $payload, string $targetChannel): mixed
     {
-        return $this->recorded($targetChannel, [], fn () => parent::send($payload, $targetChannel));
+        return $this->recorded(targetChannel: $targetChannel, hints: [], send: fn () => parent::send($payload, $targetChannel));
     }
 
     public function sendWithHeaders(mixed $payload, array $headers, string $targetChannel, ?string $routingSlip = null): mixed
     {
-        return $this->recorded($targetChannel, [...self::slipOf($routingSlip), ...self::gatheringOf($headers)], fn () => parent::sendWithHeaders($payload, $headers, $targetChannel, $routingSlip));
+        return $this->recorded(targetChannel: $targetChannel, hints: [...self::slipOf($routingSlip), ...self::gatheringOf($headers)], send: fn () => parent::sendWithHeaders($payload, $headers, $targetChannel, $routingSlip));
     }
 
     public function sendWithHeadersWithMessageReply(mixed $payload, array $headers, string $targetChannel, ?string $routingSlip = null): ?Message
     {
-        return $this->recorded($targetChannel, [...self::slipOf($routingSlip), ...self::gatheringOf($headers)], fn () => parent::sendWithHeadersWithMessageReply($payload, $headers, $targetChannel, $routingSlip));
+        return $this->recorded(targetChannel: $targetChannel, hints: [...self::slipOf($routingSlip), ...self::gatheringOf($headers)], send: fn () => parent::sendWithHeadersWithMessageReply($payload, $headers, $targetChannel, $routingSlip));
     }
 
     public function sendWithHeadersPropagation(mixed $payload, array $headers, string $targetChannel, ?string $routingSlip = null): mixed
     {
-        return $this->recorded($targetChannel, [...self::slipOf($routingSlip), ...self::gatheringOf($headers), $this->propagatedOver($headers)], fn () => parent::sendWithHeadersPropagation($payload, $headers, $targetChannel, $routingSlip));
+        return $this->recorded(targetChannel: $targetChannel, hints: [...self::slipOf($routingSlip), ...self::gatheringOf($headers), $this->propagatedOver($headers)], send: fn () => parent::sendWithHeadersPropagation($payload, $headers, $targetChannel, $routingSlip));
     }
 
     public function sendWithHeadersPropagationAndMessageReply(mixed $payload, array $headers, string $targetChannel, ?string $routingSlip = null): ?Message
     {
-        return $this->recorded($targetChannel, [...self::slipOf($routingSlip), ...self::gatheringOf($headers), $this->propagatedOver($headers)], fn () => parent::sendWithHeadersPropagationAndMessageReply($payload, $headers, $targetChannel, $routingSlip));
+        return $this->recorded(targetChannel: $targetChannel, hints: [...self::slipOf($routingSlip), ...self::gatheringOf($headers), $this->propagatedOver($headers)], send: fn () => parent::sendWithHeadersPropagationAndMessageReply($payload, $headers, $targetChannel, $routingSlip));
     }
 
     public function sendMessage(Message $message): mixed
     {
         $headers = $message->getHeaders();
 
-        return $this->recorded($headers->containsKey(self::ENTRYPOINT) ? (string) $headers->get(self::ENTRYPOINT) : 'the channel its message names', [], fn () => parent::sendMessage($message));
+        return $this->recorded(targetChannel: $headers->containsKey(self::ENTRYPOINT) ? (string) $headers->get(self::ENTRYPOINT) : 'the channel its message names', hints: [], send: fn () => parent::sendMessage($message));
     }
 
     /**

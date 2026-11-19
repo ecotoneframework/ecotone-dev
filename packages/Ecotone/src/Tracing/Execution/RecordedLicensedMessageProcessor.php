@@ -21,6 +21,6 @@ final class RecordedLicensedMessageProcessor implements MessageProcessor
 
     public function process(Message $message): ?Message
     {
-        return StepAround::of($this->tracer, 'processor ' . ExecutionRecordingTracer::shortClassOf($this->frameworkClassOf[$this->messageProcessor::class]['class'] ?? $this->messageProcessor::class), fn () => $this->messageProcessor->process($message), hints: [ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, $this->frameworkClassOf[$this->messageProcessor::class]['chosenBy'] ?? 'licence')]);
+        return StepAround::of(tracer: $this->tracer, name: 'processor ' . ExecutionRecordingTracer::shortClassOf($this->frameworkClassOf[$this->messageProcessor::class]['class'] ?? $this->messageProcessor::class), call: fn () => $this->messageProcessor->process($message), hints: [ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, $this->frameworkClassOf[$this->messageProcessor::class]['chosenBy'] ?? 'licence')]);
     }
 }

@@ -14,7 +14,6 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\Flow\Snapshot\BuildFlowConsoleCommands;
 use Ecotone\Test\LicenceTesting;
 use FilesystemIterator;
@@ -52,7 +51,7 @@ final class BuildFlowPresentationTest extends TestCase
 
         $markdown = $this->presentation('before-after');
 
-        self::assertStringStartsWith("## Message flow: what changed\n\n1 of 1 scenarios changes its message path.\n\n### Build: what changes\n\n```text\nMessagingSystem\n", $markdown);
+        self::assertStringStartsWith("## Message flow: what changed\n\n1 of 1 scenario changes its message path.\n\n### Build: what changes\n\n```text\nMessagingSystem\n", $markdown);
         self::assertStringContainsString("\n### `Placing an order`\n\nBefore: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### Wiring\n\nBefore:\n\n```mermaid\nflowchart LR\n", $markdown);
         [$before, $after] = $this->mermaidBlocksOf($markdown);
         self::assertStringNotContainsString('audit', $before);
@@ -60,7 +59,7 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertStringContainsString('Channel<br/>audit.target', $after);
         self::assertStringNotContainsString('classDef added', $after);
         self::assertStringContainsString(
-            "#### Traced steps\n\nBefore:\n\n```text\nsend command order.place\n  process command handler place\n    send event order.placed\n      route whenOrderWasPlaced → whenOrderWasPlaced.target\n  send notifications\n    receive notifications\n      process event handler whenPlaced\n```\n\n"
+            "#### Traced spans\n\nBefore:\n\n```text\nsend command order.place\n  process command handler place\n    send event order.placed\n      route whenOrderWasPlaced → whenOrderWasPlaced.target\n  send notifications\n    receive notifications\n      process event handler whenPlaced\n```\n\n"
             . "After:\n\n```text\nsend command order.place\n  process command handler place\n    send event order.placed\n      route audit → audit.target   ← new\n        process event handler audit   ← new\n      route whenOrderWasPlaced → whenOrderWasPlaced.target\n  send notifications\n    receive notifications\n      process event handler whenPlaced\n```\n",
             $markdown,
         );
@@ -77,7 +76,7 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertStringContainsString('    classDef added fill:#dafbe1,stroke:#2da44e,color:#1f2328', $diagrams[0]);
         self::assertStringContainsString('Event Handler<br/>audit', $diagrams[0]);
         self::assertStringContainsString(
-            "#### Traced steps\n\n```diff\n send command order.place\n   process command handler place\n     send event order.placed\n+      route audit → audit.target\n+        process event handler audit\n       route whenOrderWasPlaced → whenOrderWasPlaced.target\n   send notifications\n     receive notifications\n       process event handler whenPlaced\n```\n",
+            "#### Traced spans\n\n```diff\n send command order.place\n   process command handler place\n     send event order.placed\n+      route audit → audit.target\n+        process event handler audit\n       route whenOrderWasPlaced → whenOrderWasPlaced.target\n   send notifications\n     receive notifications\n       process event handler whenPlaced\n```\n",
             $markdown,
         );
     }
@@ -143,7 +142,7 @@ final class BuildFlowPresentationTest extends TestCase
         $this->record('Placing an order', 'after', $this->ordering());
 
         foreach (['before-after', 'marked', 'path'] as $presentation) {
-            self::assertSame("## Message flow: what changed\n\nNone of 1 scenarios changed its wiring, its build or its traced steps.\n", $this->presentation($presentation));
+            self::assertSame("## Message flow: what changed\n\nThe 1 scenario did not change its wiring, its build or its traced spans.\n", $this->presentation($presentation));
         }
     }
 
@@ -161,7 +160,6 @@ final class BuildFlowPresentationTest extends TestCase
     {
         $this->recordAnOrderThatGainsAnAudit('Placing an order');
 
-        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('ecotone:build-flow:compare was asked for presentation `D`, which it cannot produce. Pass --presentation=before-after (the default) for a before/after pair of diagrams and step lists, --presentation=marked for one diagram with the changes marked and one step list, --presentation=path for the message\'s path as a sequence diagram with what changed in sentences, --presentation=build for the build, the message\'s path and the marked wiring collapsed, or --presentation=json for the raw comparison.');
 
         $this->presentation('D');

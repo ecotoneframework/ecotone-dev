@@ -109,10 +109,10 @@ final class RecordExecutionCompilerPass implements CompilerPass
         }
         foreach ($builder->getDefinitions() as $id => $definition) {
             if ($definition instanceof Definition && str_starts_with($id, self::CHANNEL_ID_PREFIX)) {
-                $definition = $this->recordChannel(substr($id, strlen(self::CHANNEL_ID_PREFIX)), $definition, $builder);
+                $definition = $this->recordChannel(channelName: substr($id, strlen(self::CHANNEL_ID_PREFIX)), channel: $definition, builder: $builder);
                 $builder->replace($id, $definition);
             }
-            $recorded = $this->recorded($definition, str_starts_with($id, self::SPLITTER_PROCESSOR_PREFIX) ? self::SPLITTER : null, $builder);
+            $recorded = $this->recorded(value: $definition, role: str_starts_with($id, self::SPLITTER_PROCESSOR_PREFIX) ? self::SPLITTER : null, builder: $builder);
             if ($recorded !== $definition) {
                 $builder->replace($id, $recorded);
             }
@@ -212,7 +212,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
     {
         if (is_array($value)) {
             foreach ($value as $key => $element) {
-                $value[$key] = $this->recorded($element, $role, $builder);
+                $value[$key] = $this->recorded(value: $element, role: $role, builder: $builder);
             }
 
             return $value;
@@ -226,24 +226,24 @@ final class RecordExecutionCompilerPass implements CompilerPass
             foreach ($arguments[0] as $position => $processor) {
                 $chainRole = $value->roles[$position] ?? InterceptedChainDefinition::STEP;
                 $chainRole = $chainRole === InterceptedChainDefinition::STEP ? self::CHAINED : $chainRole;
-                $arguments[0][$position] = $this->recorded($processor, $chainRole === InterceptedChainDefinition::HANDLER && in_array($role, self::OWN_ROLES, true) ? $role : $chainRole, $builder);
+                $arguments[0][$position] = $this->recorded(value: $processor, role: $chainRole === InterceptedChainDefinition::HANDLER && in_array($role, self::OWN_ROLES, true) ? $role : $chainRole, builder: $builder);
             }
         } else {
             $arguments = match ($value->getClassName()) {
-                MethodInvoker::class => $this->withRecordedInvocation($arguments, 4, $role ?? InterceptedChainDefinition::HANDLER, $builder),
-                AroundMessageProcessor::class => $this->withRecordedInvocation($arguments, 2, null, $builder),
+                MethodInvoker::class => $this->withRecordedInvocation(arguments: $arguments, aroundInterceptorsPosition: 4, role: $role ?? InterceptedChainDefinition::HANDLER, builder: $builder),
+                AroundMessageProcessor::class => $this->withRecordedInvocation(arguments: $arguments, aroundInterceptorsPosition: 2, role: null, builder: $builder),
                 Gateway::class => $this->withRecordedEntry($arguments, $builder),
-                BeforeSendChannelInterceptor::class => $this->recorded($arguments, self::PRESEND, $builder),
-                InvocationRouter::class => $this->recorded($arguments, self::ROUTER, $builder),
-                RouterProcessor::class => $this->withRecordedRoutes($this->recorded($arguments, null, $builder)),
-                Router::class => $this->withRecordedRouterRoutes($this->recorded($arguments, null, $builder)),
-                MethodInvokerProcessor::class => $this->recorded($arguments, self::roleOfProcessor($arguments, $role), $builder),
-                default => $this->recorded($arguments, $role, $builder),
+                BeforeSendChannelInterceptor::class => $this->recorded(value: $arguments, role: self::PRESEND, builder: $builder),
+                InvocationRouter::class => $this->recorded(value: $arguments, role: self::ROUTER, builder: $builder),
+                RouterProcessor::class => $this->withRecordedRoutes($this->recorded(value: $arguments, role: null, builder: $builder)),
+                Router::class => $this->withRecordedRouterRoutes($this->recorded(value: $arguments, role: null, builder: $builder)),
+                MethodInvokerProcessor::class => $this->recorded(value: $arguments, role: self::roleOfProcessor($arguments, $role), builder: $builder),
+                default => $this->recorded(value: $arguments, role: $role, builder: $builder),
             };
         }
         $value->replaceArguments($arguments);
         foreach ($value->getMethodCalls() as $methodCall) {
-            $methodCall->replaceArguments($this->recorded($methodCall->getArguments(), null, $builder));
+            $methodCall->replaceArguments($this->recorded(value: $methodCall->getArguments(), role: null, builder: $builder));
         }
 
         if ($value->hasFactory() && $value->getFactory() === [LicenceDecider::class, 'decide'] && in_array($value->getClassName(), [MessageProcessor::class, MessageHandler::class], true)) {
@@ -434,7 +434,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
         $aroundInterceptors = $arguments[$aroundInterceptorsPosition] ?? [];
         foreach ($arguments as $position => $argument) {
             if ($position !== $aroundInterceptorsPosition) {
-                $arguments[$position] = $this->recorded($argument, null, $builder);
+                $arguments[$position] = $this->recorded(value: $argument, role: null, builder: $builder);
             }
         }
         if ($role !== null && is_array($arguments[2] ?? null) && is_array($arguments[3] ?? null)) {
@@ -449,7 +449,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 : null;
             if ($interceptor !== null && self::isFlowTesting($interceptor)) {
                 $recordedInterceptors[] = self::recordingInterceptor('recordFlowTesting', $interceptor);
-                $recordedInterceptors[] = $this->recorded($aroundInterceptor, null, $builder);
+                $recordedInterceptors[] = $this->recorded(value: $aroundInterceptor, role: null, builder: $builder);
                 $recordedInterceptors[] = self::recordingInterceptor('observeFlowTesting', $interceptor);
                 continue;
             }
@@ -459,7 +459,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
             } elseif ($interceptor !== null) {
                 $recordedInterceptors[] = self::recordingInterceptor('recordAround', $interceptor);
             }
-            $recordedInterceptors[] = $this->recorded($aroundInterceptor, null, $builder);
+            $recordedInterceptors[] = $this->recorded(value: $aroundInterceptor, role: null, builder: $builder);
         }
         if ($role !== null) {
             $invoked = $this->invokedClassOf($arguments[0] ?? null, $builder) . '::' . ($arguments[1] ?? '');
@@ -478,7 +478,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
      */
     private function withRecordedEntry(array $arguments, ContainerBuilder $builder): array
     {
-        $arguments = $this->recorded($arguments, null, $builder);
+        $arguments = $this->recorded(value: $arguments, role: null, builder: $builder);
         $replyConverter = $arguments[2] ?? null;
         $invoked = $replyConverter instanceof Definition ? (string) ($replyConverter->getArguments()[1] ?? '') : '';
 

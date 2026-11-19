@@ -18,8 +18,8 @@ final class MessageFlowConsoleCommands
     public function dump(ConfiguredMessagingSystem $messagingSystem, ConsoleWriter $writer, MessageFlowBuildGraphBuilder $buildGraph, MessageFlowBuild $messageFlowBuild, #[ConsoleParameterOption] string $format = 'mermaid', bool $build = false): void
     {
         $build
-            ? self::write($buildGraph->build(), $writer, $format, $messageFlowBuild->toArray())
-            : self::write($messagingSystem->getMessageFlowGraph(), $writer, $format, null);
+            ? self::write(graph: $buildGraph->build(), writer: $writer, format: $format, build: $messageFlowBuild->toArray())
+            : self::write(graph: $messagingSystem->getMessageFlowGraph(), writer: $writer, format: $format, build: null);
     }
 
     /**

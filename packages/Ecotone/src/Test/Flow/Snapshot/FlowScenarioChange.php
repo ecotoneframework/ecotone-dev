@@ -66,7 +66,7 @@ final class FlowScenarioChange
             before: $before,
             after: $after,
             wiring: $state === self::CHANGED ? $before->wiring->compareTo($after->wiring) : $after->wiring->compareTo($after->wiring),
-            trace: self::withPartReports(self::withContinuationsFromWiring(self::changesBetween($before->trace, $after->trace), $before->wiring, $after->wiring), $before, $after),
+            trace: self::withPartReports(trace: self::withContinuationsFromWiring(self::changesBetween($before->trace, $after->trace), $before->wiring, $after->wiring), before: $before, after: $after),
             build: $state === self::CHANGED ? self::buildChangesBetween($before, $after) : [],
             execution: self::executionChangesBetween($before->execution, $after->execution),
         );
@@ -123,7 +123,7 @@ final class FlowScenarioChange
      */
     public function withoutBuildChangesOf(array $registrations): self
     {
-        return new self($this->scenario, $this->state, $this->before, $this->after, $this->wiring, $this->trace, array_values(array_filter($this->build, fn (array $change): bool => ! isset($registrations[$change['kind'] . ':' . $change['name']]))), $this->execution);
+        return new self(scenario: $this->scenario, state: $this->state, before: $this->before, after: $this->after, wiring: $this->wiring, trace: $this->trace, build: array_values(array_filter($this->build, fn (array $change): bool => ! isset($registrations[$change['kind'] . ':' . $change['name']]))), execution: $this->execution);
     }
 
     /**
@@ -169,7 +169,7 @@ final class FlowScenarioChange
         $parts[] = $this->scopedTrace();
         $canonical = [];
         foreach ($parts as $position => $elements) {
-            $encoded = array_map(fn (mixed $element): string => self::withoutNames(json_encode($element, JSON_THROW_ON_ERROR), $varyingName, $nameItIsExchangedWith), $elements);
+            $encoded = array_map(fn (mixed $element): string => self::withoutNames(text: json_encode($element, JSON_THROW_ON_ERROR), varyingName: $varyingName, nameItIsExchangedWith: $nameItIsExchangedWith), $elements);
             if ($position !== array_key_last($parts)) {
                 sort($encoded, SORT_STRING);
             }
@@ -449,8 +449,8 @@ final class FlowScenarioChange
     {
         if ($this->state !== self::CHANGED) {
             return $this->state === self::ADDED
-                ? ['before' => 'Before: this scenario was not in the catalogue.', 'now' => 'Now: it is, with ' . count($this->after->trace) . ' traced steps.']
-                : ['before' => 'Before: this scenario was in the catalogue, with ' . count($this->before->trace) . ' traced steps.', 'now' => 'Now: it is gone.'];
+                ? ['before' => 'Before: this scenario was not in the catalogue.', 'now' => 'Now: it is, with ' . count($this->after->trace) . ' traced spans.']
+                : ['before' => 'Before: this scenario was in the catalogue, with ' . count($this->before->trace) . ' traced spans.', 'now' => 'Now: it is gone.'];
         }
         if (! $this->hasTraceChanges() && ! $this->wiring->hasChanges() && $this->build === []) {
             $changed = array_values(array_filter($this->execution, fn (array $process): bool => $process['change'] !== self::UNCHANGED && ($process['steps'] ?? null) !== []));
@@ -458,7 +458,7 @@ final class FlowScenarioChange
                 ? implode('; ', array_map(fn (array $process): string => 'process `' . $process['process'] . '` ' . rtrim(FlowWording::ofChangedProcess($process['steps']), '.'), $changed)) . '.'
                 : implode(' ', array_filter([FlowWording::ofSubFlowChanges($this->execution), $changed === [] ? '' : count($changed) . ' process' . (count($changed) === 1 ? ' runs' : 'es run') . ' other steps.']));
 
-            return ['before' => 'Before and now: the wiring, the build and the traced steps are the same.', 'now' => 'Now: ' . $now];
+            return ['before' => 'Before and now: the wiring, the build and the traced spans are the same.', 'now' => 'Now: ' . $now];
         }
         if (! $this->hasTraceChanges() && ! $this->wiring->hasChanges()) {
             $counts = [];
@@ -471,7 +471,7 @@ final class FlowScenarioChange
                 $counted[] = $count . ' ' . $kind . ($count === 1 ? ' ' : 's ') . $change;
             }
 
-            return ['before' => 'Before and now: the wiring and the traced steps are the same.', 'now' => 'Now: only the build changed: ' . implode(', ', $counted) . '.'];
+            return ['before' => 'Before and now: the wiring and the traced spans are the same.', 'now' => 'Now: only the build changed: ' . implode(', ', $counted) . '.'];
         }
         if (! $this->hasTraceChanges()) {
             $names = fn (array $nodes, MessageFlowGraph $wiring): string => implode(', ', array_map(fn (FlowNode $node): string => '`' . FlowWording::ofNode($node, $wiring) . '`', array_slice($nodes, 0, 4))) . (count($nodes) > 4 ? ' and ' . (count($nodes) - 4) . ' more' : '');
@@ -482,7 +482,7 @@ final class FlowScenarioChange
                 $this->wiring->addedNodes === [] && $this->wiring->removedNodes === [] && $this->wiring->changedNodes === [] ? 'only arrows between existing nodes changed' : null,
             ]);
 
-            return ['before' => 'Before and now: the traced steps are the same.', 'now' => 'Now: ' . implode('; ', $now) . '.'];
+            return ['before' => 'Before and now: the traced spans are the same.', 'now' => 'Now: ' . implode('; ', $now) . '.'];
         }
         $changedPositions = array_keys(array_filter($this->trace, fn (array $entry): bool => $entry['change'] !== self::UNCHANGED));
         $anchor = null;
@@ -829,7 +829,7 @@ final class FlowScenarioChange
             }
             $wiring = $entry['change'] === self::ADDED ? $after : $before;
             $other = $entry['change'] === self::ADDED ? $before : $after;
-            foreach (self::handlersReachedFrom('channel:' . substr((string) $step['name'], strlen('receive ')), $wiring, $other) as $handler) {
+            foreach (self::handlersReachedFrom(channelId: 'channel:' . substr((string) $step['name'], strlen('receive ')), wiring: $wiring, other: $other) as $handler) {
                 $continued[] = ['change' => $entry['change'], 'step' => [
                     'depth' => $step['depth'] + 1,
                     'name' => 'process ' . FlowWording::ofNode($handler, $wiring),

@@ -70,7 +70,7 @@ final class MessageFlowBuildWiringDiscovery
 
     public static function discover(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, MessageFlowGraph $declared): MessageFlowBuildWiring
     {
-        return (new self($configuration, $interfaceToCallRegistry, $declared))->run();
+        return (new self(configuration: $configuration, interfaceToCallRegistry: $interfaceToCallRegistry, declared: $declared))->run();
     }
 
     private function run(): MessageFlowBuildWiring
@@ -98,7 +98,7 @@ final class MessageFlowBuildWiringDiscovery
         }
         foreach ($asynchronousRoutes as [$asynchronousChannel, $executionChannel]) {
             foreach ($this->consumersOfChannel[$asynchronousChannel] ?? [] as $consumerId) {
-                $this->edge($consumerId, $this->channelNode($executionChannel), FlowEdgeKind::ROUTES_TO, ['via' => 'routingSlip']);
+                $this->edge(from: $consumerId, to: $this->channelNode($executionChannel), kind: FlowEdgeKind::ROUTES_TO, attributes: ['via' => 'routingSlip']);
             }
         }
         foreach ($this->configuration->getRegisteredConsumers() as $consumer) {
@@ -127,8 +127,8 @@ final class MessageFlowBuildWiringDiscovery
                 'registeredBy' => $this->configuration->getRegisteringModule(Configuration::GATEWAY, $gateway->getInterfaceName() . '::' . $gateway->getRelatedMethodName()),
             ]);
         }
-        $this->edge($id, $this->channelNode($gateway->getRequestChannelName()), FlowEdgeKind::SENDS_TO, []);
-        $this->discoverInterceptorsAround($id, $gateway->getInterceptedInterface($this->interfaceToCallRegistry), $gateway->getEndpointAnnotations(), $gateway->getRequiredInterceptorNames());
+        $this->edge(from: $id, to: $this->channelNode($gateway->getRequestChannelName()), kind: FlowEdgeKind::SENDS_TO, attributes: []);
+        $this->discoverInterceptorsAround(interceptedId: $id, intercepted: $gateway->getInterceptedInterface($this->interfaceToCallRegistry), endpointAnnotations: $gateway->getEndpointAnnotations(), requiredInterceptorNames: $gateway->getRequiredInterceptorNames());
     }
 
     private function discoverHandler(MessageHandlerBuilder $handler): string
@@ -155,16 +155,16 @@ final class MessageFlowBuildWiringDiscovery
             );
         }
         $this->consumersOfChannel[$inputChannel][] = $id;
-        $this->edge($this->channelNode($inputChannel), $id, FlowEdgeKind::INPUT, ['consumer' => $this->configuration->isPollableChannel($inputChannel) ? 'polling' : 'eventDriven']);
+        $this->edge(from: $this->channelNode($inputChannel), to: $id, kind: FlowEdgeKind::INPUT, attributes: ['consumer' => $this->configuration->isPollableChannel($inputChannel) ? 'polling' : 'eventDriven']);
         $outputChannel = match (true) {
             $handler instanceof MessageHandlerBuilderWithOutputChannel, $handler instanceof UninterruptibleServiceActivator => $handler->getOutputMessageChannelName(),
             default => '',
         };
         if ($outputChannel !== '') {
-            $this->edge($id, $this->channelNode($outputChannel), FlowEdgeKind::OUTPUT, []);
+            $this->edge(from: $id, to: $this->channelNode($outputChannel), kind: FlowEdgeKind::OUTPUT, attributes: []);
         }
         if ($handler instanceof InterceptedEndpoint && $invoked !== null) {
-            $this->discoverInterceptorsAround($id, $invoked, $handler->getEndpointAnnotations(), $handler->getRequiredInterceptorNames());
+            $this->discoverInterceptorsAround(interceptedId: $id, intercepted: $invoked, endpointAnnotations: $handler->getEndpointAnnotations(), requiredInterceptorNames: $handler->getRequiredInterceptorNames());
         }
 
         return $id;
@@ -196,7 +196,7 @@ final class MessageFlowBuildWiringDiscovery
         }
         foreach ($this->configuration->getRegisteredMethodInterceptors() as $position => $interceptors) {
             foreach ($interceptors as $interceptor) {
-                if (! $this->isAround($interceptor, $intercepted, $annotations, $requiredInterceptorNames)) {
+                if (! $this->isAround(interceptor: $interceptor, intercepted: $intercepted, annotations: $annotations, requiredInterceptorNames: $requiredInterceptorNames)) {
                     continue;
                 }
                 [$class, $method] = $interceptor instanceof AroundInterceptorBuilder
@@ -212,7 +212,7 @@ final class MessageFlowBuildWiringDiscovery
                         'registeredBy' => $this->configuration->getRegisteringModule(Configuration::INTERCEPTOR, (string) spl_object_id($interceptor)),
                     ]);
                 }
-                $this->edge($interceptedId, $id, FlowEdgeKind::INTERCEPTED_BY, []);
+                $this->edge(from: $interceptedId, to: $id, kind: FlowEdgeKind::INTERCEPTED_BY, attributes: []);
             }
         }
     }
@@ -293,7 +293,7 @@ final class MessageFlowBuildWiringDiscovery
      */
     private function edge(string $from, string $to, FlowEdgeKind $kind, array $attributes): void
     {
-        $edge = new FlowEdge($from, $to, $kind, $attributes + ['build' => true]);
+        $edge = new FlowEdge(from: $from, to: $to, kind: $kind, attributes: $attributes + ['build' => true]);
         $this->edges[$edge->identity()] ??= $edge;
     }
 

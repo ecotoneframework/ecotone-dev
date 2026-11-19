@@ -22,7 +22,7 @@ final class FlowTrace
         $tree = SpanTree::of(array_filter($spans, fn (Span $span): bool => ! ($span->attributes[SpanAttribute::EXECUTION_STEP] ?? false)));
         $steps = [];
         foreach ($tree->roots() as $root) {
-            $steps = [...$steps, ...self::stepsFrom($root, 0, $tree)];
+            $steps = [...$steps, ...self::stepsFrom(span: $root, depth: 0, tree: $tree)];
         }
 
         return $steps;
@@ -36,7 +36,7 @@ final class FlowTrace
         $destination = $span->attributes[SpanAttribute::MESSAGING_DESTINATION_NAME] ?? null;
         $steps = [['depth' => $depth, 'name' => $span->name] + (is_string($destination) && ! str_ends_with($span->name, ' ' . $destination) ? ['destination' => $destination] : []) + ['kind' => $span->kind->name, 'status' => $span->status->name]];
         foreach ($tree->childrenOf($span) as $child) {
-            $steps = [...$steps, ...self::stepsFrom($child, $depth + 1, $tree)];
+            $steps = [...$steps, ...self::stepsFrom(span: $child, depth: $depth + 1, tree: $tree)];
         }
 
         return $steps;

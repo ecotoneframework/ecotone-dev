@@ -21,7 +21,7 @@ final class RecordedLicensedMessageHandler implements MessageHandler
 
     public function handle(Message $message): void
     {
-        StepAround::of($this->tracer, 'handler ' . ExecutionRecordingTracer::shortClassOf($this->frameworkClassOf[$this->messageHandler::class]['class'] ?? $this->messageHandler::class) . '::handle', fn () => $this->messageHandler->handle($message), hints: [ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, $this->frameworkClassOf[$this->messageHandler::class]['chosenBy'] ?? 'licence')]);
+        StepAround::of(tracer: $this->tracer, name: 'handler ' . ExecutionRecordingTracer::shortClassOf($this->frameworkClassOf[$this->messageHandler::class]['class'] ?? $this->messageHandler::class) . '::handle', call: fn () => $this->messageHandler->handle($message), hints: [ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, $this->frameworkClassOf[$this->messageHandler::class]['chosenBy'] ?? 'licence')]);
     }
 
     public function __toString(): string

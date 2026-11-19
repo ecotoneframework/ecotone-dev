@@ -55,7 +55,7 @@ final class FlowSnapshot
         ksort($ledger, SORT_STRING);
         ksort($chains, SORT_STRING);
 
-        return new self($scenario, MessageFlowGraph::create($nodes, $edges), self::withStableNames(FlowTrace::stepsOf($spans), $anonymousClasses), $ledger, $chains, self::withStableNames(RecordedExecution::of($spans)->processes, $anonymousClasses));
+        return new self(scenario: $scenario, wiring: MessageFlowGraph::create($nodes, $edges), trace: self::withStableNames(FlowTrace::stepsOf($spans), $anonymousClasses), ledger: $ledger, chains: $chains, execution: self::withStableNames(RecordedExecution::of($spans)->processes, $anonymousClasses));
     }
 
     public static function fromJson(string $json, string $file, ?self $shared = null): self
@@ -101,7 +101,7 @@ final class FlowSnapshot
         ksort($ledger, SORT_STRING);
         ksort($chains, SORT_STRING);
 
-        return new self($stored['scenario'], MessageFlowGraph::create(array_values($nodes), array_values($edges)), $stored['trace'], $ledger, $chains, self::executionOf($stored['execution'], $file));
+        return new self(scenario: $stored['scenario'], wiring: MessageFlowGraph::create(array_values($nodes), array_values($edges)), trace: $stored['trace'], ledger: $ledger, chains: $chains, execution: self::executionOf($stored['execution'], $file));
     }
 
     public static function sharedFromJson(string $json, string $file): self
@@ -116,7 +116,7 @@ final class FlowSnapshot
 
     public static function emptyFor(string $scenario): self
     {
-        return new self($scenario, MessageFlowGraph::create([], []), [], [], [], []);
+        return new self(scenario: $scenario, wiring: MessageFlowGraph::create([], []), trace: [], ledger: [], chains: [], execution: []);
     }
 
     public function fileName(): string
@@ -131,7 +131,7 @@ final class FlowSnapshot
 
     public function toJson(): string
     {
-        return $this->encodedWith(self::linesOf($this->wiring->nodes()), self::linesOf($this->wiring->edges()), [], $this->ledgerLines(), $this->chainLines(), []);
+        return $this->encodedWith(nodeLines: self::linesOf($this->wiring->nodes()), edgeLines: self::linesOf($this->wiring->edges()), withoutSharedWiring: [], ledgerLines: $this->ledgerLines(), chainLines: $this->chainLines(), withoutSharedBuild: []);
     }
 
     public function toJsonBeside(self $shared): string
@@ -142,18 +142,18 @@ final class FlowSnapshot
         $edges = self::linesOf($this->wiring->edges());
 
         return $this->encodedWith(
-            array_diff_assoc($nodes, $sharedNodes),
-            array_diff_assoc($edges, $sharedEdges),
-            [
+            nodeLines: array_diff_assoc($nodes, $sharedNodes),
+            edgeLines: array_diff_assoc($edges, $sharedEdges),
+            withoutSharedWiring: [
                 '        "withoutNodes": ' . self::encoded(array_keys(array_diff_key($sharedNodes, $nodes))),
                 '        "withoutEdges": ' . self::encoded(array_keys(array_diff_key($sharedEdges, $edges))),
             ],
-            array_diff_assoc($this->ledgerLines(), $shared->ledgerLines()),
-            array_diff_assoc($this->chainLines(), $shared->chainLines()),
-            [
+            ledgerLines: array_diff_assoc($this->ledgerLines(), $shared->ledgerLines()),
+            chainLines: array_diff_assoc($this->chainLines(), $shared->chainLines()),
+            withoutSharedBuild: [
                 '        "withoutLedger": ' . self::encoded(array_keys(array_diff_key($shared->ledger, $this->ledger))),
                 '        "withoutChains": ' . self::encoded(array_keys(array_diff_key($shared->chains, $this->chains))),
-            ],
+            ]
         );
     }
 

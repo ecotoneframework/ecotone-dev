@@ -26,19 +26,19 @@ final class RecordedAggregateRepository implements AggregateRepository
     public function findBy(string $aggregateClassName, array $identifiers): ?ResolvedAggregate
     {
         return $this->recorded(
-            'repository finds ' . ExecutionRecordingTracer::shortClassOf($aggregateClassName),
-            fn () => $this->repository->findBy($aggregateClassName, $identifiers),
-            fn (?ResolvedAggregate $aggregate): ExecutionHint => $aggregate === null ? ExecutionHint::shownInLines(ExecutionHint::FOUND, 'nothing') : ExecutionHint::detail(ExecutionHint::FOUND, 'version ' . ($aggregate->getVersionBeforeHandling() ?? 'none')),
-            [ExecutionHint::detail(ExecutionHint::IDENTIFIERS, ExecutionHint::json($identifiers))],
+            name: 'repository finds ' . ExecutionRecordingTracer::shortClassOf($aggregateClassName),
+            call: fn () => $this->repository->findBy($aggregateClassName, $identifiers),
+            outcome: fn (?ResolvedAggregate $aggregate): ExecutionHint => $aggregate === null ? ExecutionHint::shownInLines(ExecutionHint::FOUND, 'nothing') : ExecutionHint::detail(ExecutionHint::FOUND, 'version ' . ($aggregate->getVersionBeforeHandling() ?? 'none')),
+            hints: [ExecutionHint::detail(ExecutionHint::IDENTIFIERS, ExecutionHint::json($identifiers))]
         );
     }
 
     public function save(ResolvedAggregate $aggregate, array $metadata): ?int
     {
         return $this->recorded(
-            'repository saves ' . ExecutionRecordingTracer::shortClassOf($aggregate->getAggregateClassName()) . ($aggregate->getEvents() === [] ? '' : ' with ' . count($aggregate->getEvents()) . ' events'),
-            fn () => $this->repository->save($aggregate, $metadata),
-            fn (?int $version): string => $version === null ? '' : 'at version ' . $version,
+            name: 'repository saves ' . ExecutionRecordingTracer::shortClassOf($aggregate->getAggregateClassName()) . ($aggregate->getEvents() === [] ? '' : ' with ' . count($aggregate->getEvents()) . ' events'),
+            call: fn () => $this->repository->save($aggregate, $metadata),
+            outcome: fn (?int $version): string => $version === null ? '' : 'at version ' . $version,
         );
     }
 

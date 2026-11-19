@@ -27,17 +27,17 @@ final class FlowExecutionChange
         $hints = ['before' => array_column($beforeSteps, 'hints'), 'after' => array_column($afterSteps, 'hints')];
         $beforeTree = self::treeOf($before);
         $afterTree = self::treeOf($after);
-        $plain = self::aligned(count($before), count($after), fn (int $beforeLine, int $afterLine): bool => $before[$beforeLine] === $after[$afterLine]);
-        $candidates = self::moveCandidates($beforeTree, $afterTree, $plain);
+        $plain = self::aligned(beforeCount: count($before), afterCount: count($after), same: fn (int $beforeLine, int $afterLine): bool => $before[$beforeLine] === $after[$afterLine]);
+        $candidates = self::moveCandidates(beforeTree: $beforeTree, afterTree: $afterTree, plain: $plain);
         $rejected = [];
         do {
             $moves = self::chosenMoves($candidates, $rejected);
-            $aligned = self::alignedOutside($moves, $before, $after, $beforeTree, $afterTree);
-            $failed = self::invalidMoves($moves, $aligned, $beforeTree, $afterTree);
+            $aligned = self::alignedOutside(moves: $moves, before: $before, after: $after, beforeTree: $beforeTree, afterTree: $afterTree);
+            $failed = self::invalidMoves(moves: $moves, aligned: $aligned, beforeTree: $beforeTree, afterTree: $afterTree);
             $rejected += $failed;
         } while ($failed !== []);
 
-        return self::mergedRepeats(self::entriesOf($aligned, $moves, $before, $after, $afterTree, $hints));
+        return self::mergedRepeats(self::entriesOf(aligned: $aligned, moves: $moves, before: $before, after: $after, afterTree: $afterTree, hints: $hints));
     }
 
     /**
@@ -93,7 +93,7 @@ final class FlowExecutionChange
                 if ($afterText !== $text || $afterTree['depth'][$afterLine] === $beforeTree['depth'][$beforeLine] || $afterSize > 2 * $beforeSize || $beforeSize > 2 * $afterSize || ! isset($added[$afterLine])) {
                     continue;
                 }
-                $inside = self::alignedInside($beforeTree, $beforeLine, $afterTree, $afterLine);
+                $inside = self::alignedInside(beforeTree: $beforeTree, beforeRoot: $beforeLine, afterTree: $afterTree, afterRoot: $afterLine);
                 $mates = count(array_filter($inside, fn (array $lines): bool => $lines[0] !== null && $lines[1] !== null));
                 if ($inside[0] === [$beforeLine, $afterLine] && 2 * $mates >= self::SIMILAR_ENOUGH * ($beforeSize + $afterSize)) {
                     $candidates[] = ['before' => $beforeLine, 'after' => $afterLine, 'inside' => $inside, 'mates' => $mates, 'parent' => $afterTree['depth'][$afterLine] > $beforeTree['depth'][$beforeLine]
@@ -123,7 +123,7 @@ final class FlowExecutionChange
 
         return array_map(
             fn (array $lines): array => [$lines[0] === null ? null : $beforeRoot + $lines[0], $lines[1] === null ? null : $afterRoot + $lines[1]],
-            self::aligned(count($beforeSteps), count($afterSteps), fn (int $beforeLine, int $afterLine): bool => $beforeSteps[$beforeLine] === $afterSteps[$afterLine]),
+            self::aligned(beforeCount: count($beforeSteps), afterCount: count($afterSteps), same: fn (int $beforeLine, int $afterLine): bool => $beforeSteps[$beforeLine] === $afterSteps[$afterLine]),
         );
     }
 
@@ -170,7 +170,7 @@ final class FlowExecutionChange
 
         return array_map(
             fn (array $lines): array => [$lines[0] === null ? null : $keptBefore[$lines[0]], $lines[1] === null ? null : $keptAfter[$lines[1]]],
-            self::aligned(count($keptBefore), count($keptAfter), fn (int $beforeLine, int $afterLine): bool => $before[$keptBefore[$beforeLine]] === $after[$keptAfter[$afterLine]]),
+            self::aligned(beforeCount: count($keptBefore), afterCount: count($keptAfter), same: fn (int $beforeLine, int $afterLine): bool => $before[$keptBefore[$beforeLine]] === $after[$keptAfter[$afterLine]]),
         );
     }
 
@@ -193,8 +193,8 @@ final class FlowExecutionChange
         $invalid = [];
         foreach ($moves as $move) {
             $wrapsOrUnwraps = $afterTree['depth'][$move['after']] > $beforeTree['depth'][$move['before']]
-                ? self::movedWithin($move['before'], $move['after'], $beforeTree, $afterTree, $partnerOfBefore, $partnerOfAfter)
-                : self::movedWithin($move['after'], $move['before'], $afterTree, $beforeTree, $partnerOfAfter, $partnerOfBefore);
+                ? self::movedWithin(shallowLine: $move['before'], deepLine: $move['after'], shallowTree: $beforeTree, deepTree: $afterTree, partnerInDeep: $partnerOfBefore, partnerInShallow: $partnerOfAfter)
+                : self::movedWithin(shallowLine: $move['after'], deepLine: $move['before'], shallowTree: $afterTree, deepTree: $beforeTree, partnerInDeep: $partnerOfAfter, partnerInShallow: $partnerOfBefore);
             if (! $wrapsOrUnwraps) {
                 $invalid[$move['before'] . ':' . $move['after']] = true;
             }
@@ -245,9 +245,9 @@ final class FlowExecutionChange
         $entries = [];
         foreach ([...$aligned, [null, PHP_INT_MAX]] as [$beforeLine, $afterLine]) {
             while ($moves !== [] && $afterLine !== null && $moves[0]['after'] < $afterLine) {
-                array_push($entries, ...self::movedEntries(array_shift($moves), $before, $after, $afterTree, $hints));
+                array_push($entries, ...self::movedEntries(move: array_shift($moves), before: $before, after: $after, afterTree: $afterTree, hints: $hints));
             }
-            $entries[] = $afterLine === PHP_INT_MAX ? null : self::entryOf($beforeLine, $afterLine, $beforeLine === null ? null : $before[$beforeLine], $afterLine === null ? null : $after[$afterLine], $hints);
+            $entries[] = $afterLine === PHP_INT_MAX ? null : self::entryOf(beforeLine: $beforeLine, afterLine: $afterLine, beforeStep: $beforeLine === null ? null : $before[$beforeLine], afterStep: $afterLine === null ? null : $after[$afterLine], hints: $hints);
         }
 
         return array_values(array_filter($entries));
@@ -265,7 +265,7 @@ final class FlowExecutionChange
         $deeper = intdiv(strspn($after[$move['after']], ' ') - strspn($before[$move['before']], ' '), 2);
         $changes = [];
         foreach (array_slice($move['inside'], 1) as [$beforeLine, $afterLine]) {
-            $changes[] = self::entryOf($beforeLine, $afterLine, $beforeLine === null ? null : ($deeper > 0 ? str_repeat('  ', $deeper) . $before[$beforeLine] : substr($before[$beforeLine], -2 * $deeper)), $afterLine === null ? null : $after[$afterLine], $hints);
+            $changes[] = self::entryOf(beforeLine: $beforeLine, afterLine: $afterLine, beforeStep: $beforeLine === null ? null : ($deeper > 0 ? str_repeat('  ', $deeper) . $before[$beforeLine] : substr($before[$beforeLine], -2 * $deeper)), afterStep: $afterLine === null ? null : $after[$afterLine], hints: $hints);
         }
         $rootHintChanges = self::hintChangesBetween($hints['before'][$move['before']], $hints['after'][$move['after']]);
         $changedInside = $rootHintChanges !== [] || array_filter($changes, fn (array $change): bool => $change['change'] !== FlowScenarioChange::UNCHANGED) !== [];

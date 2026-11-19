@@ -17,11 +17,11 @@ final class RecordedTransaction implements Transaction
 
     public function commit(): void
     {
-        StepAround::of($this->tracer, 'commit the projection transaction', fn () => $this->transaction->commit());
+        StepAround::of(tracer: $this->tracer, name: 'commit the projection transaction', call: fn () => $this->transaction->commit());
     }
 
     public function rollBack(): void
     {
-        StepAround::of($this->tracer, 'roll back the projection transaction', fn () => $this->transaction->rollBack());
+        StepAround::of(tracer: $this->tracer, name: 'roll back the projection transaction', call: fn () => $this->transaction->rollBack());
     }
 }

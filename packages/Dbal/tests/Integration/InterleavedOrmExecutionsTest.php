@@ -9,11 +9,11 @@ use Ecotone\Api\Dbal\Attribute\DbalQuery;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\FetchMode;
+use Ecotone\Api\Dbal\ManagerRegistryProvider;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Test\LicenceTesting;
 use Fiber;
 use RuntimeException;
@@ -81,7 +81,7 @@ final class InterleavedOrmExecutionsTest extends DbalMessagingTestCase
             classesToResolve: [$registration::class, RegisteredPersons::class],
             containerOrAvailableServices: [
                 $registration,
-                DbalConnectionFactory::class => ManagerRegistryEmulator::fromDsnAndConfig(self::databaseDsn(), [__DIR__ . '/../Fixture/ORM/Person']),
+                DbalConnectionFactory::class => ManagerRegistryProvider::fromDsnAndConfig(self::databaseDsn(), [__DIR__ . '/../Fixture/ORM/Person']),
             ],
             extensionObjects: [DbalConfiguration::createWithDefaults()->withDoctrineORMRepositories(true, [Person::class])],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],

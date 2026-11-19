@@ -111,7 +111,7 @@ final class CurrentConnectionTest extends DbalMessagingTestCase
         $this->expectExceptionMessage(
             "#[CurrentConnection('reporting')] on " . $handler::class . '::register($connection) needs a connection registered as `reporting`, and there is none. '
             . 'Register it under that name: a service new Ecotone\\Api\\Dbal\\DbalConnectionFactory($dsn), SymfonyConnectionReference::createForConnection($connectionName, $referenceName), LaravelConnectionReference::create($connectionName, $referenceName) or TempestConnectionReference::create($configTag, $referenceName), '
-            . 'or use #[CurrentConnection] without a name for the default connection `Ecotone\\Api\\Dbal\\DbalConnectionFactory`.'
+            . 'or use #[CurrentConnection] without a name for the connection messages are handled on, `Ecotone\\Api\\Dbal\\DbalConnectionFactory`.'
         );
 
         EcotoneLite::bootstrap(

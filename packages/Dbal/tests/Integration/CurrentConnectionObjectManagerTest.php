@@ -12,14 +12,14 @@ use Doctrine\Persistence\ObjectRepository;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager;
 use Ecotone\Api\Dbal\Attribute\DbalQuery;
+use Ecotone\Api\Dbal\DbalConnection;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\FetchMode;
+use Ecotone\Api\Dbal\ManagerRegistryProvider;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
@@ -125,7 +125,7 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
 
         $this->expectExceptionMessage(
             '#[CurrentConnectionObjectManager] cannot inject the Doctrine ObjectManager of connection `Ecotone\\Api\\Dbal\\DbalConnectionFactory`: it is registered as Ecotone\\Api\\Dbal\\DbalConnectionFactory, which has no Doctrine ORM behind it. '
-            . 'Register the connection with Doctrine ORM: SymfonyConnectionReference::defaultManagerRegistry($connectionName) or SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with Ecotone\\Dbal\\DbalConnection::createForManagerRegistry($managerRegistry, $connectionName). To give every coroutine an ObjectManager of its own, register a service created with Ecotone\\Dbal\\ManagerRegistryEmulator::fromDsnAndConfig($dsn, $pathsToMapping). '
+            . 'Register the connection with Doctrine ORM: SymfonyConnectionReference::defaultManagerRegistry($connectionName) or SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with Ecotone\\Api\\Dbal\\DbalConnection::createForManagerRegistry($managerRegistry, $connectionName). To give every coroutine an ObjectManager of its own, register a service created with Ecotone\\Api\\Dbal\\ManagerRegistryProvider::fromDsnAndConfig($dsn, $pathsToMapping). '
             . 'To run SQL on the connection of the handled message without Doctrine ORM, take #[CurrentConnection] Doctrine\\DBAL\\Connection instead.'
         );
 
@@ -144,8 +144,8 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
             "#[CurrentConnectionObjectManager('reporting')] on " . $handler::class . '::registerEntity($objectManager) needs a connection registered as `reporting`, and there is none. '
-            . 'Register it under that name with Doctrine ORM: SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with Ecotone\\Dbal\\DbalConnection::createForManagerRegistry($managerRegistry, $connectionName) or, to give every coroutine an ObjectManager of its own, with Ecotone\\Dbal\\ManagerRegistryEmulator::fromDsnAndConfig($dsn, $pathsToMapping), '
-            . 'or use #[CurrentConnectionObjectManager] without a name for the default connection `Ecotone\\Api\\Dbal\\DbalConnectionFactory`.'
+            . 'Register it under that name with Doctrine ORM: SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with Ecotone\\Api\\Dbal\\DbalConnection::createForManagerRegistry($managerRegistry, $connectionName) or, to give every coroutine an ObjectManager of its own, with Ecotone\\Api\\Dbal\\ManagerRegistryProvider::fromDsnAndConfig($dsn, $pathsToMapping), '
+            . 'or use #[CurrentConnectionObjectManager] without a name for the connection messages are handled on, `Ecotone\\Api\\Dbal\\DbalConnectionFactory`.'
         );
 
         EcotoneLite::bootstrap(
@@ -176,7 +176,7 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
 
         $this->bootstrapFlowTesting(
             [$handler::class],
-            [$handler, DbalConnectionFactory::class => ManagerRegistryEmulator::fromDsnAndConfig(self::databaseDsn(), [__DIR__ . '/../Fixture/ORM/Person'])],
+            [$handler, DbalConnectionFactory::class => ManagerRegistryProvider::fromDsnAndConfig(self::databaseDsn(), [__DIR__ . '/../Fixture/ORM/Person'])],
             [DbalConfiguration::createWithDefaults()],
             [ModulePackageList::DBAL_PACKAGE],
         );
@@ -317,7 +317,7 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
             [$registration::class, PersonsStoredThroughObjectManager::class, PersonsOfReportingStoredThroughObjectManager::class],
             [
                 $registration,
-                DbalConnectionFactory::class => ManagerRegistryEmulator::fromDsnAndConfig(self::databaseDsn(), [__DIR__ . '/../Fixture/ORM/Person']),
+                DbalConnectionFactory::class => ManagerRegistryProvider::fromDsnAndConfig(self::databaseDsn(), [__DIR__ . '/../Fixture/ORM/Person']),
                 'reporting' => $this->connectionForTenantBWithManagerRegistry([__DIR__ . '/../Fixture/ORM/Person']),
             ],
             [DbalConfiguration::createWithDefaults()],

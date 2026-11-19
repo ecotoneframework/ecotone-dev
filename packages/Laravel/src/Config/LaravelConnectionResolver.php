@@ -6,8 +6,8 @@ namespace Ecotone\Laravel\Config;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
+use Ecotone\Api\Dbal\DbalConnection;
 use Ecotone\Api\Laravel\LaravelConnectionReference;
-use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\DbalTransaction\TransactionReconnectProtectionDriver;
 use Illuminate\Database\Connection as LaravelConnection;
 use Illuminate\Support\Facades\DB;

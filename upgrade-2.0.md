@@ -111,6 +111,11 @@ config sets `'licenceKey' => null` and reads no environment variable; to keep th
 licensed, replace multi-tenant connection switching with explicit per-tenant connection references and route
 messages yourself.
 
+An application registers one `MultiTenantConfiguration`: a second one is refused at bootstrap with a
+`ConfigurationException`, because a message is handled on the connection of one active tenant. Map every tenant in the
+one configuration; a database that is not split by tenant is a connection of its own, taken with
+`#[CurrentConnection('its_reference_name')]`.
+
 ### 2a. A console command run with a tenant header activates that tenant
 
 **Before:** a console command run with `--header tenant:<name>` resolved header-driven connections (a
@@ -135,11 +140,12 @@ connection the handled message runs on, for single-tenant and multi-tenant appli
 `MultiTenantConfiguration` it is the active tenant's connection. `#[MultiTenantConnection]` no longer exists.
 `#[CurrentConnection]` alone does not require an Enterprise licence; `MultiTenantConfiguration` still does.
 
-**How to adapt:** replace `#[MultiTenantConnection]` with `#[CurrentConnection]`. The default is the connection
-registered as `Ecotone\Api\Dbal\DbalConnectionFactory`, which is also the default reference name of
-`MultiTenantConfiguration`. If the `MultiTenantConfiguration` was created with another reference name, pass it:
-`#[CurrentConnection('tenant_connection')]`. The argument is named `connectionReferenceName`, where
-`#[MultiTenantConnection]` named it `referenceName`.
+**How to adapt:** replace `#[MultiTenantConnection]` with `#[CurrentConnection]`. Without an argument it is the
+connection messages are handled on: the active tenant's when the application has a `MultiTenantConfiguration`, whatever
+reference name that configuration is registered under, and the connection registered as
+`Ecotone\Api\Dbal\DbalConnectionFactory` otherwise. Any other connection is taken by its reference name,
+`#[CurrentConnection('reporting')]`. The argument is named `connectionReferenceName`, where `#[MultiTenantConnection]`
+named it `referenceName`.
 
 ### 2c. `#[MultiTenantObjectManager]` is replaced by `#[CurrentConnectionObjectManager]`
 
@@ -151,22 +157,18 @@ ObjectManager of the active tenant's connection. Without an argument it resolved
 **Now:** `#[CurrentConnectionObjectManager]` (`Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager`) injects the
 ObjectManager of the connection the message is handled on: the active tenant's with `MultiTenantConfiguration`, and
 also the connection of an application without tenants, when that connection is registered with Doctrine ORM
-(`SymfonyConnectionReference::defaultManagerRegistry()`). It still requires an Enterprise licence. Its argument is named
-`connectionReferenceName` and defaults to the default connection, like `#[CurrentConnection]`.
+(`SymfonyConnectionReference::defaultManagerRegistry()`). It still requires an Enterprise licence. Without an argument
+it follows the same rule as `#[CurrentConnection]` (§2b): the active tenant's ObjectManager when the application has a
+`MultiTenantConfiguration`, the default connection's otherwise. Its argument is named `connectionReferenceName`.
 
 With Symfony's ManagerRegistry the ObjectManager is one for the process, so messages handled at once on coroutines
 would share its unit of work: handle one message at a time with it. A connection registered as a service created
-with `Ecotone\Dbal\ManagerRegistryEmulator::fromDsnAndConfig($dsn, $pathsToMapping)` gives every coroutine an
+with `Ecotone\Api\Dbal\ManagerRegistryProvider::fromDsnAndConfig($dsn, $pathsToMapping)` gives every coroutine an
 ObjectManager of its own, built from `$pathsToMapping` rather than from the `doctrine.orm` configuration of a Symfony
 application. A connection that no entity manager of the registry uses is refused when the handler is
 called.
 
-**How to adapt:** replace the attribute name, and `referenceName:` with `connectionReferenceName:`. When the
-`MultiTenantConfiguration` is registered under a reference name of its own
-(`MultiTenantConfiguration::create('tenant', [...], 'tenant_connection')`), name it:
-`#[CurrentConnectionObjectManager('tenant_connection')]`. Left without the name, the attribute now injects the
-ObjectManager of the default connection instead of the tenant's, and fails on the first message when the default
-connection has no Doctrine ORM behind it.
+**How to adapt:** replace the attribute name, and `referenceName:` with `connectionReferenceName:`.
 
 ## 3. Projections: v1 (Prooph-based) removed, `ProjectionV2` renamed to `Projection`
 
@@ -2552,6 +2554,16 @@ package's `src`: `Ecotone\Dbal\Connection\DbalConnectionFactory` and `ManagerReg
 | `Ecotone\Sqs\Connection\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionFactory` |
 | `Ecotone\Redis\Connection\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionFactory` |
 
+Two classes an application calls to build a connection moved from `Ecotone\Dbal` as well, and one was renamed:
+
+| 1.x | 2.0 |
+|---|---|
+| `Ecotone\Dbal\DbalConnection` | `Ecotone\Api\Dbal\DbalConnection` |
+| `Ecotone\Dbal\ManagerRegistryEmulator` | `Ecotone\Api\Dbal\ManagerRegistryProvider` |
+
+Their static methods keep their names and arguments. They are declared to return the `Api` types
+(`ManagerRegistryConnectionFactory`, `Interop\Queue\ConnectionFactory`) instead of the internal classes behind them.
+
 `DbalConnectionReference::DEFAULT`, `AmqpConnectionReference::DEFAULT` / `DEFAULT_STREAM`,
 `SqsConnectionReference::DEFAULT` and `RedisConnectionReference::DEFAULT` are the factory class names, so their string
 values move with them: `DbalConnectionReference::DEFAULT` is now `'Ecotone\Api\Dbal\DbalConnectionFactory'`. A
@@ -3078,7 +3090,7 @@ Ecotone opens from its parameters and configuration, at most 10 per process
 
 Any other connection the application or its framework built (a Doctrine `ManagerRegistry`, a Laravel or Tempest
 connection) is still one connection for the process, and so is an existing `Doctrine\DBAL\Connection` unless it is
-handed over with `Ecotone\Dbal\DbalConnection::createWithCopiesForConcurrentExecutions($connection)`, which gives
+handed over with `Ecotone\Api\Dbal\DbalConnection::createWithCopiesForConcurrentExecutions($connection)`, which gives
 every concurrent execution a copy as the Symfony reference does. When a second execution begins a transaction on such
 a single connection while another execution holds one, Ecotone refuses with a `ConfigurationException` naming the ways
 out, where it used to let the two share the transaction. That includes a fiber or coroutine a handler starts, which

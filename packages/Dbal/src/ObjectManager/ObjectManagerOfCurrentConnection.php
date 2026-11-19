@@ -6,9 +6,10 @@ namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ObjectManager;
-use Ecotone\Dbal\DbalConnection;
+use Ecotone\Api\Dbal\DbalConnection;
+use Ecotone\Api\Dbal\ManagerRegistryProvider;
+use Ecotone\Dbal\Configuration\DbalConnectionModule;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
-use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 
@@ -34,8 +35,15 @@ final class ObjectManagerOfCurrentConnection
 {
     public const REFERENCE_NAME = 'ecotone.dbal.object_manager_of_current_connection';
 
+    public function __construct(private string $referenceNameOfTheConnectionMessagesAreHandledOn)
+    {
+    }
+
     public function of(object $connectionFactory, string $connectionReferenceName): ObjectManager
     {
+        if ($connectionReferenceName === DbalConnectionModule::CONNECTION_MESSAGES_ARE_HANDLED_ON) {
+            $connectionReferenceName = $this->referenceNameOfTheConnectionMessagesAreHandledOn;
+        }
         if ($connectionFactory instanceof MultiTenantConnectionFactory) {
             return $connectionFactory->getManager();
         }
@@ -50,7 +58,7 @@ final class ObjectManagerOfCurrentConnection
             $connectionReferenceName,
             $connectionFactory::class,
             DbalConnection::class,
-            ManagerRegistryEmulator::class,
+            ManagerRegistryProvider::class,
             Connection::class,
         ));
     }

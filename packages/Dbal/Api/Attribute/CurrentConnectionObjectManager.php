@@ -6,7 +6,7 @@ namespace Ecotone\Api\Dbal\Attribute;
 
 use Attribute;
 use Ecotone\Api\Attribute\Reference;
-use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Configuration\DbalConnectionModule;
 use Ecotone\Dbal\ObjectManager\ObjectManagerOfCurrentConnection;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
@@ -17,7 +17,7 @@ use Ecotone\Dbal\ObjectManager\ObjectManagerOfCurrentConnection;
  */
 final class CurrentConnectionObjectManager extends Reference
 {
-    public function __construct(string $connectionReferenceName = DbalConnectionFactory::class)
+    public function __construct(string $connectionReferenceName = DbalConnectionModule::CONNECTION_MESSAGES_ARE_HANDLED_ON)
     {
         parent::__construct(
             $connectionReferenceName,

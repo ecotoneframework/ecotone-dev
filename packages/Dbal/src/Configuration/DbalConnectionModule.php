@@ -11,12 +11,13 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Dbal\Attribute\CurrentConnection;
 use Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager;
+use Ecotone\Api\Dbal\DbalConnection;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Dbal\ManagerRegistryProvider;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Dbal\ObjectManager\ObjectManagerOfCurrentConnection;
 use Ecotone\Lite\Test\Configuration\ProvidedReferences;
 use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
@@ -26,6 +27,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResol
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
@@ -40,6 +42,8 @@ use Ecotone\Messaging\Support\LicensingException;
  */
 final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionObjectsForFlowTesting
 {
+    public const CONNECTION_MESSAGES_ARE_HANDLED_ON = 'ecotone.dbal.connection_messages_are_handled_on';
+
     /**
      * @param array<string, string> $connectionsInjectedIntoParameters
      * @param array<string, string> $objectManagersInjectedIntoParameters
@@ -125,10 +129,13 @@ final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionO
                 Connection::class,
             ));
         }
-        $messagingConfiguration->registerServiceDefinition(ObjectManagerOfCurrentConnection::REFERENCE_NAME, new Definition(ObjectManagerOfCurrentConnection::class));
+        $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
+        $connectionMessagesAreHandledOn = $multiTenantConfigurations === [] ? DbalConnectionReference::DEFAULT : $multiTenantConfigurations[0]->getReferenceName();
+        $messagingConfiguration->registerServiceDefinition(self::CONNECTION_MESSAGES_ARE_HANDLED_ON, new Reference($connectionMessagesAreHandledOn));
+        $messagingConfiguration->registerServiceDefinition(ObjectManagerOfCurrentConnection::REFERENCE_NAME, new Definition(ObjectManagerOfCurrentConnection::class, [$connectionMessagesAreHandledOn]));
 
         foreach ($this->connectionsInjectedIntoParameters as $connectionReferenceName => $placement) {
-            if (in_array($connectionReferenceName, $connectionFactories, true)) {
+            if ($connectionReferenceName === self::CONNECTION_MESSAGES_ARE_HANDLED_ON || in_array($connectionReferenceName, $connectionFactories, true)) {
                 continue;
             }
 
@@ -137,18 +144,18 @@ final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionO
                 sprintf(
                     "#[CurrentConnection('%s')] on %s needs a connection registered as `%s`, and there is none. "
                     . 'Register it under that name: a service new %s($dsn), SymfonyConnectionReference::createForConnection($connectionName, $referenceName), LaravelConnectionReference::create($connectionName, $referenceName) or TempestConnectionReference::create($configTag, $referenceName), '
-                    . 'or use #[CurrentConnection] without a name for the default connection `%s`.',
+                    . 'or use #[CurrentConnection] without a name for the connection messages are handled on, `%s`.',
                     $connectionReferenceName,
                     $placement,
                     $connectionReferenceName,
                     DbalConnectionReference::DEFAULT,
-                    DbalConnectionReference::DEFAULT,
+                    $connectionMessagesAreHandledOn,
                 )
             );
         }
 
         foreach ($this->objectManagersInjectedIntoParameters as $connectionReferenceName => $placement) {
-            if (in_array($connectionReferenceName, $connectionFactories, true)) {
+            if ($connectionReferenceName === self::CONNECTION_MESSAGES_ARE_HANDLED_ON || in_array($connectionReferenceName, $connectionFactories, true)) {
                 continue;
             }
 
@@ -157,13 +164,13 @@ final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionO
                 sprintf(
                     "#[CurrentConnectionObjectManager('%s')] on %s needs a connection registered as `%s`, and there is none. "
                     . 'Register it under that name with Doctrine ORM: SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with %s::createForManagerRegistry($managerRegistry, $connectionName) or, to give every coroutine an ObjectManager of its own, with %s::fromDsnAndConfig($dsn, $pathsToMapping), '
-                    . 'or use #[CurrentConnectionObjectManager] without a name for the default connection `%s`.',
+                    . 'or use #[CurrentConnectionObjectManager] without a name for the connection messages are handled on, `%s`.',
                     $connectionReferenceName,
                     $placement,
                     $connectionReferenceName,
                     DbalConnection::class,
-                    ManagerRegistryEmulator::class,
-                    DbalConnectionReference::DEFAULT,
+                    ManagerRegistryProvider::class,
+                    $connectionMessagesAreHandledOn,
                 )
             );
         }

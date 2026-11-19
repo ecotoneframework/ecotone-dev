@@ -14,6 +14,7 @@ use Ecotone\Api\Dbal\Attribute\DbalQuery;
 use Ecotone\Api\Dbal\Attribute\DbalTransaction;
 use Ecotone\Api\Dbal\Attribute\DbalWrite;
 use Ecotone\Api\Dbal\ConnectionPoolExhausted;
+use Ecotone\Api\Dbal\DbalConnection;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -22,7 +23,6 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Dbal\DbalConnection;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Fiber;
 use RuntimeException;
@@ -249,7 +249,7 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
             $this->assertSame(
                 'Database connection `' . DbalConnectionFactory::class . '` is already inside a transaction opened by another execution of this process (a coroutine or a fiber running concurrently, or one the handler holding the transaction started). '
                 . 'Two executions on one connection share one transaction: a rollback of either one discards what the other stored. '
-                . 'Ecotone gives every concurrent execution its own connection when it can open one itself: register the connection from a DSN (new Ecotone\\Api\\Dbal\\DbalConnectionFactory($dsn)), register a Symfony DBAL connection with SymfonyConnectionReference::defaultConnection() or ::createForConnection(), or hand an existing connection over with Ecotone\\Dbal\\DbalConnection::createWithCopiesForConcurrentExecutions($connection); the last two work on copies of that connection. '
+                . 'Ecotone gives every concurrent execution its own connection when it can open one itself: register the connection from a DSN (new Ecotone\\Api\\Dbal\\DbalConnectionFactory($dsn)), register a Symfony DBAL connection with SymfonyConnectionReference::defaultConnection() or ::createForConnection(), or hand an existing connection over with Ecotone\\Api\\Dbal\\DbalConnection::createWithCopiesForConcurrentExecutions($connection); the last two work on copies of that connection. '
                 . 'A Doctrine ManagerRegistry and a Laravel or Tempest database connection stay a single connection for the whole process, so with them handle one message at a time per process: in Swoole or OpenSwoole set `enable_coroutine` to false (the default of Laravel Octane), and do not begin a transaction from a coroutine or fiber the handler starts. '
                 . 'Running without a database transaction (#[WithoutDatabaseTransaction], or DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false), ->withTransactionOnAsynchronousEndpoints(false) or ->withTransactionOnConsoleCommands(false)) removes this refusal but not the cause: the executions still share the connection, their writes are no longer atomic, and MySQL refuses their concurrent queries.',
                 $exception->getMessage()

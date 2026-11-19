@@ -9,19 +9,19 @@ use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\ORMSetup;
+use Ecotone\Api\Dbal\DbalConnection;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Dbal\ManagerRegistryProvider;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\AggregateNotFoundException;
-use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
-use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -319,7 +319,7 @@ final class ORMTest extends DbalMessagingTestCase
         $entityManager = new EntityManager($this->getConnection(), $ormConfiguration, $eventManager);
 
         $ecotone = $this->bootstrapFlowTesting(
-            containerOrAvailableServices: [DbalConnectionFactory::class => ManagerRegistryEmulator::createEntityManager($entityManager)],
+            containerOrAvailableServices: [DbalConnectionFactory::class => ManagerRegistryProvider::createEntityManager($entityManager)],
             extensionObjects: [DbalConfiguration::createWithDefaults()->withDoctrineORMRepositories(true, [Person::class])],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
@@ -376,7 +376,7 @@ final class ORMTest extends DbalMessagingTestCase
 
     protected function connectionForTenantB(): EcotoneManagerRegistryConnectionFactory
     {
-        $connectionTenantB = ManagerRegistryEmulator::fromDsnAndConfig(
+        $connectionTenantB = ManagerRegistryProvider::fromDsnAndConfig(
             getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@127.0.0.1:3306/ecotone',
             [__DIR__ . '/../Fixture/ORM/Person']
         );
@@ -385,7 +385,7 @@ final class ORMTest extends DbalMessagingTestCase
 
     protected function connectionForTenantA(): EcotoneManagerRegistryConnectionFactory
     {
-        $connectionTenantA = ManagerRegistryEmulator::fromDsnAndConfig(
+        $connectionTenantA = ManagerRegistryProvider::fromDsnAndConfig(
             getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@127.0.0.1:5432/ecotone',
             [__DIR__ . '/../Fixture/ORM/Person']
         );

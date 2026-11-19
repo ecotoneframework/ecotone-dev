@@ -90,7 +90,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
 
         /** @var DbalContext $dbalConnection */
         $dbalConnection = $this->container->get($this->getConnectionReference($connectionReference))->createContext();
-        Assert::isTrue($dbalConnection instanceof DbalContext, 'Connection factory was not registered using by Ecotone\Dbal\DbalConnection::*');
+        Assert::isTrue($dbalConnection instanceof DbalContext, 'Connection factory was not registered using by Ecotone\Api\Dbal\DbalConnection::*');
 
         return $dbalConnection->getDbalConnection();
     }

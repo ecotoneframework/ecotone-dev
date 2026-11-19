@@ -57,11 +57,6 @@ final class PulseTenancyModule extends NoExternalConfigurationModule implements 
             return;
         }
 
-        $headers = array_values(array_unique(array_map(static fn (MultiTenantConfiguration $configuration): string => $configuration->tenantHeaderName, $multiTenantConfigurations)));
-        if (count($headers) > 1) {
-            throw ConfigurationException::create('Pulse asks a multi-tenant service for one tenant at a time with a single tenant header, but the MultiTenantConfigurations of this service use the headers `' . implode('`, `', $headers) . '`, so it could not tell which header names the tenant. Give every MultiTenantConfiguration the same tenant header name, or remove the PulseConfiguration.');
-        }
-
         $multiTenantReferences = array_map(static fn (MultiTenantConfiguration $configuration): string => $configuration->getReferenceName(), $multiTenantConfigurations);
         $serviceName = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults())->serviceName;
         $pulseConfiguration = $pulseConfigurations[0];

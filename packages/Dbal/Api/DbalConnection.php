@@ -1,11 +1,12 @@
 <?php
 
-namespace Ecotone\Dbal;
+namespace Ecotone\Api\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
-use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
 use Ecotone\Dbal\Connection\ConnectionPool;
+use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Interop\Queue\ConnectionFactory;
 
@@ -14,9 +15,9 @@ use Interop\Queue\ConnectionFactory;
  */
 class DbalConnection
 {
-    public static function fromConnectionFactory(DbalConnectionFactory $dbalConnectionFactory): EcotoneManagerRegistryConnectionFactory
+    public static function fromConnectionFactory(DbalConnectionFactory $dbalConnectionFactory): ManagerRegistryConnectionFactory
     {
-        return ManagerRegistryEmulator::fromConnectionFactory($dbalConnectionFactory);
+        return ManagerRegistryProvider::fromConnectionFactory($dbalConnectionFactory);
     }
 
     public static function fromDsn(string $dsn): ConnectionFactory
@@ -27,19 +28,19 @@ class DbalConnection
     public static function create(
         Connection $connection,
         array $config = []
-    ): AlreadyConnectedDbalConnectionFactory {
+    ): ConnectionFactory {
         return new AlreadyConnectedDbalConnectionFactory(
             $connection,
             $config
         );
     }
 
-    public static function createWithCopiesForConcurrentExecutions(Connection $connection, int $connectionPoolSize = ConnectionPool::DEFAULT_SIZE): AlreadyConnectedDbalConnectionFactory
+    public static function createWithCopiesForConcurrentExecutions(Connection $connection, int $connectionPoolSize = ConnectionPool::DEFAULT_SIZE): ConnectionFactory
     {
         return AlreadyConnectedDbalConnectionFactory::withCopiesForConcurrentExecutions($connection, $connectionPoolSize);
     }
 
-    public static function createForManagerRegistry(ManagerRegistry $managerRegistry, ?string $connectionName = null): EcotoneManagerRegistryConnectionFactory
+    public static function createForManagerRegistry(ManagerRegistry $managerRegistry, ?string $connectionName = null): ManagerRegistryConnectionFactory
     {
         return new EcotoneManagerRegistryConnectionFactory($managerRegistry, ['connection_name' => $connectionName]);
     }

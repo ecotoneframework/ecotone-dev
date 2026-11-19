@@ -1674,21 +1674,6 @@ Delayable channels change in-memory behaviour: a message sent with `delay` is no
 clock passes the delay. Use `$ecotone->advanceTimeBy(Duration::seconds(5))->run('x')` (§15)
 or `TestConfiguration::createWithDefaults()->withSpyOnChannel()` to assert delayed messages.
 
-### 9a. An in-memory queue redelivers a failed message as it was put on the channel
-
-**Before:** when a handler on an in-memory queue channel (`SimpleMessageChannelBuilder::createQueueChannel()`) failed
-and the message was requeued, the redelivery was the message as the channel's acknowledgement interceptor saw it,
-before the channel interceptors that run after it. What those had changed was gone on the second delivery: the
-headers a `#[ChannelInterceptor]` with a negative precedence added, and the trace context tracing puts on the message.
-`#[AddHeader]`, `#[RemoveHeader]` and `#[Delayed]` were not affected: they apply before the message reaches the channel.
-
-**Now:** the redelivery is the message as it was put on the channel, as the DBAL and AMQP channels redeliver it: it
-keeps what every channel interceptor did. Only the acknowledgement headers of the first delivery are not carried over.
-With tracing on, the redelivery keeps its trace context, so it stays in the trace that sent it.
-
-**How to adapt:** nothing, unless a test relied on a redelivered message missing a header a negative-precedence
-`#[ChannelInterceptor]` adds.
-
 ## 10. Aggregate identifier resolution for queued messages (unchanged)
 
 Consumer-side identifier resolution stays as it was in 1.x: when a message reaches an aggregate handler without the
@@ -2534,6 +2519,14 @@ own. One that registers it under the literal pre-release string has to use the c
 
 ## 14. Smaller behaviour changes
 
+- **A failed message put back on an in-memory queue comes back exactly as it was sent to the channel.** **Before:**
+  a failed message put back on a queue channel (`SimpleMessageChannelBuilder::createQueueChannel()`) lost the headers a
+  `#[ChannelInterceptor]` with a negative precedence had added, and its trace context, so the retry started a new
+  trace. **Now:** it comes back exactly as it was sent to the channel, as on DBAL and AMQP, and stays in its trace;
+  only the acknowledgement headers of the first delivery are not carried over. `#[AddHeader]`, `#[RemoveHeader]`,
+  `#[Delayed]`, `#[Priority]`, `#[TimeToLive]` and `#[Presend]` are unaffected: they apply before the message
+  reaches the channel. **How to adapt:** nothing, unless a test relied on the retried message missing a header a
+  negative-precedence `#[ChannelInterceptor]` adds.
 - **`EventStore::load()` and `loadAggregateEvents()` refuse a `count` of `0` on DBAL too.** Before, DBAL returned no
   events while in-memory refused; both now throw `InvalidArgumentException` saying a count caps how many events are
   loaded and to pass `null` for all of them. **How to adapt:** pass `null`, or skip the call, where you passed `0`.

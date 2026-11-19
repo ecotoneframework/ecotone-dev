@@ -73,6 +73,7 @@ mkdir "$public_plugin/.claude-plugin"
 printf '{"name":"ecotone-skills"}\n' > "$public_plugin/.claude-plugin/plugin.json"
 cp -R "$PWD/api/skills" "$public_plugin/skills"
 cp -R "$PWD/api/evals" "$public_plugin/evals"
+rm -rf "$public_plugin/evals/results"
 
 run_suite .agents "$PWD/.agents/evals/results" "${framework[@]+"${framework[@]}"}"
 run_suite "$public_plugin" "$PWD/api/evals/results" "${public[@]+"${public[@]}"}"

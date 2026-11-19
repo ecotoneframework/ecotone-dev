@@ -19,8 +19,9 @@ description: >-
 On OpenSwoole or Swoole one PHP process stays booted and can handle several messages at once, each on its own
 coroutine. Ecotone keeps the state of every message (propagated headers, the transaction, the database connection,
 the active tenant) per coroutine, so messages handled at once do not see each other's state. A coroutine only helps
-while it waits on something the runtime can wait on: MySQL, MariaDB and `php-amqplib` are; PostgreSQL on OpenSwoole
-and the `amqp` extension are not.
+while it waits on something the runtime can wait on: MySQL, MariaDB and `php-amqplib` are; the `amqp` extension is
+not, and PostgreSQL only on Swoole built with `--enable-swoole-pgsql` (never on OpenSwoole). A Kafka topic or a
+RabbitMQ stream is consumed one message at a time: Ecotone refuses its consumer on coroutines.
 
 ## Applies when
 
@@ -55,9 +56,16 @@ final class ConsumerConfiguration
 ```
 
 - Without the `openswoole` or `swoole` extension the consumer refuses to start with a `ConfigurationException`
-- `--handledMessageLimit`, `--executionTimeLimit` and `--memoryLimit` apply to every coroutine
-- When one coroutine fails, the others stop and the consumer exits with that failure, so a supervisor restarts it
+- Coroutines need a connection registered from a DSN (§2). A Laravel, Tempest or Doctrine `ManagerRegistry`
+  connection is one per process, so with it run the consumer without `--coroutines`
+- Each coroutine handles up to `--handledMessageLimit` messages, so the process handles up to that many times the
+  coroutines; `--executionTimeLimit` and `--memoryLimit` are checked by every coroutine
+- A failed message goes to the error channel or dead letter as usual and the other coroutines go on. When one
+  coroutine's consumer stops with an exception (`--stopOnFailure`, a lost connection), the others stop and the
+  consumer exits with that failure, so a supervisor restarts it
 - A `#[Scheduled]` endpoint is refused on coroutines: each coroutine would run every scheduled execution again
+- A consumer of a Kafka topic or a RabbitMQ stream is refused on coroutines: a message finished out of turn would
+  commit its position past one still being handled. Start more processes of that consumer
 
 ## 2. A database connection per coroutine
 
@@ -85,12 +93,14 @@ new DbalConnectionFactory(['dsn' => 'mysql://user:secret@database/app', 'connect
 |---|---|---|
 | MySQL, MariaDB (`pdo_mysql`) | waits | waits |
 | PostgreSQL (`pdo_pgsql`) | refused by Ecotone inside a coroutine | waits when Swoole is built with `--enable-swoole-pgsql` (`SWOOLE_HOOK_PDO_PGSQL`, part of `SWOOLE_HOOK_ALL`); refused otherwise |
-| RabbitMQ with `Enqueue\AmqpLib\AmqpConnectionFactory` | waits | waits |
-| RabbitMQ with the `amqp` extension | stops every coroutine during the call | same |
-| SQLite | stops every coroutine during the call | waits with `SWOOLE_HOOK_PDO_SQLITE` |
+| RabbitMQ with `Ecotone\Api\Amqp\AmqpLibConnectionFactory` (`php-amqplib`) | waits | waits |
+| RabbitMQ with `Ecotone\Api\Amqp\AmqpExtConnectionFactory` (the `amqp` extension) | stops every coroutine during the call | same |
+| SQLite | stops every coroutine during the call | same, unless Swoole is built with `--enable-swoole-sqlite` (not covered by Ecotone's tests) |
+| Kafka topic, RabbitMQ stream | consumer refused on coroutines | same |
 
-With PostgreSQL on OpenSwoole, set `enable_coroutine` to `false` on the server and run consumers without
-`--coroutines`: the process stays booted, and handles one message at a time.
+With PostgreSQL on OpenSwoole, or on a Swoole built without `--enable-swoole-pgsql`, set `enable_coroutine` to
+`false` on the server and run consumers without `--coroutines`: the process stays booted, and handles one message at
+a time. With SQLite, `sqlite:///:memory:` is a separate empty database for every connection of the pool.
 
 ## 4. The connection of the handled message
 
@@ -164,9 +174,10 @@ as long as it consumes.
 - **Expected:** the connection is `new DbalConnectionFactory(...)` (or `SymfonyConnectionReference::defaultConnection()`), and `connection_pool_size` (or `withConnectionPoolSize()`) is stated to be at least the number of coroutines whenever that number exceeds 10.
 - **Verified by:** `eval:consume-on-coroutines`
 
-### 3. On OpenSwoole the database is MySQL or MariaDB
-Ecotone refuses a PostgreSQL connection inside an OpenSwoole coroutine, because a PostgreSQL query there stops the
-whole process. The ways out are MySQL or MariaDB, Swoole 5.1+ built with `--enable-swoole-pgsql`
+### 3. PostgreSQL waits only on Swoole built for it; on OpenSwoole the database is MySQL or MariaDB
+Ecotone refuses a PostgreSQL connection inside an OpenSwoole coroutine, and inside a Swoole coroutine unless Swoole
+is built with `--enable-swoole-pgsql` (a stock `pecl install swoole` is not), because a PostgreSQL query there stops
+the whole process. The ways out are MySQL or MariaDB, Swoole 5.1+ built with `--enable-swoole-pgsql`
 (`php --ri swoole` shows `coroutine_pgsql => enabled`), or one message at a time.
 - **Expected:** for a PostgreSQL application on OpenSwoole the answer says coroutines cannot be used with it as is and names at least one of the ways out; it does not present PostgreSQL with `--coroutines` on OpenSwoole as working.
 - **Verified by:** `eval:consume-on-coroutines`
@@ -179,5 +190,5 @@ is not the one the message's transaction runs on.
 
 ### 5. RabbitMQ under coroutines is read with `php-amqplib`
 The `amqp` extension stops every coroutine while it waits for the broker.
-- **Expected:** a RabbitMQ channel consumed on coroutines uses `Enqueue\AmqpLib\AmqpConnectionFactory` (`enqueue/amqp-lib`), not `Enqueue\AmqpExt\AmqpConnectionFactory`.
+- **Expected:** a RabbitMQ channel consumed on coroutines uses `Ecotone\Api\Amqp\AmqpLibConnectionFactory`, registered as a service and passed to the channel as `amqpConnectionReferenceName: AmqpLibConnectionFactory::class`, not `Ecotone\Api\Amqp\AmqpExtConnectionFactory`.
 - **Verified by:** `eval:consume-on-coroutines`

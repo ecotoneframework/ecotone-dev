@@ -40,6 +40,6 @@ public function connections(): array
 }
 ```
 
-`Enqueue\AmqpExt\AmqpConnectionFactory` is registered as a service for RabbitMQ.
+`Ecotone\Api\Amqp\AmqpExtConnectionFactory` is registered as a service for RabbitMQ.
 
 I want one consumer process to handle 30 of these messages at the same time instead of 30 processes. Show me everything I need to change: the handler, the configuration, the services and the command that starts the consumer. We can change the database engine if we have to. Don't ask questions.

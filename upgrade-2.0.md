@@ -141,10 +141,10 @@ registered as `Ecotone\Api\Dbal\DbalConnectionFactory`, which is also the defaul
 `#[CurrentConnection('tenant_connection')]`. The argument is named `connectionReferenceName`, where
 `#[MultiTenantConnection]` named it `referenceName`.
 
-`#[MultiTenantObjectManager]` (`Ecotone\Dbal\Attribute\MultiTenantObjectManager`) is renamed the same way to
+`#[MultiTenantObjectManager]` (`Ecotone\Dbal\Attribute\MultiTenantObjectManager`) is renamed, in name only, to
 `#[CurrentConnectionObjectManager]` (`Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager`): it injects the Doctrine
 ObjectManager of the active tenant's connection, as before, and still requires `MultiTenantConfiguration` and an
-Enterprise licence. Replace the attribute name; its argument is unchanged.
+Enterprise licence, unlike `#[CurrentConnection]`. Replace the attribute name; its argument is unchanged.
 
 ## 3. Projections: v1 (Prooph-based) removed, `ProjectionV2` renamed to `Projection`
 
@@ -3015,8 +3015,13 @@ A consumer handles several messages at once with `ecotone:run <channel> --corout
 configured number). It needs the `openswoole` or `swoole` extension and refuses to start without one; the runtime
 hooks are enabled for the consumer when the application has not set any (OpenSwoole switches them off again when
 the consumer ends, Swoole leaves them on, as each does after its own `run()`). The limits (`--handledMessageLimit`,
-`--executionTimeLimit`, `--memoryLimit`) apply to every coroutine, a failure of one coroutine stops the others and
-is thrown by the consumer, and a `#[Scheduled]` endpoint is refused on coroutines.
+`--executionTimeLimit`, `--memoryLimit`) are those of every coroutine, so `--handledMessageLimit=100 --coroutines=8`
+handles up to 800 messages. A failed message goes to the error channel as usual; when one coroutine's consumer stops
+with an exception, the others stop and the consumer throws it. A `#[Scheduled]` endpoint is refused on coroutines,
+and so is a consumer of a Kafka topic or a RabbitMQ stream, where a message finished out of turn would commit its
+position past one still being handled; both are refused when the application boots if the coroutines come from
+`PollingMetadata`. A pool smaller than the coroutines of a consumer leaves the extra coroutines failing with
+`ConnectionPoolExhausted` after five seconds, so set `connection_pool_size` to at least the coroutines.
 
 Every concurrent execution also has its own RabbitMQ connection, kept open when the execution ends and handed to the
 next one. Their number is not limited: a process holds as many as it has had executions running at once, so keep the
@@ -3026,10 +3031,10 @@ What a coroutine can wait on decides whether it helps:
 
 - MySQL and MariaDB (`pdo_mysql`) and `php-amqplib` (`AmqpLibConnectionFactory`) are waited on: while one coroutine
   waits for the database or the broker, the others run.
-- A PostgreSQL connection Ecotone opens itself (from a DSN, or as a copy) is refused inside an OpenSwoole coroutine,
-  and inside a Swoole coroutine without `SWOOLE_HOOK_PDO_PGSQL` (Swoole 5.1 and later, built with
-  `--enable-swoole-pgsql`), with a
-  `ConfigurationException`. A PostgreSQL connection of a Doctrine `ManagerRegistry`, Laravel or Tempest is not
+- A PostgreSQL connection Ecotone opens itself (from a DSN, or as a copy) is refused with a `ConfigurationException`
+  inside an OpenSwoole coroutine, and inside a Swoole coroutine unless Swoole 5.1 or newer is built with
+  `--enable-swoole-pgsql` and `SWOOLE_HOOK_PDO_PGSQL` is among the enabled hooks; there coroutines wait on PostgreSQL
+  as they do on MySQL. A PostgreSQL connection of a Doctrine `ManagerRegistry`, Laravel or Tempest is not
   checked and stops the process the same way. Such a runtime cannot wait on a
   PostgreSQL query, so a coroutine waiting for a row locked by another coroutine of the same process would stop that
   one too, and neither would finish.
@@ -3067,7 +3072,7 @@ started another, so a fiber starts without propagated headers and, with multi-te
 **How to adapt:** nothing when the process handles one message at a time. An OpenSwoole or Swoole HTTP server runs
 every request in a coroutine unless `enable_coroutine` is false, also when the requests never overlap: with a
 PostgreSQL DSN set `enable_coroutine` to false there, or move to MySQL or MariaDB. To handle several at once, register the
-connection from a DSN (MySQL or MariaDB on OpenSwoole), read RabbitMQ with `AmqpLibConnectionFactory`, keep workers
+connection from a DSN (MySQL or MariaDB; PostgreSQL only on Swoole built with `--enable-swoole-pgsql`), read RabbitMQ with `AmqpLibConnectionFactory`, keep workers
 times `connection_pool_size` below what the database accepts, and take the
 connection in your own code with `#[CurrentConnection] Connection $connection` on the handler, not from a property.
 Do the work that must share the handler's transaction in the handler itself, not in a fiber or coroutine it starts,

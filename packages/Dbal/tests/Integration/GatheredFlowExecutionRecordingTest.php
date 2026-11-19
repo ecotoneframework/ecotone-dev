@@ -95,7 +95,7 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
             $lines = $recording ? $ecotone->popExecutionRecording()->lines : [];
             $failingStep = $recording ? array_map(trim(...), array_slice($lines, (int) array_search(true, array_map(fn (string $line): bool => str_contains($line, '↳ failure: throws RuntimeException'), $lines), true) - 1, 2)) : [];
         }
-        [$alone] = $this->application(true);
+        [$alone] = $this->application(true, new DbalConnectionFactory(getenv('DATABASE_DSN')));
         $alone->sendCommandWithRouting('ping');
         $ping = fn (array $of): array => array_map(fn (string $line): string => (string) preg_replace(['/^process \d+: /', '/\{generated#\d+\}/'], ['process: ', '{generated}'], $line), array_slice($of, (int) array_search('process 1: send command ping, class@anonymous::ping', $of, true)));
 

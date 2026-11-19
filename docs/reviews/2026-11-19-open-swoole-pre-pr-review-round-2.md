@@ -228,3 +228,19 @@ All four sessions: no BLOCKING finding. Resolved: V42, V43, B23, D30, D33, D34. 
   over queues is refused when the application has any stream, with a message saying it reads one; the custom-strategy
   case has no test and no wording of its own.
 - **V44 NIT**: a dynamic channel receiving from another dynamic channel over a stream is not detected.
+
+### Closing check at c63e9b776
+
+All four sessions: no BLOCKING finding. Resolved: G47, G48, B24, B25, V44, V45, D35 for a throttled channel. The
+refusal then gained the sentence D35 asked for, naming the receiving strategies that keep coroutines for a custom one.
+
+Open and left for the maintainer:
+
+- **D24**: more coroutines than pooled connections fails after a five second wait instead of being refused at start
+  or covered by the pool.
+- **D28**: `#[CurrentConnectionObjectManager]` needs a `MultiTenantConfiguration` and the Enterprise licence, which its
+  new name does not suggest.
+- **D35 NIT**: the stream refusal does not name the stream channel. **G49 NIT**: two plain getters added to
+  `DynamicMessageChannelBuilder`, a class that is mutable as a whole. **G46 NIT**: the "built without
+  --enable-swoole-pgsql" cause is untested. **V39 NIT**: the termination signal through `withCoroutines()` is
+  untested. **V35 NIT**: consumer coroutines with retries are untested. **G25**, **G28** as before.

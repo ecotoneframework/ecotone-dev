@@ -29,7 +29,7 @@ final class MessageFlowBuildTracingLevelTest extends TestCase
     {
         $ecotone = $this->application(TracingLevel::Application);
 
-        $this->expectExceptionMessage('ecotone:flow:dump --build shows what Ecotone itself registers for the application (buses, interceptors, routing, channels, consumers) and is available only at the framework tracing level. Return TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework) from a #[ServiceContext]; at that level Ecotone also records every step it runs for each message: as spans sent to the span recorders registered with TracingConfiguration::withSpanRecorder(), as ecotone.execution.* attributes on the spans an OpenTelemetry tracer exports, and nowhere when neither is configured. Or run ecotone:flow:dump without --build for the message flow the application declares.');
+        $this->expectExceptionMessage('ecotone:flow:dump --build shows what Ecotone itself registers for the application (buses, interceptors, routing, channels, consumers) and is available only at the framework tracing level. Return TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework) from a #[ServiceContext]; at that level Ecotone also records every step it runs for each message as a span sent to the span recorders registered with TracingConfiguration::withSpanRecorder(), and nowhere when none is registered; the spans an OpenTelemetry tracer exports stay the same and only gain the attributes ecotone.execution.order and ecotone.execution.process or ecotone.execution.parent. Or run ecotone:flow:dump without --build for the message flow the application declares.');
 
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
     }

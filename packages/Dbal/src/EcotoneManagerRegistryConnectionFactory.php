@@ -6,6 +6,7 @@ namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\ObjectManager;
 use Ecotone\Api\Dbal\ManagerRegistryConnectionFactory;
 
 /**
@@ -28,6 +29,11 @@ final class EcotoneManagerRegistryConnectionFactory extends ManagerRegistryConne
     public function getRegistry(): ManagerRegistry
     {
         return $this->registry;
+    }
+
+    public function getManager(): ObjectManager
+    {
+        return $this->registry->getManager($this->config['connection_name'] ?? null);
     }
 
     public function getConnection(): Connection

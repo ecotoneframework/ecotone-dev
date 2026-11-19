@@ -10,7 +10,6 @@ use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\PropagateHeaders;
-use Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager;
 use Ecotone\Api\Dbal\Attribute\OnTenantActivation;
 use Ecotone\Api\Dbal\Attribute\OnTenantDeactivation;
 use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
@@ -26,7 +25,6 @@ use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantHeaderResolver;
 use Ecotone\Messaging\Attribute\ChannelAdapter;
-use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -91,33 +89,7 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
             }
         }
 
-        foreach (self::findMultiTenantParameterAttributePlacements($annotationRegistrationService, $interfaceToCallRegistry) as $placement) {
-            $multiTenantAttributePlacements[] = $placement;
-        }
-
         return new self($allPlacements, $invalid, array_values(array_unique($multiTenantAttributePlacements)));
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private static function findMultiTenantParameterAttributePlacements(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): array
-    {
-        $placements = [];
-
-        foreach ($annotationRegistrationService->findAnnotatedMethods(EndpointAnnotation::class) as $annotatedMethod) {
-            $interfaceToCall = $interfaceToCallRegistry->getFor($annotatedMethod->getClassName(), $annotatedMethod->getMethodName());
-
-            foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
-                foreach ([CurrentConnectionObjectManager::class] as $attributeClassName) {
-                    if ($interfaceParameter->hasAnnotation($attributeClassName)) {
-                        $placements[] = $attributeClassName . ' on ' . $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName() . '($' . $interfaceParameter->getName() . ')';
-                    }
-                }
-            }
-        }
-
-        return $placements;
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void

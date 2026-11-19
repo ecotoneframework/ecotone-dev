@@ -6,16 +6,22 @@ namespace Ecotone\Api\Dbal\Attribute;
 
 use Attribute;
 use Ecotone\Api\Attribute\Reference;
-use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\ObjectManager\ObjectManagerOfCurrentConnection;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
 /**
- * licence Apache-2.0
+ * licence Enterprise
+ *
+ * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
 final class CurrentConnectionObjectManager extends Reference
 {
-    public function __construct($referenceName = MultiTenantConnectionFactory::class)
+    public function __construct(string $connectionReferenceName = DbalConnectionFactory::class)
     {
-        parent::__construct($referenceName, 'service.getManager()');
+        parent::__construct(
+            $connectionReferenceName,
+            sprintf("reference('%s').of(service, '%s')", ObjectManagerOfCurrentConnection::REFERENCE_NAME, addslashes($connectionReferenceName)),
+        );
     }
 }

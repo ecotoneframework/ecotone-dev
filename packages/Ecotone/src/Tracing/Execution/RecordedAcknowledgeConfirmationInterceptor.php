@@ -25,20 +25,32 @@ final class RecordedAcknowledgeConfirmationInterceptor extends AcknowledgeConfir
 
     public function ack(MethodInvocation $methodInvocation, Message $message)
     {
-        return parent::ack($methodInvocation, $this->withRecordedAcknowledgement($message));
+        $result = parent::ack($methodInvocation, $this->withRecordedAcknowledgement($message));
+        if (self::acknowledgementOf($message)?->isAutoAcked() === false) {
+            $this->tracer->recordStep('acknowledge', hints: [ExecutionHint::shownInLines(ExecutionHint::OUTCOME, 'left to the handler')]);
+        }
+
+        return $result;
     }
 
-    private function withRecordedAcknowledgement(Message $message): Message
+    private static function acknowledgementOf(Message $message): ?AcknowledgementCallback
     {
         $headers = $message->getHeaders();
         if (! $headers->containsKey(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION)) {
-            return $message;
+            return null;
         }
         $location = (string) $headers->get(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION);
         $callback = $headers->containsKey($location) ? $headers->get($location) : null;
 
-        return $callback instanceof AcknowledgementCallback
-            ? $this->messageBuilder->fromMessage($message)->setHeader($location, new RecordedAcknowledgementCallback($callback, $this->tracer))->build()
-            : $message;
+        return $callback instanceof AcknowledgementCallback ? $callback : null;
+    }
+
+    private function withRecordedAcknowledgement(Message $message): Message
+    {
+        $callback = self::acknowledgementOf($message);
+
+        return $callback === null
+            ? $message
+            : $this->messageBuilder->fromMessage($message)->setHeader((string) $message->getHeaders()->get(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION), new RecordedAcknowledgementCallback($callback, $this->tracer))->build();
     }
 }

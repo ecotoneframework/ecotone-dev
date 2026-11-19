@@ -146,6 +146,26 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         self::assertSame($seen['application'], $seen['framework']);
     }
 
+    public function test_a_message_whose_channel_leaves_the_acknowledgement_to_the_handler_is_recorded_as_left_to_it(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(string $order, #[Headers] array $headers): void
+            {
+                $headers[$headers[MessageHeaders::CONSUMER_ACK_HEADER_LOCATION]]->accept();
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders', isAutoAcked: false), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: []);
+
+        $ecotone->sendCommandWithRouting('order.place', 'order-1');
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        $lines = array_map(trim(...), $ecotone->popExecutionRecording()->lines);
+        $acknowledge = (int) array_search('acknowledge', $lines, true);
+
+        self::assertSame(['acknowledge', '↳ outcome: left to the handler'], array_slice($lines, $acknowledge, 2));
+    }
+
     public function test_a_process_that_failed_leaves_nothing_in_the_recording_of_the_next_one(): void
     {
         $orders = new class () {

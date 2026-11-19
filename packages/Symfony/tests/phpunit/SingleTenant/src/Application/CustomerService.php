@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\Attribute\CurrentConnection;
+use Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager;
 use Ecotone\Messaging\Support\Assert;
 use RuntimeException;
 use Symfony\App\SingleTenant\Application\Event\CustomerWasRegistered;
@@ -37,7 +38,7 @@ final class CustomerService
     public function sendNotificationWhen(
         CustomerWasRegistered                                     $event,
         #[Reference] NotificationSender                           $notificationSender,
-        #[Reference('doctrine.orm.entity_manager')] EntityManager $objectManager,
+        #[CurrentConnectionObjectManager] EntityManager         $objectManager,
         #[Header('shouldThrowAsyncExceptionTimes')] int           $shouldThrowExceptionTimes = 0,
     ) {
         $customer = $objectManager->getRepository(Customer::class)->find($event->customerId);

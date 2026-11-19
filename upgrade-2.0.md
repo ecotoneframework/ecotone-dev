@@ -141,13 +141,28 @@ registered as `Ecotone\Api\Dbal\DbalConnectionFactory`, which is also the defaul
 `#[CurrentConnection('tenant_connection')]`. The argument is named `connectionReferenceName`, where
 `#[MultiTenantConnection]` named it `referenceName`.
 
-`#[MultiTenantObjectManager]` (`Ecotone\Dbal\Attribute\MultiTenantObjectManager`) is renamed to
-`#[CurrentConnectionObjectManager]` (`Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager`). It injects the
-Doctrine ObjectManager of the connection the message is handled on: the active tenant's with `MultiTenantConfiguration`,
-as before, and now also the connection of an application without tenants, when that connection is registered with
-Doctrine ORM (`SymfonyConnectionReference::defaultManagerRegistry()`). It still requires an Enterprise licence. Its
-argument is the connection reference name and defaults to the default connection, like `#[CurrentConnection]`; a
-`MultiTenantConfiguration` registered under another reference name is named in the attribute.
+### 2c. `#[MultiTenantObjectManager]` is replaced by `#[CurrentConnectionObjectManager]`
+
+**Before:** `#[MultiTenantObjectManager]` (`Ecotone\Dbal\Attribute\MultiTenantObjectManager`) injected the Doctrine
+ObjectManager of the active tenant's connection. Without an argument it resolved the application's one
+`MultiTenantConfiguration`, whatever reference name that configuration was registered under. Its argument was named
+`referenceName`.
+
+**Now:** `#[CurrentConnectionObjectManager]` (`Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager`) injects the
+ObjectManager of the connection the message is handled on: the active tenant's with `MultiTenantConfiguration`, and
+also the connection of an application without tenants, when that connection is registered with Doctrine ORM
+(`SymfonyConnectionReference::defaultManagerRegistry()`). It still requires an Enterprise licence. Its argument is named
+`connectionReferenceName` and defaults to the default connection, like `#[CurrentConnection]`.
+
+With Symfony's ManagerRegistry the ObjectManager is one for the process, so messages handled at once on coroutines
+would share its unit of work: handle one message at a time with it.
+
+**How to adapt:** replace the attribute name, and `referenceName:` with `connectionReferenceName:`. When the
+`MultiTenantConfiguration` is registered under a reference name of its own
+(`MultiTenantConfiguration::create('tenant', [...], 'tenant_connection')`), name it:
+`#[CurrentConnectionObjectManager('tenant_connection')]`. Left without the name, the attribute now injects the
+ObjectManager of the default connection instead of the tenant's, and fails on the first message when the default
+connection has no Doctrine ORM behind it.
 
 ## 3. Projections: v1 (Prooph-based) removed, `ProjectionV2` renamed to `Projection`
 

@@ -6,6 +6,7 @@ namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ObjectManager;
+use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -43,10 +44,11 @@ final class ObjectManagerOfCurrentConnection
 
         throw ConfigurationException::create(sprintf(
             '#[CurrentConnectionObjectManager] cannot inject the Doctrine ObjectManager of connection `%s`: it is registered as %s, which has no Doctrine ORM behind it. '
-            . "Register the connection with Doctrine ORM: SymfonyConnectionReference::defaultManagerRegistry('default') in a Symfony application, or a service created with ManagerRegistryEmulator::fromDsnAndConfig(\$dsn, \$pathsToMapping). "
+            . 'Register the connection with Doctrine ORM: SymfonyConnectionReference::defaultManagerRegistry($connectionName) or SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with %s::createForManagerRegistry($managerRegistry, $connectionName). '
             . 'To run SQL on the connection of the handled message without Doctrine ORM, take #[CurrentConnection] %s instead.',
             $connectionReferenceName,
             $connectionFactory::class,
+            DbalConnection::class,
             Connection::class,
         ));
     }

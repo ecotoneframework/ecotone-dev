@@ -15,6 +15,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\ObjectManager\ObjectManagerOfCurrentConnection;
 use Ecotone\Lite\Test\Configuration\ProvidedReferences;
 use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
@@ -125,28 +126,44 @@ final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionO
         }
         $messagingConfiguration->registerServiceDefinition(ObjectManagerOfCurrentConnection::REFERENCE_NAME, new Definition(ObjectManagerOfCurrentConnection::class));
 
-        foreach (['CurrentConnection' => $this->connectionsInjectedIntoParameters, 'CurrentConnectionObjectManager' => $this->objectManagersInjectedIntoParameters] as $attributeName => $placements) {
-            foreach ($placements as $connectionReferenceName => $placement) {
-                if (in_array($connectionReferenceName, $connectionFactories, true)) {
-                    continue;
-                }
-
-                $messagingConfiguration->requireReference(
-                    $connectionReferenceName,
-                    sprintf(
-                        "#[%s('%s')] on %s needs a connection registered as `%s`, and there is none. "
-                        . 'Register it under that name: a service new %s($dsn), SymfonyConnectionReference::createForConnection($connectionName, $referenceName), LaravelConnectionReference::create($connectionName, $referenceName) or TempestConnectionReference::create($configTag, $referenceName), '
-                        . 'or use #[%s] without a name for the default connection `%s`.',
-                        $attributeName,
-                        $connectionReferenceName,
-                        $placement,
-                        $connectionReferenceName,
-                        DbalConnectionReference::DEFAULT,
-                        $attributeName,
-                        DbalConnectionReference::DEFAULT,
-                    )
-                );
+        foreach ($this->connectionsInjectedIntoParameters as $connectionReferenceName => $placement) {
+            if (in_array($connectionReferenceName, $connectionFactories, true)) {
+                continue;
             }
+
+            $messagingConfiguration->requireReference(
+                $connectionReferenceName,
+                sprintf(
+                    "#[CurrentConnection('%s')] on %s needs a connection registered as `%s`, and there is none. "
+                    . 'Register it under that name: a service new %s($dsn), SymfonyConnectionReference::createForConnection($connectionName, $referenceName), LaravelConnectionReference::create($connectionName, $referenceName) or TempestConnectionReference::create($configTag, $referenceName), '
+                    . 'or use #[CurrentConnection] without a name for the default connection `%s`.',
+                    $connectionReferenceName,
+                    $placement,
+                    $connectionReferenceName,
+                    DbalConnectionReference::DEFAULT,
+                    DbalConnectionReference::DEFAULT,
+                )
+            );
+        }
+
+        foreach ($this->objectManagersInjectedIntoParameters as $connectionReferenceName => $placement) {
+            if (in_array($connectionReferenceName, $connectionFactories, true)) {
+                continue;
+            }
+
+            $messagingConfiguration->requireReference(
+                $connectionReferenceName,
+                sprintf(
+                    "#[CurrentConnectionObjectManager('%s')] on %s needs a connection registered as `%s`, and there is none. "
+                    . 'Register it under that name with Doctrine ORM: SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with %s::createForManagerRegistry($managerRegistry, $connectionName), '
+                    . 'or use #[CurrentConnectionObjectManager] without a name for the default connection `%s`.',
+                    $connectionReferenceName,
+                    $placement,
+                    $connectionReferenceName,
+                    DbalConnection::class,
+                    DbalConnectionReference::DEFAULT,
+                )
+            );
         }
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
 use Ecotone\Api\Dbal\ManagerRegistryConnectionFactory;
@@ -33,7 +34,15 @@ final class EcotoneManagerRegistryConnectionFactory extends ManagerRegistryConne
 
     public function getManager(): ObjectManager
     {
-        return $this->registry->getManager($this->config['connection_name'] ?? null);
+        $connection = $this->getConnection();
+        foreach (array_keys($this->registry->getManagerNames()) as $managerName) {
+            $manager = $this->registry->getManager(is_string($managerName) ? $managerName : null);
+            if ($manager instanceof EntityManagerInterface && $manager->getConnection() === $connection) {
+                return $manager;
+            }
+        }
+
+        return $this->registry->getManager();
     }
 
     public function getConnection(): Connection

@@ -76,7 +76,8 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
 
         $ecotone->sendCommandWithRouting('person.registerEntityInReporting', ['personId' => 1, 'name' => 'reported']);
 
-        $this->assertSame(['reported'], $ecotone->getGateway(PersonsStoredThroughObjectManager::class)->names());
+        $this->assertSame(['reported'], $ecotone->getGateway(PersonsOfReportingStoredThroughObjectManager::class)->names());
+        $this->assertSame([], $ecotone->getGateway(PersonsStoredThroughObjectManager::class)->names());
     }
 
     public function test_object_manager_of_a_connection_registered_without_doctrine_orm_is_refused(): void
@@ -97,7 +98,7 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
 
         $this->expectExceptionMessage(
             '#[CurrentConnectionObjectManager] cannot inject the Doctrine ObjectManager of connection `Ecotone\\Api\\Dbal\\DbalConnectionFactory`: it is registered as Ecotone\\Api\\Dbal\\DbalConnectionFactory, which has no Doctrine ORM behind it. '
-            . "Register the connection with Doctrine ORM: SymfonyConnectionReference::defaultManagerRegistry('default') in a Symfony application, or a service created with ManagerRegistryEmulator::fromDsnAndConfig(\$dsn, \$pathsToMapping). "
+            . 'Register the connection with Doctrine ORM: SymfonyConnectionReference::defaultManagerRegistry($connectionName) or SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with Ecotone\\Dbal\\DbalConnection::createForManagerRegistry($managerRegistry, $connectionName). '
             . 'To run SQL on the connection of the handled message without Doctrine ORM, take #[CurrentConnection] Doctrine\\DBAL\\Connection instead.'
         );
 
@@ -116,7 +117,7 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
             "#[CurrentConnectionObjectManager('reporting')] on " . $handler::class . '::registerEntity($objectManager) needs a connection registered as `reporting`, and there is none. '
-            . 'Register it under that name: a service new Ecotone\\Api\\Dbal\\DbalConnectionFactory($dsn), SymfonyConnectionReference::createForConnection($connectionName, $referenceName), LaravelConnectionReference::create($connectionName, $referenceName) or TempestConnectionReference::create($configTag, $referenceName), '
+            . 'Register it under that name with Doctrine ORM: SymfonyConnectionReference::createForManagerRegistry($connectionName, referenceName: $referenceName) in a Symfony application, or a service created with Ecotone\\Dbal\\DbalConnection::createForManagerRegistry($managerRegistry, $connectionName), '
             . 'or use #[CurrentConnectionObjectManager] without a name for the default connection `Ecotone\\Api\\Dbal\\DbalConnectionFactory`.'
         );
 
@@ -157,6 +158,7 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
     private function bootstrapPersonRegistration(): FlowTestSupport
     {
         $this->setupUserTable();
+        $this->setupUserTable($this->connectionForTenantB()->createContext()->getDbalConnection());
         $registration = new class () {
             #[CommandHandler('person.registerEntity')]
             public function registerEntity(array $command, #[CurrentConnectionObjectManager] EntityManagerInterface $objectManager): void
@@ -181,11 +183,11 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
         };
 
         return $this->bootstrapFlowTesting(
-            [$registration::class, PersonsStoredThroughObjectManager::class],
+            [$registration::class, PersonsStoredThroughObjectManager::class, PersonsOfReportingStoredThroughObjectManager::class],
             [
                 $registration,
                 DbalConnectionFactory::class => ManagerRegistryEmulator::fromDsnAndConfig(self::databaseDsn(), [__DIR__ . '/../Fixture/ORM/Person']),
-                'reporting' => ManagerRegistryEmulator::fromDsnAndConfig(self::databaseDsn(), [__DIR__ . '/../Fixture/ORM/Person']),
+                'reporting' => $this->connectionForTenantBWithManagerRegistry([__DIR__ . '/../Fixture/ORM/Person']),
             ],
             [DbalConfiguration::createWithDefaults()],
             [ModulePackageList::DBAL_PACKAGE],
@@ -197,5 +199,11 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
 interface PersonsStoredThroughObjectManager
 {
     #[DbalQuery('SELECT name FROM persons ORDER BY person_id', fetchMode: FetchMode::FIRST_COLUMN)]
+    public function names(): array;
+}
+
+interface PersonsOfReportingStoredThroughObjectManager
+{
+    #[DbalQuery('SELECT name FROM persons ORDER BY person_id', fetchMode: FetchMode::FIRST_COLUMN, connectionReferenceName: 'reporting')]
     public function names(): array;
 }

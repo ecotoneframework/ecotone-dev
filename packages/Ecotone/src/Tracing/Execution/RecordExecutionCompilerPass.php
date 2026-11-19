@@ -18,6 +18,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
@@ -104,6 +105,9 @@ final class RecordExecutionCompilerPass implements CompilerPass
         if ($builder->has(PartitionBatchDispatcher::class)) {
             $builder->replace(PartitionBatchDispatcher::class, new Definition(RecordedPartitionBatchDispatcher::class, [$builder->getDefinition(PartitionBatchDispatcher::class), new Reference(Tracer::class)]));
         }
+        if ($builder->has(AcknowledgeConfirmationInterceptor::class)) {
+            $builder->replace(AcknowledgeConfirmationInterceptor::class, new Definition(RecordedAcknowledgeConfirmationInterceptor::class, [...$builder->getDefinition(AcknowledgeConfirmationInterceptor::class)->getArguments(), new Reference(MessageBuilder::class), new Reference(Tracer::class)]));
+        }
         if ($builder->has(GatheredGroupStore::class)) {
             $builder->replace(GatheredGroupStore::class, new Definition(RecordedGatheredGroupStore::class, [$builder->getDefinition(GatheredGroupStore::class), new Reference(Tracer::class)]));
         }
@@ -163,7 +167,6 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 array_map(self::declaredPhasesOf(...), $interceptorClasses),
                 array_values(array_filter($interceptorClasses, fn (string $class): bool => ! self::isFlowTesting($class))) === [],
                 $channel->getClassName() === PollableChannelInterceptorAdapter::class,
-                new Reference(MessageBuilder::class),
                 new Reference(Tracer::class),
             ]));
             $interceptors = [];

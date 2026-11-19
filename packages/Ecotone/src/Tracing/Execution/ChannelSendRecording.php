@@ -12,9 +12,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Messaging\Channel\PollableChannel\SendRetries\SendRetryChannelInterceptor;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptor;
-use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Ecotone\Messaging\Handler\Recoverability\DelayedRetryErrorHandler;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Throwable;
 
 /**
@@ -47,7 +45,6 @@ final class ChannelSendRecording
         private array $declaredPhases,
         private bool $onlyFlowTestingIntercepts,
         private bool $queued,
-        private MessageBuilder $messageBuilder,
         private ExecutionRecordingTracer $tracer,
     ) {
         $this->interceptors = array_map(fn (string|object $interceptor): string => is_object($interceptor) ? $interceptor::class : $interceptor, $interceptors);
@@ -177,15 +174,8 @@ final class ChannelSendRecording
             }
         }
         $this->tracer->awaitReceive((string) $headers->get(MessageHeaders::MESSAGE_ID), 'receive ' . $this->channelName, $notes, []);
-        if (! $headers->containsKey(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION)) {
-            return $message;
-        }
-        $location = (string) $headers->get(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION);
-        $callback = $headers->containsKey($location) ? $headers->get($location) : null;
 
-        return $callback instanceof AcknowledgementCallback
-            ? $this->messageBuilder->fromMessage($message)->setHeader($location, new RecordedAcknowledgementCallback($callback, $this->tracer))->build()
-            : $message;
+        return $message;
     }
 
     private function enter(int $position): void

@@ -184,7 +184,6 @@
             {"depth":17,"label":"span process class@anonymous::place"},
             {"depth":18,"label":"handler class@anonymous::place","hints":[{"key":"returns","value":"nothing","shownInLines":false}]},
             {"depth":15,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by class@anonymous::place","shownInLines":true}]},
-            {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","shownInLines":true}]},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","shownInLines":true}]}
         ]},
         {"process": "receive orders, class@anonymous::place (2 of 2)", "sentBy": {"processNumber":2,"stepNumber":26}, "steps": [
@@ -211,7 +210,6 @@
             {"depth":17,"label":"span process class@anonymous::place"},
             {"depth":18,"label":"handler class@anonymous::place","hints":[{"key":"returns","value":"nothing","shownInLines":false}]},
             {"depth":15,"label":"no hand-over","hints":[{"key":"outcome","value":"nothing returned by class@anonymous::place","shownInLines":true}]},
-            {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","shownInLines":true}]},
             {"depth":6,"label":"acknowledge","hints":[{"key":"outcome","value":"accepted","shownInLines":true}]}
         ]}
     ]

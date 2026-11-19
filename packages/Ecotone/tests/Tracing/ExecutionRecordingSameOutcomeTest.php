@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Presend;
@@ -18,6 +19,7 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
@@ -118,6 +120,30 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         $this->expectExceptionMessage('TracingConfiguration was registered 2 times, but an application traces at one level with one configuration, so it is not clear which level to use. Keep a single #[ServiceContext] returning TracingConfiguration, with the level set by TracingConfiguration::withLevel(), and remove the others.');
 
         EcotoneLite::bootstrapFlowTesting([], self::recordingSpansInto(new InMemorySpanRecorder()), [self::tracingConfiguration(), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: []);
+    }
+
+    public function test_a_handler_reading_its_headers_sees_the_same_acknowledgement_at_both_tracing_levels(): void
+    {
+        $seen = [];
+        foreach ([TracingLevel::Application, TracingLevel::Framework] as $level) {
+            $orders = new class () {
+                public array $acknowledgements = [];
+
+                #[Asynchronous('orders')]
+                #[CommandHandler('order.place', endpointId: 'placeOrder')]
+                public function place(string $order, #[Headers] array $headers): void
+                {
+                    $this->acknowledgements[] = get_class($headers[$headers[MessageHeaders::CONSUMER_ACK_HEADER_LOCATION]]);
+                }
+            };
+            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())], [SimpleMessageChannelBuilder::createQueueChannel('orders'), self::tracingConfiguration()->withLevel($level)], enabledModules: []);
+            $ecotone->sendCommandWithRouting('order.place', 'order-1');
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            $seen[$level->value] = $orders->acknowledgements;
+        }
+
+        self::assertCount(1, $seen['application']);
+        self::assertSame($seen['application'], $seen['framework']);
     }
 
     public function test_a_process_that_failed_leaves_nothing_in_the_recording_of_the_next_one(): void

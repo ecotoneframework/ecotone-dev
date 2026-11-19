@@ -15,36 +15,36 @@ final class StreamsReceivedByDynamicChannel
     /**
      * @param array<string, MessageChannelBuilder> $channelsOfTheApplication
      * @param DynamicMessageChannelBuilder[] $dynamicChannelsAlreadyFollowed
+     * @return string[]
      */
-    public static function canReceiveFromAStream(DynamicMessageChannelBuilder $dynamicChannel, array $channelsOfTheApplication, array $dynamicChannelsAlreadyFollowed = []): bool
+    public static function of(DynamicMessageChannelBuilder $dynamicChannel, array $channelsOfTheApplication, array $dynamicChannelsAlreadyFollowed = []): array
     {
         $dynamicChannelsAlreadyFollowed[] = $dynamicChannel;
-        $receivedFrom = array_values($dynamicChannel->getInternalMessageChannels());
+        $receivedFrom = array_values($dynamicChannel->internalMessageChannels);
         if ($dynamicChannel->hasCustomReceivingStrategy()) {
             $receivedFrom = [...$receivedFrom, ...array_values($channelsOfTheApplication)];
         }
-        foreach ($dynamicChannel->getReceivingChannelNames() as $receivingChannelName) {
+        foreach ($dynamicChannel->receivingChannelNames as $receivingChannelName) {
             if (isset($channelsOfTheApplication[$receivingChannelName])) {
                 $receivedFrom[] = $channelsOfTheApplication[$receivingChannelName];
             }
         }
 
+        $streams = [];
         foreach ($receivedFrom as $channel) {
             if (in_array($channel, $dynamicChannelsAlreadyFollowed, true)) {
                 continue;
             }
             if ($channel instanceof DynamicMessageChannelBuilder) {
-                if (self::canReceiveFromAStream($channel, $channelsOfTheApplication, $dynamicChannelsAlreadyFollowed)) {
-                    return true;
-                }
+                $streams = [...$streams, ...self::of($channel, $channelsOfTheApplication, $dynamicChannelsAlreadyFollowed)];
 
                 continue;
             }
             if ($channel->isStreamingChannel()) {
-                return true;
+                $streams[] = $channel->getMessageChannelName();
             }
         }
 
-        return false;
+        return array_values(array_unique($streams));
     }
 }

@@ -141,10 +141,13 @@ registered as `Ecotone\Api\Dbal\DbalConnectionFactory`, which is also the defaul
 `#[CurrentConnection('tenant_connection')]`. The argument is named `connectionReferenceName`, where
 `#[MultiTenantConnection]` named it `referenceName`.
 
-`#[MultiTenantObjectManager]` (`Ecotone\Dbal\Attribute\MultiTenantObjectManager`) is renamed, in name only, to
-`#[CurrentConnectionObjectManager]` (`Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager`): it injects the Doctrine
-ObjectManager of the active tenant's connection, as before, and still requires `MultiTenantConfiguration` and an
-Enterprise licence, unlike `#[CurrentConnection]`. Replace the attribute name; its argument is unchanged.
+`#[MultiTenantObjectManager]` (`Ecotone\Dbal\Attribute\MultiTenantObjectManager`) is renamed to
+`#[CurrentConnectionObjectManager]` (`Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager`). It injects the
+Doctrine ObjectManager of the connection the message is handled on: the active tenant's with `MultiTenantConfiguration`,
+as before, and now also the connection of an application without tenants, when that connection is registered with
+Doctrine ORM (`SymfonyConnectionReference::defaultManagerRegistry()`). It still requires an Enterprise licence. Its
+argument is the connection reference name and defaults to the default connection, like `#[CurrentConnection]`; a
+`MultiTenantConfiguration` registered under another reference name is named in the attribute.
 
 ## 3. Projections: v1 (Prooph-based) removed, `ProjectionV2` renamed to `Projection`
 
@@ -3578,6 +3581,20 @@ three getters are gone: the settings are `public readonly` properties under thei
 `#[ServiceContext]` method as a chained expression is unaffected. A subclass becomes a `#[ServiceContext]` method
 returning the chained configuration. Replace `getNamingStrategy()` with `->namingStrategy`,
 `getDefaultNullSerialization()` with `->defaultNullSerialization` and `isEnumSupportEnabled()` with `->enableEnumSupport`.
+
+### `DynamicMessageChannelBuilder` returns a copy from every `with*()`
+
+**Before:** `withInternalChannels()`, `withCustomSendingStrategy()`, `withHeaderSendingStrategy()` and
+`withCustomReceivingStrategy()` changed the builder they were called on and returned it, so
+`$channel->withInternalChannels([...]);` written as a statement kept its change.
+
+**Now:** each returns a changed copy and leaves the builder alone — its properties are `readonly`. A statement-form
+call still runs, but its value never reaches the channel Ecotone registers. The channels and channel names the builder
+receives from are `public readonly` properties, `internalMessageChannels` and `receivingChannelNames`.
+
+**How to adapt:** assign the result or chain the calls,
+`$channel = $channel->withInternalChannels([...]);`. A builder returned from a `#[ServiceContext]` method as a chained
+expression is unaffected.
 
 ### JMS re-reads a changed class outside production
 

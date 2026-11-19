@@ -29,7 +29,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
     private const SCHEDULED_ENDPOINT_REFUSAL = 'Endpoint `report.schedule` is set to run on 2 coroutines, but it runs on a schedule instead of consuming a channel, so every coroutine would run each scheduled execution again. '
         . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this endpoint. '
         . 'To do its work on coroutines, let it send messages to an #[Asynchronous] handler and run that channel\'s consumer on coroutines.';
-    private const STREAM_CONSUMER_REFUSAL = 'Consumer `shipments` is set to consume on 3 coroutines, but it reads a stream (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel; a dynamic channel with a custom receiving strategy counts as reading every stream channel of the application), where the position of the last handled message is what gets committed. '
+    private const STREAM_CONSUMER_REFUSAL = 'Consumer `shipments` is set to consume on 3 coroutines, but it reads a stream%s (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel; a dynamic channel with a custom receiving strategy counts as reading every stream channel of the application), where the position of the last handled message is what gets committed. '
         . 'A coroutine finishing a later message would commit past an earlier message another coroutine is still handling, so that message is never handled when the process stops, and the messages are handled out of order. '
         . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
         . 'To handle more of its messages at once: for a Kafka topic start more processes of this consumer, with at least as many partitions of the topic as processes; a RabbitMQ stream is read in order by one consumer, so let its handler send the work to an #[Asynchronous] queue channel and consume that channel on coroutines. A dynamic channel whose custom receiving strategy reads only queue channels can consume on coroutines when it receives through DynamicMessageChannelBuilder::createRoundRobin(), createRoundRobinWithDifferentChannels() or createThrottlingStrategy() naming those channels.';
@@ -147,7 +147,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
         $ecotone = $this->bootstrapShipments(channel: SimpleMessageChannelBuilder::createStreamingChannel('shipments'));
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(self::STREAM_CONSUMER_REFUSAL);
+        $this->expectExceptionMessage(sprintf(self::STREAM_CONSUMER_REFUSAL, ''));
 
         $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
     }
@@ -157,7 +157,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
         $ecotone = $this->bootstrapShipments(channel: SimpleMessageChannelBuilder::createStreamingChannel('shipments'));
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(self::STREAM_CONSUMER_REFUSAL);
+        $this->expectExceptionMessage(sprintf(self::STREAM_CONSUMER_REFUSAL, ''));
 
         $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => 'shipments', 'finishWhenNoMessages' => true, 'coroutines' => 3]);
     }
@@ -165,7 +165,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
     public function test_consumer_of_a_stream_with_coroutines_in_its_polling_metadata_is_refused_when_the_application_boots(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(self::STREAM_CONSUMER_REFUSAL);
+        $this->expectExceptionMessage(sprintf(self::STREAM_CONSUMER_REFUSAL, ''));
 
         $this->bootstrapShipments(
             PollingMetadata::create('shipments')->withCoroutines(3),
@@ -178,7 +178,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
         $ecotone = $this->bootstrapShipmentsOnADynamicChannel(SimpleMessageChannelBuilder::createStreamingChannel('shipments_of_tenant'));
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(self::STREAM_CONSUMER_REFUSAL);
+        $this->expectExceptionMessage(sprintf(self::STREAM_CONSUMER_REFUSAL, ', `shipments_of_tenant`'));
 
         $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
     }
@@ -186,7 +186,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
     public function test_consumer_of_a_dynamic_channel_receiving_from_a_stream_with_coroutines_in_its_polling_metadata_is_refused_when_the_application_boots(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(self::STREAM_CONSUMER_REFUSAL);
+        $this->expectExceptionMessage(sprintf(self::STREAM_CONSUMER_REFUSAL, ', `shipments_of_tenant`'));
 
         $this->bootstrapShipmentsOnADynamicChannel(
             SimpleMessageChannelBuilder::createStreamingChannel('shipments_of_tenant'),
@@ -210,7 +210,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
     public function test_consumer_of_a_dynamic_channel_receiving_from_a_dynamic_channel_over_a_stream_is_refused_when_the_application_boots(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(self::STREAM_CONSUMER_REFUSAL);
+        $this->expectExceptionMessage(sprintf(self::STREAM_CONSUMER_REFUSAL, ', `shipments_of_region`'));
 
         $this->bootstrapShipmentsOnADynamicChannel(
             SimpleMessageChannelBuilder::createStreamingChannel('shipments_of_region'),
@@ -222,7 +222,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
     public function test_consumer_of_a_throttled_dynamic_channel_receiving_from_a_stream_is_refused_when_the_application_boots(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(self::STREAM_CONSUMER_REFUSAL);
+        $this->expectExceptionMessage(sprintf(self::STREAM_CONSUMER_REFUSAL, ', `shipments_of_tenant`'));
 
         $this->bootstrapShipmentsOnADynamicChannel(
             SimpleMessageChannelBuilder::createStreamingChannel('shipments_of_tenant'),
@@ -249,7 +249,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
     public function test_consumer_of_a_dynamic_channel_with_a_custom_receiving_strategy_is_refused_when_the_application_has_a_stream(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(self::STREAM_CONSUMER_REFUSAL);
+        $this->expectExceptionMessage(sprintf(self::STREAM_CONSUMER_REFUSAL, ', `audit`'));
 
         $this->bootstrapShipmentsOnADynamicChannel(
             SimpleMessageChannelBuilder::createQueueChannel('shipments_of_tenant'),

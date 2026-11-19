@@ -54,9 +54,12 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
         return true;
     }
 
-    protected function consumesAStream(): bool
+    /**
+     * @return string[]
+     */
+    protected function streamsConsumed(): array
     {
-        return false;
+        return [];
     }
 
     abstract protected function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall;
@@ -89,14 +92,14 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
             new Reference(AsyncEndpointAnnotationContext::class),
             new Reference(MessageBuilder::class),
             $this->drainsAQueue(),
-            $this->consumesAStream(),
+            $this->streamsConsumed(),
         ]);
         $builder->registerPollingEndpoint(
             endpointId: $this->endpointId,
             definition: $consumerRunner,
             withContinuousPolling: $this->withContinuesPolling(),
             drainsAQueue: $this->drainsAQueue(),
-            consumesAStream: $this->consumesAStream(),
+            streamsConsumed: $this->streamsConsumed(),
         );
     }
 

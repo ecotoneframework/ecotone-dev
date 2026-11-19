@@ -1175,7 +1175,11 @@ final class MessagingSystemConfiguration implements Configuration
                     $consumerFactory->registerConsumer(
                         $messagingBuilder,
                         $messageHandlerBuilder,
-                        $inputChannelBuilder instanceof DynamicMessageChannelBuilder ? StreamsReceivedByDynamicChannel::canReceiveFromAStream($inputChannelBuilder, $this->channelBuilders) : $inputChannelBuilder->isStreamingChannel(),
+                        match (true) {
+                            $inputChannelBuilder instanceof DynamicMessageChannelBuilder => StreamsReceivedByDynamicChannel::of($inputChannelBuilder, $this->channelBuilders),
+                            $inputChannelBuilder->isStreamingChannel() => [$inputChannelBuilder->getMessageChannelName()],
+                            default => [],
+                        },
                     );
                     break;
                 }

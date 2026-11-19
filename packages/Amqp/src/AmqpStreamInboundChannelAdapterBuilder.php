@@ -118,8 +118,11 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
         ]);
     }
 
-    protected function consumesAStream(): bool
+    /**
+     * @return string[]
+     */
+    protected function streamsConsumed(): array
     {
-        return true;
+        return [$this->messageChannelName];
     }
 }

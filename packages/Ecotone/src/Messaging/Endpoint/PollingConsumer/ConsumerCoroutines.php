@@ -15,7 +15,10 @@ use Throwable;
  */
 final class ConsumerCoroutines
 {
-    public static function refuseEndpointWhoseMessagesCannotBeHandledAtOnce(string $endpointId, int $coroutines, bool $drainsAQueue, bool $consumesAStream): void
+    /**
+     * @param string[] $streamsConsumed
+     */
+    public static function refuseEndpointWhoseMessagesCannotBeHandledAtOnce(string $endpointId, int $coroutines, bool $drainsAQueue, array $streamsConsumed): void
     {
         if ($coroutines < 1) {
             throw ConfigurationException::create(
@@ -33,9 +36,11 @@ final class ConsumerCoroutines
                 . 'To do its work on coroutines, let it send messages to an #[Asynchronous] handler and run that channel\'s consumer on coroutines.'
             );
         }
-        if ($consumesAStream) {
+        if ($streamsConsumed !== []) {
+            $streamsOtherThanTheConsumer = array_diff($streamsConsumed, [$endpointId]);
+            $namesOfTheStreams = $streamsOtherThanTheConsumer === [] ? '' : ', `' . implode('`, `', $streamsOtherThanTheConsumer) . '`';
             throw ConfigurationException::create(
-                "Consumer `{$endpointId}` is set to consume on {$coroutines} coroutines, but it reads a stream (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel; a dynamic channel with a custom receiving strategy counts as reading every stream channel of the application), where the position of the last handled message is what gets committed. "
+                "Consumer `{$endpointId}` is set to consume on {$coroutines} coroutines, but it reads a stream{$namesOfTheStreams} (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel; a dynamic channel with a custom receiving strategy counts as reading every stream channel of the application), where the position of the last handled message is what gets committed. "
                 . 'A coroutine finishing a later message would commit past an earlier message another coroutine is still handling, so that message is never handled when the process stops, and the messages are handled out of order. '
                 . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
                 . 'To handle more of its messages at once: for a Kafka topic start more processes of this consumer, with at least as many partitions of the topic as processes; a RabbitMQ stream is read in order by one consumer, so let its handler send the work to an #[Asynchronous] queue channel and consume that channel on coroutines. A dynamic channel whose custom receiving strategy reads only queue channels can consume on coroutines when it receives through DynamicMessageChannelBuilder::createRoundRobin(), createRoundRobinWithDifferentChannels() or createThrottlingStrategy() naming those channels.'
@@ -44,11 +49,12 @@ final class ConsumerCoroutines
     }
 
     /**
+     * @param string[] $streamsConsumed
      * @param Closure(): ConsumerLifecycle $createConsumer
      */
-    public static function consume(string $endpointId, int $coroutines, bool $drainsAQueue, bool $consumesAStream, Closure $createConsumer): void
+    public static function consume(string $endpointId, int $coroutines, bool $drainsAQueue, array $streamsConsumed, Closure $createConsumer): void
     {
-        self::refuseEndpointWhoseMessagesCannotBeHandledAtOnce($endpointId, $coroutines, $drainsAQueue, $consumesAStream);
+        self::refuseEndpointWhoseMessagesCannotBeHandledAtOnce($endpointId, $coroutines, $drainsAQueue, $streamsConsumed);
 
         $runtime = self::coroutineRuntime();
         if ($runtime === null) {

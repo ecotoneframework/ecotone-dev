@@ -124,7 +124,7 @@ final class StreamingChannelValidationTest extends AmqpMessagingTestCase
     {
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
-            'Consumer `consumer1` is set to consume on 2 coroutines, but it reads a stream (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel; a dynamic channel with a custom receiving strategy counts as reading every stream channel of the application), where the position of the last handled message is what gets committed. '
+            'Consumer `consumer1` is set to consume on 2 coroutines, but it reads a stream, `channel1` (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel; a dynamic channel with a custom receiving strategy counts as reading every stream channel of the application), where the position of the last handled message is what gets committed. '
             . 'A coroutine finishing a later message would commit past an earlier message another coroutine is still handling, so that message is never handled when the process stops, and the messages are handled out of order. '
         );
 

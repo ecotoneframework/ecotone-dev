@@ -193,8 +193,11 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
         return 'Inbound Adapter with id ' . $this->endpointId;
     }
 
-    protected function consumesAStream(): bool
+    /**
+     * @return string[]
+     */
+    protected function streamsConsumed(): array
     {
-        return true;
+        return [$this->channelName];
     }
 }

@@ -143,7 +143,7 @@ final class ChannelSendRecording
             return;
         }
         if ($failure === null) {
-            $this->tracer->endStep($send['step'], '', $send['failed'] === null ? [] : [ExecutionHint::shownInLines(ExecutionHint::FAILURE, $send['failed'] . ', ' . $this->recoveryOf($send['failedAfter']))]);
+            $this->tracer->endStep(step: $send['step'], outcome: '', hints: $send['failed'] === null ? [] : [ExecutionHint::shownInLines(ExecutionHint::FAILURE, $send['failed'] . ', ' . $this->recoveryOf($send['failedAfter']))]);
 
             return;
         }
@@ -211,7 +211,7 @@ final class ChannelSendRecording
             }
         }
         foreach (array_reverse($send['entered']) as $position => $entered) {
-            $position === 0 && $failure !== null && $send['put'] === null ? $this->tracer->failStep($entered['step'], $failure) : $this->tracer->endStep($entered['step'], '', $entered['hints']);
+            $position === 0 && $failure !== null && $send['put'] === null ? $this->tracer->failStep($entered['step'], $failure) : $this->tracer->endStep(step: $entered['step'], outcome: '', hints: $entered['hints']);
         }
     }
 

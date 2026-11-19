@@ -28,7 +28,7 @@ final class RecordedGateway extends Gateway
         private string $entry,
         private ExecutionRecordingTracer $tracer,
     ) {
-        parent::__construct($methodCallToMessageConverter, $returnType, $gatewayReplyConverter, $gatewayInternalProcessor, $messageBuilder);
+        parent::__construct(methodCallToMessageConverter: $methodCallToMessageConverter, returnType: $returnType, gatewayReplyConverter: $gatewayReplyConverter, gatewayInternalProcessor: $gatewayInternalProcessor, messageBuilder: $messageBuilder);
     }
 
     public function execute(array $methodArgumentValues)

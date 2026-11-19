@@ -29,7 +29,7 @@ final class StepAround
             throw $failure;
         }
         if ($step !== null) {
-            $described instanceof ExecutionHint ? $tracer->endStep($step, '', [$described]) : $tracer->endStep($step, $described);
+            $described instanceof ExecutionHint ? $tracer->endStep(step: $step, outcome: '', hints: [$described]) : $tracer->endStep($step, $described);
         }
 
         return $result;

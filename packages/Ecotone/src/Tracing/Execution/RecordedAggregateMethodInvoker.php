@@ -22,7 +22,7 @@ final class RecordedAggregateMethodInvoker implements AggregateMethodInvoker
     {
         $step = $this->tracer->startStep('apply ' . ExecutionRecorder::typeOf($message->getPayload()) . ' to ' . ExecutionRecorder::typeOf($aggregate), hints: [ExecutionHint::detail(ExecutionHint::SERVICE, ExecutionRecordingTracer::shortClassOf($this->aggregateMethodInvoker::class))]);
         try {
-            $this->aggregateMethodInvoker->executeMethod($aggregate, $applyMethod, $message);
+            $this->aggregateMethodInvoker->executeMethod(aggregate: $aggregate, applyMethod: $applyMethod, message: $message);
         } catch (Throwable $failure) {
             if ($step !== null) {
                 $this->tracer->failStep($step, $failure);

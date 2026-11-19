@@ -59,7 +59,7 @@ final class RecordedAggregateRepository implements AggregateRepository
             throw $failure;
         }
         if ($step !== null) {
-            $described instanceof ExecutionHint ? $this->tracer->endStep($step, '', [$described]) : $this->tracer->endStep($step, $described);
+            $described instanceof ExecutionHint ? $this->tracer->endStep(step: $step, outcome: '', hints: [$described]) : $this->tracer->endStep($step, $described);
         }
 
         return $result;

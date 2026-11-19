@@ -25,7 +25,7 @@ final class RecordedMessagingEntrypointService extends MessagingEntrypointServic
         MessageBuilder $messageBuilder,
         private ExecutionRecordingTracer $tracer,
     ) {
-        parent::__construct($channelResolver, $headersPropagator, $messageBuilder);
+        parent::__construct(channelResolver: $channelResolver, messageHeadersPropagator: $headersPropagator, messageBuilder: $messageBuilder);
     }
 
     public function send(mixed $payload, string $targetChannel): mixed

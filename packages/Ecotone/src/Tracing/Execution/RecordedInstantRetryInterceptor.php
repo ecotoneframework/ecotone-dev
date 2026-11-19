@@ -29,7 +29,7 @@ final class RecordedInstantRetryInterceptor extends InstantRetryInterceptor
         ?string $relatedEndpointId,
         private ExecutionRecordingTracer $tracer,
     ) {
-        parent::__construct($maxRetryAttempts, $exceptions, $retryStatusTracker, $transactionStatusTracker, $relatedEndpointId);
+        parent::__construct(maxRetryAttempts: $maxRetryAttempts, exceptions: $exceptions, retryStatusTracker: $retryStatusTracker, transactionStatusTracker: $transactionStatusTracker, relatedEndpointId: $relatedEndpointId);
     }
 
     public function retry(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $logger, ?PollingMetadata $pollingMetadata)

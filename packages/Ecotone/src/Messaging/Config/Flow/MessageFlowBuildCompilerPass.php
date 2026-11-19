@@ -43,7 +43,7 @@ final class MessageFlowBuildCompilerPass implements CompilerPass
     {
         $builder->register(MessageFlowBuildGraphBuilder::class, new Definition(MessageFlowBuildGraphBuilder::class, [
             new Reference(MessageFlowGraphBuilder::class),
-            MessageFlowBuildWiringDiscovery::discover($this->configuration, $this->interfaceToCallRegistry, $this->declared)->getDefinition(),
+            MessageFlowBuildWiringDiscovery::discover(configuration: $this->configuration, interfaceToCallRegistry: $this->interfaceToCallRegistry, declared: $this->declared)->getDefinition(),
         ]));
         $ledger = MessageFlowLedgerDiscovery::discover($this->configuration, $this->interfaceToCallRegistry);
         $builder->register(MessageFlowBuild::class, (new MessageFlowBuild($ledger['ledger'], MessageFlowChainReader::read(builder: $builder, configuration: $this->configuration, interfaceToCallRegistry: $this->interfaceToCallRegistry, handlerNames: $ledger['handlerNames'])))->getDefinition());

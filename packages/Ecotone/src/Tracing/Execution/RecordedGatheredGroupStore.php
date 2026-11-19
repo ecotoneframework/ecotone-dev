@@ -51,7 +51,7 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
             throw $failure;
         }
         if ($step !== null) {
-            $this->tracer->endStep($step, '', $outcome);
+            $this->tracer->endStep(step: $step, outcome: '', hints: $outcome);
         }
     }
 

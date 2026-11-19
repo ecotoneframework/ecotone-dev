@@ -39,7 +39,7 @@ final class RecordedConversionService implements ConversionService
 
     public function canConvert(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool
     {
-        return $this->conversionService->canConvert($sourceType, $sourceMediaType, $targetType, $targetMediaType);
+        return $this->conversionService->canConvert(sourceType: $sourceType, sourceMediaType: $sourceMediaType, targetType: $targetType, targetMediaType: $targetMediaType);
     }
 
     private static function typeOf(Type $type): string

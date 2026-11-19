@@ -222,7 +222,7 @@ final class FlowComparisonMarkdown
             default => $prefix . $entry['step'],
         }];
         foreach ($entry['hints'] ?? [] as $hint) {
-            $lines[] = $prefix . RecordedExecution::hintLine($depth, $hint['key'], $hint['value']);
+            $lines[] = $prefix . RecordedExecution::hintLine(depth: $depth, key: $hint['key'], value: $hint['value']);
         }
         $details = [];
         foreach ($entry['hintChanges'] ?? [] as $change) {
@@ -231,14 +231,14 @@ final class FlowComparisonMarkdown
                 continue;
             }
             if ($change['before'] !== '') {
-                $lines[] = '- ' . RecordedExecution::hintLine($depth, $change['key'], $change['before']);
+                $lines[] = '- ' . RecordedExecution::hintLine(depth: $depth, key: $change['key'], value: $change['before']);
             }
             if ($change['now'] !== '') {
-                $lines[] = '+ ' . RecordedExecution::hintLine($depth, $change['key'], $change['now']);
+                $lines[] = '+ ' . RecordedExecution::hintLine(depth: $depth, key: $change['key'], value: $change['now']);
             }
         }
         if ($details !== []) {
-            $lines[] = '  ' . RecordedExecution::hintLine($depth, count($details) . ' detail hint' . (count($details) === 1 ? '' : 's') . ' changed', implode(', ', $details) . '; the json presentation shows ' . (count($details) === 1 ? 'its values' : 'their values'));
+            $lines[] = '  ' . RecordedExecution::hintLine(depth: $depth, key: count($details) . ' detail hint' . (count($details) === 1 ? '' : 's') . ' changed', value: implode(', ', $details) . '; the json presentation shows ' . (count($details) === 1 ? 'its values' : 'their values'));
         }
 
         return $lines;

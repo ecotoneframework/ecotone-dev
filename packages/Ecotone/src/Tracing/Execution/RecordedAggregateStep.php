@@ -37,7 +37,7 @@ final class RecordedAggregateStep implements MessageProcessor
             throw $failure;
         }
         if ($step !== null) {
-            $this->tracer->endStep($step, '', $hints);
+            $this->tracer->endStep(step: $step, outcome: '', hints: $hints);
         }
 
         return $result;

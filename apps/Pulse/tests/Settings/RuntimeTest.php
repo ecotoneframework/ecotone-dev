@@ -43,7 +43,7 @@ final class RuntimeTest extends KernelTestCase
     public function test_a_number_of_coroutines_that_is_not_a_whole_number_from_one_is_refused(): void
     {
         $this->expectException(PulseConfigurationException::class);
-        $this->expectExceptionMessage('PULSE_CONSUMER_COROUTINES "0" is not a number of coroutines consuming each reply channel in one process. Set it to a whole number from 1 to 9999, for example 6, which is the default. It is read only with PULSE_RUNTIME=swoole.');
+        $this->expectExceptionMessage('PULSE_CONSUMER_COROUTINES "0" is not a number of coroutines consuming each reply channel in one process. Set it to a whole number from 1 to 9999, for example 6, which is the default. It takes effect with PULSE_RUNTIME=swoole.');
 
         Runtime::consumerCoroutines(['PULSE_CONSUMER_COROUTINES' => '0']);
     }
@@ -54,6 +54,16 @@ final class RuntimeTest extends KernelTestCase
 
         $this->expectException(PulseConfigurationException::class);
         $this->expectExceptionMessage('PULSE_HTTP_WORKERS "many" is not a number of OpenSwoole worker processes serving HTTP.');
+
+        self::bootKernel();
+    }
+
+    public function test_a_postgresql_transport_is_refused_on_swoole_when_pulse_boots(): void
+    {
+        $this->configurePulse(['PULSE_RUNTIME' => 'swoole']);
+
+        $this->expectException(PulseConfigurationException::class);
+        $this->expectExceptionMessage('PULSE_RUNTIME is "swoole" and PULSE_TRANSPORT_DSN is a PostgreSQL database, but an OpenSwoole coroutine cannot wait on a PostgreSQL query: it would stop every coroutine consuming replies. Use a MySQL or MariaDB database or a broker for that connection, or set PULSE_RUNTIME to "php".');
 
         self::bootKernel();
     }

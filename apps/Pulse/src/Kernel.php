@@ -18,9 +18,7 @@ final class Kernel extends BaseKernel
     protected function build(ContainerBuilder $container): void
     {
         $settings = PulseSettings::fromEnvironment(PulseEnvironment::read(), $this->getProjectDir());
-        Runtime::fromEnvironment(PulseEnvironment::read());
-        Runtime::consumerCoroutines(PulseEnvironment::read());
-        Runtime::httpWorkers(PulseEnvironment::read());
+        Runtime::refuseSettingsPulseCannotRunWith(PulseEnvironment::read(), $settings);
         $container->loadFromExtension('ecotone', [
             'licenceKey' => '%env(ECOTONE_LICENCE_KEY)%',
             'enabledModulePackageNames' => $settings->modulePackages(),

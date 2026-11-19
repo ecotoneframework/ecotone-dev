@@ -23,6 +23,24 @@ enum Runtime: string
     /**
      * @param array<string, mixed> $environment
      */
+    public static function refuseSettingsPulseCannotRunWith(array $environment, PulseSettings $settings): void
+    {
+        self::consumerCoroutines($environment);
+        self::httpWorkers($environment);
+        if (self::fromEnvironment($environment) !== self::Swoole) {
+            return;
+        }
+
+        foreach ($settings->connections as $connection) {
+            if (preg_match('/^(pgsql|postgres)/i', $connection->dsn) === 1) {
+                throw new PulseConfigurationException(sprintf('PULSE_RUNTIME is "swoole" and %s is a PostgreSQL database, but an OpenSwoole coroutine cannot wait on a PostgreSQL query: it would stop every coroutine consuming replies. Use a MySQL or MariaDB database or a broker for that connection, or set PULSE_RUNTIME to "php".', $connection->environmentVariable));
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $environment
+     */
     public static function consumerCoroutines(array $environment): int
     {
         return self::wholeNumberFromOne($environment, 'PULSE_CONSUMER_COROUTINES', 6, 'coroutines consuming each reply channel in one process');
@@ -46,7 +64,7 @@ enum Runtime: string
             return $default;
         }
         if (preg_match('/^[1-9][0-9]{0,3}$/', trim($value)) !== 1) {
-            throw new PulseConfigurationException(sprintf('%s "%s" is not a number of %s. Set it to a whole number from 1 to 9999, for example %d, which is the default. It is read only with PULSE_RUNTIME=swoole.', $name, $value, $meaning, $default));
+            throw new PulseConfigurationException(sprintf('%s "%s" is not a number of %s. Set it to a whole number from 1 to 9999, for example %d, which is the default. It takes effect with PULSE_RUNTIME=swoole.', $name, $value, $meaning, $default));
         }
 
         return (int) trim($value);

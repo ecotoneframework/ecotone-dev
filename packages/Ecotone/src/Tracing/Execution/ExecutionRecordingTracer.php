@@ -45,7 +45,7 @@ final class ExecutionRecordingTracer implements Tracer
     private array $hintsOfOpenSteps = [];
     /** @var list<?string> */
     private array $flowTestingFailures = [];
-    /** @var list<array<string, mixed>> */
+    /** @var list<?array<string, mixed>> */
     private array $suspendedEntries = [];
     private const PER_PROCESS_STATE = ['openSteps', 'stepsWithChildren', 'stepsOfOpenEntry', 'spanStartedInOpenEntry', 'receiveEntry', 'receiveContinuation', 'invocationInOpenEntry', 'housekeepingInOpenEntry', 'collectors', 'hintsOfOpenSteps'];
 
@@ -341,6 +341,11 @@ final class ExecutionRecordingTracer implements Tracer
 
     public function suspendOpenEntry(): void
     {
+        if ($this->tracer->currentSpan() !== null) {
+            $this->suspendedEntries[] = null;
+
+            return;
+        }
         $suspended = [];
         foreach (self::PER_PROCESS_STATE as $property) {
             $suspended[$property] = $this->{$property};

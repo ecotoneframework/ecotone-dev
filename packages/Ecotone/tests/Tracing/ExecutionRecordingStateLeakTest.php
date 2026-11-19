@@ -123,6 +123,47 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
         self::assertNull($processes[count($processes) - 1]->sentBy);
     }
 
+    public function test_a_consumer_a_handler_runs_is_recorded_inside_that_handler_between_what_it_sent_before_and_after_and_the_next_call_is_recorded_as_it_is_alone(): void
+    {
+        $handlers = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(string $order): void
+            {
+            }
+
+            #[CommandHandler('orders.drain')]
+            public function drain(string $reason, ConfiguredMessagingSystem $messagingSystem, CommandBus $commandBus): void
+            {
+                $commandBus->sendWithRouting('audit.record', 'before');
+                $messagingSystem->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+                $commandBus->sendWithRouting('audit.record', 'after');
+            }
+
+            #[CommandHandler('audit.record')]
+            public function record(string $audit): void
+            {
+            }
+        };
+        $ecotone = $this->application($handlers);
+
+        $ecotone->sendCommandWithRouting('order.place', 'order-1');
+        $ecotone->sendCommandWithRouting('orders.drain', 'end of day');
+        $ecotone->sendCommandWithRouting('audit.record', 'audit-1');
+        $processes = $ecotone->popExecutionRecording()->processes;
+        $alone = $this->application($handlers);
+        $alone->sendCommandWithRouting('audit.record', 'audit-1');
+        $labels = array_map(fn (RecordedStep $step): string => $step->label, $processes[1]->steps);
+        $positionOf = fn (string $label): int => (int) array_search($label, $labels, true);
+        $handlerStep = $positionOf('handler class@anonymous::drain');
+
+        self::assertCount(3, $processes);
+        self::assertSame(['span send command audit.record', 'span receive orders', 'span send command audit.record'], array_values(array_filter($labels, fn (string $label): bool => in_array($label, ['span send command audit.record', 'span receive orders'], true))));
+        self::assertLessThan($positionOf('span receive orders'), $handlerStep);
+        self::assertGreaterThan($processes[1]->steps[$handlerStep]->depth, $processes[1]->steps[$positionOf('span receive orders')]->depth);
+        self::assertSame(self::stepsOf($alone->popExecutionRecording()->processes[0]), self::stepsOf($processes[2]));
+    }
+
     public function test_the_message_consumed_after_a_failing_asynchronous_handler_is_recorded_as_it_is_alone(): void
     {
         $orders = new class () {

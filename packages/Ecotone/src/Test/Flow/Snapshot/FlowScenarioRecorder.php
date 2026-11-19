@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Test\Flow\Snapshot;
 
+use DateTimeImmutable;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
@@ -20,6 +21,8 @@ use Ecotone\Test\LicenceTesting;
  */
 final class FlowScenarioRecorder
 {
+    private const RECORDED_AT = '2026-01-01 12:00:00 UTC';
+
     /**
      * @return array<string, FlowSnapshot>
      */
@@ -71,6 +74,7 @@ final class FlowScenarioRecorder
             [...$scenario->extensionObjects, $tracing],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable(self::RECORDED_AT),
         );
     }
 }

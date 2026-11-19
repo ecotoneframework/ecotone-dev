@@ -177,7 +177,7 @@
             {"depth":13,"label":"release collected message to notifications","hints":[{"key":"collected","value":"released after the handler ended","shownInLines":true},{"key":"taken by","value":"process 3, a separate consumer run","shownInLines":true}]},
             {"depth":14,"label":"before send OutboundSerializationChannelInterceptor::preSend"},
             {"depth":15,"label":"before send MessageCollectorChannelInterceptor::preSend"},
-            {"depth":16,"label":"before send AbstractChannelInterceptor@anonymous::preSend","hints":[{"key":"headers removed","value":"parentId, ecotone_modelling_bus_routing_key, routingSlip","shownInLines":false},{"key":"headers changed","value":"id, correlationId","shownInLines":false}]},
+            {"depth":16,"label":"before send AbstractChannelInterceptor@anonymous::preSend","hints":[{"key":"headers removed","value":"parentId, ecotone_modelling_bus_routing_key, routingSlip","shownInLines":false},{"key":"headers changed","value":"timestamp, id, correlationId","shownInLines":false}]},
             {"depth":17,"label":"before send InMemoryQueueAcknowledgeInterceptor::preSend","hints":[{"key":"headers added","value":"ecotone_messaging_consumer_acknowledge_header, ecotone_in_memory_queue_consumer_acknowledge","shownInLines":false}]},
             {"depth":18,"label":"before send TracingChannelInterceptor::preSend","hints":[{"key":"headers added","value":"traceparent, ecotone_tracing_delivery","shownInLines":false}]},
             {"depth":19,"label":"span send notifications"},

@@ -173,6 +173,34 @@ $ecotone->now();                                                    // DatePoint
 call returns `[]`. `popRecordedEventsOfType(OrderPlaced::class)` removes and returns only that class, leaving the rest.
 Events the test publishes itself are recorded too. Aggregates using `WithEvents` expose the same `popRecordedEvents()`.
 
+### What Ecotone Ran for a Message
+
+To see every step Ecotone ran for a message (gateway, interceptors, channels, routing, the handler, acknowledgement),
+switch on the framework tracing level and pop the recording:
+
+```php
+$ecotone = EcotoneLite::bootstrapFlowTesting(
+    [OrderService::class],
+    [new OrderService()],
+    [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
+);
+
+$ecotone->sendCommand(new PlaceOrder('123'));
+$recording = $ecotone->popExecutionRecording();
+
+$this->assertStringContainsString('OrderService::place', $recording->processes[0]->title);
+echo implode("\n", $recording->lines);
+```
+
+- One line is enough in a flow test: it keeps the recording in memory for `popExecutionRecording()`.
+- `popExecutionRecording()` returns what ran since the last pop and clears it, like `popRecordedEvents()`.
+- Each of `processes` (one per gateway call, console command or consumed message) has a `title`, `steps` (`depth`,
+  `label`, `hints`) and `sentBy` (`processNumber`, `stepNumber`) when another process sent its message.
+- `lines` is the short text: steps plus the hints that decide where the message went. `linesWithEveryHint` adds every
+  other hint.
+- With OpenTelemetry, the framework level exports the same spans with `ecotone.execution.*` attributes added; the
+  steps themselves are not exported.
+
 ### Failures, Retries and Dead Letter
 
 - `run()` rethrows a handler exception by default; pass `ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false)`
@@ -255,6 +283,16 @@ never on Ecotone's internals, reflection, or a mocked `CommandBus`/`EventBus`.
 - **Expected:** assertions use the flow-test support API or the test's own stub; there is no `ReflectionClass`, no
   `createMock(CommandBus::class)`/`createMock(EventBus::class)`, and no inspection of framework classes.
 - **Verified by:** `eval:ticket-lifecycle`
+
+### 6. Read what Ecotone ran with the framework tracing level and `popExecutionRecording()`
+To show or assert what Ecotone ran for a message, pass
+`TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)` to the flow test and read
+`popExecutionRecording()`; do not parse logs or spans by hand.
+- **Expected:** the test passes `TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)` (no
+  span recorder set up for it) and reads `$ecotone->popExecutionRecording()`, using its `processes`, `lines` or
+  `linesWithEveryHint`; it does not register an `InMemorySpanRecorder` only to read it, and does not read Ecotone's
+  internal classes.
+- **Verified by:** `eval:execution-recording`
 
 ## Additional resources
 

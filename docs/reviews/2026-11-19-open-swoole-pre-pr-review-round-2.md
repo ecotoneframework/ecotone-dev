@@ -322,3 +322,24 @@ All four sessions: no BLOCKING finding. Resolved: G54, D44, D45. Open and left f
 - **G53**: `ManagerRegistryEmulator::fromDsnAndConfig()` named as an application's entry point from `src`.
 - **D24**, **G28**, **G46** as before. **V51 NIT**, **V52 NIT** as recorded above. **G55 NIT**:
   `getManagerOfConnectionRegisteredAs()` takes the reference name only to quote it in its refusal.
+
+## The maintainer's decisions on D41 and G53, re-verified at c9d9f2177
+
+Decided: an application registers one `MultiTenantConfiguration`; an attribute without a connection name means the
+active tenant's connection, or the default one without tenants; `ManagerRegistryEmulator` becomes
+`Ecotone\Api\Dbal\ManagerRegistryProvider` and `DbalConnection` moves into `Api` too.
+
+All four sessions: no BLOCKING finding. Resolved: D41, G53, G23. New findings:
+
+- **V53 SHOULD-FIX / D47 SHOULD-FIX / B30 NIT** `DbalConnectionModule.php:133`: without a name the attribute follows the
+  tenant configuration, or `DbalConnectionReference::DEFAULT`, also when `DbalConfiguration` opens transactions on
+  another connection; the bootstrap check of the resolved connection is gone.
+- **G56 SHOULD-FIX** `ManagerRegistryProvider.php`: the whole registry implementation moved into `Api/` with the
+  factories. **G57 NIT**: comments came with it. **G58 NIT**: `fromDsnAndConfig($dsn, $config)` takes the mapping paths.
+  **G59 NIT**: `DbalConnection` has no `strict_types`, is not `final`, and keeps an unused `resolve()`.
+- **D46 SHOULD-FIX** `upgrade-2.0.md:3127`: "put `#[CurrentConnection]` in place of `#[Reference]`" moves a shared
+  connection's writes into the tenant's database in a multi-tenant application.
+- **D48 SHOULD-FIX**: the refusal of a second configuration has no way out for two databases split by tenant.
+  **D49 NIT**: its grammar. **D50 NIT**: the attributes' default shows an internal string.
+- **B31 NIT**: `createEntityManager()` lost `$pathsToMapping` earlier on main; §13k says the arguments are kept.
+- **V54 NIT**: no Symfony test with tenants under a name of their own. Left.

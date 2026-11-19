@@ -12,16 +12,22 @@ use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use OpenSwoole\Coroutine;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RequiresMethod;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Swoole\Coroutine;
+
+use function Swoole\Coroutine\run;
+
+use Swoole\Runtime;
 
 /**
  * licence Apache-2.0
  * @internal
  */
-#[RequiresPhpExtension('openswoole')]
+#[RequiresMethod(Coroutine::class, 'create')]
 final class ConsumerCoroutinesTest extends TestCase
 {
     public function test_consumer_handles_as_many_messages_at_once_as_the_coroutines_passed_when_running_it(): void
@@ -73,7 +79,32 @@ final class ConsumerCoroutinesTest extends TestCase
         $ecotone = $this->bootstrapShipments();
         $this->shipParcels($ecotone, 4);
 
-        Coroutine::run(static function () use ($ecotone): void {
+        Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
+        try {
+            $scheduler = new Coroutine\Scheduler();
+            $scheduler->add(static function () use ($ecotone): void {
+                $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(2));
+            });
+            $scheduler->start();
+        } finally {
+            Runtime::enableCoroutine(0);
+        }
+
+        $this->assertSame(4, $ecotone->sendQueryWithRouting('shipment.shipped'));
+        $this->assertSame(2, $ecotone->sendQueryWithRouting('shipment.mostShippedAtOnce'));
+    }
+
+    #[RequiresPhpExtension('swoole')]
+    #[Group('swoole')]
+    public function test_coroutines_the_application_runs_after_a_consumer_still_wait_without_stopping_each_other(): void
+    {
+        $consumedBefore = $this->bootstrapShipments();
+        $this->shipParcels($consumedBefore, 2);
+        $consumedBefore->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(2));
+        $ecotone = $this->bootstrapShipments();
+        $this->shipParcels($ecotone, 4);
+
+        run(static function () use ($ecotone): void {
             $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(2));
         });
 

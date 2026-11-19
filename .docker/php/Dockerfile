@@ -13,12 +13,30 @@ RUN git config --system --add safe.directory /data/app
 ARG INSTALL_SOCKETS=0
 RUN if [ "$INSTALL_SOCKETS" = "1" ]; then docker-php-ext-install sockets; fi
 
-# The swoole service runs the applications on OpenSwoole's long-lived HTTP server.
+# The openswoole and swoole services run the applications on a long-lived HTTP server and the coroutine tests.
 # Xdebug is removed there: it is loaded in the base image even when XDEBUG_ENABLED=0,
-# and OpenSwoole refuses to run coroutines with it loaded.
+# and neither extension runs coroutines with it loaded.
 ARG INSTALL_OPENSWOOLE=0
 ARG OPENSWOOLE_VERSION=26.2.0
 RUN if [ "$INSTALL_OPENSWOOLE" = "1" ]; then \
         install-php-extensions openswoole-${OPENSWOOLE_VERSION} \
         && rm -f /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini; \
+    fi
+
+# Swoole is compiled from source: the image's install-php-extensions cannot configure this version, and
+# --enable-swoole-pgsql is what lets a coroutine wait on a PostgreSQL query.
+ARG INSTALL_SWOOLE=0
+ARG SWOOLE_VERSION=6.2.6
+RUN if [ "$INSTALL_SWOOLE" = "1" ]; then \
+        apt-get update \
+        && apt-get install -y --no-install-recommends libpq-dev libssl-dev libbrotli-dev libc-ares-dev libcurl4-openssl-dev \
+        && curl -fsSL https://pecl.php.net/get/swoole-${SWOOLE_VERSION}.tgz | tar xz -C /tmp \
+        && cd /tmp/swoole-${SWOOLE_VERSION} \
+        && phpize \
+        && ./configure --enable-sockets --enable-openssl --enable-mysqlnd --enable-swoole-curl --enable-cares --enable-brotli --enable-swoole-pgsql \
+        && make -j"$(nproc)" \
+        && make install \
+        && docker-php-ext-enable swoole \
+        && rm -f /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
+        && rm -rf /tmp/swoole-${SWOOLE_VERSION} /var/lib/apt/lists/*; \
     fi

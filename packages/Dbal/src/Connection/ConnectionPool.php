@@ -108,7 +108,7 @@ final class ConnectionPool
         throw ConfigurationException::create(
             "Database connection `{$this->connectionName}` is PostgreSQL, and this coroutine runtime does not let a coroutine wait on a PostgreSQL query: the query stops every coroutine of the process. "
             . 'A coroutine waiting for a row that another coroutine of the same process has locked then stops that one too, so neither ever finishes. '
-            . 'Use MySQL or MariaDB, which coroutines wait on, run on Swoole 5.1 or newer with SWOOLE_HOOK_PDO_PGSQL among the enabled hooks, or handle one message at a time per process: in Swoole or OpenSwoole set `enable_coroutine` to false.'
+            . 'Use MySQL or MariaDB, which coroutines wait on, run on Swoole 5.1 or newer built with --enable-swoole-pgsql and with SWOOLE_HOOK_PDO_PGSQL among the enabled hooks, or handle one message at a time per process: in Swoole or OpenSwoole set `enable_coroutine` to false.'
         );
     }
 

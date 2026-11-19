@@ -15,10 +15,10 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Interop\Amqp\Impl\AmqpQueue;
-use OpenSwoole\Coroutine;
-use OpenSwoole\Runtime;
-use PHPUnit\Framework\Attributes\RequiresPhpExtension;
+use PHPUnit\Framework\Attributes\RequiresMethod;
 use RuntimeException;
+use Swoole\Coroutine;
+use Swoole\Runtime;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Throwable;
 
@@ -26,7 +26,7 @@ use Throwable;
  * licence Apache-2.0
  * @internal
  */
-#[RequiresPhpExtension('openswoole')]
+#[RequiresMethod(Coroutine::class, 'create')]
 final class CoroutineExecutionsTest extends AmqpMessagingTestCase
 {
     public function setUp(): void
@@ -135,9 +135,10 @@ final class CoroutineExecutionsTest extends AmqpMessagingTestCase
     private function runCoroutines(callable ...$coroutines): void
     {
         $failure = null;
-        Runtime::enableCoroutine(Runtime::HOOK_ALL);
+        Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
         try {
-            Coroutine::run(static function () use ($coroutines, &$failure): void {
+            $scheduler = new Coroutine\Scheduler();
+            $scheduler->add(static function () use ($coroutines, &$failure): void {
                 foreach ($coroutines as $coroutine) {
                     Coroutine::create(static function () use ($coroutine, &$failure): void {
                         try {
@@ -148,6 +149,7 @@ final class CoroutineExecutionsTest extends AmqpMessagingTestCase
                     });
                 }
             });
+            $scheduler->start();
         } finally {
             Runtime::enableCoroutine(0);
         }

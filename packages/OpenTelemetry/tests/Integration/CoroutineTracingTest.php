@@ -16,8 +16,6 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration;
-use OpenSwoole\Coroutine;
-use OpenSwoole\Runtime;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ContextStorage;
@@ -25,14 +23,16 @@ use OpenTelemetry\Context\ContextStorageInterface;
 use OpenTelemetry\Contrib\Context\Swoole\SwooleContextStorage;
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
-use PHPUnit\Framework\Attributes\RequiresPhpExtension;
+use PHPUnit\Framework\Attributes\RequiresMethod;
+use Swoole\Coroutine;
+use Swoole\Runtime;
 use Throwable;
 
 /**
  * licence Apache-2.0
  * @internal
  */
-#[RequiresPhpExtension('openswoole')]
+#[RequiresMethod(Coroutine::class, 'create')]
 final class CoroutineTracingTest extends TracingTestCase
 {
     private const ORDER_TRACE = '0af7651916cd43dd8448eb211c80319c';
@@ -189,9 +189,10 @@ final class CoroutineTracingTest extends TracingTestCase
     private function runCoroutines(callable ...$coroutines): void
     {
         $failure = null;
-        Runtime::enableCoroutine(Runtime::HOOK_ALL);
+        Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
         try {
-            Coroutine::run(static function () use ($coroutines, &$failure): void {
+            $scheduler = new Coroutine\Scheduler();
+            $scheduler->add(static function () use ($coroutines, &$failure): void {
                 foreach ($coroutines as $coroutine) {
                     Coroutine::create(static function () use ($coroutine, &$failure): void {
                         try {
@@ -202,6 +203,7 @@ final class CoroutineTracingTest extends TracingTestCase
                     });
                 }
             });
+            $scheduler->start();
         } finally {
             Runtime::enableCoroutine(0);
         }

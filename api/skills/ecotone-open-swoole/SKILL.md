@@ -84,7 +84,7 @@ new DbalConnectionFactory(['dsn' => 'mysql://user:secret@database/app', 'connect
 | | OpenSwoole | Swoole 5.1+ |
 |---|---|---|
 | MySQL, MariaDB (`pdo_mysql`) | waits | waits |
-| PostgreSQL (`pdo_pgsql`) | refused by Ecotone inside a coroutine | waits with `SWOOLE_HOOK_PDO_PGSQL` |
+| PostgreSQL (`pdo_pgsql`) | refused by Ecotone inside a coroutine | waits when Swoole is built with `--enable-swoole-pgsql` (`SWOOLE_HOOK_PDO_PGSQL`, part of `SWOOLE_HOOK_ALL`); refused otherwise |
 | RabbitMQ with `Enqueue\AmqpLib\AmqpConnectionFactory` | waits | waits |
 | RabbitMQ with the `amqp` extension | stops every coroutine during the call | same |
 | SQLite | stops every coroutine during the call | waits with `SWOOLE_HOOK_PDO_SQLITE` |
@@ -126,6 +126,9 @@ $server->on('workerStart', static function () use (&$kernel): void {
 });
 ```
 
+On Swoole the classes are `Swoole\Http\Server` and `Swoole\Runtime`, and the flags are `SWOOLE_HOOK_ALL`; these
+names work on OpenSwoole too.
+
 Boot the application in `workerStart`, once per worker, and handle each request with it. Laravel Octane on Swoole
 handles one request at a time per worker and needs no change.
 
@@ -163,7 +166,8 @@ as long as it consumes.
 
 ### 3. On OpenSwoole the database is MySQL or MariaDB
 Ecotone refuses a PostgreSQL connection inside an OpenSwoole coroutine, because a PostgreSQL query there stops the
-whole process. The ways out are MySQL or MariaDB, Swoole 5.1+ with `SWOOLE_HOOK_PDO_PGSQL`, or one message at a time.
+whole process. The ways out are MySQL or MariaDB, Swoole 5.1+ built with `--enable-swoole-pgsql`
+(`php --ri swoole` shows `coroutine_pgsql => enabled`), or one message at a time.
 - **Expected:** for a PostgreSQL application on OpenSwoole the answer says coroutines cannot be used with it as is and names at least one of the ways out; it does not present PostgreSQL with `--coroutines` on OpenSwoole as working.
 - **Verified by:** `eval:consume-on-coroutines`
 

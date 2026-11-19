@@ -14,18 +14,19 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use OpenSwoole\Coroutine;
-use OpenSwoole\Runtime;
+use PHPUnit\Framework\Attributes\RequiresMethod;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use Swoole\Coroutine;
+use Swoole\Runtime;
 use Throwable;
 
 /**
  * licence Apache-2.0
  * @internal
  */
-#[RequiresPhpExtension('openswoole')]
+#[RequiresMethod(Coroutine::class, 'create')]
 final class CoroutineExecutionsTest extends TestCase
 {
     public function test_coroutine_started_by_a_handler_propagates_the_headers_of_the_message_being_handled(): void
@@ -163,9 +164,10 @@ final class CoroutineExecutionsTest extends TestCase
     private function runCoroutines(callable ...$coroutines): void
     {
         $failure = null;
-        Runtime::enableCoroutine(Runtime::HOOK_ALL);
+        Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
         try {
-            Coroutine::run(static function () use ($coroutines, &$failure): void {
+            $scheduler = new Coroutine\Scheduler();
+            $scheduler->add(static function () use ($coroutines, &$failure): void {
                 foreach ($coroutines as $coroutine) {
                     Coroutine::create(static function () use ($coroutine, &$failure): void {
                         try {
@@ -176,6 +178,7 @@ final class CoroutineExecutionsTest extends TestCase
                     });
                 }
             });
+            $scheduler->start();
         } finally {
             Runtime::enableCoroutine(0);
         }
@@ -222,9 +225,11 @@ final class CoroutineExecutionsTest extends TestCase
             #[CommandHandler('parcel.sendFromCoroutinesRunByHandler')]
             public function sendFromCoroutinesRunByHandler(array $command, EventBus $eventBus): void
             {
-                Coroutine::run(static function () use ($command, $eventBus): void {
+                $scheduler = new Coroutine\Scheduler();
+                $scheduler->add(static function () use ($command, $eventBus): void {
                     Coroutine::create(static fn () => $eventBus->publish(new ParcelWasSent($command['parcelId'])));
                 });
+                $scheduler->start();
             }
 
             #[CommandHandler('parcel.sendFromCoroutineLeftBehind')]

@@ -3013,7 +3013,8 @@ once. A process handling one message at a time uses one connection, as before.
 A consumer handles several messages at once with `ecotone:run <channel> --coroutines=8`, or with
 `PollingMetadata::create('<channel>')->withCoroutines(8)` registered for it (the command option replaces the
 configured number). It needs the `openswoole` or `swoole` extension and refuses to start without one; the runtime
-hooks are enabled for the consumer when the application has not set any. The limits (`--handledMessageLimit`,
+hooks are enabled for the consumer when the application has not set any (OpenSwoole switches them off again when
+the consumer ends, Swoole leaves them on, as each does after its own `run()`). The limits (`--handledMessageLimit`,
 `--executionTimeLimit`, `--memoryLimit`) apply to every coroutine, a failure of one coroutine stops the others and
 is thrown by the consumer, and a `#[Scheduled]` endpoint is refused on coroutines.
 
@@ -3026,7 +3027,8 @@ What a coroutine can wait on decides whether it helps:
 - MySQL and MariaDB (`pdo_mysql`) and `php-amqplib` (`AmqpLibConnectionFactory`) are waited on: while one coroutine
   waits for the database or the broker, the others run.
 - A PostgreSQL connection Ecotone opens itself (from a DSN, or as a copy) is refused inside an OpenSwoole coroutine,
-  and inside a Swoole coroutine without `SWOOLE_HOOK_PDO_PGSQL` (Swoole 5.1 and later), with a
+  and inside a Swoole coroutine without `SWOOLE_HOOK_PDO_PGSQL` (Swoole 5.1 and later, built with
+  `--enable-swoole-pgsql`), with a
   `ConfigurationException`. A PostgreSQL connection of a Doctrine `ManagerRegistry`, Laravel or Tempest is not
   checked and stops the process the same way. Such a runtime cannot wait on a
   PostgreSQL query, so a coroutine waiting for a row locked by another coroutine of the same process would stop that

@@ -21,10 +21,12 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
-use OpenSwoole\Coroutine;
-use OpenSwoole\Runtime;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RequiresMethod;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use RuntimeException;
+use Swoole\Coroutine;
+use Swoole\Runtime;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Throwable;
 
@@ -32,7 +34,7 @@ use Throwable;
  * licence Apache-2.0
  * @internal
  */
-#[RequiresPhpExtension('openswoole')]
+#[RequiresMethod(Coroutine::class, 'create')]
 final class CoroutineExecutionsTest extends DbalMessagingTestCase
 {
     public function test_coroutines_keep_their_own_headers_and_transaction(): void
@@ -139,12 +141,78 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         $this->assertSame(['registered by coroutine' => 'tenant-of-handler'], $ecotone->sendQueryWithRouting('member.tenantSeenByEventHandler'));
     }
 
+    public function test_coroutines_wait_on_mysql_queries_without_stopping_each_other(): void
+    {
+        $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2);
+
+        $this->runCoroutines(
+            fn () => $ecotone->sendCommandWithRouting('member.waitOnDatabase', ['query' => 'SELECT SLEEP(0.2)']),
+            fn () => $ecotone->sendCommandWithRouting('member.waitOnDatabase', ['query' => 'SELECT SLEEP(0.2)']),
+        );
+
+        $this->assertSame(2, $ecotone->sendQueryWithRouting('member.mostWaitingOnDatabaseAtOnce'));
+    }
+
+    #[RequiresPhpExtension('swoole')]
+    #[Group('swoole')]
+    public function test_coroutines_wait_on_postgresql_queries_without_stopping_each_other(): void
+    {
+        $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2, database: 'pgsql');
+
+        $this->runCoroutines(
+            fn () => $ecotone->sendCommandWithRouting('member.waitOnDatabase', ['query' => 'SELECT pg_sleep(0.2)']),
+            fn () => $ecotone->sendCommandWithRouting('member.waitOnDatabase', ['query' => 'SELECT pg_sleep(0.2)']),
+        );
+
+        $this->assertSame(2, $ecotone->sendQueryWithRouting('member.mostWaitingOnDatabaseAtOnce'));
+    }
+
+    #[RequiresPhpExtension('swoole')]
+    #[Group('swoole')]
+    public function test_postgresql_coroutines_keep_their_own_transaction(): void
+    {
+        $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 10, database: 'pgsql');
+
+        $this->runCoroutines(
+            function () use ($ecotone): void {
+                try {
+                    $ecotone->sendCommandWithRouting('member.register', ['memberId' => 1, 'name' => 'refused', 'pauseSeconds' => 0.2, 'fail' => true]);
+                } catch (RuntimeException) {
+                }
+            },
+            function () use ($ecotone): void {
+                usleep(50_000);
+                $ecotone->sendCommandWithRouting('member.register', ['memberId' => 2, 'name' => 'accepted']);
+            },
+        );
+
+        $this->assertSame(['accepted'], $ecotone->getGateway(MemberRegister::class)->names());
+    }
+
+    #[RequiresPhpExtension('swoole')]
+    #[Group('swoole')]
+    public function test_postgresql_is_refused_in_a_coroutine_with_the_postgresql_hook_switched_off(): void
+    {
+        $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2, database: 'pgsql');
+
+        $this->assertPostgresqlIsRefused($ecotone, hooks: SWOOLE_HOOK_ALL ^ constant('SWOOLE_HOOK_PDO_PGSQL'));
+    }
+
+    #[RequiresPhpExtension('openswoole')]
+    #[Group('openswoole')]
     public function test_postgresql_is_refused_in_a_coroutine_that_cannot_wait_on_its_queries(): void
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2, database: 'pgsql');
+
+        $this->assertPostgresqlIsRefused($ecotone, hooks: SWOOLE_HOOK_ALL);
+    }
+
+    private function assertPostgresqlIsRefused(FlowTestSupport $ecotone, int $hooks): void
+    {
         $refusal = null;
 
-        $this->runCoroutines(
+        $this->runCoroutinesWithHooks(
+            $hooks,
             function () use ($ecotone, &$refusal): void {
                 try {
                     $ecotone->sendCommandWithRouting('member.register', ['memberId' => 1, 'name' => 'first']);
@@ -158,7 +226,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         $this->assertStringEndsWith(
             '` is PostgreSQL, and this coroutine runtime does not let a coroutine wait on a PostgreSQL query: the query stops every coroutine of the process. '
             . 'A coroutine waiting for a row that another coroutine of the same process has locked then stops that one too, so neither ever finishes. '
-            . 'Use MySQL or MariaDB, which coroutines wait on, run on Swoole 5.1 or newer with SWOOLE_HOOK_PDO_PGSQL among the enabled hooks, or handle one message at a time per process: in Swoole or OpenSwoole set `enable_coroutine` to false.',
+            . 'Use MySQL or MariaDB, which coroutines wait on, run on Swoole 5.1 or newer built with --enable-swoole-pgsql and with SWOOLE_HOOK_PDO_PGSQL among the enabled hooks, or handle one message at a time per process: in Swoole or OpenSwoole set `enable_coroutine` to false.',
             (string) $refusal
         );
         $this->assertSame([], $ecotone->getGateway(MemberRegister::class)->names());
@@ -177,10 +245,16 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
 
     private function runCoroutines(callable ...$coroutines): void
     {
+        $this->runCoroutinesWithHooks(SWOOLE_HOOK_ALL, ...$coroutines);
+    }
+
+    private function runCoroutinesWithHooks(int $hooks, callable ...$coroutines): void
+    {
         $failure = null;
-        Runtime::enableCoroutine(Runtime::HOOK_ALL);
+        Runtime::enableCoroutine($hooks);
         try {
-            Coroutine::run(static function () use ($coroutines, &$failure): void {
+            $scheduler = new Coroutine\Scheduler();
+            $scheduler->add(static function () use ($coroutines, &$failure): void {
                 foreach ($coroutines as $coroutine) {
                     Coroutine::create(static function () use ($coroutine, &$failure): void {
                         try {
@@ -191,6 +265,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
                     });
                 }
             });
+            $scheduler->start();
         } finally {
             Runtime::enableCoroutine(0);
         }
@@ -210,6 +285,8 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         $registration = new class () {
             private array $tenantSeenByEventHandler = [];
             private array $namesReadByCoroutine = ['not read'];
+            private int $waitingOnDatabaseAtOnce = 0;
+            private int $mostWaitingOnDatabaseAtOnce = 0;
 
             #[CommandHandler('member.register')]
             public function register(array $command, MemberRegister $memberRegister, EventBus $eventBus): void
@@ -239,6 +316,22 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
                 $finished->pop();
 
                 throw new RuntimeException('Registration was refused');
+            }
+
+            #[WithoutDatabaseTransaction]
+            #[CommandHandler('member.waitOnDatabase')]
+            public function waitOnDatabase(array $command, #[Reference] DbalConnectionFactory $connectionFactory): void
+            {
+                $this->waitingOnDatabaseAtOnce++;
+                $this->mostWaitingOnDatabaseAtOnce = max($this->mostWaitingOnDatabaseAtOnce, $this->waitingOnDatabaseAtOnce);
+                $connectionFactory->createContext()->getDbalConnection()->fetchOne($command['query']);
+                $this->waitingOnDatabaseAtOnce--;
+            }
+
+            #[QueryHandler('member.mostWaitingOnDatabaseAtOnce')]
+            public function mostWaitingOnDatabaseAtOnce(): int
+            {
+                return $this->mostWaitingOnDatabaseAtOnce;
             }
 
             #[QueryHandler('member.namesReadByCoroutine')]

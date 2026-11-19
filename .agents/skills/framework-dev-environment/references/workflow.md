@@ -21,16 +21,24 @@ interchangeable for database work: **`app8_2` points `DATABASE_DSN` at MySQL, no
 run in `app8_2` also changes which engine it exercises. Reach for it when a change has to hold on the 8.2 floor —
 a language feature, a dependency constraint, or a signature phpstan will not catch.
 
-`swoole` is PHP 8.5.3 with OpenSwoole and without Xdebug, which coroutines cannot run with. The tests that run
-messages in real coroutines carry `#[RequiresPhpExtension('openswoole')]`, so they are skipped in `app` and run only
-there:
+`openswoole` is PHP 8.5.3 with OpenSwoole and `swoole` is PHP 8.5.3 with Swoole compiled with
+`--enable-swoole-pgsql`; both are without Xdebug, which coroutines cannot run with. The tests that run messages in
+real coroutines are written against the `Swoole\...` class names, which both extensions provide, and carry
+`#[RequiresMethod(Coroutine::class, 'create')]`, so they are skipped in `app`. Run them in both containers, one after
+the other:
 
 ```bash
-docker compose exec -T swoole vendor/bin/phpunit --no-coverage packages/Dbal/tests/Integration/CoroutineExecutionsTest.php
+docker compose exec -T openswoole vendor/bin/phpunit --no-coverage --exclude-group swoole packages/Dbal/tests/Integration/CoroutineExecutionsTest.php
+docker compose exec -T swoole vendor/bin/phpunit --no-coverage --exclude-group openswoole packages/Dbal/tests/Integration/CoroutineExecutionsTest.php
 ```
 
-Run phpstan in `app`, not in `swoole`: with the extension loaded phpstan knows the OpenSwoole classes and reports
-nothing where CI, which has no extension, fails.
+A test that holds on one extension only (PostgreSQL waits on Swoole and is refused on OpenSwoole) carries
+`#[RequiresPhpExtension('swoole')]` with `#[Group('swoole')]`, or the same pair for `openswoole`. CI runs both
+extensions with `--fail-on-skipped` and excludes the other one's group, so a test without the group fails the job
+where it is skipped.
+
+Run phpstan in `app`, not in these two: with an extension loaded phpstan knows its classes and reports nothing
+where CI, which has no extension, fails.
 
 `.env` is optional (`env_file: required: false` in `docker-compose.yml`), so a fresh checkout needs nothing
 created. Copy `.env.dist` to `.env` only to override a default, such as turning Xdebug on.

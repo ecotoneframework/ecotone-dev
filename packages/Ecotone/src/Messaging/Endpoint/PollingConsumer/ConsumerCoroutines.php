@@ -82,13 +82,20 @@ final class ConsumerCoroutines
                 $scheduler->add($consumeOnCoroutines);
                 $scheduler->start();
             } finally {
-                $runtimeClass::enableCoroutine($hooksOfTheApplication);
+                if (self::areHooksSwitchedOffAfterCoroutinesByTheRuntime($runtime)) {
+                    $runtimeClass::enableCoroutine($hooksOfTheApplication);
+                }
             }
         }
 
         foreach ($failures as $failure) {
             throw $failure;
         }
+    }
+
+    private static function areHooksSwitchedOffAfterCoroutinesByTheRuntime(string $runtime): bool
+    {
+        return $runtime === 'OpenSwoole';
     }
 
     private static function coroutineRuntime(): ?string

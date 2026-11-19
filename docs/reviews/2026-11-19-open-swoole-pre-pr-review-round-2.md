@@ -114,3 +114,12 @@ Resolved: G20, G24, G26, G29, G31, B2, B10, B11, B12, B14, V20, V21, V23, V25 (d
 - **D22 NIT**: same as G23. **D23 NIT** `ConnectionPoolExhausted.php:20`: does not name consumer coroutines.
 - Still open and left for the maintainer: G21, G22, G23, G25, G27, G28, G30, G32, G33, G35, B13, B15, B6, V6, V27,
   V29, V30, D10, D15, D18, D19, D1, D2, D8, D9.
+
+## Closing check at 51a40e303
+
+All four sessions: no BLOCKING finding remains. Resolved: G1, G40, B16, B17, B18, D21, D23, V14 (retries, DSN-based
+tenants, tracing). New: **G41 NIT** `InterleavedTracingTest.php` filters spans by the name of an internal class;
+**V32 SHOULD-FIX** the OpenTelemetry SDK keeps its context per fiber, so spans exported from coroutines running at
+once can carry the wrong parent (stated in `upgrade-2.0.md`; not fixed). Open and left for the maintainer: the list
+above, plus G36 (wall-clock bound), V6 for the Laravel and Tempest tenant switchers, V22, V26, V27, V28, V29, V30,
+V31 / B19.

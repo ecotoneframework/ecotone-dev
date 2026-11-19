@@ -3023,6 +3023,10 @@ What a coroutine can wait on decides whether it helps:
   process until it returns. With SQLite a second writer waits inside the call for the first, which cannot go on
   meanwhile, so let one coroutine write at a time; `sqlite:///:memory:` is a separate empty database per connection.
 
+OpenTelemetry keeps the span that is current per fiber, not per Swoole or OpenSwoole coroutine. Ecotone's own record
+of open spans is per coroutine, but spans exported from coroutines running at once can carry the wrong parent unless
+the worker installs a context storage that follows coroutines (the `open-telemetry/context-swoole` package).
+
 A Symfony DBAL connection registered without a `ManagerRegistry` (`SymfonyConnectionReference::defaultConnection()`
 or `createForConnection()`) stays the connection of the process, and every concurrent execution works on a copy
 Ecotone opens from its parameters and configuration, at most 10 per process

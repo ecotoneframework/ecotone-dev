@@ -285,3 +285,19 @@ All four sessions: no BLOCKING finding. Resolved: D28, D35, G49, G25, V35, V39. 
   `DynamicMessageChannelBuilder` loses its value without a warning. **V48 NIT**: the retry test passes with a retry
   count shared between coroutines. **V49 NIT**: the refusal of a `#[KafkaConsumer]` names no topic. **G51 NIT**:
   `CoroutineTesting` has no test of its own.
+
+## Re-verification at e96a599ff
+
+All four sessions: no BLOCKING finding. Resolved: V46, V47 (the defect), V48, V49, B26, B27, B28, D36, D38, D39, D40, G50,
+G51. New findings:
+
+- **G52 SHOULD-FIX / V50 SHOULD-FIX / D42 SHOULD-FIX / B29 NIT** `EcotoneManagerRegistryConnectionFactory.php:45`: a
+  connection no entity manager uses is given the registry's default manager, which writes through another connection;
+  no test separates the match from the fallback.
+- **D43 SHOULD-FIX**: the refusals and §2c no longer name the one registration that gives every coroutine its own
+  ObjectManager.
+- **D41 SHOULD-FIX**: an attribute without a name beside a `MultiTenantConfiguration` under its own reference name
+  injects the default connection's ObjectManager without an error when that connection has Doctrine ORM. Left for the
+  maintainer: refusing it needs the attribute to tell "no name" from "the default name", for `#[CurrentConnection]` too.
+- **V51 NIT**: a `#[KafkaConsumer]` whose topic is named like its endpoint is refused without the topic's name. Left:
+  the refusal already names the consumer by that name.

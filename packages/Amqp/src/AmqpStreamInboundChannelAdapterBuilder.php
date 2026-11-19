@@ -117,4 +117,9 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
             $this->messageGroupId,
         ]);
     }
+
+    protected function consumesAStream(): bool
+    {
+        return true;
+    }
 }

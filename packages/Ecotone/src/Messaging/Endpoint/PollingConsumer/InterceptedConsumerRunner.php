@@ -36,6 +36,7 @@ class InterceptedConsumerRunner implements EndpointRunner
         private AsyncEndpointAnnotationContext $asyncEndpointAnnotationContext,
         private MessageBuilder $messageBuilder,
         private bool $drainsAQueue,
+        private bool $consumesAStream,
     ) {
     }
 
@@ -52,6 +53,7 @@ class InterceptedConsumerRunner implements EndpointRunner
             endpointId: $pollingMetadata->getEndpointId(),
             coroutines: $pollingMetadata->coroutines,
             drainsAQueue: $this->drainsAQueue,
+            consumesAStream: $this->consumesAStream,
             createConsumer: fn (): ConsumerLifecycle => $this->createConsumer($executionPollingMetadata),
         );
     }

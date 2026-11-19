@@ -15,11 +15,17 @@ use Throwable;
  */
 final class ConsumerCoroutines
 {
-    /**
-     * @param Closure(): ConsumerLifecycle $createConsumer
-     */
-    public static function consume(string $endpointId, int $coroutines, bool $drainsAQueue, Closure $createConsumer): void
+    public static function refuseEndpointWhoseMessagesCannotBeHandledAtOnce(string $endpointId, int $coroutines, bool $drainsAQueue, bool $consumesAStream): void
     {
+        if ($coroutines < 1) {
+            throw ConfigurationException::create(
+                "Consumer `{$endpointId}` cannot consume on {$coroutines} coroutines: a consumer needs at least one. "
+                . 'Pass a positive number as `coroutines` of PollingMetadata, or leave it out to consume one message at a time.'
+            );
+        }
+        if ($coroutines === 1) {
+            return;
+        }
         if (! $drainsAQueue) {
             throw ConfigurationException::create(
                 "Endpoint `{$endpointId}` is set to run on {$coroutines} coroutines, but it runs on a schedule instead of consuming a channel, so every coroutine would run each scheduled execution again. "
@@ -27,6 +33,22 @@ final class ConsumerCoroutines
                 . 'To do its work on coroutines, let it send messages to an #[Asynchronous] handler and run that channel\'s consumer on coroutines.'
             );
         }
+        if ($consumesAStream) {
+            throw ConfigurationException::create(
+                "Consumer `{$endpointId}` is set to consume on {$coroutines} coroutines, but it reads a stream (a Kafka topic or a RabbitMQ stream), where the position of the last handled message is what gets committed. "
+                . 'A coroutine finishing a later message would commit past an earlier message another coroutine is still handling, so that message is never handled when the process stops, and the messages are handled out of order. '
+                . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
+                . 'To handle more of its messages at once, start more processes of this consumer, with more partitions of the Kafka topic for them to share.'
+            );
+        }
+    }
+
+    /**
+     * @param Closure(): ConsumerLifecycle $createConsumer
+     */
+    public static function consume(string $endpointId, int $coroutines, bool $drainsAQueue, bool $consumesAStream, Closure $createConsumer): void
+    {
+        self::refuseEndpointWhoseMessagesCannotBeHandledAtOnce($endpointId, $coroutines, $drainsAQueue, $consumesAStream);
 
         $runtime = self::coroutineRuntime();
         if ($runtime === null) {

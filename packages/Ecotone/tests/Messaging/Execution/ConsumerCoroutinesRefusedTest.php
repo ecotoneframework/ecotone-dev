@@ -22,6 +22,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class ConsumerCoroutinesRefusedTest extends TestCase
 {
+    private const SCHEDULED_ENDPOINT_REFUSAL = 'Endpoint `report.schedule` is set to run on 2 coroutines, but it runs on a schedule instead of consuming a channel, so every coroutine would run each scheduled execution again. '
+        . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this endpoint. '
+        . 'To do its work on coroutines, let it send messages to an #[Asynchronous] handler and run that channel\'s consumer on coroutines.';
+    private const STREAM_CONSUMER_REFUSAL = 'Consumer `shipments` is set to consume on 3 coroutines, but it reads a stream (a Kafka topic or a RabbitMQ stream), where the position of the last handled message is what gets committed. '
+        . 'A coroutine finishing a later message would commit past an earlier message another coroutine is still handling, so that message is never handled when the process stops, and the messages are handled out of order. '
+        . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
+        . 'To handle more of its messages at once, start more processes of this consumer, with more partitions of the Kafka topic for them to share.';
+
     public function test_consuming_on_coroutines_passed_when_running_the_consumer_is_refused_without_a_coroutine_runtime(): void
     {
         $this->requireNoCoroutineRuntime();
@@ -91,7 +99,87 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
         ExecutionPollingMetadata::createWithDefaults()->withCoroutines(-1);
     }
 
-    public function test_scheduled_endpoint_is_refused_to_run_on_coroutines(): void
+    public function test_polling_metadata_constructed_with_less_than_one_coroutine_is_refused_when_the_application_boots(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            'Consumer `shipments` cannot consume on 0 coroutines: a consumer needs at least one. '
+            . 'Pass a positive number as `coroutines` of PollingMetadata, or leave it out to consume one message at a time.'
+        );
+
+        $this->bootstrapShipments(new PollingMetadata('shipments', coroutines: 0));
+    }
+
+    public function test_scheduled_endpoint_is_refused_to_run_on_coroutines_passed_when_running_it(): void
+    {
+        $ecotone = $this->bootstrapReports();
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::SCHEDULED_ENDPOINT_REFUSAL);
+
+        $ecotone->run('report.schedule', ExecutionPollingMetadata::createWithTestingSetup()->withCoroutines(2));
+    }
+
+    public function test_scheduled_endpoint_is_refused_to_run_on_the_coroutines_option_of_the_console_command(): void
+    {
+        $ecotone = $this->bootstrapReports();
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::SCHEDULED_ENDPOINT_REFUSAL);
+
+        $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => 'report.schedule', 'handledMessageLimit' => 1, 'coroutines' => 2]);
+    }
+
+    public function test_scheduled_endpoint_with_coroutines_in_its_polling_metadata_is_refused_when_the_application_boots(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::SCHEDULED_ENDPOINT_REFUSAL);
+
+        $this->bootstrapReports(PollingMetadata::create('report.schedule')->withCoroutines(2));
+    }
+
+    public function test_consumer_of_a_stream_is_refused_to_consume_on_coroutines_passed_when_running_it(): void
+    {
+        $ecotone = $this->bootstrapShipments(channel: SimpleMessageChannelBuilder::createStreamingChannel('shipments'));
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::STREAM_CONSUMER_REFUSAL);
+
+        $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
+    }
+
+    public function test_consumer_of_a_stream_is_refused_to_consume_on_the_coroutines_option_of_the_console_command(): void
+    {
+        $ecotone = $this->bootstrapShipments(channel: SimpleMessageChannelBuilder::createStreamingChannel('shipments'));
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::STREAM_CONSUMER_REFUSAL);
+
+        $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => 'shipments', 'finishWhenNoMessages' => true, 'coroutines' => 3]);
+    }
+
+    public function test_consumer_of_a_stream_with_coroutines_in_its_polling_metadata_is_refused_when_the_application_boots(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::STREAM_CONSUMER_REFUSAL);
+
+        $this->bootstrapShipments(
+            PollingMetadata::create('shipments')->withCoroutines(3),
+            SimpleMessageChannelBuilder::createStreamingChannel('shipments'),
+        );
+    }
+
+    public function test_consumer_of_a_stream_consumes_one_message_at_a_time(): void
+    {
+        $ecotone = $this->bootstrapShipments(channel: SimpleMessageChannelBuilder::createStreamingChannel('shipments'));
+        $ecotone->sendCommandWithRouting('shipment.ship');
+
+        $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $this->assertSame(1, $ecotone->sendQueryWithRouting('shipment.shipped'));
+    }
+
+    private function bootstrapReports(?PollingMetadata $pollingMetadata = null): FlowTestSupport
     {
         $reports = new class () {
             #[Scheduled(requestChannelName: 'report.send', endpointId: 'report.schedule')]
@@ -105,16 +193,8 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$reports::class], [$reports]);
 
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(
-            'Endpoint `report.schedule` is set to run on 2 coroutines, but it runs on a schedule instead of consuming a channel, so every coroutine would run each scheduled execution again. '
-            . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this endpoint. '
-            . 'To do its work on coroutines, let it send messages to an #[Asynchronous] handler and run that channel\'s consumer on coroutines.'
-        );
-
-        $ecotone->run('report.schedule', ExecutionPollingMetadata::createWithTestingSetup()->withCoroutines(2));
+        return EcotoneLite::bootstrapFlowTesting([$reports::class], [$reports], extensionObjects: array_values(array_filter([$pollingMetadata])));
     }
 
     private function requireNoCoroutineRuntime(): void
@@ -124,7 +204,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
         }
     }
 
-    private function bootstrapShipments(?PollingMetadata $pollingMetadata = null): FlowTestSupport
+    private function bootstrapShipments(?PollingMetadata $pollingMetadata = null, ?SimpleMessageChannelBuilder $channel = null): FlowTestSupport
     {
         $shipments = new class () {
             private int $shipped = 0;
@@ -146,7 +226,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$shipments::class],
             [$shipments],
-            extensionObjects: array_values(array_filter([SimpleMessageChannelBuilder::createQueueChannel('shipments'), $pollingMetadata])),
+            extensionObjects: array_values(array_filter([$channel ?? SimpleMessageChannelBuilder::createQueueChannel('shipments'), $pollingMetadata])),
         );
     }
 }

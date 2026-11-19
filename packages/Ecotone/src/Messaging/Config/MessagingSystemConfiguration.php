@@ -1170,7 +1170,7 @@ final class MessagingSystemConfiguration implements Configuration
             $inputChannelBuilder = $this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()] ?? throw ConfigurationException::create("Missing channel with name {$messageHandlerBuilder->getInputMessageChannelName()} for {$messageHandlerBuilder}");
             foreach ($this->consumerFactories as $consumerFactory) {
                 if ($consumerFactory->isSupporting($messageHandlerBuilder, $inputChannelBuilder)) {
-                    $consumerFactory->registerConsumer($messagingBuilder, $messageHandlerBuilder);
+                    $consumerFactory->registerConsumer($messagingBuilder, $messageHandlerBuilder, $inputChannelBuilder);
                     break;
                 }
             }

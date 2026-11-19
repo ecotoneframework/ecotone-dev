@@ -356,7 +356,7 @@ final class FlowComparisonMarkdown
         }
         $participants = [];
         $sides = [];
-        foreach (['Before' => ['255, 235, 233', $before], 'After' => ['218, 251, 225', $after]] as $side => [$colour, $path]) {
+        foreach (['Before' => ['248, 81, 73, 0.15', $before], 'After' => ['46, 160, 67, 0.15', $after]] as $side => [$colour, $path]) {
             $arrows = [];
             foreach ($path as $position => $arrow) {
                 $needed = count(array_diff_key([$arrow['from'] => true, $arrow['to'] => true], $participants));
@@ -375,7 +375,7 @@ final class FlowComparisonMarkdown
         $lines = [];
         foreach ($sides as [$side, $colour, $arrows]) {
             $width = count($participants) === 1 ? 'p0' : 'p0,p' . (count($participants) - 1);
-            $lines = [...$lines, "    rect rgb({$colour})", "    Note over {$width}: {$side}", ...$arrows, '    end'];
+            $lines = [...$lines, "    rect rgba({$colour})", "    Note over {$width}: {$side}", ...$arrows, '    end'];
         }
         $declared = array_map(fn (string $place, string $id): string => "    participant {$id} as " . self::sequenceText($place), array_keys($participants), $participants);
         $drawn = implode("\n", $lines);

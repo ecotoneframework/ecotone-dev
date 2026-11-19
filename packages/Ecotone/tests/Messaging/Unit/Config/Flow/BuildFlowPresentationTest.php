@@ -100,13 +100,45 @@ final class BuildFlowPresentationTest extends TestCase
         $diagrams = $this->mermaidBlocksOf($markdown);
         self::assertCount(1, $diagrams);
         self::assertStringStartsWith("sequenceDiagram\n", $diagrams[0]);
-        [, $before, $after] = preg_split('/^    rect rgb\(.*\)$/m', $diagrams[0]);
+        self::assertSame(['    rect rgba(248, 81, 73, 0.15)', '    rect rgba(46, 160, 67, 0.15)'], array_values(array_filter(explode("\n", $diagrams[0]), fn (string $line): bool => str_starts_with($line, '    rect '))));
+        [, $before, $after] = preg_split('/^    rect rgba\(.*\)$/m', $diagrams[0]);
         self::assertStringContainsString('Before', $before);
         self::assertStringNotContainsString('audit', $before);
         self::assertStringContainsString('After', $after);
         self::assertMatchesRegularExpression('/^    p\d+->>p\d+: \+ handles$/m', $after);
         self::assertMatchesRegularExpression('/^    participant p\d+ as event handler audit$/m', $diagrams[0]);
         self::assertStringContainsString("Before: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### The message's path\n", $markdown);
+    }
+
+    public function test_the_message_path_of_a_wiring_change_draws_only_the_sequence_diagram(): void
+    {
+        $this->recordAnOrderThatGainsAnAudit('Placing an order');
+
+        $diagrams = $this->mermaidBlocksOf($this->presentation('path'));
+
+        self::assertCount(1, $diagrams);
+        self::assertStringStartsWith("sequenceDiagram\n", $diagrams[0]);
+    }
+
+    public function test_the_build_presentation_draws_the_message_path_first_and_the_changed_wiring_collapsed_under_it(): void
+    {
+        $this->recordAnOrderThatGainsAnAudit('Placing an order');
+
+        $markdown = $this->presentation('build');
+
+        $diagrams = $this->mermaidBlocksOf($markdown);
+        self::assertCount(2, $diagrams);
+        self::assertStringStartsWith("sequenceDiagram\n", $diagrams[0]);
+        self::assertStringStartsWith('flowchart', $diagrams[1]);
+        self::assertStringContainsString('audit', $diagrams[1]);
+        $path = strpos($markdown, "#### The message's path\n\n```mermaid\nsequenceDiagram");
+        $collapsed = strpos($markdown, "<details><summary>Marked wiring and traced spans</summary>\n\n#### Wiring\n");
+        $wiringDiagram = strpos($markdown, "```mermaid\nflowchart", (int) $collapsed);
+        self::assertIsInt($path);
+        self::assertIsInt($collapsed);
+        self::assertIsInt($wiringDiagram);
+        self::assertLessThan($collapsed, $path);
+        self::assertLessThan(strpos($markdown, "</details>\n", $wiringDiagram), $wiringDiagram);
     }
 
     public function test_every_presentation_keeps_each_diagram_within_fifteen_nodes_and_says_what_it_left_out(): void

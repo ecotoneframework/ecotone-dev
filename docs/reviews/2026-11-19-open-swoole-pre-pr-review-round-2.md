@@ -199,3 +199,21 @@ refusals 7 in `app`.
 - **D29 NIT**: "limits apply to every coroutine" and "when one coroutine fails" read ambiguously. **D30 NIT**
   `SKILL.md:90`: the SQLite row names no build flag and contradicts the upgrade note; Kafka is missing from the table.
   **D31 NIT**: same as B21. **D32 NIT** `upgrade-2.0.md:3029`: the parenthesis describes the build that is not refused.
+
+### Re-verification at 759cda4e4
+
+Resolved: G42, G43, G44, G45, B20, B21, B22, V34, V36, V37, V38, V40, V41, D25, D26, D27, D29, D31, D32; V33 for a
+stream consumed directly; V35 for the error channel and dead letter. Partly: D24 (the message names the coroutines;
+no refusal at start), D30 (sending to Kafka from a coroutine is not in the table). Left for the maintainer: D24, D28,
+V39, G25, G28.
+
+- **V42 BLOCKING** `DynamicMessageChannelBuilder.php:230`, `InterceptedPollingConsumerBuilder.php:121`: a dynamic
+  channel receiving from Kafka or RabbitMQ stream channels reports no stream, so its consumer is accepted on
+  coroutines (same finding as **B23 NIT**).
+- **D33 SHOULD-FIX** `ConsumerCoroutines.php:41`, `SKILL.md:67`: "start more processes" is wrong for a RabbitMQ stream,
+  where every process reads the whole stream.
+- **D34 NIT** `ConsumerCoroutines.php:38`: the refusal names Kafka and RabbitMQ only, also for an in-memory streaming
+  channel.
+- **V43 NIT**: the refusal at consumer start is tested for the in-memory streaming channel only, not for Kafka.
+- **G46 NIT** `ConnectionPool.php:110`: the "built without --enable-swoole-pgsql" cause has no test; CI's Swoole is
+  built with it.

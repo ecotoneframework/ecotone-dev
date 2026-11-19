@@ -69,7 +69,7 @@ public static function bootstrap(
 | `popRecordedEvents()` | `mixed[]` | Events published via EventBus since the last pop; removes them |
 | `popRecordedEventsOfType(string $className)` | `object[]` | Removes and returns only events of that class |
 | `popRecordedEventHeaders()` | `MessageHeaders[]` | Headers of recorded events |
-| `popExecutionRecording()` | `ExecutionRecording` | Every step Ecotone ran since the last pop, at `TracingLevel::Framework`; removes it |
+| `popExecutionRecording()` | `ExecutionRecording` | Every step Ecotone ran since the last pop, at `TracingLevel::Framework`, also when the test traces through OpenTelemetry; removes it |
 | `popRecordedCommands()` | `mixed[]` | Commands sent via CommandBus since the last pop; removes them |
 | `popRecordedCommandsOfType(string $className)` | `object[]` | Removes and returns only commands of that class |
 | `popRecordedCommandHeaders()` | `MessageHeaders[]` | Headers of recorded commands |

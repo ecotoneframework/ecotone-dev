@@ -95,7 +95,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         self::assertNotSame([], $executionAttributesOf($exported['framework']));
     }
 
-    public function test_a_running_application_at_the_framework_level_exports_the_same_spans_through_open_telemetry_with_execution_attributes_added(): void
+    public function test_a_running_application_traced_only_through_open_telemetry_exports_at_the_framework_level_exactly_the_spans_of_the_application_level(): void
     {
         $exported = [];
         foreach (['application' => TracingConfiguration::createWithDefaults(), 'framework' => TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)] as $level => $tracing) {
@@ -105,20 +105,24 @@ final class FrameworkTracingLevelTest extends TracingTestCase
             $application->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
             $exported[$level] = $exporter->getSpans();
         }
-        $shapeOf = function (array $spans): array {
+        $stable = fn (mixed $value): mixed => is_string($value) ? (string) preg_replace('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\b[0-9a-f]{32}\b|\b[0-9a-f]{16}\b/', '{id}', $value) : $value;
+        $shapeOf = function (array $spans) use ($stable): array {
             $nameOf = [];
             foreach ($spans as $span) {
                 $nameOf[$span->getSpanId()] = $span->getName();
             }
 
-            return array_map(fn (ImmutableSpan $span): array => [$span->getName(), $span->getKind(), $span->getStatus()->getCode(), $nameOf[$span->getParentSpanId()] ?? null], $spans);
+            return array_map(fn (ImmutableSpan $span): array => [
+                'name' => $span->getName(),
+                'kind' => $span->getKind(),
+                'status' => $span->getStatus()->getCode(),
+                'parent' => $nameOf[$span->getParentSpanId()] ?? null,
+                'attributes' => array_map(fn (mixed $value): mixed => $stable($value), array_diff_key($span->getAttributes()->toArray(), ['timestamp' => true])),
+            ], $spans);
         };
-        $executionAttributesOf = fn (array $spans): array => array_values(array_unique(array_merge(...array_map(fn (ImmutableSpan $span): array => array_values(array_filter(array_keys($span->getAttributes()->toArray()), fn (string $key): bool => str_starts_with($key, 'ecotone.execution.'))), $spans))));
 
         self::assertNotEmpty($exported['application']);
         self::assertSame($shapeOf($exported['application']), $shapeOf($exported['framework']));
-        self::assertSame([], $executionAttributesOf($exported['application']));
-        self::assertNotSame([], $executionAttributesOf($exported['framework']));
     }
 
     /**

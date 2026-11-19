@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -147,6 +148,42 @@ final class ConsumerCoroutinesTest extends TestCase
         $this->assertSame(2, $ecotone->sendQueryWithRouting('shipment.shipped'));
     }
 
+    public function test_message_failing_on_a_coroutine_is_retried_while_the_other_coroutines_go_on(): void
+    {
+        $ecotone = $this->bootstrapShipments(instantRetry: InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 2));
+        $ecotone->sendCommandWithRouting('shipment.ship', ['parcelId' => 'fragile-1']);
+        $ecotone->sendCommandWithRouting('shipment.ship', ['parcelId' => 'fragile-2']);
+        $this->shipParcels($ecotone, 4);
+
+        $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
+
+        $this->assertSame(6, $ecotone->sendQueryWithRouting('shipment.shipped'));
+        $this->assertSame(['fragile-1' => 2, 'fragile-2' => 2], $ecotone->sendQueryWithRouting('shipment.attemptsOfFragileParcels'));
+        $this->assertSame(3, $ecotone->sendQueryWithRouting('shipment.mostShippedAtOnce'));
+    }
+
+    #[RequiresPhpExtension('pcntl')]
+    #[RequiresPhpExtension('posix')]
+    public function test_termination_signal_stops_every_coroutine_of_the_consumer_and_leaves_the_other_messages_to_the_next_run(): void
+    {
+        $ecotone = $this->bootstrapShipments();
+        $ecotone->sendCommandWithRouting('shipment.ship', ['parcelId' => 'last-before-termination']);
+        $this->shipParcels($ecotone, 30);
+
+        $ecotone->run(
+            'shipments',
+            ExecutionPollingMetadata::createWithDefaults()
+                ->withCoroutines(3)
+                ->withFinishWhenNoMessages(false)
+                ->withExecutionTimeLimitInMilliseconds(60_000)
+        );
+        $shippedUntilTermination = $ecotone->sendQueryWithRouting('shipment.shipped');
+        $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
+
+        $this->assertLessThan(31, $shippedUntilTermination);
+        $this->assertSame(31, $ecotone->sendQueryWithRouting('shipment.shipped'));
+    }
+
     public function test_handled_message_limit_is_the_limit_of_every_coroutine(): void
     {
         $ecotone = $this->bootstrapShipments();
@@ -211,12 +248,13 @@ final class ConsumerCoroutinesTest extends TestCase
         }
     }
 
-    private function bootstrapShipments(?PollingMetadata $pollingMetadata = null): FlowTestSupport
+    private function bootstrapShipments(?PollingMetadata $pollingMetadata = null, ?InstantRetryConfiguration $instantRetry = null): FlowTestSupport
     {
         $shipments = new class () {
             private int $shipped = 0;
             private int $shippedAtOnce = 0;
             private int $mostShippedAtOnce = 0;
+            private array $attemptsOfFragileParcels = [];
 
             #[Asynchronous('shipments')]
             #[CommandHandler('shipment.ship', endpointId: 'shipment.ship.endpoint')]
@@ -226,11 +264,27 @@ final class ConsumerCoroutinesTest extends TestCase
                     throw new RuntimeException('Parcel lost cannot be shipped');
                 }
 
+                if ($command['parcelId'] === 'last-before-termination') {
+                    posix_kill(posix_getpid(), SIGTERM);
+                }
+
                 $this->shippedAtOnce++;
                 $this->mostShippedAtOnce = max($this->mostShippedAtOnce, $this->shippedAtOnce);
                 usleep(50_000);
                 $this->shippedAtOnce--;
+                if (str_starts_with($command['parcelId'], 'fragile')) {
+                    $this->attemptsOfFragileParcels[$command['parcelId']] = ($this->attemptsOfFragileParcels[$command['parcelId']] ?? 0) + 1;
+                    if ($this->attemptsOfFragileParcels[$command['parcelId']] === 1) {
+                        throw new RuntimeException("Parcel {$command['parcelId']} slipped");
+                    }
+                }
                 $this->shipped++;
+            }
+
+            #[QueryHandler('shipment.attemptsOfFragileParcels')]
+            public function attemptsOfFragileParcels(): array
+            {
+                return $this->attemptsOfFragileParcels;
             }
 
             #[QueryHandler('shipment.shipped')]
@@ -249,7 +303,7 @@ final class ConsumerCoroutinesTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$shipments::class],
             [$shipments],
-            extensionObjects: array_values(array_filter([SimpleMessageChannelBuilder::createQueueChannel('shipments'), $pollingMetadata])),
+            extensionObjects: array_values(array_filter([SimpleMessageChannelBuilder::createQueueChannel('shipments'), $pollingMetadata, $instantRetry])),
         );
     }
 }

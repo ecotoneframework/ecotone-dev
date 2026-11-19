@@ -217,3 +217,14 @@ V39, G25, G28.
 - **V43 NIT**: the refusal at consumer start is tested for the in-memory streaming channel only, not for Kafka.
 - **G46 NIT** `ConnectionPool.php:110`: the "built without --enable-swoole-pgsql" cause has no test; CI's Swoole is
   built with it.
+
+### Re-verification at e793fa110
+
+All four sessions: no BLOCKING finding. Resolved: V42, V43, B23, D30, D33, D34. G46 accepted as untestable in CI.
+
+- **G47 SHOULD-FIX / B24 NIT** `DynamicMessageChannelBuilder.php:235`: `canReceiveFromAStream()` is container plumbing on a
+  public `Api/` class, and reads the receiving channel names out of a `Definition` argument.
+- **D35 SHOULD-FIX / V45 NIT / B25 NIT / G48 NIT** `DynamicMessageChannelBuilder.php:240`: a throttling dynamic channel
+  over queues is refused when the application has any stream, with a message saying it reads one; the custom-strategy
+  case has no test and no wording of its own.
+- **V44 NIT**: a dynamic channel receiving from another dynamic channel over a stream is not detected.

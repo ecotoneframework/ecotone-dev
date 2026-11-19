@@ -195,7 +195,11 @@ A scenario of the catalogue is a `FlowScenario` returned by a private static met
 `packages/Ecotone/src/Test/Flow/*FlowScenarios.php` classes and listed in that class's `all()`; the classes are
 listed in `FlowScenarioCatalogue::all()`. A scenario names itself, the classes and services to boot, the extension
 objects, and one `FlowStage::when(...)` per action with the spans it expects. Add one there, run
-`php bin/build-flow.php snapshot`, and commit the new file under `packages/Ecotone/tests/BuildFlow/baseline`.
+`php bin/build-flow.php snapshot`, and commit the new file under `packages/Ecotone/tests/BuildFlow/baseline`. The
+`ecotone:build-flow:*` commands and the snapshot tooling behind them are test code in `packages/Ecotone/tests/BuildFlow`
+(`Test\Ecotone\BuildFlow`): the package does not ship them, and only `bin/build-flow.php` and the framework's own
+tests register them. The catalogue stays testing support in `src/Test/Flow`, because other packages' conformance tests
+run it.
 
 **What ran** (`execution` in each snapshot, and the "What ran" section of `compare`) is recorded at the
 framework tracing level, `TracingConfiguration::withLevel(TracingLevel::Framework)`; the default level,

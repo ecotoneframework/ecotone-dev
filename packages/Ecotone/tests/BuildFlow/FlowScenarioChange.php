@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Test\Flow\Snapshot;
+namespace Test\Ecotone\BuildFlow;
 
 use Ecotone\Api\Messaging\Flow\FlowComparison;
 use Ecotone\Api\Messaging\Flow\FlowEdge;

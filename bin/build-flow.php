@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
-use Ecotone\Test\Flow\Snapshot\BuildFlowConsoleCommands;
+use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
 use Ecotone\Test\LicenceTesting;
 
 require dirname(__DIR__) . '/vendor/autoload.php';

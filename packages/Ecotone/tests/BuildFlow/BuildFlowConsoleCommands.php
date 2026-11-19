@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Test\Flow\Snapshot;
+namespace Test\Ecotone\BuildFlow;
 
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ConsoleParameterOption;

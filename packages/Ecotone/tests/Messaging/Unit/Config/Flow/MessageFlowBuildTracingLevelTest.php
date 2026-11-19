@@ -15,9 +15,9 @@ use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
-use Ecotone\Test\Flow\Snapshot\BuildFlowConsoleCommands;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
 
 /**
  * licence Apache-2.0

@@ -219,11 +219,13 @@ A process whose message was sent by another recorded process is a sub-flow of it
 sending process's `processNumber` and the `stepNumber` of its step that sent the message, both counted from 1. The
 link is read from the trace context the message carries: a span of the consumer run whose trace parent is a span of
 another process. A message whose sender was not recorded, or that arrives without its trace context, starts a flow
-of its own; a message delivered again after a failure keeps the context it was sent with, so each delivery is a
-sub-flow of the same send. A consumer a handler runs stays inside that handler's process. The text prints flows in
-run order and each sub-flow as `sub-flow process N: …` under its sender, in the order the sender sent them; process
-numbers stay the run order. `compare` states a new, gone or re-attached sub-flow and shows each one right after its
-sender.
+of its own, and so does a message another flow-testing application sent: each application's recording holds only its
+own processes, so a distributed hop between two applications in one test is not linked (the catalogue runs its
+distributed scenarios in one application, where it is); a message delivered again after a failure keeps the context
+it was sent with, so each delivery is a sub-flow of the same send. A consumer a handler runs stays inside that
+handler's process. The text prints flows in run order and each sub-flow as `sub-flow process N: …` under its sender,
+in the order the sender sent them; process numbers stay the run order. `compare` states a new, gone or re-attached
+sub-flow and shows each one right after its sender.
 
 The build wiring (`ecotone:flow:dump --build`, and the wiring and build of a snapshot) is read only at the
 framework tracing level, and needs no span recorder. `MessageFlowModule` adds the step that reads it before the

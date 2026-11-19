@@ -202,6 +202,10 @@ echo implode("\n", $recording->lines);
   `label`, `hints`) and `sentBy` when another process sent its message. `sentBy->processNumber` and
   `sentBy->stepNumber` count from 1, as the text prints them: the sending step is
   `$recording->processes[$sentBy->processNumber - 1]->steps[$sentBy->stepNumber - 1]`.
+- A flow test reads the recording of its own application only. When two flow-test applications exchange a message
+  (a distributed bus between two services in one test), each side's recording holds only its own processes, and the
+  receiving process has no `sentBy`; boot sender and consumer in one application to see the consumer run as a
+  sub-flow of the send.
 - `lines` is the short text: steps plus the hints that decide where the message went. `linesWithEveryHint` adds every
   other hint.
 - At the framework level the stack trace of a failed message (the `exception-stacktrace` header an error channel or

@@ -2569,7 +2569,12 @@ Their static methods keep their names. They are declared to return the `Api` typ
 signatures changed: `ManagerRegistryProvider::fromDsnAndConfig()` names its second argument `pathsToMapping`,
 `ManagerRegistryProvider::createEntityManager()` no longer takes `$pathsToMapping` (the entity manager handed in
 carries its own mapping), and `DbalConnection::resolve()` is removed: call `DbalConnection::create()` or
-`createForManagerRegistry()` for the kind of connection you have.
+`createForManagerRegistry()` for the kind of connection you have. `DbalConnection` is `final`.
+
+`new ManagerRegistryEmulator($connection, $pathsToMapping)`, also when it was passed on to
+`DbalConnection::createForManagerRegistry()`, becomes `ManagerRegistryProvider::create($connection, $pathsToMapping)`,
+registered as the connection; an existing EntityManager is wrapped with
+`ManagerRegistryProvider::createEntityManager($entityManager)`.
 
 `DbalConnectionReference::DEFAULT`, `AmqpConnectionReference::DEFAULT` / `DEFAULT_STREAM`,
 `SqsConnectionReference::DEFAULT` and `RedisConnectionReference::DEFAULT` are the factory class names, so their string

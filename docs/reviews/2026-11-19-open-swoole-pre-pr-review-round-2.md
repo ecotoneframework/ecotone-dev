@@ -343,3 +343,12 @@ All four sessions: no BLOCKING finding. Resolved: D41, G53, G23. New findings:
   **D49 NIT**: its grammar. **D50 NIT**: the attributes' default shows an internal string.
 - **B31 NIT**: `createEntityManager()` lost `$pathsToMapping` earlier on main; §13k says the arguments are kept.
 - **V54 NIT**: no Symfony test with tenants under a name of their own. Left.
+
+### Closing check at f1fb8bea3
+
+All four sessions: no BLOCKING finding. Resolved: V53, D46, D47, D48, D49, D50, G56, G57, G58, G59, B30, B31.
+`upgrade-2.0.md` then gained what B32 and B33 asked for: `DbalConnection` is `final`, and what
+`new ManagerRegistryEmulator($connection, $pathsToMapping)` becomes. D51 is not taken: `createEntityManager()` took
+`$pathsToMapping` in 1.x, which is what the upgrade guide compares with.
+
+Open and left for the maintainer: **D24**, **G28**, **G46**, **V51 NIT**, **V52 NIT**, **V54 NIT**, **G55 NIT**.

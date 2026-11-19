@@ -22,7 +22,6 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
-use NoDiscard;
 
 /**
  * licence Enterprise
@@ -149,13 +148,11 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     /**
      * @param MessageChannelBuilder[] $internalMessageChannels
      */
-    #[NoDiscard]
     public function withInternalChannels(array $internalMessageChannels): self
     {
         return new self(...[...get_object_vars($this), 'internalMessageChannels' => $internalMessageChannels]);
     }
 
-    #[NoDiscard]
     public function withCustomSendingStrategy(string $requestChannelName): self
     {
         return new self(...[...get_object_vars($this), 'channelSendingStrategy' => new Definition(CustomSendingStrategy::class, [
@@ -168,7 +165,6 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     /**
      * @param string[]|null $headerMapping Mapping of header value to channel name. If null header value wil be taken as channel name
      */
-    #[NoDiscard]
     public function withHeaderSendingStrategy(string $headerName, ?array $headerMapping = null, ?string $defaultChannelName = null): self
     {
         return new self(...[...get_object_vars($this), 'channelSendingStrategy' => new Definition(HeaderSendingStrategy::class, [
@@ -178,7 +174,6 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
         ])]);
     }
 
-    #[NoDiscard]
     public function withCustomReceivingStrategy(string $requestChannelName): self
     {
         return new self(...[...get_object_vars($this), 'receivingChannelNames' => [], 'channelReceivingStrategy' => new Definition(CustomReceivingStrategy::class, [

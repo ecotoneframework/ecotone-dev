@@ -22,7 +22,7 @@ run in `app8_2` also changes which engine it exercises. Reach for it when a chan
 a language feature, a dependency constraint, or a signature phpstan will not catch.
 
 `openswoole` is PHP 8.5.3 with OpenSwoole and `swoole` is PHP 8.5.3 with Swoole compiled with
-`--enable-swoole-pgsql`; both are without Xdebug, which coroutines cannot run with. The tests that run messages in
+`--enable-swoole-pgsql` and `--enable-swoole-sqlite`; both are without Xdebug, which coroutines cannot run with. The tests that run messages in
 real coroutines are written against the `Swoole\...` class names, which both extensions provide, and carry
 `#[RequiresMethod(Coroutine::class, 'create')]`, so they are skipped in `app`. Run them in both containers, one after
 the other:

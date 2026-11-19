@@ -14,11 +14,11 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Test\CoroutineTesting;
 use Interop\Amqp\Impl\AmqpQueue;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use RuntimeException;
 use Swoole\Coroutine;
-use Swoole\Runtime;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Throwable;
 
@@ -44,7 +44,7 @@ final class CoroutineExecutionsTest extends AmqpMessagingTestCase
     {
         $ecotone = $this->bootstrapOrders(publisherConfirms: false, transactions: false);
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             ...$this->publishersOfOrders($ecotone, publishers: 4, ordersOfEachPublisher: 25),
             ...$this->consumersOf($ecotone, 'coroutine_orders', consumers: 2),
             ...$this->consumersOf($ecotone, 'coroutine_shipments', consumers: 2),
@@ -58,7 +58,7 @@ final class CoroutineExecutionsTest extends AmqpMessagingTestCase
     public function test_consumers_on_coroutines_handle_every_message_once_with_its_own_headers(): void
     {
         $ecotone = $this->bootstrapOrders(publisherConfirms: false, transactions: false);
-        $this->runCoroutines(...$this->publishersOfOrders($ecotone, publishers: 4, ordersOfEachPublisher: 25));
+        CoroutineTesting::runAtOnce(...$this->publishersOfOrders($ecotone, publishers: 4, ordersOfEachPublisher: 25));
 
         $ecotone->run('coroutine_orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
         $ecotone->run('coroutine_shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
@@ -70,7 +70,7 @@ final class CoroutineExecutionsTest extends AmqpMessagingTestCase
     {
         $ecotone = $this->bootstrapOrders(publisherConfirms: true, transactions: false);
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             ...$this->publishersOfOrders($ecotone, publishers: 4, ordersOfEachPublisher: 25),
             ...$this->consumersOf($ecotone, 'coroutine_orders', consumers: 2),
             ...$this->consumersOf($ecotone, 'coroutine_shipments', consumers: 2),
@@ -85,7 +85,7 @@ final class CoroutineExecutionsTest extends AmqpMessagingTestCase
     {
         $ecotone = $this->bootstrapOrders(publisherConfirms: false, transactions: true);
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             function () use ($ecotone): void {
                 try {
                     $ecotone->sendCommandWithRouting('order.register', ['orderId' => 'refused', 'pauseSeconds' => 0.2, 'fail' => true], metadata: ['tenant' => 'tenant-of-refused']);
@@ -141,33 +141,6 @@ final class CoroutineExecutionsTest extends AmqpMessagingTestCase
         }
 
         return $orders;
-    }
-
-    private function runCoroutines(callable ...$coroutines): void
-    {
-        $failure = null;
-        Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
-        try {
-            $scheduler = new Coroutine\Scheduler();
-            $scheduler->add(static function () use ($coroutines, &$failure): void {
-                foreach ($coroutines as $coroutine) {
-                    Coroutine::create(static function () use ($coroutine, &$failure): void {
-                        try {
-                            $coroutine();
-                        } catch (Throwable $exception) {
-                            $failure ??= $exception;
-                        }
-                    });
-                }
-            });
-            $scheduler->start();
-        } finally {
-            Runtime::enableCoroutine(0);
-        }
-
-        if ($failure !== null) {
-            throw $failure;
-        }
     }
 
     private function bootstrapOrders(bool $publisherConfirms, bool $transactions): FlowTestSupport

@@ -17,6 +17,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration;
+use Ecotone\Test\CoroutineTesting;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ContextStorage;
@@ -26,8 +27,6 @@ use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use Swoole\Coroutine;
-use Swoole\Runtime;
-use Throwable;
 
 /**
  * licence Apache-2.0
@@ -58,7 +57,7 @@ final class CoroutineTracingTest extends TracingTestCase
         $exporter = new InMemoryExporter(new ArrayObject());
         $ecotone = $this->bootstrapOrders($exporter);
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('order.place', ['pauseSeconds' => 0.06], metadata: [MessageHeaders::TRACING_ID => self::ORDER_TRACE]),
             fn () => $ecotone->sendCommandWithRouting('order.place', ['pauseSeconds' => 0.02], metadata: [MessageHeaders::TRACING_ID => self::PAYMENT_TRACE]),
             fn () => $ecotone->sendCommandWithRouting('order.place', ['pauseSeconds' => 0.04], metadata: [MessageHeaders::TRACING_ID => self::REFUND_TRACE]),
@@ -82,7 +81,7 @@ final class CoroutineTracingTest extends TracingTestCase
         $exporter = new InMemoryExporter(new ArrayObject());
         $ecotone = $this->bootstrapOrders($exporter);
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('order.place', ['pauseSeconds' => 0.06]),
             fn () => $ecotone->sendCommandWithRouting('order.place', ['pauseSeconds' => 0.02]),
             fn () => $ecotone->sendCommandWithRouting('order.place', ['pauseSeconds' => 0.04]),
@@ -103,7 +102,7 @@ final class CoroutineTracingTest extends TracingTestCase
         $exporter = new InMemoryExporter(new ArrayObject());
         $ecotone = $this->bootstrapOrders($exporter);
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('order.placeFromCoroutine', ['pauseSeconds' => 0.04], metadata: [MessageHeaders::TRACING_ID => self::ORDER_TRACE]),
             fn () => $ecotone->sendCommandWithRouting('order.placeFromCoroutine', ['pauseSeconds' => 0.02], metadata: [MessageHeaders::TRACING_ID => self::PAYMENT_TRACE]),
         );
@@ -198,33 +197,6 @@ final class CoroutineTracingTest extends TracingTestCase
             extensionObjects: [OpenTelemetryConfiguration::createWithDefaults(), SimpleMessageChannelBuilder::createQueueChannel('shipping')],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
         );
-    }
-
-    private function runCoroutines(callable ...$coroutines): void
-    {
-        $failure = null;
-        Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
-        try {
-            $scheduler = new Coroutine\Scheduler();
-            $scheduler->add(static function () use ($coroutines, &$failure): void {
-                foreach ($coroutines as $coroutine) {
-                    Coroutine::create(static function () use ($coroutine, &$failure): void {
-                        try {
-                            $coroutine();
-                        } catch (Throwable $exception) {
-                            $failure ??= $exception;
-                        }
-                    });
-                }
-            });
-            $scheduler->start();
-        } finally {
-            Runtime::enableCoroutine(0);
-        }
-
-        if ($failure !== null) {
-            throw $failure;
-        }
     }
 
     private function spanParentsPerTrace(InMemoryExporter $exporter): array

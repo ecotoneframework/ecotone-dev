@@ -14,13 +14,12 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Test\CoroutineTesting;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Swoole\Coroutine;
-use Swoole\Runtime;
-use Throwable;
 
 /**
  * licence Apache-2.0
@@ -33,7 +32,7 @@ final class CoroutineExecutionsTest extends TestCase
     {
         $ecotone = $this->bootstrapParcels();
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('parcel.sendFromCoroutine', ['parcelId' => 'first', 'pauseSeconds' => 0.05], metadata: ['tenant' => 'tenant-of-first']),
             fn () => $ecotone->sendCommandWithRouting('parcel.sendFromCoroutine', ['parcelId' => 'second'], metadata: ['tenant' => 'tenant-of-second']),
         );
@@ -48,7 +47,7 @@ final class CoroutineExecutionsTest extends TestCase
     {
         $ecotone = $this->bootstrapParcels();
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('parcel.sendFromCoroutineOfCoroutine', ['parcelId' => 'first'], metadata: ['tenant' => 'tenant-of-first']),
         );
 
@@ -68,7 +67,7 @@ final class CoroutineExecutionsTest extends TestCase
     {
         $ecotone = $this->bootstrapParcels();
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             function () use ($ecotone): void {
                 $ecotone->sendCommandWithRouting('parcel.sendFromCoroutineLeftBehind', ['parcelId' => 'left behind', 'pauseSeconds' => 0.05], metadata: ['tenant' => 'tenant-of-left-behind']);
                 $ecotone->sendCommandWithRouting('parcel.pause', ['pauseSeconds' => 0.2], metadata: ['tenant' => 'tenant-of-next-message']);
@@ -114,7 +113,7 @@ final class CoroutineExecutionsTest extends TestCase
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting([$counter::class], $servicesTakingTimeToBuild);
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('counter.count'),
             fn () => $ecotone->sendCommandWithRouting('counter.count'),
             fn () => $ecotone->sendCommandWithRouting('counter.count'),
@@ -148,7 +147,7 @@ final class CoroutineExecutionsTest extends TestCase
             $stoppedAfterSeconds[] = microtime(true) - $startedAt;
         };
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             $consume,
             $consume,
             static function (): void {
@@ -159,33 +158,6 @@ final class CoroutineExecutionsTest extends TestCase
 
         $this->assertCount(2, $stoppedAfterSeconds);
         $this->assertLessThan(5, max($stoppedAfterSeconds));
-    }
-
-    private function runCoroutines(callable ...$coroutines): void
-    {
-        $failure = null;
-        Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
-        try {
-            $scheduler = new Coroutine\Scheduler();
-            $scheduler->add(static function () use ($coroutines, &$failure): void {
-                foreach ($coroutines as $coroutine) {
-                    Coroutine::create(static function () use ($coroutine, &$failure): void {
-                        try {
-                            $coroutine();
-                        } catch (Throwable $exception) {
-                            $failure ??= $exception;
-                        }
-                    });
-                }
-            });
-            $scheduler->start();
-        } finally {
-            Runtime::enableCoroutine(0);
-        }
-
-        if ($failure !== null) {
-            throw $failure;
-        }
     }
 
     private function bootstrapParcels(): FlowTestSupport

@@ -27,14 +27,13 @@ use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Test\CoroutineTesting;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use RuntimeException;
 use Swoole\Coroutine;
-use Swoole\Runtime;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
-use Throwable;
 
 /**
  * licence Apache-2.0
@@ -47,7 +46,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 10);
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             function () use ($ecotone): void {
                 try {
                     $ecotone->sendCommandWithRouting('member.register', ['memberId' => 1, 'name' => 'refused', 'pauseSeconds' => 0.2, 'fail' => true], metadata: ['tenant' => 'tenant-of-refused']);
@@ -68,7 +67,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2);
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('member.register', ['memberId' => 1, 'name' => 'first', 'pauseSeconds' => 0.2]),
             function () use ($ecotone): void {
                 usleep(50_000);
@@ -83,7 +82,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2);
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('member.closeConnection', ['pauseSeconds' => 0.2]),
             function () use ($ecotone): void {
                 usleep(50_000);
@@ -98,10 +97,10 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2);
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('member.registerInTransactionLeftOpen', ['memberId' => 1, 'name' => 'left open']),
         );
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('member.register', ['memberId' => 2, 'name' => 'second']),
         );
 
@@ -113,7 +112,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2);
         $refusal = null;
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('member.register', ['memberId' => 1, 'name' => 'first', 'pauseSeconds' => 5.5]),
             function () use ($ecotone, &$refusal): void {
                 usleep(50_000);
@@ -133,7 +132,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 10);
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             function () use ($ecotone): void {
                 try {
                     $ecotone->sendCommandWithRouting('member.registerWithCoroutine', ['memberId' => 1, 'name' => 'registered by handler'], metadata: ['tenant' => 'tenant-of-handler']);
@@ -188,7 +187,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2);
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('member.waitOnDatabase', ['query' => 'SELECT SLEEP(0.2)']),
             fn () => $ecotone->sendCommandWithRouting('member.waitOnDatabase', ['query' => 'SELECT SLEEP(0.2)']),
         );
@@ -202,7 +201,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2, database: 'pgsql');
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('member.waitOnDatabase', ['query' => 'SELECT pg_sleep(0.2)']),
             fn () => $ecotone->sendCommandWithRouting('member.waitOnDatabase', ['query' => 'SELECT pg_sleep(0.2)']),
         );
@@ -216,7 +215,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 10, database: 'pgsql');
 
-        $this->runCoroutines(
+        CoroutineTesting::runAtOnce(
             function () use ($ecotone): void {
                 try {
                     $ecotone->sendCommandWithRouting('member.register', ['memberId' => 1, 'name' => 'refused', 'pauseSeconds' => 0.2, 'fail' => true]);
@@ -254,7 +253,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
     {
         $refusal = null;
 
-        $this->runCoroutinesWithHooks(
+        CoroutineTesting::runAtOnceWithHooks(
             $hooks,
             function () use ($ecotone, &$refusal): void {
                 try {
@@ -285,38 +284,6 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         }
 
         throw new RuntimeException("The coroutine tests need a {$database} database in DATABASE_DSN or SECONDARY_DATABASE_DSN.");
-    }
-
-    private function runCoroutines(callable ...$coroutines): void
-    {
-        $this->runCoroutinesWithHooks(SWOOLE_HOOK_ALL, ...$coroutines);
-    }
-
-    private function runCoroutinesWithHooks(int $hooks, callable ...$coroutines): void
-    {
-        $failure = null;
-        Runtime::enableCoroutine($hooks);
-        try {
-            $scheduler = new Coroutine\Scheduler();
-            $scheduler->add(static function () use ($coroutines, &$failure): void {
-                foreach ($coroutines as $coroutine) {
-                    Coroutine::create(static function () use ($coroutine, &$failure): void {
-                        try {
-                            $coroutine();
-                        } catch (Throwable $exception) {
-                            $failure ??= $exception;
-                        }
-                    });
-                }
-            });
-            $scheduler->start();
-        } finally {
-            Runtime::enableCoroutine(0);
-        }
-
-        if ($failure !== null) {
-            throw $failure;
-        }
     }
 
     private function enrolFiveAcceptedAndOneRefused(FlowTestSupport $ecotone): void

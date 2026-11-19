@@ -6,6 +6,7 @@ namespace Ecotone\Tracing\Config;
 
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
+use Ecotone\Lite\Test\Configuration\FlowTestingBootstrap;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\ConfigurationException;
 
@@ -24,7 +25,18 @@ final class FrameworkTracing
 
     public static function recordsExecutionIn(array $extensionObjects): bool
     {
-        return self::isTheLevelOf($extensionObjects) && self::spanRecorderNamesOf($extensionObjects) !== [];
+        return self::isTheLevelOf($extensionObjects)
+            && (self::spanRecorderNamesOf($extensionObjects) !== [] || ExtensionObjectResolver::contains(TracerReference::class, $extensionObjects) || self::isFlowTesting($extensionObjects));
+    }
+
+    public static function readsTheRecordingIn(array $extensionObjects): bool
+    {
+        return self::isTheLevelOf($extensionObjects) && self::isFlowTesting($extensionObjects);
+    }
+
+    private static function isFlowTesting(array $extensionObjects): bool
+    {
+        return ExtensionObjectResolver::contains(FlowTestingBootstrap::class, $extensionObjects);
     }
 
     /**

@@ -18,6 +18,8 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\RecordedProcess;
+use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
@@ -141,7 +143,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         self::assertSame(1, $processes[1]->sentBy->processNumber);
     }
 
-    public function test_a_distributed_command_consumed_by_another_application_recorded_together_is_a_sub_flow_of_the_distributed_send(): void
+    public function test_each_application_records_its_own_side_of_a_distributed_command_and_the_consumer_span_continues_the_trace_of_the_distributed_send(): void
     {
         $tickets = new class () {
             #[Distributed]
@@ -157,13 +159,18 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
 
         $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
         $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithTestingSetup());
-        $processes = $ticketService->popExecutionRecording()->processes;
+        $sent = $users->popExecutionRecording()->processes;
+        $received = $ticketService->popExecutionRecording()->processes;
+        [$send] = self::tracedSpansNamed($recorder, 'send distributed_tickets');
+        [$receive] = self::tracedSpansNamed($recorder, 'receive distributed_tickets');
 
-        self::assertSame(['send distributed, DistributedOutboundRouter::route', 'receive distributed_tickets, DistributedMessageHandler::handle'], array_map(fn (RecordedProcess $process): string => $process->title, $processes));
-        self::assertSame(1, $processes[1]->sentBy->processNumber);
+        self::assertSame(['send distributed, DistributedOutboundRouter::route'], array_map(fn (RecordedProcess $process): string => $process->title, $sent));
+        self::assertSame(['receive distributed_tickets, DistributedMessageHandler::handle'], array_map(fn (RecordedProcess $process): string => $process->title, $received));
+        self::assertNull($received[0]->sentBy);
+        self::assertSame([$send->traceId, $send->spanId], [$receive->traceId, $receive->parentSpanId]);
     }
 
-    public function test_each_of_two_distributed_commands_consumed_by_another_application_recorded_together_is_a_sub_flow_of_its_own_send_after_the_sender_ran_more_than_the_consumer(): void
+    public function test_two_applications_sharing_a_span_recorder_order_each_consumer_span_after_the_send_it_continues_even_when_the_sender_ran_more_than_the_consumer(): void
     {
         $tickets = new class () {
             #[Distributed]
@@ -187,13 +194,17 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
         $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed shipping address');
         $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithTestingSetup());
-        $processes = $ticketService->popExecutionRecording()->processes;
+        $orderOf = fn (Span $span): int => (int) $span->attributes[SpanAttribute::EXECUTION_ORDER];
+        $sends = [];
+        foreach (self::tracedSpansNamed($recorder, 'send distributed_tickets') as $send) {
+            $sends[$send->spanId] = $send;
+        }
+        $receives = self::tracedSpansNamed($recorder, 'receive distributed_tickets');
 
-        self::assertSame(
-            ['send command user.register, class@anonymous::register', 'send distributed, DistributedOutboundRouter::route', 'send distributed, DistributedOutboundRouter::route', 'receive distributed_tickets, DistributedMessageHandler::handle', 'receive distributed_tickets, DistributedMessageHandler::handle'],
-            array_map(fn (RecordedProcess $process): string => preg_replace('/ \(\d of 2\)$/', '', $process->title), $processes),
-        );
-        self::assertSame([2, 3], [$processes[3]->sentBy?->processNumber, $processes[4]->sentBy?->processNumber]);
+        self::assertCount(2, $receives);
+        foreach ($receives as $receive) {
+            self::assertGreaterThan($orderOf($sends[$receive->parentSpanId]), $orderOf($receive));
+        }
     }
 
     public function test_the_default_text_prints_each_sub_flow_under_the_flow_that_sent_its_message_and_keeps_the_run_order_numbers(): void
@@ -301,5 +312,13 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
             {
             }
         };
+    }
+
+    /**
+     * @return list<Span>
+     */
+    private static function tracedSpansNamed(InMemorySpanRecorder $recorder, string $name): array
+    {
+        return array_values(array_filter($recorder->recordedSpans(), fn (Span $span): bool => $span->name === $name && ! isset($span->attributes[SpanAttribute::EXECUTION_STEP])));
     }
 }

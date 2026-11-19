@@ -13,9 +13,11 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Tracing\RecordedProcess;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
+use Ecotone\Test\LicenceTesting;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\ImmutableSpan;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
@@ -91,6 +93,79 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         self::assertSame($shapeOf($exported['application']), $shapeOf($exported['framework']));
         self::assertSame([], $executionAttributesOf($exported['application']));
         self::assertNotSame([], $executionAttributesOf($exported['framework']));
+    }
+
+    public function test_a_running_application_at_the_framework_level_exports_the_same_spans_through_open_telemetry_with_execution_attributes_added(): void
+    {
+        $exported = [];
+        foreach (['application' => TracingConfiguration::createWithDefaults(), 'framework' => TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)] as $level => $tracing) {
+            $exporter = new InMemoryExporter();
+            $application = $this->runningApplication($exporter, $tracing);
+            $application->getCommandBus()->sendWithRouting('order.place', 'coffee');
+            $application->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+            $exported[$level] = $exporter->getSpans();
+        }
+        $shapeOf = function (array $spans): array {
+            $nameOf = [];
+            foreach ($spans as $span) {
+                $nameOf[$span->getSpanId()] = $span->getName();
+            }
+
+            return array_map(fn (ImmutableSpan $span): array => [$span->getName(), $span->getKind(), $span->getStatus()->getCode(), $nameOf[$span->getParentSpanId()] ?? null], $spans);
+        };
+        $executionAttributesOf = fn (array $spans): array => array_values(array_unique(array_merge(...array_map(fn (ImmutableSpan $span): array => array_values(array_filter(array_keys($span->getAttributes()->toArray()), fn (string $key): bool => str_starts_with($key, 'ecotone.execution.'))), $spans))));
+
+        self::assertNotEmpty($exported['application']);
+        self::assertSame($shapeOf($exported['application']), $shapeOf($exported['framework']));
+        self::assertSame([], $executionAttributesOf($exported['application']));
+        self::assertNotSame([], $executionAttributesOf($exported['framework']));
+    }
+
+    public function test_a_running_application_at_the_framework_level_with_open_telemetry_grows_no_more_over_consumed_messages_than_at_the_application_level(): void
+    {
+        $growth = [];
+        foreach (['application' => TracingConfiguration::createWithDefaults(), 'framework' => TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)] as $level => $tracing) {
+            $exporter = new InMemoryExporter();
+            $application = $this->runningApplication($exporter, $tracing);
+            $memoryAfter = [];
+            foreach ([1, 2, 3, 4] as $round) {
+                for ($order = 0; $order < 200; $order++) {
+                    $application->getCommandBus()->sendWithRouting('order.place', 'coffee');
+                }
+                $application->run('notifications', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 200));
+                $exporter->getStorage()->exchangeArray([]);
+                gc_collect_cycles();
+                $memoryAfter[$round] = memory_get_usage();
+            }
+            $growth[$level] = $memoryAfter[4] - $memoryAfter[2];
+        }
+
+        self::assertLessThan(256 * 1024, $growth['framework'] - $growth['application']);
+    }
+
+    private function runningApplication(InMemoryExporter $exporter, TracingConfiguration $tracing): ConfiguredMessagingSystem
+    {
+        $handlers = new class () {
+            #[CommandHandler('order.place')]
+            public function place(string $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', $order);
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'notify')]
+            public function notify(string $order): void
+            {
+            }
+        };
+
+        return EcotoneLite::bootstrap(
+            [$handlers::class],
+            [$handlers, TracerProviderInterface::class => self::prepareTracer($exporter)],
+            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), $tracing],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 
     private function placedAndNotified(InMemoryExporter $exporter, TracingConfiguration $tracing): FlowTestSupport

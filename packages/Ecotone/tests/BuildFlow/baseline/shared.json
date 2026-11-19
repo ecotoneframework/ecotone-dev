@@ -474,6 +474,7 @@
             {"module":"Ecotone\\Tracing\\Config\\TracingModule","kind":"service","name":"Ecotone\\Tracing\\TracingInterceptor","class":"Ecotone\\Tracing\\TracingInterceptor"},
             {"module":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule","kind":"service","name":"ecotone.eventBus.routeResolver","class":"Ecotone\\Messaging\\Handler\\Router\\RouteToChannelResolver"},
             {"module":"Ecotone\\Lite\\Test\\Configuration\\EcotoneTestSupportModule","kind":"service","name":"ecotone.eventSourcing.eventStore.instance","aliasOf":"Ecotone\\EventSourcing\\EventStore\\InMemoryEventStore"},
+            {"module":"Ecotone\\Tracing\\Config\\TracingModule","kind":"service","name":"ecotone.tracing.flow_testing_span_recorder","class":"Ecotone\\Api\\Tracing\\InMemorySpanRecorder"},
             {"module":"Ecotone\\Modelling\\Config\\InstantRetry\\InstantRetryModule","kind":"service","name":"{generated}","class":"Ecotone\\Modelling\\Config\\InstantRetry\\AsynchronousEndpointInstantRetryByDefault"}
         ],
         "chains": [

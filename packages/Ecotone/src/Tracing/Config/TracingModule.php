@@ -26,8 +26,6 @@ use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Tracing\CurrentTrace;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\SpanRecorder;
-use Ecotone\Lite\Test\Configuration\ProvidedReferences;
-use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
 use Ecotone\Messaging\Channel\Collector\MessageCollectionObserver;
 use Ecotone\Messaging\Channel\Collector\UnobservedMessageCollection;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -63,7 +61,7 @@ use Ecotone\Tracing\TracingMessageCollectionObserver;
 /**
  * licence Apache-2.0
  */
-final class TracingModule extends NoExternalConfigurationModule implements AnnotationModule, ResolvesExtensionObjectsForFlowTesting
+final class TracingModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     private const USER_MESSAGE_GATEWAYS_POINTCUT = MessageGateway::class . '&&not(' . CommandBus::class . ')&&not(' . EventBus::class . ')&&not(' . QueryBus::class . ')';
 
@@ -76,29 +74,21 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         return new self();
     }
 
-    public function resolveForFlowTesting(array $extensionObjects, ProvidedReferences $providedReferences): array
-    {
-        if (! FrameworkTracing::isTheLevelOf($extensionObjects) || FrameworkTracing::spanRecorderNamesOf($extensionObjects) !== []) {
-            return $extensionObjects;
-        }
-
-        return [...$extensionObjects, new SpanRecorderReference(FrameworkTracing::FLOW_TESTING_SPAN_RECORDER)];
-    }
-
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $tracingConfiguration = FrameworkTracing::configurationOf($extensionObjects);
         $tracerReferences = ExtensionObjectResolver::resolve(TracerReference::class, $extensionObjects);
-        $frameworkLevel = FrameworkTracing::isTheLevelOf($extensionObjects);
         $recordsExecution = FrameworkTracing::recordsExecutionIn($extensionObjects);
         $spanRecorderNames = FrameworkTracing::spanRecorderNamesOf($extensionObjects);
-        if (in_array(FrameworkTracing::FLOW_TESTING_SPAN_RECORDER, $spanRecorderNames, true)) {
+        $readsTheRecording = FrameworkTracing::readsTheRecordingIn($extensionObjects);
+        if ($readsTheRecording) {
             $messagingConfiguration->registerServiceDefinition(FrameworkTracing::FLOW_TESTING_SPAN_RECORDER, new Definition(InMemorySpanRecorder::class));
+            $spanRecorderNames[] = FrameworkTracing::FLOW_TESTING_SPAN_RECORDER;
         }
         $spanRecorders = array_map(fn (string $referenceName): Reference => new Reference($referenceName), $spanRecorderNames);
         $messagingConfiguration->registerServiceDefinition(
             ExecutionRecordingReader::class,
-            $frameworkLevel ? new Definition(InMemoryExecutionRecordingReader::class, [$spanRecorders]) : new Definition(ExecutionRecordingNotSwitchedOn::class),
+            $readsTheRecording ? new Definition(InMemoryExecutionRecordingReader::class, [new Reference(FrameworkTracing::FLOW_TESTING_SPAN_RECORDER)]) : new Definition(ExecutionRecordingNotSwitchedOn::class),
         );
         if ($spanRecorderNames === [] && $tracerReferences === []) {
             $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracingDisabledCurrentTrace::class));

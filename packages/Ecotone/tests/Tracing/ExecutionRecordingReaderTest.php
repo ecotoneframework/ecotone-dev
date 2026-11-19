@@ -128,7 +128,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
         $ecotone->popExecutionRecording();
     }
 
-    public function test_reading_a_recording_kept_by_no_in_memory_span_recorder_is_refused(): void
+    public function test_a_test_exporting_spans_to_its_own_span_recorder_reads_the_recording(): void
     {
         $exporter = new class () implements SpanRecorder {
             public function record(Span $span): void
@@ -136,15 +136,33 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [],
-            ['spanExporter' => $exporter],
-            [TracingConfiguration::createWithDefaults()->withSpanRecorder('spanExporter')->withLevel(TracingLevel::Framework)],
+            [$this->ordering()::class],
+            [$this->ordering(), 'spanExporter' => $exporter],
+            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withSpanRecorder('spanExporter')->withLevel(TracingLevel::Framework)],
             enabledModules: [],
         );
 
-        $this->expectExceptionMessage('The execution recording was asked for, but no InMemorySpanRecorder keeps the spans it is read from: the span recorders registered with TracingConfiguration::withSpanRecorder() send spans on without keeping them. Register InMemorySpanRecorder as well, with TracingConfiguration::withSpanRecorder(InMemorySpanRecorder::class) and an InMemorySpanRecorder service; it is meant for tests and keeps every span until the recording is popped.');
+        $ecotone->sendCommandWithRouting('order.place', []);
 
+        self::assertSame(['send command order.place, class@anonymous::place'], array_map(fn (RecordedProcess $process): string => $process->title, $ecotone->popExecutionRecording()->processes));
+    }
+
+    public function test_popping_the_recording_leaves_the_spans_in_the_in_memory_span_recorder_the_test_registered(): void
+    {
+        $recorder = new InMemorySpanRecorder();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$this->ordering()::class],
+            [$this->ordering(), ...self::recordingSpansInto($recorder)],
+            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
+            enabledModules: [],
+        );
+
+        $ecotone->sendCommandWithRouting('order.place', []);
+        $spansBeforeThePop = count($recorder->recordedSpans());
         $ecotone->popExecutionRecording();
+
+        self::assertGreaterThan(0, $spansBeforeThePop);
+        self::assertCount($spansBeforeThePop, $recorder->recordedSpans());
     }
 
     private function ordering(): object

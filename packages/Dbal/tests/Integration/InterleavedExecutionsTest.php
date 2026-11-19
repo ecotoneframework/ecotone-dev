@@ -36,6 +36,8 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
 {
     public function test_a_suspended_execution_that_fails_does_not_roll_back_an_interleaved_one(): void
     {
+        $this->skipWhenTwoConnectionsCannotWriteAtOnce();
+
         $ecotone = $this->bootstrapPersonRegistration();
 
         $suspended = new Fiber(function () use ($ecotone): void {
@@ -53,6 +55,8 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
 
     public function test_an_interleaved_execution_that_fails_does_not_roll_back_the_suspended_one(): void
     {
+        $this->skipWhenTwoConnectionsCannotWriteAtOnce();
+
         $ecotone = $this->bootstrapPersonRegistration();
 
         $suspended = new Fiber(fn () => $ecotone->sendCommandWithRouting('person.register', ['personId' => 1, 'name' => 'accepted', 'suspend' => true]));
@@ -68,6 +72,8 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
 
     public function test_message_sent_to_a_database_channel_is_committed_with_its_own_execution(): void
     {
+        $this->skipWhenTwoConnectionsCannotWriteAtOnce();
+
         $ecotone = $this->bootstrapPersonRegistration();
 
         $suspended = new Fiber(function () use ($ecotone): void {
@@ -86,6 +92,8 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
 
     public function test_executions_on_a_manager_registry_built_from_a_dsn_keep_their_own_transaction(): void
     {
+        $this->skipWhenTwoConnectionsCannotWriteAtOnce();
+
         $ecotone = $this->bootstrapPersonRegistration(DbalConnection::fromConnectionFactory(new DbalConnectionFactory(self::databaseDsn())));
 
         $suspended = new Fiber(function () use ($ecotone): void {
@@ -103,6 +111,8 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
 
     public function test_executions_on_an_application_connection_registered_with_copies_keep_their_own_transaction(): void
     {
+        $this->skipWhenTwoConnectionsCannotWriteAtOnce();
+
         $ecotone = $this->bootstrapPersonRegistration(DbalConnection::createWithCopiesForConcurrentExecutions($this->getConnection()));
 
         $suspended = new Fiber(function () use ($ecotone): void {
@@ -164,6 +174,8 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
 
     public function test_commands_routed_by_their_class_keep_their_own_transaction(): void
     {
+        $this->skipWhenTwoConnectionsCannotWriteAtOnce();
+
         $ecotone = $this->bootstrapPersonRegistration();
 
         $suspended = new Fiber(function () use ($ecotone): void {
@@ -181,6 +193,8 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
 
     public function test_messages_sent_through_a_gateway_keep_their_own_transaction(): void
     {
+        $this->skipWhenTwoConnectionsCannotWriteAtOnce();
+
         $ecotone = $this->bootstrapPersonRegistration();
 
         $suspended = new Fiber(function () use ($ecotone): void {
@@ -198,6 +212,8 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
 
     public function test_messages_handled_by_interleaved_consumers_keep_their_own_transaction(): void
     {
+        $this->skipWhenTwoConnectionsCannotWriteAtOnce();
+
         $ecotone = $this->bootstrapPersonRegistration();
         $ecotone->sendCommandWithRouting('person.registerLater', ['personId' => 1, 'name' => 'refused', 'suspendAndFail' => true]);
         $ecotone->sendCommandWithRouting('person.registerLater', ['personId' => 2, 'name' => 'accepted']);

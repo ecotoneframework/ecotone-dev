@@ -72,6 +72,13 @@ abstract class DbalMessagingTestCase extends TestCase
         return $this->getConnectionFactory()->createContext()->getDbalConnection();
     }
 
+    protected function skipWhenTwoConnectionsCannotWriteAtOnce(): void
+    {
+        if ($this->isUsingSqlite()) {
+            $this->markTestSkipped('SQLite locks the database for one writing connection at a time');
+        }
+    }
+
     protected function isUsingSqlite(): bool
     {
         return $this->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SqlitePlatform;

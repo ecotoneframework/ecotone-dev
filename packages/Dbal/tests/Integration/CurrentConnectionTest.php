@@ -51,6 +51,8 @@ final class CurrentConnectionTest extends DbalMessagingTestCase
 
     public function test_interleaved_executions_are_each_injected_with_their_own_connection(): void
     {
+        $this->skipWhenTwoConnectionsCannotWriteAtOnce();
+
         $ecotone = $this->bootstrapPersonRegistration();
 
         $suspended = new Fiber(function () use ($ecotone): void {

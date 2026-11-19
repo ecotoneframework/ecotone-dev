@@ -30,6 +30,10 @@ final class SymfonyConnectionCopiesTest extends TestCase
 {
     public function test_executions_on_a_symfony_dbal_connection_keep_their_own_transaction(): void
     {
+        if (str_starts_with((string) getenv('DATABASE_DSN'), 'sqlite')) {
+            $this->markTestSkipped('SQLite locks the database for one writing connection at a time');
+        }
+
         $ecotone = $this->bootstrapParcelsOn(SymfonyConnectionReference::defaultConnection('default'));
 
         $suspended = new Fiber(function () use ($ecotone): void {

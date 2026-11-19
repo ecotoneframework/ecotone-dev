@@ -59,6 +59,8 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
 
     public function test_interleaved_executions_are_each_injected_with_the_object_manager_of_their_own_connection(): void
     {
+        $this->skipWhenTwoConnectionsCannotWriteAtOnce();
+
         $ecotone = $this->bootstrapPersonRegistration();
 
         $suspended = new Fiber(function () use ($ecotone): void {

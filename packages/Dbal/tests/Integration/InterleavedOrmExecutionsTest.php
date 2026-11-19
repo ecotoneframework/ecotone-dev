@@ -29,6 +29,8 @@ final class InterleavedOrmExecutionsTest extends DbalMessagingTestCase
 {
     public function test_entity_stored_by_a_suspended_execution_that_fails_is_not_stored_with_an_interleaved_one(): void
     {
+        $this->skipWhenTwoConnectionsCannotWriteAtOnce();
+
         $ecotone = $this->bootstrapPersonRegistration();
 
         $suspended = new Fiber(function () use ($ecotone): void {
@@ -46,6 +48,8 @@ final class InterleavedOrmExecutionsTest extends DbalMessagingTestCase
 
     public function test_entity_stored_by_an_interleaved_execution_that_fails_is_not_stored_with_the_suspended_one(): void
     {
+        $this->skipWhenTwoConnectionsCannotWriteAtOnce();
+
         $ecotone = $this->bootstrapPersonRegistration();
 
         $suspended = new Fiber(fn () => $ecotone->sendCommandWithRouting('person.registerEntity', ['personId' => 1, 'name' => 'accepted', 'suspend' => true]));

@@ -39,6 +39,9 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     private array $openContextsOfFinishedExecutions = [];
     /** @var WeakMap<Context, AmqpPublisherConfirmations> */
     private WeakMap $publisherConfirmationsOfContexts;
+    /** @var WeakMap<Context, int> */
+    private WeakMap $nanosecondsWhenContextsWereLastUsed;
+    private ?int $nanosecondsWhenTheSharedConnectionWasLastUsed = null;
 
     public static function definitionFor(string $connectionReferenceName, bool $publisherConfirms): Definition
     {
@@ -54,6 +57,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     {
         $this->connectionInstanceId = $connectionInstanceId !== null ? $connectionInstanceId : spl_object_id($connectionFactory);
         $this->publisherConfirmationsOfContexts = new WeakMap();
+        $this->nanosecondsWhenContextsWereLastUsed = new WeakMap();
         /** Each consumer and publisher requires separate connection to work correctly in all cases: https://www.rabbitmq.com/connections.html#flow-control */
         if ($connectionFactory instanceof AmqpExtConnectionFactory) {
             $this->connectionFactory = new AmqpExtConnectionFactory($connectionFactory->getConfig()->getConfig());
@@ -120,7 +124,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
             return new AmqpLibConnectionFactory($this->connectionFactory->getConfig()->getConfig());
         }
 
-        if (! $this->isConnected()) {
+        if (! $this->isConnected() || $this->hasStayedIdleLongerThanTheBrokerKeepsAConnection($this->nanosecondsWhenTheSharedConnectionWasLastUsed)) {
             $this->reconnect();
         }
 
@@ -130,6 +134,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     private function openContext(): Context
     {
         $context = $this->connectionFactoryOfCurrentExecution()->createContext();
+        $this->recordUseOf($context);
 
         if ($this->publisherConfirms) {
             $confirmations = new AmqpPublisherConfirmations();
@@ -218,13 +223,38 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
             }
             return ! $libChannel->is_open();
         } elseif ($context instanceof AmqpExtContext) {
-            if (! $context->getExtChannel()->getConnection()->isConnected()) {
+            if (! $context->getExtChannel()->getConnection()->isConnected() || ! $context->getExtChannel()->isConnected()) {
                 return true;
             }
-            return ! $context->getExtChannel()->isConnected();
+            if ($this->hasStayedIdleLongerThanTheBrokerKeepsAConnection($this->nanosecondsWhenContextsWereLastUsed[$context] ?? null)) {
+                return true;
+            }
+            $this->recordUseOf($context);
+
+            return false;
         }
 
         return false;
+    }
+
+    private function recordUseOf(Context $context): void
+    {
+        $now = (int) hrtime(true);
+        $this->nanosecondsWhenContextsWereLastUsed[$context] = $now;
+        if (! ExecutionScope::isConcurrent()) {
+            $this->nanosecondsWhenTheSharedConnectionWasLastUsed = $now;
+        }
+    }
+
+    private function hasStayedIdleLongerThanTheBrokerKeepsAConnection(?int $nanosecondsWhenLastUsed): bool
+    {
+        if ($nanosecondsWhenLastUsed === null || ! $this->connectionFactory instanceof AmqpExtConnectionFactory) {
+            return false;
+        }
+
+        $heartbeatInSeconds = (float) $this->connectionFactory->getConfig()->getHeartbeat();
+
+        return $heartbeatInSeconds > 0 && hrtime(true) - $nanosecondsWhenLastUsed >= $heartbeatInSeconds * 500_000_000;
     }
 
     public function reconnect(): void
@@ -254,6 +284,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         }
 
         $connectionProperty->setValue($this->connectionFactory, null);
+        $this->nanosecondsWhenTheSharedConnectionWasLastUsed = null;
         $this->subscriptionConsumer = null;
         $this->openContextsOfFinishedExecutions = [];
         foreach ($this->publisherConfirmationsOfContexts as $confirmations) {

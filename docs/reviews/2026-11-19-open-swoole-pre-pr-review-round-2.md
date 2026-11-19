@@ -138,3 +138,64 @@ V31 / B19.
   `claude plugin eval` refuses an evals directory linked from outside the plugin.
 - **V26 / B10** accepted as is: RabbitMQ connections stay unbounded.
 - The PostgreSQL refusal stays.
+
+## Round 3 at c34707253
+
+Four new sessions (the earlier ones could not be resumed), given the whole range and the lists above; they read in
+full the commits since e72af8669: consumer coroutines, the `#[CurrentConnectionObjectManager]` rename, the public
+skill and Swoole as a tested runtime. Behaviour session runs: Swoole 27 tests, OpenSwoole 24, tracing 4 on each,
+refusals 7 in `app`.
+
+### Guidelines
+
+- **G42 SHOULD-FIX** `ConsumerCoroutines.php:23` (rules 1a, 1c): `PollingMetadata::withCoroutines(N)` for a scheduled
+  endpoint is known while the container is built, but refused only when the endpoint is run.
+- **G43 SHOULD-FIX** `ConsumerCoroutinesRefusedTest.php:94` (rule 10a): the scheduled-endpoint refusal is tested through
+  `ExecutionPollingMetadata` only, not through `PollingMetadata` and the console option.
+- **G44 SHOULD-FIX** `workflow.md:243`: the CI table still describes one OpenSwoole job.
+- **G45 NIT** `CoroutineTracingTest.php:216,236`: static helper methods in a test class.
+- G25 (sleeps order the coroutine tests, `runCoroutines()` copied) is wider: a fourth copy and more staggered sleeps.
+  G28 (no stubs for the extensions) is wider in reach. Both stay open.
+
+### Breaking changes
+
+- **B20 SHOULD-FIX** `api/skills/ecotone-open-swoole/SKILL.md:88,182`, grader `rule-5.md`, `prompt.md:43`: the skill
+  names `Enqueue\AmqpLib\AmqpConnectionFactory`, which 2.0 replaced by `Ecotone\Api\Amqp\AmqpLibConnectionFactory`.
+- **B21 NIT** `PollingMetadata.php:55`: the public constructor takes `coroutines: 0`; the consumer then exits silently.
+- **B22 NIT** `upgrade-2.0.md:144`: "renamed the same way", but `#[CurrentConnectionObjectManager]` keeps
+  `referenceName`, the multi-tenant default and the Enterprise licence.
+- One message at a time, `ecotone:run` without `--coroutines`, the compiled `PollingMetadata` definition and the
+  namespace map are unchanged or complete.
+
+### Behaviour
+
+- **V33 BLOCKING** `ConsumerCoroutines.php:23`, `KafkaInboundChannelAdapter.php:54`, `BatchCommitCoordinator.php:60`,
+  `AmqpStreamInboundChannelAdapter.php:65`: Kafka and RabbitMQ Streams consumers are accepted on coroutines. The
+  coroutines share one consumer and commit the offset of whichever message finished, so a later offset is committed
+  while an earlier message is still being handled, and that message is lost when the process dies.
+- **V34 SHOULD-FIX** `ConsumerCoroutinesTest.php:126`: the failure test asserts only the thrown message; removing the
+  `stop()` of the other coroutines leaves it green.
+- **V35 SHOULD-FIX**: no test of consumer coroutines with an error channel, dead letter or retries.
+- **V36 SHOULD-FIX**: every consumer-coroutine test consumes an in-memory channel; none a DBAL or RabbitMQ channel,
+  and none with more coroutines than pooled connections.
+- **V37 SHOULD-FIX**: "limits apply to every coroutine" has no test.
+- **V38 NIT**: restoring the application's hooks on OpenSwoole is untested. **V39 NIT**: the termination signal
+  through `withCoroutines()` is untested. **V40 NIT**: the console option over configured coroutines, and an explicit
+  one coroutine over configured three, are untested. **V41 NIT** `CoroutineTracingTest.php:120`: does not assert the
+  messages overlapped.
+
+### Developer experience
+
+- **D24 SHOULD-FIX** `ConnectionPool.php:124`, `ConnectionPoolExhausted.php:19`: `--coroutines=16` with the default pool
+  of 10 leaves six coroutines failing after a five second wait; the message names `max_coroutine`, not `--coroutines`.
+- **D25 SHOULD-FIX** `ConnectionPool.php:108`: the PostgreSQL refusal does not say which of the three causes applies
+  (OpenSwoole, Swoole built without the flag, hook not enabled) and gives a consumer no way out but a server setting.
+- **D26 SHOULD-FIX** `SKILL.md:22,92,167`, `upgrade-2.0.md:3070`: PostgreSQL is described as a problem on OpenSwoole
+  only; a stock Swoole build is refused too.
+- **D27 SHOULD-FIX** `SKILL.md:35`: the Laravel command is shown as working while Laravel's connection is one per
+  process.
+- **D28 SHOULD-FIX** `CurrentConnectionObjectManager.php:17`: the new name suggests it works in a single-tenant
+  application as `#[CurrentConnection]` does; it needs a `MultiTenantConfiguration` and the Enterprise licence.
+- **D29 NIT**: "limits apply to every coroutine" and "when one coroutine fails" read ambiguously. **D30 NIT**
+  `SKILL.md:90`: the SQLite row names no build flag and contradicts the upgrade note; Kafka is missing from the table.
+  **D31 NIT**: same as B21. **D32 NIT** `upgrade-2.0.md:3029`: the parenthesis describes the build that is not refused.

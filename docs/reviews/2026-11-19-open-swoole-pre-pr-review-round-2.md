@@ -384,3 +384,19 @@ All four sessions: no BLOCKING finding. Resolved: B34, B35, V55, V57, G60, G61, 
 
 All four sessions: no BLOCKING finding. Resolved: B36, V58. Left: the heartbeat paragraph of `upgrade-2.0.md` does not
 say the rule is skipped inside a RabbitMQ transaction (NIT); **V56** for the maintainer; **V51**, **V52**, **V54** NITs.
+
+## Second CI run, SQLite on Swoole, and the closing check at 7940799d6
+
+CI at f8cd9351a: the three failures of the first run are gone and both coroutine jobs passed. The PHP 8.2
+prefer-lowest split job, cancelled in the first run, failed on `#[NoDiscard]` (phpstan on PHP 8.2 reports the attribute
+class as missing) and on `InterleavedTracingTest` (`open-telemetry/context` 1.0.x shares one context between fibers).
+Fixed by removing the attribute and requiring `open-telemetry/context` 1.1.
+
+The maintainer asked for Swoole with SQLite coroutine support: the Swoole image and CI leg are built with
+`--enable-swoole-sqlite`, where coroutines writing to SQLite at once take turns; on OpenSwoole the second writer fails
+with `database is locked`. Proven by a test on Swoole.
+
+All four sessions: no BLOCKING finding at 64c0279df and at 7940799d6; the skill eval `ecotone-open-swoole` scores 1.00.
+`upgrade-2.0.md` then gained the `open-telemetry/context` floor (B37) and the developer notes the SQLite flag (G63).
+Open: **D40 / B28 NIT** again (a statement-form `with*()` loses its value without a warning), **V56** on fibers and
+OpenSwoole, **D24**, **G28**, **G46**, **V51**, **V52**, **V54**, **G55** NITs.

@@ -5,7 +5,8 @@ how it works now, and what to change in your application. Entries are grouped th
 the release; within a group the most impactful changes come first.
 
 Minimum requirements: PHP 8.2 (8.4 for the Tempest integration), Symfony 6.4+, Laravel 11+, Doctrine DBAL 4 and,
-where used, Doctrine ORM 3 with DoctrineBundle 2.12+. Laravel 9/10, DBAL 3 and ORM 2 are no longer supported.
+where used, Doctrine ORM 3 with DoctrineBundle 2.12+ and, with `ecotone/open-telemetry`, `open-telemetry/context` 1.1+.
+Laravel 9/10, DBAL 3 and ORM 2 are no longer supported.
 
 **Status of this guide.** Sections 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 14 and 15 describe behaviour that is already in
 the codebase. Section 12 is **planned for 2.0 and not implemented yet** — it is marked individually below.

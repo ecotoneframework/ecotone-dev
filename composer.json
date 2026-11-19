@@ -169,6 +169,7 @@
         "symfony/framework-bundle": "^6.4|^7.0|^8.0",
         "symfony/dependency-injection": "^6.4|^7.0|^8.0",
         "open-telemetry/sdk": "^1.0.0",
+        "open-telemetry/context": "^1.1",
         "psr/container": "^1.1.1|^2.0.1",
         "psr/clock": "^1.0",
         "symfony/uid": "^7.4|^8.0"

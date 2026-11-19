@@ -370,3 +370,12 @@ All four sessions: no BLOCKING finding on the three fix commits. Findings:
 - **V56 SHOULD-FIX**: on SQLite a second execution writing at once waits out the busy timeout while it blocks the
   process, where executions shared one connection before this branch; the tests are skipped, not the behaviour decided.
   **V57 NIT**: the Symfony test never reached SQLite, its DSN mapping lacked the driver.
+
+### Re-verification at e22691650
+
+All four sessions: no BLOCKING finding. Resolved: B34, B35, V55, V57, G60, G61, G62. New:
+
+- **B36 SHOULD-FIX / V58 SHOULD-FIX** `AmqpOutboundChannelAdapter.php:99`: the idle time counts publishes only, so after
+  transactions that published nothing for two heartbeat periods a publish inside a transaction reconnects, leaves on a
+  channel that is not transactional and is published again by the retry.
+- **V56** stays for the maintainer: on SQLite, one shared connection for concurrent executions or a refusal.

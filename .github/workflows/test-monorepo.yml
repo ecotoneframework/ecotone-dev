@@ -221,6 +221,7 @@ jobs:
       # so they are named here: a renamed or moved file fails the job instead of silently not running.
       COROUTINE_TESTS: >-
         packages/Ecotone/tests/Messaging/Execution/CoroutineExecutionsTest.php
+        packages/Ecotone/tests/Messaging/Execution/ConsumerCoroutinesTest.php
         packages/Dbal/tests/Integration/CoroutineExecutionsTest.php
         packages/Amqp/tests/Integration/CoroutineExecutionsTest.php
     steps:
@@ -247,6 +248,11 @@ jobs:
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
         SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
+
+    - name: OpenTelemetry tracing on coroutines with open-telemetry/context-swoole
+      run: |
+        composer show open-telemetry/context-swoole
+        vendor/bin/phpunit --no-coverage --fail-on-skipped packages/OpenTelemetry/tests/Integration/CoroutineTracingTest.php
 
     - name: Coroutine tests with php-amqplib
       run: vendor/bin/phpunit --no-coverage --fail-on-skipped $COROUTINE_TESTS

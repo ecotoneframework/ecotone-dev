@@ -197,6 +197,7 @@
         "enqueue/null": "^0.10.18",
         "open-telemetry/transport-grpc": "^1.0.0",
         "open-telemetry/exporter-otlp": "^1.0.0",
+        "open-telemetry/context-swoole": "^1.0",
         "nesbot/carbon": "^2.71|^3.0",
         "moneyphp/money": "^4.1.0",
         "timacdonald/log-fake": "^2.0",

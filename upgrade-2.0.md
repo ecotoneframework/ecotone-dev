@@ -3010,6 +3010,13 @@ A consumer running on a coroutine is one execution for as long as it consumes, s
 has to be at least as large as the number of coroutines consuming in the process, plus the requests it handles at
 once. A process handling one message at a time uses one connection, as before.
 
+A consumer handles several messages at once with `ecotone:run <channel> --coroutines=8`, or with
+`PollingMetadata::create('<channel>')->withCoroutines(8)` registered for it (the command option replaces the
+configured number). It needs the `openswoole` or `swoole` extension and refuses to start without one; the runtime
+hooks are enabled for the consumer when the application has not set any. The limits (`--handledMessageLimit`,
+`--executionTimeLimit`, `--memoryLimit`) apply to every coroutine, a failure of one coroutine stops the others and
+is thrown by the consumer, and a `#[Scheduled]` endpoint is refused on coroutines.
+
 Every concurrent execution also has its own RabbitMQ connection, kept open when the execution ends and handed to the
 next one. Their number is not limited: a process holds as many as it has had executions running at once, so keep the
 coroutines per worker (`max_coroutine`) times the workers below what the broker accepts.
@@ -3029,8 +3036,11 @@ What a coroutine can wait on decides whether it helps:
   meanwhile, so let one coroutine write at a time; `sqlite:///:memory:` is a separate empty database per connection.
 
 OpenTelemetry keeps the span that is current per fiber, not per Swoole or OpenSwoole coroutine. Ecotone's own record
-of open spans is per coroutine, but spans exported from coroutines running at once can carry the wrong parent unless
-the worker installs a context storage that follows coroutines (the `open-telemetry/context-swoole` package).
+of open spans is per coroutine, but spans exported from coroutines running at once carry the wrong parent unless
+the process installs a context storage that follows coroutines: `composer require open-telemetry/context-swoole` and,
+once when the worker or the consumer starts,
+`Context::setStorage(new SwooleContextStorage(new ContextStorage()))`. With it, messages handled at once on request
+coroutines, on consumer coroutines and in coroutines a handler starts are each traced under their own trace.
 
 A Symfony DBAL connection registered without a `ManagerRegistry` (`SymfonyConnectionReference::defaultConnection()`
 or `createForConnection()`) stays the connection of the process, and every concurrent execution works on a copy

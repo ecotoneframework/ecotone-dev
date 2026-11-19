@@ -117,7 +117,10 @@ run_pulse() {
         label="consumer.$index"
         reply_channels+=("$label=$channel")
         if [ "$runtime" = swoole ]; then
-            keep_running "$label" php bin/openswoole-consumer.php "$channel" &
+            keep_running "$label" php bin/console ecotone:run "$channel" \
+                --coroutines="${PULSE_CONSUMER_COROUTINES:-6}" \
+                --memoryLimit="${PULSE_WORKER_MEMORY_LIMIT:-256}" \
+                --executionTimeLimit="${PULSE_WORKER_TIME_LIMIT_MS:-3600000}" &
         else
             keep_running "$label" php bin/console ecotone:run "$channel" \
                 --memoryLimit="${PULSE_WORKER_MEMORY_LIMIT:-256}" \

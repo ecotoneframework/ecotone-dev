@@ -41,7 +41,19 @@ class InterceptedConsumerRunner implements EndpointRunner
 
     public function runEndpointWithExecutionPollingMetadata(?ExecutionPollingMetadata $executionPollingMetadata = null): void
     {
-        $this->createConsumer($executionPollingMetadata)->run();
+        $pollingMetadata = $this->defaultPollingMetadata->applyExecutionPollingMetadata($executionPollingMetadata);
+        if ($pollingMetadata->coroutines === 1) {
+            $this->createConsumer($executionPollingMetadata)->run();
+
+            return;
+        }
+
+        ConsumerCoroutines::consume(
+            endpointId: $pollingMetadata->getEndpointId(),
+            coroutines: $pollingMetadata->coroutines,
+            drainsAQueue: $this->drainsAQueue,
+            createConsumer: fn (): ConsumerLifecycle => $this->createConsumer($executionPollingMetadata),
+        );
     }
 
     public function createConsumer(?ExecutionPollingMetadata $executionPollingMetadata): ConsumerLifecycle

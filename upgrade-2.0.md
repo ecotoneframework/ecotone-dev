@@ -3074,7 +3074,7 @@ next one. Their number is not limited: a process holds as many as it has had exe
 coroutines per worker (`max_coroutine`) times the workers below what the broker accepts.
 
 With the `amqp` extension and a `heartbeat` configured, a connection that published nothing for two heartbeat
-periods is opened again before the next publish. The extension sends heartbeats only while it waits for the broker,
+periods is opened again before the next publish made outside of a RabbitMQ transaction. The extension sends heartbeats only while it waits for the broker,
 so the broker has closed such a connection by then, and a message published on it without publisher confirmations
 could be lost without an error. Nothing changes without a heartbeat or with `php-amqplib`.
 
@@ -3093,6 +3093,8 @@ What a coroutine can wait on decides whether it helps:
   process until it returns. With SQLite a second writer waits inside the call for the first, which cannot go on
   meanwhile, and fails with `database is locked` when SQLite's busy timeout runs out. That holds for fibers as well,
   which shared one connection in 1.x and each have their own now: let one coroutine or fiber write at a time.
+  On Swoole built with `--enable-swoole-sqlite` (`SWOOLE_HOOK_PDO_SQLITE`, part of `SWOOLE_HOOK_ALL`) a coroutine
+  waits on SQLite like on MySQL: SQLite still lets one connection write at a time, so the writers take turns.
   `sqlite:///:memory:` is a separate empty database per connection.
 
 OpenTelemetry keeps the span that is current per fiber, not per Swoole or OpenSwoole coroutine. Ecotone's own record

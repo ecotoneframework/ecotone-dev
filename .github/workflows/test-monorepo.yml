@@ -252,19 +252,19 @@ jobs:
         extensions: amqp, rdkafka, sockets, pdo_pgsql, pdo_mysql, mysqlnd, curl
         coverage: none
 
-    # Swoole is compiled with --enable-swoole-pgsql, which a packaged build may leave out:
-    # it is what lets a coroutine wait on a PostgreSQL query, and the Swoole tests prove exactly that.
-    - name: Compile Swoole with PostgreSQL coroutine support
+    # Swoole is compiled with --enable-swoole-pgsql and --enable-swoole-sqlite, which a packaged build may leave out:
+    # they are what lets a coroutine wait on a PostgreSQL or SQLite query, and the Swoole tests prove exactly that.
+    - name: Compile Swoole with PostgreSQL and SQLite coroutine support
       if: matrix.runtime.extension == 'swoole'
       env:
         SWOOLE_VERSION: 6.2.6
       run: |
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends libpq-dev libssl-dev libbrotli-dev libc-ares-dev libcurl4-openssl-dev
+        sudo apt-get install -y --no-install-recommends libpq-dev libsqlite3-dev libssl-dev libbrotli-dev libc-ares-dev libcurl4-openssl-dev
         curl -fsSL "https://pecl.php.net/get/swoole-${SWOOLE_VERSION}.tgz" | tar xz -C "$RUNNER_TEMP"
         cd "$RUNNER_TEMP/swoole-${SWOOLE_VERSION}"
         phpize
-        ./configure --enable-sockets --enable-openssl --enable-mysqlnd --enable-swoole-curl --enable-cares --enable-brotli --enable-swoole-pgsql
+        ./configure --enable-sockets --enable-openssl --enable-mysqlnd --enable-swoole-curl --enable-cares --enable-brotli --enable-swoole-pgsql --enable-swoole-sqlite
         make -j"$(nproc)"
         sudo make install
         echo "extension=swoole" | sudo tee "$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')/99-swoole.ini"
@@ -274,10 +274,11 @@ jobs:
     - name: Check ${{ matrix.runtime.name }} is loaded
       run: php --ri ${{ matrix.runtime.extension }}
 
-    - name: Check Swoole waits on PostgreSQL in coroutines
+    - name: Check Swoole waits on PostgreSQL and SQLite in coroutines
       if: matrix.runtime.extension == 'swoole'
       run: |
         php -r 'exit(defined("SWOOLE_HOOK_PDO_PGSQL") && (SWOOLE_HOOK_ALL & SWOOLE_HOOK_PDO_PGSQL) !== 0 ? 0 : 1);'
+        php -r 'exit(defined("SWOOLE_HOOK_PDO_SQLITE") && (SWOOLE_HOOK_ALL & SWOOLE_HOOK_PDO_SQLITE) !== 0 ? 0 : 1);'
 
     - name: Remove grpc dependent packages (no runner installs ext-grpc)
       run: composer remove --dev --no-update open-telemetry/transport-grpc

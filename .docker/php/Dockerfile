@@ -24,16 +24,16 @@ RUN if [ "$INSTALL_OPENSWOOLE" = "1" ]; then \
     fi
 
 # Swoole is compiled from source: the image's install-php-extensions cannot configure this version, and
-# --enable-swoole-pgsql is what lets a coroutine wait on a PostgreSQL query.
+# --enable-swoole-pgsql and --enable-swoole-sqlite are what let a coroutine wait on a PostgreSQL or SQLite query.
 ARG INSTALL_SWOOLE=0
 ARG SWOOLE_VERSION=6.2.6
 RUN if [ "$INSTALL_SWOOLE" = "1" ]; then \
         apt-get update \
-        && apt-get install -y --no-install-recommends libpq-dev libssl-dev libbrotli-dev libc-ares-dev libcurl4-openssl-dev \
+        && apt-get install -y --no-install-recommends libpq-dev libsqlite3-dev libssl-dev libbrotli-dev libc-ares-dev libcurl4-openssl-dev \
         && curl -fsSL https://pecl.php.net/get/swoole-${SWOOLE_VERSION}.tgz | tar xz -C /tmp \
         && cd /tmp/swoole-${SWOOLE_VERSION} \
         && phpize \
-        && ./configure --enable-sockets --enable-openssl --enable-mysqlnd --enable-swoole-curl --enable-cares --enable-brotli --enable-swoole-pgsql \
+        && ./configure --enable-sockets --enable-openssl --enable-mysqlnd --enable-swoole-curl --enable-cares --enable-brotli --enable-swoole-pgsql --enable-swoole-sqlite \
         && make -j"$(nproc)" \
         && make install \
         && docker-php-ext-enable swoole \

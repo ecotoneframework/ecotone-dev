@@ -97,13 +97,15 @@ new DbalConnectionFactory(['dsn' => 'mysql://user:secret@database/app', 'connect
 | PostgreSQL (`pdo_pgsql`) | refused by Ecotone inside a coroutine | waits when Swoole is built with `--enable-swoole-pgsql` (`SWOOLE_HOOK_PDO_PGSQL`, part of `SWOOLE_HOOK_ALL`); refused otherwise |
 | RabbitMQ with `Ecotone\Api\Amqp\AmqpLibConnectionFactory` (`php-amqplib`) | waits | waits |
 | RabbitMQ with `Ecotone\Api\Amqp\AmqpExtConnectionFactory` (the `amqp` extension) | stops every coroutine during the call | same |
-| SQLite | stops every coroutine during the call | same, unless Swoole is built with `--enable-swoole-sqlite` (not covered by Ecotone's tests) |
+| SQLite | stops every coroutine during the call; a second writer fails with `database is locked` | waits when Swoole is built with `--enable-swoole-sqlite` (`SWOOLE_HOOK_PDO_SQLITE`): writers take turns; like OpenSwoole otherwise |
 | Kafka topic, RabbitMQ stream (consuming) | consumer refused on coroutines | same |
 | Kafka (`rdkafka`), sending from a handler | stops every coroutine during the call | same |
 
 With PostgreSQL on OpenSwoole, or on a Swoole built without `--enable-swoole-pgsql`, set `enable_coroutine` to
 `false` on the server and run consumers without `--coroutines`: the process stays booted, and handles one message at
-a time. With SQLite, `sqlite:///:memory:` is a separate empty database for every connection of the pool.
+a time. SQLite lets one connection write at a time: on Swoole built with `--enable-swoole-sqlite` a coroutine waits for the
+one writing, elsewhere let one coroutine write at a time. `sqlite:///:memory:` is a separate empty database for every
+connection of the pool.
 
 ## 4. The connection of the handled message
 

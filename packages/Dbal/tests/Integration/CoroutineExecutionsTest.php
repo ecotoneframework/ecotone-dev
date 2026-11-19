@@ -233,6 +233,32 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
 
     #[RequiresPhpExtension('swoole')]
     #[Group('swoole')]
+    public function test_sqlite_coroutine_waits_for_the_coroutine_writing_and_both_keep_their_own_transaction(): void
+    {
+        $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 10, database: 'sqlite');
+
+        CoroutineTesting::runAtOnce(
+            function () use ($ecotone): void {
+                try {
+                    $ecotone->sendCommandWithRouting('member.register', ['memberId' => 1, 'name' => 'refused', 'pauseSeconds' => 0.2, 'fail' => true]);
+                } catch (RuntimeException) {
+                }
+            },
+            function () use ($ecotone): void {
+                usleep(50_000);
+                $ecotone->sendCommandWithRouting('member.register', ['memberId' => 2, 'name' => 'accepted']);
+            },
+            function () use ($ecotone): void {
+                usleep(60_000);
+                $ecotone->sendCommandWithRouting('member.register', ['memberId' => 3, 'name' => 'accepted too']);
+            },
+        );
+
+        $this->assertSame(['accepted', 'accepted too'], $ecotone->getGateway(MemberRegister::class)->names());
+    }
+
+    #[RequiresPhpExtension('swoole')]
+    #[Group('swoole')]
     public function test_postgresql_is_refused_in_a_coroutine_with_the_postgresql_hook_switched_off(): void
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2, database: 'pgsql');
@@ -277,6 +303,10 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
 
     private static function dsnOf(string $database): string
     {
+        if ($database === 'sqlite') {
+            return 'sqlite:////tmp/ecotone_coroutine_executions.db';
+        }
+
         foreach ([getenv('DATABASE_DSN'), getenv('SECONDARY_DATABASE_DSN')] as $dsn) {
             if (is_string($dsn) && str_starts_with($dsn, $database)) {
                 return $dsn;

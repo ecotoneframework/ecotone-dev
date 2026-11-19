@@ -201,12 +201,11 @@ objects, and one `FlowStage::when(...)` per action with the spans it expects. Ad
 framework tracing level, `TracingConfiguration::withLevel(TracingLevel::Framework)`; the default level,
 `TracingLevel::Application`, traces messages and handlers without the recording. The framework level also works
 with a tracer an integration provides (OpenTelemetry): its spans are exported as at the default level plus the
-`ecotone.execution.*` attributes, and the recorded steps go only to the span recorders, which the level therefore
-requires. Each process is one entry into the framework: a gateway call, a
-console command or one consumed message. Each step has a label, what ran, and hints. A hint is a key and a value; a
-critical hint decides where the message goes next or whether it goes anywhere, and is printed under its step as
-`↳ key: value`; the other hints are stored and printed only on request. Nesting means "ran inside", with two loops
-drawn as nesting:
+`ecotone.execution.*` attributes, and the recorded steps go only to the span recorders. Each process is one entry
+into the framework: a gateway call, a console command or one consumed message. Each step has a label, what ran, and
+hints. A hint is a key and a value; a hint shown in lines (`shownInLines`) decides where the message goes next or
+whether it goes anywhere, or says it failed, and is printed under its step as `↳ key: value`; the other hints are
+stored and printed only on request. Nesting means "ran inside", with two loops drawn as nesting:
 
 - A send through channel interceptors is a loop (`SendingInterceptorAdapter`), not a chain: each `before send` step
   is drawn inside the one before it in the order the loop calls them, the put on the channel innermost, and the
@@ -215,24 +214,29 @@ drawn as nesting:
   taken, from what the interceptors declare, not observed one by one.
 
 A process whose message was sent by another recorded process is a sub-flow of it: `sentBy` on the process holds the
-sending process's number and the index of its step that sent the message. The link is read from the trace context
-the message carries: a span of the consumer run whose trace parent is a span of another process. A message whose
-sender was not recorded, or that arrives without its trace context, starts a flow of its own; a message delivered
-again after a failure keeps the context it was sent with, so each delivery is a sub-flow of the same send. The text prints flows in run order and each
-sub-flow as `sub-flow process N: …` under its sender, in the order the sender sent them; process numbers stay the run
-order. `compare` states a new, gone or re-attached sub-flow and shows each one right after its sender.
+sending process's `processNumber` and the `stepNumber` of its step that sent the message, both counted from 1. The
+link is read from the trace context the message carries: a span of the consumer run whose trace parent is a span of
+another process. A message whose sender was not recorded, or that arrives without its trace context, starts a flow
+of its own; a message delivered again after a failure keeps the context it was sent with, so each delivery is a
+sub-flow of the same send. A consumer a handler runs stays inside that handler's process. The text prints flows in
+run order and each sub-flow as `sub-flow process N: …` under its sender, in the order the sender sent them; process
+numbers stay the run order. `compare` states a new, gone or re-attached sub-flow and shows each one right after its
+sender.
 
 The build wiring (`ecotone:flow:dump --build`, and the wiring and build of a snapshot) is read only at the
-framework tracing level. `MessageFlowModule` adds the step that reads it before the recording step, so it is the
-wiring the application declared, never the recording's wrappers. At the application level, `--build` and
-`ecotone:build-flow:record` are refused; `ecotone:flow:dump` without `--build` is the same at both levels.
+framework tracing level, and needs no span recorder. `MessageFlowModule` adds the step that reads it before the
+recording step, so it is the wiring the application declared, never the recording's wrappers. At the application
+level, `--build` and `ecotone:build-flow:record` are refused; `ecotone:flow:dump` without `--build` is the same at
+both levels.
 
-A test reads the recording with `$ecotone->getExecutionRecording()` on its `FlowTestSupport`: an `ExecutionRecording`
+A test reads the recording with `$ecotone->popExecutionRecording()` on its `FlowTestSupport`, which returns what ran
+since the last pop. In flow testing the framework level needs one line,
+`TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)`: with no span recorder configured,
+flow testing registers its own `InMemorySpanRecorder` for the reader. The recording is an `ExecutionRecording`
 (`Ecotone\Api\Tracing`) holding `processes` in run order, each a `RecordedProcess` with its `title`, `steps`
-(`RecordedStep`: `depth`, `label`, `hints` of `RecordedHint` `key`, `value`, `critical`) and `sentBy` (a
-`RecordedSender` with `process` and `step`, null for a flow), plus `lines` (the default text) and
-`linesWithEveryHint`. It is read from the application's `InMemorySpanRecorder`; the snapshots are built from the same
-data, so the two never disagree.
+(`RecordedStep`: `depth`, `label`, `hints` of `RecordedHint` `key`, `value`, `shownInLines`) and `sentBy` (a
+`RecordedSender` with `processNumber` and `stepNumber`, null for a flow), plus `lines` (the default text) and
+`linesWithEveryHint`. The snapshots are built from the same data, so the two never disagree.
 
 `phpstan.neon` is level 3 over `src` for Ecotone, Enqueue, Dbal, Amqp, JmsConverter, PdoEventSourcing, Laravel,
 OpenTelemetry, Kafka, plus `packages/Symfony/DependencyInjection`, `Monorepo`, and the `Api/` of all twelve packages

@@ -44,3 +44,11 @@ and asserting it is recorded as its own process with nothing inherited: a failin
 consumed message; a failing around interceptor; a failing argument conversion; a collector flush failure; an error
 channel send failure; instant retry final failure; a failing channel send inside an inline delivery. One is skipped
 only with the reason it cannot be reached from userland.
+
+## Reachability (added in the second pre-PR round, V2)
+
+L4, L5 and L6 are defensive: no application can reach the state they guard. L4 needs an open step left by a span
+that ended without its steps finishing, L5 an outcome description that throws (they read type names and counts of a
+value that was just returned), and L6 a channel interceptor callback with no open send or request. None of these
+arises from a handler, an interceptor, a channel or a configuration an application writes, so they carry no failing
+test; the existing suites cover the paths they run on. L1, L2 and L7 were each shown failing before their fix.

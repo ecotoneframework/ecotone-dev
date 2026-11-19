@@ -40,7 +40,7 @@ final class ObjectManagerOfCurrentConnection
             return $connectionFactory->getManager();
         }
         if ($connectionFactory instanceof EcotoneManagerRegistryConnectionFactory) {
-            return $connectionFactory->getManager();
+            return $connectionFactory->getManagerOfConnectionRegisteredAs($connectionReferenceName);
         }
 
         throw ConfigurationException::create(sprintf(

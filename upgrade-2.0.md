@@ -157,7 +157,8 @@ also the connection of an application without tenants, when that connection is r
 With Symfony's ManagerRegistry the ObjectManager is one for the process, so messages handled at once on coroutines
 would share its unit of work: handle one message at a time with it. A connection registered as a service created
 with `Ecotone\Dbal\ManagerRegistryEmulator::fromDsnAndConfig($dsn, $pathsToMapping)` gives every coroutine an
-ObjectManager of its own. A connection that no entity manager of the registry uses is refused when the handler is
+ObjectManager of its own, built from `$pathsToMapping` rather than from the `doctrine.orm` configuration of a Symfony
+application. A connection that no entity manager of the registry uses is refused when the handler is
 called.
 
 **How to adapt:** replace the attribute name, and `referenceName:` with `connectionReferenceName:`. When the

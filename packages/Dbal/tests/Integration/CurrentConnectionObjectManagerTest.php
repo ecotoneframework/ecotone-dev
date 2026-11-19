@@ -99,8 +99,8 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapPersonRegistrationOnARegistryOfTwoManagers();
 
         $this->expectExceptionMessage(
-            '#[CurrentConnectionObjectManager] cannot inject the Doctrine ObjectManager of connection `archive`: none of the entity managers of its ManagerRegistry (`primary`, `reporting`) uses that connection. '
-            . 'Configure an entity manager on the connection (in Symfony: an entry of doctrine.orm.entity_managers with `connection: archive`), '
+            '#[CurrentConnectionObjectManager] cannot inject the Doctrine ObjectManager of connection `archive` (Doctrine connection `archive_database`): none of the entity managers of its ManagerRegistry (`primary`, `reporting`) uses that connection. '
+            . 'Configure an entity manager on the connection (in Symfony: an entry of doctrine.orm.entity_managers with `connection: archive_database`), '
             . 'or take #[CurrentConnection] Doctrine\\DBAL\\Connection to run SQL on it without Doctrine ORM.'
         );
 
@@ -188,13 +188,76 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
         $reportingConnection = $this->connectionForTenantB()->createContext()->getDbalConnection();
         $this->setupUserTable($primaryConnection);
         $this->setupUserTable($reportingConnection);
-        $registry = new RegistryOfTwoManagers(
-            ['primary' => $primaryConnection, 'reporting' => $reportingConnection, 'archive' => (new DbalConnectionFactory(self::databaseDsn()))->createContext()->getDbalConnection()],
+        $registry = new class (
+            ['primary' => $primaryConnection, 'reporting' => $reportingConnection, 'archive_database' => (new DbalConnectionFactory(self::databaseDsn()))->createContext()->getDbalConnection()],
             [
                 'primary' => $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person'], $primaryConnection)->getRegistry()->getManager(),
                 'reporting' => $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person'], $reportingConnection)->getRegistry()->getManager(),
             ],
-        );
+        ) implements ManagerRegistry {
+            /**
+             * @param array<string, Connection> $connections
+             * @param array<string, ObjectManager> $managers
+             */
+            public function __construct(private array $connections, private array $managers)
+            {
+            }
+
+            public function getDefaultConnectionName(): string
+            {
+                return 'primary';
+            }
+
+            public function getConnection($name = null): object
+            {
+                return $this->connections[$name ?? 'primary'];
+            }
+
+            public function getConnections(): array
+            {
+                return $this->connections;
+            }
+
+            public function getConnectionNames(): array
+            {
+                return array_combine(array_keys($this->connections), array_keys($this->connections));
+            }
+
+            public function getDefaultManagerName(): string
+            {
+                return 'primary';
+            }
+
+            public function getManager($name = null): ObjectManager
+            {
+                return $this->managers[$name ?? 'primary'];
+            }
+
+            public function getManagers(): array
+            {
+                return $this->managers;
+            }
+
+            public function resetManager($name = null): ObjectManager
+            {
+                return $this->getManager($name);
+            }
+
+            public function getManagerNames(): array
+            {
+                return array_combine(array_keys($this->managers), array_keys($this->managers));
+            }
+
+            public function getRepository($persistentObject, $persistentManagerName = null): ObjectRepository
+            {
+                return $this->getManager($persistentManagerName)->getRepository($persistentObject);
+            }
+
+            public function getManagerForClass($class): ?ObjectManager
+            {
+                return $this->getManager();
+            }
+        };
         $registration = new class () {
             #[CommandHandler('person.registerEntityInReporting')]
             public function registerEntityInReporting(array $command, #[CurrentConnectionObjectManager('reporting')] ObjectManager $objectManager): void
@@ -215,7 +278,7 @@ final class CurrentConnectionObjectManagerTest extends DbalMessagingTestCase
                 $registration,
                 DbalConnectionFactory::class => DbalConnection::createForManagerRegistry($registry, 'primary'),
                 'reporting' => DbalConnection::createForManagerRegistry($registry, 'reporting'),
-                'archive' => DbalConnection::createForManagerRegistry($registry, 'archive'),
+                'archive' => DbalConnection::createForManagerRegistry($registry, 'archive_database'),
             ],
             [DbalConfiguration::createWithDefaults()],
             [ModulePackageList::DBAL_PACKAGE],
@@ -274,70 +337,4 @@ interface PersonsOfReportingStoredThroughObjectManager
 {
     #[DbalQuery('SELECT name FROM persons ORDER BY person_id', fetchMode: FetchMode::FIRST_COLUMN, connectionReferenceName: 'reporting')]
     public function names(): array;
-}
-
-final class RegistryOfTwoManagers implements ManagerRegistry
-{
-    /**
-     * @param array<string, Connection> $connections
-     * @param array<string, ObjectManager> $managers
-     */
-    public function __construct(private array $connections, private array $managers)
-    {
-    }
-
-    public function getDefaultConnectionName(): string
-    {
-        return 'primary';
-    }
-
-    public function getConnection($name = null): object
-    {
-        return $this->connections[$name ?? 'primary'];
-    }
-
-    public function getConnections(): array
-    {
-        return $this->connections;
-    }
-
-    public function getConnectionNames(): array
-    {
-        return array_combine(array_keys($this->connections), array_keys($this->connections));
-    }
-
-    public function getDefaultManagerName(): string
-    {
-        return 'primary';
-    }
-
-    public function getManager($name = null): ObjectManager
-    {
-        return $this->managers[$name ?? 'primary'];
-    }
-
-    public function getManagers(): array
-    {
-        return $this->managers;
-    }
-
-    public function resetManager($name = null): ObjectManager
-    {
-        return $this->getManager($name);
-    }
-
-    public function getManagerNames(): array
-    {
-        return array_combine(array_keys($this->managers), array_keys($this->managers));
-    }
-
-    public function getRepository($persistentObject, $persistentManagerName = null): ObjectRepository
-    {
-        return $this->getManager($persistentManagerName)->getRepository($persistentObject);
-    }
-
-    public function getManagerForClass($class): ?ObjectManager
-    {
-        return $this->getManager();
-    }
 }

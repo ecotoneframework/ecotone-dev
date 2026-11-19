@@ -301,3 +301,15 @@ G51. New findings:
   maintainer: refusing it needs the attribute to tell "no name" from "the default name", for `#[CurrentConnection]` too.
 - **V51 NIT**: a `#[KafkaConsumer]` whose topic is named like its endpoint is refused without the topic's name. Left:
   the refusal already names the consumer by that name.
+
+## Re-verification at 9dba3cde7
+
+All four sessions: no BLOCKING finding. Resolved: G52, V50, D42, D43, B29. New findings:
+
+- **G53 SHOULD-FIX**: the refusals and §2c name `Ecotone\Dbal\ManagerRegistryEmulator::fromDsnAndConfig()`, a `src` class,
+  as an application's entry point; D43 asked for it to be named. Left for the maintainer: an `Api/` factory, or the
+  class accepted as an entry point like `DbalConnection::createForManagerRegistry()` (G23).
+- **G54 NIT**: `RegistryOfTwoManagers` is a named fixture an anonymous class can replace. **D44 NIT**: the
+  per-coroutine registration builds its ObjectManager outside a Symfony application's `doctrine.orm` configuration,
+  unsaid. **D45 NIT**: the refusal names the Doctrine connection, not the reference name the developer wrote.
+- **V52 NIT**: the multi-tenant path still asks for a manager named like the connection, as before this branch. Left.

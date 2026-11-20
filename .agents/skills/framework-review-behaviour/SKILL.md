@@ -90,8 +90,9 @@ which the report says in one line.
 On Swoole and OpenSwoole coroutines (a server with `enable_coroutine`, a consumer run with
 `ecotone:run <channel> --coroutines=8`) and on fibers, one process handles several messages interleaved: an
 execution stops at every wait (a query, a broker call, a sleep) and another one runs on the same container and the
-same services. Read the diff for each of the six below; a change that has none of them (no service state, no wait,
-no consumer) is *unrelated*, which the report says in one line.
+same services. Read the diff for each of the six below and report only the ones the diff really has, each tied to
+its file and line; the others are not listed as possibilities. A change that has none of them (no service state, no
+wait, no consumer) is *unrelated*, which the report says in one line.
 - **State on a shared service.** A property written after construction, a static, a cache: every message in flight
   sees it. It is a finding unless it lives in `ExecutionScope` or holds nothing of the message being handled
   (`framework-service-design` rules 3 and 3a).
@@ -99,9 +100,10 @@ no consumer) is *unrelated*, which the report says in one line.
   handed to a long-lived object is shared by every execution (`framework-storage-and-transactions` rule 16e).
 - **Read, wait, write.** Code that reads shared state, waits, then writes what it decided from the read: another
   execution ran during the wait. In one process this did not exist before coroutines.
-- **A wait coroutines cannot wait on.** A new I/O call through an extension the runtime does not hook stops every
-  coroutine of the process, and two of them waiting on each other never finish. It either waits (proven in the
-  containers below) or is refused with a message naming the way out, as `ConnectionPool` refuses PostgreSQL where a
+- **A wait coroutines cannot wait on.** An I/O call the diff introduces, through an extension or a client the
+  runtime does not hook, stops every coroutine of the process, and two of them waiting on each other never finish.
+  It either waits (proven in the containers below) or is refused with a message naming the way out. The clients
+  already in the tree are decided and are not a finding: `ConnectionPool`, for one, refuses PostgreSQL where a
   coroutine cannot wait on it.
 - **A consumer.** A new endpoint or inbound adapter that cannot be consumed by several coroutines (it commits a
   position, it runs on a schedule) is refused by `ConsumerCoroutines`: an adapter reading a stream names it in
@@ -112,14 +114,21 @@ no consumer) is *unrelated*, which the report says in one line.
 The proof is a test, not the reading. State is proven by interleaving two executions at the userland level with
 `Fiber::suspend()` in a handler, which needs no extension
 (`packages/Ecotone/tests/Messaging/Execution/InterleavedExecutionsTest.php`). A change to waiting, to connections
-or to a consumer is proven in real coroutines (`packages/Dbal/tests/Integration/CoroutineExecutionsTest.php`), and
-you run those tests in the `swoole` and the `openswoole` container, one after the other
-([framework-dev-environment](../framework-dev-environment/references/workflow.md)).
+or to a consumer is proven in real coroutines, as in
+`packages/Ecotone/tests/Messaging/Execution/CoroutineExecutionsTest.php`,
+`packages/Dbal/tests/Integration/CoroutineExecutionsTest.php` and
+`packages/Amqp/tests/Integration/CoroutineExecutionsTest.php`, and you run those tests in the `swoole` and the
+`openswoole` container, one after the other
+([framework-dev-environment](../framework-dev-environment/references/workflow.md)). Such a test is skipped wherever
+neither extension is loaded, so CI runs it only when its file is listed in `COROUTINE_TESTS` of
+`.github/workflows/test-monorepo.yml`: a new file missing from that list is a finding.
 - **Expected:** the report has a part on messages handled at once: for each of the six that the change touches it
-  names the code and the test that interleaves two executions, or files a finding that states the interleaving
-  (which two executions, the wait between them, what each then observes) and the test to add; or it says in one
-  line that the change is unrelated. A change is never passed on a test that handles one message at a time.
-- **Verified by:** `eval:review-coroutine-compatibility`
+  names the code and the test that interleaves two executions or, where the usage is refused, the test asserting
+  the refusal; or it files a finding that states the interleaving (which two executions, the wait between them,
+  what each then observes) and the test to add; or it says in one line that the change is unrelated. A change is
+  never passed on a test that handles one message at a time, and a new test in real coroutines is listed in
+  `COROUTINE_TESTS`.
+- **Verified by:** `eval:review-coroutine-compatibility`, `eval:review-coroutine-consumer`
 
 ### V6. Findings are ranked and actionable
 `[BLOCKING|SHOULD-FIX|NIT] <rule id> — <file>:<line> — the scenario that fails — the test to add or the fix`.

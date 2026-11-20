@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
+use Test\Ecotone\BuildFlow\FlowSnapshot;
 
 /**
  * licence Apache-2.0
@@ -353,7 +354,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
                 $stored['build']['ledger'][] = $service;
                 file_put_contents($file, json_encode($stored, JSON_THROW_ON_ERROR));
             }
-            file_put_contents($this->location . '/' . $side . '/shared.json', json_encode(['formatVersion' => 2, 'wiring' => ['nodes' => [], 'edges' => []], 'build' => ['ledger' => [$service], 'chains' => []]], JSON_THROW_ON_ERROR));
+            file_put_contents($this->location . '/' . $side . '/shared.json', json_encode(['formatVersion' => FlowSnapshot::FORMAT_VERSION, 'wiring' => ['nodes' => [], 'edges' => []], 'build' => ['ledger' => [$service], 'chains' => []]], JSON_THROW_ON_ERROR));
         }
     }
 

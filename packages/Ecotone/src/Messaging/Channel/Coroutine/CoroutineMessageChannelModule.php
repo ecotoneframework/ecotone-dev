@@ -11,8 +11,12 @@ use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeInterceptorBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -53,6 +57,13 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
     {
         $channels = ExtensionObjectResolver::resolve(CoroutineMessageChannelBuilder::class, $extensionObjects);
         if ($channels !== []) {
+            $messagingConfiguration->registerServiceDefinition(CoroutineMessageFailureLogger::class, new Definition(CoroutineMessageFailureLogger::class, [array_map(static fn (CoroutineMessageChannelBuilder $channel) => $channel->messageChannelName, $channels), new Reference(LoggingGateway::class)]));
+            $messagingConfiguration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
+                CoroutineMessageFailureLogger::class,
+                $interfaceToCallRegistry->getFor(CoroutineMessageFailureLogger::class, 'log'),
+                Precedence::EXCEPTION_LOGGING_PRECEDENCE,
+                AsynchronousRunningEndpoint::class,
+            ));
             $messagingConfiguration->registerServiceDefinition(CoroutineMessageRelease::class, new Definition(CoroutineMessageRelease::class));
             $messagingConfiguration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
                 CoroutineMessageRelease::class,
@@ -63,6 +74,7 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
         }
         foreach ($channels as $channel) {
             $messagingConfiguration->registerChannelInterceptor(new CoroutineMessageHoldingInterceptorBuilder($channel->messageChannelName));
+            $messagingConfiguration->registerChannelInterceptor(new InMemoryQueueAcknowledgeInterceptorBuilder($channel->messageChannelName, FinalFailureStrategy::IGNORE, true));
             if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
                 throw LicensingException::create("Coroutine channel `{$channel->messageChannelName}` requires an Ecotone Enterprise licence. Pass a licence key when bootstrapping Ecotone, or register another message channel builder under `{$channel->messageChannelName}`.");
             }

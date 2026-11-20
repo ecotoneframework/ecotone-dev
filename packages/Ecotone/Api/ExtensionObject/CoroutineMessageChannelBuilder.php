@@ -55,6 +55,6 @@ final class CoroutineMessageChannelBuilder implements MessageChannelBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return new Definition(CoroutineMessageChannel::class, [$this->messageChannelName, new Definition(QueueChannel::class, [$this->messageChannelName]), new Reference(ContainerInterface::class), $this->coroutines]);
+        return new Definition(CoroutineMessageChannel::class, [$this->messageChannelName, new Reference(ContainerInterface::class), $this->coroutines]);
     }
 }

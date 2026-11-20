@@ -16,6 +16,10 @@ use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use PHPUnit\Framework\TestCase;
 use Swoole\Coroutine;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Psr\Log\AbstractLogger;
+use Psr\Log\LoggerInterface;
+use Stringable;
 
 /**
  * licence Apache-2.0
@@ -117,6 +121,43 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(2, $handler->maximum);
         $this->assertSame(range(1, 8), $handler->started);
         $this->assertCount(8, $handler->finished);
+    }
+
+    public function test_failed_messages_are_logged_with_headers_and_dropped_while_others_continue(): void
+    {
+        $logger = new class extends AbstractLogger {
+            public array $errors = [];
+
+            public function log($level, Stringable|string $message, array $context = []): void
+            {
+                if (isset($context['exception'])) {
+                    $this->errors[] = $context;
+                }
+            }
+        };
+        $handler = new class {
+            public array $handled = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                if ($payload === 'failed') {
+                    throw new RuntimeException('handling failed');
+                }
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, 'logger' => $logger], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
+            $ecotone->sendCommandWithRouting('handle', 'failed', metadata: ['tenant' => 'failed-tenant']);
+            $ecotone->sendCommandWithRouting('handle', 'accepted');
+        });
+
+        $this->assertSame(['accepted'], $handler->handled);
+        $this->assertNotEmpty($logger->errors);
+        $this->assertStringContainsString('failed-tenant', json_encode($logger->errors));
     }
 
 }

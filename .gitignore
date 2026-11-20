@@ -17,6 +17,7 @@ auth.json
 ./config.json
 .env
 .phpbench/
+/var/
 phpunit.xml
 packages/Laravel/tests/*/storage/logs/*.log
 packages/Symfony/tests/phpunit/var/*

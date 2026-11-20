@@ -87,7 +87,9 @@ new DbalConnectionFactory(['dsn' => 'mysql://user:secret@database/app', 'connect
 
 - A consumer coroutine keeps its connection while it consumes, so the pool is at least `--coroutines` large
 - Pool size times processes stays below what the database accepts
-- A coroutine waits five seconds for a free connection, then fails with `ConnectionPoolExhausted`
+- A coroutine waits five seconds for a free connection, then fails with `ConnectionPoolExhausted`. The wait is set
+  beside the size: `'connection_pool_wait_seconds' => 2` (`->withConnectionPoolWaitSeconds(2)` for Symfony); `0` fails
+  at once
 
 ## 3. What a coroutine can wait on
 

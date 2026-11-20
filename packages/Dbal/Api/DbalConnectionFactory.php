@@ -35,6 +35,7 @@ class DbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
      *   'polling_interval' => '1000',  - How often query for new messages (milliseconds)
      *   'lazy' => true,                - Use lazy database connection (boolean)
      *   'connection_pool_size' => 10,  - How many connections one process opens at most, one per execution running concurrently (coroutine or fiber)
+     *   'connection_pool_wait_seconds' => 5,  - How long a coroutine waits for a connection when all are in use, 0 to fail at once
      * ]
      *
      * or
@@ -64,11 +65,13 @@ class DbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
             'polling_interval' => 1000,
             'lazy' => true,
             'connection_pool_size' => ConnectionPool::DEFAULT_SIZE,
+            'connection_pool_wait_seconds' => ConnectionPool::DEFAULT_SECONDS_WAITING_FOR_A_CONNECTION,
         ], $config);
         $this->connectionPool = new ConnectionPool(
             connect: $this->connect(...),
             size: (int) $this->config['connection_pool_size'],
             connectionName: sprintf('%s://%s/%s', $this->config['connection']['driver'] ?? 'unknown', $this->config['connection']['host'] ?? 'localhost', $this->config['connection']['dbname'] ?? $this->config['connection']['path'] ?? ''),
+            secondsWaitingForAConnection: (float) $this->config['connection_pool_wait_seconds'],
         );
     }
 

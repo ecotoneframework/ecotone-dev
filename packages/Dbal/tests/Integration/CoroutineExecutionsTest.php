@@ -128,6 +128,53 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         $this->assertSame(['first'], $ecotone->getGateway(MemberRegister::class)->names());
     }
 
+    public function test_coroutine_waits_for_a_connection_for_as_long_as_the_pool_is_configured_to(): void
+    {
+        $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2, connectionPoolWaitSeconds: 0.2);
+        $refusal = null;
+
+        CoroutineTesting::runAtOnce(
+            fn () => $ecotone->sendCommandWithRouting('member.register', ['memberId' => 1, 'name' => 'first', 'pauseSeconds' => 0.6]),
+            function () use ($ecotone, &$refusal): void {
+                usleep(50_000);
+                try {
+                    $ecotone->sendCommandWithRouting('member.register', ['memberId' => 2, 'name' => 'second']);
+                } catch (ConnectionPoolExhausted $exception) {
+                    $refusal = $exception->getMessage();
+                }
+            },
+        );
+
+        $this->assertStringContainsString('and none was returned within 0.2 seconds', (string) $refusal);
+        $this->assertStringContainsString("Or let a coroutine wait longer for a connection: new Ecotone\\Api\\Dbal\\DbalConnectionFactory(['dsn' => \$dsn, 'connection_pool_wait_seconds' => 10]), or SymfonyConnectionReference::defaultConnection('default')->withConnectionPoolWaitSeconds(10).", (string) $refusal);
+        $this->assertSame(['first'], $ecotone->getGateway(MemberRegister::class)->names());
+    }
+
+    public function test_coroutine_is_refused_at_once_when_the_pool_is_configured_not_to_wait(): void
+    {
+        $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 2, connectionPoolWaitSeconds: 0);
+        $refusal = null;
+        $secondsUntilRefused = null;
+
+        CoroutineTesting::runAtOnce(
+            fn () => $ecotone->sendCommandWithRouting('member.register', ['memberId' => 1, 'name' => 'first', 'pauseSeconds' => 0.6]),
+            function () use ($ecotone, &$refusal, &$secondsUntilRefused): void {
+                usleep(50_000);
+                $startedAt = microtime(true);
+                try {
+                    $ecotone->sendCommandWithRouting('member.register', ['memberId' => 2, 'name' => 'second']);
+                } catch (ConnectionPoolExhausted $exception) {
+                    $refusal = $exception->getMessage();
+                    $secondsUntilRefused = microtime(true) - $startedAt;
+                }
+            },
+        );
+
+        $this->assertStringContainsString('and the pool is set not to wait for one (`connection_pool_wait_seconds` is 0)', (string) $refusal);
+        $this->assertLessThan(0.3, $secondsUntilRefused);
+        $this->assertSame(['first'], $ecotone->getGateway(MemberRegister::class)->names());
+    }
+
     public function test_coroutine_started_by_a_handler_propagates_its_headers_and_stores_outside_of_its_transaction(): void
     {
         $ecotone = $this->bootstrapMemberRegistration(connectionPoolSize: 10);
@@ -371,7 +418,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         );
     }
 
-    private function bootstrapMemberRegistration(int $connectionPoolSize, string $database = 'mysql'): FlowTestSupport
+    private function bootstrapMemberRegistration(int $connectionPoolSize, string $database = 'mysql', float $connectionPoolWaitSeconds = 5): FlowTestSupport
     {
         $databaseDsn = self::dsnOf($database);
         $connection = (new DbalConnectionFactory($databaseDsn))->createContext()->getDbalConnection();
@@ -469,7 +516,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
 
         return $this->bootstrapFlowTesting(
             [$registration::class, MemberRegister::class],
-            [$registration, DbalConnectionFactory::class => new DbalConnectionFactory(['dsn' => $databaseDsn, 'connection_pool_size' => $connectionPoolSize])],
+            [$registration, DbalConnectionFactory::class => new DbalConnectionFactory(['dsn' => $databaseDsn, 'connection_pool_size' => $connectionPoolSize, 'connection_pool_wait_seconds' => $connectionPoolWaitSeconds])],
             [
                 DbalConfiguration::createWithDefaults(),
                 InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false),

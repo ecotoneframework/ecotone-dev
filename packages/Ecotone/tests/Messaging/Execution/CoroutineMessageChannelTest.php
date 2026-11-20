@@ -16,6 +16,8 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\Priority;
+use Ecotone\Api\Attribute\TimeToLive;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -674,6 +676,65 @@ final class CoroutineMessageChannelTest extends TestCase
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 1));
 
         $this->assertSame([1, 2, 3], $handler->handled);
+    }
+
+
+    #[DataProvider('unsupported_polling_limits')]
+    public function test_polling_consumer_limits_are_refused_at_bootstrap(PollingMetadata $metadata, string $setting, string $reason): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("Coroutine message channel `async` cannot use PollingMetadata::{$setting}(): {$reason} Remove this setting, or use a channel consumed with ecotone:run.");
+
+        $this->bootstrap_channel([$metadata]);
+    }
+
+    public static function unsupported_polling_limits(): array
+    {
+        $reason = 'it is consumed inside the sending process, so there is no separate consumer process to stop.';
+        return [
+            [PollingMetadata::create('async')->withStopOnError(true), 'withStopOnError', $reason],
+            [PollingMetadata::create('async')->withHandledMessageLimit(1), 'withHandledMessageLimit', $reason],
+            [PollingMetadata::create('async')->withExecutionTimeLimitInMilliseconds(1), 'withExecutionTimeLimitInMilliseconds', $reason],
+            [PollingMetadata::create('async')->withExecutionAmountLimit(1), 'withExecutionAmountLimit', $reason],
+            [PollingMetadata::create('async')->withMemoryLimitInMegaBytes(64), 'withMemoryLimitInMegaBytes', "it is consumed inside the sending process, which is not Ecotone's to stop when memory runs high."],
+        ];
+    }
+
+    #[DataProvider('unsupported_delivery_attributes')]
+    public function test_unsupported_delivery_attributes_are_refused_at_bootstrap(object $handler, string $attribute, string $reason): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("Coroutine message channel `async` does not support #[{$attribute}]: {$reason} Remove #[{$attribute}] from this handler, or use a channel that honours it.");
+
+        EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+    }
+
+    public static function unsupported_delivery_attributes(): array
+    {
+        return [
+            [new class {
+                #[Priority(2)]
+                #[Asynchronous('async')]
+                #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+                public function handle(string $payload): void {}
+            }, 'Priority', 'messages are handled in FIFO order.'],
+            [new class {
+                #[TimeToLive(100)]
+                #[Asynchronous('async')]
+                #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+                public function handle(string $payload): void {}
+            }, 'TimeToLive', 'messages in this queue do not expire.'],
+            [new #[Priority(2)] class {
+                #[Asynchronous('async')]
+                #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+                public function handle(string $payload): void {}
+            }, 'Priority', 'messages are handled in FIFO order.'],
+            [new #[TimeToLive(100)] class {
+                #[Asynchronous('async')]
+                #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+                public function handle(string $payload): void {}
+            }, 'TimeToLive', 'messages in this queue do not expire.'],
+        ];
     }
 
     public static function concurrency_limits(): array

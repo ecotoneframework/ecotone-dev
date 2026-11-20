@@ -41,6 +41,6 @@ final class CoroutineChannelConsumer implements EndpointRunner
 
     public function createConsumer(): ConsumerLifecycle
     {
-        return $this->runner->createConsumer(ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withStopOnError(false));
+        return $this->runner->createConsumer(ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withStopOnError(false)->withMemoryLimitInMegabytes(0));
     }
 }

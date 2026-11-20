@@ -57,6 +57,7 @@ use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionStateStorageRegistry;
 use Ecotone\Projecting\StreamSourceRegistry;
 use Ecotone\Tracing\Tracer;
+use Psr\Container\ContainerInterface;
 use ReflectionMethod;
 
 /**
@@ -97,7 +98,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
             $builder->replace(AllAggregateRepository::class, new Definition(RecordedAggregateRepository::class, [$builder->getDefinition(AllAggregateRepository::class), new Reference(Tracer::class)]));
         }
         if ($builder->has(MessagingEntrypointService::class) && $builder->getDefinition(MessagingEntrypointService::class) instanceof Definition) {
-            $builder->replace(MessagingEntrypointService::class, new Definition(RecordedMessagingEntrypointService::class, [...$builder->getDefinition(MessagingEntrypointService::class)->getArguments(), new Reference(Tracer::class)]));
+            $builder->replace(MessagingEntrypointService::class, new Definition(RecordedMessagingEntrypointService::class, [...$builder->getDefinition(MessagingEntrypointService::class)->getArguments(), new Reference(ContainerInterface::class)]));
         }
         if ($builder->has(ConversionService::REFERENCE_NAME)) {
             $builder->replace(ConversionService::REFERENCE_NAME, new Definition(RecordedConversionService::class, [$builder->getDefinition(ConversionService::REFERENCE_NAME), new Reference(Tracer::class)]));

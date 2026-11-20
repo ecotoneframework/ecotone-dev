@@ -12,6 +12,8 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gathering\GatheringHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
+use Ecotone\Tracing\Tracer;
+use Psr\Container\ContainerInterface;
 use Throwable;
 
 /**
@@ -23,7 +25,7 @@ final class RecordedMessagingEntrypointService extends MessagingEntrypointServic
         ChannelResolver $channelResolver,
         private MessageHeadersPropagatorInterceptor $headersPropagator,
         MessageBuilder $messageBuilder,
-        private ExecutionRecordingTracer $tracer,
+        private ContainerInterface $container,
     ) {
         parent::__construct(channelResolver: $channelResolver, messageHeadersPropagator: $headersPropagator, messageBuilder: $messageBuilder);
     }
@@ -96,20 +98,29 @@ final class RecordedMessagingEntrypointService extends MessagingEntrypointServic
      */
     private function recorded(string $targetChannel, array $hints, Closure $send): mixed
     {
-        $step = $this->tracer->startEntry('entrypoint sends to ' . $targetChannel, attributes: $hints === [] ? [] : [SpanAttribute::EXECUTION_HINTS => ExecutionHint::encoded($hints)]);
+        $tracer = $this->tracer();
+        $step = $tracer->startEntry('entrypoint sends to ' . $targetChannel, attributes: $hints === [] ? [] : [SpanAttribute::EXECUTION_HINTS => ExecutionHint::encoded($hints)]);
         try {
             $result = $send();
         } catch (Throwable $failure) {
             if ($step !== null) {
-                $this->tracer->failStep($step, $failure);
+                $tracer->failStep($step, $failure);
             }
 
             throw $failure;
         }
         if ($step !== null) {
-            $this->tracer->endStep($step, '');
+            $tracer->endStep($step, '');
         }
 
         return $result;
+    }
+
+    private function tracer(): ExecutionRecordingTracer
+    {
+        $tracer = $this->container->get(Tracer::class);
+        assert($tracer instanceof ExecutionRecordingTracer);
+
+        return $tracer;
     }
 }

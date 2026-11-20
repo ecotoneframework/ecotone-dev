@@ -239,7 +239,7 @@ final class MessageFlowChainReader
     private function invoked(mixed $objectResolver, string $method, string $role): string
     {
         $class = match (true) {
-            $objectResolver instanceof Definition && $objectResolver->getClassName() === MethodInvokerStaticObjectResolver::class => $this->classOf($objectResolver->getArguments()[0]),
+            $objectResolver instanceof Definition && $objectResolver->getClassName() === MethodInvokerStaticObjectResolver::class => $this->classDeclaring(object: $objectResolver->getArguments()[0], method: $method),
             $objectResolver instanceof Definition && $objectResolver->getClassName() === MethodInvokerAggregateObjectResolver::class && str_ends_with($this->invokedByRequestReply, '::' . $method) => substr($this->invokedByRequestReply, 0, -strlen('::' . $method)),
             default => null,
         };
@@ -252,7 +252,7 @@ final class MessageFlowChainReader
             $role = 'step';
         }
         $parameterTypes = [];
-        if (class_exists($class) || interface_exists($class)) {
+        if ((class_exists($class) || interface_exists($class)) && method_exists($class, $method)) {
             foreach ($this->interfaceToCallRegistry->getFor($class, $method)->getInterfaceParameters() as $parameter) {
                 $parameterTypes[] = $parameter->getTypeHint() . ' $' . $parameter->getName();
             }
@@ -266,6 +266,17 @@ final class MessageFlowChainReader
         [$invokedClass, $invokedMethod] = explode('::', $this->invokedByRequestReply, 2) + [1 => ''];
 
         return $method === $invokedMethod && ($class === $invokedClass || is_a($class, $invokedClass, true));
+    }
+
+    private function classDeclaring(mixed $object, string $method): string
+    {
+        $class = $this->classOf($object);
+        if (method_exists($class, $method) || ! $object instanceof Reference || ! isset($this->builder->getDefinitions()[$object->getId()])) {
+            return $class;
+        }
+        $definition = $this->builder->getDefinitions()[$object->getId()];
+
+        return $definition instanceof Definition && method_exists($definition->getClassName(), $method) ? $definition->getClassName() : $class;
     }
 
     private function classOf(mixed $object): string

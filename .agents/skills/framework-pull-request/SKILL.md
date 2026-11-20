@@ -54,7 +54,7 @@ change it proves:
 |---|---|---|
 | Guidelines | `framework-review-guidelines` | every changed file against the project rules of every skill related to the change |
 | Breaking changes | `framework-review-breaking-changes` | storage, `Api/` and behaviour compatibility for users upgrading |
-| Behaviour | `framework-review-behaviour` | the feature solves the problem, tests cover it, its edge cases and its combinations with existing features |
+| Behaviour | `framework-review-behaviour` | the feature solves the problem, tests cover it, its edge cases and its combinations with existing features, and it holds when one process handles several messages at once on Swoole or OpenSwoole coroutines |
 | Developer experience | `framework-review-developer-experience` | the change is simple for an end user: declarative configuration, sensible and resilient defaults, names that explain the feature |
 
 Each session reports numbered findings (G1, B1, V1, D1, ...) ranked BLOCKING / SHOULD-FIX / NIT with file and line.

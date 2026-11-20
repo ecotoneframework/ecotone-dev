@@ -1,6 +1,6 @@
 name: Build Flow Comparison
 
-# Compares the message flow of the flow scenario catalogue with the committed baseline of the merge ref and builds the
+# Compares the message flow of the flow scenario catalogue at the base commit with the merge ref and builds the
 # pull request comment. It runs the pull request's code, so it has no write permission; the comment is posted by
 # build-flow-comment.yml from the artifact this uploads. Report only: it fails only when the tooling breaks.
 on:
@@ -21,6 +21,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The "before" of the comparison is the base commit's own message flow, snapshotted here, so the comment is
+      # right when main's committed baseline lags behind a merge or the pull request edited it
+      - name: Check out the base commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: build-flow-base
+
       - name: Set Up PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -30,13 +38,23 @@ jobs:
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction --ignore-platform-reqs
 
+      - name: Snapshot the message flow of the base commit
+        shell: bash
+        run: |
+          if [ -f build-flow-base/bin/build-flow.php ]; then
+            (cd build-flow-base && composer update --prefer-dist --no-interaction --ignore-platform-reqs && php bin/build-flow.php snapshot --location="$GITHUB_WORKSPACE/build-flow-before")
+          else
+            echo 'The base commit has no bin/build-flow.php yet; comparing with the baseline this pull request commits.'
+            cp -R packages/Ecotone/tests/BuildFlow/baseline build-flow-before
+          fi
+
       - name: Test the comment builder
         run: php bin/test-build-flow-comment.php
 
       # The build presentation draws the message's path as a sequence diagram first and keeps the marked wiring
       # and traced spans collapsed under it, so the comment always shows a diagram, also when the wiring is unchanged
-      - name: Compare the message flow with the committed baseline
-        run: php bin/build-flow.php compare --presentation=build > build-flow-comparison.md
+      - name: Compare the message flow with the base commit
+        run: php bin/build-flow.php compare --from=build-flow-before --presentation=build > build-flow-comparison.md
 
       - name: Build the pull request comment
         env:

@@ -16,7 +16,7 @@ const BUILD_TREE_LIMIT = 16_000;
 const USAGE = <<<'USAGE'
     Builds the pull request comment that shows how the message flow changed.
 
-      php bin/build-flow-comment.php --comparison=<file> --pull-request=<number> --head-sha=<sha> --base-sha=<sha> --compared-with=base-commit|committed-baseline --run-url=<url> --output=<file>
+      php bin/build-flow-comment.php --comparison=<file> --pull-request=<number> --head-sha=<sha> --base-sha=<sha> --compared-with=base-commit|committed-baseline --run-url=<url> --output=<file> [--format-change=<file>]
 
     --comparison is the output of `php bin/build-flow.php compare`. The output file is JSON holding the pull request
     number, the head sha, whether a flow changed, and the comment body, which opens with the marker line
@@ -48,6 +48,13 @@ if (! in_array($options['compared-with'], ['base-commit', 'committed-baseline'],
 }
 if (preg_match('#^https://[^\s<>()\[\]]+$#', $options['run-url']) !== 1) {
     refuse("The run url `{$options['run-url']}` is not an https url, so the comment cannot point to the full comparison. Pass the url of this workflow run.");
+}
+if (isset($options['format-change'])) {
+    $formatChange = trim((string) @file_get_contents($options['format-change']));
+    $body = COMMENT_MARKER . "\n" . COMPARISON_HEADING . "\n\nAs of `" . substr($options['head-sha'], 0, 7) . '`, the snapshot format differs between the base commit `' . substr($options['base-sha'], 0, 7) . '` and this pull request, so a comparison across it cannot be drawn. '
+        . "main's CI regenerates the baseline in the new format after the merge. What the comparison reported:\n\n> " . str_replace("\n", "\n> ", withoutMentions($formatChange)) . "\n";
+    file_put_contents($options['output'], json_encode(['pullRequest' => (int) $options['pull-request'], 'headSha' => $options['head-sha'], 'changed' => true, 'body' => $body], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n");
+    exit(0);
 }
 $comparison = @file_get_contents($options['comparison']);
 if ($comparison === false) {

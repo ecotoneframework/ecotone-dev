@@ -189,6 +189,17 @@ $cases = [
             [str_contains($comment['body'], 'user@example.com @inside'), 'code is left as written'],
         ]);
     },
+    'a comparison across a snapshot format change is posted as one that cannot be drawn' => function (): ?string {
+        $result = run('', formatChange: 'Flow snapshot file build-flow-before/shared.json was written by format 2, this code reads format 3, so the two cannot be compared.');
+        $comment = read($result['output']);
+
+        return expectAll([
+            [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
+            [$comment['changed'] === true, 'posted as a change'],
+            [str_contains($comment['body'], 'As of `aaaaaaa`, the snapshot format differs between the base commit `bbbbbbb` and this pull request, so a comparison across it cannot be drawn.'), 'says the comparison cannot be drawn: ' . $comment['body']],
+            [str_contains($comment['body'], 'was written by format 2, this code reads format 3'), 'quotes what happened'],
+        ]);
+    },
     'a pull request number that is not a positive integer is refused' => function (): ?string {
         $result = run(comparison(scenario('order placed', 'diagram')), pullRequest: '17; rm -rf /');
 
@@ -255,11 +266,14 @@ function comparison(string ...$scenarios): string
 /**
  * @return array{exit: int, stderr: string, output: string}
  */
-function run(string $comparison, string $pullRequest = '17', string $headSha = '', string $comparedWith = 'base-commit'): array
+function run(string $comparison, string $pullRequest = '17', string $headSha = '', string $comparedWith = 'base-commit', ?string $formatChange = null): array
 {
     $directory = sys_get_temp_dir() . '/build-flow-comment-' . bin2hex(random_bytes(4));
     mkdir($directory);
     file_put_contents($directory . '/comparison.md', $comparison);
+    if ($formatChange !== null) {
+        file_put_contents($directory . '/compare-error.txt', $formatChange);
+    }
     $command = sprintf(
         'php %s --comparison=%s --pull-request=%s --head-sha=%s --base-sha=%s --compared-with=%s --run-url=%s --output=%s',
         escapeshellarg(SCRIPT),
@@ -270,7 +284,7 @@ function run(string $comparison, string $pullRequest = '17', string $headSha = '
         escapeshellarg($comparedWith),
         escapeshellarg(RUN_URL),
         escapeshellarg($directory . '/comment.json'),
-    );
+    ) . ($formatChange === null ? '' : ' --format-change=' . escapeshellarg($directory . '/compare-error.txt'));
     $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
     $stdout = stream_get_contents($pipes[1]);
     $stderr = stream_get_contents($pipes[2]);

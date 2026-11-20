@@ -62,15 +62,16 @@ final class FlowSnapshot
     {
         $stored = json_decode($json, true);
         if (! is_array($stored) || ! is_string($stored['scenario'] ?? null) || ! is_array($stored['wiring']['nodes'] ?? null) || ! is_array($stored['wiring']['edges'] ?? null) || ! is_array($stored['build']['ledger'] ?? null) || ! is_array($stored['build']['chains'] ?? null) || ! is_array($stored['trace'] ?? null) || ! is_array($stored['execution'] ?? null)) {
-            throw InvalidArgumentException::create("Flow snapshot file {$file} does not hold `scenario`, `wiring`, `build`, `trace` and `execution`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.");
+            throw InvalidArgumentException::create("Flow snapshot file {$file} does not hold `scenario`, `wiring`, `build`, `trace` and `execution`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate the snapshots of that directory with `php bin/build-flow.php snapshot --location=" . dirname($file) . '`.');
         }
+        self::refuseAnotherFormat(stored: $stored, file: $file);
         $nodes = [];
         $edges = [];
         $ledger = [];
         $chains = [];
         if (isset($stored['wiring']['withoutNodes'], $stored['wiring']['withoutEdges']) || isset($stored['build']['withoutLedger'], $stored['build']['withoutChains'])) {
             if ($shared === null) {
-                throw InvalidArgumentException::create("Flow snapshot file {$file} stores only what its scenario adds to what every application gets, but " . dirname($file) . '/' . FlowSnapshots::SHARED_FILE . ' is missing, so its whole wiring and build cannot be read. Restore that file from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.');
+                throw InvalidArgumentException::create("Flow snapshot file {$file} stores only what its scenario adds to what every application gets, but " . dirname($file) . '/' . FlowSnapshots::SHARED_FILE . ' is missing, so its whole wiring and build cannot be read. Restore that file from version control, or regenerate the snapshots of that directory with `php bin/build-flow.php snapshot --location=' . dirname($file) . '`.');
             }
             foreach ($shared->wiring->nodes() as $node) {
                 $nodes[$node->id] = $node;
@@ -104,11 +105,23 @@ final class FlowSnapshot
         return new self(scenario: $stored['scenario'], wiring: MessageFlowGraph::create(array_values($nodes), array_values($edges)), trace: $stored['trace'], ledger: $ledger, chains: $chains, execution: self::executionOf($stored['execution'], $file));
     }
 
+    /**
+     * @param array<string, mixed> $stored
+     */
+    private static function refuseAnotherFormat(array $stored, string $file): void
+    {
+        $format = $stored['formatVersion'] ?? null;
+        if ($format === self::FORMAT_VERSION) {
+            return;
+        }
+        throw InvalidArgumentException::create("Flow snapshot file {$file} was written by format " . (is_int($format) ? $format : 'none') . ', this code reads format ' . self::FORMAT_VERSION . ', so the two cannot be compared: a comparison across a snapshot format change cannot be drawn. Regenerate the snapshots of that directory with `php bin/build-flow.php snapshot --location=' . dirname($file) . '`.');
+    }
+
     public static function sharedFromJson(string $json, string $file): self
     {
         $stored = json_decode($json, true);
         if (! is_array($stored) || ! is_array($stored['wiring']['nodes'] ?? null) || ! is_array($stored['wiring']['edges'] ?? null) || ! is_array($stored['build']['ledger'] ?? null) || ! is_array($stored['build']['chains'] ?? null)) {
-            throw InvalidArgumentException::create("Shared file {$file} does not hold `wiring` and `build`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.");
+            throw InvalidArgumentException::create("Shared file {$file} does not hold `wiring` and `build`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate the snapshots of that directory with `php bin/build-flow.php snapshot --location=" . dirname($file) . '`.');
         }
 
         return self::fromJson(json_encode(['scenario' => 'what every application gets', 'trace' => [], 'execution' => []] + $stored, JSON_THROW_ON_ERROR), $file);
@@ -248,7 +261,7 @@ final class FlowSnapshot
             ...(is_array($process['sentBy'] ?? null) ? ['sentBy' => ['processNumber' => (int) $process['sentBy']['processNumber'], 'stepNumber' => (int) $process['sentBy']['stepNumber']]] : []),
             'steps' => array_map(function (mixed $step) use ($file): array {
                 if (! is_array($step) || ! is_int($step['depth'] ?? null) || ! is_string($step['label'] ?? null)) {
-                    throw InvalidArgumentException::create("Flow snapshot file {$file} holds steps of `execution` without a depth and a label, so it was written by an earlier version of the build flow tooling. Regenerate every snapshot with `php bin/build-flow.php snapshot`.");
+                    throw InvalidArgumentException::create("Flow snapshot file {$file} holds steps of `execution` without a depth and a label, so it was written by an earlier version of the build flow tooling. Regenerate the snapshots of that directory with `php bin/build-flow.php snapshot --location=" . dirname($file) . '`.');
                 }
 
                 return ['depth' => $step['depth'], 'label' => $step['label'], 'hints' => array_map(fn (array $hint): array => ['key' => (string) $hint['key'], 'value' => (string) $hint['value'], 'shownInLines' => (bool) $hint['shownInLines']], $step['hints'] ?? [])];

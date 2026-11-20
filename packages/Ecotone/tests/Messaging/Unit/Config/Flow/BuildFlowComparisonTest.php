@@ -209,7 +209,7 @@ final class BuildFlowComparisonTest extends TestCase
         $this->record('Placing an order', 'after', $this->ordering());
         file_put_contents($this->location . '/after/placing-an-order.json', '{"something": "else"}');
 
-        $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json does not hold `scenario`, `wiring`, `build`, `trace` and `execution`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.");
+        $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json does not hold `scenario`, `wiring`, `build`, `trace` and `execution`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate the snapshots of that directory with `php bin/build-flow.php snapshot --location={$this->location}/after`.");
 
         $this->comparison();
     }
@@ -222,7 +222,7 @@ final class BuildFlowComparisonTest extends TestCase
         $stored['wiring'] += ['withoutNodes' => [], 'withoutEdges' => []];
         file_put_contents($this->location . '/after/placing-an-order.json', json_encode($stored, JSON_THROW_ON_ERROR));
 
-        $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json stores only what its scenario adds to what every application gets, but {$this->location}/after/shared.json is missing, so its whole wiring and build cannot be read. Restore that file from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.");
+        $this->expectExceptionMessage("Flow snapshot file {$this->location}/after/placing-an-order.json stores only what its scenario adds to what every application gets, but {$this->location}/after/shared.json is missing, so its whole wiring and build cannot be read. Restore that file from version control, or regenerate the snapshots of that directory with `php bin/build-flow.php snapshot --location={$this->location}/after`.");
 
         $this->comparison();
     }

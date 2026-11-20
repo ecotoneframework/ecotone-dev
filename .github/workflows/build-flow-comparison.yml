@@ -57,7 +57,19 @@ jobs:
       # The build presentation draws the message's path as a sequence diagram first and keeps the marked wiring
       # and traced spans collapsed under it, so the comment always shows a diagram, also when the wiring is unchanged
       - name: Compare the message flow with the base commit
-        run: php bin/build-flow.php compare --from=build-flow-before --presentation=build > build-flow-comparison.md
+        id: compare
+        shell: bash
+        run: |
+          set +e
+          php bin/build-flow.php compare --from=build-flow-before --presentation=build > build-flow-comparison.md 2> build-flow-compare-error.txt
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ] && grep -q 'a comparison across a snapshot format change cannot be drawn' build-flow-compare-error.txt; then
+            echo 'format-change=--format-change=build-flow-compare-error.txt' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          cat build-flow-compare-error.txt >&2
+          exit "$status"
 
       - name: Build the pull request comment
         env:
@@ -65,8 +77,9 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           COMPARED_WITH: ${{ steps.before.outputs.compared-with }}
+          FORMAT_CHANGE: ${{ steps.compare.outputs.format-change }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: php bin/build-flow-comment.php --comparison=build-flow-comparison.md --pull-request="$PULL_REQUEST" --head-sha="$HEAD_SHA" --base-sha="$BASE_SHA" --compared-with="$COMPARED_WITH" --run-url="$RUN_URL" --output=build-flow-comment.json
+        run: php bin/build-flow-comment.php --comparison=build-flow-comparison.md --pull-request="$PULL_REQUEST" --head-sha="$HEAD_SHA" --base-sha="$BASE_SHA" --compared-with="$COMPARED_WITH" --run-url="$RUN_URL" --output=build-flow-comment.json $FORMAT_CHANGE
 
       - name: Upload the full comparison
         uses: actions/upload-artifact@v4

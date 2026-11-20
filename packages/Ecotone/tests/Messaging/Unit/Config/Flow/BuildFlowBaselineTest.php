@@ -162,7 +162,7 @@ final class BuildFlowBaselineTest extends TestCase
         mkdir($this->location . '/before', recursive: true);
         file_put_contents($this->location . '/before/shared.json', '{}');
 
-        $this->expectExceptionMessage('Shared file ' . $this->location . '/before/shared.json does not hold `wiring` and `build`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate every snapshot with `php bin/build-flow.php snapshot`.');
+        $this->expectExceptionMessage('Shared file ' . $this->location . '/before/shared.json does not hold `wiring` and `build`, so it was not written by this version of the build flow tooling. Restore it from version control, or regenerate the snapshots of that directory with `php bin/build-flow.php snapshot --location=' . $this->location . '/before`.');
 
         $this->tooling()->runConsoleCommand('ecotone:build-flow:compare', ['from' => $this->location . '/before', 'to' => $this->location . '/before', 'presentation' => 'json']);
     }
@@ -176,7 +176,21 @@ final class BuildFlowBaselineTest extends TestCase
         $snapshot['execution'][0]['steps'] = [['step' => 'written before steps had a depth and a label']];
         file_put_contents($file, json_encode($snapshot, JSON_THROW_ON_ERROR));
 
-        $this->expectExceptionMessage('Flow snapshot file ' . $file . ' holds steps of `execution` without a depth and a label, so it was written by an earlier version of the build flow tooling. Regenerate every snapshot with `php bin/build-flow.php snapshot`.');
+        $this->expectExceptionMessage('Flow snapshot file ' . $file . ' holds steps of `execution` without a depth and a label, so it was written by an earlier version of the build flow tooling. Regenerate the snapshots of that directory with `php bin/build-flow.php snapshot --location=' . $this->location . '`.');
+
+        $tooling->runConsoleCommand('ecotone:build-flow:compare', ['from' => $this->location, 'to' => $this->location, 'presentation' => 'json']);
+    }
+
+    public function test_compare_command_refuses_a_snapshot_written_by_another_format_naming_both_formats(): void
+    {
+        $tooling = $this->tooling();
+        $tooling->runConsoleCommand('ecotone:build-flow:snapshot', ['location' => $this->location]);
+        $file = $this->location . '/projection-rebuilt-asynchronously.json';
+        $snapshot = json_decode((string) file_get_contents($file), true, flags: JSON_THROW_ON_ERROR);
+        $snapshot['formatVersion'] = 2;
+        file_put_contents($file, json_encode($snapshot, JSON_THROW_ON_ERROR));
+
+        $this->expectExceptionMessage('Flow snapshot file ' . $file . ' was written by format 2, this code reads format 3, so the two cannot be compared: a comparison across a snapshot format change cannot be drawn. Regenerate the snapshots of that directory with `php bin/build-flow.php snapshot --location=' . $this->location . '`.');
 
         $tooling->runConsoleCommand('ecotone:build-flow:compare', ['from' => $this->location, 'to' => $this->location, 'presentation' => 'json']);
     }

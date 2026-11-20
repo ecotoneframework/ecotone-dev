@@ -11,6 +11,7 @@ use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanRecorder;
 use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Tracing\ActiveSpan;
+use Ecotone\Tracing\Execution\RecordedExecution;
 use Throwable;
 
 /**
@@ -57,6 +58,10 @@ final class StoringSpanRecorder implements SpanRecorder
 
     public function record(Span $span): void
     {
+        $span = self::asApplicationSpan($span);
+        if ($span === null) {
+            return;
+        }
         if ($this->scopeActive && ! $this->scopeExcludedFromTracking && $this->isStored($span)) {
             $this->buffer[] = $span;
         } elseif (! $this->scopeActive && $this->failedAttempt !== null && $span->traceId === $this->failedAttempt['spans'][0]->traceId && $this->isStored($span)) {
@@ -153,7 +158,10 @@ final class StoringSpanRecorder implements SpanRecorder
         $openSpans = [];
         foreach ([$this->wrappingSpan, ...$innerOpenSpans] as $openSpan) {
             if ($openSpan !== null) {
-                $openSpans[$openSpan->context()->spanId] = $openSpan->endedSoFar();
+                $endedSoFar = self::asApplicationSpan($openSpan->endedSoFar());
+                if ($endedSoFar !== null) {
+                    $openSpans[$openSpan->context()->spanId] = $endedSoFar;
+                }
             }
         }
 
@@ -214,8 +222,8 @@ final class StoringSpanRecorder implements SpanRecorder
         if ($this->scopeExcludedFromTracking || $this->wrappingSpan === null || $this->wrappingSpan->context()->spanId !== $this->consumedMessageSpanId) {
             return;
         }
-        $wrapping = $this->wrappingSpan->endedSoFar();
-        if (! $this->isStored($wrapping)) {
+        $wrapping = self::asApplicationSpan($this->wrappingSpan->endedSoFar());
+        if ($wrapping === null || ! $this->isStored($wrapping)) {
             return;
         }
         $wrapping = new Span(...[...get_object_vars($wrapping), 'status' => SpanStatus::Error, 'statusDescription' => $failure->getMessage()]);
@@ -274,6 +282,27 @@ final class StoringSpanRecorder implements SpanRecorder
         $this->endUnitOfWork();
 
         return $notifications;
+    }
+
+    /**
+     * At the framework tracing level steps run between application spans; flow tracking stores what the application level
+     * stores, so a step is left out and an application span keeps the parent it has at the application level.
+     */
+    private static function asApplicationSpan(Span $span): ?Span
+    {
+        if ($span->attributes[SpanAttribute::EXECUTION_STEP] ?? false) {
+            return null;
+        }
+        if (! isset($span->attributes[RecordedExecution::APPLICATION_PARENT]) && ! isset($span->attributes[SpanAttribute::EXECUTION_ORDER])) {
+            return $span;
+        }
+        $applicationParent = $span->attributes[RecordedExecution::APPLICATION_PARENT] ?? null;
+
+        return new Span(...[
+            ...get_object_vars($span),
+            'parentSpanId' => $applicationParent === null ? $span->parentSpanId : ($applicationParent === '' ? null : (string) $applicationParent),
+            'attributes' => array_filter($span->attributes, fn (string $key): bool => ! str_starts_with($key, 'ecotone.execution.'), ARRAY_FILTER_USE_KEY),
+        ]);
     }
 
     private function isStored(Span $span): bool

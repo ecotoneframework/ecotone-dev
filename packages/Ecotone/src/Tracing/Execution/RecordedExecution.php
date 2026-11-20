@@ -20,6 +20,7 @@ final class RecordedExecution
 {
     public const SENT_FROM_ANOTHER_APPLICATION = 'ecotone.execution.sent_from_another_application';
     public const STEP_LABEL = 'ecotone.execution.label';
+    public const APPLICATION_PARENT = 'ecotone.execution.application_parent';
     public const GENERATED_ID_IN_LABEL = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{64}/';
     private const HEADERS_PROPAGATION_SPAN = 'process MessageHeadersPropagatorInterceptor::';
     private const PLUMBING = ['Bridge::handle', 'RoutingSlipPrepender::transform', 'HeaderRouter::route'];

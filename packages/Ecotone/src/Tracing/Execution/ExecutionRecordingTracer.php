@@ -63,8 +63,10 @@ final class ExecutionRecordingTracer implements Tracer
     public function startSpan(string $name, SpanKind $kind, array $attributes = [], ?SpanContext $remoteParent = null): ActiveSpan
     {
         $attributes = $this->withExecutionAttributes($attributes);
-        $step = $this->openStepOf($this->tracer->currentSpan());
+        $current = $this->tracer->currentSpan();
+        $step = $this->openStepOf($current);
         if ($step !== null && ($remoteParent === null || $remoteParent->traceId === $this->spanOf($step)->context()->traceId)) {
+            $attributes[RecordedExecution::APPLICATION_PARENT] = ($remoteParent ?? $current?->context())?->spanId ?? '';
             $remoteParent = $this->spanOf($step)->context();
         }
 

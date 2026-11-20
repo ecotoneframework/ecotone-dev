@@ -38,6 +38,8 @@ use Ecotone\Api\Tracing\CurrentTrace;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanStatus;
+use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
@@ -644,6 +646,48 @@ final class FlowTrackingTest extends TestCase
         $this->assertSame(['receive async_channel', 'process class@anonymous::place'], array_map(fn (Span $step): string => $step->name, array_values(array_filter($this->completion($ecotone)->fetchFlow($failing->traceId)->steps, fn (Span $step): bool => $step->status === SpanStatus::Error))));
         $this->assertSame([], array_values(array_filter($this->completion($ecotone)->fetchFlow($succeeding->traceId)->steps, fn (Span $step): bool => $step->status === SpanStatus::Error)));
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($succeeding->traceId));
+    }
+
+    public function test_flow_tracking_stores_the_same_flow_with_its_failed_steps_and_their_ancestors_at_both_tracing_levels(): void
+    {
+        $stored = [];
+        foreach ([TracingLevel::Application, TracingLevel::Framework] as $level) {
+            $orders = new class () {
+                #[Asynchronous('async_channel')]
+                #[CommandHandler('order.place', endpointId: 'order.placing')]
+                public function place(string $orderId, CommandBus $commandBus): void
+                {
+                    $commandBus->sendWithRouting('order.check', $orderId);
+
+                    throw new RuntimeException('Placing failed');
+                }
+
+                #[CommandHandler('order.check', endpointId: 'order.checking')]
+                public function check(string $orderId, CommandBus $commandBus): void
+                {
+                    try {
+                        $commandBus->sendWithRouting('order.verify', $orderId);
+                    } catch (RuntimeException) {
+                    }
+                }
+
+                #[CommandHandler('order.verify', endpointId: 'order.verifying')]
+                public function verify(string $orderId): void
+                {
+                    throw new RuntimeException('Verification failed');
+                }
+            };
+            $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel'), TracingConfiguration::createWithDefaults()->withLevel($level)]);
+            $trace = SpanContext::newTrace();
+            $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+            $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+            $steps = $this->completion($ecotone)->fetchFlow($trace->traceId)->steps;
+            $nameOf = array_column(array_map(fn (Span $step): array => [$step->spanId, $step->name], $steps), 1, 0);
+            $stored[$level->name] = array_map(fn (Span $step): array => [$step->name, $step->kind, $step->status, $step->statusDescription, $nameOf[$step->parentSpanId ?? ''] ?? ($step->parentSpanId === null ? null : 'outside the flow'), array_keys($step->attributes)], $steps);
+        }
+
+        self::assertNotSame([], $stored['Application']);
+        self::assertSame($stored['Application'], $stored['Framework']);
     }
 
     public function test_a_failed_step_below_a_step_that_swallowed_its_failure_is_recorded_with_every_step_above_it(): void

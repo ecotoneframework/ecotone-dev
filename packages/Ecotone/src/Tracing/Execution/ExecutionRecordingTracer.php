@@ -16,6 +16,7 @@ use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanKind;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Tracing\ActiveSpan;
 use Ecotone\Tracing\Tracer;
 
@@ -28,28 +29,7 @@ use Throwable;
  */
 final class ExecutionRecordingTracer implements Tracer
 {
-    /** @var list<ExecutionStep> */
-    private array $openSteps = [];
     private int $order = 0;
-    /** @var array<int, true> */
-    private array $stepsWithChildren = [];
-    /** @var list<Span|ExecutionStep> */
-    private array $stepsOfOpenEntry = [];
-    private bool $spanStartedInOpenEntry = false;
-    /** @var ?array{messageId: string, name: string, notes: list<array{depth: int, name: string, hints?: list<ExecutionHint>}>, attributes: array<string, scalar>, remoteParent: ?SpanContext} */
-    private ?array $awaitedReceive = null;
-    private ?ExecutionStep $receiveEntry = null;
-    private ?ExecutionStep $receiveContinuation = null;
-    private bool $invocationInOpenEntry = false;
-    private bool $housekeepingInOpenEntry = false;
-    /** @var array<string, array{depth: int, collected: array<string, true>}> */
-    private array $collectors = [];
-    /** @var array<int, list<ExecutionHint>> */
-    private array $hintsOfOpenSteps = [];
-    /** @var list<?string> */
-    private array $flowTestingFailures = [];
-    /** @var list<?array<string, mixed>> */
-    private array $suspendedEntries = [];
 
     private const PER_PROCESS_STATE = ['openSteps', 'stepsWithChildren', 'stepsOfOpenEntry', 'spanStartedInOpenEntry', 'receiveEntry', 'receiveContinuation', 'invocationInOpenEntry', 'housekeepingInOpenEntry', 'collectors', 'hintsOfOpenSteps'];
 
@@ -106,25 +86,25 @@ final class ExecutionRecordingTracer implements Tracer
      */
     public function awaitReceive(string $messageId, string $name, array $notes, array $attributes, ?SpanContext $remoteParent): void
     {
-        $this->awaitedReceive = ['messageId' => $messageId, 'name' => $name, 'notes' => $notes, 'attributes' => $attributes, 'remoteParent' => $remoteParent];
+        $this->state()->awaitedReceive = ['messageId' => $messageId, 'name' => $name, 'notes' => $notes, 'attributes' => $attributes, 'remoteParent' => $remoteParent];
     }
 
     public function startGatewayEntry(string $name, ?string $handledMessageId): ?ExecutionStep
     {
         $this->dropStepsOfEndedSpans();
-        if ($this->tracer->currentSpan() !== null || $this->openSteps !== []) {
+        if ($this->tracer->currentSpan() !== null || $this->state()->openSteps !== []) {
             return $this->startStep($name);
         }
-        $awaitedReceive = $this->awaitedReceive;
-        $this->awaitedReceive = null;
+        $awaitedReceive = $this->state()->awaitedReceive;
+        $this->state()->awaitedReceive = null;
         if ($awaitedReceive === null || $handledMessageId === null || $awaitedReceive['messageId'] !== $handledMessageId) {
             return $this->startEntry($name);
         }
-        $this->receiveEntry = $this->startEntry(name: $awaitedReceive['name'], attributes: $awaitedReceive['attributes'], remoteParent: $awaitedReceive['remoteParent']);
+        $this->state()->receiveEntry = $this->startEntry(name: $awaitedReceive['name'], attributes: $awaitedReceive['attributes'], remoteParent: $awaitedReceive['remoteParent']);
         $this->recordNested($awaitedReceive['notes']);
-        $this->receiveContinuation = $this->startStep($name);
+        $this->state()->receiveContinuation = $this->startStep($name);
 
-        return $this->receiveContinuation;
+        return $this->state()->receiveContinuation;
     }
 
     /**
@@ -133,13 +113,13 @@ final class ExecutionRecordingTracer implements Tracer
     public function startEntry(string $name, array $attributes = [], ?SpanContext $remoteParent = null): ?ExecutionStep
     {
         $this->dropStepsOfEndedSpans();
-        if ($this->tracer->currentSpan() !== null || $this->openSteps !== []) {
+        if ($this->tracer->currentSpan() !== null || $this->state()->openSteps !== []) {
             return $this->startStep($name, $attributes);
         }
-        $this->stepsOfOpenEntry = [];
-        $this->spanStartedInOpenEntry = false;
-        $this->invocationInOpenEntry = false;
-        $this->housekeepingInOpenEntry = false;
+        $this->state()->stepsOfOpenEntry = [];
+        $this->state()->spanStartedInOpenEntry = false;
+        $this->state()->invocationInOpenEntry = false;
+        $this->state()->housekeepingInOpenEntry = false;
         $entry = new ExecutionStep(
             name: $name,
             attributes: [
@@ -155,7 +135,7 @@ final class ExecutionRecordingTracer implements Tracer
             parentContext: $remoteParent,
             startedAt: $this->clock->now(),
         );
-        $this->openSteps[] = $entry;
+        $this->state()->openSteps[] = $entry;
 
         return $entry;
     }
@@ -167,18 +147,18 @@ final class ExecutionRecordingTracer implements Tracer
     public function startStep(string $name, array $attributes = [], bool $invocation = false, array $hints = [], bool $shownOnlyWhenSomethingRunsInside = false): ?ExecutionStep
     {
         $current = $this->tracer->currentSpan();
-        if ($current === null && $this->openSteps === []) {
+        if ($current === null && $this->state()->openSteps === []) {
             return null;
         }
         if ($invocation) {
-            $this->invocationInOpenEntry = true;
+            $this->state()->invocationInOpenEntry = true;
         }
         $parentStep = $this->openStepOf($current);
         if ($parentStep === null && $current === null) {
             return null;
         }
         if ($parentStep !== null) {
-            $this->stepsWithChildren[spl_object_id($parentStep)] = true;
+            $this->state()->stepsWithChildren[spl_object_id($parentStep)] = true;
         }
         $step = new ExecutionStep(
             name: $name,
@@ -198,7 +178,7 @@ final class ExecutionRecordingTracer implements Tracer
         if (! $shownOnlyWhenSomethingRunsInside && ($parentStep === null || $parentStep->span !== null)) {
             $this->spanOf($step);
         }
-        $this->openSteps[] = $step;
+        $this->state()->openSteps[] = $step;
 
         return $step;
     }
@@ -237,9 +217,9 @@ final class ExecutionRecordingTracer implements Tracer
 
     public function hintOpenStep(ExecutionHint $hint): void
     {
-        $step = $this->openSteps[count($this->openSteps) - 1] ?? null;
+        $step = $this->state()->openSteps[count($this->state()->openSteps) - 1] ?? null;
         if ($step !== null) {
-            $this->hintsOfOpenSteps[spl_object_id($step)][] = $hint;
+            $this->state()->hintsOfOpenSteps[spl_object_id($step)][] = $hint;
         }
     }
 
@@ -253,16 +233,16 @@ final class ExecutionRecordingTracer implements Tracer
 
     public function endStepWhenSomethingRanInside(ExecutionStep $step): void
     {
-        if (isset($this->stepsWithChildren[spl_object_id($step)])) {
+        if (isset($this->state()->stepsWithChildren[spl_object_id($step)])) {
             $this->endStep($step, '');
 
             return;
         }
-        $position = array_search($step, $this->openSteps, true);
+        $position = array_search($step, $this->state()->openSteps, true);
         if ($position !== false) {
-            array_splice($this->openSteps, $position, 1);
+            array_splice($this->state()->openSteps, $position, 1);
         }
-        unset($this->hintsOfOpenSteps[spl_object_id($step)]);
+        unset($this->state()->hintsOfOpenSteps[spl_object_id($step)]);
         $this->leaveUnrecorded($step);
     }
 
@@ -291,24 +271,24 @@ final class ExecutionRecordingTracer implements Tracer
      */
     private function finish(ExecutionStep $step, string $outcome, ?Throwable $failure, array $hints = []): void
     {
-        $position = array_search($step, $this->openSteps, true);
+        $position = array_search($step, $this->state()->openSteps, true);
         if ($position === false) {
             return;
         }
-        array_splice($this->openSteps, $position, 1);
+        array_splice($this->state()->openSteps, $position, 1);
         $key = spl_object_id($step);
-        unset($this->stepsWithChildren[$key]);
-        $hints = [...($this->hintsOfOpenSteps[$key] ?? []), ...$hints];
-        unset($this->hintsOfOpenSteps[$key]);
-        if ($this->openSteps === []) {
-            $this->stepsWithChildren = [];
-            $this->hintsOfOpenSteps = [];
+        unset($this->state()->stepsWithChildren[$key]);
+        $hints = [...($this->state()->hintsOfOpenSteps[$key] ?? []), ...$hints];
+        unset($this->state()->hintsOfOpenSteps[$key]);
+        if ($this->state()->openSteps === []) {
+            $this->state()->stepsWithChildren = [];
+            $this->state()->hintsOfOpenSteps = [];
         }
         $step->ending = ['outcome' => $outcome, 'hints' => $hints, 'failure' => $failure];
         if ($step->entry) {
-            $this->openSteps = [];
-            $this->hintsOfOpenSteps = [];
-            $this->stepsWithChildren = [];
+            $this->state()->openSteps = [];
+            $this->state()->hintsOfOpenSteps = [];
+            $this->state()->stepsWithChildren = [];
             $this->closeEntry($step);
 
             return;
@@ -317,17 +297,17 @@ final class ExecutionRecordingTracer implements Tracer
         if ($ended === null) {
             return;
         }
-        if ($this->receiveEntry !== null && $step === $this->receiveContinuation) {
-            $this->stepsOfOpenEntry[] = $ended;
-            $receiveEntry = $this->receiveEntry;
-            $this->receiveEntry = null;
-            $this->receiveContinuation = null;
+        if ($this->state()->receiveEntry !== null && $step === $this->state()->receiveContinuation) {
+            $this->state()->stepsOfOpenEntry[] = $ended;
+            $receiveEntry = $this->state()->receiveEntry;
+            $this->state()->receiveEntry = null;
+            $this->state()->receiveContinuation = null;
             $this->finish(step: $receiveEntry, outcome: '', failure: $failure);
 
             return;
         }
-        if ($this->openSteps !== [] && $this->openSteps[0]->entry) {
-            $this->stepsOfOpenEntry[] = $ended;
+        if ($this->state()->openSteps !== [] && $this->state()->openSteps[0]->entry) {
+            $this->state()->stepsOfOpenEntry[] = $ended;
 
             return;
         }
@@ -338,7 +318,7 @@ final class ExecutionRecordingTracer implements Tracer
 
     private function entryIsNotExportedYet(): bool
     {
-        return $this->openSteps !== [] && $this->openSteps[0]->entry && $this->openSteps[0]->span === null;
+        return $this->state()->openSteps !== [] && $this->state()->openSteps[0]->entry && $this->state()->openSteps[0]->span === null;
     }
 
     private function ended(ExecutionStep $step): ?Span
@@ -404,48 +384,48 @@ final class ExecutionRecordingTracer implements Tracer
 
     private function exportStepsEndedBefore(): void
     {
-        foreach ($this->stepsOfOpenEntry as $step) {
+        foreach ($this->state()->stepsOfOpenEntry as $step) {
             if ($step instanceof ExecutionStep) {
                 $this->spanOf($step);
             }
         }
         $exported = [];
-        foreach ($this->stepsOfOpenEntry as $step) {
+        foreach ($this->state()->stepsOfOpenEntry as $step) {
             $span = $step instanceof ExecutionStep ? $this->ended($step) : $step;
             if ($span !== null) {
                 $exported[] = $span;
             }
         }
-        $this->stepsOfOpenEntry = $exported;
+        $this->state()->stepsOfOpenEntry = $exported;
     }
 
     public function openCollector(string $channelName): void
     {
-        $collector = $this->collectors[$channelName] ?? ['depth' => 0, 'collected' => []];
+        $collector = $this->state()->collectors[$channelName] ?? ['depth' => 0, 'collected' => []];
         $collector['depth']++;
-        $this->collectors[$channelName] = $collector;
+        $this->state()->collectors[$channelName] = $collector;
     }
 
     public function closeCollector(string $channelName): void
     {
-        if (--$this->collectors[$channelName]['depth'] === 0) {
-            unset($this->collectors[$channelName]);
+        if (--$this->state()->collectors[$channelName]['depth'] === 0) {
+            unset($this->state()->collectors[$channelName]);
         }
     }
 
     public function collect(string $channelName, string $messageId): void
     {
-        if (isset($this->collectors[$channelName])) {
-            $this->collectors[$channelName]['collected'][$messageId] = true;
+        if (isset($this->state()->collectors[$channelName])) {
+            $this->state()->collectors[$channelName]['collected'][$messageId] = true;
         }
     }
 
     public function releaseCollected(string $channelName, string $messageId): bool
     {
-        if (! isset($this->collectors[$channelName]['collected'][$messageId])) {
+        if (! isset($this->state()->collectors[$channelName]['collected'][$messageId])) {
             return false;
         }
-        unset($this->collectors[$channelName]['collected'][$messageId]);
+        unset($this->state()->collectors[$channelName]['collected'][$messageId]);
 
         return true;
     }
@@ -453,69 +433,69 @@ final class ExecutionRecordingTracer implements Tracer
     public function suspendOpenEntry(): void
     {
         if ($this->tracer->currentSpan() !== null) {
-            $this->suspendedEntries[] = null;
+            $this->state()->suspendedEntries[] = null;
 
             return;
         }
         $suspended = [];
         foreach (self::PER_PROCESS_STATE as $property) {
-            $suspended[$property] = $this->{$property};
+            $suspended[$property] = $this->state()->{$property};
         }
-        $this->suspendedEntries[] = $suspended;
-        $this->openSteps = [];
-        $this->stepsWithChildren = [];
-        $this->stepsOfOpenEntry = [];
-        $this->spanStartedInOpenEntry = false;
-        $this->receiveEntry = null;
-        $this->receiveContinuation = null;
-        $this->invocationInOpenEntry = false;
-        $this->housekeepingInOpenEntry = false;
-        $this->collectors = [];
-        $this->hintsOfOpenSteps = [];
+        $this->state()->suspendedEntries[] = $suspended;
+        $this->state()->openSteps = [];
+        $this->state()->stepsWithChildren = [];
+        $this->state()->stepsOfOpenEntry = [];
+        $this->state()->spanStartedInOpenEntry = false;
+        $this->state()->receiveEntry = null;
+        $this->state()->receiveContinuation = null;
+        $this->state()->invocationInOpenEntry = false;
+        $this->state()->housekeepingInOpenEntry = false;
+        $this->state()->collectors = [];
+        $this->state()->hintsOfOpenSteps = [];
     }
 
     public function resumeSuspendedEntry(): void
     {
-        foreach (array_pop($this->suspendedEntries) ?? [] as $property => $value) {
-            $this->{$property} = $value;
+        foreach (array_pop($this->state()->suspendedEntries) ?? [] as $property => $value) {
+            $this->state()->{$property} = $value;
         }
     }
 
     public function markHousekeeping(): void
     {
-        if (! $this->spanStartedInOpenEntry && ! $this->invocationInOpenEntry) {
-            $this->housekeepingInOpenEntry = true;
+        if (! $this->state()->spanStartedInOpenEntry && ! $this->state()->invocationInOpenEntry) {
+            $this->state()->housekeepingInOpenEntry = true;
         }
     }
 
     public function startFlowTesting(): void
     {
-        $this->flowTestingFailures[] = null;
+        $this->state()->flowTestingFailures[] = null;
     }
 
     public function flowTestingFailed(Throwable $failure): void
     {
-        if ($this->flowTestingFailures !== []) {
-            $this->flowTestingFailures[count($this->flowTestingFailures) - 1] = self::shortClassOf($failure::class);
+        if ($this->state()->flowTestingFailures !== []) {
+            $this->state()->flowTestingFailures[count($this->state()->flowTestingFailures) - 1] = self::shortClassOf($failure::class);
         }
     }
 
     public function endFlowTesting(): ?string
     {
-        return array_pop($this->flowTestingFailures);
+        return array_pop($this->state()->flowTestingFailures);
     }
 
     private function closeEntry(ExecutionStep $entry): void
     {
-        $kept = $entry->ending['failure'] !== null || (! $this->housekeepingInOpenEntry && ($this->spanStartedInOpenEntry || $this->invocationInOpenEntry));
+        $kept = $entry->ending['failure'] !== null || (! $this->state()->housekeepingInOpenEntry && ($this->state()->spanStartedInOpenEntry || $this->state()->invocationInOpenEntry));
         if ($kept) {
             $this->spanOf($entry);
         }
-        $steps = $this->stepsOfOpenEntry;
-        $this->stepsOfOpenEntry = [];
-        $this->spanStartedInOpenEntry = false;
-        $this->invocationInOpenEntry = false;
-        $this->housekeepingInOpenEntry = false;
+        $steps = $this->state()->stepsOfOpenEntry;
+        $this->state()->stepsOfOpenEntry = [];
+        $this->state()->spanStartedInOpenEntry = false;
+        $this->state()->invocationInOpenEntry = false;
+        $this->state()->housekeepingInOpenEntry = false;
         if (! $kept) {
             foreach ([...$steps, $entry] as $step) {
                 if ($step instanceof ExecutionStep) {
@@ -540,22 +520,22 @@ final class ExecutionRecordingTracer implements Tracer
 
     private function dropStepsOfEndedSpans(): void
     {
-        if ($this->tracer->currentSpan() !== null || $this->openSteps === [] || $this->openSteps[0]->owner === null) {
+        if ($this->tracer->currentSpan() !== null || $this->state()->openSteps === [] || $this->state()->openSteps[0]->owner === null) {
             return;
         }
-        foreach (array_reverse($this->openSteps) as $step) {
+        foreach (array_reverse($this->state()->openSteps) as $step) {
             $this->leaveUnrecorded($step);
         }
-        $this->openSteps = [];
-        $this->stepsWithChildren = [];
-        $this->hintsOfOpenSteps = [];
-        $this->receiveEntry = null;
-        $this->receiveContinuation = null;
+        $this->state()->openSteps = [];
+        $this->state()->stepsWithChildren = [];
+        $this->state()->hintsOfOpenSteps = [];
+        $this->state()->receiveEntry = null;
+        $this->state()->receiveContinuation = null;
     }
 
     private function openStepOf(?ActiveSpan $current): ?ExecutionStep
     {
-        $step = $this->openSteps[count($this->openSteps) - 1] ?? null;
+        $step = $this->state()->openSteps[count($this->state()->openSteps) - 1] ?? null;
 
         return $step !== null && $step->owner === $current ? $step : null;
     }
@@ -568,13 +548,13 @@ final class ExecutionRecordingTracer implements Tracer
     {
         $attributes[SpanAttribute::EXECUTION_ORDER] = $this->nextOrder();
         $current = $this->tracer->currentSpan();
-        if ($current === null && $this->openSteps === []) {
+        if ($current === null && $this->state()->openSteps === []) {
             $attributes[SpanAttribute::EXECUTION_PROCESS] = true;
 
             return $attributes;
         }
         if ($current === null) {
-            $this->spanStartedInOpenEntry = true;
+            $this->state()->spanStartedInOpenEntry = true;
         }
         $step = $this->openStepOf($current);
         if ($step !== null) {
@@ -582,5 +562,10 @@ final class ExecutionRecordingTracer implements Tracer
         }
 
         return $attributes;
+    }
+
+    private function state(): ExecutionRecordingState
+    {
+        return ExecutionScope::stateOf($this, static fn () => new ExecutionRecordingState());
     }
 }

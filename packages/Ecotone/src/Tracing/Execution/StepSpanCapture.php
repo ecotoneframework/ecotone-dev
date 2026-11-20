@@ -6,23 +6,22 @@ namespace Ecotone\Tracing\Execution;
 
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanRecorder;
+use Ecotone\Messaging\Execution\ExecutionList;
+use Ecotone\Messaging\Execution\ExecutionScope;
 
 /**
  * licence Apache-2.0
  */
 final class StepSpanCapture implements SpanRecorder
 {
-    /** @var array<string, ?Span> */
-    private array $captured = [];
-
     public function __construct(private SpanRecorder $spanRecorder)
     {
     }
 
     public function record(Span $span): void
     {
-        if (array_key_exists($span->spanId, $this->captured)) {
-            $this->captured[$span->spanId] = $span;
+        if (array_key_exists($span->spanId, $this->captured()->items)) {
+            $this->captured()->items[$span->spanId] = $span;
 
             return;
         }
@@ -31,13 +30,13 @@ final class StepSpanCapture implements SpanRecorder
 
     public function capture(string $spanId): void
     {
-        $this->captured[$spanId] = null;
+        $this->captured()->items[$spanId] = null;
     }
 
     public function popCaptured(string $spanId): ?Span
     {
-        $span = $this->captured[$spanId] ?? null;
-        unset($this->captured[$spanId]);
+        $span = $this->captured()->items[$spanId] ?? null;
+        unset($this->captured()->items[$spanId]);
 
         return $span;
     }
@@ -45,5 +44,10 @@ final class StepSpanCapture implements SpanRecorder
     public function release(Span $span): void
     {
         $this->spanRecorder->record($span);
+    }
+
+    private function captured(): ExecutionList
+    {
+        return ExecutionScope::stateOf($this, static fn () => new ExecutionList());
     }
 }

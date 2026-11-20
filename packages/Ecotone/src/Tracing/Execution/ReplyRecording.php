@@ -12,6 +12,8 @@ use function count;
 
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Messaging\Execution\ExecutionList;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Throwable;
 
 /**
@@ -22,8 +24,6 @@ final class ReplyRecording
     public const OUTPUT_CHANNEL = 'output channel';
     public const ROUTING_SLIP = 'routing slip';
 
-    /** @var list<array{request: Message, reply: ?Message, handedOver: bool}> */
-    private array $openRequests = [];
 
     public function __construct(private string $handler, private ExecutionRecordingTracer $tracer)
     {
@@ -31,28 +31,28 @@ final class ReplyRecording
 
     public function started(Message $request): void
     {
-        $this->openRequests[] = ['request' => $request, 'reply' => null, 'handedOver' => false];
+        $this->openRequests()->items[] = ['request' => $request, 'reply' => null, 'handedOver' => false];
     }
 
     public function replied(?Message $reply): void
     {
-        if ($this->openRequests === []) {
+        if ($this->openRequests()->items === []) {
             return;
         }
-        $this->openRequests[count($this->openRequests) - 1]['reply'] = $reply;
+        $this->openRequests()->items[count($this->openRequests()->items) - 1]['reply'] = $reply;
     }
 
     public function routedTo(string $mechanism, string $channelName, Message $forwarded, Closure $send): void
     {
-        $position = count($this->openRequests) - 1;
+        $position = count($this->openRequests()->items) - 1;
         if ($position < 0) {
             $send();
 
             return;
         }
-        $this->openRequests[$position]['handedOver'] = true;
-        $request = $this->openRequests[$position]['request'];
-        $reply = $this->openRequests[$position]['reply'] ?? $request;
+        $this->openRequests()->items[$position]['handedOver'] = true;
+        $request = $this->openRequests()->items[$position]['request'];
+        $reply = $this->openRequests()->items[$position]['reply'] ?? $request;
         $step = $this->tracer->startStep('forward to ' . $channelName, hints: array_values(array_filter([
             ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, $mechanism === self::OUTPUT_CHANNEL ? 'output channel of ' . $this->handler : 'routing slip'),
             self::routingSlipChangeOf($mechanism === self::ROUTING_SLIP ? $reply : $request, $forwarded),
@@ -75,15 +75,15 @@ final class ReplyRecording
 
     public function completedAsPart(): void
     {
-        if ($this->openRequests === []) {
+        if ($this->openRequests()->items === []) {
             return;
         }
-        $this->openRequests[count($this->openRequests) - 1]['handedOver'] = true;
+        $this->openRequests()->items[count($this->openRequests()->items) - 1]['handedOver'] = true;
     }
 
     public function finished(Message $request, bool $failed): void
     {
-        $open = array_pop($this->openRequests);
+        $open = array_pop($this->openRequests()->items);
         if ($failed || $open === null || $open['handedOver']) {
             return;
         }
@@ -146,5 +146,10 @@ final class ReplyRecording
         $slip = $headers->containsKey(MessageHeaders::ROUTING_SLIP) ? (string) $headers->get(MessageHeaders::ROUTING_SLIP) : '';
 
         return $slip === '' ? [] : explode(',', $slip);
+    }
+
+    private function openRequests(): ExecutionList
+    {
+        return ExecutionScope::stateOf($this, static fn () => new ExecutionList());
     }
 }

@@ -22,8 +22,10 @@ use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
+use Fiber;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
+use OpenTelemetry\Context\Context;
 use OpenTelemetry\SDK\Trace\ImmutableSpan;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -235,6 +237,53 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         self::assertSame([], array_values(array_filter(array_map(fn (ImmutableSpan $span): string => $span->getName(), $steps), fn (string $name): bool => preg_match($generatedId, $name) === 1)));
         self::assertNotSame([], $labelled);
         self::assertStringContainsString('{generated}', $labelled[0]->getName());
+    }
+
+    #[DataProvider('places')]
+    public function test_two_commands_handled_interleaved_at_the_framework_level_export_each_step_in_the_trace_of_its_own_command(bool $running): void
+    {
+        $exporter = new InMemoryExporter();
+        $handlers = new class () {
+            #[CommandHandler('order.place')]
+            public function place(array $command, EventBus $eventBus): void
+            {
+                if ($command['suspend']) {
+                    Fiber::suspend();
+                }
+                $eventBus->publishWithRouting('order.placed', $command['orderId']);
+            }
+
+            #[EventHandler('order.placed', endpointId: 'order.notifier')]
+            public function notify(string $orderId): void
+            {
+            }
+        };
+        $application = $this->application($running, [$handlers], $exporter, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework));
+        $suspended = new Fiber(static function () use ($application): void {
+            $scope = Context::getRoot()->activate();
+            try {
+                $application->getCommandBus()->sendWithRouting('order.place', ['orderId' => 'first', 'suspend' => true]);
+            } finally {
+                $scope->detach();
+            }
+        });
+        $suspended->start();
+        $application->getCommandBus()->sendWithRouting('order.place', ['orderId' => 'second', 'suspend' => false]);
+        $suspended->resume();
+        $spans = $exporter->getSpans();
+        $byId = [];
+        foreach ($spans as $span) {
+            $byId[$span->getSpanId()] = $span;
+        }
+
+        self::assertCount(2, array_unique(array_map(fn (ImmutableSpan $span): string => $span->getTraceId(), $spans)));
+        foreach (self::stepsIn($spans) as $step) {
+            if ($step->getParentContext()->isValid()) {
+                self::assertArrayHasKey($step->getParentSpanId(), $byId);
+                self::assertSame($byId[$step->getParentSpanId()]->getTraceId(), $step->getTraceId());
+            }
+        }
+        self::assertSame(self::applicationShapeOf(array_values(array_filter($spans, fn (ImmutableSpan $span): bool => $span->getTraceId() === $spans[0]->getTraceId()))), self::applicationShapeOf(array_values(array_filter($spans, fn (ImmutableSpan $span): bool => $span->getTraceId() !== $spans[0]->getTraceId()))));
     }
 
     /**

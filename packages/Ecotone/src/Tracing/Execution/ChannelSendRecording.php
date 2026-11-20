@@ -13,6 +13,8 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Messaging\Channel\PollableChannel\SendRetries\SendRetryChannelInterceptor;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptor;
+use Ecotone\Messaging\Execution\ExecutionList;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Messaging\Handler\Recoverability\DelayedRetryErrorHandler;
 use Ecotone\Tracing\TracingInterceptor;
 use Throwable;
@@ -32,8 +34,6 @@ final class ChannelSendRecording
     public const PHASES = [self::PRE_SEND, self::POST_SEND, self::AFTER_SEND_COMPLETION, self::PRE_RECEIVE, self::POST_RECEIVE, self::AFTER_RECEIVE_COMPLETION];
     private const FLOW_TESTING_NAMESPACE = 'Ecotone\\Lite\\Test\\';
 
-    /** @var list<array{step: ?ExecutionStep, entered: list<array{step: ExecutionStep, position: int, hints: list<ExecutionHint>}>, put: ?ExecutionStep, passedOn: Message, ran: int, messageId: string, failed: ?string, failedAfter: array<int, bool>, after: list<array{position: int, phase: string, failure: ?string}>, left: bool}> */
-    private array $openSends = [];
     /** @var list<string> */
     private array $interceptors;
 
@@ -56,7 +56,7 @@ final class ChannelSendRecording
     {
         $messageId = self::identityOf($message);
         $released = $this->tracer->releaseCollected($this->channelName, $messageId);
-        $this->openSends[] = [
+        $this->openSends()->items[] = [
             'step' => $this->onlyFlowTestingIntercepts ? null : $this->tracer->startEntry(
                 ($released ? 'release collected message to ' : 'send ') . $this->channelName,
                 attributes: [
@@ -82,54 +82,54 @@ final class ChannelSendRecording
 
     public function interceptorRan(int $position, Message $passedOn): void
     {
-        $current = count($this->openSends) - 1;
+        $current = count($this->openSends()->items) - 1;
         if ($current < 0) {
             return;
         }
-        $send = $this->openSends[$current];
+        $send = $this->openSends()->items[$current];
         $entered = count($send['entered']) - 1;
         if ($entered >= 0 && $send['entered'][$entered]['position'] === $position) {
-            $this->openSends[$current]['entered'][$entered]['hints'] = self::changeOf($send['passedOn'], $passedOn);
+            $this->openSends()->items[$current]['entered'][$entered]['hints'] = self::changeOf($send['passedOn'], $passedOn);
         }
-        $this->openSends[$current]['passedOn'] = $passedOn;
-        $this->openSends[$current]['ran'] = $position + 1;
+        $this->openSends()->items[$current]['passedOn'] = $passedOn;
+        $this->openSends()->items[$current]['ran'] = $position + 1;
         if ($position + 1 < count($this->interceptors)) {
             $this->enter($position + 1);
 
             return;
         }
         if ($send['step'] !== null) {
-            $this->openSends[$current]['put'] = $this->tracer->startStep(($this->queued ? 'put on channel ' : 'deliver inline to ') . $this->channelName);
+            $this->openSends()->items[$current]['put'] = $this->tracer->startStep(($this->queued ? 'put on channel ' : 'deliver inline to ') . $this->channelName);
         }
     }
 
     public function postSentAfter(int $position): void
     {
-        if ($this->openSends === []) {
+        if ($this->openSends()->items === []) {
             return;
         }
         $this->leaveEntered(null);
-        $this->openSends[count($this->openSends) - 1]['after'][] = ['position' => $position, 'phase' => self::POST_SEND, 'failure' => null];
+        $this->openSends()->items[count($this->openSends()->items) - 1]['after'][] = ['position' => $position, 'phase' => self::POST_SEND, 'failure' => null];
     }
 
     public function completedAfter(int $position, ?Throwable $failure): void
     {
-        $current = count($this->openSends) - 1;
+        $current = count($this->openSends()->items) - 1;
         if ($current < 0) {
             return;
         }
         $this->leaveEntered($failure);
-        $this->openSends[$current]['failedAfter'][$position] = $failure !== null;
-        $this->openSends[$current]['after'][] = ['position' => $position, 'phase' => self::AFTER_SEND_COMPLETION, 'failure' => $failure === null ? null : ExecutionRecordingTracer::shortClassOf($failure::class)];
+        $this->openSends()->items[$current]['failedAfter'][$position] = $failure !== null;
+        $this->openSends()->items[$current]['after'][] = ['position' => $position, 'phase' => self::AFTER_SEND_COMPLETION, 'failure' => $failure === null ? null : ExecutionRecordingTracer::shortClassOf($failure::class)];
         if ($failure !== null) {
-            $this->openSends[$current]['failed'] ??= ExecutionRecordingTracer::shortClassOf($failure::class);
+            $this->openSends()->items[$current]['failed'] ??= ExecutionRecordingTracer::shortClassOf($failure::class);
         }
     }
 
     public function completed(?Throwable $failure): void
     {
         $this->leaveEntered($failure);
-        $send = array_pop($this->openSends);
+        $send = array_pop($this->openSends()->items);
         if ($send === null) {
             return;
         }
@@ -202,27 +202,27 @@ final class ChannelSendRecording
 
     private function enter(int $position): void
     {
-        $current = count($this->openSends) - 1;
-        if ($current < 0 || $this->openSends[$current]['step'] === null || ! $this->shows($position, self::PRE_SEND)) {
+        $current = count($this->openSends()->items) - 1;
+        if ($current < 0 || $this->openSends()->items[$current]['step'] === null || ! $this->shows($position, self::PRE_SEND)) {
             return;
         }
         $step = $this->tracer->startStep('before send ' . $this->methodOf($position, self::PRE_SEND));
         if ($step !== null) {
-            $this->openSends[$current]['entered'][] = ['step' => $step, 'position' => $position, 'hints' => []];
+            $this->openSends()->items[$current]['entered'][] = ['step' => $step, 'position' => $position, 'hints' => []];
         }
     }
 
     private function leaveEntered(?Throwable $failure): void
     {
-        $current = count($this->openSends) - 1;
+        $current = count($this->openSends()->items) - 1;
         if ($current < 0) {
             return;
         }
-        $send = $this->openSends[$current];
+        $send = $this->openSends()->items[$current];
         if ($send['left']) {
             return;
         }
-        $this->openSends[$current]['left'] = true;
+        $this->openSends()->items[$current]['left'] = true;
         if ($send['put'] !== null) {
             $failure === null ? $this->tracer->endStep($send['put'], '') : $this->tracer->failStep($send['put'], $failure);
         } elseif ($failure === null && $send['ran'] < count($this->interceptors)) {
@@ -340,5 +340,10 @@ final class ChannelSendRecording
         }
 
         return 'absorbed by the channel interceptors';
+    }
+
+    private function openSends(): ExecutionList
+    {
+        return ExecutionScope::stateOf($this, static fn () => new ExecutionList());
     }
 }

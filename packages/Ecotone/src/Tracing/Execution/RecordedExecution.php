@@ -192,6 +192,14 @@ final class RecordedExecution
         $sentBy = [];
         foreach ($processes as $consumer => $process) {
             $sender = self::senderOf(spans: [$process, ...$inStepOrder[$consumer]], processOf: $processOf, consumer: $consumer);
+            $startingStep = self::stepThatStartedTheCoroutineOf(process: $process, spanOf: $spanOf, stepOf: $stepOf);
+            if ($sender === null && $startingStep !== null && $inStepOrder[$consumer] !== [] && $processOf[$startingStep->spanId] !== $consumer) {
+                $starter = $processOf[$startingStep->spanId];
+                $sentBy[$consumer] = ['processNumber' => $starter + 1, 'stepNumber' => $stepOf[$startingStep->spanId] + 1];
+                $links[$inStepOrder[$consumer][0]->spanId][] = ['key' => ExecutionHint::STARTED_IN, 'value' => 'a coroutine process ' . ($starter + 1) . ' started', 'shownInLines' => true];
+                $links[$startingStep->spanId][] = ['key' => ExecutionHint::STARTS, 'value' => 'process ' . ($consumer + 1) . ', in a coroutine', 'shownInLines' => true];
+                continue;
+            }
             if ($sender === null) {
                 $firstStep = $inStepOrder[$consumer][0] ?? null;
                 $sentFrom = $firstStep?->attributes[SpanAttribute::EXECUTION_SENT_FROM_ANOTHER_APPLICATION] ?? null;
@@ -213,6 +221,25 @@ final class RecordedExecution
         }
 
         return [$links, $sources, $sentBy];
+    }
+
+    /**
+     * @param array<string, Span> $spanOf
+     * @param array<string, int> $stepOf
+     */
+    private static function stepThatStartedTheCoroutineOf(Span $process, array $spanOf, array $stepOf): ?Span
+    {
+        $order = $process->attributes[SpanAttribute::EXECUTION_STARTED_IN_A_COROUTINE_OF] ?? null;
+        if ($order === null) {
+            return null;
+        }
+        foreach ($spanOf as $span) {
+            if (isset($stepOf[$span->spanId]) && ($span->attributes[SpanAttribute::EXECUTION_ORDER] ?? null) === $order) {
+                return $span;
+            }
+        }
+
+        return null;
     }
 
     /**

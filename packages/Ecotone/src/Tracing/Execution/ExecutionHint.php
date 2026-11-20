@@ -27,6 +27,8 @@ final class ExecutionHint
     public const COLLECTED = 'collected';
     public const RUNS_IN = 'runs in';
     public const WORK_IN = 'work in';
+    public const STARTED_IN = 'started in';
+    public const STARTS = 'starts';
     public const RANGE = 'range';
     public const IDENTIFIERS = 'identifiers';
     public const PROPAGATING = 'propagating';
@@ -36,7 +38,7 @@ final class ExecutionHint
     public const SERVICE = 'service';
     public const KEYS = [
         self::CHOSEN_BY, self::RETURNS, self::OUTCOME, self::FAILURE, self::FOUND, self::ROUTING_SLIP, self::KEPT, self::HEADERS_ADDED, self::HEADERS_REMOVED,
-        self::HEADERS_CHANGED, self::HEADERS_READ, self::PAYLOAD, self::SENT_BY, self::TAKEN_BY, self::STOPPED, self::COLLECTED, self::RUNS_IN, self::WORK_IN,
+        self::HEADERS_CHANGED, self::HEADERS_READ, self::PAYLOAD, self::SENT_BY, self::TAKEN_BY, self::STOPPED, self::COLLECTED, self::RUNS_IN, self::WORK_IN, self::STARTED_IN, self::STARTS,
         self::RANGE, self::IDENTIFIERS, self::PROPAGATING, self::RECEIVED_WITH, self::RETRY, self::GROUP, self::SERVICE,
     ];
 

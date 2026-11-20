@@ -233,6 +233,7 @@ jobs:
         packages/Ecotone/tests/Messaging/Execution/CoroutineExecutionsTest.php
         packages/Ecotone/tests/Messaging/Execution/ConsumerCoroutinesTest.php
         packages/Ecotone/tests/Messaging/Execution/CoroutineTestingTest.php
+        packages/Ecotone/tests/Tracing/CoroutineExecutionRecordingTest.php
         packages/Dbal/tests/Integration/CoroutineExecutionsTest.php
         packages/Amqp/tests/Integration/CoroutineExecutionsTest.php
     steps:

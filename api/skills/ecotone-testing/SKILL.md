@@ -232,7 +232,10 @@ echo implode("\n", $recording->lines);
   span an application span would have as its parent at the application level, empty for a root, set when its parent
   is now a step; `ecotone.execution.label` (`EXECUTION_LABEL`) is a step's full label when its exported name differs;
   `ecotone.execution.sent_from_another_application` (`EXECUTION_SENT_FROM_ANOTHER_APPLICATION`) is, on the `receive`
-  step of a distributed message, the application and message it came from, the text of its `sent by` hint.
+  step of a distributed message, the application and message it came from, the text of its `sent by` hint;
+  `ecotone.execution.started_in_a_coroutine_of` (`EXECUTION_STARTED_IN_A_COROUTINE_OF`) is, on the first step of a
+  process that runs in a coroutine a handler started (OpenSwoole or Swoole), the `ecotone.execution.order` of the step
+  that started it, which makes the process a sub-flow of that step.
 - An exported step whose label holds an id Ecotone generates (an endpoint without an `endpointId`) is named with
   `{generated}` in its place, and its full label is in `ecotone.execution.label`. Give the endpoint an `endpointId` to
   get a readable name.

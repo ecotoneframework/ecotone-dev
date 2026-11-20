@@ -120,6 +120,8 @@ final class ExecutionRecordingTracer implements Tracer
         $this->state()->spanStartedInOpenEntry = false;
         $this->state()->invocationInOpenEntry = false;
         $this->state()->housekeepingInOpenEntry = false;
+        $this->state()->lastCoroutineStartedBeforeTheOpenEntry = ExecutionScope::lastStartedCoroutineId();
+        $startedBy = $this->state()->orderOfTheStepThatStartedThisCoroutine;
         $entry = new ExecutionStep(
             name: $name,
             attributes: [
@@ -127,6 +129,7 @@ final class ExecutionRecordingTracer implements Tracer
                 SpanAttribute::EXECUTION_STEP => true,
                 SpanAttribute::EXECUTION_PROCESS => true,
                 SpanAttribute::EXECUTION_ORDER => $this->nextOrder(),
+                ...($startedBy === null ? [] : [SpanAttribute::EXECUTION_STARTED_IN_A_COROUTINE_OF => $startedBy]),
                 ...$attributes,
             ],
             owner: null,

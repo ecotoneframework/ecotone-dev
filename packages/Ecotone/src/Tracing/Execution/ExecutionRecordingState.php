@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Ecotone\Tracing\Execution;
 
 use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanContext;
+use Ecotone\Messaging\Execution\CopiedToChildExecution;
 
 /**
  * licence Apache-2.0
  */
-final class ExecutionRecordingState
+final class ExecutionRecordingState implements CopiedToChildExecution
 {
     /** @var list<ExecutionStep> */
     public array $openSteps = [];
@@ -33,4 +35,18 @@ final class ExecutionRecordingState
     public array $flowTestingFailures = [];
     /** @var list<?array<string, mixed>> */
     public array $suspendedEntries = [];
+    public int $lastCoroutineStartedBeforeTheOpenEntry = 0;
+    public ?int $orderOfTheStepThatStartedThisCoroutine = null;
+
+    public function copyForChildExecution(int $childCoroutineId): ?object
+    {
+        $innermostOpenStep = $this->openSteps[count($this->openSteps) - 1] ?? null;
+        if ($innermostOpenStep === null || $childCoroutineId <= $this->lastCoroutineStartedBeforeTheOpenEntry) {
+            return null;
+        }
+        $copy = new self();
+        $copy->orderOfTheStepThatStartedThisCoroutine = (int) $innermostOpenStep->attributes[SpanAttribute::EXECUTION_ORDER];
+
+        return $copy;
+    }
 }

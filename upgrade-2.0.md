@@ -2525,8 +2525,10 @@ own. One that registers it under the literal pre-release string has to use the c
   trace. **Now:** it comes back exactly as it was sent to the channel, as on DBAL and AMQP, and stays in its trace;
   only the acknowledgement headers of the first delivery are not carried over. `#[AddHeader]`, `#[RemoveHeader]`,
   `#[Delayed]`, `#[Priority]`, `#[TimeToLive]` and `#[Presend]` are unaffected: they apply before the message
-  reaches the channel. **How to adapt:** nothing, unless a test relied on the retried message missing a header a
-  negative-precedence `#[ChannelInterceptor]` adds.
+  reaches the channel. A negative-precedence `#[ChannelInterceptor]` that adds a header without checking for it now
+  sees the header it added on the first delivery when the message comes back, as it already did on DBAL. **How to
+  adapt:** nothing, unless a test relied on the retried message missing a header a negative-precedence
+  `#[ChannelInterceptor]` adds, or the interceptor is not idempotent: make it keep a header that is already there.
 - **`EventStore::load()` and `loadAggregateEvents()` refuse a `count` of `0` on DBAL too.** Before, DBAL returned no
   events while in-memory refused; both now throw `InvalidArgumentException` saying a count caps how many events are
   loaded and to pass `null` for all of them. **How to adapt:** pass `null`, or skip the call, where you passed `0`.
@@ -3593,7 +3595,7 @@ tracing package hands over its `Tracer`, so an application without tracing pays 
 becomes an implementation of that `Tracer`: it starts live SDK spans with the same ids Core reports, keeps the
 forced flush and the Dynamic Consistency Boundary spans, and records nothing when a flow test is given no
 `TracerProviderInterface`, in which case Core's own tracer serves the configured recorders. Its configuration moved
-to `Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration`; the never-settable tracing level is gone.
+to `Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration`; its tracing level, which could never be set, is gone. The level is now chosen in Core with `TracingConfiguration::withLevel()`: `TracingLevel::Application` (the default) traces messages and handlers, and 1.x's framework level is `TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)`, which also traces every step Ecotone runs.
 `MessageHeaders::TEMPORARY_SPAN_CONTEXT_HEADER`, which nothing set, is removed.
 
 **How to adapt:** rename dashboards and alerts keyed on the 1.x span names: `Command Bus` is `send command`,

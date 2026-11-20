@@ -54,8 +54,9 @@ final class ReplyRecording
         $request = $this->openRequests()->items[$position]['request'];
         $reply = $this->openRequests()->items[$position]['reply'] ?? $request;
         $step = $this->tracer->startStep('forward to ' . $channelName, hints: array_values(array_filter([
-            ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, $mechanism === self::OUTPUT_CHANNEL ? 'output channel of ' . $this->handler : 'routing slip'),
-            self::routingSlipChangeOf($mechanism === self::ROUTING_SLIP ? $reply : $request, $forwarded),
+            ...($mechanism === self::OUTPUT_CHANNEL
+                ? [ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, 'output channel of ' . $this->handler), self::routingSlipChangeOf($request, $forwarded)]
+                : self::takenFromTheRoutingSlip($reply, $forwarded)),
             $forwarded->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL) ? ExecutionHint::detail(ExecutionHint::KEPT, 'reply channel of the request') : null,
             ...self::forwardedOf($request, $forwarded),
         ])));
@@ -102,18 +103,41 @@ final class ReplyRecording
         $this->tracer->recordStep('no hand-over', hints: array_values(array_filter([ExecutionHint::shownInLines(ExecutionHint::OUTCOME, $payload . ' returned by ' . $this->handler . ', not taken'), $slip])));
     }
 
-    private static function routingSlipChangeOf(Message $request, Message $handedOver): ?ExecutionHint
+    /**
+     * @return list<?ExecutionHint>
+     */
+    private static function takenFromTheRoutingSlip(Message $received, Message $forwarded): array
     {
-        $before = self::routingSlipOf($request);
-        $after = self::routingSlipOf($handedOver);
-        if ($before === [] && $after === []) {
-            return null;
-        }
-        if ($before === $after) {
-            return ExecutionHint::shownInLines(ExecutionHint::KEPT, 'routing slip ' . implode(', ', $after));
+        $remaining = array_slice(self::routingSlipOf($received), 1);
+        $passedOn = self::routingSlipOf($forwarded);
+        if ($passedOn === $remaining) {
+            return [ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, 'routing slip, ' . ($remaining === [] ? 'now empty' : 'then: ' . implode(', ', $remaining)))];
         }
 
-        return ExecutionHint::shownInLines(ExecutionHint::ROUTING_SLIP, ($before === [] ? 'none' : implode(', ', $before)) . ' → ' . ($after === [] ? 'none' : implode(', ', $after)));
+        return [ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, 'routing slip'), self::routingSlipChange(before: $remaining, after: $passedOn)];
+    }
+
+    private static function routingSlipChangeOf(Message $received, Message $handedOver): ?ExecutionHint
+    {
+        return self::routingSlipChange(before: self::routingSlipOf($received), after: self::routingSlipOf($handedOver));
+    }
+
+    /**
+     * @param list<string> $before
+     * @param list<string> $after
+     */
+    private static function routingSlipChange(array $before, array $after): ?ExecutionHint
+    {
+        $added = array_slice($after, 0, max(0, count($after) - count($before)));
+        $dropped = array_slice($before, 0, max(0, count($before) - count($after)));
+
+        return match (true) {
+            $before === [] && $after === [] => null,
+            $before === $after => ExecutionHint::shownInLines(ExecutionHint::KEPT, 'routing slip ' . implode(', ', $after)),
+            array_slice($after, count($added)) === $before => ExecutionHint::shownInLines(ExecutionHint::ROUTING_SLIP, 'adds ' . implode(', ', $added)),
+            array_slice($before, count($dropped)) === $after => ExecutionHint::shownInLines(ExecutionHint::ROUTING_SLIP, 'drops ' . implode(', ', $dropped)),
+            default => ExecutionHint::shownInLines(ExecutionHint::ROUTING_SLIP, 'replaces ' . implode(', ', $before) . ' with ' . implode(', ', $after)),
+        };
     }
 
     /**

@@ -100,7 +100,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $forward = self::positionOf($lines, 'forward to order.place.endpoint.target.execute');
 
         self::assertSame(self::depthOf($lines[$forward]) + 1, self::depthOf($lines[$forward + 1]));
-        self::assertSame(['↳ chosen by: routing slip', '↳ routing slip: order.place.endpoint.target.execute → none'], array_map(trim(...), array_slice($lines, $forward + 1, 2)));
+        self::assertSame(['↳ chosen by: routing slip, now empty'], array_map(trim(...), array_slice($lines, $forward + 1, 1)));
     }
 
     public function test_hints_that_do_not_decide_the_flow_are_printed_only_when_every_hint_is_asked_for(): void
@@ -183,7 +183,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $lines = array_map(trim(...), self::executionOf('orchestrator gateway starting the flow'));
         $forward = self::positionOf($lines, 'forward to approval.validate');
 
-        self::assertSame(['↳ chosen by: routing slip', '↳ routing slip: approval.validate, approval.notify → approval.notify'], array_slice($lines, $forward + 1, 2));
+        self::assertSame(['↳ chosen by: routing slip, then: approval.notify', 'direct channel approval.validate'], array_slice($lines, $forward + 1, 2));
     }
 
     public function test_a_routing_slip_the_output_channel_leaves_unchanged_is_kept_not_shown_as_changed(): void
@@ -192,7 +192,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $forward = self::positionOf($lines, 'forward to dead_letter');
 
         self::assertSame(['↳ chosen by: output channel of DelayedRetryErrorHandler::handle', '↳ kept: routing slip order.placing.target.execute'], array_slice($lines, $forward + 1, 2));
-        self::assertSame([], preg_grep('/^↳ routing slip: (.+) → \1$/', $lines));
+        self::assertSame([], preg_grep('/^↳ routing slip: .*→/', $lines));
     }
 
     public function test_each_partition_batch_send_says_which_gathering_part_it_carries(): void
@@ -369,7 +369,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
     {
         $lines = array_map(trim(...), self::executionOf('distributed command consumed by the target service'));
 
-        self::assertContains('↳ routing slip: none → ' . DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE, array_slice($lines, 0, 4));
+        self::assertContains('↳ routing slip: adds ' . DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE, array_slice($lines, 0, 4));
         self::assertSame('↳ chosen by: service map, command to ticket_service', $lines[self::positionOf($lines, 'route to distributed_channel') + 1]);
     }
 
@@ -454,7 +454,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $forward = self::positionOf($lines, 'forward to order.place.endpoint.target.execute');
 
         self::assertSame('bridge Bridge::handle', $lines[$forward - 1]);
-        self::assertSame(['↳ chosen by: routing slip', '↳ routing slip: order.place.endpoint.target.execute → none', 'direct channel order.place.endpoint.target.execute'], array_slice($lines, $forward + 1, 3));
+        self::assertSame(['↳ chosen by: routing slip, now empty', 'direct channel order.place.endpoint.target.execute'], array_slice($lines, $forward + 1, 2));
     }
 
     public function test_the_routing_slip_an_asynchronous_endpoint_puts_on_the_message_is_recorded_before_the_send_to_the_queue(): void
@@ -463,7 +463,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $forward = self::positionOf($lines, 'forward to orders');
 
         self::assertSame('handler RoutingSlipPrepender::transform', $lines[$forward - 1]);
-        self::assertSame(['↳ chosen by: output channel of RoutingSlipPrepender::transform', '↳ routing slip: none → order.place.endpoint.target.execute', 'send orders'], array_slice($lines, $forward + 1, 3));
+        self::assertSame(['↳ chosen by: output channel of RoutingSlipPrepender::transform', '↳ routing slip: adds order.place.endpoint.target.execute', 'send orders'], array_slice($lines, $forward + 1, 3));
     }
 
     public function test_a_result_forwarded_by_the_output_channel_and_a_reply_to_the_waiting_sender_name_their_mechanism(): void
@@ -516,7 +516,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $lines = array_map(trim(...), self::executionOf('tag-partitioned projection backfilled asynchronously in two batches'));
         $entrypoint = self::positionOf($lines, 'entrypoint sends to backfill');
 
-        self::assertSame('↳ routing slip: none → ecotone.projection.partition_batch.executor', $lines[$entrypoint + 1]);
+        self::assertSame('↳ routing slip: adds ecotone.projection.partition_batch.executor', $lines[$entrypoint + 1]);
         self::assertSame(['route to backfill', '↳ chosen by: header ecotone.messaging.entrypoint'], array_slice($lines, $entrypoint + 5, 2));
     }
 

@@ -67,7 +67,7 @@ final class RecordedMessagingEntrypointService extends MessagingEntrypointServic
      */
     private static function slipOf(?string $routingSlip): array
     {
-        return $routingSlip === null || $routingSlip === '' ? [] : [ExecutionHint::shownInLines(ExecutionHint::ROUTING_SLIP, 'none → ' . str_replace(',', ', ', $routingSlip))];
+        return $routingSlip === null || $routingSlip === '' ? [] : [ExecutionHint::shownInLines(ExecutionHint::ROUTING_SLIP, 'adds ' . str_replace(',', ', ', $routingSlip))];
     }
 
     /**

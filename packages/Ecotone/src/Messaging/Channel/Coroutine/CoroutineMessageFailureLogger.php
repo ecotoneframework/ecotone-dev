@@ -39,7 +39,8 @@ final class CoroutineMessageFailureLogger
         try {
             return $invocation->proceed();
         } catch (Throwable $exception) {
-            if (in_array(($message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) ? $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME) : ''), $this->channelNames, true)) {
+            $channelName = $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) ? $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME) : '';
+            if (in_array(needle: $channelName, haystack: $this->channelNames, strict: true)) {
                 $this->logger->error('Coroutine message failed and was dropped.', ['headers' => $message->getHeaders()->headers(), 'exception' => $exception]);
             }
             throw $exception;

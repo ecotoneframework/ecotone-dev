@@ -5,27 +5,27 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\Coroutine;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\MessageGateway;
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Interceptor\Precedence;
-use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeInterceptorBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeInterceptorBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Support\LicensingException;
 
 #[ModuleAnnotation]
@@ -57,37 +57,66 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $channels = ExtensionObjectResolver::resolve(CoroutineMessageChannelBuilder::class, $extensionObjects);
-        if ($channels !== []) {
-            $messagingConfiguration->addCompilerPass(new CoroutineChannelConsumerRegistration(array_map(static fn (CoroutineMessageChannelBuilder $channel) => $channel->messageChannelName, $channels)));
-            $messagingConfiguration->registerServiceDefinition(CoroutineMessageFailureLogger::class, new Definition(CoroutineMessageFailureLogger::class, [array_map(static fn (CoroutineMessageChannelBuilder $channel) => $channel->messageChannelName, $channels), new Reference(LoggingGateway::class)]));
-            $messagingConfiguration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
-                CoroutineMessageFailureLogger::class,
-                $interfaceToCallRegistry->getFor(CoroutineMessageFailureLogger::class, 'log'),
-                Precedence::EXCEPTION_LOGGING_PRECEDENCE,
-                AsynchronousRunningEndpoint::class,
-            ));
-            $messagingConfiguration->registerServiceDefinition(CoroutineMessageRelease::class, new Definition(CoroutineMessageRelease::class));
-            $messagingConfiguration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
-                CoroutineMessageRelease::class,
-                $interfaceToCallRegistry->getFor(CoroutineMessageRelease::class, 'release'),
-                Precedence::BETWEEN_INSTANT_RETRY_AND_TRANSACTION_PRECEDENCE,
-                CommandBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . MessageGateway::class,
-            ));
+        if ($channels === []) {
+            return;
         }
+        $this->validateChannels(configuration: $messagingConfiguration, extensions: $extensionObjects, channels: $channels);
+        $this->registerRelease($messagingConfiguration, $interfaceToCallRegistry);
+        $channelNames = array_map(static fn (CoroutineMessageChannelBuilder $channel) => $channel->messageChannelName, $channels);
+        $this->registerFailureLogging(configuration: $messagingConfiguration, registry: $interfaceToCallRegistry, channelNames: $channelNames);
+        $this->registerConsumers($messagingConfiguration, $channelNames);
+    }
+
+    private function validateChannels(Configuration $configuration, array $extensions, array $channels): void
+    {
+        $pollingConfigurations = ExtensionObjectResolver::resolve(PollingMetadata::class, $extensions);
         foreach ($channels as $channel) {
-            foreach (ExtensionObjectResolver::resolve(PollingMetadata::class, $extensionObjects) as $pollingMetadata) {
+            foreach ($pollingConfigurations as $pollingMetadata) {
                 if ($pollingMetadata->getEndpointId() === $channel->messageChannelName && $pollingMetadata->coroutines > 1) {
                     throw ConfigurationException::create("Coroutine channel `{$channel->messageChannelName}` is consumed in the process that sent the message. Remove PollingMetadata::withCoroutines() for `{$channel->messageChannelName}` and set its concurrency with CoroutineMessageChannelBuilder::withCoroutines() instead.");
                 }
             }
-            $messagingConfiguration->registerChannelInterceptor(new CoroutineMessageHoldingInterceptorBuilder($channel->messageChannelName));
-            $messagingConfiguration->registerChannelInterceptor(new InMemoryQueueAcknowledgeInterceptorBuilder($channel->messageChannelName, FinalFailureStrategy::IGNORE, true));
-            if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+            if (! $configuration->isRunningForEnterpriseLicence()) {
                 throw LicensingException::create("Coroutine channel `{$channel->messageChannelName}` requires an Ecotone Enterprise licence. Pass a licence key when bootstrapping Ecotone, or register another message channel builder under `{$channel->messageChannelName}`.");
             }
             if (! extension_loaded('swoole') && ! extension_loaded('openswoole')) {
                 throw ConfigurationException::create("Coroutine channel `{$channel->messageChannelName}` requires the swoole or openswoole extension. Install either extension for the PHP running the application, or register another message channel builder under `{$channel->messageChannelName}`.");
             }
+        }
+    }
+
+    private function registerRelease(Configuration $configuration, InterfaceToCallRegistry $registry): void
+    {
+        $configuration->registerServiceDefinition(CoroutineMessageRelease::class, new Definition(CoroutineMessageRelease::class));
+        $configuration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
+            referenceName: CoroutineMessageRelease::class,
+            interfaceToCall: $registry->getFor(CoroutineMessageRelease::class, 'release'),
+            precedence: Precedence::BETWEEN_INSTANT_RETRY_AND_TRANSACTION_PRECEDENCE,
+            pointcut: CommandBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . MessageGateway::class,
+        ));
+    }
+
+    private function registerFailureLogging(Configuration $configuration, InterfaceToCallRegistry $registry, array $channelNames): void
+    {
+        $configuration->registerServiceDefinition(CoroutineMessageFailureLogger::class, new Definition(CoroutineMessageFailureLogger::class, [$channelNames, new Reference(LoggingGateway::class)]));
+        $configuration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
+            referenceName: CoroutineMessageFailureLogger::class,
+            interfaceToCall: $registry->getFor(CoroutineMessageFailureLogger::class, 'log'),
+            precedence: Precedence::EXCEPTION_LOGGING_PRECEDENCE,
+            pointcut: AsynchronousRunningEndpoint::class,
+        ));
+    }
+
+    private function registerConsumers(Configuration $configuration, array $channelNames): void
+    {
+        $configuration->addCompilerPass(new CoroutineChannelConsumerRegistration($channelNames));
+        foreach ($channelNames as $channelName) {
+            $configuration->registerChannelInterceptor(new CoroutineMessageHoldingInterceptorBuilder($channelName));
+            $configuration->registerChannelInterceptor(new InMemoryQueueAcknowledgeInterceptorBuilder(
+                relatedChannel: $channelName,
+                finalFailureStrategy: FinalFailureStrategy::IGNORE,
+                isAutoAcked: true,
+            ));
         }
     }
 

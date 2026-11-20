@@ -6,20 +6,18 @@ namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Scheduling\TimeSpan;
-use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannel;
-use Ecotone\Messaging\Config\Container\Reference;
-use Psr\Container\ContainerInterface;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Support\MessageBuilder;
+use Psr\Container\ContainerInterface;
 
 /**
  * licence Enterprise
  *
  * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
- *
- * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
  */
 final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, DelayedMessageChannelBuilder
 {

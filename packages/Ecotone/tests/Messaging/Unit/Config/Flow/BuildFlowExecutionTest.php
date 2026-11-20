@@ -17,12 +17,16 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
+use Ecotone\Test\Flow\FlowScenario;
+use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\LicenceTesting;
 use FilesystemIterator;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
+use Test\Ecotone\BuildFlow\FlowScenarioRecorder;
+use Test\Ecotone\BuildFlow\FlowSnapshots;
 
 /**
  * licence Apache-2.0
@@ -324,16 +328,16 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_the_summary_states_a_repeated_change_once_without_explaining_the_tool_and_names_the_group_and_the_gatherer_runs(): void
     {
-        $baseline = __DIR__ . '/../../../../BuildFlow/baseline/';
+        $current = self::currentSnapshotFilesOf('tag-partitioned projection backfilled asynchronously in two batches');
         $file = 'tag-partitioned-projection-backfilled-asynchronously-in-two-batches.json';
-        $after = json_decode((string) file_get_contents($baseline . $file), true, flags: JSON_THROW_ON_ERROR);
+        $after = json_decode($current[$file], true, flags: JSON_THROW_ON_ERROR);
         $before = $after;
         $before['trace'] = array_values(array_filter($after['trace'], fn (array $step, int $position): bool => ! in_array($position, [5, 6, 11, 12], true), ARRAY_FILTER_USE_BOTH));
         $before['execution'] = array_values(array_filter($after['execution'], fn (array $process): bool => ! str_contains($process['process'], 'GatheringMessageHandler::handle')));
         $before['execution'][0]['steps'] = array_values(array_filter($before['execution'][0]['steps'], fn (array $step): bool => $step['label'] !== 'open gathering group of 2 parts'));
         foreach (['before' => $before, 'after' => $after] as $side => $snapshot) {
             mkdir($this->location . '/' . $side, recursive: true);
-            copy($baseline . 'shared.json', $this->location . '/' . $side . '/shared.json');
+            file_put_contents($this->location . '/' . $side . '/shared.json', $current['shared.json']);
             file_put_contents($this->location . '/' . $side . '/' . $file, json_encode($snapshot, JSON_THROW_ON_ERROR));
         }
 
@@ -364,14 +368,14 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_the_summary_of_a_change_repeated_in_every_batch_says_how_many_times_it_happens(): void
     {
-        $baseline = __DIR__ . '/../../../../BuildFlow/baseline/';
+        $current = self::currentSnapshotFilesOf('tag-partitioned projection backfilled asynchronously in two batches');
         $file = 'tag-partitioned-projection-backfilled-asynchronously-in-two-batches.json';
-        $after = json_decode((string) file_get_contents($baseline . $file), true, flags: JSON_THROW_ON_ERROR);
+        $after = json_decode($current[$file], true, flags: JSON_THROW_ON_ERROR);
         $before = $after;
         $before['trace'] = array_values(array_filter($after['trace'], fn (array $step, int $position): bool => ! in_array($position, [5, 6, 11, 12], true), ARRAY_FILTER_USE_BOTH));
         foreach (['before' => $before, 'after' => $after] as $side => $snapshot) {
             mkdir($this->location . '/' . $side, recursive: true);
-            copy($baseline . 'shared.json', $this->location . '/' . $side . '/shared.json');
+            file_put_contents($this->location . '/' . $side . '/shared.json', $current['shared.json']);
             file_put_contents($this->location . '/' . $side . '/' . $file, json_encode($snapshot, JSON_THROW_ON_ERROR));
         }
 
@@ -417,14 +421,14 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_a_new_consumer_run_shows_its_shared_preamble_once_and_a_second_alike_process_only_where_it_differs(): void
     {
-        $baseline = __DIR__ . '/../../../../BuildFlow/baseline/';
+        $current = self::currentSnapshotFilesOf('tag-partitioned projection backfilled asynchronously in two batches');
         $file = 'tag-partitioned-projection-backfilled-asynchronously-in-two-batches.json';
-        $after = json_decode((string) file_get_contents($baseline . $file), true, flags: JSON_THROW_ON_ERROR);
+        $after = json_decode($current[$file], true, flags: JSON_THROW_ON_ERROR);
         $before = $after;
         $before['execution'] = array_values(array_filter($after['execution'], fn (array $process): bool => ! str_contains($process['process'], 'GatheringMessageHandler::handle')));
         foreach (['before' => $before, 'after' => $after] as $side => $snapshot) {
             mkdir($this->location . '/' . $side, recursive: true);
-            copy($baseline . 'shared.json', $this->location . '/' . $side . '/shared.json');
+            file_put_contents($this->location . '/' . $side . '/shared.json', $current['shared.json']);
             file_put_contents($this->location . '/' . $side . '/' . $file, json_encode($snapshot, JSON_THROW_ON_ERROR));
         }
 
@@ -436,14 +440,14 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertLessThan(20, substr_count(substr($second, 0, (int) strpos($second . '```' . "\n\n", "```\n\n", 10)), "\n"));
     }
 
-    public function test_every_step_in_every_baseline_is_a_label_of_at_most_90_characters_with_hints_from_one_vocabulary(): void
+    public function test_every_step_of_every_catalogue_scenario_is_a_label_of_at_most_90_characters_with_hints_from_one_vocabulary(): void
     {
         $vocabulary = ['chosen by', 'returns', 'outcome', 'failure', 'found', 'routing slip', 'kept', 'headers added', 'headers removed', 'headers changed', 'headers read', 'payload', 'sent by', 'taken by', 'stopped', 'collected', 'runs in', 'work in', 'range', 'identifiers', 'propagating', 'received with', 'retry', 'group', 'service'];
         $labels = [];
         $keys = [];
         $values = [];
-        foreach (glob(__DIR__ . '/../../../../BuildFlow/baseline/*.json') as $file) {
-            foreach (json_decode((string) file_get_contents($file), true, flags: JSON_THROW_ON_ERROR)['execution'] ?? [] as $process) {
+        foreach (FlowScenarioRecorder::filesOfTheCatalogue() as $json) {
+            foreach (json_decode($json, true, flags: JSON_THROW_ON_ERROR)['execution'] ?? [] as $process) {
                 foreach ($process['steps'] as $step) {
                     $labels[] = $step['label'];
                     foreach ($step['hints'] ?? [] as $hint) {
@@ -804,5 +808,16 @@ final class BuildFlowExecutionTest extends TestCase
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function currentSnapshotFilesOf(string $scenarioName): array
+    {
+        [$scenario] = array_values(array_filter(FlowScenarioCatalogue::all(), fn (FlowScenario $scenario): bool => $scenario->name === $scenarioName));
+        $snapshot = FlowScenarioRecorder::snapshotOf($scenario);
+
+        return FlowSnapshots::filesOf([$snapshot->fileName() => $snapshot], FlowScenarioRecorder::snapshotOf(new FlowScenario(name: 'application without handlers', classesToResolve: [], services: [], extensionObjects: [], stages: [])));
     }
 }

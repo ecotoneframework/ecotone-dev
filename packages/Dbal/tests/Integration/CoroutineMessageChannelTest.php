@@ -14,6 +14,12 @@ use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\Attribute\CurrentConnection;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\Attribute\Header;
+use RuntimeException;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
@@ -78,4 +84,41 @@ final class CoroutineMessageChannelTest extends TestCase
 
         $this->assertSame([[false, 1]], $handler->observed);
     }
+    public function test_failed_message_goes_to_dbal_dead_letter_and_replays_outside_a_coroutine(): void
+    {
+        $handler = new class {
+            public bool $fail = true;
+            public array $handled = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload, #[Header('tenant')] string $tenant): void
+            {
+                if ($this->fail) {
+                    throw new RuntimeException('handling failed');
+                }
+                $this->handled[] = [$payload, $tenant, Coroutine::getCid()];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_MYSQL'))],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), PollingMetadata::create('async')->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $deadLetter = $ecotone->getGateway(DeadLetterGateway::class);
+        $deadLetter->deleteAll();
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload', metadata: ['tenant' => 'replayed-tenant']));
+
+        $this->assertSame(1, $deadLetter->count());
+        $handler->fail = false;
+        $deadLetter->replayAll();
+        $this->assertCount(1, $handler->handled);
+        $this->assertSame(['payload', 'replayed-tenant'], array_slice($handler->handled[0], 0, 2));
+        $this->assertLessThanOrEqual(0, $handler->handled[0][2]);
+        $this->assertSame(0, $deadLetter->count());
+    }
+
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\Coroutine;
 
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -36,7 +37,7 @@ final class CoroutineMessageHoldingInterceptor extends AbstractChannelIntercepto
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
-        if (Coroutine::getCid() < 1) {
+        if (Coroutine::getCid() < 1 && ! $message->getHeaders()->containsKey(ErrorContext::DLQ_MESSAGE_REPLIED)) {
             throw ConfigurationException::create("Coroutine channel `{$this->channelName}` cannot send outside a coroutine. Run the application on Swoole or OpenSwoole with coroutines enabled, or register another message channel builder under `{$this->channelName}`.");
         }
         return $this->release->hold($this->channelName, $message) ? null : $message;

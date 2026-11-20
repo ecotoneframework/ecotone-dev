@@ -67,14 +67,17 @@ final class CoroutineMessageChannel extends QueueChannel
     private function enqueue(Message $message): void
     {
         parent::send($message);
+        if (Coroutine::getCid() < 1) {
+            $this->consumer()->createConsumer()->run();
+            return;
+        }
         if ($this->consumers >= $this->coroutines) {
             return;
         }
         $this->consumers++;
         $this->schedule(function (): void {
             try {
-                /** @var CoroutineChannelConsumer $runner */
-                $runner = $this->container->get((string) new EndpointRunnerReference($this->name));
+                $runner = $this->consumer();
                 ConsumerCoroutines::consume(
                     endpointId: $this->name,
                     coroutines: 1,
@@ -86,6 +89,11 @@ final class CoroutineMessageChannel extends QueueChannel
                 $this->consumers--;
             }
         });
+    }
+
+    private function consumer(): CoroutineChannelConsumer
+    {
+        return $this->container->get((string) new EndpointRunnerReference($this->name));
     }
 
     private function schedule(Closure $work): void

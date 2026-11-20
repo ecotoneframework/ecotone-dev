@@ -47,7 +47,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           for attempt in 1 2 3; do
-            php bin/build-flow.php snapshot
+            php bin/build-flow.php snapshot --location=packages/Ecotone/tests/BuildFlow/baseline
             if git diff --quiet -- packages/Ecotone/tests/BuildFlow/baseline && [ -z "$(git ls-files --others --exclude-standard -- packages/Ecotone/tests/BuildFlow/baseline)" ]; then
               echo 'The baseline is current.'
               exit 0

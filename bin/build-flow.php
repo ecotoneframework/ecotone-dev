@@ -14,12 +14,15 @@ use Ecotone\Test\LicenceTesting;
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 const BUILD_FLOW_BASELINE = 'packages/Ecotone/tests/BuildFlow/baseline';
+const BUILD_FLOW_LOCAL_SNAPSHOT = 'var/build-flow-snapshot';
 const BUILD_FLOW_USAGE = <<<'USAGE'
     Framework development: the build view of the message flow of the flow scenario catalogue.
 
       php bin/build-flow.php snapshot [--location=<directory>]
           Runs every catalogue scenario and stores its build wiring and traced steps,
-          one file per scenario. Without --location it regenerates the committed baseline.
+          one file per scenario. Without --location it writes to var/build-flow-snapshot, never
+          to the committed baseline: main's CI regenerates the baseline after each merge, with
+          --location=packages/Ecotone/tests/BuildFlow/baseline.
 
       php bin/build-flow.php check [--location=<directory>]
           Fails when a stored snapshot differs from what the code produces now.
@@ -67,6 +70,7 @@ try {
     }
     $tooling->runConsoleCommand('ecotone:build-flow:' . $command, match ($command) {
         'compare' => ['from' => $options['from'] ?? $baseline, 'to' => $options['to'], 'presentation' => $options['presentation'] ?? 'before-after'],
+        'snapshot' => ['location' => $options['location'] ?? dirname(__DIR__) . '/' . BUILD_FLOW_LOCAL_SNAPSHOT],
         default => ['location' => $options['location'] ?? $baseline],
     });
 } catch (Throwable $failure) {

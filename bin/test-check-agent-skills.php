@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -41,6 +42,8 @@ $cases = [
     'public skill with a missing fully qualified class' => [fn (string $root) => append($root, PUBLIC_SKILL, "\n```php\n#[\\Ecotone\\Api\\Attribute\\Gone]\n```\n"), 'references Ecotone\\Api\\Attribute\\Gone'],
     'marketplace missing a skill' => [fn (string $root) => mkdir($root . '/api/skills/ecotone-extra') || copy($root . '/' . PUBLIC_SKILL, $root . '/api/skills/ecotone-extra/SKILL.md'), 'marketplace.json lists skills'],
     'marketplace path that does not exist' => [fn (string $root) => edit($root, 'api/.claude-plugin/marketplace.json', './skills/ecotone-demo', './nowhere/ecotone-demo'), 'marketplace.json lists skills'],
+    'a listed check its workflow does not run' => [fn (string $root) => edit($root, '.github/workflows/file-licence.yml', 'php bin/check-framework-transactions.php', 'php bin/other.php'), 'check `framework-transactions` is listed as run by .github/workflows/file-licence.yml'],
+    'a listed check whose workflow is missing' => [fn (string $root) => unlink($root . '/.github/workflows/test-monorepo.yml'), 'check `suite-parity` is listed as run by .github/workflows/test-monorepo.yml'],
     'no framework skill at all' => [fn (string $root) => exec('rm -rf ' . escapeshellarg($root . '/.agents/skills/framework-demo') . ' ' . escapeshellarg($root . '/.agents/evals')), '.agents/skills holds no skill'],
 ];
 
@@ -91,6 +94,10 @@ function createValidTree(): string
 
     write($root, 'packages/Ecotone/composer.json', json_encode(['autoload' => ['psr-4' => ['Ecotone\\Api\\' => 'Api/']]]));
     write($root, 'packages/Ecotone/Api/Attribute/CommandHandler.php', "<?php\n");
+    write($root, '.github/workflows/agent-skills.yml', "steps:\n  - run: php bin/check-agent-skills.php\n");
+    write($root, '.github/workflows/file-licence.yml', "steps:\n  - run: php bin/check-licence.php\n  - run: php bin/check-framework-transactions.php\n");
+    write($root, '.github/workflows/test-monorepo.yml', "steps:\n  - run: php bin/check-suite-parity.php\n  - run: php bin/check-monorepo-shards.php\n");
+    write($root, '.github/workflows/contribution-check.yml', "on: pull_request\n");
 
     return $root;
 }

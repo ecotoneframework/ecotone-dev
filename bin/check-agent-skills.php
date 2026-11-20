@@ -17,7 +17,6 @@ const DETERMINISTIC_CHECKS = [
     'suite-parity' => '.github/workflows/test-monorepo.yml: php bin/check-suite-parity.php',
     'monorepo-shards' => '.github/workflows/test-monorepo.yml: php bin/check-monorepo-shards.php',
     'framework-transactions' => '.github/workflows/file-licence.yml: php bin/check-framework-transactions.php',
-    'build-flow' => '.github/workflows/file-licence.yml: php bin/check-build-flow.php',
     'phpstan' => 'composer tests:phpstan in every package CI run',
     'contribution-terms' => '.github/workflows/contribution-check.yml',
 ];
@@ -32,6 +31,7 @@ $violations = [];
 $graderReferences = [];
 
 checkAgentsMd($root, $violations);
+checkDeterministicChecksRun($root, $violations);
 checkSymlinks($root, $violations);
 foreach (SKILL_ROOTS as $audience => $paths) {
     $skillDirectories = glob($root . '/' . $paths['skills'] . '/*', GLOB_ONLYDIR) ?: [];
@@ -59,6 +59,21 @@ if ($violations !== []) {
 }
 
 echo "Agent skills are valid.\n";
+
+function checkDeterministicChecksRun(string $root, array &$violations): void
+{
+    foreach (DETERMINISTIC_CHECKS as $id => $runBy) {
+        if (preg_match('#^(\.github/workflows/[^:\s]+\.yml)(?:: (.+))?$#', $runBy, $listed) !== 1) {
+            continue;
+        }
+        $workflow = @file_get_contents($root . '/' . $listed[1]);
+        $command = $listed[2] ?? null;
+        if ($workflow === false || ($command !== null && ! str_contains($workflow, $command))) {
+            $violations[] = "check `{$id}` is listed as run by {$listed[1]}" . ($command === null ? '' : " (`{$command}`)") . ', but ' . ($workflow === false ? 'that workflow does not exist' : 'that workflow does not run it')
+                . ".\nA skill rule verified by a check nobody runs is enforced by nothing. Add the step to {$listed[1]}, or correct the entry in DETERMINISTIC_CHECKS in bin/check-agent-skills.php and the Checks table of framework-agent-tooling.";
+        }
+    }
+}
 
 function checkAgentsMd(string $root, array &$violations): void
 {

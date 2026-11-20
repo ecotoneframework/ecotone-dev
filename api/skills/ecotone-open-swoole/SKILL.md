@@ -194,8 +194,8 @@ final class Notifications
 ```
 
 The sending execution holds its messages until its outermost command bus, asynchronous endpoint or gateway call
-succeeds and its transaction commits. A failed sender starts no handler. The caller returns before the handlers
-start on coroutines of that same PHP process. A channel runs up to 10 handlers at once by default; `withCoroutines(4)`
+succeeds and its transaction commits. A failed sender starts no handler. The caller does not wait for the handlers
+to finish; they run on coroutines of that same PHP process. A channel runs up to 10 handlers at once by default; `withCoroutines(4)`
 sets its limit to four, and the rest wait in order in memory. Objects pass as they are, without serialization.
 
 This needs an Ecotone Enterprise licence and the `swoole` or `openswoole` extension. Send from a coroutine, such as
@@ -209,8 +209,8 @@ as in §4.
 
 Do not start this channel with `ecotone:run`, or set its concurrency through `PollingMetadata`: it is consumed by the
 process that sent the message. Set concurrency on `CoroutineMessageChannelBuilder` instead. Pending messages and
-timers are lost on a crash or restart. Worker shutdown does not drain or wait for them; use a durable broker or
-database channel when the work must survive the worker.
+timers are lost on a crash or restart. Worker shutdown is not coordinated with pending work, so there is no draining
+or completion guarantee. Use a durable broker or database channel when the work must survive the worker.
 
 ## Rules
 

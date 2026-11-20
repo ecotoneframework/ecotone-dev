@@ -20,6 +20,8 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\ConsumerCoroutines;
 use Ecotone\Messaging\Endpoint\PollingConsumer\InterceptedConsumerRunner;
 use Psr\Container\ContainerInterface;
 use Swoole\Coroutine;
+use Swoole\Event;
+use Closure;
 
 /**
  * licence Enterprise
@@ -53,7 +55,7 @@ final class CoroutineMessageChannel extends QueueChannel
         $delay = $message->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY) ? $message->getHeaders()->get(MessageHeaders::DELIVERY_DELAY) : 0;
         $delay = $delay instanceof TimeSpan ? $delay->toMilliseconds() : $delay;
         if ($delay > 0) {
-            Coroutine::create(function () use ($message, $delay): void {
+            $this->schedule(function () use ($message, $delay): void {
                 $this->clock->sleep(Duration::milliseconds($delay));
                 $this->enqueue($this->messageBuilder->fromMessage($message)->removeHeader(MessageHeaders::DELIVERY_DELAY)->build());
             });
@@ -69,7 +71,7 @@ final class CoroutineMessageChannel extends QueueChannel
             return;
         }
         $this->consumers++;
-        Coroutine::create(function (): void {
+        $this->schedule(function (): void {
             try {
                 /** @var CoroutineChannelConsumer $runner */
                 $runner = $this->container->get((string) new EndpointRunnerReference($this->name));
@@ -84,6 +86,11 @@ final class CoroutineMessageChannel extends QueueChannel
                 $this->consumers--;
             }
         });
+    }
+
+    private function schedule(Closure $work): void
+    {
+        Event::defer(static fn () => Coroutine::create($work));
     }
 
     public function receive(): ?Message

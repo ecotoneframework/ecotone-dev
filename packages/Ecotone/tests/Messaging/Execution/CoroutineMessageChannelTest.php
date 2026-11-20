@@ -254,6 +254,29 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame([['payload', '2026-03-01 12:00:00.500000']], $handler->handled);
     }
 
+
+    public function test_command_bus_returns_before_even_a_non_yielding_handler_finishes(): void
+    {
+        $handler = new class {
+            public array $steps = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->steps[] = 'handled';
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone, $handler): void {
+            $ecotone->sendCommandWithRouting('handle', 'payload');
+            $handler->steps[] = 'returned';
+        });
+
+        $this->assertSame(['returned', 'handled'], $handler->steps);
+    }
+
     private function bootstrap_channel(array $extensions = []): FlowTestSupport
     {
         $handler = new class {

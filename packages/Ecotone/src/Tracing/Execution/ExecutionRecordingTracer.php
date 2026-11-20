@@ -89,9 +89,13 @@ final class ExecutionRecordingTracer implements Tracer
     public function currentSpan(): ?ActiveSpan
     {
         $current = $this->tracer->currentSpan();
-        $step = $this->openStepOf($current);
+        for ($step = $this->openStepOf($current); $step !== null && $step->owner === $current; $step = $step->parentStep) {
+            if ($step->span !== null) {
+                return $step->span;
+            }
+        }
 
-        return $step === null ? $current : $this->spanOf($step);
+        return $current;
     }
 
     public function currentApplicationSpan(): ?ActiveSpan

@@ -28,6 +28,8 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Api\Scheduling\DatePoint;
+use Psr\Clock\ClockInterface;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\CoroutineTesting;
@@ -560,6 +562,46 @@ final class CoroutineMessageChannelTest extends TestCase
 
         $this->assertSame('console failed', $failure);
         $this->assertSame([], $handler->handled);
+    }
+
+
+    public function test_delayed_message_with_hooks_off_does_not_stall_a_sibling_coroutine(): void
+    {
+        $clock = new class implements ClockInterface {
+            public function now(): DateTimeImmutable
+            {
+                return new DateTimeImmutable('now');
+            }
+        };
+        $handler = new class {
+            public array $handled = [];
+
+            #[Delayed(milliseconds: 400)]
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, ClockInterface::class => $clock], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $started = null;
+        $siblingElapsed = null;
+
+        CoroutineTesting::runAtOnceWithHooks(
+            0,
+            static function () use ($clock, $ecotone, &$started): void {
+                $started = DatePoint::createFromInterface($clock->now());
+                $ecotone->sendCommandWithRouting('handle', 'payload');
+            },
+            static function () use ($clock, &$started, &$siblingElapsed): void {
+                (new Coroutine\Channel())->pop(0.001);
+                $siblingElapsed = DatePoint::createFromInterface($clock->now())->durationSince($started)->inMilliseconds();
+            },
+        );
+
+        $this->assertSame(['payload'], $handler->handled);
+        $this->assertLessThan(200, $siblingElapsed);
     }
 
     public static function concurrency_limits(): array

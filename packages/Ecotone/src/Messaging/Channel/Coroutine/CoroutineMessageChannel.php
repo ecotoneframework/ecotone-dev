@@ -12,6 +12,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
@@ -43,7 +44,7 @@ final class CoroutineMessageChannel extends QueueChannel
 {
     private int $consumers = 0;
 
-    public function __construct(private string $name, private ContainerInterface $container, private int $coroutines, private EcotoneClockInterface $clock, private MessageBuilder $messageBuilder)
+    public function __construct(private string $name, private ContainerInterface $container, private int $coroutines, private EcotoneClockInterface $clock, private MessageBuilder $messageBuilder, private SleepInterface $timer)
     {
         parent::__construct($name);
     }
@@ -60,7 +61,7 @@ final class CoroutineMessageChannel extends QueueChannel
         if ($delay > 0) {
             $dueAt = $this->clock->now()->add(Duration::milliseconds($delay));
             $this->schedule(function () use ($message, $dueAt): void {
-                $this->clock->sleep($dueAt->durationSince($this->clock->now()));
+                $this->timer->sleep($dueAt->durationSince($this->clock->now()));
                 $this->enqueue($this->messageBuilder->fromMessage($message)->removeHeader(MessageHeaders::DELIVERY_DELAY)->build());
             });
             return;

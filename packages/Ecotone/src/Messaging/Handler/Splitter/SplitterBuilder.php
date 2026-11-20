@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -45,9 +46,16 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
 {
     private array $methodParameterConverterBuilders = [];
     private string $gatherChannelName = '';
+    private bool $methodInterceptorsEnabled = true;
 
     private function __construct(private Reference|Definition|DefinedObject $reference, private InterfaceToCallReference $interfaceToCallReference)
     {
+    }
+
+    public function withoutMethodInterceptors(): self
+    {
+        $this->methodInterceptorsEnabled = false;
+        return $this;
     }
 
     public function withGatherChannelName(string $gatherChannelName): self
@@ -114,11 +122,11 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
             throw InvalidArgumentException::create("Can't create transformer for {$interfaceToCall}, because method has no return value");
         }
 
-        $interceptorsConfiguration = $builder->getRelatedInterceptors(
+        $interceptorsConfiguration = $this->methodInterceptorsEnabled ? $builder->getRelatedInterceptors(
             $this->interfaceToCallReference,
             $this->getEndpointAnnotations(),
             $this->requiredInterceptorReferenceNames,
-        );
+        ) : MethodInterceptorsConfiguration::createEmpty();
 
         $processor = ChainedMessageProcessorBuilder::create()
             ->chainInterceptedProcessor(MethodInvokerBuilder::create(

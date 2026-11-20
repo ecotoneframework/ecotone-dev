@@ -25,6 +25,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -588,7 +589,7 @@ final class AggregateModule implements AnnotationModule, RoutingEventHandler
         $serviceActivatorHandler = MessageProcessorActivatorBuilder::create()
             ->withEndpointId($endpointId)
             ->withInputChannelName($connectionChannel)
-            ->withOutputMessageChannel($annotation->getOutputChannelName())
+            ->withOutputMessageChannel(SplitterModule::registerHandlerOutput($registration, $messagingConfiguration))
             ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames())
             ->chain(TransformerProcessorBuilder::create(
                 TransformerBuilder::createHeaderEnricher([

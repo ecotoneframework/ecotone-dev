@@ -4,13 +4,30 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Splitter;
 
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Attribute\Saga;
+use DateTimeImmutable;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Gathered;
+use Ecotone\Api\Messaging\GatheredParts;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\Gateway\GatheredGroups;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,6 +35,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class HandlerSplitterTest extends TestCase
 {
+    private const ENTERPRISE_LICENCE = 'eyJzaWduYXR1cmUiOiJxRmtrSDdCQkxzdUlTRzExZmVXeHVKVTY3bGZScmFSTFBpb0VUaGdoZTAyYWRjajlVRkNWWXhvaGl4YXhoaEFlNzU5aExOT0R5NXo1T2N2eFppUGQyemRRblYrb1dNZjFwM2lqbFN4cUg1MDhVV1wvOG90TllkM28wMVRZRmdMSjU4RXJzYThLcUJib0Z1MmhaZW9lczQ3elM2VHR5TzFGV2pOeWxlbG1aRWNLUHFydFhzOTNcL1YxY0wwWVg4UFBOZDl6bVRPOWxyc3UzM3F1anBXVlB4eVRMTW4yK3lPc3Jxa2pJZDArSU1LSWl0dG1IZGlBcml6NnZIXC93RnFKTU5Od2JKWnFsUXRNa3pQc3pvRlFseVgyZnNPTG5CTWNCajA5S0VnNjhVcG14OVwvUnBHZXBNV2UzcThYeFZMa3laOEtXdndEN2JBZDZPSXVoejlxRThyamVQVVVsbUxybm0wd3ZFYjV6UVZEbU5OY21uZnNkMEYyazJhSldySzc5VXlEWVY3UFNvVkZiM0diV0VNN2p1STVFV2w5cTVaWXJiOGxFcmxTTmNpYmQwbCttMWkzUWk1TnZhU1RscHBTV1BGS0g4c2x5dDhKRzV4YXZqQlJFU3BJWGVDNE9VREdoZDRJNEhaaEpDXC9Wcm9Nb0FRNzBMaXRrUHcxWkdWQ1dqTURucHdNdWRyWThpMVQwak5MRytXYlpYckpvRHZxd0x4SENKdU9EWnhuYVNISkVVSVFndGViUXZPRURIKzBjN0o0VVJMWkV2NnU2d2tcL1F6TzlPVnVVS1BubDkzK1dVam8xVDZqOEJ0MEtSeHhsMmtBY2pQcE9wWTg5Q25BQlBtckF4THJhYkxXeThpZmxVQ0cwUjNmZzB4UnpiMjlMSENvUW95b2NmRStzYjhFYz0iLCJkYXRhIjp7ImVtYWlsIjoiam9obnlAd3AucGwiLCJleHBpcmVBdCI6IjIwMzItMTAtMTEgMDA6MDA6MDAiLCJpc0VudGVycHJpc2VQbHVzIjpmYWxzZX19';
+
     public function test_command_handler_result_is_split_into_one_message_per_element(): void
     {
         $handler = new class () {
@@ -225,6 +244,442 @@ final class HandlerSplitterTest extends TestCase
         );
         $ecotone->sendCommandWithRouting('start', [1, 2]);
         self::assertSame([2, 1], $handler->received);
+    }
+
+    public function test_aggregate_command_handler_result_is_split_after_the_aggregate_is_saved(): void
+    {
+        $aggregate = new #[Aggregate] class () {
+            #[Identifier]
+            public string $id = 'one';
+            public int $total = 0;
+
+            #[CommandHandler('create')]
+            public static function create(): self
+            {
+                return new self();
+            }
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[Splitter]
+            public function split(array $values): array
+            {
+                $this->total = array_sum($values);
+                return $values;
+            }
+
+            #[QueryHandler('total')]
+            public function total(): int
+            {
+                return $this->total;
+            }
+        };
+        $handler = new class () {
+            public array $received = [];
+
+            #[InternalHandler('parts')]
+            public function receive(int $value, #[Reference] QueryBus $queries): void
+            {
+                $this->received[] = [$value, $queries->sendWithRouting('total', metadata: ['aggregate.id' => 'one'])];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$aggregate::class, $handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+        $ecotone->sendCommandWithRouting('create');
+        $ecotone->sendCommandWithRouting('split', [1, 2], metadata: ['aggregate.id' => 'one']);
+        self::assertSame([[1, 3], [2, 3]], $handler->received);
+    }
+
+    public function test_saga_event_handler_result_is_split_after_the_saga_is_saved(): void
+    {
+        $aggregate = new #[Saga] class () {
+            #[Identifier]
+            public string $id = 'one';
+            public int $total = 0;
+
+            #[CommandHandler('create')]
+            public static function create(): self
+            {
+                return new self();
+            }
+
+            #[EventHandler('split', outputChannelName: 'parts')]
+            #[Splitter]
+            public function split(array $values): array
+            {
+                $this->total = array_sum($values);
+                return $values;
+            }
+
+            #[QueryHandler('total')]
+            public function total(): int
+            {
+                return $this->total;
+            }
+        };
+        $handler = new class () {
+            public array $received = [];
+
+            #[InternalHandler('parts')]
+            public function receive(int $value, #[Reference] QueryBus $queries): void
+            {
+                $this->received[] = [$value, $queries->sendWithRouting('total', metadata: ['aggregate.id' => 'one'])];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$aggregate::class, $handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+        $ecotone->sendCommandWithRouting('create');
+        $ecotone->publishEventWithRouting('split', [1, 2], metadata: ['aggregate.id' => 'one']);
+        self::assertSame([[1, 3], [2, 3]], $handler->received);
+    }
+
+    public function test_asynchronous_handler_is_split_in_its_consumer_run(): void
+    {
+        $handler = new class () {
+            public array $received = [];
+            public int $calls = 0;
+
+            #[Asynchronous('jobs')]
+            #[CommandHandler('split', endpointId: 'split.handler', outputChannelName: 'parts')]
+            #[Splitter]
+            public function split(array $values): array
+            {
+                $this->calls++;
+                return $values;
+            }
+
+            #[InternalHandler('parts')]
+            public function receive(int $value): void
+            {
+                $this->received[] = $value;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+        $ecotone->sendCommandWithRouting('split', [1, 2]);
+        self::assertSame([], $handler->received);
+        self::assertSame(0, $handler->calls);
+        $ecotone->run('jobs');
+        self::assertSame([1, 2], $handler->received);
+        self::assertSame(1, $handler->calls);
+    }
+
+    public function test_split_handler_with_gather_channel_runs_the_gathered_handler_once_with_every_part(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', endpointId: 'split.handler', outputChannelName: 'parts')]
+            #[Splitter(gatherChannelName: 'summary')]
+            public function split(array $values): array
+            {
+                return $values;
+            }
+
+            #[InternalHandler('parts')]
+            public function receive(int $value): int
+            {
+                return $value * 2;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts->results;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $ecotone->sendCommandWithRouting('split', [1, 2]);
+        $ecotone->run('summaries');
+        self::assertSame([[1 => 2, 2 => 4]], $handler->gathered);
+    }
+
+    public function test_split_handler_without_output_channel_is_refused(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split')]
+            #[Splitter]
+            public function split(): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split has no outputChannelName. Set outputChannelName on every handler attribute, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+    }
+
+    public function test_stacked_splitter_input_channel_is_refused(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[Splitter(inputChannelName: 'other')]
+            public function split(): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split sets inputChannelName on #[Splitter]. Remove inputChannelName from #[Splitter] and configure it on the handler, or move #[Splitter] to a separate method.');
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+    }
+
+    public function test_stacked_splitter_endpoint_id_is_refused(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[Splitter(endpointId: 'other')]
+            public function split(): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split sets endpointId on #[Splitter]. Remove endpointId from #[Splitter] and configure it on the handler, or move #[Splitter] to a separate method.');
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+    }
+
+    public function test_stacked_splitter_output_channel_is_refused(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[Splitter(outputChannelName: 'other')]
+            public function split(): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split sets outputChannelName on #[Splitter]. Remove outputChannelName from #[Splitter] and configure it on the handler, or move #[Splitter] to a separate method.');
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+    }
+
+    public function test_split_handler_without_iterable_return_type_is_refused(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[Splitter]
+            public function split(): string
+            {
+                return 'value';
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split does not declare an iterable return type. Return an array or iterable of output messages, move #[Splitter] to a separate iterable handler, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+    }
+
+    public function test_query_handler_with_splitter_is_refused(): void
+    {
+        $handler = new class () {
+            #[QueryHandler('split')]
+            #[Splitter]
+            public function split(): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split is a query handler whose caller expects one reply. Use #[CommandHandler], #[EventHandler] or #[InternalHandler] with outputChannelName, move #[Splitter] to a separate method, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+    }
+
+    public function test_gathering_split_handler_without_explicit_endpoint_id_is_refused(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[Splitter(gatherChannelName: 'summary')]
+            public function split(): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split uses gatherChannelName without an explicit handler endpointId. Set endpointId on every handler attribute, or remove gatherChannelName from #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+    }
+
+    public function test_aggregate_factory_with_splitter_is_refused(): void
+    {
+        $aggregate = new #[Aggregate] class () {
+            #[Identifier]
+            public string $id = 'one';
+
+            #[CommandHandler('create', outputChannelName: 'parts')]
+            #[Splitter]
+            public static function create(): self
+            {
+                return new self();
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $aggregate::class . '::create is an aggregate or saga factory whose output contains saved identifiers. Split from an action method, use a separate splitter handler receiving the factory output, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$aggregate::class], enabledModules: []);
+    }
+
+    public function test_event_sourced_action_returning_events_to_record_with_splitter_is_refused(): void
+    {
+        $aggregate = new #[EventSourcingAggregate] class () {
+            use \Ecotone\Api\Modelling\WithAggregateVersioning;
+            #[Apply]
+            public function apply(\stdClass $event): void
+            {
+            }
+
+            #[Identifier]
+            public string $id = 'one';
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[Splitter]
+            public function split(): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $aggregate::class . '::split returns events that Ecotone records for an event-sourced aggregate or saga. Record events with #[AggregateEvents] and return an independent iterable result, use a separate splitter handler, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$aggregate::class], enabledModules: []);
+    }
+
+    public function test_replayed_message_of_a_gathering_split_handler_lands_in_the_same_group(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('split', endpointId: 'split.handler', outputChannelName: 'parts')]
+            #[Splitter(gatherChannelName: 'summary')]
+            public function split(array $values): array
+            {
+                return $values;
+            }
+
+            #[InternalHandler('parts')]
+            public function receive(int $value): int
+            {
+                return $value * 2;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts->results;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $ecotone->sendCommandWithRouting('split', [1, 2], metadata: [MessageHeaders::MESSAGE_ID => '019b76da-a000-7000-8000-000000000001']);
+        $ecotone->sendCommandWithRouting('split', [1, 2], metadata: [MessageHeaders::MESSAGE_ID => '019b76da-a000-7000-8000-000000000001']);
+        $ecotone->run('summaries');
+        self::assertSame([[1 => 2, 2 => 4]], $handler->gathered);
+        self::assertCount(1, $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary.handler'));
+    }
+
+
+    public function test_interceptors_run_once_around_a_split_handler(): void
+    {
+        $handler = new class () {
+            public int $interceptions = 0;
+            public array $received = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[Splitter]
+            public function split(array $values): array
+            {
+                return $values;
+            }
+
+            #[Around(pointcut: '*')]
+            public function intercept(MethodInvocation $invocation): mixed
+            {
+                if ($invocation->getMethodName() === 'split') {
+                    $this->interceptions++;
+                }
+                return $invocation->proceed();
+            }
+
+            #[InternalHandler('parts')]
+            public function receive(int $value): void
+            {
+                $this->received[] = $value;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+        $ecotone->sendCommandWithRouting('split', [1, 2]);
+        self::assertSame([1, 2], $handler->received);
+        self::assertSame(1, $handler->interceptions);
+    }
+
+    public function test_flow_graph_shows_a_split_handler_as_one_node_without_its_hidden_channel(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', endpointId: 'split.handler', outputChannelName: 'parts')]
+            #[Splitter]
+            public function split(array $values): array
+            {
+                return $values;
+            }
+
+            #[InternalHandler('parts', endpointId: 'receive.handler')]
+            public function receive(int $value): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+        )->getMessageFlowGraph();
+        self::assertCount(1, $graph->nodesOfKind(FlowNodeKind::COMMAND_HANDLER));
+        self::assertSame([], $graph->nodesOfKind(FlowNodeKind::SPLITTER));
+        self::assertTrue($graph->node('handler:split.handler')->attributes['splitting']);
+        self::assertSame(['channel:parts'], array_map(static fn ($node): string => $node->id, $graph->nodesOfKind(FlowNodeKind::CHANNEL)));
     }
 
 }

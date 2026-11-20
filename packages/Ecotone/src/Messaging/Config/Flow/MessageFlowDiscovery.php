@@ -45,6 +45,7 @@ use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
@@ -331,6 +332,9 @@ final class MessageFlowDiscovery
     private function discoverSplitters(): void
     {
         foreach ($this->applicationMethods(Splitter::class) as $registration) {
+            if (SplitterModule::isStacked($registration)) {
+                continue;
+            }
             /** @var Splitter $annotation */
             $annotation = $registration->getAnnotationForMethod();
             $handlerId = $this->registerHandler($registration, FlowNodeKind::SPLITTER, ['inputChannel' => $annotation->getInputChannelName()]);
@@ -477,6 +481,9 @@ final class MessageFlowDiscovery
     {
         /** @var EndpointAnnotation $annotation */
         $annotation = $registration->getAnnotationForMethod();
+        if ($registration->hasMethodAnnotation(Splitter::class) && SplitterModule::isStacked($registration)) {
+            $attributes['splitting'] = true;
+        }
         $id = $this->endpointNodeId($registration, $annotation, 'handler');
         if ($annotation->isEndpointIdGenerated() && isset($this->nodes[$id]) && $this->nodes[$id]->kind !== $kind) {
             $id .= ':' . $kind->value;

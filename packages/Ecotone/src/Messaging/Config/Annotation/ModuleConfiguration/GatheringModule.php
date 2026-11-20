@@ -138,6 +138,11 @@ final class GatheringModule extends NoExternalConfigurationModule
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        foreach ($this->annotationFinder->findAnnotatedMethods(Splitter::class) as $registration) {
+            if (SplitterModule::isStacked($registration)) {
+                SplitterModule::validate($registration, $interfaceToCallRegistry);
+            }
+        }
         $this->assertLicence($messagingConfiguration);
         $this->validateWiring($interfaceToCallRegistry);
         $this->validateTimeouts($extensionObjects, $interfaceToCallRegistry);
@@ -161,7 +166,7 @@ final class GatheringModule extends NoExternalConfigurationModule
     {
         foreach ($this->annotationFinder->findAnnotatedMethods(Splitter::class) as $registration) {
             $splitter = $registration->getAnnotationForMethod();
-            if ($splitter->gatherChannelName !== '' && $splitter->isEndpointIdGenerated()) {
+            if ($splitter->gatherChannelName !== '' && $splitter->isEndpointIdGenerated() && ! SplitterModule::isStacked($registration)) {
                 $channel = $splitter->getInputChannelName();
                 throw ConfigurationException::create("Splitter '{$channel}' names gather channel '{$splitter->gatherChannelName}' but has no explicit endpointId. Gathering needs a stable splitter identity across retries and restarts. Add endpointId: '{$channel}.split' to #[Splitter], or remove gatherChannelName.");
             }

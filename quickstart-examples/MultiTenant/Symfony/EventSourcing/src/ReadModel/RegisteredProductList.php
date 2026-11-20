@@ -12,7 +12,7 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
-use Ecotone\Api\Dbal\Attribute\MultiTenantConnection;
+use Ecotone\Api\Dbal\Attribute\CurrentConnection;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\ProjectionDelete;
@@ -31,7 +31,7 @@ final readonly class RegisteredProductList
     const TABLE_NAME = 'registered_products';
 
     #[ProjectionInitialization]
-    public function initialize(#[MultiTenantConnection] Connection $connection): void
+    public function initialize(#[CurrentConnection] Connection $connection): void
     {
         $schemaManager = $connection->createSchemaManager();
 
@@ -49,7 +49,7 @@ final readonly class RegisteredProductList
     }
 
     #[ProjectionDelete]
-    public function remove(#[MultiTenantConnection] Connection $connection): void
+    public function remove(#[CurrentConnection] Connection $connection): void
     {
         $schemaManager = $connection->createSchemaManager();
         if ($schemaManager->tablesExist([self::TABLE_NAME])) {
@@ -63,7 +63,7 @@ final readonly class RegisteredProductList
      * @return string[]
      */
     #[QueryHandler('product.getAllRegistered')]
-    public function getRegisteredProducts(#[MultiTenantConnection] Connection $connection): array
+    public function getRegisteredProducts(#[CurrentConnection] Connection $connection): array
     {
         return $connection->fetchFirstColumn(
             sprintf(<<<SQL
@@ -75,7 +75,7 @@ SQL, self::TABLE_NAME));
     public function whenProductWasRegistered(
         ProductWasRegistered $event,
         #[Header('timestamp')] int $occurredAt, // Accessing Event Metadata,
-        #[MultiTenantConnection] Connection $connection
+        #[CurrentConnection] Connection $connection
     ): void
     {
         $connection->insert(
@@ -91,7 +91,7 @@ SQL, self::TABLE_NAME));
     #[EventHandler]
     public function whenProductWasUnregistered(
         ProductWasUnregistered $event,
-        #[MultiTenantConnection] Connection $connection
+        #[CurrentConnection] Connection $connection
     ): void
     {
         $connection->delete(

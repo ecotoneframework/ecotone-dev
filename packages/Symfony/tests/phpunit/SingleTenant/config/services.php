@@ -13,6 +13,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('ecotone', [
         'enabledModulePackageNames' => [ModulePackageList::SYMFONY_PACKAGE,
             ModulePackageList::DBAL_PACKAGE, ],
+        'licenceKey' => '%env(SYMFONY_LICENCE_KEY)%',
     ]);
 
     $services = $containerConfigurator->services();

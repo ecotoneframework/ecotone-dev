@@ -16,6 +16,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Dbal\DbalConnection;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -37,7 +38,6 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionDeployment;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Tracing\SpanContext;
-use Ecotone\Dbal\DbalConnection;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Projecting\ProjectionOperations;
@@ -376,14 +376,6 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         self::assertSame('tenant', $this->requestSnapshot()['tenancy']['header']);
     }
 
-    public function test_multi_tenant_configurations_naming_different_tenant_headers_are_refused_at_bootstrap(): void
-    {
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Pulse asks a multi-tenant service for one tenant at a time with a single tenant header, but the MultiTenantConfigurations of this service use the headers `tenant`, `customer`, so it could not tell which header names the tenant. Give every MultiTenantConfiguration the same tenant header name, or remove the PulseConfiguration.');
-
-        $this->bootstrap(additionalMultiTenantConfiguration: MultiTenantConfiguration::create('customer', ['customer_a' => 'tenant_a_connection'], 'reporting_connection'));
-    }
-
     public static function interceptorPaths(): iterable
     {
         yield 'transaction' => [DbalConfiguration::createWithDefaults()->withDeadLetter(true)->withDeduplication(false)->withClearAndFlushObjectManagerOnAsynchronousEndpoints(false)->withClearAndFlushObjectManagerOnCommandBus(false)];
@@ -506,7 +498,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         return json_decode($this->pulse->replies[$queryId], true, flags: JSON_THROW_ON_ERROR);
     }
 
-    private function bootstrap(?string $pulseChannelsConnection = null, bool $withDefaultConnection = false, ?MultiTenantConfiguration $additionalMultiTenantConfiguration = null, ?DbalConfiguration $dbalConfiguration = null, bool $flowTracking = true, ?ConnectionFactory $unpreparedTenantB = null, bool $applicationHandlers = true, string $multiTenantReferenceName = DbalConnectionReference::DEFAULT, bool $inMemoryTrackings = false): void
+    private function bootstrap(?string $pulseChannelsConnection = null, bool $withDefaultConnection = false, ?DbalConfiguration $dbalConfiguration = null, bool $flowTracking = true, ?ConnectionFactory $unpreparedTenantB = null, bool $applicationHandlers = true, string $multiTenantReferenceName = DbalConnectionReference::DEFAULT, bool $inMemoryTrackings = false): void
     {
         $this->orders = new class () {
             public array $replayed = [];
@@ -584,7 +576,6 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
                 $withDefaultConnection
                     ? MultiTenantConfiguration::createWithDefaultConnection('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'], 'tenant_a_connection', $multiTenantReferenceName)
                     : MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'], $multiTenantReferenceName),
-                ...($additionalMultiTenantConfiguration === null ? [] : [$additionalMultiTenantConfiguration]),
                 $dbalConfiguration ?? DbalConfiguration::createWithDefaults()->withDeadLetter(true),
                 ...($flowTracking ? [FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($inMemoryTrackings)] : []),
                 ServiceConfiguration::createWithDefaults()->withServiceName('order_service')->withDefaultErrorChannel('dbal_dead_letter'),

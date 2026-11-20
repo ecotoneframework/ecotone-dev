@@ -24,6 +24,9 @@ final class PulseEnvironment
         'PULSE_QUEUE_WARNING',
         'PULSE_QUEUE_CRITICAL',
         'PULSE_TRACE_URL',
+        'PULSE_RUNTIME',
+        'PULSE_CONSUMER_COROUTINES',
+        'PULSE_HTTP_WORKERS',
     ];
 
     private const CONNECTION_VARIABLE = '/^PULSE_CONNECTION_[A-Z0-9]+(?:_[A-Z0-9]+)*_(?:DSN|REPLY_CHANNEL)(?:_FILE)?$/';

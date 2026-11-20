@@ -5,9 +5,11 @@ declare(strict_types=1);
 use App\Settings\Connection;
 use App\Settings\PulseEnvironment;
 use App\Settings\PulseSettings;
+use App\Settings\Runtime;
 use App\Settings\Transport;
 use App\Storage\InternalDatabaseConnectionFactory;
 use Ecotone\Api\Amqp\AmqpExtConnectionFactory;
+use Ecotone\Api\Amqp\AmqpLibConnectionFactory;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Redis\RedisConnectionFactory;
@@ -18,6 +20,7 @@ use Symfony\Component\HttpKernel\Log\Logger;
 
 return static function (ContainerConfigurator $container): void {
     $settings = PulseSettings::fromEnvironment(PulseEnvironment::read(), dirname(__DIR__));
+    $brokerClient = Runtime::fromEnvironment(PulseEnvironment::read()) === Runtime::Swoole ? AmqpLibConnectionFactory::class : AmqpExtConnectionFactory::class;
 
     $container->parameters()->set('pulse.graph_default_node_limit', 150);
 
@@ -36,7 +39,7 @@ return static function (ContainerConfigurator $container): void {
     foreach ($settings->connections as $connection) {
         $dsn = '%env(' . $connection->environmentVariable . ')%';
         match ($connection->transport) {
-            Transport::Amqp => $services->set($connection->referenceName(), AmqpExtConnectionFactory::class)->args([$dsn])->public(),
+            Transport::Amqp => $services->set($connection->referenceName(), $brokerClient)->args([$dsn])->public(),
             Transport::Redis => $services->set($connection->referenceName(), RedisConnectionFactory::class)->args([['dsn' => $dsn, 'scheme_extensions' => ['phpredis']]])->public(),
             Transport::Sqs => $services->set($connection->referenceName(), SqsConnectionFactory::class)->args([$dsn])->public(),
             Transport::Dbal => $services->set($connection->referenceName(), DbalConnectionFactory::class)->args([$dsn])->public(),

@@ -169,6 +169,7 @@
         "symfony/framework-bundle": "^6.4|^7.0|^8.0",
         "symfony/dependency-injection": "^6.4|^7.0|^8.0",
         "open-telemetry/sdk": "^1.0.0",
+        "open-telemetry/context": "^1.1",
         "psr/container": "^1.1.1|^2.0.1",
         "psr/clock": "^1.0",
         "symfony/uid": "^7.4|^8.0"
@@ -197,6 +198,7 @@
         "enqueue/null": "^0.10.18",
         "open-telemetry/transport-grpc": "^1.0.0",
         "open-telemetry/exporter-otlp": "^1.0.0",
+        "open-telemetry/context-swoole": "^1.0",
         "nesbot/carbon": "^2.71|^3.0",
         "moneyphp/money": "^4.1.0",
         "timacdonald/log-fake": "^2.0",
@@ -205,7 +207,8 @@
         "symfony/var-exporter": "^6.4|^7.0|^8.0",
         "enqueue/dsn": "^0.10.27",
         "yoast/phpunit-polyfills": "^4.0.0",
-        "tempest/framework": "^3.11"
+        "tempest/framework": "^3.11",
+        "laravel/octane": "^2.25"
     },
     "suggest": {
         "ext-simplexml": "Required if application/xml is used as serialization media type"

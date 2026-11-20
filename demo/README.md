@@ -49,6 +49,30 @@ would otherwise fail a fresh database with "Typed property ... must not be acces
 `tickets.*` reply queued for the storefront before the change fails there with "Undefined array key" until the
 volumes are dropped.
 
+## Run it on OpenSwoole
+
+The same stack runs on [OpenSwoole](https://openswoole.com) instead of FrankenPHP when `DEMO_RUNTIME=swoole`:
+
+```bash
+DEMO_RUNTIME=swoole docker compose -f demo/docker-compose.yml up -d --build --wait
+```
+
+The image carries the OpenSwoole extension either way and loads it only in this mode, so switching back is the same
+command without the variable. What changes:
+
+| Container | `DEMO_RUNTIME=php` (default) | `DEMO_RUNTIME=swoole` |
+|---|---|---|
+| `ticketing` | FrankenPHP, the application booted per request | `demo/ticketing/bin/openswoole-server.php`: `DEMO_SWOOLE_WORKERS` (default 4) workers, each booting the application once and handling one request at a time |
+| `storefront` | FrankenPHP, the application booted per request | [Laravel Octane](https://laravel.com/docs/octane) on OpenSwoole, `DEMO_SWOOLE_WORKERS` workers |
+| `ticketing-worker`, `storefront-worker` | `ecotone:run`, one process per channel | the same, with the extension loaded |
+| `pulse` | FrankenPHP and one `ecotone:run` process per reply channel | `apps/Pulse/bin/openswoole-server.php`, and each reply channel consumed by one process on `PULSE_CONSUMER_COROUTINES` (default 6) coroutines |
+
+Ticketing and the storefront handle one message at a time per process in both modes, because they hand Ecotone the
+connection their framework owns (Doctrine ORM's `EntityManager`, Laravel's connection), and that is one per process.
+Pulse hands Ecotone a DSN, so Ecotone opens a connection per coroutine and Pulse's consumers handle several replies
+at once. A worker keeps the application between requests, so restart the container after editing PHP:
+`docker compose -f demo/docker-compose.yml restart ticketing storefront pulse`.
+
 ## What it looks like
 
 The storefront's hall during a rush: free seats, seats held by someone and sold seats greyed out, two seats held by

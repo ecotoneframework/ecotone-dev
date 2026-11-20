@@ -176,3 +176,130 @@ jobs:
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
         SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
+  coroutines:
+    name: "Monorepo (${{ matrix.runtime.name }} coroutines)"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime:
+          - name: OpenSwoole
+            extension: openswoole
+            tests-of-the-other-runtime: swoole
+          - name: Swoole
+            extension: swoole
+            tests-of-the-other-runtime: openswoole
+    services:
+      rabbitmq:
+        image: rabbitmq:3.11-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5672:5672
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: "secret"
+          MYSQL_USER: "ecotone"
+          MYSQL_PASSWORD: "secret"
+          MYSQL_DATABASE: "ecotone"
+          DB_PORT: 3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        ports:
+          - 3306:3306
+      postgres:
+        image: simplycodedsoftware/postgres:16.1
+        env:
+          POSTGRES_USER: ecotone
+          POSTGRES_PASSWORD: secret
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      RABBIT_HOST: amqp://127.0.0.1:5672
+      COMPOSER_PROCESS_TIMEOUT: 3600
+      # The tests that run messages in real coroutines are skipped wherever neither extension is loaded,
+      # so they are named here: a renamed or moved file fails the job instead of silently not running.
+      COROUTINE_TESTS: >-
+        packages/Ecotone/tests/Messaging/Execution/CoroutineExecutionsTest.php
+        packages/Ecotone/tests/Messaging/Execution/ConsumerCoroutinesTest.php
+        packages/Ecotone/tests/Messaging/Execution/CoroutineTestingTest.php
+        packages/Dbal/tests/Integration/CoroutineExecutionsTest.php
+        packages/Amqp/tests/Integration/CoroutineExecutionsTest.php
+    steps:
+    - name: PHP 8.5 with OpenSwoole
+      if: matrix.runtime.extension == 'openswoole'
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.5'
+        extensions: amqp, rdkafka, openswoole
+        coverage: none
+
+    - name: PHP 8.5 without a coroutine extension, Swoole is compiled below
+      if: matrix.runtime.extension == 'swoole'
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.5'
+        extensions: amqp, rdkafka, sockets, pdo_pgsql, pdo_mysql, mysqlnd, curl
+        coverage: none
+
+    # Swoole is compiled with --enable-swoole-pgsql and --enable-swoole-sqlite, which a packaged build may leave out:
+    # they are what lets a coroutine wait on a PostgreSQL or SQLite query, and the Swoole tests prove exactly that.
+    - name: Compile Swoole with PostgreSQL and SQLite coroutine support
+      if: matrix.runtime.extension == 'swoole'
+      env:
+        SWOOLE_VERSION: 6.2.6
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends libpq-dev libsqlite3-dev libssl-dev libbrotli-dev libc-ares-dev libcurl4-openssl-dev
+        curl -fsSL "https://pecl.php.net/get/swoole-${SWOOLE_VERSION}.tgz" | tar xz -C "$RUNNER_TEMP"
+        cd "$RUNNER_TEMP/swoole-${SWOOLE_VERSION}"
+        phpize
+        ./configure --enable-sockets --enable-openssl --enable-mysqlnd --enable-swoole-curl --enable-cares --enable-brotli --enable-swoole-pgsql --enable-swoole-sqlite
+        make -j"$(nproc)"
+        sudo make install
+        echo "extension=swoole" | sudo tee "$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')/99-swoole.ini"
+
+    - uses: actions/checkout@v5
+
+    - name: Check ${{ matrix.runtime.name }} is loaded
+      run: php --ri ${{ matrix.runtime.extension }}
+
+    - name: Check Swoole waits on PostgreSQL and SQLite in coroutines
+      if: matrix.runtime.extension == 'swoole'
+      run: |
+        php -r 'exit(defined("SWOOLE_HOOK_PDO_PGSQL") && (SWOOLE_HOOK_ALL & SWOOLE_HOOK_PDO_PGSQL) !== 0 ? 0 : 1);'
+        php -r 'exit(defined("SWOOLE_HOOK_PDO_SQLITE") && (SWOOLE_HOOK_ALL & SWOOLE_HOOK_PDO_SQLITE) !== 0 ? 0 : 1);'
+
+    - name: Remove grpc dependent packages (no runner installs ext-grpc)
+      run: composer remove --dev --no-update open-telemetry/transport-grpc
+
+    - name: Install dependencies
+      run: composer update --prefer-stable --prefer-dist --no-interaction
+
+    - name: Coroutine tests with ext-amqp
+      run: vendor/bin/phpunit --no-coverage --fail-on-skipped --exclude-group ${{ matrix.runtime.tests-of-the-other-runtime }} $COROUTINE_TESTS
+      env:
+        DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
+        SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
+
+    - name: OpenTelemetry tracing on coroutines with open-telemetry/context-swoole
+      run: |
+        composer show open-telemetry/context-swoole
+        vendor/bin/phpunit --no-coverage --fail-on-skipped packages/OpenTelemetry/tests/Integration/CoroutineTracingTest.php
+
+    - name: Coroutine tests with php-amqplib
+      run: vendor/bin/phpunit --no-coverage --fail-on-skipped --exclude-group ${{ matrix.runtime.tests-of-the-other-runtime }} $COROUTINE_TESTS
+      env:
+        AMQP_IMPLEMENTATION: lib
+        DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
+        SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16

@@ -21,6 +21,7 @@
         "ecotone/redis": "~2.0.0-beta.6",
         "ecotone/sqs": "~2.0.0-beta.6",
         "ecotone/symfony-bundle": "~2.0.0-beta.6",
+        "enqueue/amqp-lib": "^0.10.25",
         "ext-ctype": "*",
         "ext-iconv": "*",
         "php": ">=8.4",

@@ -6,10 +6,10 @@ namespace Ecotone\SymfonyBundle\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Dbal\DbalConnection;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Symfony\SymfonyConnectionReference;
-use Ecotone\Dbal\DbalConnection;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -94,10 +94,11 @@ final class SymfonyConnectionModule extends NoExternalConfigurationModule implem
                         ConnectionFactory::class,
                         [
                             Reference::to($referenceToConnection),
+                            $connection->connectionPoolSize,
                         ],
                         [
                             DbalConnection::class,
-                            'create',
+                            'createWithCopiesForConcurrentExecutions',
                         ]
                     )
                 );

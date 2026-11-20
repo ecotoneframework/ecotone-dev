@@ -10,6 +10,7 @@ use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanRecorder;
 use Ecotone\Api\Tracing\SpanStatus;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Tracing\ActiveSpan;
 use Throwable;
 
@@ -33,21 +34,6 @@ use Throwable;
  */
 final class StoringSpanRecorder implements SpanRecorder
 {
-    /** @var Span[] */
-    private array $buffer = [];
-    private bool $scopeActive = false;
-    private bool $scopeExcludedFromTracking = false;
-    private ?ActiveSpan $wrappingSpan = null;
-    /** @var array<string, true> */
-    private array $storedSpanIds = [];
-    private bool $projectionBatchActive = false;
-    private bool $unitOfWorkActive = false;
-    /** @var Span[] */
-    private array $committedSpans = [];
-    private ?string $consumedMessageSpanId = null;
-    /** @var array{wrappingSpanId: string, spans: Span[], append: Closure(Span[], ?string): void}|null */
-    private ?array $failedAttempt = null;
-
     public function __construct(
         private TraceStore $traceStore,
         private bool $publishesEndedSpans,
@@ -57,71 +43,71 @@ final class StoringSpanRecorder implements SpanRecorder
 
     public function record(Span $span): void
     {
-        if ($this->scopeActive && ! $this->scopeExcludedFromTracking && $this->isStored($span)) {
-            $this->buffer[] = $span;
-        } elseif (! $this->scopeActive && $this->failedAttempt !== null && $span->traceId === $this->failedAttempt['spans'][0]->traceId && $this->isStored($span)) {
-            $this->failedAttempt['spans'][] = $span;
+        if ($this->recorded()->scopeActive && ! $this->recorded()->scopeExcludedFromTracking && $this->isStored($span)) {
+            $this->recorded()->buffer[] = $span;
+        } elseif (! $this->recorded()->scopeActive && $this->recorded()->failedAttempt !== null && $span->traceId === $this->recorded()->failedAttempt['spans'][0]->traceId && $this->isStored($span)) {
+            $this->recorded()->failedAttempt['spans'][] = $span;
         }
     }
 
     public function isUnitOfWorkActive(): bool
     {
-        return $this->unitOfWorkActive;
+        return $this->recorded()->unitOfWorkActive;
     }
 
     public function beginUnitOfWork(): void
     {
-        $this->unitOfWorkActive = true;
+        $this->recorded()->unitOfWorkActive = true;
     }
 
     public function endUnitOfWork(): void
     {
-        $this->unitOfWorkActive = false;
-        $this->committedSpans = [];
+        $this->recorded()->unitOfWorkActive = false;
+        $this->recorded()->committedSpans = [];
     }
 
     public function openScope(?ActiveSpan $wrappingSpan): void
     {
-        $this->scopeActive = true;
-        $this->wrappingSpan = $wrappingSpan;
+        $this->recorded()->scopeActive = true;
+        $this->recorded()->wrappingSpan = $wrappingSpan;
     }
 
     public function isScopeActive(): bool
     {
-        return $this->scopeActive;
+        return $this->recorded()->scopeActive;
     }
 
     public function excludeScopeFromTracking(): void
     {
-        if (! $this->scopeActive) {
+        if (! $this->recorded()->scopeActive) {
             return;
         }
 
-        $this->scopeExcludedFromTracking = true;
-        $this->buffer = [];
+        $this->recorded()->scopeExcludedFromTracking = true;
+        $this->recorded()->buffer = [];
     }
 
     public function closeScope(): void
     {
-        $this->scopeActive = false;
-        $this->scopeExcludedFromTracking = false;
-        $this->wrappingSpan = null;
-        $this->storedSpanIds = [];
+        $this->recorded()->scopeActive = false;
+        $this->recorded()->scopeExcludedFromTracking = false;
+        $this->recorded()->wrappingSpan = null;
+        $this->recorded()->storedSpanIds = [];
     }
 
     public function beginProjectionBatch(): void
     {
-        $this->projectionBatchActive = true;
+        $this->recorded()->projectionBatchActive = true;
     }
 
     public function isProjectionBatchActive(): bool
     {
-        return $this->projectionBatchActive;
+        return $this->recorded()->projectionBatchActive;
     }
 
     public function endProjectionBatch(): void
     {
-        $this->projectionBatchActive = false;
+        $this->recorded()->projectionBatchActive = false;
     }
 
     public function withinTransaction(Closure $work): mixed
@@ -131,12 +117,12 @@ final class StoringSpanRecorder implements SpanRecorder
 
     public function flushBufferedWithinOpenScope(): void
     {
-        $this->store([], $this->wrappingSpan?->context()->spanId);
+        $this->store([], $this->recorded()->wrappingSpan?->context()->spanId);
     }
 
     public function flushWithOpenSpansWithinOpenScope(?ActiveSpan ...$innerOpenSpans): void
     {
-        $this->store($this->openSpansSoFar($innerOpenSpans), $this->wrappingSpan?->context()->spanId);
+        $this->store($this->openSpansSoFar($innerOpenSpans), $this->recorded()->wrappingSpan?->context()->spanId);
     }
 
     public function flushWithOpenSpans(): void
@@ -151,7 +137,7 @@ final class StoringSpanRecorder implements SpanRecorder
     private function openSpansSoFar(array $innerOpenSpans): array
     {
         $openSpans = [];
-        foreach ([$this->wrappingSpan, ...$innerOpenSpans] as $openSpan) {
+        foreach ([$this->recorded()->wrappingSpan, ...$innerOpenSpans] as $openSpan) {
             if ($openSpan !== null) {
                 $openSpans[$openSpan->context()->spanId] = $openSpan->endedSoFar();
             }
@@ -165,19 +151,19 @@ final class StoringSpanRecorder implements SpanRecorder
      */
     private function store(array $openSpansSoFar, ?string $onlyPossibleEntrySpanId): void
     {
-        if ($this->scopeExcludedFromTracking) {
-            $this->buffer = [];
+        if ($this->recorded()->scopeExcludedFromTracking) {
+            $this->recorded()->buffer = [];
 
             return;
         }
 
         $spans = [];
-        foreach ([...$this->buffer, ...$openSpansSoFar] as $span) {
-            if ($this->isStored($span) && ! isset($this->storedSpanIds[$span->spanId])) {
+        foreach ([...$this->recorded()->buffer, ...$openSpansSoFar] as $span) {
+            if ($this->isStored($span) && ! isset($this->recorded()->storedSpanIds[$span->spanId])) {
                 $spans[$span->spanId] = $span;
             }
         }
-        $this->buffer = [];
+        $this->recorded()->buffer = [];
         if ($spans === []) {
             return;
         }
@@ -185,36 +171,36 @@ final class StoringSpanRecorder implements SpanRecorder
         $spans = array_values($spans);
         $this->traceStore->append($spans, $onlyPossibleEntrySpanId);
         foreach ($spans as $span) {
-            $this->storedSpanIds[$span->spanId] = true;
+            $this->recorded()->storedSpanIds[$span->spanId] = true;
         }
-        $this->committedSpans = [...$this->committedSpans, ...$spans];
+        $this->recorded()->committedSpans = [...$this->recorded()->committedSpans, ...$spans];
     }
 
     public function discard(): void
     {
-        $this->buffer = [];
+        $this->recorded()->buffer = [];
     }
 
     public function beginConsumedMessage(?ActiveSpan $consumedMessageSpan): void
     {
-        $this->consumedMessageSpanId = $consumedMessageSpan?->context()->spanId;
-        $this->failedAttempt = null;
+        $this->recorded()->consumedMessageSpanId = $consumedMessageSpan?->context()->spanId;
+        $this->recorded()->failedAttempt = null;
     }
 
     public function endConsumedMessage(): void
     {
-        $this->consumedMessageSpanId = null;
-        $this->failedAttempt = null;
+        $this->recorded()->consumedMessageSpanId = null;
+        $this->recorded()->failedAttempt = null;
     }
 
     public function holdFailedAttempt(Throwable $failure): void
     {
-        $buffered = $this->buffer;
-        $this->buffer = [];
-        if ($this->scopeExcludedFromTracking || $this->wrappingSpan === null || $this->wrappingSpan->context()->spanId !== $this->consumedMessageSpanId) {
+        $buffered = $this->recorded()->buffer;
+        $this->recorded()->buffer = [];
+        if ($this->recorded()->scopeExcludedFromTracking || $this->recorded()->wrappingSpan === null || $this->recorded()->wrappingSpan->context()->spanId !== $this->recorded()->consumedMessageSpanId) {
             return;
         }
-        $wrapping = $this->wrappingSpan->endedSoFar();
+        $wrapping = $this->recorded()->wrappingSpan->endedSoFar();
         if (! $this->isStored($wrapping)) {
             return;
         }
@@ -223,21 +209,21 @@ final class StoringSpanRecorder implements SpanRecorder
         foreach ([$wrapping, ...self::failedStepsWithTheirAncestors($buffered)] as $span) {
             $spans[$span->spanId] = new Span(...[...get_object_vars($span), 'attributes' => [...$span->attributes, SpanAttribute::TRACE_FAILED_ATTEMPT => true]]);
         }
-        $this->failedAttempt = ['wrappingSpanId' => $wrapping->spanId, 'spans' => array_values($spans), 'append' => $this->traceStore->appendingOnCurrentConnection()];
+        $this->recorded()->failedAttempt = ['wrappingSpanId' => $wrapping->spanId, 'spans' => array_values($spans), 'append' => $this->traceStore->appendingOnCurrentConnection()];
     }
 
     public function forgetFailedAttemptOfOpenScope(): void
     {
-        if ($this->failedAttempt !== null && $this->failedAttempt['wrappingSpanId'] === $this->wrappingSpan?->context()->spanId) {
-            $this->failedAttempt = null;
+        if ($this->recorded()->failedAttempt !== null && $this->recorded()->failedAttempt['wrappingSpanId'] === $this->recorded()->wrappingSpan?->context()->spanId) {
+            $this->recorded()->failedAttempt = null;
         }
     }
 
     public function storeFailedAttempt(): void
     {
-        $failedAttempt = $this->failedAttempt;
-        $this->failedAttempt = null;
-        if ($failedAttempt !== null && $failedAttempt['wrappingSpanId'] === $this->consumedMessageSpanId) {
+        $failedAttempt = $this->recorded()->failedAttempt;
+        $this->recorded()->failedAttempt = null;
+        if ($failedAttempt !== null && $failedAttempt['wrappingSpanId'] === $this->recorded()->consumedMessageSpanId) {
             ($failedAttempt['append'])($failedAttempt['spans'], $failedAttempt['wrappingSpanId']);
         }
     }
@@ -270,7 +256,7 @@ final class StoringSpanRecorder implements SpanRecorder
      */
     public function popCommittedNotifications(): array
     {
-        $notifications = array_map(fn (Span $span): FlowStepCompleted => new FlowStepCompleted($span), $this->publishesEndedSpans ? $this->committedSpans : []);
+        $notifications = array_map(fn (Span $span): FlowStepCompleted => new FlowStepCompleted($span), $this->publishesEndedSpans ? $this->recorded()->committedSpans : []);
         $this->endUnitOfWork();
 
         return $notifications;
@@ -283,5 +269,10 @@ final class StoringSpanRecorder implements SpanRecorder
         }
 
         return ! $this->storesOnlyCarriedTraces || ($span->attributes[SpanAttribute::TRACE_CARRIED] ?? false);
+    }
+
+    private function recorded(): RecordedSpans
+    {
+        return ExecutionScope::stateOf($this, static fn () => new RecordedSpans());
     }
 }

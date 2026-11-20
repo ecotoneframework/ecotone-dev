@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal;
 
+use Closure;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
@@ -12,7 +13,7 @@ use Doctrine\ORM\Tools\Setup;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
 use Doctrine\Persistence\ObjectRepository;
-use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
@@ -20,109 +21,54 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  */
 final class ManagerRegistryEmulator implements ManagerRegistry
 {
-    private ?EntityManager $entityManager = null;
-
     /**
+     * @param Closure(): Connection $connectionOfCurrentExecution
      * @param string[] $pathsToMapping
      */
     public function __construct(
-        private Connection $connection,
+        private Closure $connectionOfCurrentExecution,
         private array $pathsToMapping = [],
     ) {
     }
 
-    public static function fromDsnAndConfig(string $dsn, array $config = []): EcotoneManagerRegistryConnectionFactory
-    {
-        return new EcotoneManagerRegistryConnectionFactory(
-            new self(DbalConnection::fromDsn($dsn)->createContext()->getDbalConnection(), $config),
-        );
-    }
-
-    public static function fromConnectionFactory(DbalConnectionFactory $dbalConnectionFactory): EcotoneManagerRegistryConnectionFactory
-    {
-        return new EcotoneManagerRegistryConnectionFactory(new self($dbalConnectionFactory->createContext()->getDbalConnection()));
-    }
-
-    /**
-     * @param string[] $pathsToMapping
-     */
-    public static function create(Connection $connection, array $pathsToMapping = []): EcotoneManagerRegistryConnectionFactory
-    {
-        return new EcotoneManagerRegistryConnectionFactory(new self($connection, $pathsToMapping));
-    }
-
-    public static function createEntityManager(EntityManagerInterface $entityManager): EcotoneManagerRegistryConnectionFactory
-    {
-        return new EcotoneManagerRegistryConnectionFactory(new EntityManagerRegistryEmulator($entityManager));
-    }
-
-    public static function createForManagerRegistry(ManagerRegistry $managerRegistry, string $connectionName): EcotoneManagerRegistryConnectionFactory
-    {
-        return new EcotoneManagerRegistryConnectionFactory($managerRegistry, ['connection_name' => $connectionName]);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function getDefaultConnectionName(): string
     {
         return 'default';
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getConnection($name = null): object
     {
-        return $this->connection;
+        return ($this->connectionOfCurrentExecution)();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getConnections(): array
     {
-        return [$this->connection];
+        return ['default' => $this->getConnection()];
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getConnectionNames(): array
     {
         return ['default'];
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getDefaultManagerName(): string
     {
         return 'default';
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getManager($name = null): EntityManagerInterface
     {
         return $this->getEntityManager();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getManagers(): array
     {
         return $this->getEntityManager() ? [$this->getEntityManager()] : [];
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function resetManager($name = null): ObjectManager
     {
-        $this->entityManager = null;
+        $this->entityManagerOfExecution()->entityManager = null;
 
         return $this->getEntityManager();
     }
@@ -135,25 +81,16 @@ final class ManagerRegistryEmulator implements ManagerRegistry
         throw InvalidArgumentException::create('Method not supported');
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getManagerNames(): array
     {
         return ['default'];
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getRepository($persistentObject, $persistentManagerName = null): ObjectRepository
     {
         return $this->getEntityManager()->getRepository($persistentObject);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getManagerForClass($class): ?ObjectManager
     {
         return $this->getEntityManager();
@@ -161,14 +98,15 @@ final class ManagerRegistryEmulator implements ManagerRegistry
 
     private function getEntityManager(): ?EntityManager
     {
-        if ($this->entityManager === null) {
-            $this->setupEntityManager();
+        $entityManagerOfExecution = $this->entityManagerOfExecution();
+        if ($entityManagerOfExecution->entityManager === null || $entityManagerOfExecution->entityManager->getConnection() !== $this->getConnection()) {
+            $entityManagerOfExecution->entityManager = $this->setupEntityManager();
         }
 
-        return $this->entityManager;
+        return $entityManagerOfExecution->entityManager;
     }
 
-    private function setupEntityManager(): void
+    private function setupEntityManager(): ?EntityManager
     {
         /** Doctrine 3.0 >= */
         if (class_exists(ORMSetup::class)) {
@@ -183,7 +121,7 @@ final class ManagerRegistryEmulator implements ManagerRegistry
 
             /** To fake phpstan as in version 2.0, constructor is protected */
             $entityManager = $this->getEntityManagerName();
-            $this->entityManager = new $entityManager($this->getConnection(), $config, null);
+            return new $entityManager($this->getConnection(), $config, null);
         } elseif (class_exists(Setup::class)) {
             $config = Setup::createAttributeMetadataConfiguration(
                 $this->pathsToMapping,
@@ -192,8 +130,15 @@ final class ManagerRegistryEmulator implements ManagerRegistry
 
             /** To fake phpstan */
             $entityManager = $this->getEntityManagerName();
-            $this->entityManager = $entityManager::create($this->getConnection(), $config);
+            return $entityManager::create($this->getConnection(), $config);
         }
+
+        return null;
+    }
+
+    private function entityManagerOfExecution(): EntityManagerOfExecution
+    {
+        return ExecutionScope::stateOf($this, static fn () => new EntityManagerOfExecution());
     }
 
     private function getEntityManagerName(): string

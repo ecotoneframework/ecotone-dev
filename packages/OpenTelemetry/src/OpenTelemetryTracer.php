@@ -14,6 +14,8 @@ use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanRecorder;
+use Ecotone\Messaging\Execution\ExecutionList;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Tracing\ActiveSpan;
 use Ecotone\Tracing\Tracer;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
@@ -27,9 +29,6 @@ use OpenTelemetry\API\Trace\TracerProviderInterface;
 final class OpenTelemetryTracer implements Tracer
 {
     public const ECOTONE_TRACER_NAME = 'io.opentelemetry.contrib.php.ecotone';
-
-    /** @var OpenTelemetryActiveSpan[] */
-    private array $activeSpans = [];
 
     public function __construct(
         private TracerProviderInterface $tracerProvider,
@@ -92,21 +91,21 @@ final class OpenTelemetryTracer implements Tracer
             $this->clock,
             $this,
         );
-        $this->activeSpans[] = $activeSpan;
+        $this->activeSpans()->items[] = $activeSpan;
 
         return $activeSpan;
     }
 
     public function currentSpan(): ?ActiveSpan
     {
-        return $this->activeSpans[count($this->activeSpans) - 1] ?? null;
+        return $this->activeSpans()->items[count($this->activeSpans()->items) - 1] ?? null;
     }
 
     public function endSpan(OpenTelemetryActiveSpan $activeSpan, Span $span): void
     {
-        $position = array_search($activeSpan, $this->activeSpans, true);
+        $position = array_search($activeSpan, $this->activeSpans()->items, true);
         if ($position !== false) {
-            array_splice($this->activeSpans, $position, 1);
+            array_splice($this->activeSpans()->items, $position, 1);
         }
 
         $this->spanRecorder->record($span);
@@ -121,5 +120,10 @@ final class OpenTelemetryTracer implements Tracer
             SpanKind::Producer => OpenTelemetrySpanKind::KIND_PRODUCER,
             SpanKind::Consumer => OpenTelemetrySpanKind::KIND_CONSUMER,
         };
+    }
+
+    private function activeSpans(): ExecutionList
+    {
+        return ExecutionScope::stateOf($this, static fn () => new ExecutionList());
     }
 }

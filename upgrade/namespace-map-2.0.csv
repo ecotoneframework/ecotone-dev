@@ -100,9 +100,9 @@ Ecotone\Dbal\Attribute\DbalParameter,Ecotone\Api\Dbal\Attribute\DbalParameter
 Ecotone\Dbal\Attribute\DbalQuery,Ecotone\Api\Dbal\Attribute\DbalQuery
 Ecotone\Dbal\DbaBusinessMethod\FetchMode,Ecotone\Api\Dbal\FetchMode
 Ecotone\Dbal\Attribute\DbalWrite,Ecotone\Api\Dbal\Attribute\DbalWrite
-Ecotone\Dbal\Attribute\MultiTenantConnection,Ecotone\Api\Dbal\Attribute\MultiTenantConnection
+Ecotone\Dbal\Attribute\MultiTenantConnection,Ecotone\Api\Dbal\Attribute\CurrentConnection
 Ecotone\Dbal\DbalTransaction\DbalTransaction,Ecotone\Api\Dbal\Attribute\DbalTransaction
-Ecotone\Dbal\Attribute\MultiTenantObjectManager,Ecotone\Api\Dbal\Attribute\MultiTenantObjectManager
+Ecotone\Dbal\Attribute\MultiTenantObjectManager,Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager
 Ecotone\Dbal\Attribute\OnTenantActivation,Ecotone\Api\Dbal\Attribute\OnTenantActivation
 Ecotone\Dbal\Attribute\OnTenantDeactivation,Ecotone\Api\Dbal\Attribute\OnTenantDeactivation
 Ecotone\Dbal\Attribute\WithTenantResolver,Ecotone\Api\Dbal\Attribute\WithTenantResolver
@@ -231,6 +231,8 @@ Ecotone\EventSourcing\EventStreamEmitter,Ecotone\Api\EventSourcing\EventStreamEm
 Ecotone\OpenTelemetry\Configuration\TracingConfiguration,Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration
 Ecotone\Dbal\Connection\DbalConnectionFactory,Ecotone\Api\Dbal\DbalConnectionFactory
 Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory,Ecotone\Api\Dbal\ManagerRegistryConnectionFactory
+Ecotone\Dbal\DbalConnection,Ecotone\Api\Dbal\DbalConnection
+Ecotone\Dbal\ManagerRegistryEmulator,Ecotone\Api\Dbal\ManagerRegistryProvider
 Ecotone\Sqs\Connection\SqsConnectionFactory,Ecotone\Api\Sqs\SqsConnectionFactory
 Ecotone\Redis\Connection\RedisConnectionFactory,Ecotone\Api\Redis\RedisConnectionFactory
 Ecotone\Amqp\Connection\AmqpLibConnectionFactory,Ecotone\Api\Amqp\AmqpLibConnectionFactory

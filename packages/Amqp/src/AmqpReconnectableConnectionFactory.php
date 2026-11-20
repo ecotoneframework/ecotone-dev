@@ -9,6 +9,7 @@ use Ecotone\Api\Amqp\AmqpLibConnectionFactory;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Enqueue\AmqpExt\AmqpConsumer;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
@@ -23,6 +24,8 @@ use PhpAmqpLib\Message\AMQPMessage as LibAMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
 use ReflectionClass;
 use ReflectionProperty;
+use Throwable;
+use WeakMap;
 
 /**
  * licence Apache-2.0
@@ -32,7 +35,13 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     private string $connectionInstanceId;
     private AmqpConnectionFactory $connectionFactory;
     private ?SubscriptionConsumer $subscriptionConsumer = null;
-    private ?AmqpPublisherConfirmations $publisherConfirmations = null;
+    /** @var Context[] */
+    private array $openContextsOfFinishedExecutions = [];
+    /** @var WeakMap<Context, AmqpPublisherConfirmations> */
+    private WeakMap $publisherConfirmationsOfContexts;
+    /** @var WeakMap<Context, int> */
+    private WeakMap $nanosecondsWhenContextsWereKeptOpen;
+    private ?int $nanosecondsWhenThePublishingConnectionWasLastUsed = null;
 
     public static function definitionFor(string $connectionReferenceName, bool $publisherConfirms): Definition
     {
@@ -47,6 +56,8 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     public function __construct(AmqpExtConnectionFactory|AmqpLibConnectionFactory $connectionFactory, ?string $connectionInstanceId = null, private bool $publisherConfirms = false)
     {
         $this->connectionInstanceId = $connectionInstanceId !== null ? $connectionInstanceId : spl_object_id($connectionFactory);
+        $this->publisherConfirmationsOfContexts = new WeakMap();
+        $this->nanosecondsWhenContextsWereKeptOpen = new WeakMap();
         /** Each consumer and publisher requires separate connection to work correctly in all cases: https://www.rabbitmq.com/connections.html#flow-control */
         if ($connectionFactory instanceof AmqpExtConnectionFactory) {
             $this->connectionFactory = new AmqpExtConnectionFactory($connectionFactory->getConfig()->getConfig());
@@ -57,15 +68,80 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
 
     public function createContext(): Context
     {
+        $context = $this->takeOpenContextOfFinishedExecution() ?? $this->openContext();
+        if (ExecutionScope::isConcurrent()) {
+            ExecutionScope::stateOf($this, fn () => new ChannelsOfExecution($this->keepOpenForNextExecution(...)))->contexts[] = $context;
+        }
+
+        return $context;
+    }
+
+    private function takeOpenContextOfFinishedExecution(): ?Context
+    {
+        while ($this->openContextsOfFinishedExecutions !== []) {
+            $context = array_pop($this->openContextsOfFinishedExecutions);
+            if (! $this->isDisconnected($context) && ! $this->hasBrokerClosedAConnectionIdleSince($this->nanosecondsWhenContextsWereKeptOpen[$context] ?? null)) {
+                return $context;
+            }
+
+            $this->publisherConfirmationsOf($context)?->reset();
+        }
+
+        return null;
+    }
+
+    /**
+     * @param Context[] $contexts
+     */
+    private function keepOpenForNextExecution(array $contexts): void
+    {
+        foreach ($contexts as $context) {
+            if ($this->canBeUsedByNextExecution($context)) {
+                $this->openContextsOfFinishedExecutions[] = $context;
+                $this->nanosecondsWhenContextsWereKeptOpen[$context] = (int) hrtime(true);
+
+                continue;
+            }
+
+            $this->publisherConfirmationsOf($context)?->reset();
+        }
+    }
+
+    private function canBeUsedByNextExecution(Context $context): bool
+    {
+        try {
+            return ! $this->isDisconnected($context);
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    private function connectionFactoryOfCurrentExecution(): AmqpConnectionFactory
+    {
+        if (ExecutionScope::isConcurrent() && $this->connectionFactory instanceof AmqpExtConnectionFactory) {
+            return new AmqpExtConnectionFactory($this->connectionFactory->getConfig()->getConfig());
+        }
+        if (ExecutionScope::isConcurrent() && $this->connectionFactory instanceof AmqpLibConnectionFactory) {
+            return new AmqpLibConnectionFactory($this->connectionFactory->getConfig()->getConfig());
+        }
+
         if (! $this->isConnected()) {
             $this->reconnect();
         }
 
-        $context = $this->connectionFactory->createContext();
+        return $this->connectionFactory;
+    }
+
+    private function openContext(): Context
+    {
+        $context = $this->connectionFactoryOfCurrentExecution()->createContext();
+        if (! ExecutionScope::isConcurrent()) {
+            $this->nanosecondsWhenThePublishingConnectionWasLastUsed ??= (int) hrtime(true);
+        }
 
         if ($this->publisherConfirms) {
-            $confirmations = $this->getPublisherConfirmations();
-            $confirmations->reset();
+            $confirmations = new AmqpPublisherConfirmations();
+            $this->publisherConfirmationsOfContexts[$context] = $confirmations;
             if ($context instanceof AmqpLibContext) {
                 $context->getLibChannel()->confirm_select();
                 $context->getLibChannel()->set_ack_handler(fn (LibAMQPMessage $message) => $confirmations->recordConfirmationForCorrelation(self::publishCorrelationIdFrom($message)));
@@ -104,9 +180,9 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         return $context;
     }
 
-    public function getPublisherConfirmations(): AmqpPublisherConfirmations
+    public function publisherConfirmationsOf(Context $context): ?AmqpPublisherConfirmations
     {
-        return $this->publisherConfirmations ??= new AmqpPublisherConfirmations();
+        return $this->publisherConfirmationsOfContexts[$context] ?? null;
     }
 
     private static function publishCorrelationIdFrom(LibAMQPMessage $message): string
@@ -159,6 +235,29 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         return false;
     }
 
+    public function hasBrokerClosedTheConnectionIdleSinceTheLastPublish(): bool
+    {
+        return ! ExecutionScope::isConcurrent() && $this->hasBrokerClosedAConnectionIdleSince($this->nanosecondsWhenThePublishingConnectionWasLastUsed);
+    }
+
+    public function recordPublish(): void
+    {
+        if (! ExecutionScope::isConcurrent()) {
+            $this->nanosecondsWhenThePublishingConnectionWasLastUsed = (int) hrtime(true);
+        }
+    }
+
+    private function hasBrokerClosedAConnectionIdleSince(?int $nanoseconds): bool
+    {
+        if ($nanoseconds === null || ! $this->connectionFactory instanceof AmqpExtConnectionFactory) {
+            return false;
+        }
+
+        $heartbeatInSeconds = (float) $this->connectionFactory->getConfig()->getHeartbeat();
+
+        return $heartbeatInSeconds > 0 && hrtime(true) - $nanoseconds >= 2 * $heartbeatInSeconds * 1_000_000_000;
+    }
+
     public function reconnect(): void
     {
         $connectionProperty = $this->getConnectionProperty();
@@ -186,7 +285,12 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         }
 
         $connectionProperty->setValue($this->connectionFactory, null);
+        $this->nanosecondsWhenThePublishingConnectionWasLastUsed = null;
         $this->subscriptionConsumer = null;
+        $this->openContextsOfFinishedExecutions = [];
+        foreach ($this->publisherConfirmationsOfContexts as $confirmations) {
+            $confirmations->reset();
+        }
     }
 
     private function isConnected(): bool
@@ -217,7 +321,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     public function getSubscriptionConsumer(string $queueName, callable $subscriptionCallback): SubscriptionConsumer
     {
         if ($this->subscriptionConsumer === null) {
-            $context = $this->createContext();
+            $context = $this->openContext();
 
             $this->subscriptionConsumer = $context->createSubscriptionConsumer();
 

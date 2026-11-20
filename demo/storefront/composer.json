@@ -23,6 +23,7 @@
         "ecotone/laravel": "2.0.x-dev",
         "ecotone/open-telemetry": "2.0.x-dev",
         "laravel/framework": "^12.0",
+        "laravel/octane": "^2.25",
         "nyholm/psr7": "^1.8",
         "open-telemetry/exporter-otlp": "^1.0",
         "open-telemetry/opentelemetry-auto-laravel": "^1.10",

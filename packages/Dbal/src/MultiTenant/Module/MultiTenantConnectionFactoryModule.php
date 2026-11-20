@@ -10,8 +10,6 @@ use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\PropagateHeaders;
-use Ecotone\Api\Dbal\Attribute\MultiTenantConnection;
-use Ecotone\Api\Dbal\Attribute\MultiTenantObjectManager;
 use Ecotone\Api\Dbal\Attribute\OnTenantActivation;
 use Ecotone\Api\Dbal\Attribute\OnTenantDeactivation;
 use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
@@ -27,7 +25,6 @@ use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantHeaderResolver;
 use Ecotone\Messaging\Attribute\ChannelAdapter;
-use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -92,33 +89,7 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
             }
         }
 
-        foreach (self::findMultiTenantParameterAttributePlacements($annotationRegistrationService, $interfaceToCallRegistry) as $placement) {
-            $multiTenantAttributePlacements[] = $placement;
-        }
-
         return new self($allPlacements, $invalid, array_values(array_unique($multiTenantAttributePlacements)));
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private static function findMultiTenantParameterAttributePlacements(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): array
-    {
-        $placements = [];
-
-        foreach ($annotationRegistrationService->findAnnotatedMethods(EndpointAnnotation::class) as $annotatedMethod) {
-            $interfaceToCall = $interfaceToCallRegistry->getFor($annotatedMethod->getClassName(), $annotatedMethod->getMethodName());
-
-            foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
-                foreach ([MultiTenantConnection::class, MultiTenantObjectManager::class] as $attributeClassName) {
-                    if ($interfaceParameter->hasAnnotation($attributeClassName)) {
-                        $placements[] = $attributeClassName . ' on ' . $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName() . '($' . $interfaceParameter->getName() . ')';
-                    }
-                }
-            }
-        }
-
-        return $placements;
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -140,6 +111,16 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
         }
 
         $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
+        if (count($multiTenantConfigurations) > 1) {
+            throw ConfigurationException::create(sprintf(
+                'This application registers %d MultiTenantConfigurations (as `%s`), and Ecotone handles a message on the connection of one active tenant, so only one can be registered. '
+                . 'Keep a single MultiTenantConfiguration and map every tenant to its connection in it. '
+                . "A database that is not split by tenant is registered as a connection of its own and taken with #[CurrentConnection('its_reference_name')]. "
+                . "A tenant maps to one connection: a second database split by tenant is not switched by Ecotone, so choose its connection in your own code from the tenant header, #[Header('tenant')] string \$tenant.",
+                count($multiTenantConfigurations),
+                implode('`, `', array_map(static fn (MultiTenantConfiguration $configuration): string => $configuration->getReferenceName(), $multiTenantConfigurations)),
+            ));
+        }
 
         if (($multiTenantConfigurations !== [] || $this->multiTenantAttributePlacements !== []) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             throw LicensingException::create(sprintf(
@@ -185,12 +166,10 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                     ]
                 )
             );
-            if (count($multiTenantConfigurations) === 1) {
-                $messagingConfiguration->registerServiceDefinition(
-                    MultiTenantConnectionFactory::class,
-                    new Reference($multiTenantConfig->getReferenceName())
-                );
-            }
+            $messagingConfiguration->registerServiceDefinition(
+                MultiTenantConnectionFactory::class,
+                new Reference($multiTenantConfig->getReferenceName())
+            );
 
             $interfaceToCall = $interfaceToCallRegistry->getFor(HeaderBasedMultiTenantConnectionFactory::class, 'enablePollingConsumerPropagation');
             /** Register interceptors to enable tenant when polling (no metadata context available) */

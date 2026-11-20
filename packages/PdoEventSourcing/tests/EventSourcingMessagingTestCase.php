@@ -4,11 +4,11 @@ namespace Test\Ecotone\EventSourcing;
 
 use DateTimeInterface;
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\Dbal\DbalConnection;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Dbal\DbalConnection;
 use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use InvalidArgumentException;

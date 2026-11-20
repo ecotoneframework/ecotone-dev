@@ -298,6 +298,24 @@ not add licence headers.
 
 ---
 
+## Reading the flow comparison
+
+The pull request comment and `php bin/build-flow.php compare` print each changed scenario of the flow scenario
+catalogue: the message's path as a sequence diagram (Before and After), the marked wiring and the traced spans
+collapsed under it, and what ran, process by process. The terms they use:
+
+| Term | Meaning |
+|---|---|
+| `(build, no span)`, a dashed arrow | a step taken from what Ecotone registers (the build or the wiring), because no span is recorded for it; a solid arrow is a traced step |
+| `+` / `-` | new in the pull request / gone in it |
+| process, sub-flow | a process is one entry into Ecotone: a gateway call, a console command or one consumed message. A sub-flow is a process started by a message another process sent; it is printed under the step that sent it, and `sent by:` / `taken by:` name the two sides |
+| hand-over, `no hand-over` | what a handler's return value does next: handed to the output channel or the reply, or `no hand-over` when nothing is returned or nothing takes it |
+| `chosen by: licence, over X` | with an Enterprise licence Ecotone runs this implementation in place of the open-core `X` |
+| `chosen by: …` (other values) | what picked the route or the handler: a routing key, a routing slip, the service map |
+| `{generated#1}` | an id Ecotone generates while it builds (an endpoint id, a channel name), numbered in order of appearance so two builds compare equal |
+| `moved, now run under the X step` / `no longer run under` | a step that still runs, but inside another step now (or no longer), for example under an interceptor added around it |
+| `↳ key: value` | a hint of the step above it: what decided where the message went, or that it failed |
+
 ## What CI actually runs
 
 | Workflow | Trigger | What it does |

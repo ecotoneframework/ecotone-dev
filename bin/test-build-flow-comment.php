@@ -35,8 +35,7 @@ $cases = [
             [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
             [$comment['changed'] === false, 'changed is false'],
             [str_starts_with($comment['body'], MARKER . "\n"), 'the body opens with the marker line'],
-            [str_contains($comment['body'], 'No message flow changed'), 'says no message flow changed'],
-            [str_contains($comment['body'], 'None of 94 scenarios changed'), 'keeps the line of the comparison'],
+            [str_contains($comment['body'], 'changes the message path of none of the 94 catalogue scenarios'), 'says no message path changed'],
         ]);
     },
     'a comparison over the comment limit keeps whole scenarios from the top and says how many were left out' => function (): ?string {
@@ -101,6 +100,70 @@ $cases = [
             [! str_contains($comment['body'], 'left out'), 'nothing left out'],
         ]);
     },
+    'the comment says what is compared, at which commit, how to reproduce it and where the terms are explained' => function (): ?string {
+        $comment = read(run(comparison(scenario('order placed', 'diagram')))['output']);
+
+        return expectAll([
+            [str_contains($comment['body'], "on this pull request's code at `aaaaaaa`"), 'names the short head sha'],
+            [str_contains($comment['body'], 'base commit'), 'says the before is the base commit'],
+            [str_contains($comment['body'], '`php bin/build-flow.php compare --presentation=build`'), 'says how to reproduce it locally'],
+            [str_contains($comment['body'], 'not regenerated in a pull request'), 'says the baseline is not regenerated in the pull request'],
+            [str_contains($comment['body'], 'https://github.com/ecotoneframework/ecotone-dev/blob/main/.agents/skills/framework-dev-environment/references/workflow.md#reading-the-flow-comparison'), 'links the glossary'],
+            [strpos($comment['body'], 'aaaaaaa') < strpos($comment['body'], '### `order placed`'), 'the explanation comes before the scenarios'],
+        ]);
+    },
+    'no changed flow names the commit and the number of catalogue scenarios' => function (): ?string {
+        $comment = read(run("## Message flow: what changed\n\nNone of 94 scenarios changed its wiring, its build or its traced spans.\n")['output']);
+
+        return expectAll([
+            [str_contains($comment['body'], 'As of `aaaaaaa`, this pull request changes the message path of none of the 94 catalogue scenarios.'), 'the no-change sentence: ' . $comment['body']],
+        ]);
+    },
+    'a build tree too long for the comment is left out with a note, and the scenarios still follow' => function (): ?string {
+        $tree = "### Build: what changes\n\n```text\nMessagingSystem\n" . str_repeat("└── + a registration of a module with a long name\n", 2_000) . "```\n\n";
+        $result = run("## Message flow: what changed\n\n1 of 94 scenarios changes its message path.\n\n" . $tree . scenario('order placed', 'diagram'));
+        $comment = read($result['output']);
+
+        return expectAll([
+            [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
+            [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . utf16Length($comment['body'])],
+            [str_contains($comment['body'], 'The build tree has 2,001 lines'), 'says the tree is left out'],
+            [str_contains($comment['body'], '### `order placed`'), 'the scenario is still shown'],
+        ]);
+    },
+    'a message path diagram too large to render does not move the cut inside the collapsed wiring' => function (): ?string {
+        $scenarios = [];
+        for ($index = 1; $index <= 6; $index++) {
+            $scenarios[] = pathScenario('scenario ' . $index, str_repeat("  a->>b: step\n", $index === 4 ? 4_000 : 100), str_repeat('z', 13_000), "```mermaid\nflowchart LR\n" . str_repeat("  a --> b\n", 300) . "```\n");
+        }
+        $comment = read(run(comparison(...$scenarios))['output']);
+
+        return expectAll([
+            [substr_count($comment['body'], '<details>') === substr_count($comment['body'], '</details>'), 'every <details> is closed: ' . substr_count($comment['body'], '<details>') . ' open, ' . substr_count($comment['body'], '</details>') . ' closed'],
+            [str_contains($comment['body'], 'changed scenarios are left out') || str_contains($comment['body'], 'is left out to stay within'), 'the left-out note is there'],
+            [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters'],
+        ]);
+    },
+    'the length is counted in UTF-16 code units, as GitHub and the workflow count it' => function (): ?string {
+        $scenarios = [];
+        for ($index = 1; $index <= 30; $index++) {
+            $scenarios[] = scenario('scenario ' . $index, str_repeat('😀', 1_500));
+        }
+        $comment = read(run(comparison(...$scenarios))['output']);
+
+        return expectAll([
+            [utf16Length($comment['body']) <= 65_536, 'at most 65,536 UTF-16 code units, got ' . utf16Length($comment['body'])],
+        ]);
+    },
+    'a mention outside code does not notify anyone, inside code it stays as written' => function (): ?string {
+        $comment = read(run(comparison(scenario('order placed', "ask @maintainer about it\n\n```text\nuser@example.com @inside\n```")))['output']);
+
+        return expectAll([
+            [! preg_match('/(?<![\w`])@maintainer/u', $comment['body']), 'the mention is neutralised'],
+            [str_contains($comment['body'], "@\u{200B}maintainer"), 'it still reads as @maintainer'],
+            [str_contains($comment['body'], 'user@example.com @inside'), 'code is left as written'],
+        ]);
+    },
     'a pull request number that is not a positive integer is refused' => function (): ?string {
         $result = run(comparison(scenario('order placed', 'diagram')), pullRequest: '17; rm -rf /');
 
@@ -149,9 +212,14 @@ function scenario(string $name, string $content): string
     return "### `{$name}`\n\nNow: it changed.\n\n#### Wiring\n\n{$content}\n";
 }
 
-function pathScenario(string $name, string $diagram, string $whatRan): string
+function pathScenario(string $name, string $diagram, string $whatRan, string $wiring = "Unchanged.\n"): string
 {
-    return "### `{$name}`\n\nNow: it changed.\n\n#### The message's path\n\n```mermaid\nsequenceDiagram\n{$diagram}\n```\n\n<details><summary>Marked wiring and traced spans</summary>\n\n#### Wiring\n\nUnchanged.\n\n</details>\n\n#### What ran, process by process\n\n{$whatRan}\n";
+    return "### `{$name}`\n\nNow: it changed.\n\n#### The message's path\n\n```mermaid\nsequenceDiagram\n{$diagram}\n```\n\n<details><summary>Marked wiring and traced spans</summary>\n\n#### Wiring\n\n{$wiring}\n</details>\n\n#### What ran, process by process\n\n{$whatRan}\n";
+}
+
+function utf16Length(string $text): int
+{
+    return intdiv(strlen((string) mb_convert_encoding($text, 'UTF-16LE', 'UTF-8')), 2);
 }
 
 function comparison(string ...$scenarios): string

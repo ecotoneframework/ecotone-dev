@@ -4,24 +4,22 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\Coroutine;
 
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Closure;
+use DateTimeInterface;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
-use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConsumerCoroutines;
-use Ecotone\Messaging\Endpoint\PollingConsumer\InterceptedConsumerRunner;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Psr\Container\ContainerInterface;
 use Swoole\Coroutine;
 use Swoole\Event;
-use Closure;
 
 /**
  * licence Enterprise
@@ -53,10 +51,16 @@ final class CoroutineMessageChannel extends QueueChannel
     public function send(Message $message): void
     {
         $delay = $message->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY) ? $message->getHeaders()->get(MessageHeaders::DELIVERY_DELAY) : 0;
-        $delay = $delay instanceof TimeSpan ? $delay->toMilliseconds() : $delay;
+        $delay = match (true) {
+            $delay instanceof TimeSpan => $delay->toMilliseconds(),
+            $delay instanceof Duration => $delay->inMilliseconds(),
+            $delay instanceof DateTimeInterface => DatePoint::createFromInterface($delay)->durationSince($this->clock->now())->inMilliseconds(),
+            default => $delay,
+        };
         if ($delay > 0) {
-            $this->schedule(function () use ($message, $delay): void {
-                $this->clock->sleep(Duration::milliseconds($delay));
+            $dueAt = $this->clock->now()->add(Duration::milliseconds($delay));
+            $this->schedule(function () use ($message, $dueAt): void {
+                $this->clock->sleep($dueAt->durationSince($this->clock->now()));
                 $this->enqueue($this->messageBuilder->fromMessage($message)->removeHeader(MessageHeaders::DELIVERY_DELAY)->build());
             });
             return;
@@ -101,22 +105,9 @@ final class CoroutineMessageChannel extends QueueChannel
         Event::defer(static fn () => Coroutine::create($work));
     }
 
-    public function receive(): ?Message
-    {
-        return parent::receive();
-    }
-
-    public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
-    {
-        return $this->receive();
-    }
-
     public function __toString(): string
     {
         return 'coroutine channel: ' . $this->name;
     }
 
-    public function onConsumerStop(): void
-    {
-    }
 }

@@ -4,30 +4,40 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Execution;
 
+use Closure;
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\DelayedRetry;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
-use DateTimeImmutable;
-use Ecotone\Api\Gateway\CommandBus;
-use RuntimeException;
+use Ecotone\Api\Attribute\ErrorChannel;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
-use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Test\CoroutineTesting;
-use Ecotone\Test\LicenceTesting;
-use PHPUnit\Framework\Attributes\RequiresMethod;
-use PHPUnit\Framework\TestCase;
-use Swoole\Coroutine;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Test\CoroutineTesting;
+use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RequiresMethod;
+use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
-use Psr\Log\LoggerInterface;
+use RuntimeException;
 use Stringable;
+use Swoole\Coroutine;
 
 /**
  * licence Apache-2.0
@@ -38,7 +48,7 @@ final class CoroutineMessageChannelTest extends TestCase
 {
     public function test_handler_runs_on_a_coroutine_of_the_sending_process(): void
     {
-        $handler = new class {
+        $handler = new class () {
             public array $handled = [];
 
             #[Asynchronous('async')]
@@ -63,7 +73,7 @@ final class CoroutineMessageChannelTest extends TestCase
     }
     public function test_a_failed_sender_starts_no_handler(): void
     {
-        $handler = new class {
+        $handler = new class () {
             public array $handled = [];
 
             #[CommandHandler('send')]
@@ -95,13 +105,20 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame([], $handler->handled);
     }
 
-    public function test_concurrency_is_limited_and_waiting_messages_start_in_order(): void
+    #[DataProvider('concurrency_limits')]
+    public function test_concurrency_is_limited_and_waiting_messages_start_in_order(int $limit, int $messages): void
     {
-        $handler = new class {
+        $handler = new class ($limit) {
             public int $active = 0;
             public int $maximum = 0;
             public array $started = [];
             public array $finished = [];
+            private Coroutine\Channel $release;
+
+            public function __construct(private int $limit)
+            {
+                $this->release = new Coroutine\Channel();
+            }
 
             #[Asynchronous('async')]
             #[CommandHandler('handle', endpointId: 'handle.endpoint')]
@@ -110,30 +127,34 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->started[] = $payload;
                 $this->active++;
                 $this->maximum = max($this->maximum, $this->active);
-                usleep(10_000);
+                if (count($this->started) === $this->limit) {
+                    $this->release->close();
+                } elseif (count($this->started) < $this->limit) {
+                    $this->release->pop();
+                }
                 $this->active--;
                 $this->finished[] = $payload;
             }
         };
         $default = CoroutineMessageChannelBuilder::create('async');
-        $limited = $default->withCoroutines(2);
+        $limited = $limit === 10 ? $default : $default->withCoroutines($limit);
         $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [$limited], licenceKey: LicenceTesting::VALID_LICENCE);
 
-        CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
-            foreach (range(1, 8) as $number) {
+        CoroutineTesting::runAtOnce(static function () use ($ecotone, $messages): void {
+            foreach (range(1, $messages) as $number) {
                 $ecotone->sendCommandWithRouting('handle', $number);
             }
         });
 
         $this->assertSame(10, $default->coroutines);
-        $this->assertSame(2, $handler->maximum);
-        $this->assertSame(range(1, 8), $handler->started);
-        $this->assertCount(8, $handler->finished);
+        $this->assertSame($limit, $handler->maximum);
+        $this->assertSame(range(1, $messages), $handler->started);
+        $this->assertCount($messages, $handler->finished);
     }
 
     public function test_failed_messages_are_logged_with_headers_and_dropped_while_others_continue(): void
     {
-        $logger = new class extends AbstractLogger {
+        $logger = new class () extends AbstractLogger {
             public array $errors = [];
 
             public function log($level, Stringable|string $message, array $context = []): void
@@ -143,7 +164,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 }
             }
         };
-        $handler = new class {
+        $handler = new class () {
             public array $handled = [];
 
             #[Asynchronous('async')]
@@ -199,7 +220,7 @@ final class CoroutineMessageChannelTest extends TestCase
 
     public function test_delayed_message_waits_on_a_coroutine_timer(): void
     {
-        $handler = new class {
+        $handler = new class () {
             public array $handled = [];
 
             #[Delayed(milliseconds: 500)]
@@ -228,7 +249,7 @@ final class CoroutineMessageChannelTest extends TestCase
 
     public function test_delayed_retry_returns_to_the_coroutine_channel_after_its_delay(): void
     {
-        $handler = new class {
+        $handler = new class () {
             public int $attempts = 0;
             public array $handled = [];
 
@@ -257,7 +278,7 @@ final class CoroutineMessageChannelTest extends TestCase
 
     public function test_command_bus_returns_before_even_a_non_yielding_handler_finishes(): void
     {
-        $handler = new class {
+        $handler = new class () {
             public array $steps = [];
 
             #[Asynchronous('async')]
@@ -277,9 +298,242 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(['returned', 'handled'], $handler->steps);
     }
 
+
+    public function test_class_routed_objects_keep_their_identity_with_service_context_registration(): void
+    {
+        $handler = new class () {
+            public array $handled = [];
+
+            #[ServiceContext]
+            public function channel(): CoroutineMessageChannelBuilder
+            {
+                return CoroutineMessageChannelBuilder::create('async');
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler(endpointId: 'handle.endpoint')]
+            public function handle(CoroutineChannelCommand $command): void
+            {
+                $this->handled[] = $command;
+            }
+        };
+        $command = new CoroutineChannelCommand(static fn () => 'not serializable');
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommand($command));
+
+        $this->assertSame([$command], $handler->handled);
+    }
+
+    public function test_failed_gateway_discards_messages_and_successful_gateway_releases_them(): void
+    {
+        $handler = new class () {
+            public bool $fail = true;
+            public array $handled = [];
+
+            #[InternalHandler('gateway.input')]
+            public function dispatch(string $payload, #[Reference] CommandBus $bus): void
+            {
+                $bus->sendWithRouting('handle', $payload);
+                if ($this->fail) {
+                    throw new RuntimeException('gateway failed');
+                }
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class, CoroutineChannelGateway::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $failure = null;
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone, $handler, &$failure): void {
+            try {
+                $ecotone->getGateway(CoroutineChannelGateway::class)->dispatch('discarded');
+            } catch (RuntimeException $exception) {
+                $failure = $exception->getMessage();
+            }
+            $handler->fail = false;
+            $ecotone->getGateway(CoroutineChannelGateway::class)->dispatch('released');
+        });
+
+        $this->assertSame('gateway failed', $failure);
+        $this->assertSame(['released'], $handler->handled);
+    }
+
+    public function test_instant_retry_runs_in_the_ordinary_asynchronous_consumer(): void
+    {
+        $handler = new class () {
+            public int $attempts = 0;
+            public array $handled = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->attempts++;
+                if ($this->attempts === 1) {
+                    throw new RuntimeException('retry now');
+                }
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 1)], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
+
+        $this->assertSame(2, $handler->attempts);
+        $this->assertSame(['payload'], $handler->handled);
+    }
+
+    public function test_handler_scoped_error_channel_receives_the_failure_and_headers(): void
+    {
+        $handler = new class () {
+            public array $failures = [];
+
+            #[Asynchronous('async', asynchronousExecution: [new ErrorChannel('failures')])]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                throw new RuntimeException('handling failed');
+            }
+
+            #[InternalHandler('failures')]
+            public function failed(string $payload, #[Header(ErrorContext::EXCEPTION_MESSAGE)] string $exception, #[Header('tenant')] string $tenant): void
+            {
+                $this->failures[] = [$payload, $exception, $tenant];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload', metadata: ['tenant' => 'failed-tenant']));
+
+        $this->assertSame([['payload', 'handling failed', 'failed-tenant']], $handler->failures);
+    }
+
+    public function test_console_consumer_start_is_refused(): void
+    {
+        $ecotone = $this->bootstrap_channel();
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Coroutine channel `async` is consumed in the process that sent the message. Do not start it with ecotone:run or ConfiguredMessagingSystem::run(); send to its asynchronous handlers instead, and set concurrency with CoroutineMessageChannelBuilder::withCoroutines().');
+
+        $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => 'async', 'finishWhenNoMessages' => true, 'coroutines' => 2]);
+    }
+
+
+    #[DataProvider('delivery_delays')]
+    public function test_delay_header_accepts_durations_and_an_absolute_time(mixed $delay): void
+    {
+        $handler = new class () {
+            public array $handled = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload, #[Reference] EcotoneClockInterface $clock): void
+            {
+                $this->handled[] = $clock->now()->format('Y-m-d H:i:s.u');
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-03-01 12:00:00'));
+        $ecotone->whenWaiting(static function (DateTimeImmutable $now) use ($ecotone): void {
+            $ecotone->changeTimeTo($now);
+        });
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload', metadata: [MessageHeaders::DELIVERY_DELAY => $delay]));
+
+        $this->assertSame(['2026-03-01 12:00:00.500000'], $handler->handled);
+    }
+
+    public static function delivery_delays(): array
+    {
+        return [[500], [TimeSpan::withMilliseconds(500)], [Duration::milliseconds(500)], [new DateTimeImmutable('2026-03-01 12:00:00.500000')]];
+    }
+
+
+    public function test_a_retried_sender_discards_messages_from_its_failed_attempt(): void
+    {
+        $handler = new class () {
+            public int $attempts = 0;
+            public array $handled = [];
+
+            #[CommandHandler('send')]
+            public function send(string $payload, #[Reference] CommandBus $bus): void
+            {
+                $this->attempts++;
+                $bus->sendWithRouting('handle', $this->attempts);
+                if ($this->attempts === 1) {
+                    throw new RuntimeException('sender failed');
+                }
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(int $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 1)], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('send', 'payload'));
+
+        $this->assertSame(2, $handler->attempts);
+        $this->assertSame([2], $handler->handled);
+    }
+
+
+    public function test_retried_outer_command_discards_messages_from_its_failed_nested_call(): void
+    {
+        $handler = new class () {
+            public int $attempts = 0;
+            public int $outerAttempts = 0;
+            public array $handled = [];
+
+            #[CommandHandler('outer')]
+            public function outer(string $payload, #[Reference] CommandBus $bus): void
+            {
+                $this->outerAttempts++;
+                $bus->sendWithRouting('handle', 0);
+                $bus->sendWithRouting('inner', $payload);
+            }
+
+            #[CommandHandler('inner')]
+            public function inner(string $payload, #[Reference] CommandBus $bus): void
+            {
+                $this->attempts++;
+                $bus->sendWithRouting('handle', $this->attempts);
+                if ($this->attempts === 1) {
+                    throw new RuntimeException('inner sender failed');
+                }
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(int $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 1)], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('outer', 'payload'));
+
+        $this->assertSame(2, $handler->outerAttempts);
+        $this->assertSame(2, $handler->attempts);
+        $this->assertSame([0, 2], $handler->handled);
+    }
+
+    public static function concurrency_limits(): array
+    {
+        return [[2, 8], [10, 15]];
+    }
+
     private function bootstrap_channel(array $extensions = []): FlowTestSupport
     {
-        $handler = new class {
+        $handler = new class () {
             #[Asynchronous('async')]
             #[CommandHandler('handle', endpointId: 'handle.endpoint')]
             public function handle(string $payload): void
@@ -289,4 +543,17 @@ final class CoroutineMessageChannelTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), ...$extensions], licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
+}
+
+final class CoroutineChannelCommand
+{
+    public function __construct(public readonly Closure $callback)
+    {
+    }
+}
+
+interface CoroutineChannelGateway
+{
+    #[MessageGateway('gateway.input')]
+    public function dispatch(string $payload): void;
 }

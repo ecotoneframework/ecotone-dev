@@ -6,6 +6,12 @@ namespace Ecotone\Messaging\Channel\Coroutine;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -45,7 +51,18 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        foreach (ExtensionObjectResolver::resolve(CoroutineMessageChannelBuilder::class, $extensionObjects) as $channel) {
+        $channels = ExtensionObjectResolver::resolve(CoroutineMessageChannelBuilder::class, $extensionObjects);
+        if ($channels !== []) {
+            $messagingConfiguration->registerServiceDefinition(CoroutineMessageRelease::class, new Definition(CoroutineMessageRelease::class));
+            $messagingConfiguration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
+                CoroutineMessageRelease::class,
+                $interfaceToCallRegistry->getFor(CoroutineMessageRelease::class, 'release'),
+                Precedence::BETWEEN_INSTANT_RETRY_AND_TRANSACTION_PRECEDENCE,
+                CommandBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . MessageGateway::class,
+            ));
+        }
+        foreach ($channels as $channel) {
+            $messagingConfiguration->registerChannelInterceptor(new CoroutineMessageHoldingInterceptorBuilder($channel->messageChannelName));
             if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
                 throw LicensingException::create("Coroutine channel `{$channel->messageChannelName}` requires an Ecotone Enterprise licence. Pass a licence key when bootstrapping Ecotone, or register another message channel builder under `{$channel->messageChannelName}`.");
             }

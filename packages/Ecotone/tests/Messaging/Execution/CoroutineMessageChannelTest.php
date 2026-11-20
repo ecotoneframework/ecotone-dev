@@ -6,6 +6,9 @@ namespace Test\Ecotone\Messaging\Execution;
 
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Gateway\CommandBus;
+use RuntimeException;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Test\CoroutineTesting;
@@ -46,4 +49,38 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertNotSame($sender, $handler->handled[0][1]);
         $this->assertSame(getmypid(), $handler->handled[0][2]);
     }
+    public function test_a_failed_sender_starts_no_handler(): void
+    {
+        $handler = new class {
+            public array $handled = [];
+
+            #[CommandHandler('send')]
+            public function send(string $payload, #[Reference] CommandBus $commandBus): void
+            {
+                $commandBus->sendWithRouting('handle', $payload);
+                throw new RuntimeException('sender failed');
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        $failure = null;
+        CoroutineTesting::runAtOnce(static function () use ($ecotone, &$failure): void {
+            try {
+                $ecotone->sendCommandWithRouting('send', 'payload');
+            } catch (RuntimeException $exception) {
+                $failure = $exception->getMessage();
+            }
+        });
+
+        $this->assertSame('sender failed', $failure);
+        $this->assertSame([], $handler->handled);
+    }
+
 }

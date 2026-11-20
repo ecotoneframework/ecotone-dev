@@ -52,7 +52,7 @@ if (preg_match('#^https://[^\s<>()\[\]]+$#', $options['run-url']) !== 1) {
 if (isset($options['format-change'])) {
     $formatChange = trim((string) @file_get_contents($options['format-change']));
     $body = COMMENT_MARKER . "\n" . COMPARISON_HEADING . "\n\nAs of `" . substr($options['head-sha'], 0, 7) . '`, the snapshot format differs between the base commit `' . substr($options['base-sha'], 0, 7) . '` and this pull request, so a comparison across it cannot be drawn. '
-        . "main's CI regenerates the baseline in the new format after the merge. What the comparison reported:\n\n> " . str_replace("\n", "\n> ", withoutMentions($formatChange)) . "\n";
+        . "main's CI regenerates the baseline in the new format after the merge. Nothing to do in this pull request. What the comparison reported:\n\n> " . str_replace("\n", "\n> ", withoutMentions(refusalUpToItsReason($formatChange))) . "\n";
     file_put_contents($options['output'], json_encode(['pullRequest' => (int) $options['pull-request'], 'headSha' => $options['head-sha'], 'changed' => true, 'body' => $body], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n");
     exit(0);
 }
@@ -104,13 +104,20 @@ function withExplanation(string $preamble, string $headSha, string $baseSha, str
     $head = substr($headSha, 0, 7);
     $base = substr($baseSha, 0, 7);
     $explanation = ($comparedWith === 'base-commit'
-            ? "Each scenario of the flow scenario catalogue ran on this pull request merged into its base (head `{$head}`) and on the base commit `{$base}`; below is what changed between the two. "
-            : "Each scenario of the flow scenario catalogue ran on this pull request merged into its base (head `{$head}`) and was compared with the baseline this pull request commits, because its base `{$base}` predates the tooling. ")
+            ? "Each scenario of the flow scenario catalogue ran on this pull request at `{$head}`, merged into its base, and on the base commit `{$base}`; below is what changed between the two. "
+            : "Each scenario of the flow scenario catalogue ran on this pull request at `{$head}`, merged into its base, and was compared with the baseline this pull request commits, because its base `{$base}` predates the tooling. ")
         . 'To see it locally, run `docker compose exec -T app php bin/build-flow.php compare --presentation=build`; it compares against the committed baseline. '
-        . "Leave `packages/Ecotone/tests/BuildFlow/baseline` alone in this pull request; main's CI commits it after the merge. "
+        . ($comparedWith === 'base-commit' ? "Leave `packages/Ecotone/tests/BuildFlow/baseline` alone in this pull request; main's CI commits it after the merge. " : '')
         . "The terms are explained in [Reading the flow comparison]({$repository}/blob/{$headSha}/.agents/skills/framework-dev-environment/references/workflow.md#reading-the-flow-comparison).\n\n";
 
     return preg_replace('/\A(\s*' . preg_quote(COMPARISON_HEADING, '/') . "\n\n)/", '$1' . addcslashes($explanation, '\\$'), $preamble, 1) ?? $preamble;
+}
+
+function refusalUpToItsReason(string $refusal): string
+{
+    $end = strpos($refusal, 'cannot be drawn.');
+
+    return $end === false ? $refusal : substr($refusal, 0, $end + strlen('cannot be drawn.'));
 }
 
 function withBoundedBuildTree(string $preamble, string $runUrl): string
@@ -119,9 +126,9 @@ function withBoundedBuildTree(string $preamble, string $runUrl): string
     if ($position === false || lengthOf(substr($preamble, $position)) <= BUILD_TREE_LIMIT) {
         return $preamble;
     }
-    $lines = preg_match('/^```text\n(.*?)^```$/ms', substr($preamble, $position), $tree) === 1 ? substr_count($tree[1], "\n") : substr_count(substr($preamble, $position), "\n");
+    $size = lengthOf(substr($preamble, $position));
 
-    return substr($preamble, 0, $position) . BUILD_TREE_HEADING . "\n\nThe build tree has " . number_format($lines) . ' lines, more than this comment holds beside the scenarios, so it is left out here. It is in the `' . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n\n";
+    return substr($preamble, 0, $position) . BUILD_TREE_HEADING . "\n\nThe build tree has " . number_format($size) . ' characters, more than the ' . number_format(BUILD_TREE_LIMIT) . ' this comment gives it beside the scenarios, so it is left out here. It is in the `' . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n\n";
 }
 
 /**
@@ -133,13 +140,13 @@ function commentOf(string $preamble, array $scenarios, string $runUrl): string
     $shown = [];
     $length = lengthOf(COMMENT_MARKER . "\n" . $preamble);
     foreach ($scenarios as $position => $scenario) {
-        $footer = leftOutNote(count($scenarios) - $position - 1, count($scenarios), $runUrl);
+        $footer = leftOutNote(leftOut: count($scenarios) - $position - 1, all: count($scenarios), runUrl: $runUrl);
         if ($length + lengthOf($scenario) + lengthOf($footer) <= GITHUB_COMMENT_LIMIT) {
             $shown[] = $scenario;
             $length += lengthOf($scenario);
             continue;
         }
-        $head = headWithinOf($scenario, GITHUB_COMMENT_LIMIT - $length - lengthOf($footer), $runUrl);
+        $head = headWithinOf(scenario: $scenario, room: GITHUB_COMMENT_LIMIT - $length - lengthOf($footer), runUrl: $runUrl);
         if ($head !== null) {
             $shown[] = $head;
         }
@@ -147,7 +154,7 @@ function commentOf(string $preamble, array $scenarios, string $runUrl): string
     }
     $leftOut = count($scenarios) - count($shown);
 
-    return COMMENT_MARKER . "\n" . $preamble . implode('', $shown) . leftOutNote($leftOut, count($scenarios), $runUrl);
+    return COMMENT_MARKER . "\n" . $preamble . implode('', $shown) . leftOutNote(leftOut: $leftOut, all: count($scenarios), runUrl: $runUrl);
 }
 
 function headWithinOf(string $scenario, int $room, string $runUrl): ?string
@@ -159,9 +166,9 @@ function headWithinOf(string $scenario, int $room, string $runUrl): ?string
     $name = preg_match('/\A### (.*)$/m', $scenario, $heading) === 1 ? $heading[1] : 'this scenario';
     $kept = '';
     foreach ($parts as $position => $part) {
-        $rest = isset($parts[$position + 1]) ? noteOfTheRest($name, $parts[$position + 1], $runUrl) : '';
+        $rest = isset($parts[$position + 1]) ? noteOfTheRest(name: $name, part: $parts[$position + 1], runUrl: $runUrl) : '';
         if (lengthOf($kept . $part . $rest) > $room) {
-            return $position === 0 || lengthOf($kept . noteOfTheRest($name, $part, $runUrl)) > $room ? null : $kept . noteOfTheRest($name, $part, $runUrl);
+            return $position === 0 || lengthOf($kept . noteOfTheRest(name: $name, part: $part, runUrl: $runUrl)) > $room ? null : $kept . noteOfTheRest(name: $name, part: $part, runUrl: $runUrl);
         }
         $kept .= $part;
     }

@@ -31,7 +31,7 @@ final class ExecutionRecordingTracer implements Tracer
 {
     private int $order = 0;
 
-    private const PER_PROCESS_STATE = ['openSteps', 'stepsWithChildren', 'stepsOfOpenEntry', 'spanStartedInOpenEntry', 'receiveEntry', 'receiveContinuation', 'invocationInOpenEntry', 'housekeepingInOpenEntry', 'collectors', 'hintsOfOpenSteps'];
+    private const STATE_SUSPENDED_WITH_THE_OPEN_ENTRY = ['openSteps', 'stepsWithChildren', 'stepsOfOpenEntry', 'spanStartedInOpenEntry', 'receiveEntry', 'receiveContinuation', 'invocationInOpenEntry', 'housekeepingInOpenEntry', 'collectors', 'hintsOfOpenSteps'];
 
     public function __construct(
         private Tracer $tracer,
@@ -438,7 +438,7 @@ final class ExecutionRecordingTracer implements Tracer
             return;
         }
         $suspended = [];
-        foreach (self::PER_PROCESS_STATE as $property) {
+        foreach (self::STATE_SUSPENDED_WITH_THE_OPEN_ENTRY as $property) {
             $suspended[$property] = $this->state()->{$property};
         }
         $this->state()->suspendedEntries[] = $suspended;

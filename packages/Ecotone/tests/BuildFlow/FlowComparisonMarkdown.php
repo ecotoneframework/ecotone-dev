@@ -92,33 +92,42 @@ final class FlowComparisonMarkdown
             $earlier = $beforeByTitle[$process['process']] ?? null;
             if ($earlier === null) {
                 $rows = array_map(fn (array $step): array => ['mark' => '+', 'depth' => $step['depth'], 'label' => $step['label'], 'hints' => self::shownHintsOf($step)], $process['steps']);
-                $lines = self::linesOfRows(self::withSharedStepsCollapsed($rows, $after, $position, $beforeByTitle));
-                $blocks[] = $heading . ' · runs only now · ' . self::stepCount(count($process['steps'])) . "\n`" . $process['process'] . '`' . self::treeOf($number, $lines, $printed);
+                $lines = self::linesOfRows(self::withSharedStepsCollapsed(rows: $rows, after: $after, position: $position, beforeByTitle: $beforeByTitle));
+                $blocks[] = $heading . ' · runs only now · ' . self::stepCount(count($process['steps'])) . "\n`" . $process['process'] . '`' . self::treeOf(number: $number, lines: $lines, printed: $printed);
                 continue;
             }
             $rows = self::rowsOfDiff(before: $earlier, after: $process, beforeTitles: array_column($before, 'process'), afterTitles: $afterTitles);
             $counts = array_count_values(array_map(fn (array $row): string => $row['status'], $rows));
             $status = implode(', ', array_filter([
-                self::counted($counts['new'] ?? 0, 'new step', 'new steps'),
-                self::counted($counts['gone'] ?? 0, 'step gone', 'steps gone'),
+                self::counted(count: $counts['new'] ?? 0, one: 'new step', many: 'new steps'),
+                self::counted(count: $counts['gone'] ?? 0, one: 'step gone', many: 'steps gone'),
             ])) ?: implode(', ', array_filter([
-                self::counted($counts['rehinted'] ?? 0, 'step with other hints', 'steps with other hints'),
-                self::counted($counts['moved'] ?? 0, 'step moved', 'steps moved'),
+                self::counted(count: $counts['rehinted'] ?? 0, one: 'step with other hints', many: 'steps with other hints'),
+                self::counted(count: $counts['moved'] ?? 0, one: 'step moved', many: 'steps moved'),
             ]));
             $stepCount = count($earlier['steps']) === count($process['steps']) ? self::stepCount(count($process['steps'])) : count($earlier['steps']) . ' → ' . count($process['steps']) . ' steps';
             if ($status === '') {
-                $blocks[] = $heading . ' · unchanged · ' . $stepCount . "\n`" . $process['process'] . "`\n\n… " . self::counted(count($process['steps']), 'unchanged step', 'unchanged steps');
+                $blocks[] = $heading . ' · unchanged · ' . $stepCount . "\n`" . $process['process'] . "`\n\n… " . self::counted(count: count($process['steps']), one: 'unchanged step', many: 'unchanged steps');
                 continue;
             }
-            $blocks[] = $heading . ' · ' . $status . ' · ' . $stepCount . "\n`" . $process['process'] . '`' . (isset($notes[$process['process']]) ? "\n" . $notes[$process['process']] : '') . self::treeOf($number, self::linesOfRows(self::inContext($rows)), $printed);
+            $blocks[] = $heading . ' · ' . $status . ' · ' . $stepCount . "\n`" . $process['process'] . '`' . (isset($notes[$process['process']]) ? "\n" . $notes[$process['process']] : '') . self::treeOf(number: $number, lines: self::linesOfRows(self::inContext($rows)), printed: $printed);
         }
+        $noLongerRunning = [];
+        $lastStillRunning = -1;
         foreach ($before as $position => $process) {
-            if (! in_array($process['process'], $afterTitles, true)) {
-                $blocks[] = '**' . (isset($process['sentBy']) ? 'Sub-flow' : 'Flow') . ' · process ' . ($position + 1) . ' of ' . count($before) . ' before** · no longer runs · ' . self::stepCount(count($process['steps'])) . "\n`" . $process['process'] . "`\n\n… " . self::counted(count($process['steps']), 'step no longer runs', 'steps no longer run');
+            if (in_array($process['process'], $afterTitles, true)) {
+                $lastStillRunning = (int) array_search($process['process'], $afterTitles, true);
+                continue;
             }
+            $noLongerRunning[$lastStillRunning][] = '**' . (isset($process['sentBy']) ? 'Sub-flow' : 'Flow') . ' · process ' . ($position + 1) . ' of ' . count($before) . ' before** · no longer runs · ' . self::stepCount(count($process['steps'])) . "\n`" . $process['process'] . "`\n\n… " . self::counted(count: count($process['steps']), one: 'step no longer runs', many: 'steps no longer run');
         }
 
-        return "#### What ran, process by process\n\n" . implode("\n\n", $blocks) . "\n\n";
+        $inRunOrder = $noLongerRunning[-1] ?? [];
+        foreach ($blocks as $position => $block) {
+            array_push($inRunOrder, $block, ...($noLongerRunning[$position] ?? []));
+        }
+
+        return "#### What ran, process by process\n\n" . implode("\n\n", $inRunOrder) . "\n\n";
     }
 
     private static function counted(int $count, string $one, string $many): string
@@ -277,7 +286,7 @@ final class FlowComparisonMarkdown
         foreach ($rows as $row) {
             $indent = str_repeat('  ', max(0, $row['depth'] - 1));
             if (isset($row['collapsed'])) {
-                $lines[] = '  ' . $indent . '… ' . (isset($row['asIn']) ? $row['collapsed'] . ' steps as in process ' . $row['asIn'] : self::counted($row['collapsed'], 'unchanged step', 'unchanged steps'));
+                $lines[] = '  ' . $indent . '… ' . (isset($row['asIn']) ? $row['collapsed'] . ' steps as in process ' . $row['asIn'] : self::counted(count: $row['collapsed'], one: 'unchanged step', many: 'unchanged steps'));
                 continue;
             }
             $lines[] = $row['mark'] . ' ' . $indent . $row['label'];

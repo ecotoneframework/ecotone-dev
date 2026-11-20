@@ -122,7 +122,7 @@ $cases = [
         $comment = read(run(comparison(scenario('order placed', 'diagram')))['output']);
 
         return expectAll([
-            [str_contains($comment['body'], 'on this pull request merged into its base (head `aaaaaaa`) and on the base commit `bbbbbbb`'), 'names the merge, the head and the base commit: ' . substr($comment['body'], 0, 400)],
+            [str_contains($comment['body'], 'ran on this pull request at `aaaaaaa`, merged into its base, and on the base commit `bbbbbbb`'), 'names the head, the merge and the base commit: ' . substr($comment['body'], 0, 400)],
             [str_contains($comment['body'], '`docker compose exec -T app php bin/build-flow.php compare --presentation=build`'), 'gives the local command in the container form'],
             [str_contains($comment['body'], 'it compares against the committed baseline'), 'says what the local command compares against'],
             [str_contains($comment['body'], 'Leave `packages/Ecotone/tests/BuildFlow/baseline` alone in this pull request; main\'s CI commits it after the merge.'), 'tells the contributor to leave the baseline alone'],
@@ -136,6 +136,7 @@ $cases = [
         return expectAll([
             [str_contains($comment['body'], 'compared with the baseline this pull request commits, because its base `bbbbbbb` predates the tooling'), 'says what was really compared: ' . substr($comment['body'], 0, 400)],
             [! str_contains($comment['body'], 'and on the base commit'), 'does not claim the base commit was run'],
+            [! str_contains($comment['body'], 'Leave `packages/Ecotone/tests/BuildFlow/baseline` alone'), 'does not tell to leave alone the baseline the pull request commits'],
         ]);
     },
     'what to compare with is refused unless it is the base commit or the committed baseline' => function (): ?string {
@@ -170,7 +171,7 @@ $cases = [
         return expectAll([
             [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
             [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . utf16Length($comment['body'])],
-            [str_contains($comment['body'], 'The build tree has 2,001 lines'), 'says the tree is left out'],
+            [preg_match('/The build tree has [\d,]+ characters, more than the 16,000 this comment gives it beside the scenarios/', $comment['body']) === 1, 'says the tree is left out for its size'],
             [str_contains($comment['body'], '### `order placed`'), 'the scenario is still shown'],
         ]);
     },
@@ -208,14 +209,16 @@ $cases = [
         ]);
     },
     'a comparison across a snapshot format change is posted as one that cannot be drawn' => function (): ?string {
-        $result = run('', formatChange: 'Flow snapshot file build-flow-before/shared.json was written by format 2, this code reads format 3, so the two cannot be compared.');
+        $result = run('', formatChange: 'Flow snapshot file build-flow-before/shared.json was written by format 2, this code reads format 3, so the two cannot be compared: a comparison across a snapshot format change cannot be drawn. Regenerate the snapshots of that directory with `php bin/build-flow.php snapshot --location=/home/runner/work/build-flow-before`.');
         $comment = read($result['output']);
 
         return expectAll([
             [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
             [$comment['changed'] === true, 'posted as a change'],
             [str_contains($comment['body'], 'As of `aaaaaaa`, the snapshot format differs between the base commit `bbbbbbb` and this pull request, so a comparison across it cannot be drawn.'), 'says the comparison cannot be drawn: ' . $comment['body']],
-            [str_contains($comment['body'], 'was written by format 2, this code reads format 3'), 'quotes what happened'],
+            [str_contains($comment['body'], 'was written by format 2, this code reads format 3, so the two cannot be compared: a comparison across a snapshot format change cannot be drawn.'), 'quotes what happened'],
+            [! str_contains($comment['body'], 'Regenerate') && ! str_contains($comment['body'], '/home/runner'), 'does not quote the instruction for the runner'],
+            [str_contains($comment['body'], 'Nothing to do in this pull request.'), 'says the contributor has nothing to do'],
         ]);
     },
     'a pull request number that is not a positive integer is refused' => function (): ?string {

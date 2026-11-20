@@ -173,6 +173,66 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertMatchesRegularExpression('/^\*\*Sub-flow · process 2 of 2 before\*\* · no longer runs · (\d+) steps\n`receive notifications, class@anonymous::whenPlaced`\n\n… \1 steps no longer run$/m', $markdown);
     }
 
+    public function test_the_build_presentation_lists_a_process_that_runs_only_now_at_its_place_in_run_order(): void
+    {
+        $this->record('Placing an order', 'before', $this->orderingNotifiedSynchronously());
+        $this->record('Placing an order', 'after', $this->ordering());
+
+        $markdown = $this->presentation('build');
+
+        self::assertMatchesRegularExpression('/\*\*Flow · process 1 of 2\*\*[^\n]*\n`send command order\.place, class@anonymous::place`\n.*?\n\n\*\*Sub-flow · process 2 of 2\*\* · sent by process 1 · runs only now · \d+ steps\n`receive notifications, class@anonymous::whenPlaced`\n/s', $markdown);
+    }
+
+    public function test_the_build_presentation_lists_a_process_that_no_longer_runs_where_it_ran_before(): void
+    {
+        $before = new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', []);
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'whenOrderWasPlaced')]
+            public function whenPlaced(): void
+            {
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'auditOrder')]
+            public function audit(): void
+            {
+            }
+        };
+        $after = new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', []);
+            }
+
+            #[EventHandler('order.placed', endpointId: 'whenOrderWasPlaced')]
+            public function whenPlaced(): void
+            {
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'auditOrder')]
+            public function audit(): void
+            {
+            }
+        };
+        $this->record('Placing an order', 'before', $before);
+        $this->record('Placing an order', 'after', $after);
+
+        $markdown = $this->presentation('build');
+
+        $headings = [];
+        preg_match_all('/^\*\*(?:Flow|Sub-flow) · process \d+ of \d+(?: before)?\*\*[^\n]*\n`([^`]+)`$/m', $markdown, $headings);
+        self::assertSame(['send command order.place, class@anonymous::place', 'receive notifications, class@anonymous::whenPlaced', 'receive notifications, class@anonymous::audit'], $headings[1]);
+        self::assertStringContainsString('**Sub-flow · process 2 of 3 before** · no longer runs', $markdown);
+    }
+
     public function test_the_build_presentation_shows_a_changed_step_under_every_step_it_runs_in_and_collapses_the_rest(): void
     {
         $this->recordAnOrderThatGainsAnAudit('Placing an order');
@@ -193,7 +253,7 @@ final class BuildFlowPresentationTest extends TestCase
                     break;
                 }
             }
-            self::assertNotNull($ancestor, 'depth ' . $depth);
+            self::assertNotNull($ancestor);
         }
         self::assertContains('+ ' . str_repeat('  ', $this->depthOf($lines, 'route to audit.target, whenOrderWasPlaced.target') + 1) . '↳ chosen by: name order.placed', $lines);
         self::assertMatchesRegularExpression('/^  ( {2})*… \d+ unchanged steps?$/m', $tree[1]);
@@ -273,6 +333,22 @@ final class BuildFlowPresentationTest extends TestCase
     {
         $this->record($scenario, 'before', $this->ordering());
         $this->record($scenario, 'after', $this->orderingWithAudit());
+    }
+
+    private function orderingNotifiedSynchronously(): object
+    {
+        return new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', []);
+            }
+
+            #[EventHandler('order.placed', endpointId: 'whenOrderWasPlaced')]
+            public function whenPlaced(): void
+            {
+            }
+        };
     }
 
     private function ordering(): object

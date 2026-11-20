@@ -57,3 +57,12 @@ Breaking changes: nothing blocking, the application level exports what `main` do
 - X6. `ExecutionRecordingNotSwitchedOn` names `popExecutionRecording()` and the flow test; `MessageFlowModule.php:92`
   "returned from a `#[ServiceContext]`". X7. "16 spans instead of 2" pinned or "about eight times as many".
   X8. The skill says what each `ecotone.execution.*` attribute holds.
+
+## Added after the round (head 8f67d30f7)
+
+- P1. Pulse and flow tracking store and show the same at both levels: `StoringSpanRecorder` (and any other shipped span
+  recorder that reads spans as application spans) leaves out `ecotone.execution.step` spans and reads an application
+  span's parent through the steps between, so flow types, traces and a failed step's ancestors equal the application
+  level. Userland tests, red first, single- and multi-tenant, including a failing step; then the Dbal Pulse and flow
+  tracking suites under the framework-level probe.
+- P2. Row 3h and the public skill's framework-level bullet say that Pulse and flow tracking show the same at both levels.

@@ -27,3 +27,17 @@ skill of `origin/main` (no V9) scored 0.50 each time, `rule-v9` judged FAIL by e
   every case still passing.
 - V4 (nit). The bullet on a wait coroutines cannot wait on led a reviewer to file PostgreSQL through PDO as a
   finding, although `ConnectionPool` already refuses it. The bullet is about a new I/O call the diff introduces.
+
+## Second round, on the fixes (commit 8b2c5d5d4), from the resumed sessions
+No BLOCKING finding. G1, G2, V1, V2 and V4 are resolved; V3 is resolved for the consumer risk. The behaviour
+session ran the new case `review-coroutine-consumer` three times against the skill of `origin/main`: 0.50 each
+time, `rule-v9` judged FAIL by every judge; with V9 it scores 1.00. Over three runs every case of both changed
+skills is at or above 0.8.
+
+- V5 (should fix, follow-up). The graders of `open-pr`, `update-open-pr`, `review-diff-behaviour` and
+  `review-feature-combinations` vary from run to run: single runs still drop to 0.50 or 0.71 on answers that look
+  right. Not caused by this change and no grader of those cases was touched.
+- V6 (should fix, follow-up). That a new test in real coroutines is listed in `COROUTINE_TESTS` is enforced only by
+  the reviewer's reading. A `bin/check-*.php` run in CI could decide it (G2).
+- V7 (nit). Two of V9's risks still have no graded case: state copied into a coroutine a handler starts, and the
+  one-line answer for an unrelated change.

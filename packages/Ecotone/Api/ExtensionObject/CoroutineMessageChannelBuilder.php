@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Messaging\Channel\QueueChannel;
+use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannel;
+use Ecotone\Messaging\Config\Container\Reference;
+use Psr\Container\ContainerInterface;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 
@@ -43,6 +46,6 @@ final class CoroutineMessageChannelBuilder implements MessageChannelBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return new Definition(QueueChannel::class, [$this->messageChannelName]);
+        return new Definition(CoroutineMessageChannel::class, [$this->messageChannelName, new Definition(QueueChannel::class, [$this->messageChannelName]), new Reference(ContainerInterface::class)]);
     }
 }

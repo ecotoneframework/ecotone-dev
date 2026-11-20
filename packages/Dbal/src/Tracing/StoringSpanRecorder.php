@@ -11,7 +11,6 @@ use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanRecorder;
 use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Tracing\ActiveSpan;
-use Ecotone\Tracing\Execution\RecordedExecution;
 use Throwable;
 
 /**
@@ -293,10 +292,10 @@ final class StoringSpanRecorder implements SpanRecorder
         if ($span->attributes[SpanAttribute::EXECUTION_STEP] ?? false) {
             return null;
         }
-        if (! isset($span->attributes[RecordedExecution::APPLICATION_PARENT]) && ! isset($span->attributes[SpanAttribute::EXECUTION_ORDER])) {
+        if (! isset($span->attributes[SpanAttribute::EXECUTION_APPLICATION_PARENT]) && ! isset($span->attributes[SpanAttribute::EXECUTION_ORDER])) {
             return $span;
         }
-        $applicationParent = $span->attributes[RecordedExecution::APPLICATION_PARENT] ?? null;
+        $applicationParent = $span->attributes[SpanAttribute::EXECUTION_APPLICATION_PARENT] ?? null;
 
         return new Span(...[
             ...get_object_vars($span),

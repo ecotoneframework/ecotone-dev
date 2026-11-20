@@ -38,7 +38,7 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
         $released = null;
         try {
             $before = $this->store->partsOf($groupId);
-            $this->store->completePart($groupId, $partNumber, $report, function (mixed ...$arguments) use ($whenComplete, &$released): void {
+            $this->store->completePart(groupId: $groupId, partNumber: $partNumber, report: $report, whenComplete: function (mixed ...$arguments) use ($whenComplete, &$released): void {
                 $released = count($arguments[1] ?? []);
                 $whenComplete(...$arguments);
             });

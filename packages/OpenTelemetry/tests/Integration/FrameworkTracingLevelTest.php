@@ -18,6 +18,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Tracing\RecordedProcess;
+use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
@@ -229,7 +230,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         $this->application(true, [$handlers], $exporter, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework))->getCommandBus()->sendWithRouting('order.place', 'coffee');
         $generatedId = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/';
         $steps = self::stepsIn($exporter->getSpans());
-        $labelled = array_values(array_filter($steps, fn (ImmutableSpan $span): bool => preg_match($generatedId, (string) $span->getAttributes()->get('ecotone.execution.label')) === 1));
+        $labelled = array_values(array_filter($steps, fn (ImmutableSpan $span): bool => preg_match($generatedId, (string) $span->getAttributes()->get(SpanAttribute::EXECUTION_LABEL)) === 1));
 
         self::assertSame([], array_values(array_filter(array_map(fn (ImmutableSpan $span): string => $span->getName(), $steps), fn (string $name): bool => preg_match($generatedId, $name) === 1)));
         self::assertNotSame([], $labelled);

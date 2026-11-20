@@ -239,7 +239,7 @@ final class MessageFlowChainReader
     private function invoked(mixed $objectResolver, string $method, string $role): string
     {
         $class = match (true) {
-            $objectResolver instanceof Definition && $objectResolver->getClassName() === MethodInvokerStaticObjectResolver::class => $this->classDeclaring(object: $objectResolver->getArguments()[0], method: $method),
+            $objectResolver instanceof Definition && $objectResolver->getClassName() === MethodInvokerStaticObjectResolver::class => $this->classWithMethod(object: $objectResolver->getArguments()[0], method: $method),
             $objectResolver instanceof Definition && $objectResolver->getClassName() === MethodInvokerAggregateObjectResolver::class && str_ends_with($this->invokedByRequestReply, '::' . $method) => substr($this->invokedByRequestReply, 0, -strlen('::' . $method)),
             default => null,
         };
@@ -268,7 +268,7 @@ final class MessageFlowChainReader
         return $method === $invokedMethod && ($class === $invokedClass || is_a($class, $invokedClass, true));
     }
 
-    private function classDeclaring(mixed $object, string $method): string
+    private function classWithMethod(mixed $object, string $method): string
     {
         $class = $this->classOf($object);
         if (method_exists($class, $method) || ! $object instanceof Reference || ! isset($this->builder->getDefinitions()[$object->getId()])) {

@@ -118,9 +118,6 @@ final class RecordedMessagingEntrypointService extends MessagingEntrypointServic
 
     private function tracer(): ExecutionRecordingTracer
     {
-        $tracer = $this->container->get(Tracer::class);
-        assert($tracer instanceof ExecutionRecordingTracer);
-
-        return $tracer;
+        return $this->container->get(Tracer::class);
     }
 }

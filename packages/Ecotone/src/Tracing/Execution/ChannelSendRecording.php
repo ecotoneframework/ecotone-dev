@@ -197,7 +197,7 @@ final class ChannelSendRecording
             default => 'the message sent to ' . $routingKey,
         };
 
-        return [RecordedExecution::SENT_FROM_ANOTHER_APPLICATION => $application . ', ' . $sent];
+        return [SpanAttribute::EXECUTION_SENT_FROM_ANOTHER_APPLICATION => $application . ', ' . $sent];
     }
 
     private function enter(int $position): void

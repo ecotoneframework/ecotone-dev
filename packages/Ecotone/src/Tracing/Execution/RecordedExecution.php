@@ -18,13 +18,9 @@ use Ecotone\Api\Tracing\SpanStatus;
  */
 final class RecordedExecution
 {
-    public const SENT_FROM_ANOTHER_APPLICATION = 'ecotone.execution.sent_from_another_application';
-    public const STEP_LABEL = 'ecotone.execution.label';
-    public const APPLICATION_PARENT = 'ecotone.execution.application_parent';
-    public const GENERATED_ID_IN_LABEL = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{64}/';
+    public const GENERATED_ID = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{64}/';
     private const HEADERS_PROPAGATION_SPAN = 'process MessageHeadersPropagatorInterceptor::';
     private const PLUMBING = ['Bridge::handle', 'RoutingSlipPrepender::transform', 'HeaderRouter::route'];
-    private const GENERATED_ID = self::GENERATED_ID_IN_LABEL;
     private const HINT_MARKER = '↳ ';
 
     /**
@@ -198,7 +194,7 @@ final class RecordedExecution
             $sender = self::senderOf(spans: [$process, ...$inStepOrder[$consumer]], processOf: $processOf, consumer: $consumer);
             if ($sender === null) {
                 $firstStep = $inStepOrder[$consumer][0] ?? null;
-                $sentFrom = $firstStep?->attributes[self::SENT_FROM_ANOTHER_APPLICATION] ?? null;
+                $sentFrom = $firstStep?->attributes[SpanAttribute::EXECUTION_SENT_FROM_ANOTHER_APPLICATION] ?? null;
                 if ($sentFrom !== null) {
                     $links[$firstStep->spanId][] = ['key' => ExecutionHint::SENT_BY, 'value' => (string) $sentFrom, 'shownInLines' => true];
                 }
@@ -522,7 +518,7 @@ final class RecordedExecution
     private static function nameOf(Span $span): string
     {
         $destination = $span->attributes[SpanAttribute::MESSAGING_DESTINATION_NAME] ?? null;
-        $name = self::readable((string) ($span->attributes[self::STEP_LABEL] ?? $span->name));
+        $name = self::readable((string) ($span->attributes[SpanAttribute::EXECUTION_LABEL] ?? $span->name));
 
         return is_string($destination) && ! str_ends_with($name, ' ' . $destination) ? $name . ' ' . $destination : $name;
     }

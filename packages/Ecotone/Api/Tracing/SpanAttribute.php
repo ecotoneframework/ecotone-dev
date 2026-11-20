@@ -31,6 +31,9 @@ final class SpanAttribute
     public const EXECUTION_PROCESS = 'ecotone.execution.process';
     public const EXECUTION_HINTS = 'ecotone.execution.hints';
     public const EXECUTION_SENT_MESSAGE = 'ecotone.execution.sent_message';
+    public const EXECUTION_LABEL = 'ecotone.execution.label';
+    public const EXECUTION_APPLICATION_PARENT = 'ecotone.execution.application_parent';
+    public const EXECUTION_SENT_FROM_ANOTHER_APPLICATION = 'ecotone.execution.sent_from_another_application';
 
     public const ECOTONE = 'ecotone';
     public const OPERATION_SEND = 'send';

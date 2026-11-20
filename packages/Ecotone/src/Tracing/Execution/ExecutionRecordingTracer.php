@@ -66,7 +66,7 @@ final class ExecutionRecordingTracer implements Tracer
         $current = $this->tracer->currentSpan();
         $step = $this->openStepOf($current);
         if ($step !== null && ($remoteParent === null || $remoteParent->traceId === $this->spanOf($step)->context()->traceId)) {
-            $attributes[RecordedExecution::APPLICATION_PARENT] = ($remoteParent ?? $current?->context())?->spanId ?? '';
+            $attributes[SpanAttribute::EXECUTION_APPLICATION_PARENT] = ($remoteParent ?? $current?->context())?->spanId ?? '';
             $remoteParent = $this->spanOf($step)->context();
         }
 
@@ -386,11 +386,11 @@ final class ExecutionRecordingTracer implements Tracer
         $span = null;
         foreach ($chain as $pending) {
             $parent = $pending->parentStep === null ? $pending->parentContext : $pending->parentStep->span?->context();
-            $stableName = (string) preg_replace(RecordedExecution::GENERATED_ID_IN_LABEL, '{generated}', $pending->name);
+            $stableName = (string) preg_replace(RecordedExecution::GENERATED_ID, '{generated}', $pending->name);
             $span = $pending->span = $this->tracer->startDetachedSpan(
                 name: $stableName,
                 kind: SpanKind::Internal,
-                attributes: $stableName === $pending->name ? $pending->attributes : [...$pending->attributes, RecordedExecution::STEP_LABEL => $pending->name],
+                attributes: $stableName === $pending->name ? $pending->attributes : [...$pending->attributes, SpanAttribute::EXECUTION_LABEL => $pending->name],
                 parent: $parent,
                 startedAt: $pending->startedAt,
             );

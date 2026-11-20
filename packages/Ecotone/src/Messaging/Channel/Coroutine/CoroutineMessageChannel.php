@@ -36,32 +36,32 @@ use Swoole\Coroutine;
  */
 final class CoroutineMessageChannel implements PollableChannel
 {
-    private bool $consuming = false;
+    private int $consumers = 0;
 
-    public function __construct(private string $name, private QueueChannel $queue, private ContainerInterface $container)
+    public function __construct(private string $name, private QueueChannel $queue, private ContainerInterface $container, private int $coroutines)
     {
     }
 
     public function send(Message $message): void
     {
         $this->queue->send($message);
-        if ($this->consuming) {
+        if ($this->consumers >= $this->coroutines) {
             return;
         }
-        $this->consuming = true;
+        $this->consumers++;
         Coroutine::create(function (): void {
             try {
                 /** @var InterceptedConsumerRunner $runner */
                 $runner = $this->container->get((string) new EndpointRunnerReference($this->name));
                 ConsumerCoroutines::consume(
                     endpointId: $this->name,
-                    coroutines: 10,
+                    coroutines: 1,
                     drainsAQueue: true,
                     streamsConsumed: [],
                     createConsumer: static fn (): ConsumerLifecycle => $runner->createConsumer(ExecutionPollingMetadata::createWithFinishWhenNoMessages()),
                 );
             } finally {
-                $this->consuming = false;
+                $this->consumers--;
             }
         });
     }

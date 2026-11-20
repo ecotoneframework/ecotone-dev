@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Messaging\Channel\QueueChannel;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannel;
 use Ecotone\Messaging\Config\Container\Reference;
 use Psr\Container\ContainerInterface;
@@ -20,13 +21,21 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
  */
 final class CoroutineMessageChannelBuilder implements MessageChannelBuilder
 {
-    private function __construct(public readonly string $messageChannelName)
+    private function __construct(public readonly string $messageChannelName, public readonly int $coroutines = 10)
     {
     }
 
     public static function create(string $messageChannelName): self
     {
         return new self($messageChannelName);
+    }
+
+    public function withCoroutines(int $coroutines): self
+    {
+        if ($coroutines < 1) {
+            throw ConfigurationException::create("Coroutine channel `{$this->messageChannelName}` cannot run on {$coroutines} coroutines: it needs at least one. Pass a positive number to CoroutineMessageChannelBuilder::withCoroutines(), or leave it out for the default of 10.");
+        }
+        return new self(...[...get_object_vars($this), 'coroutines' => $coroutines]);
     }
 
     public function getMessageChannelName(): string
@@ -46,6 +55,6 @@ final class CoroutineMessageChannelBuilder implements MessageChannelBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return new Definition(CoroutineMessageChannel::class, [$this->messageChannelName, new Definition(QueueChannel::class, [$this->messageChannelName]), new Reference(ContainerInterface::class)]);
+        return new Definition(CoroutineMessageChannel::class, [$this->messageChannelName, new Definition(QueueChannel::class, [$this->messageChannelName]), new Reference(ContainerInterface::class), $this->coroutines]);
     }
 }

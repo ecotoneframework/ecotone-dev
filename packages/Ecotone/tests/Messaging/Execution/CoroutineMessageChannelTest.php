@@ -83,4 +83,40 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame([], $handler->handled);
     }
 
+    public function test_concurrency_is_limited_and_waiting_messages_start_in_order(): void
+    {
+        $handler = new class {
+            public int $active = 0;
+            public int $maximum = 0;
+            public array $started = [];
+            public array $finished = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(int $payload): void
+            {
+                $this->started[] = $payload;
+                $this->active++;
+                $this->maximum = max($this->maximum, $this->active);
+                usleep(10_000);
+                $this->active--;
+                $this->finished[] = $payload;
+            }
+        };
+        $default = CoroutineMessageChannelBuilder::create('async');
+        $limited = $default->withCoroutines(2);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [$limited], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
+            foreach (range(1, 8) as $number) {
+                $ecotone->sendCommandWithRouting('handle', $number);
+            }
+        });
+
+        $this->assertSame(10, $default->coroutines);
+        $this->assertSame(2, $handler->maximum);
+        $this->assertSame(range(1, 8), $handler->started);
+        $this->assertCount(8, $handler->finished);
+    }
+
 }

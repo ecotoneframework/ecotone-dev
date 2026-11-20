@@ -214,7 +214,10 @@ echo implode("\n", $recording->lines);
 - At the framework level every step is also a trace span: it goes through the configured tracer, so OpenTelemetry
   exports it, and to the span recorders registered by `TracingConfiguration::withSpanRecorder()`. Expect about eight
   to ten times as many spans per message. Each application span keeps its name, kind, status and attributes; its
-  parent may now be a step span. The default level, `TracingLevel::Application`, exports what it always did.
+  parent may now be a step span. The default level, `TracingLevel::Application`, exports what it always did. Pulse
+  and flow tracking (`FlowTrackingConfiguration`, `TracingGateway`) store and show the same at both levels: they leave
+  the step spans out and keep each application span under the parent it has at the application level, so flow types,
+  traces and a failed step's ancestors do not change.
 - The `ecotone.execution.*` attributes (constants on `Ecotone\Api\Tracing\SpanAttribute`) say what a span is in
   the recording: `ecotone.execution.step` (`EXECUTION_STEP`) is `true` on a step span; `ecotone.execution.order`
   (`EXECUTION_ORDER`) is the order the span started in, which sorts processes and steps; `ecotone.execution.process`
@@ -222,7 +225,8 @@ echo implode("\n", $recording->lines);
   the id of the step an application span ran in; `ecotone.execution.outcome` (`EXECUTION_OUTCOME`) is what a step
   returned or threw; `ecotone.execution.hints` (`EXECUTION_HINTS`) holds a step's hints as JSON, each
   `[key, value, shownInLines]`; `ecotone.execution.sent_message` (`EXECUTION_SENT_MESSAGE`) is the id of the message a
-  send step put on a channel. A step whose label holds an id Ecotone generates is exported as `{generated}` in its
+  send step put on a channel; `ecotone.execution.application_parent` is the id of the span an application span would
+  have as its parent at the application level, empty for a root, set when its parent is now a step. A step whose label holds an id Ecotone generates is exported as `{generated}` in its
   name, with the full label in `ecotone.execution.label`.
 
 ### Failures, Retries and Dead Letter

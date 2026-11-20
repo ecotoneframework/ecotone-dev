@@ -475,6 +475,57 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertSame(['depth' => 2, 'label' => 'take from channel notifications'], $steps[1]);
     }
 
+    public function test_the_build_presentation_names_the_steps_that_now_run_under_a_new_step(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->ordering());
+        $step = fn (int $depth, string $label): array => ['depth' => $depth, 'label' => $label, 'hints' => []];
+        $this->replaceExecution('before', [['process' => 'backfill', 'steps' => [
+            $step(0, 'handler prepareBackfill'),
+            $step(1, 'entrypoint sends to backfill'),
+            $step(2, 'direct channel backfill'),
+            $step(1, 'entrypoint sends to backfill'),
+            $step(2, 'direct channel backfill'),
+        ]]]);
+        $this->replaceExecution('after', [['process' => 'backfill', 'steps' => [
+            $step(0, 'handler prepareBackfill'),
+            $step(1, 'dispatch 2 partition batches to backfill'),
+            $step(2, 'entrypoint sends to backfill'),
+            $step(3, 'direct channel backfill'),
+            $step(2, 'entrypoint sends to backfill'),
+            $step(3, 'direct channel backfill'),
+        ]]]);
+
+        $whatRan = $this->whatRan($this->presented('build'));
+
+        self::assertStringContainsString("`backfill`\nNew: `dispatch 2 partition batches to backfill`. 4 of its steps (2 × `entrypoint sends to backfill`) now run under the new `dispatch 2 partition batches to backfill`.\n", $whatRan);
+    }
+
+    public function test_the_build_presentation_names_a_new_step_in_place_of_the_step_it_replaced(): void
+    {
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $this->ordering());
+        $step = fn (int $depth, string $label): array => ['depth' => $depth, 'label' => $label, 'hints' => []];
+        $this->replaceExecution('before', [['process' => 'batch', 'steps' => [
+            $step(0, 'receive backfill'),
+            $step(1, 'handler executeBatch'),
+            $step(1, 'no hand-over'),
+            $step(1, 'acknowledge'),
+        ]]]);
+        $this->replaceExecution('after', [['process' => 'batch', 'steps' => [
+            $step(0, 'receive backfill'),
+            $step(1, 'handler executeBatch'),
+            $step(1, 'part report to completion'),
+            $step(2, 'direct channel completion'),
+            $step(1, 'release collected message to backfill'),
+            $step(1, 'acknowledge'),
+        ]]]);
+
+        $whatRan = $this->whatRan($this->presented('build'));
+
+        self::assertStringContainsString("`batch`\nNew: `part report to completion` in place of `no hand-over`, and `release collected message to backfill`.\n", $whatRan);
+    }
+
     public function test_a_step_whose_hints_differ_is_one_changed_step_with_the_hint_before_and_now(): void
     {
         $this->record('Placing an order', 'before', $this->ordering());

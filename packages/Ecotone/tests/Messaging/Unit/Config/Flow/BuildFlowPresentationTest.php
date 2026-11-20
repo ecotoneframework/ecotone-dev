@@ -147,7 +147,7 @@ final class BuildFlowPresentationTest extends TestCase
 
         $markdown = $this->presentation('build');
 
-        self::assertMatchesRegularExpression('/^\*\*Flow · process 1 of 2\*\* · \d+ new steps, 1 step gone · \d+ → \d+ steps\n`send command order\.place, class@anonymous::place`\nRuns other steps now\.$/m', $markdown);
+        self::assertMatchesRegularExpression('/^\*\*Flow · process 1 of 2\*\* · \d+ new steps, 1 step gone · \d+ → \d+ steps\n`send command order\.place, class@anonymous::place`\nNew: `route to audit\.target, whenOrderWasPlaced\.target` in place of `route to whenOrderWasPlaced\.target`, and `span route audit audit\.target`\.$/m', $markdown);
         self::assertMatchesRegularExpression('/^\*\*Sub-flow · process 2 of 2\*\* · sent by process 1 · unchanged · (\d+) steps\n`receive notifications, class@anonymous::whenPlaced`\n\n… \1 unchanged steps$/m', $markdown);
     }
 

@@ -110,7 +110,8 @@ final class FlowComparisonMarkdown
                 $blocks[] = $heading . ' · unchanged · ' . $stepCount . "\n`" . $process['process'] . "`\n\n… " . self::counted(count: count($process['steps']), one: 'unchanged step', many: 'unchanged steps');
                 continue;
             }
-            $blocks[] = $heading . ' · ' . $status . ' · ' . $stepCount . "\n`" . $process['process'] . '`' . (isset($notes[$process['process']]) ? "\n" . $notes[$process['process']] : '') . self::treeOf(number: $number, lines: self::linesOfRows(self::inContext($rows)), printed: $printed);
+            $note = self::noteOfChangedSteps($rows) ?? $notes[$process['process']] ?? null;
+            $blocks[] = $heading . ' · ' . $status . ' · ' . $stepCount . "\n`" . $process['process'] . '`' . ($note !== null ? "\n" . $note : '') . self::treeOf(number: $number, lines: self::linesOfRows(self::inContext($rows)), printed: $printed);
         }
         $noLongerRunning = [];
         $lastStillRunning = -1;
@@ -128,6 +129,95 @@ final class FlowComparisonMarkdown
         }
 
         return "#### What ran, process by process\n\n" . implode("\n\n", $inRunOrder) . "\n\n";
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     */
+    private static function noteOfChangedSteps(array $rows): ?string
+    {
+        $afterParent = [];
+        $beforeParent = [];
+        $afterStack = [];
+        $beforeStack = [];
+        foreach ($rows as $position => $row) {
+            if ($row['status'] !== 'gone') {
+                $afterParent[$position] = $afterStack[$row['depth'] - 1] ?? null;
+                $afterStack[$row['depth']] = $position;
+                $afterStack = array_slice($afterStack, 0, $row['depth'] + 1, true);
+            }
+            if ($row['status'] !== 'new') {
+                $depth = $row['depthBefore'] ?? $row['depth'];
+                $beforeParent[$position] = $beforeStack[$depth - 1] ?? null;
+                $beforeStack[$depth] = $position;
+                $beforeStack = array_slice($beforeStack, 0, $depth + 1, true);
+            }
+        }
+        $statusOf = fn (?int $position): ?string => $position === null ? null : $rows[$position]['status'];
+        $isTop = fn (int $position): bool => match ($rows[$position]['status']) {
+            'new' => $statusOf($afterParent[$position]) !== 'new',
+            'gone' => $statusOf($beforeParent[$position]) !== 'gone',
+            default => false,
+        };
+        $news = [];
+        $gone = [];
+        $paired = [];
+        foreach ($rows as $position => $row) {
+            if (! $isTop($position)) {
+                continue;
+            }
+            if ($row['status'] === 'gone') {
+                $gone[$position] = $row['label'];
+                continue;
+            }
+            $replaced = null;
+            for ($earlier = $position - 1; $earlier >= 0; $earlier--) {
+                if (! in_array($rows[$earlier]['status'], ['new', 'gone'], true)) {
+                    break;
+                }
+                if ($isTop($earlier)) {
+                    $replaced = $rows[$earlier]['status'] === 'gone' && ($rows[$earlier]['depthBefore'] ?? $rows[$earlier]['depth']) === $row['depth'] && ! isset($paired[$earlier]) ? $earlier : null;
+                    break;
+                }
+            }
+            if ($replaced !== null) {
+                $paired[$replaced] = true;
+            }
+            $news[] = '`' . $row['label'] . '`' . ($replaced !== null ? ' in place of `' . $rows[$replaced]['label'] . '`' : '');
+        }
+        $gone = array_diff_key($gone, $paired);
+        $moved = array_keys(array_filter($rows, fn (array $row): bool => isset($row['depthBefore']) && $row['depthBefore'] !== $row['depth']));
+        $movedUnder = [];
+        foreach ($moved as $position) {
+            if (in_array($afterParent[$position], $moved, true)) {
+                continue;
+            }
+            $anchor = $afterParent[$position];
+            while ($anchor !== null && $rows[$anchor]['status'] !== 'new') {
+                $anchor = $afterParent[$anchor];
+            }
+            $under = $anchor !== null ? 'the new `' . $rows[$anchor]['label'] . '`' : ($afterParent[$position] !== null ? '`' . $rows[$afterParent[$position]]['label'] . '`' : 'no other step');
+            $movedUnder[$under][$row = $rows[$position]['label']] = ($movedUnder[$under][$row] ?? 0) + 1;
+        }
+        $sentences = array_filter([
+            $news === [] ? '' : 'New: ' . self::listed($news) . '.',
+            $gone === [] ? '' : 'Gone: ' . self::listed(array_map(fn (string $label): string => '`' . $label . '`', array_values($gone))) . '.',
+            ...array_map(
+                fn (string $under, array $tops): string => count($moved) . ' of its steps (' . implode(', ', array_map(fn (string $label, int $times): string => ($times > 1 ? $times . ' × ' : '') . '`' . $label . '`', array_keys($tops), $tops)) . ') now run under ' . $under . '.',
+                array_keys($movedUnder),
+                $movedUnder,
+            ),
+        ]);
+
+        return $sentences === [] ? null : implode(' ', $sentences);
+    }
+
+    /**
+     * @param list<string> $items
+     */
+    private static function listed(array $items): string
+    {
+        return count($items) === 1 ? $items[0] : implode(', ', array_slice($items, 0, -1)) . ', and ' . $items[count($items) - 1];
     }
 
     private static function counted(int $count, string $one, string $many): string
@@ -194,7 +284,7 @@ final class FlowComparisonMarkdown
                 $hintsBefore = self::shownHintsOf($old[$i]);
                 $hints = self::shownHintsOf($new[$j]);
                 $rehinted = $titled($hintsBefore, $beforeTitles) !== $titled($hints, $afterTitles);
-                $rows[] = ['mark' => ' ', 'status' => $rehinted ? 'rehinted' : ($old[$i]['depth'] !== $new[$j]['depth'] ? 'moved' : 'same'), 'depth' => $new[$j]['depth'], 'label' => $new[$j]['label'], 'hints' => $hints, ...($rehinted ? ['hintsBefore' => $hintsBefore] : [])];
+                $rows[] = ['mark' => ' ', 'status' => $rehinted ? 'rehinted' : ($old[$i]['depth'] !== $new[$j]['depth'] ? 'moved' : 'same'), 'depth' => $new[$j]['depth'], 'depthBefore' => $old[$i]['depth'], 'label' => $new[$j]['label'], 'hints' => $hints, ...($rehinted ? ['hintsBefore' => $hintsBefore] : [])];
                 $i++;
                 $j++;
             } elseif ($j >= count($new) || ($i < count($old) && $lengths[$i + 1][$j] >= $lengths[$i][$j + 1])) {

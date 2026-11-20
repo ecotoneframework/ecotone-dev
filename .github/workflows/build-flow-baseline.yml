@@ -52,14 +52,20 @@ jobs:
               echo 'The baseline is current.'
               exit 0
             fi
+            generated_from="$(git rev-parse HEAD)"
             git add -A -- packages/Ecotone/tests/BuildFlow/baseline
             git commit -m "chore(flow): the build-flow baseline after $(git rev-parse --short HEAD)"
             if git push origin HEAD:main; then
               exit 0
             fi
-            echo "main moved while the baseline was generated; regenerating from the latest main (attempt ${attempt})."
             git fetch origin main
+            if [ "$(git rev-parse origin/main)" = "$generated_from" ]; then
+              echo "::error::The push to main was refused although main did not move, so main's protection blocks it. Add a secret BUILD_FLOW_BASELINE_TOKEN holding a token of an actor allowed to push to main past its branch protection (on the bypass list of the ruleset), or allow GitHub Actions to push to main."
+              exit 1
+            fi
+            echo "main moved while the baseline was generated; regenerating from the latest main (attempt ${attempt})."
             git reset --hard origin/main
+            composer update --prefer-dist --no-interaction --ignore-platform-reqs
           done
-          echo 'main kept moving; the next push to main regenerates the baseline.'
+          echo '::error::main kept moving while the baseline was generated; the next push to main regenerates it.'
           exit 1

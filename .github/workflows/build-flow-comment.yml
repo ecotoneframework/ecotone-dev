@@ -45,8 +45,18 @@ jobs:
               core.setFailed('The comment was not built for the commit of the run that uploaded it.');
               return;
             }
-            if (typeof comment.body !== 'string' || !comment.body.startsWith(marker + '\n') || comment.body.length > 65536 || typeof comment.changed !== 'boolean') {
+            if (typeof comment.body !== 'string' || !comment.body.startsWith(marker + '\n') || typeof comment.changed !== 'boolean') {
               core.setFailed('The comment body is not one build-flow-comment.php builds.');
+              return;
+            }
+            // The body comes from the pull request's code, so it may name anyone: an @ outside code gets a
+            // zero-width space after it and notifies nobody. Length is counted in UTF-16 code units, as GitHub does.
+            const body = comment.body
+              .split(/(^```[\s\S]*?^```$|`[^`\n]*`)/m)
+              .map((part, position) => (position % 2 === 1 ? part : part.replace(/(?<![\w.])@(?=[A-Za-z0-9])/g, '@\u200B')))
+              .join('');
+            if (body.length > 65536) {
+              core.setFailed(`The comment body has ${body.length} characters, more than the 65,536 GitHub allows.`);
               return;
             }
             const { owner, repo } = context.repo;
@@ -58,9 +68,9 @@ jobs:
             const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: pullRequest, per_page: 100 });
             const existing = comments.find((posted) => posted.user?.login === 'github-actions[bot]' && typeof posted.body === 'string' && posted.body.startsWith(marker));
             if (existing) {
-              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: comment.body });
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
               return;
             }
             if (comment.changed) {
-              await github.rest.issues.createComment({ owner, repo, issue_number: pullRequest, body: comment.body });
+              await github.rest.issues.createComment({ owner, repo, issue_number: pullRequest, body });
             }

@@ -33,9 +33,6 @@ final class MultiTenantFrameworkTracingLevelTest extends DbalMessagingTestCase
         $this->assertPlacesAnOrderForTheTenantAndRecordsTheExecution([FlowTrackingConfiguration::createWithDefaults()]);
     }
 
-    /**
-     * @param list<object> $extensionObjects
-     */
     private function assertPlacesAnOrderForTheTenantAndRecordsTheExecution(array $extensionObjects): void
     {
         $orders = new class () {

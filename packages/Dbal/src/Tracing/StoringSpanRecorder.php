@@ -283,10 +283,6 @@ final class StoringSpanRecorder implements SpanRecorder
         return $notifications;
     }
 
-    /**
-     * At the framework tracing level steps run between application spans; flow tracking stores what the application level
-     * stores, so a step is left out and an application span keeps the parent it has at the application level.
-     */
     private static function asApplicationSpan(Span $span): ?Span
     {
         if ($span->attributes[SpanAttribute::EXECUTION_STEP] ?? false) {

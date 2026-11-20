@@ -810,9 +810,6 @@ final class BuildFlowExecutionTest extends TestCase
         );
     }
 
-    /**
-     * @return array<string, string>
-     */
     private static function currentSnapshotFilesOf(string $scenarioName): array
     {
         [$scenario] = array_values(array_filter(FlowScenarioCatalogue::all(), fn (FlowScenario $scenario): bool => $scenario->name === $scenarioName));

@@ -49,8 +49,6 @@ jobs:
               core.setFailed('The comment body is not one build-flow-comment.php builds.');
               return;
             }
-            // The body comes from the pull request's code, so it may name anyone: an @ outside code gets a
-            // zero-width space after it and notifies nobody. Length is counted in UTF-16 code units, as GitHub does.
             const body = comment.body
               .split(/(^```[\s\S]*?^```$|`[^`\n]*`)/m)
               .map((part, position) => (position % 2 === 1 ? part : part.replace(/(?<![\w.])@(?=[A-Za-z0-9])/g, '@\u200B')))

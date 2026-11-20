@@ -52,10 +52,10 @@ final class FlowStepCompletedTracingLevelTest extends DbalMessagingTestCase
             [$command] = array_values(array_filter($traced, fn (Span $span): bool => $span->name === 'send command'));
             $notifications = array_values(array_filter($traced, fn (Span $span): bool => $span->name === 'send ' . OnFlowStepCompleted::CHANNEL));
 
-            self::assertNotSame([], $notifications, $level->name);
+            self::assertNotSame([], $notifications);
             foreach ($notifications as $notification) {
-                self::assertNull($notification->parentSpanId, $level->name);
-                self::assertNotSame($command->traceId, $notification->traceId, $level->name);
+                self::assertNull($notification->parentSpanId);
+                self::assertNotSame($command->traceId, $notification->traceId);
             }
         }
     }

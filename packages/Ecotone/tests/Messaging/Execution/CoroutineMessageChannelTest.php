@@ -7,6 +7,10 @@ namespace Test\Ecotone\Messaging\Execution;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\Delayed;
+use Ecotone\Api\Attribute\DelayedRetry;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
+use DateTimeImmutable;
 use Ecotone\Api\Gateway\CommandBus;
 use RuntimeException;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
@@ -190,6 +194,64 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->expectExceptionMessage('Coroutine channel `async` is consumed in the process that sent the message. Do not start it with ecotone:run or ConfiguredMessagingSystem::run(); send to its asynchronous handlers instead, and set concurrency with CoroutineMessageChannelBuilder::withCoroutines().');
 
         $ecotone->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+    }
+
+
+    public function test_delayed_message_waits_on_a_coroutine_timer(): void
+    {
+        $handler = new class {
+            public array $handled = [];
+
+            #[Delayed(milliseconds: 500)]
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload, #[Reference] EcotoneClockInterface $clock): void
+            {
+                $this->handled[] = [$payload, $clock->now()->format('Y-m-d H:i:s.u')];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-03-01 12:00:00'));
+        $waitsBeforeHandling = [];
+        $ecotone->whenWaiting(static function (DateTimeImmutable $now) use ($ecotone, $handler, &$waitsBeforeHandling): void {
+            if ($handler->handled === []) {
+                $waitsBeforeHandling[] = $now->format('Y-m-d H:i:s.u');
+                $ecotone->changeTimeTo($now);
+            }
+        });
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
+
+        $this->assertSame(['2026-03-01 12:00:00.500000'], $waitsBeforeHandling);
+        $this->assertSame([['payload', '2026-03-01 12:00:00.500000']], $handler->handled);
+    }
+
+
+    public function test_delayed_retry_returns_to_the_coroutine_channel_after_its_delay(): void
+    {
+        $handler = new class {
+            public int $attempts = 0;
+            public array $handled = [];
+
+            #[Asynchronous('async', asynchronousExecution: [new DelayedRetry(initialDelayInMilliseconds: 500, maxRetries: 1)])]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload, #[Reference] EcotoneClockInterface $clock): void
+            {
+                $this->attempts++;
+                if ($this->attempts === 1) {
+                    throw new RuntimeException('try later');
+                }
+                $this->handled[] = [$payload, $clock->now()->format('Y-m-d H:i:s.u')];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-03-01 12:00:00'));
+        $ecotone->whenWaiting(static function (DateTimeImmutable $now) use ($ecotone): void {
+            $ecotone->changeTimeTo($now);
+        });
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
+
+        $this->assertSame(2, $handler->attempts);
+        $this->assertSame([['payload', '2026-03-01 12:00:00.500000']], $handler->handled);
     }
 
     private function bootstrap_channel(array $extensions = []): FlowTestSupport

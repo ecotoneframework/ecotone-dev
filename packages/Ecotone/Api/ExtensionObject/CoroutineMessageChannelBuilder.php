@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\ExtensionObject;
 
-use Ecotone\Messaging\Channel\QueueChannel;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannel;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -19,7 +21,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
  *
  * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
  */
-final class CoroutineMessageChannelBuilder implements MessageChannelBuilder
+final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, DelayedMessageChannelBuilder
 {
     private function __construct(public readonly string $messageChannelName, public readonly int $coroutines = 10)
     {
@@ -53,8 +55,18 @@ final class CoroutineMessageChannelBuilder implements MessageChannelBuilder
         return false;
     }
 
+    public function supportsDelayedMessages(): bool
+    {
+        return true;
+    }
+
+    public function maximumDelay(): ?TimeSpan
+    {
+        return null;
+    }
+
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return new Definition(CoroutineMessageChannel::class, [$this->messageChannelName, new Reference(ContainerInterface::class), $this->coroutines]);
+        return new Definition(CoroutineMessageChannel::class, [$this->messageChannelName, new Reference(ContainerInterface::class), $this->coroutines, new Reference(EcotoneClockInterface::class), new Reference(MessageBuilder::class)]);
     }
 }

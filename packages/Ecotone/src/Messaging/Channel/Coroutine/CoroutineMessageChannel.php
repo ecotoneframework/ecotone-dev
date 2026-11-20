@@ -7,6 +7,11 @@ namespace Ecotone\Messaging\Channel\Coroutine;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
@@ -38,12 +43,26 @@ final class CoroutineMessageChannel extends QueueChannel
 {
     private int $consumers = 0;
 
-    public function __construct(private string $name, private ContainerInterface $container, private int $coroutines)
+    public function __construct(private string $name, private ContainerInterface $container, private int $coroutines, private EcotoneClockInterface $clock, private MessageBuilder $messageBuilder)
     {
         parent::__construct($name);
     }
 
     public function send(Message $message): void
+    {
+        $delay = $message->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY) ? $message->getHeaders()->get(MessageHeaders::DELIVERY_DELAY) : 0;
+        $delay = $delay instanceof TimeSpan ? $delay->toMilliseconds() : $delay;
+        if ($delay > 0) {
+            Coroutine::create(function () use ($message, $delay): void {
+                $this->clock->sleep(Duration::milliseconds($delay));
+                $this->enqueue($this->messageBuilder->fromMessage($message)->removeHeader(MessageHeaders::DELIVERY_DELAY)->build());
+            });
+            return;
+        }
+        $this->enqueue($message);
+    }
+
+    private function enqueue(Message $message): void
     {
         parent::send($message);
         if ($this->consumers >= $this->coroutines) {

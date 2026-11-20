@@ -286,6 +286,36 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         self::assertSame(self::applicationShapeOf(array_values(array_filter($spans, fn (ImmutableSpan $span): bool => $span->getTraceId() === $spans[0]->getTraceId()))), self::applicationShapeOf(array_values(array_filter($spans, fn (ImmutableSpan $span): bool => $span->getTraceId() !== $spans[0]->getTraceId()))));
     }
 
+    #[DataProvider('places')]
+    public function test_a_command_sent_inside_the_applications_own_open_telemetry_span_is_traced_under_it_at_both_levels(bool $running): void
+    {
+        $shapes = [];
+        foreach (['application' => TracingConfiguration::createWithDefaults(), 'framework' => TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)] as $level => $tracing) {
+            $exporter = new InMemoryExporter();
+            $handlers = new class () {
+                #[CommandHandler('order.place')]
+                public function place(string $order): void
+                {
+                }
+            };
+            $tracerProvider = self::prepareTracer($exporter);
+            $application = $running
+                ? EcotoneLite::bootstrap([$handlers::class], [$handlers, TracerProviderInterface::class => $tracerProvider], [$tracing], enabledModules: [ModulePackageList::TRACING_PACKAGE], licenceKey: LicenceTesting::VALID_LICENCE)
+                : EcotoneLite::bootstrapFlowTesting([$handlers::class], [$handlers, TracerProviderInterface::class => $tracerProvider], [$tracing], enabledModules: [ModulePackageList::TRACING_PACKAGE], licenceKey: LicenceTesting::VALID_LICENCE);
+            $request = $tracerProvider->getTracer('the application')->spanBuilder('handle request')->startSpan();
+            $scope = $request->activate();
+            $application->getCommandBus()->sendWithRouting('order.place', 'coffee');
+            $scope->detach();
+            $request->end();
+            $spans = $exporter->getSpans();
+
+            self::assertCount(1, array_unique(array_map(fn (ImmutableSpan $span): string => $span->getTraceId(), $spans)), $level);
+            $shapes[$level] = self::applicationShapeOf($spans);
+        }
+
+        self::assertSame($shapes['application'], $shapes['framework']);
+    }
+
     /**
      * @return list<ImmutableSpan>
      */

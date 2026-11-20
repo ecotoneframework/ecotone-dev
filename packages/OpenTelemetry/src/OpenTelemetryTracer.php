@@ -57,9 +57,11 @@ final class OpenTelemetryTracer implements Tracer
 
     public function startDetachedSpan(string $name, SpanKind $kind, array $attributes, ?SpanContext $parent, DatePoint $startedAt): ActiveSpan
     {
-        $spanBuilder = $this->spanBuilderFor($name, $kind, $attributes)
-            ->setParent($parent === null ? false : ($this->openSpanWithId($parent->spanId)?->asParent() ?? self::remoteContextOf($parent)))
-            ->setStartTimestamp((int) $startedAt->format('U') * 1_000_000_000 + $startedAt->getMicrosecond() * 1_000);
+        $spanBuilder = $this->spanBuilderFor($name, $kind, $attributes);
+        if ($parent !== null) {
+            $spanBuilder->setParent($this->openSpanWithId($parent->spanId)?->asParent() ?? self::remoteContextOf($parent));
+        }
+        $spanBuilder->setStartTimestamp((int) $startedAt->format('U') * 1_000_000_000 + $startedAt->getMicrosecond() * 1_000);
         $span = $this->spanOf(spanBuilder: $spanBuilder, name: $name, kind: $kind, attributes: $attributes, parentContext: $parent, startedAt: $startedAt, activated: false);
         $this->spans()->detached[$span->context()->spanId] = $span;
 

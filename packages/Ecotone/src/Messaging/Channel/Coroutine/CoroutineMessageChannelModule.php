@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Channel\Coroutine;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
@@ -92,7 +93,7 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
             referenceName: CoroutineMessageRelease::class,
             interfaceToCall: $registry->getFor(CoroutineMessageRelease::class, 'release'),
             precedence: Precedence::BETWEEN_INSTANT_RETRY_AND_TRANSACTION_PRECEDENCE,
-            pointcut: CommandBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . MessageGateway::class,
+            pointcut: CommandBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . MessageGateway::class . '||' . ConsoleCommand::class,
         ));
     }
 

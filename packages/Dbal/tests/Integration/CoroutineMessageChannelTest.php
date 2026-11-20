@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
@@ -62,7 +63,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->notified = new Coroutine\Channel();
             }
 
-            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1, pointcut: CommandBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . MessageGateway::class)]
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1, pointcut: CommandBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . MessageGateway::class . '||' . ConsoleCommand::class)]
             public function pause_before_commit(MethodInvocation $invocation): mixed
             {
                 $result = $invocation->proceed();
@@ -79,6 +80,12 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->senderConnection = $connection;
                 $connection->insert('coroutine_channel_orders', ['id' => $id]);
                 $bus->sendWithRouting('order.notify', $id);
+            }
+
+            #[ConsoleCommand('order.console')]
+            public function place_console(int $id, #[CurrentConnection] Connection $connection, #[Reference] CommandBus $bus): void
+            {
+                $this->place($id, $connection, $bus);
             }
 
             #[InternalHandler('order.gateway')]
@@ -112,7 +119,9 @@ final class CoroutineMessageChannelTest extends TestCase
         );
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone, $boundary, $handler): void {
-            if ($boundary === 'gateway') {
+            if ($boundary === 'console') {
+                $ecotone->runConsoleCommand('order.console', ['id' => 1]);
+            } elseif ($boundary === 'gateway') {
                 $ecotone->getGateway(CoroutineOrderGateway::class)->place(1);
             } elseif ($boundary === 'asynchronous') {
                 $ecotone->sendCommandWithRouting('order.place.async', 1);
@@ -275,7 +284,7 @@ final class CoroutineMessageChannelTest extends TestCase
 
     public static function sending_boundaries(): array
     {
-        return [['command_bus'], ['gateway'], ['asynchronous']];
+        return [['command_bus'], ['gateway'], ['asynchronous'], ['console']];
     }
 
 }

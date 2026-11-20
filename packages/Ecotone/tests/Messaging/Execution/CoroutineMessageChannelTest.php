@@ -8,6 +8,7 @@ use Closure;
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\ErrorChannel;
@@ -524,6 +525,41 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(2, $handler->outerAttempts);
         $this->assertSame(2, $handler->attempts);
         $this->assertSame([0, 2], $handler->handled);
+    }
+
+
+    public function test_failed_console_command_starts_no_handler(): void
+    {
+        $handler = new class {
+            public array $handled = [];
+
+            #[ConsoleCommand('send-and-fail')]
+            public function send(#[Reference] CommandBus $bus): void
+            {
+                $bus->sendWithRouting('handle', 'from-console');
+                throw new RuntimeException('console failed');
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $failure = null;
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone, &$failure): void {
+            try {
+                $ecotone->runConsoleCommand('send-and-fail', []);
+            } catch (RuntimeException $exception) {
+                $failure = $exception->getMessage();
+            }
+        });
+
+        $this->assertSame('console failed', $failure);
+        $this->assertSame([], $handler->handled);
     }
 
     public static function concurrency_limits(): array

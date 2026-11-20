@@ -297,6 +297,72 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame([0, 1], array_map('intval', $factory->establishConnection()->fetchFirstColumn('SELECT id FROM coroutine_channel_nested_orders ORDER BY id')));
     }
 
+
+    public function test_interleaved_senders_release_only_the_successful_senders_message(): void
+    {
+        $factory = new DbalConnectionFactory(self::dsnOf('mysql'));
+        $connection = $factory->establishConnection();
+        $connection->executeStatement('DROP TABLE IF EXISTS coroutine_channel_senders');
+        $connection->executeStatement('CREATE TABLE coroutine_channel_senders (id INTEGER PRIMARY KEY)');
+        $handler = new class {
+            public Coroutine\Channel $firstHolding;
+            public Coroutine\Channel $resumeFirst;
+            public array $handled = [];
+
+            public function __construct()
+            {
+                $this->firstHolding = new Coroutine\Channel();
+                $this->resumeFirst = new Coroutine\Channel();
+            }
+
+            #[CommandHandler('send')]
+            public function send(int $id, #[CurrentConnection] Connection $connection, #[Reference] CommandBus $bus): void
+            {
+                $connection->insert('coroutine_channel_senders', ['id' => $id]);
+                $bus->sendWithRouting('handle', $id);
+                if ($id === 1) {
+                    $this->firstHolding->push(true);
+                    $this->resumeFirst->pop();
+                } else {
+                    throw new RuntimeException('second sender failed');
+                }
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(int $id): void
+            {
+                $this->handled[] = $id;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler, DbalConnectionFactory::class => $factory],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $failure = null;
+
+        CoroutineTesting::runAtOnce(
+            static fn () => $ecotone->sendCommandWithRouting('send', 1),
+            static function () use ($handler, $ecotone, &$failure): void {
+                $handler->firstHolding->pop();
+                try {
+                    $ecotone->sendCommandWithRouting('send', 2);
+                } catch (RuntimeException $exception) {
+                    $failure = $exception->getMessage();
+                } finally {
+                    $handler->resumeFirst->push(true);
+                }
+            },
+        );
+
+        $this->assertSame('second sender failed', $failure);
+        $this->assertSame([1], $handler->handled);
+        $this->assertSame([1], array_map('intval', $factory->establishConnection()->fetchFirstColumn('SELECT id FROM coroutine_channel_senders')));
+    }
+
     private static function dsnOf(string $database): string
     {
         foreach ([getenv('DATABASE_DSN'), getenv('SECONDARY_DATABASE_DSN')] as $dsn) {

@@ -198,8 +198,9 @@ succeeds and its transaction commits. A failed sender starts no handler. The cal
 to finish; they run on coroutines of that same PHP process. A channel runs up to 10 handlers at once by default; `withCoroutines(4)`
 sets its limit to four, and the rest wait in order in memory. Objects pass as they are, without serialization.
 
-This needs an Ecotone Enterprise licence and the `swoole` or `openswoole` extension. Send from a coroutine, such as
-an HTTP request with `enable_coroutine` enabled (§5); a send outside a coroutine is refused. A dead-letter replay
+This needs an Ecotone Enterprise licence and the `swoole` or `openswoole` extension with coroutines enabled.
+The sender uses the public command bus, `Ecotone\Api\Gateway\CommandBus`, to send its notification command
+inside the handler that writes the order. Send from a coroutine, such as an HTTP request with `enable_coroutine` enabled (§5); a send outside a coroutine is refused. A dead-letter replay
 outside a coroutine runs the handler synchronously in place.
 
 Error channels, instant retries, delayed retries and dead letter use the ordinary asynchronous consumer pipeline.
@@ -249,5 +250,5 @@ The `amqp` extension stops every coroutine while it waits for the broker.
 ### 6. In-process asynchronous work uses a coroutine channel
 A handler that should start after its sender commits and run in the same PHP process uses
 `CoroutineMessageChannelBuilder`, registered through `#[ServiceContext]`, with `#[Asynchronous]` on the handler.
-- **Expected:** the answer registers `Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder::create()` through `#[ServiceContext]`, uses `#[Asynchronous]`, sets any concurrency on that builder, and states the Enterprise licence, coroutine runtime and in-memory loss on restart; it starts no separate consumer for the channel and does not propose a handwritten coroutine dispatcher.
+- **Expected:** the answer registers `Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder::create()` through `#[ServiceContext]`, uses `#[Asynchronous]`, sets any concurrency on that builder, and explicitly states both prerequisites (Ecotone Enterprise and the swoole/openswoole extension with coroutines enabled), even when they are already configured in the question. It states the in-memory loss on restart, uses `Ecotone\Api\Gateway\CommandBus` if showing the sender, starts no separate consumer for the channel, and does not propose a handwritten coroutine dispatcher.
 - **Verified by:** `eval:send-in-process`

@@ -211,6 +211,31 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         }
     }
 
+    public function test_an_exported_step_is_named_without_the_ids_ecotone_generates_and_carries_its_full_label_as_an_attribute(): void
+    {
+        $exporter = new InMemoryExporter();
+        $handlers = new class () {
+            #[CommandHandler('order.place')]
+            public function place(string $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', $order);
+            }
+
+            #[EventHandler('order.placed')]
+            public function notify(string $order): void
+            {
+            }
+        };
+        $this->application(true, [$handlers], $exporter, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework))->getCommandBus()->sendWithRouting('order.place', 'coffee');
+        $generatedId = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/';
+        $steps = self::stepsIn($exporter->getSpans());
+        $labelled = array_values(array_filter($steps, fn (ImmutableSpan $span): bool => preg_match($generatedId, (string) $span->getAttributes()->get('ecotone.execution.label')) === 1));
+
+        self::assertSame([], array_values(array_filter(array_map(fn (ImmutableSpan $span): string => $span->getName(), $steps), fn (string $name): bool => preg_match($generatedId, $name) === 1)));
+        self::assertNotSame([], $labelled);
+        self::assertStringContainsString('{generated}', $labelled[0]->getName());
+    }
+
     /**
      * @return list<ImmutableSpan>
      */

@@ -384,7 +384,14 @@ final class ExecutionRecordingTracer implements Tracer
         $span = null;
         foreach ($chain as $pending) {
             $parent = $pending->parentStep === null ? $pending->parentContext : $pending->parentStep->span?->context();
-            $span = $pending->span = $this->tracer->startDetachedSpan(name: $pending->name, kind: SpanKind::Internal, attributes: $pending->attributes, parent: $parent, startedAt: $pending->startedAt);
+            $stableName = (string) preg_replace(RecordedExecution::GENERATED_ID_IN_LABEL, '{generated}', $pending->name);
+            $span = $pending->span = $this->tracer->startDetachedSpan(
+                name: $stableName,
+                kind: SpanKind::Internal,
+                attributes: $stableName === $pending->name ? $pending->attributes : [...$pending->attributes, RecordedExecution::STEP_LABEL => $pending->name],
+                parent: $parent,
+                startedAt: $pending->startedAt,
+            );
         }
         if ($chain[0]->entry) {
             $this->exportStepsEndedBefore();

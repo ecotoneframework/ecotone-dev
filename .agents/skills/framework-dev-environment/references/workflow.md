@@ -347,6 +347,15 @@ under it. The terms they use:
 | `… N unchanged steps` / `… N steps as in process X` / `… N steps no longer run` | steps collapsed at their depth because they did not change / because they are the same as in process `X` shown above / the steps of a process that no longer runs |
 | `↳ work in:` | the process a gathered part's work came from, and which part it is |
 | `(1 of 2)` after a process title | the first of two processes with the same title, numbered in run order |
+| `(part 1 of 2)` after a process title | a gatherer run that took in part 1 of a gathering group of 2 parts |
+| `chosen by: routing slip, now empty` / `chosen by: routing slip, then: Y, Z` | the step was forwarded to the first entry of the message's routing slip, which then holds nothing more / still holds `Y, Z` |
+| `routing slip: adds X` | the step put `X` on the routing slip, ahead of what it held (`drops X` and `replaces X with Y` for a step that took entries off it or replaced it without forwarding by it) |
+| `kept: routing slip X` | the step passed the message on with the routing slip it received |
+| `runs in:` | where the step's work runs when that is not obvious from the tree: `this consumer run, gatherer called back`, `this consumer run, no queue` |
+| `collected:` | the message is held by the message collector until the handler ends (`held until the handler ends`) and sent then (`released after the handler ended`), so a failing handler sends nothing |
+| gathering group, part report, gatherer, Enterprise part completion | a gathering group is the set of parts one dispatch splits its work into (`open gathering group of 2 parts`); each part's run ends with a part report sent to the group's completion channel; the gatherer (`GatheringMessageHandler`) records each part as it arrives and releases the group once every part is in; the Enterprise part completion, `GatheringPartCompletion`, is what sends the part report in place of the open-core `no hand-over` |
+| step words | `around X` an around interceptor; `before send X` / `after send X` / `after successful send X` a channel interceptor before a message is sent, after it is sent whatever the result, and only after it was sent; `span X` a span Ecotone opens; `direct channel X` a synchronous channel the message passes through; `forward to X` the handler's result or the message handed to the next channel; `put on channel X` the message stored on a queue channel, taken later by a consumer run; `entrypoint sends to X` a message Ecotone sends itself; `handler X` the method that handles the message |
+| `@@ N steps unchanged @@` | in the traced spans of the other presentations, N spans left out because they did not change |
 
 ## What CI actually runs
 

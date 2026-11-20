@@ -11,6 +11,8 @@ use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -380,6 +382,71 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame('second sender failed', $failure);
         $this->assertSame([1], $handler->handled);
         $this->assertSame([1], array_map('intval', $factory->establishConnection()->fetchFirstColumn('SELECT id FROM coroutine_channel_senders')));
+    }
+
+
+    public function test_deduplicated_handler_runs_once_for_the_same_deduplication_key(): void
+    {
+        $handler = new class {
+            public array $handled = [];
+
+            #[Deduplicated('deduplication-key')]
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'deduplicated.coroutine.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1), DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $key = bin2hex(random_bytes(16));
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone, $key): void {
+            $ecotone->sendCommandWithRouting('handle', 'payload', metadata: ['deduplication-key' => $key]);
+            $ecotone->sendCommandWithRouting('handle', 'payload', metadata: ['deduplication-key' => $key]);
+        });
+
+        $this->assertSame(['payload'], $handler->handled);
+    }
+
+    public function test_each_message_uses_its_tenants_connection(): void
+    {
+        $a = new DbalConnectionFactory('sqlite:////tmp/ecotone_coroutine_channel_tenant_a.db');
+        $b = new DbalConnectionFactory('sqlite:////tmp/ecotone_coroutine_channel_tenant_b.db');
+        foreach ([$a, $b] as $factory) {
+            $connection = $factory->establishConnection();
+            $connection->executeStatement('DROP TABLE IF EXISTS coroutine_channel_tenant_orders');
+            $connection->executeStatement('CREATE TABLE coroutine_channel_tenant_orders (id INTEGER PRIMARY KEY, tenant VARCHAR(255))');
+        }
+        $handler = new class {
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'tenant.coroutine.endpoint')]
+            public function handle(int $id, #[Header('tenant')] string $tenant, #[CurrentConnection] Connection $connection): void
+            {
+                $connection->insert('coroutine_channel_tenant_orders', ['id' => $id, 'tenant' => $tenant]);
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler, 'tenant_a_connection' => $a, 'tenant_b_connection' => $b],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults()->withDeduplication(false), MultiTenantConfiguration::create(tenantHeaderName: 'tenant', tenantToConnectionMapping: ['a' => 'tenant_a_connection', 'b' => 'tenant_b_connection'])],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
+            $ecotone->sendCommandWithRouting('handle', 1, metadata: ['tenant' => 'a']);
+            $ecotone->sendCommandWithRouting('handle', 2, metadata: ['tenant' => 'b']);
+        });
+
+        $this->assertSame(['a'], $a->establishConnection()->fetchFirstColumn('SELECT tenant FROM coroutine_channel_tenant_orders'));
+        $this->assertSame(['b'], $b->establishConnection()->fetchFirstColumn('SELECT tenant FROM coroutine_channel_tenant_orders'));
     }
 
     private static function dsnOf(string $database): string

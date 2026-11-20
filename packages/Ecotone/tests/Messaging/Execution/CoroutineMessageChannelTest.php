@@ -653,6 +653,29 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(['bare send'], $handler->handled);
     }
 
+
+    public function test_a_handler_can_send_to_its_own_channel_with_one_coroutine(): void
+    {
+        $handler = new class {
+            public array $handled = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(int $payload, #[Reference] CommandBus $bus): void
+            {
+                $this->handled[] = $payload;
+                if ($payload < 3) {
+                    $bus->sendWithRouting('handle', $payload + 1);
+                }
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1)], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 1));
+
+        $this->assertSame([1, 2, 3], $handler->handled);
+    }
+
     public static function concurrency_limits(): array
     {
         return [[2, 8], [10, 15]];

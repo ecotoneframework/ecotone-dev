@@ -101,9 +101,6 @@ final class OpenTelemetryTracer implements Tracer
     /**
      * @param array<string, scalar> $attributes
      */
-    /**
-     * @param array<string, scalar> $attributes
-     */
     private function start(SpanBuilderInterface $spanBuilder, string $name, SpanKind $kind, array $attributes, ?SpanContext $parentContext): ActiveSpan
     {
         $activeSpan = $this->spanOf(spanBuilder: $spanBuilder, name: $name, kind: $kind, attributes: $attributes, parentContext: $parentContext, startedAt: $this->clock->now(), activated: true);

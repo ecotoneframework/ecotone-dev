@@ -174,6 +174,43 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         self::assertLessThan(64 * 1024, $memoryAfter[4] - $memoryAfter[2]);
     }
 
+    public function test_a_running_application_whose_consumed_messages_all_fail_ends_every_step_span_it_starts(): void
+    {
+        $exporter = new InMemoryExporter();
+        $handlers = new class () {
+            #[CommandHandler('order.place')]
+            public function place(string $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', $order);
+            }
+
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'notify')]
+            public function notify(string $order): void
+            {
+                throw new RuntimeException('the notification failed');
+            }
+        };
+        $application = $this->application(true, [$handlers], $exporter, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), [SimpleMessageChannelBuilder::createQueueChannel('notifications'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('nullChannel')]);
+        $consume = function (int $messages) use ($application, $exporter): array {
+            for ($order = 0; $order < $messages; $order++) {
+                $application->getCommandBus()->sendWithRouting('order.place', 'coffee');
+            }
+            $application->run('notifications', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: $messages, executionTimeLimitInMilliseconds: 600000, stopOnError: false));
+            $steps = self::stepsIn($exporter->getSpans());
+            $exporter->getStorage()->exchangeArray([]);
+
+            return [count($steps), count(array_filter($steps, fn (ImmutableSpan $span): bool => $span->getStatus()->getCode() === StatusCode::STATUS_ERROR))];
+        };
+
+        [$stepsOfOneMessage, $failedStepsOfOneMessage] = $consume(1);
+
+        self::assertGreaterThan(0, $failedStepsOfOneMessage);
+        foreach ([1, 2, 3] as $round) {
+            self::assertSame([200 * $stepsOfOneMessage, 200 * $failedStepsOfOneMessage], $consume(200));
+        }
+    }
+
     /**
      * @return list<ImmutableSpan>
      */

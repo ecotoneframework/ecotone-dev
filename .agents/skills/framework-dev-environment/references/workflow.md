@@ -208,8 +208,8 @@ framework tracing level, `TracingConfiguration::withLevel(TracingLevel::Framewor
 `TracingLevel::Application`, traces messages and handlers without the recording. In a running application the
 framework level records whenever a span recorder (`TracingConfiguration::withSpanRecorder()`) or a tracer such as
 OpenTelemetry is configured: every step Ecotone runs is a span started and ended through the configured tracer and
-sent to the span recorders, so an OpenTelemetry exporter receives the steps too. That is many more spans per message
-(a synchronous command exports 16 instead of 2, an event handled asynchronously 69 instead of 7). An application span
+sent to the span recorders, so an OpenTelemetry exporter receives the steps too. That is about eight to ten
+times as many spans per message. An application span
 keeps its name, kind, status and attributes; its parent may now be a step. A step the recording leaves out (a call
 that ran nothing, an argument conversion with nothing inside) is not exported either. The default level exports what
 it did before. Each process is one entry

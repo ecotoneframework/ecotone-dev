@@ -212,10 +212,18 @@ echo implode("\n", $recording->lines);
 - At the framework level the stack trace of a failed message (the `exception-stacktrace` header an error channel or
   dead letter receives) also holds the recording's own frames.
 - At the framework level every step is also a trace span: it goes through the configured tracer, so OpenTelemetry
-  exports it, and to the span recorders registered by `TracingConfiguration::withSpanRecorder()`. Expect many more
-  spans per message (a synchronous command exports 16 spans instead of 2). Each application span keeps its name, kind,
-  status and attributes; its parent may now be a step span. The default level, `TracingLevel::Application`, exports
-  what it always did.
+  exports it, and to the span recorders registered by `TracingConfiguration::withSpanRecorder()`. Expect about eight
+  to ten times as many spans per message. Each application span keeps its name, kind, status and attributes; its
+  parent may now be a step span. The default level, `TracingLevel::Application`, exports what it always did.
+- The `ecotone.execution.*` attributes (constants on `Ecotone\Api\Tracing\SpanAttribute`) say what a span is in
+  the recording: `ecotone.execution.step` (`EXECUTION_STEP`) is `true` on a step span; `ecotone.execution.order`
+  (`EXECUTION_ORDER`) is the order the span started in, which sorts processes and steps; `ecotone.execution.process`
+  (`EXECUTION_PROCESS`) is `true` on the span a process starts with; `ecotone.execution.parent` (`EXECUTION_PARENT`) is
+  the id of the step an application span ran in; `ecotone.execution.outcome` (`EXECUTION_OUTCOME`) is what a step
+  returned or threw; `ecotone.execution.hints` (`EXECUTION_HINTS`) holds a step's hints as JSON, each
+  `[key, value, shownInLines]`; `ecotone.execution.sent_message` (`EXECUTION_SENT_MESSAGE`) is the id of the message a
+  send step put on a channel. A step whose label holds an id Ecotone generates is exported as `{generated}` in its
+  name, with the full label in `ecotone.execution.label`.
 
 ### Failures, Retries and Dead Letter
 

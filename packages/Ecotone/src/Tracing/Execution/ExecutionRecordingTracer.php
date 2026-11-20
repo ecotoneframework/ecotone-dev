@@ -73,12 +73,7 @@ final class ExecutionRecordingTracer implements Tracer
 
     public function startRootSpan(string $name, SpanKind $kind, array $attributes = []): ActiveSpan
     {
-        $attributes = $this->withExecutionAttributes($attributes);
-        $step = $this->openStepOf($this->tracer->currentSpan());
-
-        return $step === null
-            ? $this->tracer->startRootSpan($name, $kind, $attributes)
-            : $this->tracer->startSpan($name, $kind, $attributes, $this->spanOf($step)->context());
+        return $this->tracer->startRootSpan($name, $kind, $this->withExecutionAttributes($attributes));
     }
 
     public function startDetachedSpan(string $name, SpanKind $kind, array $attributes, ?SpanContext $parent, DatePoint $startedAt): ActiveSpan

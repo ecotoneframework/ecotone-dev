@@ -309,7 +309,15 @@ final class FrameworkTracingLevelTest extends TracingTestCase
             return $kept;
         };
 
+        $traces = [];
+        foreach ($spans as $span) {
+            if (! $span->getAttributes()->has('ecotone.execution.step')) {
+                $traces[$span->getTraceId()] ??= count($traces);
+            }
+        }
+
         return array_values(array_map(fn (ImmutableSpan $span): array => [
+            'trace' => $traces[$span->getTraceId()],
             'name' => $span->getName(),
             'kind' => $span->getKind(),
             'status' => $span->getStatus()->getCode(),

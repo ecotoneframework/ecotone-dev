@@ -125,6 +125,7 @@ class ModuleClassList
         RouterModule::class,
         ScheduledModule::class,
         CollectorModule::class,
+        \Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannelModule::class,
         TracingModule::class,
         DeliveryConfirmationModule::class,
         ChannelSetupModule::class,

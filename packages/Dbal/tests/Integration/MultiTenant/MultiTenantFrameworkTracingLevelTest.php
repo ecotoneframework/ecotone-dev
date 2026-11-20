@@ -9,7 +9,6 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
@@ -49,7 +48,7 @@ final class MultiTenantFrameworkTracingLevelTest extends DbalMessagingTestCase
             }
         };
         $recorder = new InMemorySpanRecorder();
-        $application = EcotoneLite::bootstrap(
+        $application = $this->bootstrapFlowTesting(
             [$orders::class],
             [
                 $orders,

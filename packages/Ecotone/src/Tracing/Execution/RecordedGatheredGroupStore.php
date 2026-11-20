@@ -23,12 +23,12 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
 
     public function collectMessage(string $endpointId, ?string $groupKey, string $gatherChannelName, ?int $maxSize, Message $message, ?int $deadline, callable $whenOpened, callable $whenReleased): void
     {
-        $this->recorded(name: 'collect a message for ' . $endpointId, hints: $groupKey === null ? [] : [ExecutionHint::detail(ExecutionHint::GROUP, 'key ' . $groupKey)], call: fn () => $this->store->collectMessage($endpointId, $groupKey, $gatherChannelName, $maxSize, $message, $deadline, $whenOpened, $whenReleased));
+        $this->recorded(name: 'collect a message for ' . $endpointId, hints: $groupKey === null ? [] : [ExecutionHint::detail(ExecutionHint::GROUP, 'key ' . $groupKey)], call: fn () => $this->store->collectMessage(endpointId: $endpointId, groupKey: $groupKey, gatherChannelName: $gatherChannelName, maxSize: $maxSize, message: $message, deadline: $deadline, whenOpened: $whenOpened, whenReleased: $whenReleased));
     }
 
     public function openGroup(string $groupId, string $endpointId, string $gatherChannelName, int $size, Message $original, ?int $deadline, callable $whenOpened, ?string $groupKey): void
     {
-        $this->recorded(name: 'open gathering group of ' . ($size === self::UNKNOWN_SIZE ? 'an unknown number of' : $size) . ' parts', hints: [ExecutionHint::detail(ExecutionHint::GROUP, $groupId)], call: fn () => $this->store->openGroup($groupId, $endpointId, $gatherChannelName, $size, $original, $deadline, $whenOpened, $groupKey));
+        $this->recorded(name: 'open gathering group of ' . ($size === self::UNKNOWN_SIZE ? 'an unknown number of' : $size) . ' parts', hints: [ExecutionHint::detail(ExecutionHint::GROUP, $groupId)], call: fn () => $this->store->openGroup(groupId: $groupId, endpointId: $endpointId, gatherChannelName: $gatherChannelName, size: $size, original: $original, deadline: $deadline, whenOpened: $whenOpened, groupKey: $groupKey));
     }
 
     public function completePart(string $groupId, int $partNumber, Message $report, callable $whenComplete): void
@@ -37,7 +37,7 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
         $step = $this->tracer->startStep('record part ' . $partNumber . $size . ' in ' . ExecutionRecordingTracer::shortClassOf($this->store::class), hints: [ExecutionHint::detail(ExecutionHint::GROUP, $groupId)]);
         $released = null;
         try {
-            $before = $this->store->recordedPartsOf($groupId);
+            $before = $this->store->partsOf($groupId);
             $this->store->completePart($groupId, $partNumber, $report, function (mixed ...$arguments) use ($whenComplete, &$released): void {
                 $released = count($arguments[1] ?? []);
                 $whenComplete(...$arguments);
@@ -71,7 +71,7 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
         if ($alreadyThere) {
             return [ExecutionHint::shownInLines(ExecutionHint::OUTCOME, 'duplicate part ignored')];
         }
-        $after = $this->store->recordedPartsOf($groupId);
+        $after = $this->store->partsOf($groupId);
         if ($after === null || ! in_array($partNumber, $after['partNumbers'], true)) {
             return [ExecutionHint::shownInLines(ExecutionHint::OUTCOME, 'part not stored, group ' . ($after['state'] ?? 'gone'))];
         }
@@ -84,14 +84,14 @@ final class RecordedGatheredGroupStore implements GatheredGroupStore
         return $this->store->gatherChannelNameFor($groupId);
     }
 
-    public function recordedPartsOf(string $groupId): ?array
+    public function partsOf(string $groupId): ?array
     {
-        return $this->store->recordedPartsOf($groupId);
+        return $this->store->partsOf($groupId);
     }
 
     public function releaseGroup(string $groupId, callable $whenReleased, GatheredReleaseReason|CollectedReleaseReason|null $releaseReason): void
     {
-        $this->recorded(name: 'release group in ' . ExecutionRecordingTracer::shortClassOf($this->store::class), hints: array_values(array_filter([ExecutionHint::detail(ExecutionHint::GROUP, $groupId), $releaseReason === null ? null : ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, $releaseReason->value)])), call: fn () => $this->store->releaseGroup($groupId, fn (mixed ...$arguments) => $this->recorded('call the gatherer back', [ExecutionHint::shownInLines(ExecutionHint::RUNS_IN, 'this consumer run')], fn () => $whenReleased(...$arguments)), $releaseReason));
+        $this->recorded(name: 'release group in ' . ExecutionRecordingTracer::shortClassOf($this->store::class), hints: array_values(array_filter([ExecutionHint::detail(ExecutionHint::GROUP, $groupId), $releaseReason === null ? null : ExecutionHint::shownInLines(ExecutionHint::CHOSEN_BY, $releaseReason->value)])), call: fn () => $this->store->releaseGroup(groupId: $groupId, whenReleased: fn (mixed ...$arguments) => $this->recorded(name: 'call the gatherer back', hints: [ExecutionHint::shownInLines(ExecutionHint::RUNS_IN, 'this consumer run')], call: fn () => $whenReleased(...$arguments)), releaseReason: $releaseReason));
     }
 
     public function discard(string $groupId): void

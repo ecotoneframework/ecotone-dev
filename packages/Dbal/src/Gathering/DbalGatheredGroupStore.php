@@ -143,7 +143,7 @@ final class DbalGatheredGroupStore implements GatheredGroupStore
         }
     }
 
-    public function recordedPartsOf(string $groupId): ?array
+    public function partsOf(string $groupId): ?array
     {
         $connection = $this->connection();
         try {

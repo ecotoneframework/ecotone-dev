@@ -142,7 +142,7 @@ final class BuildFlowBaselineTest extends TestCase
 
         $this->expectExceptionMessage(
             'The flow snapshots in ' . $this->location . ' are not what the code produces: differs: projection-rebuilt-asynchronously.json, shared.json; missing: projection-backfilled-asynchronously.json; no longer produced: a-scenario-that-was-removed.json. '
-            . 'If the message flow was meant to change, leave the snapshots as they are: the pull request comment shows the change, and main\'s CI commits the new snapshots after the merge; `php bin/build-flow.php compare --from=' . $this->location . '` shows the change locally. If it was not meant to change, the change altered the framework\'s wiring or traced spans by accident.'
+            . 'If the message flow was meant to change, leave the snapshots as they are: the pull request comment shows the change, and main\'s CI commits the new snapshots after the merge; `php bin/build-flow.php compare --presentation=build --from=' . $this->location . '` shows it locally as the comment does. If it was not meant to change, the change altered the framework\'s wiring or traced spans by accident.'
         );
 
         $tooling->runConsoleCommand('ecotone:build-flow:check', ['location' => $this->location]);

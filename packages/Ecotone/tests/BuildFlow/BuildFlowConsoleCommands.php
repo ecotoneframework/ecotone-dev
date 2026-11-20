@@ -56,14 +56,14 @@ final class BuildFlowConsoleCommands
             throw InvalidArgumentException::create(
                 "The flow snapshots in {$location} are not what the code produces: "
                 . implode('; ', array_map(fn (string $problem, array $fileNames): string => $problem . ': ' . implode(', ', $fileNames), array_keys($problems), $problems))
-                . '. If the message flow was meant to change, leave the snapshots as they are: the pull request comment shows the change, and main\'s CI commits the new snapshots after the merge; `php bin/build-flow.php compare --from=' . $location . '` shows the change locally. If it was not meant to change, the change altered the framework\'s wiring or traced spans by accident.'
+                . '. If the message flow was meant to change, leave the snapshots as they are: the pull request comment shows the change, and main\'s CI commits the new snapshots after the merge; `php bin/build-flow.php compare --presentation=build --from=' . $location . '` shows it locally as the comment does. If it was not meant to change, the change altered the framework\'s wiring or traced spans by accident.'
             );
         }
 
         $writer->success('All ' . (count($files) - 1) . " flow snapshots in {$location} match what the code produces");
     }
 
-    #[ConsoleCommand('ecotone:build-flow:compare', 'Framework development: prints what changed between the snapshots stored in two locations, cut to the changed parts, as GitHub Markdown with Mermaid: --presentation=before-after (the default) a before/after pair, marked one marked diagram, path the message path as a sequence diagram, build the build tree with the path and the marked wiring collapsed, json the raw comparison')]
+    #[ConsoleCommand('ecotone:build-flow:compare', 'Framework development: prints what changed between the snapshots stored in two locations, cut to the changed parts, as GitHub Markdown with Mermaid: --presentation=before-after (the default) a before/after pair, marked one marked diagram, path the message path as a sequence diagram, build what the pull request comment shows (the build tree, then per scenario the Before/Now summary, what ran process by process with the step tree of each changed process, the message path, and the marked wiring collapsed), json the raw comparison')]
     public function compare(ConsoleWriter $writer, #[ConsoleParameterOption] string $from, #[ConsoleParameterOption] string $to, #[ConsoleParameterOption] string $presentation = FlowComparisonMarkdown::BEFORE_AFTER_PAIR): void
     {
         $before = new FlowSnapshots($from);

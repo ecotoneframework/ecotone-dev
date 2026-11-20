@@ -18,7 +18,7 @@ const USAGE = <<<'USAGE'
 
       php bin/build-flow-comment.php --comparison=<file> --pull-request=<number> --head-sha=<sha> --base-sha=<sha> --compared-with=base-commit|committed-baseline --run-url=<url> --output=<file> [--format-change=<file>]
 
-    --comparison is the output of `php bin/build-flow.php compare`. The output file is JSON holding the pull request
+    --comparison is the output of `php bin/build-flow.php compare --presentation=build`. The output file is JSON holding the pull request
     number, the head sha, whether a flow changed, and the comment body, which opens with the marker line
     USAGE . ' ' . COMMENT_MARKER . " that finds the comment again on the next push.\n";
 
@@ -58,7 +58,7 @@ if (isset($options['format-change'])) {
 }
 $comparison = @file_get_contents($options['comparison']);
 if ($comparison === false) {
-    refuse("The comparison file {$options['comparison']} cannot be read. Write it with `php bin/build-flow.php compare > <file>` first.");
+    refuse("The comparison file {$options['comparison']} cannot be read. Write it with `php bin/build-flow.php compare --presentation=build > <file>` first.");
 }
 if (! str_starts_with(ltrim($comparison), COMPARISON_HEADING)) {
     refuse('The comparison file ' . $options['comparison'] . ' does not open with `' . COMPARISON_HEADING . '`, so it is not the output of `php bin/build-flow.php compare` and the comment would show something else. Its first line: ' . strtok(ltrim($comparison) . "\n", "\n"));

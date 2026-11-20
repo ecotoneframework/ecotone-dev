@@ -195,7 +195,7 @@ docker compose exec -T app php bin/add-enterprise-licence.php  # Enterprise modu
 # Build flow snapshots: what modules register, the chain of each handler, the wiring and the traced steps
 # of every flow catalogue scenario, committed under packages/Ecotone/tests/BuildFlow/baseline by main's CI
 # after each merge. A pull request leaves the baseline alone; its comment shows what the change does to the flow
-docker compose exec -T app php bin/build-flow.php compare    # what changed against the baseline, as Markdown
+docker compose exec -T app php bin/build-flow.php compare --presentation=build    # what changed against the baseline, as the pull request comment shows it
 docker compose exec -T app php bin/check-build-flow.php      # whether the baseline is what the code produces
 docker compose exec -T app php bin/build-flow.php snapshot   # writes var/build-flow-snapshot; only an explicit --location writes the baseline
 docker compose exec -T app php bin/test-build-flow-comment.php  # the tests of the pull request comment builder
@@ -208,7 +208,7 @@ docker compose exec -T app php bin/test-build-flow-comment.php  # the tests of t
 | `before-after` (default) | the changed wiring before and after, the traced steps before and after, and what ran, process by process |
 | `marked` | one diagram with the changes marked, and one list of the traced steps |
 | `path` | the message's path as a sequence diagram, with what changed in sentences |
-| `build` | the build tree, then the message's path and the marked wiring collapsed |
+| `build` | what the pull request comment shows: the build tree, then per scenario the Before/Now summary, what ran process by process with the step tree of each changed process, the message's path, and the marked wiring and traced spans collapsed |
 | `json` | the raw comparison, for tooling |
 
 A scenario of the catalogue is a `FlowScenario` returned by a private static method of one of the
@@ -319,7 +319,7 @@ not add licence headers.
 
 ## Reading the flow comparison
 
-The pull request comment and `php bin/build-flow.php compare` print each changed scenario of the flow scenario
+The pull request comment and `php bin/build-flow.php compare --presentation=build` print each changed scenario of the flow scenario
 catalogue: the Before and Now summary, what ran, process by process (every process in run order with its step tree),
 the message's path as a sequence diagram (Before and After), and the marked wiring and the traced spans collapsed
 under it. The terms they use:

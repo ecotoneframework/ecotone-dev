@@ -29,7 +29,7 @@ final class MessageFlowBuildTracingLevelTest extends TestCase
     {
         $ecotone = $this->application(TracingLevel::Application);
 
-        $this->expectExceptionMessage('ecotone:flow:dump --build shows what Ecotone itself registers for the application (buses, interceptors, routing, channels, consumers) and is available only at the framework tracing level. Return TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework) from a #[ServiceContext] limited to the development and test environments with #[Environment([\'dev\', \'test\'])], so production keeps the application level and its span count; at that level Ecotone also exports every step it runs for each message as a span through the configured tracer, such as OpenTelemetry, and sends it to the span recorders registered with TracingConfiguration::withSpanRecorder(), which makes many more spans per message than the application level. Or run ecotone:flow:dump without --build for the message flow the application declares.');
+        $this->expectExceptionMessage('ecotone:flow:dump --build shows what Ecotone itself registers (buses, interceptors, routing, channels, consumers) and needs the framework tracing level. Return TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework) from a #[ServiceContext] with #[Environment([...])] naming your development and test environments (Symfony dev, test; Laravel local, testing). At that level every step is also exported as a span, many more per message, so keep it out of production. Or run ecotone:flow:dump without --build.');
 
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
     }

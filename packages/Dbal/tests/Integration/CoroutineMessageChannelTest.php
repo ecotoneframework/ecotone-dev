@@ -10,6 +10,8 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
@@ -97,6 +99,21 @@ final class CoroutineMessageChannelTest extends TestCase
                 $bus->sendWithRouting('order.notify', $id);
             }
 
+            #[CommandHandler('order.place.event')]
+            public function place_and_publish(int $id, #[CurrentConnection] Connection $connection, #[Reference] EventBus $bus): void
+            {
+                $this->senderConnection = $connection;
+                $connection->insert('coroutine_channel_orders', ['id' => $id]);
+                $bus->publishWithRouting('order.placed', $id);
+            }
+
+            #[Asynchronous('async')]
+            #[EventHandler('order.placed', endpointId: 'order.placed.endpoint')]
+            public function notify_event(int $id, #[CurrentConnection] Connection $connection): void
+            {
+                $this->notify($id, $connection);
+            }
+
             #[ConsoleCommand('order.console')]
             public function place_console(int $id, #[CurrentConnection] Connection $connection, #[Reference] CommandBus $bus): void
             {
@@ -134,7 +151,9 @@ final class CoroutineMessageChannelTest extends TestCase
         );
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone, $boundary, $handler): void {
-            if ($boundary === 'console') {
+            if ($boundary === 'event') {
+                $ecotone->sendCommandWithRouting('order.place.event', 1);
+            } elseif ($boundary === 'console') {
                 $ecotone->runConsoleCommand('order.console', ['id' => 1]);
             } elseif ($boundary === 'gateway') {
                 $ecotone->getGateway(CoroutineOrderGateway::class)->place(1);
@@ -375,7 +394,7 @@ final class CoroutineMessageChannelTest extends TestCase
 
     public static function sending_boundaries(): array
     {
-        return [['command_bus'], ['gateway'], ['asynchronous'], ['console']];
+        return [['command_bus'], ['gateway'], ['asynchronous'], ['console'], ['event']];
     }
 
 }

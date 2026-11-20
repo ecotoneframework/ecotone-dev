@@ -87,6 +87,15 @@ final class SymfonyConnectionCopiesTest extends TestCase
         SymfonyConnectionReference::defaultManagerRegistry('default')->withConnectionPoolWaitSeconds(10);
     }
 
+
+    public function test_create_for_connection_refuses_a_negative_pool_wait(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Connection pool wait for `default` is -1 seconds, but a wait cannot be negative. Pass 0 to withConnectionPoolWaitSeconds() to fail at once when every connection is in use, a number of seconds to wait for one, or leave it out for the default of 5 seconds.');
+
+        SymfonyConnectionReference::createForConnection('default', connectionPoolWaitSeconds: -1);
+    }
+
     private function bootstrapParcelsOn(SymfonyConnectionReference $connectionReference): FlowTestSupport
     {
         $connection = DriverManager::getConnection(

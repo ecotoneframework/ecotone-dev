@@ -45,13 +45,12 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
 
     public static function createForConnection(string $connectionName, ?string $referenceName = null, int $connectionPoolSize = self::DEFAULT_CONNECTION_POOL_SIZE, float $connectionPoolWaitSeconds = self::DEFAULT_CONNECTION_POOL_WAIT_SECONDS): self
     {
-        return new self(
+        return (new self(
             referenceName: $referenceName ?? $connectionName . '.' . Uuid::v7()->toRfc4122(),
             managerRegistryReference: null,
             connectionName: $connectionName,
             connectionPoolSize: $connectionPoolSize,
-            connectionPoolWaitSeconds: $connectionPoolWaitSeconds,
-        );
+        ))->withConnectionPoolWaitSeconds($connectionPoolWaitSeconds);
     }
 
     public function withConnectionPoolSize(int $connectionPoolSize): self

@@ -83,7 +83,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         foreach ($spans as $span) {
             $byId[$span->getSpanId()] = $span;
         }
-        $orderOf = fn (ImmutableSpan $span): ?int => $span->getAttributes()->get('ecotone.execution.order');
+        $orderOf = fn (ImmutableSpan $span): ?int => $span->getAttributes()->get(SpanAttribute::EXECUTION_ORDER);
         $childrenOf = [];
         foreach (self::stepsIn($spans) as $step) {
             if (! $step->getParentContext()->isValid()) {
@@ -309,7 +309,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
             $request->end();
             $spans = $exporter->getSpans();
 
-            self::assertCount(1, array_unique(array_map(fn (ImmutableSpan $span): string => $span->getTraceId(), $spans)), $level);
+            self::assertCount(1, array_unique(array_map(fn (ImmutableSpan $span): string => $span->getTraceId(), $spans)));
             $shapes[$level] = self::applicationShapeOf($spans);
         }
 
@@ -381,7 +381,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
      */
     private static function stepsIn(array $spans): array
     {
-        return array_values(array_filter($spans, fn (ImmutableSpan $span): bool => $span->getAttributes()->has('ecotone.execution.step')));
+        return array_values(array_filter($spans, fn (ImmutableSpan $span): bool => $span->getAttributes()->has(SpanAttribute::EXECUTION_STEP)));
     }
 
     /**
@@ -396,7 +396,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         }
         $tracedParentOf = function (ImmutableSpan $span) use ($byId): ?string {
             $parent = $byId[$span->getParentSpanId()] ?? null;
-            while ($parent !== null && $parent->getAttributes()->has('ecotone.execution.step')) {
+            while ($parent !== null && $parent->getAttributes()->has(SpanAttribute::EXECUTION_STEP)) {
                 $parent = $byId[$parent->getParentSpanId()] ?? null;
             }
 
@@ -416,7 +416,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
 
         $traces = [];
         foreach ($spans as $span) {
-            if (! $span->getAttributes()->has('ecotone.execution.step')) {
+            if (! $span->getAttributes()->has(SpanAttribute::EXECUTION_STEP)) {
                 $traces[$span->getTraceId()] ??= count($traces);
             }
         }
@@ -429,7 +429,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
             'parent' => $tracedParentOf($span),
             'attributes' => $ownAttributes($span->getAttributes()->toArray()),
             'events' => array_map(fn ($event): array => [$stable($event->getName()), $ownAttributes($event->getAttributes()->toArray())], $span->getEvents()),
-        ], array_filter($spans, fn (ImmutableSpan $span): bool => ! $span->getAttributes()->has('ecotone.execution.step'))));
+        ], array_filter($spans, fn (ImmutableSpan $span): bool => ! $span->getAttributes()->has(SpanAttribute::EXECUTION_STEP))));
     }
 
     private function runningApplication(InMemoryExporter $exporter, TracingConfiguration $tracing): ConfiguredMessagingSystem

@@ -33,6 +33,8 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Test\CoroutineTesting;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -49,7 +51,20 @@ final class CoroutineMessageChannelTest extends TestCase
     #[DataProvider('sending_boundaries')]
     public function test_handler_starts_after_the_sender_commits_and_sees_its_data(string $boundary): void
     {
-        $factory = new DbalConnectionFactory(getenv('DATABASE_MYSQL'));
+        $this->assert_after_commit($boundary, 'mysql');
+    }
+
+    #[RequiresPhpExtension('swoole')]
+    #[Group('swoole')]
+    #[DataProvider('sending_boundaries')]
+    public function test_handler_starts_after_the_sender_commits_and_sees_its_data_on_postgresql(string $boundary): void
+    {
+        $this->assert_after_commit($boundary, 'pgsql');
+    }
+
+    private function assert_after_commit(string $boundary, string $database): void
+    {
+        $factory = new DbalConnectionFactory(self::dsnOf($database));
         $connection = $factory->establishConnection();
         $connection->executeStatement('DROP TABLE IF EXISTS coroutine_channel_orders');
         $connection->executeStatement('CREATE TABLE coroutine_channel_orders (id INTEGER PRIMARY KEY)');
@@ -152,7 +167,7 @@ final class CoroutineMessageChannelTest extends TestCase
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
-            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_MYSQL'))],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), PollingMetadata::create('async')->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -174,7 +189,7 @@ final class CoroutineMessageChannelTest extends TestCase
 
     public function test_concurrent_messages_keep_their_own_headers_and_transaction(): void
     {
-        $factory = new DbalConnectionFactory(getenv('DATABASE_MYSQL'));
+        $factory = new DbalConnectionFactory(self::dsnOf('mysql'));
         $connection = $factory->establishConnection();
         $connection->executeStatement('DROP TABLE IF EXISTS coroutine_channel_deliveries');
         $connection->executeStatement('CREATE TABLE coroutine_channel_deliveries (id INTEGER PRIMARY KEY, tenant VARCHAR(255))');
@@ -231,7 +246,7 @@ final class CoroutineMessageChannelTest extends TestCase
 
     public function test_caught_inner_failure_commits_its_rows_and_releases_both_commands_messages_with_the_outer_command(): void
     {
-        $factory = new DbalConnectionFactory(getenv('DATABASE_MYSQL'));
+        $factory = new DbalConnectionFactory(self::dsnOf('mysql'));
         $connection = $factory->establishConnection();
         $connection->executeStatement('DROP TABLE IF EXISTS coroutine_channel_nested_orders');
         $connection->executeStatement('CREATE TABLE coroutine_channel_nested_orders (id INTEGER PRIMARY KEY)');
@@ -280,6 +295,16 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame('inner failed', $handler->caught);
         $this->assertSame([1, 1], $handler->handled);
         $this->assertSame([0, 1], array_map('intval', $factory->establishConnection()->fetchFirstColumn('SELECT id FROM coroutine_channel_nested_orders ORDER BY id')));
+    }
+
+    private static function dsnOf(string $database): string
+    {
+        foreach ([getenv('DATABASE_DSN'), getenv('SECONDARY_DATABASE_DSN')] as $dsn) {
+            if (is_string($dsn) && str_starts_with($dsn, $database)) {
+                return $dsn;
+            }
+        }
+        throw new RuntimeException("The coroutine tests need a {$database} database in DATABASE_DSN or SECONDARY_DATABASE_DSN.");
     }
 
     public static function sending_boundaries(): array

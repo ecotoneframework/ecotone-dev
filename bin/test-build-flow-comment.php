@@ -100,16 +100,32 @@ $cases = [
             [! str_contains($comment['body'], 'left out'), 'nothing left out'],
         ]);
     },
-    'the comment says what is compared, at which commit, how to reproduce it and where the terms are explained' => function (): ?string {
+    'the comment says what is compared, at which commits, how to reproduce it and where the terms are explained' => function (): ?string {
         $comment = read(run(comparison(scenario('order placed', 'diagram')))['output']);
 
         return expectAll([
-            [str_contains($comment['body'], "on this pull request's code at `aaaaaaa`"), 'names the short head sha'],
-            [str_contains($comment['body'], 'base commit'), 'says the before is the base commit'],
-            [str_contains($comment['body'], '`php bin/build-flow.php compare --presentation=build`'), 'says how to reproduce it locally'],
-            [str_contains($comment['body'], 'not regenerated in a pull request'), 'says the baseline is not regenerated in the pull request'],
-            [str_contains($comment['body'], 'https://github.com/ecotoneframework/ecotone-dev/blob/main/.agents/skills/framework-dev-environment/references/workflow.md#reading-the-flow-comparison'), 'links the glossary'],
+            [str_contains($comment['body'], 'on this pull request merged into its base (head `aaaaaaa`) and on the base commit `bbbbbbb`'), 'names the merge, the head and the base commit: ' . substr($comment['body'], 0, 400)],
+            [str_contains($comment['body'], '`docker compose exec -T app php bin/build-flow.php compare --presentation=build`'), 'gives the local command in the container form'],
+            [str_contains($comment['body'], 'it compares against the committed baseline'), 'says what the local command compares against'],
+            [str_contains($comment['body'], 'Leave `packages/Ecotone/tests/BuildFlow/baseline` alone in this pull request; main\'s CI commits it after the merge.'), 'tells the contributor to leave the baseline alone'],
+            [str_contains($comment['body'], 'https://github.com/ecotoneframework/ecotone-dev/blob/' . str_repeat('a', 40) . '/.agents/skills/framework-dev-environment/references/workflow.md#reading-the-flow-comparison'), 'links the glossary at the head sha'],
             [strpos($comment['body'], 'aaaaaaa') < strpos($comment['body'], '### `order placed`'), 'the explanation comes before the scenarios'],
+        ]);
+    },
+    'a base commit without the tooling says the comparison is with the baseline the pull request commits' => function (): ?string {
+        $comment = read(run(comparison(scenario('order placed', 'diagram')), comparedWith: 'committed-baseline')['output']);
+
+        return expectAll([
+            [str_contains($comment['body'], 'compared with the baseline this pull request commits, because its base `bbbbbbb` predates the tooling'), 'says what was really compared: ' . substr($comment['body'], 0, 400)],
+            [! str_contains($comment['body'], 'and on the base commit'), 'does not claim the base commit was run'],
+        ]);
+    },
+    'what to compare with is refused unless it is the base commit or the committed baseline' => function (): ?string {
+        $result = run(comparison(scenario('order placed', 'diagram')), comparedWith: 'somewhere');
+
+        return expectAll([
+            [$result['exit'] === 1, 'exit 1, got ' . $result['exit']],
+            [str_contains($result['stderr'], '--compared-with'), 'names the option: ' . $result['stderr']],
         ]);
     },
     'no changed flow names the commit and the number of catalogue scenarios' => function (): ?string {
@@ -117,6 +133,15 @@ $cases = [
 
         return expectAll([
             [str_contains($comment['body'], 'As of `aaaaaaa`, this pull request changes the message path of none of the 94 catalogue scenarios.'), 'the no-change sentence: ' . $comment['body']],
+        ]);
+    },
+    'no changed flow among one scenario, or an unknown number, reads as a sentence' => function (): ?string {
+        $one = read(run("## Message flow: what changed\n\nThe 1 scenario did not change its wiring, its build or its traced spans.\n")['output']);
+        $unknown = read(run("## Message flow: what changed\n\nNothing to compare.\n")['output']);
+
+        return expectAll([
+            [str_contains($one['body'], 'As of `aaaaaaa`, this pull request does not change the message path of the 1 catalogue scenario.'), 'singular: ' . $one['body']],
+            [str_contains($unknown['body'], 'As of `aaaaaaa`, this pull request changes the message path of none of the catalogue scenarios.'), 'no count: ' . $unknown['body']],
         ]);
     },
     'a build tree too long for the comment is left out with a note, and the scenarios still follow' => function (): ?string {
@@ -230,17 +255,19 @@ function comparison(string ...$scenarios): string
 /**
  * @return array{exit: int, stderr: string, output: string}
  */
-function run(string $comparison, string $pullRequest = '17', string $headSha = ''): array
+function run(string $comparison, string $pullRequest = '17', string $headSha = '', string $comparedWith = 'base-commit'): array
 {
     $directory = sys_get_temp_dir() . '/build-flow-comment-' . bin2hex(random_bytes(4));
     mkdir($directory);
     file_put_contents($directory . '/comparison.md', $comparison);
     $command = sprintf(
-        'php %s --comparison=%s --pull-request=%s --head-sha=%s --run-url=%s --output=%s',
+        'php %s --comparison=%s --pull-request=%s --head-sha=%s --base-sha=%s --compared-with=%s --run-url=%s --output=%s',
         escapeshellarg(SCRIPT),
         escapeshellarg($directory . '/comparison.md'),
         escapeshellarg($pullRequest),
         escapeshellarg($headSha === '' ? str_repeat('a', 40) : $headSha),
+        escapeshellarg(str_repeat('b', 40)),
+        escapeshellarg($comparedWith),
         escapeshellarg(RUN_URL),
         escapeshellarg($directory . '/comment.json'),
     );

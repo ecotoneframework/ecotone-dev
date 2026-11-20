@@ -39,13 +39,16 @@ jobs:
         run: composer update --prefer-dist --no-interaction --ignore-platform-reqs
 
       - name: Snapshot the message flow of the base commit
+        id: before
         shell: bash
         run: |
           if [ -f build-flow-base/bin/build-flow.php ]; then
             (cd build-flow-base && composer update --prefer-dist --no-interaction --ignore-platform-reqs && php bin/build-flow.php snapshot --location="$GITHUB_WORKSPACE/build-flow-before")
+            echo 'compared-with=base-commit' >> "$GITHUB_OUTPUT"
           else
             echo 'The base commit has no bin/build-flow.php yet; comparing with the baseline this pull request commits.'
             cp -R packages/Ecotone/tests/BuildFlow/baseline build-flow-before
+            echo 'compared-with=committed-baseline' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Test the comment builder
@@ -60,8 +63,10 @@ jobs:
         env:
           PULL_REQUEST: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          COMPARED_WITH: ${{ steps.before.outputs.compared-with }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: php bin/build-flow-comment.php --comparison=build-flow-comparison.md --pull-request="$PULL_REQUEST" --head-sha="$HEAD_SHA" --run-url="$RUN_URL" --output=build-flow-comment.json
+        run: php bin/build-flow-comment.php --comparison=build-flow-comparison.md --pull-request="$PULL_REQUEST" --head-sha="$HEAD_SHA" --base-sha="$BASE_SHA" --compared-with="$COMPARED_WITH" --run-url="$RUN_URL" --output=build-flow-comment.json
 
       - name: Upload the full comparison
         uses: actions/upload-artifact@v4

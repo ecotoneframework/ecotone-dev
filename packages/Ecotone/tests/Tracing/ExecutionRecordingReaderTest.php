@@ -114,7 +114,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
             enabledModules: [],
         );
 
-        $this->expectExceptionMessage('The execution recording was asked for, but this application does not trace at TracingLevel::Framework, so its execution is not recorded and there is nothing to read. Switch the framework level on with TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework) in a #[ServiceContext] or in the extension objects of EcotoneLite::bootstrapFlowTesting().');
+        $this->expectExceptionMessage('popExecutionRecording() was called, but this application does not trace at TracingLevel::Framework, so its execution is not recorded and there is nothing to read. The recording is read only in a flow test, EcotoneLite::bootstrapFlowTesting(), at the framework level: return TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework) from a #[ServiceContext], or pass it in the extension objects of EcotoneLite::bootstrapFlowTesting().');
 
         $ecotone->popExecutionRecording();
     }

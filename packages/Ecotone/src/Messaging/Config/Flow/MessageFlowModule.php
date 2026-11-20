@@ -89,7 +89,7 @@ final class MessageFlowModule implements AnnotationModule
         }
         $messagingConfiguration->registerServiceDefinition(MessageFlowBuildReader::class, $frameworkLevel
             ? new Definition(RecordingMessageFlowBuildReader::class, [new Reference(MessageFlowBuildGraphBuilder::class), new Reference(MessageFlowBuild::class)])
-            : new Definition(MessageFlowBuildNotRead::class, ['it is read only at the framework tracing level. Switch it on with ' . FrameworkTracing::SWITCH_ON . '.']));
+            : new Definition(MessageFlowBuildNotRead::class, ['it is read only at the framework tracing level. Switch it on with ' . FrameworkTracing::SWITCH_ON . ' returned from a #[ServiceContext].']));
         $messagingConfiguration->registerServiceDefinition($dumpCommands, new Definition($dumpCommands));
         [$messageHandlerBuilder, $consoleCommandConfiguration] = ConsoleCommandModule::prepareConsoleCommandForReference(
             new Reference($dumpCommands),

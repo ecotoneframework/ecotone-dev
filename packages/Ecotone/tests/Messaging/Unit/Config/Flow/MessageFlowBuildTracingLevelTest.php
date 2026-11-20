@@ -64,7 +64,7 @@ final class MessageFlowBuildTracingLevelTest extends TestCase
     {
         $ecotone = $this->application(TracingLevel::Application);
 
-        $this->expectExceptionMessage('The build wiring Ecotone registers for this application was asked for, but it is read only at the framework tracing level. Switch it on with TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework).');
+        $this->expectExceptionMessage('The build wiring Ecotone registers for this application was asked for, but it is read only at the framework tracing level. Switch it on with TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework) returned from a #[ServiceContext].');
 
         $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => sys_get_temp_dir() . '/ecotone-build-flow-refused']);
     }

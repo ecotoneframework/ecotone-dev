@@ -41,7 +41,8 @@ Breaking changes: nothing blocking, the application level exports what `main` do
 - V5. The comment length is counted in the same (stricter) unit in PHP and the workflow.
 - V6. Exported step span names with per-build generated ids: where they come from, a stable name with the id as an
   attribute if contained, else options.
-- V7. Workflows: a push refused by protection is told apart from `main` moving and names `BUILD_FLOW_BASELINE_TOKEN`;
+- V7. Workflows: a push refused by protection is told apart from `main` moving and says what to check (since C2 of
+  2026-11-20-execution-recording-comment-format.md: that the bot's token may push to `main`);
   dependencies reinstalled after reset; reproducible installs; a stale comment names its commit;
   `BuildFlowExecutionTest` independent of the committed baseline; what bounds the posted body, `@` mentions
   neutralised outside code if cheap.

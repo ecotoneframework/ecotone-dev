@@ -14,7 +14,7 @@ Maintainer decisions.
   rules stay: cut whole processes or scenarios from the end, never inside a tree, a diagram or a `<details>`. Glossary,
   presentation tests and `var/771/pr-comment.md` updated; the baselines do not change.
 - C2. The baseline workflow pushes with `secrets.ECOTONE_BOT_TOKEN` and the git identity `release.yml` configures;
-  `BUILD_FLOW_BASELINE_TOKEN` is removed everywhere; `paths-ignore` stays; `workflow.md` says what runs on that commit;
+  the separate baseline token secret is removed everywhere; `paths-ignore` stays; `workflow.md` says what runs on that commit;
   the refused-push message says to check that the bot's token may push to `main`. The comment workflow keeps
   `github.token` and still finds its own comment.
 - C3. Nothing a pull request shows (the comment, its glossary) names a secret.

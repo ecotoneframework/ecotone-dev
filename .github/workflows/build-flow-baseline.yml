@@ -6,7 +6,8 @@ on:
   push:
     branches:
       - main
-    # A commit that changes only the baseline (this workflow's own) does not start it again.
+    # A commit that changes only the baseline (this workflow's own) does not start it again; the other push
+    # workflows do run on it, because it is pushed with the bot's token.
     paths-ignore:
       - 'packages/Ecotone/tests/BuildFlow/baseline/**'
 
@@ -28,9 +29,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-          # GITHUB_TOKEN is used unless the maintainer adds BUILD_FLOW_BASELINE_TOKEN, a token of an actor allowed
-          # to push to main past its branch protection.
-          token: ${{ secrets.BUILD_FLOW_BASELINE_TOKEN || github.token }}
+          token: ${{ secrets.ECOTONE_BOT_TOKEN }}
 
       - name: Set Up PHP
         uses: shivammathur/setup-php@v2
@@ -44,8 +43,8 @@ jobs:
       - name: Commit the baseline when it changed
         shell: bash
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.name "Ecotone Framework Bot"
+          git config user.email "ecotoneframework@gmail.com"
           for attempt in 1 2 3; do
             php bin/build-flow.php snapshot --location=packages/Ecotone/tests/BuildFlow/baseline
             if git diff --quiet -- packages/Ecotone/tests/BuildFlow/baseline && [ -z "$(git ls-files --others --exclude-standard -- packages/Ecotone/tests/BuildFlow/baseline)" ]; then
@@ -60,7 +59,7 @@ jobs:
             fi
             git fetch origin main
             if [ "$(git rev-parse origin/main)" = "$generated_from" ]; then
-              echo "::error::The push to main was refused although main did not move, so main's protection blocks it. Add a secret BUILD_FLOW_BASELINE_TOKEN holding a token of an actor allowed to push to main past its branch protection (on the bypass list of the ruleset), or allow GitHub Actions to push to main."
+              echo "::error::The push to main was refused although main did not move, so main's protection blocks it. Check that the Ecotone Framework Bot's token this workflow pushes with may push to main past its branch protection (on the bypass list of main's ruleset)."
               exit 1
             fi
             echo "main moved while the baseline was generated; regenerating from the latest main (attempt ${attempt})."

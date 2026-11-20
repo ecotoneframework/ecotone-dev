@@ -41,6 +41,7 @@ use Psr\Log\AbstractLogger;
 use RuntimeException;
 use Stringable;
 use Swoole\Coroutine;
+use Swoole\Event;
 
 /**
  * licence Apache-2.0
@@ -111,16 +112,20 @@ final class CoroutineMessageChannelTest extends TestCase
     #[DataProvider('concurrency_limits')]
     public function test_concurrency_is_limited_and_waiting_messages_start_in_order(int $limit, int $messages): void
     {
-        $handler = new class ($limit) {
+        $handler = new class ($messages) {
             public int $active = 0;
             public int $maximum = 0;
             public array $started = [];
             public array $finished = [];
-            private Coroutine\Channel $release;
+            public Coroutine\Channel $startedSignals;
+            public Coroutine\Channel $release;
+            public Coroutine\Channel $finishedSignals;
 
-            public function __construct(private int $limit)
+            public function __construct(int $messages)
             {
-                $this->release = new Coroutine\Channel();
+                $this->startedSignals = new Coroutine\Channel($messages);
+                $this->release = new Coroutine\Channel($messages);
+                $this->finishedSignals = new Coroutine\Channel($messages);
             }
 
             #[Asynchronous('async')]
@@ -130,26 +135,40 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->started[] = $payload;
                 $this->active++;
                 $this->maximum = max($this->maximum, $this->active);
-                if (count($this->started) === $this->limit) {
-                    $this->release->close();
-                } elseif (count($this->started) < $this->limit) {
-                    $this->release->pop();
-                }
+                $this->startedSignals->push(true);
+                $this->release->pop();
                 $this->active--;
                 $this->finished[] = $payload;
+                $this->finishedSignals->push(true);
             }
         };
         $default = CoroutineMessageChannelBuilder::create('async');
         $limited = $limit === 10 ? $default : $default->withCoroutines($limit);
         $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [$limited], licenceKey: LicenceTesting::VALID_LICENCE);
+        $saturation = [];
 
-        CoroutineTesting::runAtOnce(static function () use ($ecotone, $messages): void {
-            foreach (range(1, $messages) as $number) {
+        CoroutineTesting::runAtOnce(static function () use ($ecotone, $handler, $limit, $messages, &$saturation): void {
+            foreach (range(1, $limit) as $number) {
                 $ecotone->sendCommandWithRouting('handle', $number);
+            }
+            foreach (range(1, $limit) as $number) {
+                $handler->startedSignals->pop();
+            }
+            foreach (range($limit + 1, $messages) as $number) {
+                $ecotone->sendCommandWithRouting('handle', $number);
+            }
+            $nextTick = new Coroutine\Channel();
+            Event::defer(static fn () => $nextTick->push(true));
+            $nextTick->pop();
+            $saturation = [$handler->active, $handler->started];
+            foreach (range(1, $messages) as $number) {
+                $handler->release->push(true);
+                $handler->finishedSignals->pop();
             }
         });
 
         $this->assertSame(10, $default->coroutines);
+        $this->assertSame([$limit, range(1, $limit)], $saturation);
         $this->assertSame($limit, $handler->maximum);
         $this->assertSame(range(1, $messages), $handler->started);
         $this->assertCount($messages, $handler->finished);

@@ -31,3 +31,11 @@ item resolved or recorded. These remain; no redesign.
 - F11. G7's other half: the order of `partsOf` pinned in the shared suite, or stated here as not observable from userland.
 - F12. Skill wording: the `{generated}` sentence in its own bullet with "give the endpoint an `endpointId`", and plain
   words for "a failed step's ancestors".
+
+## F11, answered here
+
+The order of `GatheredGroupStore::partsOf()['partNumbers']` is not observable from userland, so the suite shared by the
+in-memory and DBAL stores cannot pin it. Its only reader is the execution recording (`RecordedGatheredGroupStore`),
+which asks whether a part number is in the list (`in_array`) and how many there are (`count`) to word a part's outcome;
+neither depends on the order, and nothing an application calls returns the list. The in-memory store sorts it anyway,
+like DBAL's `ORDER BY part_number` (b3404593e).

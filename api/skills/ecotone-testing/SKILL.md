@@ -217,7 +217,10 @@ echo implode("\n", $recording->lines);
   parent may now be a step span. The default level, `TracingLevel::Application`, exports what it always did. Pulse
   and flow tracking (`FlowTrackingConfiguration`, `TracingGateway`) store and show the same at both levels: they leave
   the step spans out and keep each application span under the parent it has at the application level, so flow types,
-  traces and a failed step's ancestors do not change.
+  traces, and the steps shown above a failed step do not change.
+- A flow test at the framework level always traces, with or without a span recorder: `CurrentTrace::tracingId()`
+  returns the id of the current trace, where at the application level without tracing it refuses with "No trace is
+  recorded…".
 - The `ecotone.execution.*` attributes (constants on `Ecotone\Api\Tracing\SpanAttribute`) say what a span is in
   the recording: `ecotone.execution.step` (`EXECUTION_STEP`) is `true` on a step span; `ecotone.execution.order`
   (`EXECUTION_ORDER`) is the order the span started in, which sorts processes and steps; `ecotone.execution.process`
@@ -225,9 +228,14 @@ echo implode("\n", $recording->lines);
   the id of the step an application span ran in; `ecotone.execution.outcome` (`EXECUTION_OUTCOME`) is what a step
   returned or threw; `ecotone.execution.hints` (`EXECUTION_HINTS`) holds a step's hints as JSON, each
   `[key, value, shownInLines]`; `ecotone.execution.sent_message` (`EXECUTION_SENT_MESSAGE`) is the id of the message a
-  send step put on a channel; `ecotone.execution.application_parent` is the id of the span an application span would
-  have as its parent at the application level, empty for a root, set when its parent is now a step. A step whose label holds an id Ecotone generates is exported as `{generated}` in its
-  name, with the full label in `ecotone.execution.label`.
+  send step put on a channel; `ecotone.execution.application_parent` (`EXECUTION_APPLICATION_PARENT`) is the id of the
+  span an application span would have as its parent at the application level, empty for a root, set when its parent
+  is now a step; `ecotone.execution.label` (`EXECUTION_LABEL`) is a step's full label when its exported name differs;
+  `ecotone.execution.sent_from_another_application` (`EXECUTION_SENT_FROM_ANOTHER_APPLICATION`) is, on the `receive`
+  step of a distributed message, the application and message it came from, the text of its `sent by` hint.
+- An exported step whose label holds an id Ecotone generates (an endpoint without an `endpointId`) is named with
+  `{generated}` in its place, and its full label is in `ecotone.execution.label`. Give the endpoint an `endpointId` to
+  get a readable name.
 
 ### Failures, Retries and Dead Letter
 

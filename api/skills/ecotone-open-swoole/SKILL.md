@@ -26,6 +26,7 @@ RabbitMQ stream is consumed one message at a time: Ecotone refuses its consumer 
 ## Applies when
 
 - Running message consumers on coroutines instead of one process per message at a time
+- Running asynchronous handlers in the sending HTTP worker without a broker
 - Serving HTTP with an OpenSwoole or Swoole server, or Laravel Octane on Swoole
 - Choosing the database, the RabbitMQ client and the pool size for a coroutine runtime
 - A handler needs the database connection of the message it handles
@@ -166,6 +167,51 @@ Context::setStorage(new SwooleContextStorage(new ContextStorage()));
 Set it once when the worker or the consumer process starts. Without it the SDK tracks the current span per
 process, and spans of messages handled at once are attached to each other's traces.
 
+## 7. Asynchronous handlers in the sending process
+
+For work that may be lost when the worker stops, register an Enterprise coroutine channel:
+
+```php
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
+
+final class Notifications
+{
+    #[ServiceContext]
+    public function notificationsChannel(): CoroutineMessageChannelBuilder
+    {
+        return CoroutineMessageChannelBuilder::create('notifications')->withCoroutines(4);
+    }
+
+    #[Asynchronous('notifications')]
+    #[CommandHandler(endpointId: 'notifications.send')]
+    public function send(SendNotification $command): void
+    {
+    }
+}
+```
+
+The sending execution holds its messages until its outermost command bus, asynchronous endpoint or gateway call
+succeeds and its transaction commits. A failed sender starts no handler. The caller returns before the handlers
+start on coroutines of that same PHP process. A channel runs up to 10 handlers at once by default; `withCoroutines(4)`
+sets its limit to four, and the rest wait in order in memory. Objects pass as they are, without serialization.
+
+This needs an Ecotone Enterprise licence and the `swoole` or `openswoole` extension. Send from a coroutine, such as
+an HTTP request with `enable_coroutine` enabled (§5); a send outside a coroutine is refused. A dead-letter replay
+outside a coroutine runs the handler synchronously in place.
+
+Error channels, instant retries, delayed retries and dead letter use the ordinary asynchronous consumer pipeline.
+Without an error channel, the exception and message headers are logged and the message is dropped. `#[Delayed]`
+and delayed retries wait on a timer in the process. Database handlers take their connection with `#[CurrentConnection]`
+as in §4.
+
+Do not start this channel with `ecotone:run`, or set its concurrency through `PollingMetadata`: it is consumed by the
+process that sent the message. Set concurrency on `CoroutineMessageChannelBuilder` instead. Pending messages and
+timers are lost on a crash or restart. Worker shutdown does not drain or wait for them; use a durable broker or
+database channel when the work must survive the worker.
+
 ## Rules
 
 ### 1. Several messages at once in one consumer is `--coroutines`, not a handwritten coroutine loop
@@ -199,3 +245,9 @@ is not the one the message's transaction runs on.
 The `amqp` extension stops every coroutine while it waits for the broker.
 - **Expected:** a RabbitMQ channel consumed on coroutines uses `Ecotone\Api\Amqp\AmqpLibConnectionFactory`, registered as a service and passed to the channel as `amqpConnectionReferenceName: AmqpLibConnectionFactory::class`, not `Ecotone\Api\Amqp\AmqpExtConnectionFactory`.
 - **Verified by:** `eval:consume-on-coroutines`
+
+### 6. In-process asynchronous work uses a coroutine channel
+A handler that should start after its sender commits and run in the same PHP process uses
+`CoroutineMessageChannelBuilder`, registered through `#[ServiceContext]`, with `#[Asynchronous]` on the handler.
+- **Expected:** the answer registers `Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder::create()` through `#[ServiceContext]`, uses `#[Asynchronous]`, sets any concurrency on that builder, and states the Enterprise licence, coroutine runtime and in-memory loss on restart; it starts no separate consumer for the channel and does not propose a handwritten coroutine dispatcher.
+- **Verified by:** `eval:send-in-process`

@@ -1,0 +1,4 @@
+---
+type: llm
+---
+PASS if the answer registers Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder::create('notifications')->withCoroutines(4) (another consistent channel name is fine) through a #[ServiceContext] method, marks the notification handler #[Asynchronous] with that channel, and explains that successful completion and commit of the sending boundary releases the work in the sending process while failed senders start nothing. It must state that the feature needs Enterprise and Swoole/OpenSwoole coroutines, pending work is lost on crash/restart and shutdown does not drain or wait for it, and it must not start ecotone:run for this channel or implement a dispatcher with Coroutine::create(). FAIL if any of these are absent, or if concurrency is configured through PollingMetadata instead of the channel builder.

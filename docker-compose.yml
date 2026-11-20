@@ -90,6 +90,74 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+  openswoole:
+    image: ecotone/php:8.5.3-openswoole-dev
+    init: true
+    build:
+      context: .docker/php
+      args:
+        BASE_IMAGE: simplycodedsoftware/php:8.5.3
+        INSTALL_SOCKETS: 1
+        INSTALL_OPENSWOOLE: 1
+    volumes:
+      - "$PWD:/data/app"
+    working_dir: "/data/app"
+    command: sleep 99999
+    user: "${USER_PID:-1000}:${USER_PID:-1000}"
+    ports:
+      - "${OPENSWOOLE_SYMFONY_PORT:-0}:9501"
+      - "${OPENSWOOLE_LARAVEL_PORT:-0}:9502"
+    environment:
+      COMPOSER_ROOT_VERSION: 'dev-main'
+      XDEBUG_ENABLED: "0"
+      RABBIT_HOST: "amqp://rabbitmq:5672"
+      DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16
+      SECONDARY_DATABASE_DSN: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
+      DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
+    env_file:
+      - path: ".env"
+        required: false
+    depends_on:
+      database:
+        condition: service_healthy
+      database-mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+  swoole:
+    image: ecotone/php:8.5.3-swoole-dev
+    init: true
+    build:
+      context: .docker/php
+      args:
+        BASE_IMAGE: simplycodedsoftware/php:8.5.3
+        INSTALL_SOCKETS: 1
+        INSTALL_SWOOLE: 1
+    volumes:
+      - "$PWD:/data/app"
+    working_dir: "/data/app"
+    command: sleep 99999
+    user: "${USER_PID:-1000}:${USER_PID:-1000}"
+    ports:
+      - "${SWOOLE_SYMFONY_PORT:-0}:9501"
+      - "${SWOOLE_LARAVEL_PORT:-0}:9502"
+    environment:
+      COMPOSER_ROOT_VERSION: 'dev-main'
+      XDEBUG_ENABLED: "0"
+      RABBIT_HOST: "amqp://rabbitmq:5672"
+      DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16
+      SECONDARY_DATABASE_DSN: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
+      DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
+    env_file:
+      - path: ".env"
+        required: false
+    depends_on:
+      database:
+        condition: service_healthy
+      database-mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
   database:
     image: simplycodedsoftware/postgres:16.1
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off

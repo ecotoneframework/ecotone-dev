@@ -10,7 +10,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
-use Ecotone\Api\Dbal\Attribute\MultiTenantObjectManager;
+use Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Header;
@@ -26,7 +26,7 @@ final readonly class CustomerService
     #[CommandHandler]
     public function handle(
         RegisterCustomer $command,
-        #[MultiTenantObjectManager] ObjectManager $objectManager,
+        #[CurrentConnectionObjectManager] ObjectManager $objectManager,
         #[Reference] EventBus $eventBus
     ): void
     {
@@ -41,7 +41,7 @@ final readonly class CustomerService
         CustomerWasRegistered $event,
         #[Header('tenant')] $tenant,
         #[Reference] NotificationSender $notificationSender,
-        #[MultiTenantObjectManager] EntityManager $objectManager,
+        #[CurrentConnectionObjectManager] EntityManager $objectManager,
     )
     {
         $customer = $objectManager->getRepository(Customer::class)->find($event->customerId);

@@ -21,6 +21,25 @@ interchangeable for database work: **`app8_2` points `DATABASE_DSN` at MySQL, no
 run in `app8_2` also changes which engine it exercises. Reach for it when a change has to hold on the 8.2 floor —
 a language feature, a dependency constraint, or a signature phpstan will not catch.
 
+`openswoole` is PHP 8.5.3 with OpenSwoole and `swoole` is PHP 8.5.3 with Swoole compiled with
+`--enable-swoole-pgsql` and `--enable-swoole-sqlite`; both are without Xdebug, which coroutines cannot run with. The tests that run messages in
+real coroutines are written against the `Swoole\...` class names, which both extensions provide, and carry
+`#[RequiresMethod(Coroutine::class, 'create')]`, so they are skipped in `app`. Run them in both containers, one after
+the other:
+
+```bash
+docker compose exec -T openswoole vendor/bin/phpunit --no-coverage --exclude-group swoole packages/Dbal/tests/Integration/CoroutineExecutionsTest.php
+docker compose exec -T swoole vendor/bin/phpunit --no-coverage --exclude-group openswoole packages/Dbal/tests/Integration/CoroutineExecutionsTest.php
+```
+
+A test that holds on one extension only (PostgreSQL waits on Swoole and is refused on OpenSwoole) carries
+`#[RequiresPhpExtension('swoole')]` with `#[Group('swoole')]`, or the same pair for `openswoole`. CI runs both
+extensions with `--fail-on-skipped` and excludes the other one's group, so a test without the group fails the job
+where it is skipped.
+
+Run phpstan in `app`, not in these two: with an extension loaded phpstan knows its classes and reports nothing
+where CI, which has no extension, fails.
+
 `.env` is optional (`env_file: required: false` in `docker-compose.yml`), so a fresh checkout needs nothing
 created. Copy `.env.dist` to `.env` only to override a default, such as turning Xdebug on.
 
@@ -327,9 +346,9 @@ collapsed under it, and what ran, process by process. The terms they use:
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `test-monorepo.yml` | every branch push **and** pull request | A `shards` job runs `bin/check-monorepo-shards.php`, which checks that `.github/monorepo-shards.json` names every test suite of `phpunit.xml.dist` exactly once and emits the matrix; then one `Monorepo (<shard>)` job per shard: `bin/check-suite-parity.php` first, then PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then `phpunit --testsuite <the shard's suites>` against PostgreSQL with MySQL as the secondary connection. A new suite in `phpunit.xml.dist` must be added to a shard or the run fails |
+| `test-monorepo.yml` | every branch push **and** pull request | A `shards` job runs `bin/check-monorepo-shards.php`, which checks that `.github/monorepo-shards.json` names every test suite of `phpunit.xml.dist` exactly once and emits the matrix; then one `Monorepo (<shard>)` job per shard: `bin/check-suite-parity.php` first, then PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then `phpunit --testsuite <the shard's suites>` against PostgreSQL with MySQL as the secondary connection. A new suite in `phpunit.xml.dist` must be added to a shard or the run fails. A `Monorepo (<OpenSwoole|Swoole> coroutines)` job is a matrix over both extensions (OpenSwoole from setup-php, Swoole compiled from source with `--enable-swoole-pgsql` and `--enable-swoole-sqlite`). Each leg runs the files listed in its `COROUTINE_TESTS` with `--fail-on-skipped --exclude-group <the other extension>`, once with ext-amqp and once with php-amqplib, and `CoroutineTracingTest` in a step of its own: add a new coroutine test file to that list |
 | `split-testing.yml` | every branch push **and** pull request | Per-package `composer tests:ci` for every package with a `phpunit.xml.dist`, on PHP 8.2, PHP 8.5, and PHP 8.2 `--prefer-lowest`. Tempest is excluded — it needs PHP 8.5 and a monorepo-tied boot harness, so a Monorepo shard covers it |
-| `file-licence.yml` | every push **and** pull request | `php bin/check-licence.php` over `packages/*/src` and `php bin/check-framework-transactions.php` |
+| `file-licence.yml` | every push **and** pull request | `php bin/check-licence.php` over `packages/*/src`, then `php bin/check-framework-transactions.php` and `php bin/check-framework-connections.php` over the framework `src` and `Api` |
 | `build-flow-baseline.yml` | push to `main`, except a push that changes only the baseline | `php bin/build-flow.php snapshot --location=packages/Ecotone/tests/BuildFlow/baseline` from the latest `main`; when `packages/Ecotone/tests/BuildFlow/baseline` changed, commits it as `chore(flow): the build-flow baseline after <sha>` and pushes, regenerating and retrying when `main` moved. Runs one at a time, never cancelled |
 | `build-flow-comparison.yml` | pull request opened, pushed to or reopened | `php bin/build-flow.php compare --from=<snapshot of the base commit> --presentation=build`: the base commit is checked out beside the merge ref and snapshotted in the job, so neither a lagging baseline on `main` nor a baseline the pull request edited changes the comment (the message's path as a sequence diagram first, the marked wiring and traced spans collapsed under it), `php bin/build-flow-comment.php` to build the comment. Snapshotting the base commit adds a second checkout, a second `composer update` (about as long as the first, a minute or two) and one snapshot (about 8 seconds locally) to the job (over GitHub's limit it keeps whole scenarios from the top and cuts the next one after its diagram, never a diagram); uploads both as artifacts. Read-only; fails only when the tooling breaks |
 | `build-flow-comment.yml` | `workflow_run` of Build Flow Comparison | posts that comment on the pull request, or updates the one it posted before (found by its marker line), also for forks; runs `main`'s file and never the pull request's code |

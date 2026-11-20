@@ -12,6 +12,8 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\Pulse\PulseSnapshotRequest;
+use Ecotone\Messaging\Execution\ExecutionList;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Throwable;
 
@@ -20,8 +22,6 @@ use Throwable;
  */
 class ObjectManagerInterceptor
 {
-    private int $depthCount = 0;
-
     /**
      * @param ManagerRegistryConnectionFactory[] $managerRegistryConnectionFactories
      */
@@ -52,7 +52,8 @@ class ObjectManagerInterceptor
             }
         }
 
-        $this->depthCount++;
+        $nesting = $this->nesting();
+        $nesting->items[] = true;
         try {
             foreach ($managerRegistries as $managerRegistry) {
                 /** @var EntityManagerInterface $objectManager */
@@ -60,7 +61,7 @@ class ObjectManagerInterceptor
                     if (! $objectManager->isOpen()) {
                         $managerRegistry->resetManager($name);
                     }
-                    if ($this->depthCount === 1) {
+                    if (count($nesting->items) === 1) {
                         $objectManager->clear();
                     }
                 }
@@ -71,7 +72,7 @@ class ObjectManagerInterceptor
             foreach ($managerRegistries as $managerRegistry) {
                 foreach ($managerRegistry->getManagers() as $objectManager) {
                     $objectManager->flush();
-                    if ($this->depthCount === 1) {
+                    if (count($nesting->items) === 1) {
                         $objectManager->clear();
                     }
                 }
@@ -98,10 +99,15 @@ class ObjectManagerInterceptor
 
             throw $exception;
         } finally {
-            $this->depthCount--;
+            array_pop($nesting->items);
         }
 
 
         return $result;
+    }
+
+    private function nesting(): ExecutionList
+    {
+        return ExecutionScope::stateOf($this, static fn () => new ExecutionList());
     }
 }

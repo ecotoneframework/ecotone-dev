@@ -5,11 +5,11 @@ namespace Workflows {
     use App\MultiTenant\ImageUploader;
     use Doctrine\DBAL\Connection;
     use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
-    use Ecotone\Dbal\ManagerRegistryEmulator;
+    use Ecotone\Api\Dbal\ManagerRegistryProvider;
     use Ecotone\Api\ExtensionObject\ServiceConfiguration;
     use Ecotone\Api\Lite\EcotoneLite;
     use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
-    use Ecotone\Dbal\DbalConnection;
+    use Ecotone\Api\Dbal\DbalConnection;
     use Ecotone\Api\Dbal\DbalConnectionFactory;
 
     /** Setup */

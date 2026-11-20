@@ -77,7 +77,7 @@ trait ProblemBoardServicesTrait
                 #[CommandHandler('ecotone.pulse.snapshot', endpointId: 'board.snapshot')]
                 public function snapshot(string $request, #[Headers] array $headers): string
                 {
-                    $base = ['schemaVersion' => 1, 'serviceName' => $this->name, 'takenAt' => gmdate('c')];
+                    $base = ['schemaVersion' => 2, 'serviceName' => $this->name, 'takenAt' => gmdate('c')];
                     $tenant = $headers['tenant'] ?? null;
                     if ($this->tenants !== null && $tenant === null) {
                         return json_encode($base + [

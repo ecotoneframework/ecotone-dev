@@ -59,7 +59,7 @@ final readonly class SnapshotRequester
         $tracingId = ReplyAwaiter::newTracingId();
         $service = $scope->service;
         try {
-            $this->distributedBus->sendMessage($service, self::ROUTING_KEY, '{}', MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId, ...$this->tenantMetadata->of($scope)], replyRoutingKey: SnapshotReceiver::ROUTING_KEY);
+            $this->distributedBus->sendMessage($service, self::ROUTING_KEY, json_encode(['known' => (object) $this->store->digests($scope)], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId, ...$this->tenantMetadata->of($scope)], replyRoutingKey: SnapshotReceiver::ROUTING_KEY);
         } catch (DestinationDoesNotExistException $exception) {
             $this->logger->warning('Pulse did not send the snapshot request to service "{service}": {message}', ['service' => $service, 'message' => $exception->getMessage()]);
             $failure = sprintf("Channel missing: '%s' does not exist on connection '%s', so nothing was sent. The service creates it when it starts consuming; Pulse asks again on the next view.", $exception->destination, $exception->connection);

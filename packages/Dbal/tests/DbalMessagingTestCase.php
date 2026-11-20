@@ -4,18 +4,18 @@ namespace Test\Ecotone\Dbal;
 
 use DateTimeInterface;
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\Dbal\DbalConnection;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ManagerRegistryProvider;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\PollableChannel;
-use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
-use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
 use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Test\ComponentTestBuilder;
@@ -64,12 +64,19 @@ abstract class DbalMessagingTestCase extends TestCase
      */
     public function getORMConnectionFactory(array $pathsToMapping, ?Connection $connection = null): EcotoneManagerRegistryConnectionFactory
     {
-        return ManagerRegistryEmulator::create($connection ?? $this->getConnection(), $pathsToMapping);
+        return ManagerRegistryProvider::create($connection ?? $this->getConnection(), $pathsToMapping);
     }
 
     protected function getConnection(): Connection
     {
         return $this->getConnectionFactory()->createContext()->getDbalConnection();
+    }
+
+    protected function skipWhenTwoConnectionsCannotWriteAtOnce(): void
+    {
+        if ($this->isUsingSqlite()) {
+            $this->markTestSkipped('SQLite locks the database for one writing connection at a time');
+        }
     }
 
     protected function isUsingSqlite(): bool
@@ -195,7 +202,7 @@ abstract class DbalMessagingTestCase extends TestCase
 
     protected function connectionForTenantAWithManagerRegistry(array $paths): EcotoneManagerRegistryConnectionFactory
     {
-        return ManagerRegistryEmulator::create(
+        return ManagerRegistryProvider::create(
             $this->connectionForTenantA()->createContext()->getDbalConnection(),
             $paths
         );
@@ -203,7 +210,7 @@ abstract class DbalMessagingTestCase extends TestCase
 
     protected function connectionForTenantBWithManagerRegistry(array $paths): EcotoneManagerRegistryConnectionFactory
     {
-        return ManagerRegistryEmulator::create(
+        return ManagerRegistryProvider::create(
             $this->connectionForTenantB()->createContext()->getDbalConnection(),
             $paths
         );

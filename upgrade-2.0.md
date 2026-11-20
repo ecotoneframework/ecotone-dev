@@ -5,7 +5,8 @@ how it works now, and what to change in your application. Entries are grouped th
 the release; within a group the most impactful changes come first.
 
 Minimum requirements: PHP 8.2 (8.4 for the Tempest integration), Symfony 6.4+, Laravel 11+, Doctrine DBAL 4 and,
-where used, Doctrine ORM 3 with DoctrineBundle 2.12+. Laravel 9/10, DBAL 3 and ORM 2 are no longer supported.
+where used, Doctrine ORM 3 with DoctrineBundle 2.12+ and, with `ecotone/open-telemetry`, `open-telemetry/context` 1.1+.
+Laravel 9/10, DBAL 3 and ORM 2 are no longer supported.
 
 **Status of this guide.** Sections 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 14 and 15 describe behaviour that is already in
 the codebase. Section 12 is **planned for 2.0 and not implemented yet** — it is marked individually below.
@@ -95,7 +96,7 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
 
 ## 2. Multi-tenancy requires Ecotone Enterprise
 
-**Before:** `MultiTenantConfiguration`, `#[MultiTenantConnection]`, `#[MultiTenantObjectManager]`,
+**Before:** `MultiTenantConfiguration`, `#[MultiTenantConnection]` (now `#[CurrentConnection]`, §2b), `#[MultiTenantObjectManager]`,
 `#[OnTenantActivation]`, `#[OnTenantDeactivation]` and the Laravel/Symfony/Tempest tenant connection switching worked
 without a licence. Only `#[WithTenantResolver]` and multi-tenant projections were gated.
 
@@ -111,6 +112,11 @@ config sets `'licenceKey' => null` and reads no environment variable; to keep th
 licensed, replace multi-tenant connection switching with explicit per-tenant connection references and route
 messages yourself.
 
+An application registers one `MultiTenantConfiguration`: a second one is refused at bootstrap with a
+`ConfigurationException`, because a message is handled on the connection of one active tenant. Map every tenant in the
+one configuration; a database that is not split by tenant is a connection of its own, taken with
+`#[CurrentConnection('its_reference_name')]`.
+
 ### 2a. A console command run with a tenant header activates that tenant
 
 **Before:** a console command run with `--header tenant:<name>` resolved header-driven connections (a
@@ -123,6 +129,49 @@ was initialized by `ecotone:projection:init --header tenant:b` in the wrong tena
 command, query, event or asynchronous message already did. Without the header nothing is activated.
 
 **How to adapt:** nothing, unless an activation hook must not run for console commands.
+
+### 2b. `#[MultiTenantConnection]` is replaced by `#[CurrentConnection]`
+
+**Before:** a handler took the active tenant's connection with
+`#[MultiTenantConnection] Connection $connection` (`Ecotone\Dbal\Attribute\MultiTenantConnection`). A
+single-tenant application had no attribute for the connection Ecotone uses.
+
+**Now:** `#[CurrentConnection] Connection $connection` (`Ecotone\Api\Dbal\Attribute\CurrentConnection`) injects the
+connection the handled message runs on, for single-tenant and multi-tenant applications alike: with a
+`MultiTenantConfiguration` it is the active tenant's connection. `#[MultiTenantConnection]` no longer exists.
+`#[CurrentConnection]` alone does not require an Enterprise licence; `MultiTenantConfiguration` still does.
+
+**How to adapt:** replace `#[MultiTenantConnection]` with `#[CurrentConnection]`. Without an argument it is the
+connection messages are handled on: the active tenant's when the application has a `MultiTenantConfiguration`, whatever
+reference name that configuration is registered under, and otherwise the connection `DbalConfiguration` opens
+transactions on (`Ecotone\Api\Dbal\DbalConnectionFactory` unless `withDefaultConnectionReferenceNames()` names
+another). Any other connection is taken by its reference name, `#[CurrentConnection('reporting')]`. Two cases are
+refused at bootstrap for an attribute without a name: tenants registered under a reference name `DbalConfiguration`
+does not open transactions on, and a `DbalConfiguration` naming several connections without tenants. The argument is named `connectionReferenceName`, where `#[MultiTenantConnection]`
+named it `referenceName`.
+
+### 2c. `#[MultiTenantObjectManager]` is replaced by `#[CurrentConnectionObjectManager]`
+
+**Before:** `#[MultiTenantObjectManager]` (`Ecotone\Dbal\Attribute\MultiTenantObjectManager`) injected the Doctrine
+ObjectManager of the active tenant's connection. Without an argument it resolved the application's one
+`MultiTenantConfiguration`, whatever reference name that configuration was registered under. Its argument was named
+`referenceName`.
+
+**Now:** `#[CurrentConnectionObjectManager]` (`Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager`) injects the
+ObjectManager of the connection the message is handled on: the active tenant's with `MultiTenantConfiguration`, and
+also the connection of an application without tenants, when that connection is registered with Doctrine ORM
+(`SymfonyConnectionReference::defaultManagerRegistry()`). It still requires an Enterprise licence. Without an argument
+it follows the same rule as `#[CurrentConnection]` (§2b): the active tenant's ObjectManager when the application has a
+`MultiTenantConfiguration`, otherwise the one of the connection `DbalConfiguration` opens transactions on. Its argument is named `connectionReferenceName`.
+
+With Symfony's ManagerRegistry the ObjectManager is one for the process, so messages handled at once on coroutines
+would share its unit of work: handle one message at a time with it. A connection registered as a service created
+with `Ecotone\Api\Dbal\ManagerRegistryProvider::fromDsnAndConfig($dsn, $pathsToMapping)` gives every coroutine an
+ObjectManager of its own, built from `$pathsToMapping` rather than from the `doctrine.orm` configuration of a Symfony
+application. A connection that no entity manager of the registry uses is refused when the handler is
+called.
+
+**How to adapt:** replace the attribute name, and `referenceName:` with `connectionReferenceName:`.
 
 ## 3. Projections: v1 (Prooph-based) removed, `ProjectionV2` renamed to `Projection`
 
@@ -2508,6 +2557,26 @@ package's `src`: `Ecotone\Dbal\Connection\DbalConnectionFactory` and `ManagerReg
 | `Ecotone\Sqs\Connection\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionFactory` |
 | `Ecotone\Redis\Connection\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionFactory` |
 
+Two classes an application calls to build a connection moved from `Ecotone\Dbal` as well, and one was renamed:
+
+| 1.x | 2.0 |
+|---|---|
+| `Ecotone\Dbal\DbalConnection` | `Ecotone\Api\Dbal\DbalConnection` |
+| `Ecotone\Dbal\ManagerRegistryEmulator` | `Ecotone\Api\Dbal\ManagerRegistryProvider` |
+
+Their static methods keep their names. They are declared to return the `Api` types
+(`ManagerRegistryConnectionFactory`, `Interop\Queue\ConnectionFactory`) instead of the internal classes behind them, and
+`ManagerRegistryProvider` is no longer a Doctrine `ManagerRegistry` itself: it only builds connections. Three
+signatures changed: `ManagerRegistryProvider::fromDsnAndConfig()` names its second argument `pathsToMapping`,
+`ManagerRegistryProvider::createEntityManager()` no longer takes `$pathsToMapping` (the entity manager handed in
+carries its own mapping), and `DbalConnection::resolve()` is removed: call `DbalConnection::create()` or
+`createForManagerRegistry()` for the kind of connection you have. `DbalConnection` is `final`.
+
+`new ManagerRegistryEmulator($connection, $pathsToMapping)`, also when it was passed on to
+`DbalConnection::createForManagerRegistry()`, becomes `ManagerRegistryProvider::create($connection, $pathsToMapping)`,
+registered as the connection; an existing EntityManager is wrapped with
+`ManagerRegistryProvider::createEntityManager($entityManager)`.
+
 `DbalConnectionReference::DEFAULT`, `AmqpConnectionReference::DEFAULT` / `DEFAULT_STREAM`,
 `SqsConnectionReference::DEFAULT` and `RedisConnectionReference::DEFAULT` are the factory class names, so their string
 values move with them: `DbalConnectionReference::DEFAULT` is now `'Ecotone\Api\Dbal\DbalConnectionFactory'`. A
@@ -2979,6 +3048,122 @@ sent inside the application's own `DB::transaction()` joins it as a savepoint, a
 
 **How to adapt:** nothing for most applications. A callback registered with `DB::afterCommit()` inside a handler that
 relied on running immediately runs after the commit now: call it directly instead.
+
+### Messages handled at once in one process keep their own headers, transaction and connection
+
+**Before:** Ecotone kept the state of the message being handled (propagated headers, the open transaction, collected
+messages, the active tenant, open spans, the database connection) once per process. A process that handles one
+message at a time (php-fpm, a CLI consumer, Laravel Octane, a Swoole worker with `enable_coroutine` off) was
+unaffected. With Swoole or OpenSwoole coroutines, or with fibers, messages handled at once shared it: an event
+handler received another request's headers, and a request that answered successfully lost its rows when another
+request sharing its transaction rolled back.
+
+**Now:** every coroutine and every fiber is an execution with its own state. A database connection registered from a
+DSN (`new DbalConnectionFactory($dsn)`) is a pool: every concurrent execution takes its own connection and returns it
+when it ends, and one process opens at most `connection_pool_size` connections, 10 by default
+(`new DbalConnectionFactory(['dsn' => $dsn, 'connection_pool_size' => 20])`). A coroutine waits up to five seconds
+for a returned connection and then fails with `ConnectionPoolExhausted`; a fiber cannot wait and fails at once.
+A consumer running on a coroutine is one execution for as long as it consumes, so it keeps its connection: the pool
+has to be at least as large as the number of coroutines consuming in the process, plus the requests it handles at
+once. A process handling one message at a time uses one connection, as before.
+
+A consumer handles several messages at once with `ecotone:run <channel> --coroutines=8`, or with
+`PollingMetadata::create('<channel>')->withCoroutines(8)` registered for it (the command option replaces the
+configured number). It needs the `openswoole` or `swoole` extension and refuses to start without one; the runtime
+hooks are enabled for the consumer when the application has not set any (OpenSwoole switches them off again when
+the consumer ends, Swoole leaves them on, as each does after its own `run()`). The limits (`--handledMessageLimit`,
+`--executionTimeLimit`, `--memoryLimit`) are those of every coroutine, so `--handledMessageLimit=100 --coroutines=8`
+handles up to 800 messages. A failed message goes to the error channel as usual; when one coroutine's consumer stops
+with an exception, the others stop and the consumer throws it. A `#[Scheduled]` endpoint is refused on coroutines,
+and so is a consumer of a Kafka topic or a RabbitMQ stream, where a message finished out of turn would commit its
+position past one still being handled; both are refused when the application boots if the coroutines come from
+`PollingMetadata`. A pool smaller than the coroutines of a consumer leaves the extra coroutines failing with
+`ConnectionPoolExhausted` after five seconds, so set `connection_pool_size` to at least the coroutines.
+
+Every concurrent execution also has its own RabbitMQ connection, kept open when the execution ends and handed to the
+next one. Their number is not limited: a process holds as many as it has had executions running at once, so keep the
+coroutines per worker (`max_coroutine`) times the workers below what the broker accepts.
+
+With the `amqp` extension and a `heartbeat` configured, a connection that published nothing for two heartbeat
+periods is opened again before the next publish made outside of a RabbitMQ transaction. The extension sends heartbeats only while it waits for the broker,
+so the broker has closed such a connection by then, and a message published on it without publisher confirmations
+could be lost without an error. Nothing changes without a heartbeat or with `php-amqplib`.
+
+What a coroutine can wait on decides whether it helps:
+
+- MySQL and MariaDB (`pdo_mysql`) and `php-amqplib` (`AmqpLibConnectionFactory`) are waited on: while one coroutine
+  waits for the database or the broker, the others run.
+- A PostgreSQL connection Ecotone opens itself (from a DSN, or as a copy) is refused with a `ConfigurationException`
+  inside an OpenSwoole coroutine, and inside a Swoole coroutine unless Swoole 5.1 or newer is built with
+  `--enable-swoole-pgsql` and `SWOOLE_HOOK_PDO_PGSQL` is among the enabled hooks; there coroutines wait on PostgreSQL
+  as they do on MySQL. A PostgreSQL connection of a Doctrine `ManagerRegistry`, Laravel or Tempest is not
+  checked and stops the process the same way. Such a runtime cannot wait on a
+  PostgreSQL query, so a coroutine waiting for a row locked by another coroutine of the same process would stop that
+  one too, and neither would finish.
+- The `amqp` extension (`AmqpExtConnectionFactory`) and SQLite work, but each call stops every coroutine of the
+  process until it returns. With SQLite a second writer waits inside the call for the first, which cannot go on
+  meanwhile, and fails with `database is locked` when SQLite's busy timeout runs out. That holds for fibers as well,
+  which shared one connection in 1.x and each have their own now: let one coroutine or fiber write at a time.
+  On Swoole built with `--enable-swoole-sqlite` (`SWOOLE_HOOK_PDO_SQLITE`, part of `SWOOLE_HOOK_ALL`) a coroutine
+  waits on SQLite like on MySQL: SQLite still lets one connection write at a time, so the writers take turns.
+  `sqlite:///:memory:` is a separate empty database per connection.
+
+OpenTelemetry keeps the span that is current per fiber, not per Swoole or OpenSwoole coroutine. Ecotone's own record
+of open spans is per coroutine, but spans exported from coroutines running at once carry the wrong parent unless
+the process installs a context storage that follows coroutines: `composer require open-telemetry/context-swoole` and,
+once when the worker or the consumer starts,
+`Context::setStorage(new SwooleContextStorage(new ContextStorage()))`. With it, messages handled at once on request
+coroutines, on consumer coroutines and in coroutines a handler starts are each traced under their own trace.
+
+A Symfony DBAL connection registered without a `ManagerRegistry` (`SymfonyConnectionReference::defaultConnection()`
+or `createForConnection()`) stays the connection of the process, and every concurrent execution works on a copy
+Ecotone opens from its parameters and configuration, at most 10 per process
+(`->withConnectionPoolSize(20)` changes it). Code that holds Symfony's `Connection` service is not on that copy.
+
+Any other connection the application or its framework built (a Doctrine `ManagerRegistry`, a Laravel or Tempest
+connection) is still one connection for the process, and so is an existing `Doctrine\DBAL\Connection` unless it is
+handed over with `Ecotone\Api\Dbal\DbalConnection::createWithCopiesForConcurrentExecutions($connection)`, which gives
+every concurrent execution a copy as the Symfony reference does. When a second execution begins a transaction on such
+a single connection while another execution holds one, Ecotone refuses with a `ConfigurationException` naming the ways
+out, where it used to let the two share the transaction. That includes a fiber or coroutine a handler starts, which
+in 1.x joined the handler's transaction when it sent a command.
+
+A fiber or coroutine started inside a handler is an execution of its own. On a pooled connection it takes its own
+connection, so it does not see what the handler has not committed, and what it stores stays when the handler rolls
+back. A Swoole or OpenSwoole coroutine starts with a copy of the headers of the message being handled, so messages it
+sends carry the tenant, the correlation id and the other propagated headers; it gets that copy while the coroutine
+that started it is still running and still handling that message. A fiber does not: PHP does not tell which fiber
+started another, so a fiber starts without propagated headers and, with multi-tenancy, without a tenant.
+
+**How to adapt:** nothing when the process handles one message at a time. An OpenSwoole or Swoole HTTP server runs
+every request in a coroutine unless `enable_coroutine` is false, also when the requests never overlap: with a
+PostgreSQL DSN set `enable_coroutine` to false there, or move to MySQL or MariaDB. To handle several at once, register the
+connection from a DSN (MySQL or MariaDB; PostgreSQL only on Swoole built with `--enable-swoole-pgsql`), read RabbitMQ with `AmqpLibConnectionFactory`, keep workers
+times `connection_pool_size` below what the database accepts, and take the
+connection in your own code with `#[CurrentConnection] Connection $connection` on the handler, not from a property.
+Do the work that must share the handler's transaction in the handler itself, not in a fiber or coroutine it starts,
+and pass a fiber the headers it needs explicitly (`metadata:` on the bus call).
+
+### A handler takes the database connection with `#[CurrentConnection]`
+
+**Before:** a handler or console command could take a `Doctrine\DBAL\Connection` as a service
+(`#[Reference] Connection $connection`, or `Connection $connection` resolved by its type). That is one fixed
+connection, which was the connection of the message only as long as the process had a single one.
+
+**Now:** a `Doctrine\DBAL\Connection` parameter of a handler or a console command without `#[CurrentConnection]` is
+refused at bootstrap with a `ConfigurationException`. `#[CurrentConnection] Connection $connection`
+(`Ecotone\Api\Dbal\Attribute\CurrentConnection`) injects the connection the message is handled on, the one its
+transaction runs on, also when every coroutine or fiber has its own.
+
+**How to adapt:** put `#[CurrentConnection]` on the parameter, in place of `#[Reference]` when it had one. In an
+application with a `MultiTenantConfiguration`, `#[CurrentConnection]` without a name is the active tenant's
+connection (§2b): a connection shared by all tenants is registered as a connection of its own and taken by its
+reference name, `#[CurrentConnection('shared')]`. A connection registered under another name is `#[CurrentConnection('name')]`, where the name is the reference name of
+its registration: the argument of `DbalConnectionReference`, the `$referenceName` passed to
+`SymfonyConnectionReference::createForConnection()` or `LaravelConnectionReference::create()`, or the service id of
+a `DbalConnectionFactory`. A connection Ecotone does not manage, such as a reporting database, is taken through the
+constructor of the handler's class, which is not checked; so is any service holding a connection, and inside
+coroutines or fibers pass such a service the handler's connection instead.
 
 ### `ecotone/dbal`, `ecotone/laravel` and `ecotone/tempest` require `doctrine/dbal` 4.2.3 or later
 
@@ -3462,6 +3647,20 @@ three getters are gone: the settings are `public readonly` properties under thei
 returning the chained configuration. Replace `getNamingStrategy()` with `->namingStrategy`,
 `getDefaultNullSerialization()` with `->defaultNullSerialization` and `isEnumSupportEnabled()` with `->enableEnumSupport`.
 
+### `DynamicMessageChannelBuilder` returns a copy from every `with*()`
+
+**Before:** `withInternalChannels()`, `withCustomSendingStrategy()`, `withHeaderSendingStrategy()` and
+`withCustomReceivingStrategy()` changed the builder they were called on and returned it, so
+`$channel->withInternalChannels([...]);` written as a statement kept its change.
+
+**Now:** each returns a changed copy and leaves the builder alone — its properties are `readonly`. A statement-form
+call still runs, but its value never reaches the channel Ecotone registers. The channels and channel names the builder
+receives from are `public readonly` properties, `internalMessageChannels` and `receivingChannelNames`.
+
+**How to adapt:** assign the result or chain the calls,
+`$channel = $channel->withInternalChannels([...]);`. A builder returned from a `#[ServiceContext]` method as a chained
+expression is unaffected.
+
 ### JMS re-reads a changed class outside production
 
 **Before:** the JMS metadata cache under Ecotone's cache directory (`.../ecotone/jms/metadata`) was written once and
@@ -3776,7 +3975,10 @@ message flow, or how it is wired to other services.
 `overview` (Ecotone and PHP versions, framework, licence), the `flowGraph`, the distributed `topology` of the
 `DistributedServiceMap`s and the `channels` the service consumes: a list of `{name, kind}` with kind `async` for a
 pollable channel an `#[Asynchronous]` handler consumes and `queue` for a pollable channel no handler is bound to (the
-channels a Service Map only sends to are left out), which is what Pulse offers as a dead letter replay target. Only requests from the configured Pulse service are served; any other source fails the
+channels a Service Map only sends to are left out), which is what Pulse offers as a dead letter replay target. The reply also
+lists the digest of every section in `digests`; a request sent as `{"known": {"flowGraph": "<digest>"}}` leaves out
+each named section whose digest still matches, so a caller that keeps the sections asks again without receiving what
+did not change. Only requests from the configured Pulse service are served; any other source fails the
 handler with a message naming the expected service. The application needs an Enterprise licence and a service name, otherwise
 bootstrap is refused; registering `PulseConfiguration` twice is refused as well. The reply mapping to the Pulse service
 is implied: replies go to a channel named after the Pulse service, or to the one chosen with
@@ -3801,9 +4003,8 @@ handlers, hint, configuration}`. Each table in the `setup` section names its `pa
 `{enterprise, expiresAt, testing}`, where `expiresAt` is the licence's expiry as an ATOM date (it was always `null`
 before) and `testing` is `true` on Ecotone's testing licence. A `consumers` list names every consumer the
 service can run, `{name, kind, handlers, features}`, where `kind` is `polling` or `inbound` and each feature is `{name, value,
-scope, handler}` with `scope` either `global` or `consumer-level config`. All of it is additive and `schemaVersion` stays `1`: an
-older Pulse ignores the new keys, and a newer Pulse shows the tables of an older service in one list, without packages,
-and its licence expiry as unknown.
+scope, handler}` with `scope` either `global` or `consumer-level config`. The snapshot is `schemaVersion` `2`, and Pulse rejects a reply of another schema version with a message naming
+both, so Pulse and its services are upgraded together.
 
 With the DBAL dead letter enabled, the snapshot gains a `deadLetters` section: the `total`, the `groups` by message name
 and exception class, and the 100 `recent` dead letters newest first. Each recent dead letter has its message id, name,
@@ -3818,7 +4019,8 @@ The name is the distributed routing key; else the routing key the message was se
 
 Pulse acts on dead letters with the routing keys `ecotone.pulse.dead_letter.replay` (optionally with a `targetChannel`)
 and `ecotone.pulse.dead_letter.delete`, sending `{"messageIds": [...]}` or `{"filter": {"messageName": ...,
-"exceptionClass": ..., "failedFrom": ..., "failedTo": ...}}`, and receives a fresh snapshot as the reply.
+"exceptionClass": ..., "failedFrom": ..., "failedTo": ...}}`, and receives the `deadLetters` and `channels` sections as the
+reply, marked `partial: true` with their `digests`.
 
 A filter applies to every stored dead letter and matches the name shown in the snapshot. `failedFrom` and `failedTo` are
 inclusive at whole-second precision, and `failedFrom` later than `failedTo` is refused, as is an empty filter. A dead
@@ -3918,7 +4120,7 @@ Or drop the table, as tracked flows are only kept for the retention, and create 
 
 **Before:** a projection was rebuilt from the console (`ecotone:projection:rebuild`) or `ProjectionOperations`, and nothing recorded that a rebuild had been requested or how far it had got.
 
-**Now:** a service with `PulseConfiguration` answers `ecotone.pulse.projections.rebuild` (payload `{"projection": "orders"}`, with the `tracingId` header Pulse sends on every action) and `ecotone.pulse.trackings.list` (payload `{"since": "<ISO 8601 time>", "category": "ecotone-pulse", "type": "projection-rebuild", "reference": "orders", "limit": 100}`, `since` required, `limit` at most 100). In the transaction of the request, the service inserts one row into the new `ecotone_pulse_tracking` table: the tracing id, the category `ecotone-pulse`, the type `projection-rebuild`, the projection name as the reference, the active tenant (`NULL` without multi-tenancy) and the start time. The row is written once and never updated. The rebuild then runs under the request's tracing id: through the projection's `#[ProjectionRebuild(asyncChannelName: ...)]` channel when it has one, otherwise inside the request, and a failure of that synchronous rebuild fails the request and leaves no row.
+**Now:** a service with `PulseConfiguration` answers `ecotone.pulse.projections.rebuild` (payload `{"projection": "orders"}`, with the `tracingId` header Pulse sends on every action) and `ecotone.pulse.trackings.list` (payload `{"since": "<ISO 8601 time>", "category": "ecotone-pulse", "type": "projection-rebuild", "reference": "orders", "limit": 100}`, `since` required, `limit` at most 100). In the transaction of the request, the service inserts one row into the new `ecotone_pulse_tracking` table: the tracing id, the category `ecotone-pulse`, the type `projection-rebuild`, the projection name as the reference, the active tenant (`NULL` without multi-tenancy) and the start time. The row is written once and never updated. The rebuild then runs under the request's tracing id: through the projection's `#[ProjectionRebuild(asyncChannelName: ...)]` channel when it has one, otherwise inside the request, and a failure of that synchronous rebuild fails the request and leaves no row. The reply to a rebuild or backfill carries the `projections` and `gathering` sections, marked `partial: true` with their `digests`.
 
 An asynchronous rebuild or backfill runs as one gathering group under the endpoint id `<projection>.rebuild` or `<projection>.backfill`, listed by `GatheredGroups` and `ecotone:gathering:list`, and each batch is traced as a `process partition batch <projection>` span. The trackings query reads an asynchronous run from its group: `running` (batches done out of the batch count, with the batch numbers not done yet), `done` (with its duration), `failed` (a batch in the dead letter, listed with its dead-letter message id), `discarded` (its group was discarded) or `released` (released by hand with batches missing); a batch whose record waits in the dead letter is listed under `batchesWaitingToBeRecorded`. It also lists asynchronous runs started from the console; a synchronous run is `done`, since its row exists only when it succeeded. Newest first and capped at 100. The projections of the Pulse snapshot report `rebuildAsyncChannel`, `backfillAsyncChannel`, `rebuildBatchCompletionChannel` and `backfillBatchCompletionChannel`. An `asyncChannelName` or `batchCompletionChannelName` that is not registered as a message channel is refused at bootstrap. The batches of an asynchronous run keep the metadata of the request that started it, so a rebuild started for a tenant of a multi-tenant application runs in that tenant.
 
@@ -3990,6 +4192,7 @@ Groups are listed by the gathered handler's `endpointId`, which must be explicit
 `ecotone:gathering:list <endpointId> [--closed]`, the same listing as collected batches.
 `GatheredGroups::requestRelease(groupId)` queues a manual release and returns no value; the group stays open
 until its gathered handler's consumer processes the trigger. Console and Pulse show `release requested`.
+A release or discard asked by Pulse is answered with the `gathering` section, marked `partial: true`.
 
 Several consumers recording reports for one group can conflict. A lost optimistic write throws
 `ConcurrencyException`, and the default instant retries of an asynchronous endpoint running in a database

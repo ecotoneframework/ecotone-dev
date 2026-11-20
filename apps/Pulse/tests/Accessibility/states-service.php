@@ -33,7 +33,7 @@ final class StatesService
         $table = static fn (string $feature, string $connection, ?bool $initialized, ?string $error = null): array => ['feature' => $feature, 'connection' => $connection, 'initialized' => $initialized, 'error' => $error];
 
         return json_encode([
-            'schemaVersion' => 1,
+            'schemaVersion' => 2,
             'serviceName' => 'states',
             'takenAt' => gmdate('c'),
             'overview' => ['ecotoneVersion' => '2.0.0', 'phpVersion' => PHP_VERSION, 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]],

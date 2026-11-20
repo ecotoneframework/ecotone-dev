@@ -139,4 +139,9 @@ final class PulseProjections implements PulseSnapshotSection
             default => self::PREPARED,
         };
     }
+
+    public function revision(): ?string
+    {
+        return null;
+    }
 }

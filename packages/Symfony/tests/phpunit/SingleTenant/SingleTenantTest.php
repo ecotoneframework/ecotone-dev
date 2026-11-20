@@ -10,6 +10,7 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\App\SingleTenant\Application\Command\RegisterCustomer;
@@ -42,6 +43,7 @@ final class SingleTenantTest extends TestCase
 
     public function setUp(): void
     {
+        putenv('SYMFONY_LICENCE_KEY=' . LicenceTesting::VALID_LICENCE);
         $kernel = new Kernel('dev', true);
         $kernel->boot();
         $app = $kernel->getContainer();
@@ -53,6 +55,11 @@ final class SingleTenantTest extends TestCase
         $this->kernel = $kernel;
 
         $this->kernel->getContainer()->get(CacheClearer::class)->clear('');
+    }
+
+    protected function tearDown(): void
+    {
+        putenv('SYMFONY_LICENCE_KEY');
     }
 
     public function test_run_message_handlers_for_single_tenant(): void

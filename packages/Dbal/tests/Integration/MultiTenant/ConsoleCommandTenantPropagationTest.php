@@ -8,7 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\Reference;
-use Ecotone\Api\Dbal\Attribute\MultiTenantConnection;
+use Ecotone\Api\Dbal\Attribute\CurrentConnection;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -90,7 +90,7 @@ final class ConsoleCommandTenantPropagationTest extends DbalMessagingTestCase
     {
         return new class () {
             #[ConsoleCommand('multi_tenant:record_marker')]
-            public function record(#[MultiTenantConnection] Connection $connection): void
+            public function record(#[CurrentConnection] Connection $connection): void
             {
                 $connection->executeStatement('INSERT INTO ' . ConsoleCommandTenantPropagationTest::MARKER_TABLE . ' (marker) VALUES (1)');
             }
@@ -102,7 +102,7 @@ final class ConsoleCommandTenantPropagationTest extends DbalMessagingTestCase
             }
 
             #[CommandHandler('multi_tenant.record_marker')]
-            public function recordMarker(#[MultiTenantConnection] Connection $connection): void
+            public function recordMarker(#[CurrentConnection] Connection $connection): void
             {
                 $connection->executeStatement('INSERT INTO ' . ConsoleCommandTenantPropagationTest::MARKER_TABLE . ' (marker) VALUES (1)');
             }

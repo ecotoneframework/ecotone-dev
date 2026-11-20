@@ -146,7 +146,7 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
         $entry = static fn (string $id): array => ['messageId' => $id, 'failureId' => 'aaaaaaaaaaaa', 'exceptionFile' => '/srv/Place.php', 'exceptionLine' => 3, 'messageName' => 'order.place', 'failedAt' => gmdate('c'), 'exceptionClass' => 'RuntimeException', 'exceptionMessage' => 'failed', 'stackTrace' => '#0', 'payload' => '{}', 'contentType' => 'application/json', 'channel' => 'orders'];
 
         return json_encode([
-            'schemaVersion' => 1,
+            'schemaVersion' => 2,
             'serviceName' => 'orders',
             'takenAt' => gmdate('c'),
             'overview' => ['ecotoneVersion' => '2.0.0', 'phpVersion' => PHP_VERSION, 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]],

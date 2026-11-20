@@ -8,8 +8,8 @@ use App\MultiTenant\Application\Command\RegisterCustomer;
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
-use Ecotone\Api\Dbal\Attribute\MultiTenantConnection;
-use Ecotone\Api\Dbal\Attribute\MultiTenantObjectManager;
+use Ecotone\Api\Dbal\Attribute\CurrentConnection;
+use Ecotone\Api\Dbal\Attribute\CurrentConnectionObjectManager;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -20,7 +20,7 @@ final readonly class CustomerService
 {
     #[QueryHandler('customer.getAllRegistered')]
     public function getAllRegisteredPersonIds(
-        #[MultiTenantConnection] Connection $connection
+        #[CurrentConnection] Connection $connection
     ): array
     {
         return $connection->executeQuery(<<<SQL

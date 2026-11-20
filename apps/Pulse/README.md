@@ -62,7 +62,7 @@ One container runs everything: the web server ([FrankenPHP](https://frankenphp.d
 
 ### Internal storage
 
-Pulse keeps its own state (the latest snapshot of every service with its request bookkeeping, the cache of trace queries
+Pulse keeps its own state (the latest sections of every service's snapshot, the request bookkeeping of every service, the cache of trace queries
 and its flow tracking spans) in an **SQLite database inside the container**, at `/app/var/internal/pulse.sqlite`. It is
 created when the container starts (`pulse:setup` creates the file and Pulse's tables, `ecotone:migration:database:setup --initialize`
 creates the Ecotone tables, existing tables are skipped), it is **not a volume**, and it lives and dies with the container:
@@ -75,6 +75,28 @@ Doctrine transactions that take the write lock first, so they wait instead of fa
 The internal database is the default DBAL connection of Pulse. When `PULSE_TRANSPORT_DSN` is a database (`pgsql://`,
 `mysql://`, `sqlite://`), the Distributed Bus channels use a separate connection, so the queue and deduplication tables
 are created on that database and never in the internal one. Flow tracking in Pulse keeps its spans for 1 hour.
+
+### What travels in a snapshot
+
+A snapshot is a set of named sections (`overview`, `flowGraph`, `topology`, `packages`, `consumers`, `channels`,
+`projections`, `deadLetters`, `tracing`, `setup`, `gathering`). Pulse stores each section on its own row with the digest
+the service reported for it, so only what changed is sent and written:
+
+* A snapshot request carries `{"known": {"<section>": "<digest>"}}`, the digests Pulse holds. The reply lists the digest of
+  every section in `digests` and carries only the sections whose digest differs. The flow graph, the packages and the
+  rest of what a deploy decides are therefore sent once, and again only after a deploy changed them; `{}` asks for every section.
+* A section can tell that nothing changed without being read in full: the dead letters are identified by their count
+  and their latest hundred failures, the ones Pulse lists, so a service whose dead letters did not change neither scans
+  the whole store nor sends them. A removal and an arrival that cancel out in the count, both older than the latest
+  hundred, show in the group counts once any later dead letter changes.
+* A snapshot with sections is schema version 2. Pulse and its services are upgraded together: Pulse rejects a reply of
+  another schema version with a message naming both versions.
+* The reply to an action carries only what the action changed and says so with `partial: true`: a rebuild or backfill
+  carries `projections` and `gathering`, a dead letter replay or delete carries `deadLetters` and `channels`, a gathering
+  release or discard carries `gathering`. Pulse keeps every other section as it holds it, and what else the action
+  moved (a projection a released group completes, a channel a synchronous rebuild filled) arrives with the next snapshot.
+* A reply that is not partial is the whole truth: a section it neither carries nor lists in `digests` is one the
+  service no longer reports, and Pulse drops it.
 
 ### Awaited replies
 
@@ -302,6 +324,9 @@ docker run -p 8080:8080 \
 | `PULSE_TRACE_URL` | | The trace page of your tracing UI. When set, a dead letter that carries a trace id gets an "Open in tracing UI" link next to "View trace", on its page and in the dead letters list. `{traceId}` is replaced by the 32-hex trace id, `{traceIdLow64}` by the decimal of its low 64 bits (the id Datadog shows for a trace sent over OpenTelemetry). Jaeger: `http://localhost:16686/trace/{traceId}`, Zipkin: `http://localhost:9411/zipkin/traces/{traceId}`, Grafana Tempo: your Grafana Explore URL with `{traceId}` as the query, Datadog: `https://app.datadoghq.com/apm/trace/{traceIdLow64}`. Pulse refuses to start when it is not an `http://` or `https://` URL or contains neither placeholder |
 | `PULSE_HTTP_PORT` | `8080` | |
 | `TRUSTED_PROXIES`, `TRUSTED_HOSTS` | | Behind a reverse proxy, see above |
+| `PULSE_RUNTIME` | `php` | `php` serves Pulse with FrankenPHP and consumes each reply channel in its own process. `swoole` serves it with OpenSwoole and consumes each reply channel on coroutines; it needs the `openswoole` extension, which the published image does not ship, see *Run it*, and is refused with a PostgreSQL transport or connection, which a coroutine cannot wait on |
+| `PULSE_HTTP_WORKERS` | `4` | With `PULSE_RUNTIME=swoole`: OpenSwoole worker processes serving HTTP, each handling one request at a time |
+| `PULSE_CONSUMER_COROUTINES` | `6` | With `PULSE_RUNTIME=swoole`: coroutines consuming each reply channel in one process, each with its own broker and database connection |
 | `APP_SECRET` (or `APP_SECRET_FILE`) | generated | Pulse signs nothing with it. When unset the entrypoint generates one for the lifetime of the container and logs one line saying so |
 
 A file variable (`ECOTONE_LICENCE_KEY_FILE`, `PULSE_TRANSPORT_DSN_FILE`, `PULSE_CONNECTION_<NAME>_DSN_FILE`, `APP_SECRET_FILE`) holds the path of a file with the value, which is how Docker and Kubernetes secrets are mounted; the variable itself wins when both are set. A file that cannot be read stops the container with a message naming the variable.
@@ -421,6 +446,7 @@ docker run --env-file pulse.env -p 8080:8080 ecotone-pulse
 * HTTP is served on port `8080` (`PULSE_HTTP_PORT`).
 * With a missing or invalid setting the container exits at start with the refusal message.
 * The web server is [FrankenPHP](https://frankenphp.dev) (Caddy and PHP in one process): no php-fpm and nginx pair to keep in step, and HTTP/2 and compression included. Pulse needs no worker mode, so it is plain `php_server`.
+* With `PULSE_RUNTIME=swoole` the web server is OpenSwoole (`bin/openswoole-server.php`) and each reply channel is consumed by `bin/console ecotone:run <channel> --coroutines=<PULSE_CONSUMER_COROUTINES>`, so one process handles several replies while each waits for the broker. RabbitMQ is then read with `php-amqplib`, whose socket a coroutine can wait on, instead of the `amqp` extension. Each coroutine has its own connection to the internal SQLite database, and the coroutines of one process take turns opening a write transaction (`App\Storage\WriterTurnBetweenCoroutines`), because SQLite makes a second writer wait inside the database call, which would stop the first one too. The image needs the `openswoole` extension for this (`install-php-extensions openswoole`); the demo's image has it, and the entrypoint refuses to start without it.
 * Run it behind your own authentication and with `restart: unless-stopped`. The internal database is gone when the container is replaced; that is intended.
 * The published image `ecotoneframework/ecotone-pulse:<release>` is built after each Ecotone release has been split and Packagist serves it (`.github/workflows/pulse-publish.yml`), tagged with the release version (`2.0.0-beta.6`); a stable release also moves `<major>.<minor>` and `latest`. It runs the released Ecotone packages from Packagist (`--build-arg PULSE_DEPENDENCIES=released --build-arg ECOTONE_VERSION=<tag>`), which verify licences against the release public key, and `apps/Pulse/docker/verify-production-licence.sh` refuses to publish an image that does not carry that key or accepts Ecotone's testing licence. An image built from this repository without those arguments runs the packages here, as the tests do.
 

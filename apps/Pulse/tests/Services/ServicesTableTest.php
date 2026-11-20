@@ -135,6 +135,6 @@ final class ServicesTableTest extends ReleasingWebTestCase
      */
     private function versionSnapshot(string $service, string $version, array $licence = ['enterprise' => true, 'expiresAt' => null]): string
     {
-        return json_encode(['schemaVersion' => 1, 'serviceName' => $service, 'takenAt' => '2026-10-20T12:00:00+00:00', 'overview' => ['ecotoneVersion' => $version, 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => $licence], 'flowGraph' => ['nodes' => [], 'edges' => []], 'topology' => ['serviceMaps' => []]], JSON_THROW_ON_ERROR);
+        return json_encode(['schemaVersion' => 2, 'serviceName' => $service, 'takenAt' => '2026-10-20T12:00:00+00:00', 'overview' => ['ecotoneVersion' => $version, 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => $licence], 'flowGraph' => ['nodes' => [], 'edges' => []], 'topology' => ['serviceMaps' => []]], JSON_THROW_ON_ERROR);
     }
 }

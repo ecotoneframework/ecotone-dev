@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\MultiTenant\Application;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\Dbal\Attribute\MultiTenantConnection;
+use Ecotone\Api\Dbal\Attribute\CurrentConnection;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\QueryHandler;
@@ -20,7 +20,7 @@ final class NotificationSender
 
     #[QueryHandler("getNotificationsCount")]
     public function getNotifications(
-        #[MultiTenantConnection] Connection $connection
+        #[CurrentConnection] Connection $connection
     ): int
     {
         return (int)$connection->executeQuery('SELECT COUNT(customer_id) AS count FROM customer_notifications')->fetchOne();

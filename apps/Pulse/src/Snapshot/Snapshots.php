@@ -129,30 +129,11 @@ final readonly class Snapshots
         return $scopes;
     }
 
-    /**
-     * @param array<string, mixed> $service
-     * @param array<string, mixed> $tenant
-     * @return array<string, mixed>
-     */
-    private static function mergedWithTenant(array $service, array $tenant): array
-    {
-        $measured = [];
-        foreach (is_array($tenant['channels'] ?? null) ? $tenant['channels'] : [] as $channel) {
-            if (is_array($channel) && is_string($channel['name'] ?? null)) {
-                $measured[$channel['name']] = $channel + ['perTenant' => true];
-            }
-        }
-        unset($tenant['channels']);
-        $merged = array_replace_recursive($service, $tenant);
-        $merged['channels'] = array_map(static fn (mixed $channel): mixed => is_array($channel) ? ($measured[$channel['name'] ?? ''] ?? $channel) : $channel, is_array($service['channels'] ?? null) ? $service['channels'] : []);
-
-        return $merged;
-    }
-
     private function snapshotOf(ServiceScope $scope, DateTimeImmutable $now, ?ServiceSnapshot $service = null): ServiceSnapshot
     {
         $record = $this->store->read($scope);
-        $tenancy = $service === null ? $record->snapshot['tenancy'] ?? null : null;
+        $sections = $this->store->sections($scope);
+        $tenancy = $service === null ? $sections['tenancy'] ?? null : null;
         $advertised = is_array($tenancy) && is_array($tenancy['tenants'] ?? null) ? array_values(array_filter($tenancy['tenants'], is_string(...))) : [];
         $narrowing = $this->settings->routes[$scope->service]->tenants;
         $tenants = $narrowing === null ? $advertised : array_values(array_filter($narrowing, static fn (string $tenant): bool => in_array($tenant, $advertised, true)));
@@ -164,7 +145,7 @@ final readonly class Snapshots
             $record->statusAt($now, $this->settings->replyTimeoutSeconds),
             $record->receivedAt,
             $record->ageAt($now),
-            $service === null ? $record->snapshot : self::mergedWithTenant($service->snapshot, $record->snapshot),
+            $service === null ? $sections : $service->snapshot->mergedWithTenant($sections),
             $record->requestFailure,
             $record->replyError,
             $record->hasPendingFollowUp(),

@@ -3,6 +3,26 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0-beta.10] - 2026-11-20
+
+## What's Changed
+* feat(pulse): a page for every message, handler and channel, graphs drawn as cards, and a trace followed step by step by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/763
+* docs: a fourth pre-PR review judges developer experience by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/764
+* fix(kafka): the Pulse lag probe no longer leaves librdkafka threads running after each snapshot by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/766
+* feat: gather split results in an asynchronous handler by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/765
+* feat(messaging): an expression result is converted to the handler parameter's type by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/767
+* feat: collect ordinary messages into a batch for an asynchronous handler by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/768
+* feat: store the message flow as versions and compare them from the console and in Ecotone Pulse by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/769
+* docs: pre-PR reviews run as resumable sessions in the change's worktree and re-verify fixes by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/770
+* feat: asynchronous projection rebuild and backfill run as one gathered group, tracked by Pulse by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/771
+* feat(messaging): a handler with an explicit endpointId keeps its identity in the flow graph when renamed by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/772
+* feat(pulse): Ecotone Pulse fetches and stores only the snapshot sections that changed by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/773
+* fix(demo): the demo keeps at most 20 MB of log per container and every application logs to stderr by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/774
+* feat: Ecotone runs on OpenSwoole and Swoole coroutines, and a consumer handles several messages at once by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/775
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/2.0.0-beta.9...2.0.0-beta.10
+
 ## [2.0.0-beta.9] - 2026-11-10
 
 ## What's Changed

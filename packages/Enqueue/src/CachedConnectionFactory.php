@@ -7,6 +7,8 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Execution\ExecutionList;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
@@ -19,7 +21,6 @@ use Interop\Queue\Producer;
 class CachedConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 {
     private ReconnectableConnectionFactory $connectionFactory;
-    private array $cachedContext = [];
 
     public function __construct(ReconnectableConnectionFactory $reconnectableConnectionFactory)
     {
@@ -45,19 +46,20 @@ class CachedConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
     public function createContext(): Context
     {
         $relatedTo = $this->getCurrentActiveConnection();
-        $context = $this->cachedContext[$relatedTo] ?? null;
+        $cachedContexts = $this->cachedContexts();
+        $context = $cachedContexts->items[$relatedTo] ?? null;
 
         if (! $context || $this->connectionFactory->isDisconnected($context)) {
-            $this->cachedContext[$relatedTo] = $this->connectionFactory->createContext();
+            $cachedContexts->items[$relatedTo] = $this->connectionFactory->createContext();
         }
 
-        return $this->cachedContext[$relatedTo];
+        return $cachedContexts->items[$relatedTo];
     }
 
     public function reconnect(): void
     {
         $this->connectionFactory->reconnect();
-        $this->cachedContext = [];
+        $this->cachedContexts()->items = [];
     }
 
     public function getConsumer(Destination $destination): Consumer
@@ -93,5 +95,10 @@ class CachedConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
         }
 
         return 'default';
+    }
+
+    private function cachedContexts(): ExecutionList
+    {
+        return ExecutionScope::stateOf($this, static fn () => new ExecutionList());
     }
 }

@@ -9,6 +9,7 @@ use Ecotone\Api\Amqp\AmqpQueue;
 use Ecotone\Api\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
@@ -117,5 +118,37 @@ final class StreamingChannelValidationTest extends AmqpMessagingTestCase
         );
 
         $this->assertNotNull($ecotoneLite);
+    }
+
+    public function test_amqp_stream_channel_consumer_with_coroutines_in_its_polling_metadata_is_refused_when_the_application_boots(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            'Consumer `consumer1` is set to consume on 2 coroutines, but it reads the stream `channel1` (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel; a dynamic channel with a custom receiving strategy counts as reading every stream channel of the application), where the position of the last handled message is what gets committed. '
+            . 'A coroutine finishing a later message would commit past an earlier message another coroutine is still handling, so that message is never handled when the process stops, and the messages are handled out of order. '
+        );
+
+        $handler = new class () {
+            #[InternalHandler(inputChannelName: 'channel1', endpointId: 'consumer1')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+        $queue = 'queue1-' . Uuid::v7()->toRfc4122();
+
+        $this->bootstrapFlowTesting(
+            [$handler::class],
+            [
+                $handler,
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            extensionObjects: [
+                AmqpQueue::createStreamQueue($queue),
+                AmqpStreamChannelBuilder::create(channelName: 'channel1', startPosition: 'first', amqpConnectionReferenceName: AmqpLibConnection::class, queueName: $queue, messageGroupId: 'group-' . Uuid::v7()->toRfc4122()),
+                PollingMetadata::create('consumer1')->withCoroutines(2),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 }

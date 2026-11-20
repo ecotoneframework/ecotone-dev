@@ -42,7 +42,7 @@ $commandBus->send(new RegisterCustomer('Bob'), metadata: ['tenant' => 'tenant_a'
 $commandBus->send(new RegisterCustomer('Carol'), metadata: ['tenant' => 'tenant_b']);
 echo "   tenant_a <- Alice, Bob   tenant_b <- Carol\n\n";
 
-echo "3) #[MultiTenantConnection] resolves to the active tenant's physical database\n";
+echo "3) #[CurrentConnection] resolves to the active tenant's physical database\n";
 $platformA = $queryBus->sendWithRouting('customer.platformForActiveTenant', metadata: ['tenant' => 'tenant_a']);
 $platformB = $queryBus->sendWithRouting('customer.platformForActiveTenant', metadata: ['tenant' => 'tenant_b']);
 Assert::assertStringContainsStringIgnoringCase('postgre', $platformA);

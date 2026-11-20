@@ -2,7 +2,7 @@
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
-use Ecotone\Dbal\ManagerRegistryEmulator;
+use Ecotone\Api\Dbal\ManagerRegistryProvider;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
@@ -38,7 +38,7 @@ function getConnectionFactory(string $dsn): EcotoneManagerRegistryConnectionFact
      * This is test class that emulates Doctrine ManagerRegistry. Follow link to configure in your application:
      * @link https://docs.ecotone.tech/modules/dbal-support#configuration
      */
-    return ManagerRegistryEmulator::fromDsnAndConfig($dsn, [__DIR__ . '/src/Domain']);
+    return ManagerRegistryProvider::fromDsnAndConfig($dsn, [__DIR__ . '/src/Domain']);
 }
 
 function runMigrationForTenants(ConfiguredMessagingSystem $messagingSystem): void

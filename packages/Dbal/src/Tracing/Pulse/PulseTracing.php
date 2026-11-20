@@ -55,4 +55,9 @@ final class PulseTracing implements PulseSnapshotSection
             ], $this->traceStore->flowTypeStatistics(self::FLOW_TYPES_LIMIT, self::STATISTICS_WINDOW)),
         ];
     }
+
+    public function revision(): ?string
+    {
+        return null;
+    }
 }

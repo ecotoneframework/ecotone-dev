@@ -13,6 +13,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Support\Assert;
@@ -43,19 +44,19 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         private LoggingGateway $loggingGateway,
         private RoundRobinReceivingStrategy $roundRobinReceivingStrategy,
         private string|ConnectionReference|null $defaultConnectionName = null,
-        private ?string $pollingConsumerTenant = null,
+        private readonly ?string $pollingConsumerTenant = null,
     ) {
 
     }
 
     public function enablePollingConsumerPropagation(): void
     {
-        $this->pollingConsumerTenant = $this->roundRobinReceivingStrategy->decide();
+        $this->activeTenants()->pollingConsumerTenant = $this->roundRobinReceivingStrategy->decide();
     }
 
     public function disablePollingConsumerPropagation(): void
     {
-        $this->pollingConsumerTenant = null;
+        $this->activeTenants()->pollingConsumerTenant = null;
     }
 
     public function getManager(?string $tenant = null): ObjectManager
@@ -89,7 +90,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
 
         /** @var DbalContext $dbalConnection */
         $dbalConnection = $this->container->get($this->getConnectionReference($connectionReference))->createContext();
-        Assert::isTrue($dbalConnection instanceof DbalContext, 'Connection factory was not registered using by Ecotone\Dbal\DbalConnection::*');
+        Assert::isTrue($dbalConnection instanceof DbalContext, 'Connection factory was not registered using by Ecotone\Api\Dbal\DbalConnection::*');
 
         return $dbalConnection->getDbalConnection();
     }
@@ -133,23 +134,21 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         return $this->getCurrentTenantOrNull() !== null;
     }
 
-    private string|null $currentActiveTenant = null;
-
     public function propagateTenant(MethodInvocation $methodInvocation, Message $message): mixed
     {
         $tenant = $this->getCurrentTenantOrNull();
-        if ($tenant === null || $tenant === $this->currentActiveTenant) {
+        if ($tenant === null || $tenant === $this->activeTenants()->currentActiveTenant) {
             return $methodInvocation->proceed();
         }
 
-        if ($this->currentActiveTenant !== null) {
+        if ($this->activeTenants()->currentActiveTenant !== null) {
             throw new InvalidArgumentException("Tenant `{$tenant}` is already active. Please deactivate it before activating another tenant.");
         }
 
         /** @var string|ConnectionReference $connectionReference */
         $connectionReference = $this->getCurrentConnectionReferenceOrNull($tenant);
         Assert::notNull($connectionReference, "Lack of mapping for tenant `{$tenant}`. Please provide mapping for this tenant or default connection name.");
-        $this->currentActiveTenant = $tenant;
+        $this->activeTenants()->currentActiveTenant = $tenant;
 
         try {
             $this->loggingGateway->info("Activating tenant `{$tenant}` on connection `{$connectionReference}`", $message);
@@ -157,7 +156,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
 
             $result = $methodInvocation->proceed();
         } finally {
-            $this->currentActiveTenant = null;
+            $this->activeTenants()->currentActiveTenant = null;
             $this->loggingGateway->info("Deactivating tenant `{$tenant}` on connection `{$connectionReference}`", $message);
             $this->messagingEntrypoint->sendWithHeaders($connectionReference, [$this->tenantHeaderName => $tenant], self::TENANT_DEACTIVATED_CHANNEL_NAME);
         }
@@ -167,8 +166,9 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
 
     private function getCurrentTenantOrNull(): ?string
     {
-        if ($this->pollingConsumerTenant !== null) {
-            return $this->pollingConsumerTenant;
+        $pollingConsumerTenant = $this->activeTenants()->pollingConsumerTenant;
+        if ($pollingConsumerTenant !== null) {
+            return $pollingConsumerTenant;
         }
 
         $headers = $this->messagingEntrypoint->send([], MessageHeadersPropagatorInterceptor::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL);
@@ -222,5 +222,10 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
     private function getConnectionReference(ConnectionReference|string|null $connectionReference): string
     {
         return $connectionReference instanceof ConnectionReference ? $connectionReference->getReferenceName() : (string)$connectionReference;
+    }
+
+    private function activeTenants(): ActiveTenants
+    {
+        return ExecutionScope::stateOf($this, fn () => new ActiveTenants($this->pollingConsumerTenant));
     }
 }

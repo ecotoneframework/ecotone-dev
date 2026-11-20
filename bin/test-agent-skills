@@ -66,14 +66,17 @@ run_suite() {
 }
 
 # api/ keeps the published ecotoneframework/skills layout (a marketplace with strict:false, no plugin.json),
-# so its skills are evaluated through a throwaway plugin wrapping api/skills and api/evals.
+# so its skills are evaluated through a throwaway plugin holding a copy of api/skills and api/evals
+# (`claude plugin eval` refuses an evals directory linked from outside the plugin).
 public_plugin="$(mktemp -d)"
 trap 'rm -rf "$public_plugin"' EXIT
 mkdir "$public_plugin/.claude-plugin"
 printf '{"name":"ecotone-skills"}\n' > "$public_plugin/.claude-plugin/plugin.json"
 cp -R "$PWD/api/skills" "$public_plugin/skills"
-cp -R "$PWD/api/evals" "$public_plugin/evals"
-rm -rf "$public_plugin/evals/results"
+mkdir "$public_plugin/evals"
+for case_dir in "$PWD"/api/evals/*/; do
+    [[ "$(basename "$case_dir")" == results ]] || cp -R "$case_dir" "$public_plugin/evals/"
+done
 
 run_suite .agents "$PWD/.agents/evals/results" "${framework[@]+"${framework[@]}"}"
 run_suite "$public_plugin" "$PWD/api/evals/results" "${public[@]+"${public[@]}"}"

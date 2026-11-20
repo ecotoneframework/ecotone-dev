@@ -96,11 +96,14 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
         $this->verifyDestinationExists();
 
+        $this->reopenConnectionTheBrokerClosedWhileItStayedIdle();
         $context = $this->connectionFactory->createContext();
-        $confirmations = $this->getPublisherConfirmations();
+        $confirmations = $this->publisherConfirmationsOf($context);
         $prePublishConfirmationsEpoch = $confirmations?->getEpoch() ?? 0;
 
         $publishRecords = $this->publishMessages($messagesToPublish, $context, $confirmations);
+        $this->recordPublish();
+        $this->amqpTransactionInterceptor->commitWhenPublishedOutsideOfTransaction($context);
 
         if ($publishRecords !== [] && $confirmations !== null && $this->canDeferConfirmation()) {
             $this->registerPendingDelivery($publishRecords, $context, $confirmations, $prePublishConfirmationsEpoch);
@@ -223,12 +226,32 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         ];
     }
 
-    private function getPublisherConfirmations(): ?AmqpPublisherConfirmations
+    private function reopenConnectionTheBrokerClosedWhileItStayedIdle(): void
+    {
+        if ($this->amqpTransactionInterceptor->isRunningInTransaction()) {
+            return;
+        }
+
+        $innerConnectionFactory = $this->connectionFactory->getInnerConnectionFactory();
+        if ($innerConnectionFactory instanceof AmqpReconnectableConnectionFactory && $innerConnectionFactory->hasBrokerClosedTheConnectionIdleSinceTheLastPublish()) {
+            $this->connectionFactory->reconnect();
+        }
+    }
+
+    private function recordPublish(): void
+    {
+        $innerConnectionFactory = $this->connectionFactory->getInnerConnectionFactory();
+        if ($innerConnectionFactory instanceof AmqpReconnectableConnectionFactory) {
+            $innerConnectionFactory->recordPublish();
+        }
+    }
+
+    private function publisherConfirmationsOf(InteropAmqpContext $context): ?AmqpPublisherConfirmations
     {
         $innerConnectionFactory = $this->connectionFactory->getInnerConnectionFactory();
 
         return $innerConnectionFactory instanceof AmqpReconnectableConnectionFactory
-            ? $innerConnectionFactory->getPublisherConfirmations()
+            ? $innerConnectionFactory->publisherConfirmationsOf($context)
             : null;
     }
 

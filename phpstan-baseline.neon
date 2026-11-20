@@ -61,12 +61,6 @@ parameters:
 			path: packages/Dbal/Api/ExtensionObject/DbalBackedMessageChannelBuilder.php
 
 		-
-			message: '#^Property Ecotone\\Api\\Dbal\\DbalConnectionFactory\:\:\$connection \(Doctrine\\DBAL\\Connection\) does not accept null\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: packages/Dbal/Api/DbalConnectionFactory.php
-
-		-
 			message: '#^Property Ecotone\\Dbal\\Connection\\DbalMessage\:\:\$deliveryDelay \(int\) does not accept null\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -139,19 +133,7 @@ parameters:
 			path: packages/Dbal/src/EntityManagerRegistryEmulator.php
 
 		-
-			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/Dbal/src/ManagerRegistryEmulator.php
-
-		-
 			message: '#^Method Ecotone\\Dbal\\ManagerRegistryEmulator\:\:getConnectionNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
-			identifier: return.type
-			count: 1
-			path: packages/Dbal/src/ManagerRegistryEmulator.php
-
-		-
-			message: '#^Method Ecotone\\Dbal\\ManagerRegistryEmulator\:\:getConnections\(\) should return array\<string, object\> but returns array\<int, Doctrine\\DBAL\\Connection\>\.$#'
 			identifier: return.type
 			count: 1
 			path: packages/Dbal/src/ManagerRegistryEmulator.php

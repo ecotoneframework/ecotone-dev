@@ -25,8 +25,10 @@ namespace Test\Ecotone\EventSourcing\Projecting;
 use Doctrine\ORM\EntityManagerInterface;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Dbal\DbalConnection;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ManagerRegistryProvider;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Projecting\FromStream;
@@ -37,8 +39,6 @@ use Ecotone\Api\Projecting\ProjectionExecution;
 use Ecotone\Api\Projecting\ProjectionFlush;
 use Ecotone\Api\Projecting\ProjectionInitialization;
 use Ecotone\Api\Projecting\ProjectionState;
-use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
@@ -601,7 +601,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
                 )
             SQL);
 
-        $ormConnectionFactory = ManagerRegistryEmulator::create(
+        $ormConnectionFactory = ManagerRegistryProvider::create(
             $connection,
             [__DIR__ . '/Fixture']
         );

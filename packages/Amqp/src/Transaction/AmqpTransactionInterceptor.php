@@ -8,12 +8,16 @@ use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Execution\ExecutionFlag;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
+use Interop\Queue\Context;
 use PhpAmqpLib\Channel\AMQPChannel as LibAmqpChannel;
 use Throwable;
+use WeakMap;
 
 /**
  * https://www.rabbitmq.com/blog/2011/02/10/introducing-publisher-confirms/
@@ -25,13 +29,15 @@ use Throwable;
  */
 class AmqpTransactionInterceptor
 {
-    private bool $isRunningTransaction = false;
+    /** @var WeakMap<Context, true> */
+    private WeakMap $channelsInTransactionMode;
 
     /**
      * @param array<string, CachedConnectionFactory> $connectionFactories
      */
     public function __construct(private array $connectionFactories, private LoggingGateway $logger, private RetryRunner $retryRunner)
     {
+        $this->channelsInTransactionMode = new WeakMap();
     }
 
     public function transactional(
@@ -45,12 +51,12 @@ class AmqpTransactionInterceptor
             $connectionFactories = $this->connectionFactories;
         }
 
-        if ($this->isRunningTransaction) {
+        if ($this->runningTransaction()->isRaised) {
             return $methodInvocation->proceed();
         }
 
         try {
-            $this->isRunningTransaction = true;
+            $this->runningTransaction()->isRaised = true;
             foreach ($connectionFactories as $connectionFactory) {
                 $retryStrategy = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(10, 10, 1000)
                     ->maxRetries(2)
@@ -62,10 +68,12 @@ class AmqpTransactionInterceptor
                         /** @var LibAmqpChannel $libChannel */
                         $libChannel = $context->getLibChannel();
                         $libChannel->tx_select();
+                        $this->channelsInTransactionMode[$context] = true;
                     } elseif ($context instanceof AmqpExtContext) {
                         /** @var AMQPChannel $extChannel */
                         $extChannel = $context->getExtChannel();
                         $extChannel->startTransaction();
+                        $this->channelsInTransactionMode[$context] = true;
                     }
                 }, $retryStrategy, $message, AMQPConnectionException::class, 'Starting AMQP transaction has failed due to network work, retrying in order to self heal.');
                 $this->logger->info(
@@ -102,6 +110,7 @@ class AmqpTransactionInterceptor
                             $libChannel->tx_rollback();
                         } catch (Throwable) {
                         }
+                        unset($this->channelsInTransactionMode[$context]);
                         $libChannel->close(); // Has to be closed in amqp_lib, as if channel is transactional does not allow for sending outside of transaction
                     } elseif ($context instanceof AmqpExtContext) {
                         /** @var AMQPChannel $extChannel */
@@ -124,17 +133,35 @@ class AmqpTransactionInterceptor
                 throw $exception;
             }
         } catch (Throwable $exception) {
-            $this->isRunningTransaction = false;
+            $this->runningTransaction()->isRaised = false;
 
             throw $exception;
         }
 
-        $this->isRunningTransaction = false;
+        $this->runningTransaction()->isRaised = false;
         return $result;
+    }
+
+    public function commitWhenPublishedOutsideOfTransaction(Context $context): void
+    {
+        if ($this->runningTransaction()->isRaised || ! isset($this->channelsInTransactionMode[$context])) {
+            return;
+        }
+
+        if ($context instanceof AmqpLibContext) {
+            $context->getLibChannel()->tx_commit();
+        } elseif ($context instanceof AmqpExtContext) {
+            $context->getExtChannel()->commitTransaction();
+        }
     }
 
     public function isRunningInTransaction(): bool
     {
-        return $this->isRunningTransaction;
+        return $this->runningTransaction()->isRaised;
+    }
+
+    private function runningTransaction(): ExecutionFlag
+    {
+        return ExecutionScope::stateOf($this, static fn () => new ExecutionFlag(false));
     }
 }

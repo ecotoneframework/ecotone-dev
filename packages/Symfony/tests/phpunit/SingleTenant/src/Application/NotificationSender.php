@@ -6,7 +6,7 @@ namespace Symfony\App\SingleTenant\Application;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Dbal\Attribute\CurrentConnection;
 
 /**
  * licence Apache-2.0
@@ -20,7 +20,7 @@ final class NotificationSender
 
     #[QueryHandler('getNotificationsCount')]
     public function getNotifications(
-        #[Reference] Connection $connection
+        #[CurrentConnection] Connection $connection
     ): int {
         return (int)$connection->executeQuery('SELECT COUNT(customer_id) AS count FROM customer_notifications')->fetchOne();
     }

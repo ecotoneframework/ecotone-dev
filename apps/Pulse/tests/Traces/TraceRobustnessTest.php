@@ -179,7 +179,7 @@ final class TraceRobustnessTest extends ReleasingWebTestCase
     {
         $this->configurePulseWithServices('orders', 'billing', 'shipping');
         $client = $this->pulseWebClient();
-        $snapshot = json_encode(['schemaVersion' => 1, 'serviceName' => 'orders', 'overview' => [], 'tracing' => ['storage' => 'dbal', 'retention' => 604800, 'statsWindow' => 1000, 'flowTypes' => []], ...($deadLetters === [] ? [] : ['deadLetters' => ['total' => count($deadLetters), 'groups' => [], 'recent' => $deadLetters]])], JSON_THROW_ON_ERROR);
+        $snapshot = json_encode(['schemaVersion' => 2, 'serviceName' => 'orders', 'overview' => [], 'tracing' => ['storage' => 'dbal', 'retention' => 604800, 'statsWindow' => 1000, 'flowTypes' => []], ...($deadLetters === [] ? [] : ['deadLetters' => ['total' => count($deadLetters), 'groups' => [], 'recent' => $deadLetters]])], JSON_THROW_ON_ERROR);
         $trace = json_encode(['queryId' => 'QUERY_ID', 'traceId' => self::TRACE, 'totalSpans' => $totalSpans ?? count($spans), 'truncated' => $truncated, 'spans' => $spans], JSON_THROW_ON_ERROR);
         $handler = new class ($snapshot, $trace) {
             public function __construct(private string $snapshot, private string $trace)

@@ -16,12 +16,14 @@ use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\Pulse\PulseSnapshotRequest;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Modelling\Config\DatabaseTransaction\CommandsWithoutDatabaseTransaction;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
 use Exception;
 use Throwable;
+use WeakMap;
 
 /**
  * Class DbalTransactionInterceptor
@@ -33,12 +35,16 @@ use Throwable;
  */
 class DbalTransactionInterceptor
 {
+    /** @var WeakMap<Connection, object> */
+    private WeakMap $executionsHoldingTransaction;
+
     /**
      * @param array<string, CachedConnectionFactory> $connectionFactories
      * @param string[] $disableTransactionOnAsynchronousEndpoints
      */
     public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private CommandsWithoutDatabaseTransaction $commandsWithoutDatabaseTransaction, private TransactionReconnectProtection $transactionReconnectProtection)
     {
+        $this->executionsHoldingTransaction = new WeakMap();
     }
 
     public function transactional(MethodInvocation $methodInvocation, Message $message, ?DbalTransaction $DbalTransaction, ?PollingMetadata $pollingMetadata, ?WithoutDatabaseTransaction $withoutDatabaseTransaction = null)
@@ -71,6 +77,8 @@ class DbalTransactionInterceptor
 
             foreach ($possibleConnections as $connectionReferenceName => $connection) {
                 if ($connection->isTransactionActive()) {
+                    $this->refuseTransactionOpenedByAnotherExecution($connectionReferenceName, $connection);
+
                     continue;
                 }
 
@@ -99,6 +107,7 @@ class DbalTransactionInterceptor
         }
         foreach ($connections as $connection) {
             $this->enterTransactionBoundary($connection);
+            $this->executionsHoldingTransaction[$connection] = ExecutionScope::current();
         }
 
         $transactionStarted = $connections !== [];
@@ -133,6 +142,7 @@ class DbalTransactionInterceptor
         } finally {
             foreach ($connections as $connection) {
                 self::leaveTransactionBoundary($connection);
+                unset($this->executionsHoldingTransaction[$connection]);
             }
             if ($transactionStarted) {
                 $this->transactionStatusTracker->markAsOutsideTransaction();
@@ -140,6 +150,22 @@ class DbalTransactionInterceptor
         }
 
         return $result;
+    }
+
+    private function refuseTransactionOpenedByAnotherExecution(string $connectionReferenceName, Connection $connection): void
+    {
+        $executionHoldingTransaction = $this->executionsHoldingTransaction[$connection] ?? null;
+        if ($executionHoldingTransaction === null || $executionHoldingTransaction === ExecutionScope::current()) {
+            return;
+        }
+
+        throw ConfigurationException::create(
+            "Database connection `{$connectionReferenceName}` is already inside a transaction opened by another execution of this process (a coroutine or a fiber running concurrently, or one the handler holding the transaction started). "
+            . 'Two executions on one connection share one transaction: a rollback of either one discards what the other stored. '
+            . 'Ecotone gives every concurrent execution its own connection when it can open one itself: register the connection from a DSN (new Ecotone\\Api\\Dbal\\DbalConnectionFactory($dsn)), register a Symfony DBAL connection with SymfonyConnectionReference::defaultConnection() or ::createForConnection(), or hand an existing connection over with Ecotone\\Api\\Dbal\\DbalConnection::createWithCopiesForConcurrentExecutions($connection); the last two work on copies of that connection. '
+            . 'A Doctrine ManagerRegistry and a Laravel or Tempest database connection stay a single connection for the whole process, so with them handle one message at a time per process: in Swoole or OpenSwoole set `enable_coroutine` to false (the default of Laravel Octane), and do not begin a transaction from a coroutine or fiber the handler starts. '
+            . 'Running without a database transaction (#[WithoutDatabaseTransaction], or DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false), ->withTransactionOnAsynchronousEndpoints(false) or ->withTransactionOnConsoleCommands(false)) removes this refusal but not the cause: the executions still share the connection, their writes are no longer atomic, and MySQL refuses their concurrent queries.',
+        );
     }
 
     private function refuseConnectionWithoutReconnectProtection(string $connectionReferenceName, Connection $connection): void

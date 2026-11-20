@@ -7,11 +7,11 @@ namespace Ecotone\Api\Dbal;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Ecotone\Dbal\Connection\ConnectionPool;
 use Ecotone\Dbal\Connection\DbalContext;
 use Exception;
 use Interop\Queue\Context;
 use LogicException;
-use Throwable;
 
 /**
  * licence MIT
@@ -24,10 +24,7 @@ class DbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
      */
     private $config;
 
-    /**
-     * @var Connection
-     */
-    private $connection;
+    private ConnectionPool $connectionPool;
 
     /**
      * The config could be an array, string DSN or null. In case of null it will attempt to connect to mysql localhost with default credentials.
@@ -37,6 +34,7 @@ class DbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
      *   'table_name' => 'enqueue',     - database table name.
      *   'polling_interval' => '1000',  - How often query for new messages (milliseconds)
      *   'lazy' => true,                - Use lazy database connection (boolean)
+     *   'connection_pool_size' => 10,  - How many connections one process opens at most, one per execution running concurrently (coroutine or fiber)
      * ]
      *
      * or
@@ -65,7 +63,13 @@ class DbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
             'table_name' => 'enqueue',
             'polling_interval' => 1000,
             'lazy' => true,
+            'connection_pool_size' => ConnectionPool::DEFAULT_SIZE,
         ], $config);
+        $this->connectionPool = new ConnectionPool(
+            connect: $this->connect(...),
+            size: (int) $this->config['connection_pool_size'],
+            connectionName: sprintf('%s://%s/%s', $this->config['connection']['driver'] ?? 'unknown', $this->config['connection']['host'] ?? 'localhost', $this->config['connection']['dbname'] ?? $this->config['connection']['path'] ?? ''),
+        );
     }
 
     /**
@@ -84,28 +88,25 @@ class DbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 
     public function close(): void
     {
-        if ($this->connection) {
-            try {
-                $this->connection->close();
-            } catch (Throwable $e) {
-            }
-
-            $this->connection = null;
-        }
+        $this->connectionPool->closeIdleConnections();
+        $this->connectionPool->closeConnectionOfCurrentExecution();
     }
 
     public function establishConnection(): Connection
     {
-        if (false == $this->connection) {
-            $this->connection = DriverManager::getConnection($this->config['connection'], (new Configuration())->setMiddlewares([new TransactionReconnectProtectionMiddleware()]));
+        return $this->connectionPool->connectionOfCurrentExecution();
+    }
 
-            try {
-                $this->connection->getNativeConnection();
-            } catch (Exception $e) {
-            }
+    private function connect(): Connection
+    {
+        $connection = DriverManager::getConnection($this->config['connection'], (new Configuration())->setMiddlewares([new TransactionReconnectProtectionMiddleware()]));
+
+        try {
+            $connection->getNativeConnection();
+        } catch (Exception $e) {
         }
 
-        return $this->connection;
+        return $connection;
     }
 
     private function parseDsn(string $dsn, ?array $config = null): array

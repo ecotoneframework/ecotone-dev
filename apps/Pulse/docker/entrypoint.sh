@@ -85,6 +85,14 @@ keep_running() {
     done
 }
 
+use_runtime() {
+    runtime="${PULSE_RUNTIME:-php}"
+    if [ "$runtime" = swoole ] && ! php -r 'exit(extension_loaded("openswoole") ? 0 : 1);'; then
+        echo "PULSE_RUNTIME is \"swoole\", but this PHP has no OpenSwoole extension loaded. Install and enable ext-openswoole in the image, or unset PULSE_RUNTIME to serve Pulse with FrankenPHP." >&2
+        exit 1
+    fi
+}
+
 run_pulse() {
     stopping=0
     pids=()
@@ -96,7 +104,11 @@ run_pulse() {
         exit 0
     fi
     php bin/console pulse:banner >&2
-    frankenphp run --config /etc/caddy/Caddyfile &
+    if [ "$runtime" = swoole ]; then
+        php bin/openswoole-server.php &
+    else
+        frankenphp run --config /etc/caddy/Caddyfile &
+    fi
     pids+=($!)
     reply_channels=()
     index=0
@@ -104,9 +116,16 @@ run_pulse() {
         [ -z "$channel" ] && continue
         label="consumer.$index"
         reply_channels+=("$label=$channel")
-        keep_running "$label" php bin/console ecotone:run "$channel" \
-            --memoryLimit="${PULSE_WORKER_MEMORY_LIMIT:-256}" \
-            --executionTimeLimit="${PULSE_WORKER_TIME_LIMIT_MS:-3600000}" &
+        if [ "$runtime" = swoole ]; then
+            keep_running "$label" php bin/console ecotone:run "$channel" \
+                --coroutines="${PULSE_CONSUMER_COROUTINES:-6}" \
+                --memoryLimit="${PULSE_WORKER_MEMORY_LIMIT:-256}" \
+                --executionTimeLimit="${PULSE_WORKER_TIME_LIMIT_MS:-3600000}" &
+        else
+            keep_running "$label" php bin/console ecotone:run "$channel" \
+                --memoryLimit="${PULSE_WORKER_MEMORY_LIMIT:-256}" \
+                --executionTimeLimit="${PULSE_WORKER_TIME_LIMIT_MS:-3600000}" &
+        fi
         pids+=($!)
         index=$(( index + 1 ))
     done < <(php bin/console pulse:reply-channels)
@@ -129,6 +148,7 @@ run_pulse() {
 case "${1:-run}" in
     run)
         prepare_application_secret
+        use_runtime
         run_pulse
         ;;
     *)

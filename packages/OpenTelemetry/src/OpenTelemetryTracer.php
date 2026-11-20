@@ -15,6 +15,7 @@ use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanRecorder;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Tracing\ActiveSpan;
 use Ecotone\Tracing\Tracer;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
@@ -30,11 +31,6 @@ final class OpenTelemetryTracer implements Tracer
 {
     public const ECOTONE_TRACER_NAME = 'io.opentelemetry.contrib.php.ecotone';
 
-    /** @var OpenTelemetryActiveSpan[] */
-    private array $activeSpans = [];
-    /** @var array<string, OpenTelemetryActiveSpan> */
-    private array $detachedSpans = [];
-
     public function __construct(
         private TracerProviderInterface $tracerProvider,
         private EcotoneClockInterface $clock,
@@ -46,7 +42,7 @@ final class OpenTelemetryTracer implements Tracer
     {
         $spanBuilder = $this->spanBuilderFor($name, $kind, $attributes);
         if ($remoteParent !== null) {
-            $spanBuilder->setParent(($this->detachedSpans[$remoteParent->spanId] ?? null)?->asParent() ?? self::remoteContextOf($remoteParent));
+            $spanBuilder->setParent(($this->spans()->detached[$remoteParent->spanId] ?? null)?->asParent() ?? self::remoteContextOf($remoteParent));
         }
 
         $this->currentSpan()?->childStarted();
@@ -65,20 +61,20 @@ final class OpenTelemetryTracer implements Tracer
             ->setParent($parent === null ? false : ($this->openSpanWithId($parent->spanId)?->asParent() ?? self::remoteContextOf($parent)))
             ->setStartTimestamp((int) $startedAt->format('U') * 1_000_000_000 + $startedAt->getMicrosecond() * 1_000);
         $span = $this->spanOf(spanBuilder: $spanBuilder, name: $name, kind: $kind, attributes: $attributes, parentContext: $parent, startedAt: $startedAt, activated: false);
-        $this->detachedSpans[$span->context()->spanId] = $span;
+        $this->spans()->detached[$span->context()->spanId] = $span;
 
         return $span;
     }
 
     private function openSpanWithId(string $spanId): ?OpenTelemetryActiveSpan
     {
-        foreach ($this->activeSpans as $activeSpan) {
+        foreach ($this->spans()->active as $activeSpan) {
             if ($activeSpan->context()->spanId === $spanId) {
                 return $activeSpan;
             }
         }
 
-        return $this->detachedSpans[$spanId] ?? null;
+        return $this->spans()->detached[$spanId] ?? null;
     }
 
     private static function remoteContextOf(SpanContext $parent): ContextInterface
@@ -104,7 +100,7 @@ final class OpenTelemetryTracer implements Tracer
     private function start(SpanBuilderInterface $spanBuilder, string $name, SpanKind $kind, array $attributes, ?SpanContext $parentContext): ActiveSpan
     {
         $activeSpan = $this->spanOf(spanBuilder: $spanBuilder, name: $name, kind: $kind, attributes: $attributes, parentContext: $parentContext, startedAt: $this->clock->now(), activated: true);
-        $this->activeSpans[] = $activeSpan;
+        $this->spans()->active[] = $activeSpan;
 
         return $activeSpan;
     }
@@ -138,7 +134,7 @@ final class OpenTelemetryTracer implements Tracer
 
     public function currentSpan(): ?ActiveSpan
     {
-        return $this->activeSpans[count($this->activeSpans) - 1] ?? null;
+        return $this->spans()->active[count($this->spans()->active) - 1] ?? null;
     }
 
     public function currentApplicationSpan(): ?ActiveSpan
@@ -148,11 +144,11 @@ final class OpenTelemetryTracer implements Tracer
 
     public function endSpan(OpenTelemetryActiveSpan $activeSpan, Span $span): void
     {
-        $position = array_search($activeSpan, $this->activeSpans, true);
+        $position = array_search($activeSpan, $this->spans()->active, true);
         if ($position !== false) {
-            array_splice($this->activeSpans, $position, 1);
+            array_splice($this->spans()->active, $position, 1);
         }
-        unset($this->detachedSpans[$span->spanId]);
+        unset($this->spans()->detached[$span->spanId]);
 
         $this->spanRecorder->record($span);
     }
@@ -166,5 +162,10 @@ final class OpenTelemetryTracer implements Tracer
             SpanKind::Producer => OpenTelemetrySpanKind::KIND_PRODUCER,
             SpanKind::Consumer => OpenTelemetrySpanKind::KIND_CONSUMER,
         };
+    }
+
+    private function spans(): OpenTelemetrySpansOfExecution
+    {
+        return ExecutionScope::stateOf($this, static fn () => new OpenTelemetrySpansOfExecution());
     }
 }

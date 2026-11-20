@@ -56,4 +56,9 @@ final class PulseSetupStatus implements PulseSnapshotSection
 
         return ['tables' => $tables];
     }
+
+    public function revision(): ?string
+    {
+        return null;
+    }
 }

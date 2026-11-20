@@ -35,6 +35,8 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
         $alone = $this->consumedOn(coroutines: 1);
         $atOnce = $this->consumedOn(coroutines: 4);
 
+        self::assertCount(8, $atOnce['processes']);
+        self::assertCount(8, $atOnce['traces']);
         self::assertSame($alone['processes'], $atOnce['processes']);
         self::assertSame($alone['traces'], $atOnce['traces']);
         self::assertSame($alone['outcome'], $atOnce['outcome']);

@@ -235,6 +235,7 @@ jobs:
         packages/Ecotone/tests/Messaging/Execution/CoroutineTestingTest.php
         packages/Ecotone/tests/Tracing/CoroutineExecutionRecordingTest.php
         packages/Dbal/tests/Integration/CoroutineExecutionsTest.php
+        packages/Dbal/tests/Integration/CoroutineExecutionRecordingTest.php
         packages/Amqp/tests/Integration/CoroutineExecutionsTest.php
     steps:
     - name: PHP 8.5 with OpenSwoole

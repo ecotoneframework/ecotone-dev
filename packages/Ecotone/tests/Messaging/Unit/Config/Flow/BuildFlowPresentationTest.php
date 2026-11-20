@@ -151,6 +151,15 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertMatchesRegularExpression('/^\*\*Sub-flow · process 2 of 2\*\* · sent by process 1 · unchanged · (\d+) steps\n`receive notifications, class@anonymous::whenPlaced`\n\n… \1 unchanged steps$/m', $markdown);
     }
 
+    public function test_the_build_presentation_names_every_changed_scenario_with_how_many_of_its_processes_changed_right_under_the_summary(): void
+    {
+        $this->recordAnOrderThatGainsAnAudit('Placing an order');
+
+        $markdown = $this->presentation('build');
+
+        self::assertStringStartsWith("## Message flow: what changed\n\n1 of 1 scenario changes its message path.\n\n- `Placing an order`: 1 of 2 processes changed\n\n", $markdown);
+    }
+
     public function test_the_build_presentation_lists_a_process_that_no_longer_runs_with_its_number_before(): void
     {
         $synchronous = new class () {

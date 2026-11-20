@@ -66,7 +66,26 @@ final class FlowComparisonMarkdown
         );
         $tree = FlowBuildTree::of($comparison);
 
-        return $title . $summary . "\n\n" . implode("\n", array_filter([$tree, ...$sections]));
+        $changedScenarios = $presentation === self::BUILD_VIEW ? self::changedScenariosOf($pathGroups) : '';
+
+        return $title . $summary . "\n\n" . $changedScenarios . implode("\n", array_filter([$tree, ...$sections]));
+    }
+
+    /**
+     * @param list<array{scenarios: list<string>, change: FlowScenarioChange}> $groups
+     */
+    private static function changedScenariosOf(array $groups): string
+    {
+        $lines = [];
+        foreach ($groups as $group) {
+            $processes = $group['change']->execution === [] ? array_map(fn (array $process): array => ['change' => FlowScenarioChange::UNCHANGED], $group['change']->after->execution) : $group['change']->execution;
+            $changed = count(array_filter($processes, fn (array $process): bool => $process['change'] !== FlowScenarioChange::UNCHANGED));
+            foreach ($group['scenarios'] as $scenario) {
+                $lines[] = '- `' . $scenario . '`: ' . $changed . ' of ' . count($processes) . ' process' . (count($processes) === 1 ? '' : 'es') . ' changed';
+            }
+        }
+
+        return $lines === [] ? '' : implode("\n", $lines) . "\n\n";
     }
 
     private static function stepsOfEveryProcess(FlowScenarioChange $change): string

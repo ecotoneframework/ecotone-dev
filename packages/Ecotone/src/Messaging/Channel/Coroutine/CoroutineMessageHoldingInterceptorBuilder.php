@@ -41,7 +41,7 @@ final class CoroutineMessageHoldingInterceptorBuilder implements ChannelIntercep
 
     public function getPrecedence(): int
     {
-        return PrecedenceChannelInterceptor::TRACING_PRECEDENCE + 1;
+        return PrecedenceChannelInterceptor::MESSAGE_SERIALIZATION + 1;
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition

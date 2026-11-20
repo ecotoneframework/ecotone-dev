@@ -17,6 +17,10 @@ use PHPUnit\Framework\Attributes\RequiresMethod;
 use PHPUnit\Framework\TestCase;
 use Swoole\Coroutine;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
 use Stringable;
@@ -158,6 +162,46 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(['accepted'], $handler->handled);
         $this->assertNotEmpty($logger->errors);
         $this->assertStringContainsString('failed-tenant', json_encode($logger->errors));
+    }
+
+    public function test_sending_outside_a_coroutine_is_refused(): void
+    {
+        $ecotone = $this->bootstrap_channel();
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Coroutine channel `async` cannot send outside a coroutine. Run the application on Swoole or OpenSwoole with coroutines enabled, or register another message channel builder under `async`.');
+
+        $ecotone->sendCommandWithRouting('handle', 'payload');
+    }
+
+
+    public function test_polling_concurrency_is_refused_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Coroutine channel `async` is consumed in the process that sent the message. Remove PollingMetadata::withCoroutines() for `async` and set its concurrency with CoroutineMessageChannelBuilder::withCoroutines() instead.');
+
+        $this->bootstrap_channel([PollingMetadata::create('async')->withCoroutines(2)]);
+    }
+
+
+    public function test_starting_a_consumer_is_refused(): void
+    {
+        $ecotone = $this->bootstrap_channel();
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Coroutine channel `async` is consumed in the process that sent the message. Do not start it with ecotone:run or ConfiguredMessagingSystem::run(); send to its asynchronous handlers instead, and set concurrency with CoroutineMessageChannelBuilder::withCoroutines().');
+
+        $ecotone->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+    }
+
+    private function bootstrap_channel(array $extensions = []): FlowTestSupport
+    {
+        $handler = new class {
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+        return EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), ...$extensions], licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
 }

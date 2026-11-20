@@ -52,14 +52,14 @@ final class CoroutineMessageChannel extends QueueChannel
         $this->consumers++;
         Coroutine::create(function (): void {
             try {
-                /** @var InterceptedConsumerRunner $runner */
+                /** @var CoroutineChannelConsumer $runner */
                 $runner = $this->container->get((string) new EndpointRunnerReference($this->name));
                 ConsumerCoroutines::consume(
                     endpointId: $this->name,
                     coroutines: 1,
                     drainsAQueue: true,
                     streamsConsumed: [],
-                    createConsumer: static fn (): ConsumerLifecycle => $runner->createConsumer(ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withStopOnError(false)),
+                    createConsumer: static fn (): ConsumerLifecycle => $runner->createConsumer(),
                 );
             } finally {
                 $this->consumers--;

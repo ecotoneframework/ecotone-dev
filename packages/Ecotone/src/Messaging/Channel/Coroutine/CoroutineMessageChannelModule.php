@@ -16,6 +16,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeInterceptorBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -57,6 +58,7 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
     {
         $channels = ExtensionObjectResolver::resolve(CoroutineMessageChannelBuilder::class, $extensionObjects);
         if ($channels !== []) {
+            $messagingConfiguration->addCompilerPass(new CoroutineChannelConsumerRegistration(array_map(static fn (CoroutineMessageChannelBuilder $channel) => $channel->messageChannelName, $channels)));
             $messagingConfiguration->registerServiceDefinition(CoroutineMessageFailureLogger::class, new Definition(CoroutineMessageFailureLogger::class, [array_map(static fn (CoroutineMessageChannelBuilder $channel) => $channel->messageChannelName, $channels), new Reference(LoggingGateway::class)]));
             $messagingConfiguration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
                 CoroutineMessageFailureLogger::class,
@@ -73,6 +75,11 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
             ));
         }
         foreach ($channels as $channel) {
+            foreach (ExtensionObjectResolver::resolve(PollingMetadata::class, $extensionObjects) as $pollingMetadata) {
+                if ($pollingMetadata->getEndpointId() === $channel->messageChannelName && $pollingMetadata->coroutines > 1) {
+                    throw ConfigurationException::create("Coroutine channel `{$channel->messageChannelName}` is consumed in the process that sent the message. Remove PollingMetadata::withCoroutines() for `{$channel->messageChannelName}` and set its concurrency with CoroutineMessageChannelBuilder::withCoroutines() instead.");
+                }
+            }
             $messagingConfiguration->registerChannelInterceptor(new CoroutineMessageHoldingInterceptorBuilder($channel->messageChannelName));
             $messagingConfiguration->registerChannelInterceptor(new InMemoryQueueAcknowledgeInterceptorBuilder($channel->messageChannelName, FinalFailureStrategy::IGNORE, true));
             if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {

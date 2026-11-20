@@ -36,7 +36,7 @@ final class DbalConnection
         );
     }
 
-    public static function createWithCopiesForConcurrentExecutions(Connection $connection, int $connectionPoolSize = ConnectionPool::DEFAULT_SIZE, float $connectionPoolWaitSeconds = ConnectionPool::DEFAULT_SECONDS_WAITING_FOR_A_CONNECTION): ConnectionFactory
+    public static function createWithCopiesForConcurrentExecutions(Connection $connection, int $connectionPoolSize = ConnectionPool::DEFAULT_SIZE, float $connectionPoolWaitSeconds = ConnectionPool::DEFAULT_WAIT_SECONDS): ConnectionFactory
     {
         return AlreadyConnectedDbalConnectionFactory::withCopiesForConcurrentExecutions($connection, $connectionPoolSize, $connectionPoolWaitSeconds);
     }

@@ -309,10 +309,18 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
         new DbalConnectionFactory(['dsn' => self::databaseDsn(), 'connection_pool_size' => 0]);
     }
 
+    public function test_connection_pool_wait_that_is_not_a_number_is_refused(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("`connection_pool_wait_seconds` is '5s', but it is a number of seconds. Pass a number, 0 to fail at once when every connection is in use, or leave it out for the default of 5 seconds.");
+
+        new DbalConnectionFactory(['dsn' => self::databaseDsn(), 'connection_pool_wait_seconds' => '5s']);
+    }
+
     public function test_negative_connection_pool_wait_is_refused(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Connection pool wait is -1 seconds, but a wait cannot be negative. Pass 0 as `connection_pool_wait_seconds` to fail at once when every connection is in use, a number of seconds to wait for one, or leave it out for the default of 5 seconds: new Ecotone\\Api\\Dbal\\DbalConnectionFactory(['dsn' => \$dsn, 'connection_pool_wait_seconds' => 5]).");
+        $this->expectExceptionMessage("Connection pool wait is -1 seconds, but a wait cannot be negative. Pass 0 to fail at once when every connection is in use, a number of seconds to wait for one, or leave it out for the default of 5 seconds: `connection_pool_wait_seconds` of new Ecotone\\Api\\Dbal\\DbalConnectionFactory(['dsn' => \$dsn, 'connection_pool_wait_seconds' => 5]), or `connectionPoolWaitSeconds:` of DbalConnection::createWithCopiesForConcurrentExecutions().");
 
         new DbalConnectionFactory(['dsn' => self::databaseDsn(), 'connection_pool_wait_seconds' => -1]);
     }

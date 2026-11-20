@@ -15,7 +15,7 @@ final class ConnectionPoolExhausted extends RuntimeException
     {
         $waited = match (true) {
             $waitedSeconds === null => 'and none was returned',
-            $waitedSeconds <= 0.0 => 'and the pool is set not to wait for one (`connection_pool_wait_seconds` is 0)',
+            $waitedSeconds <= 0.0 => 'and the pool is set not to wait for one (a wait of 0 seconds)',
             default => "and none was returned within {$waitedSeconds} seconds",
         };
 

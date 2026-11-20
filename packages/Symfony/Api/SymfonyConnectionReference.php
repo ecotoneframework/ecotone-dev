@@ -46,11 +46,11 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
     public static function createForConnection(string $connectionName, ?string $referenceName = null, int $connectionPoolSize = self::DEFAULT_CONNECTION_POOL_SIZE, float $connectionPoolWaitSeconds = self::DEFAULT_CONNECTION_POOL_WAIT_SECONDS): self
     {
         return new self(
-            $referenceName ?? $connectionName . '.' . Uuid::v7()->toRfc4122(),
-            null,
-            $connectionName,
-            $connectionPoolSize,
-            $connectionPoolWaitSeconds,
+            referenceName: $referenceName ?? $connectionName . '.' . Uuid::v7()->toRfc4122(),
+            managerRegistryReference: null,
+            connectionName: $connectionName,
+            connectionPoolSize: $connectionPoolSize,
+            connectionPoolWaitSeconds: $connectionPoolWaitSeconds,
         );
     }
 
@@ -83,7 +83,7 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
         if ($connectionPoolWaitSeconds < 0) {
             throw ConfigurationException::create(
                 "Connection pool wait for `{$this->connectionName}` is {$connectionPoolWaitSeconds} seconds, but a wait cannot be negative. "
-                . 'Pass 0 to withConnectionPoolWaitSeconds() to fail at once when every connection is in use, a number of seconds to wait for one, or leave it out for the default of 5 seconds.'
+                . 'Pass 0 to withConnectionPoolWaitSeconds() to fail at once when every connection is in use, a number of seconds to wait for one, or leave it out for the default of ' . self::DEFAULT_CONNECTION_POOL_WAIT_SECONDS . ' seconds.'
             );
         }
 

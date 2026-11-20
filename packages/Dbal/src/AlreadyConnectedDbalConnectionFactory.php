@@ -36,7 +36,7 @@ final class AlreadyConnectedDbalConnectionFactory implements \Ecotone\Enqueue\Co
             connect: static fn (): Connection => DriverManager::getConnection($parameters, $connection->getConfiguration()),
             size: $connectionPoolSize,
             connectionName: sprintf('%s://%s/%s', $parameters['driver'] ?? $parameters['driverClass'] ?? 'unknown', $parameters['host'] ?? 'localhost', $parameters['dbname'] ?? $parameters['path'] ?? ''),
-            secondsWaitingForAConnection: $connectionPoolWaitSeconds,
+            connectionPoolWaitSeconds: $connectionPoolWaitSeconds,
         );
 
         return $connectionFactory;

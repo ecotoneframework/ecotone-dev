@@ -120,7 +120,7 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertStringStartsWith("sequenceDiagram\n", $diagrams[0]);
     }
 
-    public function test_the_build_presentation_draws_the_message_path_first_and_the_changed_wiring_collapsed_under_it(): void
+    public function test_the_build_presentation_draws_the_message_path_before_the_changed_wiring_collapsed_under_it(): void
     {
         $this->recordAnOrderThatGainsAnAudit('Placing an order');
 
@@ -139,6 +139,78 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertIsInt($wiringDiagram);
         self::assertLessThan($collapsed, $path);
         self::assertLessThan(strpos($markdown, "</details>\n", $wiringDiagram), $wiringDiagram);
+    }
+
+    public function test_the_build_presentation_lists_every_process_in_run_order_with_its_status_and_step_count(): void
+    {
+        $this->recordAnOrderThatGainsAnAudit('Placing an order');
+
+        $markdown = $this->presentation('build');
+
+        self::assertMatchesRegularExpression('/^\*\*Flow · process 1 of 2\*\* · \d+ new steps, 1 step gone · \d+ → \d+ steps\n`send command order\.place, class@anonymous::place`\nRuns other steps now\.$/m', $markdown);
+        self::assertMatchesRegularExpression('/^\*\*Sub-flow · process 2 of 2\*\* · sent by process 1 · unchanged · (\d+) steps\n`receive notifications, class@anonymous::whenPlaced`\n\n… \1 unchanged steps$/m', $markdown);
+    }
+
+    public function test_the_build_presentation_lists_a_process_that_no_longer_runs_with_its_number_before(): void
+    {
+        $synchronous = new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', []);
+            }
+
+            #[EventHandler('order.placed', endpointId: 'whenOrderWasPlaced')]
+            public function whenPlaced(): void
+            {
+            }
+        };
+        $this->record('Placing an order', 'before', $this->ordering());
+        $this->record('Placing an order', 'after', $synchronous);
+
+        $markdown = $this->presentation('build');
+
+        self::assertMatchesRegularExpression('/^\*\*Sub-flow · process 2 of 2 before\*\* · no longer runs · (\d+) steps\n`receive notifications, class@anonymous::whenPlaced`\n\n… \1 steps no longer run$/m', $markdown);
+    }
+
+    public function test_the_build_presentation_shows_a_changed_step_under_every_step_it_runs_in_and_collapses_the_rest(): void
+    {
+        $this->recordAnOrderThatGainsAnAudit('Placing an order');
+
+        $markdown = $this->presentation('build');
+
+        preg_match('/<details open><summary>Steps of process 1<\/summary>\n\n```diff\n(.*?)```\n\n<\/details>/s', $markdown, $tree);
+        self::assertNotEmpty($tree);
+        $lines = explode("\n", rtrim($tree[1]));
+        $added = array_search('+ ' . str_repeat('  ', $this->depthOf($lines, 'route to audit.target, whenOrderWasPlaced.target')) . 'route to audit.target, whenOrderWasPlaced.target', $lines, true);
+        self::assertIsInt($added);
+        self::assertMatchesRegularExpression('/^  \S/', $lines[0]);
+        for ($depth = $this->depthOf($lines, 'route to audit.target, whenOrderWasPlaced.target') - 1; $depth >= 0; $depth--) {
+            $ancestor = null;
+            for ($position = $added - 1; $position >= 0; $position--) {
+                if (preg_match('/^  ' . str_repeat('  ', $depth) . '(?! )(?!… )(?!↳ )\S/', $lines[$position]) === 1) {
+                    $ancestor = $lines[$position];
+                    break;
+                }
+            }
+            self::assertNotNull($ancestor, 'depth ' . $depth);
+        }
+        self::assertContains('+ ' . str_repeat('  ', $this->depthOf($lines, 'route to audit.target, whenOrderWasPlaced.target') + 1) . '↳ chosen by: name order.placed', $lines);
+        self::assertMatchesRegularExpression('/^  ( {2})*… \d+ unchanged steps?$/m', $tree[1]);
+    }
+
+    public function test_the_build_presentation_puts_what_ran_before_the_message_path_and_the_collapsed_wiring(): void
+    {
+        $this->recordAnOrderThatGainsAnAudit('Placing an order');
+
+        $markdown = $this->presentation('build');
+
+        $whatRan = strpos($markdown, "#### What ran, process by process\n");
+        $path = strpos($markdown, "#### The message's path\n");
+        $wiring = strpos($markdown, '<details><summary>Marked wiring and traced spans</summary>');
+        self::assertIsInt($whatRan);
+        self::assertLessThan($path, $whatRan);
+        self::assertLessThan($wiring, $path);
     }
 
     public function test_every_presentation_keeps_each_diagram_within_fifteen_nodes_and_says_what_it_left_out(): void
@@ -345,5 +417,16 @@ final class BuildFlowPresentationTest extends TestCase
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+
+    private function depthOf(array $lines, string $label): int
+    {
+        foreach ($lines as $line) {
+            if (preg_match('/^[+\- ] ((?:  )*)' . preg_quote($label, '/') . '$/', $line, $match) === 1) {
+                return intdiv(strlen($match[1]), 2);
+            }
+        }
+
+        return -1;
     }
 }

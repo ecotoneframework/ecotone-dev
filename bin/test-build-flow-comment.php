@@ -69,24 +69,42 @@ $cases = [
             [str_contains($comment['body'], "```mermaid\nflowchart LR\n  a --> b\n```"), 'the small diagram stays'],
         ]);
     },
-    'over the limit, a scenario is cut after its message path diagram, never inside or before it' => function (): ?string {
+    'over the limit, a scenario keeps whole processes of what ran from the top and is cut between two of them, never inside a tree' => function (): ?string {
         $scenarios = [];
         for ($index = 1; $index <= 6; $index++) {
-            $scenarios[] = pathScenario('scenario ' . $index, str_repeat('y', 2_000), str_repeat('z', 13_000));
+            $scenarios[] = pathScenario('scenario ' . $index, str_repeat('y', 100), processBlocks(5, str_repeat('p', 2_500)));
         }
         $result = run(comparison(...$scenarios));
         $comment = read($result['output']);
         preg_match_all('/^### `scenario (\d+)`$/m', $comment['body'], $shown);
         $last = (int) end($shown[1]);
+        $lastScenario = substr($comment['body'], (int) strpos($comment['body'], "### `scenario {$last}`"));
+        preg_match('/The rest of `scenario ' . $last . '`, from process (\d+) of what ran on, is left out/', $lastScenario, $cut);
 
         return expectAll([
             [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
-            [mb_strlen($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . mb_strlen($comment['body'])],
-            [substr_count($comment['body'], "```mermaid\n") === count($shown[1]), 'every shown scenario shows its diagram'],
-            [substr_count($comment['body'], str_repeat('y', 2_000)) === count($shown[1]), 'no diagram cut in the middle'],
-            [substr_count($comment['body'], str_repeat('z', 13_000)) === count($shown[1]) - 1, 'only the text after the diagram of the last shown scenario is left out'],
-            [str_contains($comment['body'], "The rest of `scenario {$last}`, its wiring and what ran, is left out"), 'says what of the last scenario is left out'],
+            [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . utf16Length($comment['body'])],
+            [$cut !== [], 'says from which process of the last scenario what ran is left out'],
+            [$cut !== [] && substr_count($lastScenario, '<details open>') === (int) $cut[1] - 1, 'the processes before the cut are shown whole'],
+            [substr_count($comment['body'], str_repeat('p', 2_500)) === substr_count($comment['body'], '<details open>'), 'no tree cut in the middle'],
+            [substr_count($comment['body'], '<details') === substr_count($comment['body'], '</details>'), 'every <details> is closed'],
+            [! str_contains($lastScenario, "```mermaid\n"), 'the message path after the cut is left out with it'],
             [str_contains($comment['body'], (6 - $last) . ' of 6 changed scenarios are left out'), 'says how many scenarios were left out entirely'],
+        ]);
+    },
+    'a scenario whose processes all fit is cut before its message path when the diagram does not' => function (): ?string {
+        $scenarios = [];
+        for ($index = 1; $index <= 6; $index++) {
+            $scenarios[] = pathScenario('scenario ' . $index, str_repeat("  a->>b: step\n", 900), processBlocks(1, str_repeat('p', 100)));
+        }
+        $comment = read(run(comparison(...$scenarios))['output']);
+        preg_match_all('/^### `scenario (\d+)`$/m', $comment['body'], $shown);
+        $last = (int) end($shown[1]);
+
+        return expectAll([
+            [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters'],
+            [substr_count($comment['body'], "```mermaid\n") === substr_count($comment['body'], str_repeat("  a->>b: step\n", 900)), 'no diagram cut in the middle'],
+            [str_contains($comment['body'], "The rest of `scenario {$last}`, from its message path on, is left out") || str_contains($comment['body'], "The rest of `scenario {$last}`, from its wiring on, is left out"), 'says the message path or the wiring is left out'],
         ]);
     },
     'the build tree opens the comment and is not taken for a scenario' => function (): ?string {
@@ -250,7 +268,17 @@ function scenario(string $name, string $content): string
 
 function pathScenario(string $name, string $diagram, string $whatRan, string $wiring = "Unchanged.\n"): string
 {
-    return "### `{$name}`\n\nNow: it changed.\n\n#### The message's path\n\n```mermaid\nsequenceDiagram\n{$diagram}\n```\n\n<details><summary>Marked wiring and traced spans</summary>\n\n#### Wiring\n\n{$wiring}\n</details>\n\n#### What ran, process by process\n\n{$whatRan}\n";
+    return "### `{$name}`\n\nNow: it changed.\n\n#### What ran, process by process\n\n{$whatRan}\n\n#### The message's path\n\n```mermaid\nsequenceDiagram\n{$diagram}\n```\n\n<details><summary>Marked wiring and traced spans</summary>\n\n#### Wiring\n\n{$wiring}\n</details>\n";
+}
+
+function processBlocks(int $count, string $tree): string
+{
+    $blocks = [];
+    for ($number = 1; $number <= $count; $number++) {
+        $blocks[] = "**Flow · process {$number} of {$count}** · 1 new step · 3 → 4 steps\n`process {$number}`\n\n<details open><summary>Steps of process {$number}</summary>\n\n```diff\n+ {$tree}\n```\n\n</details>";
+    }
+
+    return implode("\n\n", $blocks);
 }
 
 function utf16Length(string $text): int

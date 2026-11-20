@@ -139,8 +139,8 @@ function commentOf(string $preamble, array $scenarios, string $runUrl): string
             $length += lengthOf($scenario);
             continue;
         }
-        $head = headWithDiagramOf($scenario, $runUrl);
-        if ($head !== null && $length + lengthOf($head) + lengthOf($footer) <= GITHUB_COMMENT_LIMIT) {
+        $head = headWithinOf($scenario, GITHUB_COMMENT_LIMIT - $length - lengthOf($footer), $runUrl);
+        if ($head !== null) {
             $shown[] = $head;
         }
         break;
@@ -150,15 +150,34 @@ function commentOf(string $preamble, array $scenarios, string $runUrl): string
     return COMMENT_MARKER . "\n" . $preamble . implode('', $shown) . leftOutNote($leftOut, count($scenarios), $runUrl);
 }
 
-function headWithDiagramOf(string $scenario, string $runUrl): ?string
+function headWithinOf(string $scenario, int $room, string $runUrl): ?string
 {
-    $ends = array_filter([strpos($scenario, "\n<details><summary>Marked wiring"), strpos($scenario, "\n#### What ran")], fn (int|false $end): bool => $end !== false);
-    if ($ends === []) {
+    $parts = preg_split('/(?=\n\*\*(?:Flow|Sub-flow) · process \d+ of \d+(?: before)?\*\*|\n#### The message\'s path\n|\n<details><summary>Marked wiring)/', $scenario);
+    if (! is_array($parts) || count($parts) < 2) {
         return null;
     }
     $name = preg_match('/\A### (.*)$/m', $scenario, $heading) === 1 ? $heading[1] : 'this scenario';
+    $kept = '';
+    foreach ($parts as $position => $part) {
+        $rest = isset($parts[$position + 1]) ? noteOfTheRest($name, $parts[$position + 1], $runUrl) : '';
+        if (lengthOf($kept . $part . $rest) > $room) {
+            return $position === 0 || lengthOf($kept . noteOfTheRest($name, $part, $runUrl)) > $room ? null : $kept . noteOfTheRest($name, $part, $runUrl);
+        }
+        $kept .= $part;
+    }
 
-    return substr($scenario, 0, min($ends)) . "\nThe rest of {$name}, its wiring and what ran, is left out to stay within GitHub's 65,536 character limit for a comment; it is in the `" . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n";
+    return null;
+}
+
+function noteOfTheRest(string $name, string $part, string $runUrl): string
+{
+    $from = match (true) {
+        preg_match('/\A\n\*\*(?:Flow|Sub-flow) · process (\d+) of/', $part, $process) === 1 => 'from process ' . $process[1] . ' of what ran on',
+        str_starts_with($part, "\n#### The message's path") => 'from its message path on',
+        default => 'from its wiring on',
+    };
+
+    return "\n\nThe rest of {$name}, {$from}, is left out to stay within GitHub's 65,536 character limit for a comment; it is in the `" . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n";
 }
 
 function leftOutNote(int $leftOut, int $all, string $runUrl): string

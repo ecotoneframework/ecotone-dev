@@ -59,14 +59,246 @@ final class FlowComparisonMarkdown
                     self::BEFORE_AFTER_PAIR => self::beforeAfterPair($group['change']),
                     self::MARKED_DIAGRAM => self::markedDiagram($group['change']),
                     self::MESSAGE_PATH => self::messagePath($group['change']),
-                    default => self::messagePath($group['change']) . "\n<details><summary>Marked wiring and traced spans</summary>\n\n" . self::markedDiagram($group['change']) . "\n</details>\n",
+                    default => self::stepsOfEveryProcess($group['change']) . self::messagePath($group['change']) . "\n<details><summary>Marked wiring and traced spans</summary>\n\n" . self::markedDiagram($group['change']) . "\n</details>\n",
                 }
-            . self::whatRan($group['change']),
+            . ($presentation === self::BUILD_VIEW ? '' : self::whatRan($group['change'])),
             $pathGroups,
         );
         $tree = FlowBuildTree::of($comparison);
 
         return $title . $summary . "\n\n" . implode("\n", array_filter([$tree, ...$sections]));
+    }
+
+    private static function stepsOfEveryProcess(FlowScenarioChange $change): string
+    {
+        if (! $change->hasExecutionChanges()) {
+            return '';
+        }
+        $after = $change->after->execution;
+        $before = $change->before->execution;
+        $notes = [];
+        foreach ($change->execution as $process) {
+            if ($process['change'] === FlowScenarioChange::CHANGED && ($process['steps'] ?? []) !== []) {
+                $notes[$process['process']] = ucfirst(FlowWording::ofChangedProcess($process['steps']));
+            }
+        }
+        $beforeByTitle = array_column($before, null, 'process');
+        $afterTitles = array_column($after, 'process');
+        $blocks = [];
+        $printed = [];
+        foreach ($after as $position => $process) {
+            $number = $position + 1;
+            $heading = (isset($process['sentBy']) ? '**Sub-flow · process ' . $number . ' of ' . count($after) . '** · sent by process ' . $process['sentBy']['processNumber'] : '**Flow · process ' . $number . ' of ' . count($after) . '**');
+            $earlier = $beforeByTitle[$process['process']] ?? null;
+            if ($earlier === null) {
+                $rows = array_map(fn (array $step): array => ['mark' => '+', 'depth' => $step['depth'], 'label' => $step['label'], 'hints' => self::shownHintsOf($step)], $process['steps']);
+                $lines = self::linesOfRows(self::withSharedStepsCollapsed($rows, $after, $position, $beforeByTitle));
+                $blocks[] = $heading . ' · runs only now · ' . self::stepCount(count($process['steps'])) . "\n`" . $process['process'] . '`' . self::treeOf($number, $lines, $printed);
+                continue;
+            }
+            $rows = self::rowsOfDiff(before: $earlier, after: $process, beforeTitles: array_column($before, 'process'), afterTitles: $afterTitles);
+            $counts = array_count_values(array_map(fn (array $row): string => $row['status'], $rows));
+            $status = implode(', ', array_filter([
+                self::counted($counts['new'] ?? 0, 'new step', 'new steps'),
+                self::counted($counts['gone'] ?? 0, 'step gone', 'steps gone'),
+            ])) ?: implode(', ', array_filter([
+                self::counted($counts['rehinted'] ?? 0, 'step with other hints', 'steps with other hints'),
+                self::counted($counts['moved'] ?? 0, 'step moved', 'steps moved'),
+            ]));
+            $stepCount = count($earlier['steps']) === count($process['steps']) ? self::stepCount(count($process['steps'])) : count($earlier['steps']) . ' → ' . count($process['steps']) . ' steps';
+            if ($status === '') {
+                $blocks[] = $heading . ' · unchanged · ' . $stepCount . "\n`" . $process['process'] . "`\n\n… " . self::counted(count($process['steps']), 'unchanged step', 'unchanged steps');
+                continue;
+            }
+            $blocks[] = $heading . ' · ' . $status . ' · ' . $stepCount . "\n`" . $process['process'] . '`' . (isset($notes[$process['process']]) ? "\n" . $notes[$process['process']] : '') . self::treeOf($number, self::linesOfRows(self::inContext($rows)), $printed);
+        }
+        foreach ($before as $position => $process) {
+            if (! in_array($process['process'], $afterTitles, true)) {
+                $blocks[] = '**' . (isset($process['sentBy']) ? 'Sub-flow' : 'Flow') . ' · process ' . ($position + 1) . ' of ' . count($before) . ' before** · no longer runs · ' . self::stepCount(count($process['steps'])) . "\n`" . $process['process'] . "`\n\n… " . self::counted(count($process['steps']), 'step no longer runs', 'steps no longer run');
+            }
+        }
+
+        return "#### What ran, process by process\n\n" . implode("\n\n", $blocks) . "\n\n";
+    }
+
+    private static function counted(int $count, string $one, string $many): string
+    {
+        return $count === 0 ? '' : $count . ' ' . ($count === 1 ? $one : $many);
+    }
+
+    private static function stepCount(int $count): string
+    {
+        return $count . ($count === 1 ? ' step' : ' steps');
+    }
+
+    /**
+     * @param list<string> $lines
+     * @param list<array{number: int, lines: list<string>}> $printed
+     */
+    private static function treeOf(int $number, array $lines, array &$printed): string
+    {
+        $withoutNumbers = fn (array $of): array => array_map(fn (string $line): string => (string) preg_replace('/\d+/', '#', $line), $of);
+        foreach ($printed as $earlier) {
+            if (count($earlier['lines']) === count($lines) && $withoutNumbers($earlier['lines']) === $withoutNumbers($lines)) {
+                $differing = array_values(array_diff_assoc($lines, $earlier['lines']));
+
+                return $differing === [] ? "\n\nThe same steps as process {$earlier['number']}." : "\n\nLike process {$earlier['number']}, except:\n\n```diff\n" . implode("\n", $differing) . "\n```";
+            }
+        }
+        $printed[] = ['number' => $number, 'lines' => $lines];
+
+        return "\n\n<details open><summary>Steps of process {$number}</summary>\n\n```diff\n" . implode("\n", $lines) . "\n```\n\n</details>";
+    }
+
+    /**
+     * @param array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>} $step
+     * @return list<array{key: string, value: string}>
+     */
+    private static function shownHintsOf(array $step): array
+    {
+        return array_values(array_map(fn (array $hint): array => ['key' => $hint['key'], 'value' => $hint['value']], array_filter($step['hints'], fn (array $hint): bool => $hint['shownInLines'])));
+    }
+
+    /**
+     * @param array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>} $before
+     * @param array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>} $after
+     * @param list<string> $beforeTitles
+     * @param list<string> $afterTitles
+     * @return list<array{mark: string, status: string, depth: int, label: string, hints: list<array{key: string, value: string}>, hintsBefore?: list<array{key: string, value: string}>}>
+     */
+    private static function rowsOfDiff(array $before, array $after, array $beforeTitles, array $afterTitles): array
+    {
+        $old = $before['steps'];
+        $new = $after['steps'];
+        $titled = fn (array $hints, array $titles): array => array_map(fn (array $hint): array => [...$hint, 'value' => (string) preg_replace_callback('/\bprocess (\d+)\b/', fn (array $number): string => 'process `' . ($titles[(int) $number[1] - 1] ?? $number[1]) . '`', $hint['value'])], $hints);
+        $lengths = array_fill(0, count($old) + 1, array_fill(0, count($new) + 1, 0));
+        for ($i = count($old) - 1; $i >= 0; $i--) {
+            for ($j = count($new) - 1; $j >= 0; $j--) {
+                $lengths[$i][$j] = $old[$i]['label'] === $new[$j]['label'] ? $lengths[$i + 1][$j + 1] + 1 : max($lengths[$i + 1][$j], $lengths[$i][$j + 1]);
+            }
+        }
+        $rows = [];
+        $i = 0;
+        $j = 0;
+        while ($i < count($old) || $j < count($new)) {
+            if ($i < count($old) && $j < count($new) && $old[$i]['label'] === $new[$j]['label']) {
+                $hintsBefore = self::shownHintsOf($old[$i]);
+                $hints = self::shownHintsOf($new[$j]);
+                $rehinted = $titled($hintsBefore, $beforeTitles) !== $titled($hints, $afterTitles);
+                $rows[] = ['mark' => ' ', 'status' => $rehinted ? 'rehinted' : ($old[$i]['depth'] !== $new[$j]['depth'] ? 'moved' : 'same'), 'depth' => $new[$j]['depth'], 'label' => $new[$j]['label'], 'hints' => $hints, ...($rehinted ? ['hintsBefore' => $hintsBefore] : [])];
+                $i++;
+                $j++;
+            } elseif ($j >= count($new) || ($i < count($old) && $lengths[$i + 1][$j] >= $lengths[$i][$j + 1])) {
+                $rows[] = ['mark' => '-', 'status' => 'gone', 'depth' => $old[$i]['depth'], 'label' => $old[$i]['label'], 'hints' => self::shownHintsOf($old[$i])];
+                $i++;
+            } else {
+                $rows[] = ['mark' => '+', 'status' => 'new', 'depth' => $new[$j]['depth'], 'label' => $new[$j]['label'], 'hints' => self::shownHintsOf($new[$j])];
+                $j++;
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param list<array{mark: string, status: string, depth: int, label: string, hints: list<array{key: string, value: string}>, hintsBefore?: list<array{key: string, value: string}>}> $rows
+     * @return list<array<string, mixed>>
+     */
+    private static function inContext(array $rows): array
+    {
+        $kept = [];
+        $ancestors = [];
+        foreach ($rows as $position => $row) {
+            $ancestors = array_slice($ancestors, 0, $row['depth'] - 1);
+            if (in_array($row['status'], ['new', 'gone', 'rehinted'], true)) {
+                $kept[$position] = true;
+                foreach ($ancestors as $ancestor) {
+                    $kept[$ancestor] = true;
+                }
+            }
+            $ancestors[$row['depth'] - 1] = $position;
+        }
+        $shown = [];
+        $collapsed = [];
+        foreach ($rows as $position => $row) {
+            if (isset($kept[$position])) {
+                if ($collapsed !== []) {
+                    $shown[] = ['collapsed' => count($collapsed), 'depth' => $collapsed[0]['depth']];
+                    $collapsed = [];
+                }
+                $shown[] = $row;
+                continue;
+            }
+            if ($collapsed !== [] && $row['depth'] < $collapsed[0]['depth']) {
+                $shown[] = ['collapsed' => count($collapsed), 'depth' => $collapsed[0]['depth']];
+                $collapsed = [];
+            }
+            $collapsed[] = $row;
+        }
+        if ($collapsed !== []) {
+            $shown[] = ['collapsed' => count($collapsed), 'depth' => $collapsed[0]['depth']];
+        }
+
+        return $shown;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}> $after
+     * @param array<string, mixed> $beforeByTitle
+     * @return list<array<string, mixed>>
+     */
+    private static function withSharedStepsCollapsed(array $rows, array $after, int $position, array $beforeByTitle): array
+    {
+        $best = ['number' => 0, 'steps' => 0];
+        foreach (array_slice($after, 0, $position) as $index => $other) {
+            $shared = 0;
+            while (isset($rows[$shared + 1], $other['steps'][$shared + 1]) && $rows[$shared + 1]['label'] === $other['steps'][$shared + 1]['label'] && $rows[$shared + 1]['depth'] === $other['steps'][$shared + 1]['depth']) {
+                $shared++;
+            }
+            if ($shared > $best['steps']) {
+                $best = ['number' => $index + 1, 'steps' => $shared];
+            }
+        }
+        if ($best['steps'] < 3) {
+            return $rows;
+        }
+
+        return [$rows[0], ['collapsed' => $best['steps'], 'depth' => $rows[1]['depth'], 'asIn' => $best['number']], ...array_slice($rows, 1 + $best['steps'])];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<string>
+     */
+    private static function linesOfRows(array $rows): array
+    {
+        $lines = [];
+        foreach ($rows as $row) {
+            $indent = str_repeat('  ', max(0, $row['depth'] - 1));
+            if (isset($row['collapsed'])) {
+                $lines[] = '  ' . $indent . '… ' . (isset($row['asIn']) ? $row['collapsed'] . ' steps as in process ' . $row['asIn'] : self::counted($row['collapsed'], 'unchanged step', 'unchanged steps'));
+                continue;
+            }
+            $lines[] = $row['mark'] . ' ' . $indent . $row['label'];
+            $hintLine = fn (string $mark, array $hint): string => $mark . ' ' . $indent . '  ↳ ' . $hint['key'] . ': ' . $hint['value'];
+            if (! isset($row['hintsBefore'])) {
+                foreach ($row['hints'] as $hint) {
+                    $lines[] = $hintLine($row['mark'], $hint);
+                }
+                continue;
+            }
+            foreach ($row['hintsBefore'] as $hint) {
+                $lines[] = $hintLine(in_array($hint, $row['hints'], true) ? ' ' : '-', $hint);
+            }
+            foreach ($row['hints'] as $hint) {
+                if (! in_array($hint, $row['hintsBefore'], true)) {
+                    $lines[] = $hintLine('+', $hint);
+                }
+            }
+        }
+
+        return $lines;
     }
 
     private static function whatRan(FlowScenarioChange $change): string

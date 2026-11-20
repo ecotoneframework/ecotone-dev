@@ -320,14 +320,20 @@ not add licence headers.
 ## Reading the flow comparison
 
 The pull request comment and `php bin/build-flow.php compare` print each changed scenario of the flow scenario
-catalogue: the message's path as a sequence diagram (Before and After), the marked wiring and the traced spans
-collapsed under it, and what ran, process by process. The terms they use:
+catalogue: the Before and Now summary, what ran, process by process (every process in run order with its step tree),
+the message's path as a sequence diagram (Before and After), and the marked wiring and the traced spans collapsed
+under it. The terms they use:
 
 | Term | Meaning |
 |---|---|
 | `(build, no span)`, a dashed arrow | a step taken from what Ecotone registers (the build or the wiring), because no span is recorded for it; a solid arrow is a traced step |
 | `+` / `-` | new in the pull request / gone in it |
-| process, sub-flow | a process is one entry into Ecotone: a gateway call, a console command or one consumed message. A sub-flow is a process started by a message another process sent; it is printed under the step that sent it, and `sent by:` / `taken by:` name the two sides |
+| process, sub-flow | a process is one entry into Ecotone: a gateway call, a console command or one consumed message. A sub-flow is a process started by a message another process sent; `sent by:` / `taken by:` name the two sides |
+| `Flow · process 2 of 6` / `Sub-flow · process 3 of 6 · sent by process 2` | the heading of one process of what ran, numbered in run order after the change; a sub-flow names the process that sent its message. The heading goes on with the status, the step count and the process title |
+| `unchanged`, `2 new steps`, `1 step gone`, `runs only now`, `no longer runs` | the status of a process: it runs the same steps; it runs that many steps it did not run before, or no longer runs that many; it runs only after the change; it ran only before (its heading then says `process N of M before`, its number before the change). `N steps with other hints` / `N steps moved` stand alone when nothing is new or gone |
+| `46 → 48 steps` | the number of steps the process ran before and now; one number when it is the same |
+| `Steps of process N` | the step tree of a changed process, open, folded with its summary: every step a changed step runs in, from the root down, with what is new marked `+` and what is gone `-`; the steps around them are collapsed |
+| `Like process N, except:` / `The same steps as process N.` | a process whose tree is the tree of the earlier process N, with only the lines listed different / with no line different |
 | hand-over, `no hand-over` | what a handler's return value does next: handed to the output channel or the reply, or `no hand-over` when nothing is returned or nothing takes it |
 | `chosen by: licence, over X` | with an Enterprise licence Ecotone runs this implementation in place of the open-core `X` |
 | `chosen by: …` (other values) | what picked the route or the handler: a routing key, a routing slip, the service map |
@@ -336,9 +342,9 @@ collapsed under it, and what ran, process by process. The terms they use:
 | `↳ key: value` | a hint of the step above it: what decided where the message went, or that it failed |
 | Marked wiring | the part of the message flow graph the change touches, drawn once with what is new and what is gone marked; collapsed under the message's path |
 | Traced spans, and What ran, process by process | Traced spans lists the application's own spans (buses, handlers, channels) the change adds or removes, as at the default tracing level; What ran lists every step Ecotone ran, process by process, as the framework level records it |
-| `runs other steps now` / `runs only now` | a process that ran before and now runs different steps / a process that runs only after the change |
-| `like X except:` | a new process that runs what the earlier process `X` runs, with only the lines listed below it different |
-| `… N unchanged steps` / `… N steps as in X` | steps left out because they did not change / because they are the same as in the process `X` shown above |
+| `Runs other steps now`, `N of its steps now run under another step` | the sentence under a changed process's heading: it runs different steps now / some of its steps run inside another step now |
+| `like X except:` | in the other presentations, a process that runs what the earlier process `X` runs, with only the lines listed below it different |
+| `… N unchanged steps` / `… N steps as in process X` / `… N steps no longer run` | steps collapsed at their depth because they did not change / because they are the same as in process `X` shown above / the steps of a process that no longer runs |
 | `↳ work in:` | the process a gathered part's work came from, and which part it is |
 | `(1 of 2)` after a process title | the first of two processes with the same title, numbered in run order |
 
@@ -350,7 +356,7 @@ collapsed under it, and what ran, process by process. The terms they use:
 | `split-testing.yml` | every branch push **and** pull request | Per-package `composer tests:ci` for every package with a `phpunit.xml.dist`, on PHP 8.2, PHP 8.5, and PHP 8.2 `--prefer-lowest`. Tempest is excluded — it needs PHP 8.5 and a monorepo-tied boot harness, so a Monorepo shard covers it |
 | `file-licence.yml` | every push **and** pull request | `php bin/check-licence.php` over `packages/*/src`, then `php bin/check-framework-transactions.php` and `php bin/check-framework-connections.php` over the framework `src` and `Api` |
 | `build-flow-baseline.yml` | push to `main`, except a push that changes only the baseline | `php bin/build-flow.php snapshot --location=packages/Ecotone/tests/BuildFlow/baseline` from the latest `main`; when `packages/Ecotone/tests/BuildFlow/baseline` changed, commits it as `chore(flow): the build-flow baseline after <sha>` and pushes, regenerating and retrying when `main` moved. Runs one at a time, never cancelled. It commits and pushes as the Ecotone Framework Bot with `secrets.ECOTONE_BOT_TOKEN`, the identity and token `release.yml` commits with. A push with that token starts the other `push` workflows on the baseline commit (`test-monorepo.yml`, `split-testing.yml`, `file-licence.yml`, `agent-skills.yml`, `quickstart-examples.yml`, and `pulse.yml` and `demo.yml`, whose `packages/**` paths include the baseline); `paths-ignore` on the baseline keeps this workflow from starting itself again. A push refused although `main` did not move means the bot's token may not push to `main` past its protection |
-| `build-flow-comparison.yml` | pull request opened, pushed to or reopened | `php bin/build-flow.php compare --from=<snapshot of the base commit> --presentation=build`: the base commit is checked out beside the merge ref and snapshotted in the job, so neither a lagging baseline on `main` nor a baseline the pull request edited changes the comment (the message's path as a sequence diagram first, the marked wiring and traced spans collapsed under it), `php bin/build-flow-comment.php` to build the comment. Snapshotting the base commit adds a second checkout, a second `composer update` (about as long as the first, a minute or two) and one snapshot (about 8 seconds locally) to the job (over GitHub's limit it keeps whole scenarios from the top and cuts the next one after its diagram, never a diagram); uploads both as artifacts. Read-only; fails only when the tooling breaks |
+| `build-flow-comparison.yml` | pull request opened, pushed to or reopened | `php bin/build-flow.php compare --from=<snapshot of the base commit> --presentation=build`: the base commit is checked out beside the merge ref and snapshotted in the job, so neither a lagging baseline on `main` nor a baseline the pull request edited changes the comment (what ran, process by process, first, then the message's path as a sequence diagram, the marked wiring and traced spans collapsed under it), `php bin/build-flow-comment.php` to build the comment. Snapshotting the base commit adds a second checkout, a second `composer update` (about as long as the first, a minute or two) and one snapshot (about 8 seconds locally) to the job (over GitHub's limit it keeps whole scenarios from the top and cuts the next one between whole parts: after a process of what ran, before the message path or before the wiring, never inside a tree, a diagram or a `<details>`); uploads both as artifacts. Read-only; fails only when the tooling breaks |
 | `build-flow-comment.yml` | `workflow_run` of Build Flow Comparison | posts that comment on the pull request, or updates the one it posted before (found by its marker line), also for forks; runs `main`'s file and never the pull request's code |
 | `contribution-check.yml` | PR opened or edited | Fails unless the PR body has the CLA checkbox ticked |
 | `quickstart-examples.yml` | every branch push **and** pull request | The quickstart applications, as their own package |

@@ -497,7 +497,7 @@ final class BuildFlowExecutionTest extends TestCase
 
         $whatRan = $this->whatRan($this->presented('build'));
 
-        self::assertStringContainsString("`backfill`\nNew: `dispatch 2 partition batches to backfill`. 4 of its steps (2 × `entrypoint sends to backfill`) now run under the new `dispatch 2 partition batches to backfill`.\n", $whatRan);
+        self::assertStringContainsString("`backfill`\nNew: `dispatch 2 partition batches to backfill`. 2 × `entrypoint sends to backfill` (4 steps with what runs inside them) now run under it.\n", $whatRan);
     }
 
     public function test_the_build_presentation_names_a_new_step_in_place_of_the_step_it_replaced(): void

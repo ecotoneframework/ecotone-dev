@@ -218,7 +218,7 @@ function noteOfTheEmptied(string $name, int $processes, int $unchangedSteps, str
         $unchangedSteps === 0 ? '' : $unchangedSteps . ' fold' . ($unchangedSteps === 1 ? '' : 's') . ' of unchanged steps',
     ]));
 
-    return $what === '' ? '' : "\nThe steps of {$what} of {$name} are left out to stay within GitHub's 65,536 character limit for a comment; they are in the `" . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n";
+    return $what === '' ? '' : "\nThe contents of {$what} of {$name} are left out to stay within GitHub's 65,536 character limit for a comment; they are in the `" . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n";
 }
 
 function headWithinOf(string $scenario, int $room, string $runUrl): ?string

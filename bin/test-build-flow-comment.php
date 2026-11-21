@@ -108,7 +108,7 @@ $cases = [
             [! str_contains($comment['body'], str_repeat('u', 2_500)), 'the unchanged processes are emptied'],
             [substr_count($comment['body'], "<details>\n<summary>Steps of process 2, in the run's artifact</summary>") === 30, 'their folds stay, closed, saying where the steps are'],
             [str_contains($comment['body'], 'kept change') && str_contains($comment['body'], "```mermaid\n"), 'the changed process and the message path stay'],
-            [str_contains($comment['body'], "The steps of 30 unchanged processes of `large` are left out to stay within GitHub's 65,536 character limit"), 'says what was left out: ' . substr($comment['body'], -600)],
+            [str_contains($comment['body'], "The contents of 30 unchanged processes of `large` are left out to stay within GitHub's 65,536 character limit"), 'says what was left out: ' . substr($comment['body'], -600)],
             [structureProblemOf($comment['body']) === null, 'balanced, with blank lines around blocks: ' . structureProblemOf($comment['body'])],
         ]);
     },
@@ -123,7 +123,7 @@ $cases = [
             [! str_contains($comment['body'], str_repeat('r', 2_500)), 'the unchanged steps are emptied'],
             [substr_count($comment['body'], "<details>\n<summary>… 12 unchanged steps, in the run's artifact</summary>") === 30, 'their folds keep their summary'],
             [str_contains($comment['body'], 'kept change'), 'the changed steps stay'],
-            [str_contains($comment['body'], 'The steps of 1 unchanged process and 30 folds of unchanged steps of `large` are left out'), 'says what was left out: ' . substr($comment['body'], -600)],
+            [str_contains($comment['body'], 'The contents of 1 unchanged process and 30 folds of unchanged steps of `large` are left out'), 'says what was left out: ' . substr($comment['body'], -600)],
             [structureProblemOf($comment['body']) === null, 'balanced, with blank lines around blocks: ' . structureProblemOf($comment['body'])],
         ]);
     },

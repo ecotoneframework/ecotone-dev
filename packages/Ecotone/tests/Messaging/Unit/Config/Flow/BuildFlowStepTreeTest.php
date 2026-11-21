@@ -16,7 +16,6 @@ use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
-use Test\Ecotone\BuildFlow\FlowStepTree;
 
 /**
  * licence Apache-2.0
@@ -75,7 +74,7 @@ final class BuildFlowStepTreeTest extends TestCase
             after: [self::process('batch', [[1, 'receive backfill'], ...$send, [2, 'acknowledge']])],
         );
 
-        self::assertStringContainsString("<details>\n<summary>📨 send backfill · 2 steps of channel interceptors</summary>\n\n<blockquote>\n\n```diff\n  🪝 before send OutboundSerializationChannelInterceptor::preSend\n    📥 put on channel backfill\n```\n\n</blockquote>\n\n</details>", $whatRan);
+        self::assertStringContainsString("<details>\n<summary><code>📨 send backfill</code> · 2 steps of channel interceptors</summary>\n\n<blockquote>\n\n```diff\n  🪝 before send OutboundSerializationChannelInterceptor::preSend\n    📥 put on channel backfill\n```\n\n</blockquote>\n\n</details>", $whatRan);
     }
 
     public function test_a_fold_holding_a_new_step_is_open_and_marked_green(): void
@@ -85,7 +84,7 @@ final class BuildFlowStepTreeTest extends TestCase
             after: [self::process('batch', [[1, 'receive backfill'], [2, 'send backfill'], [3, 'before send TracingChannelInterceptor::preSend'], [4, 'put on channel backfill']])],
         );
 
-        self::assertStringContainsString("<details open>\n<summary>🟢 📨 send backfill · 2 steps of channel interceptors</summary>", $whatRan);
+        self::assertStringContainsString("<details open>\n<summary>🟢 <code>📨 send backfill</code> · 2 steps of channel interceptors</summary>", $whatRan);
         self::assertStringContainsString("+ 🪝 before send TracingChannelInterceptor::preSend\n", $whatRan);
     }
 
@@ -96,7 +95,7 @@ final class BuildFlowStepTreeTest extends TestCase
             after: [self::process('batch', [[1, 'receive backfill'], [2, 'send backfill'], [3, 'put on channel backfill']])],
         );
 
-        self::assertStringContainsString("<details open>\n<summary>🔴 📨 send backfill · 2 steps of channel interceptors</summary>", $whatRan);
+        self::assertStringContainsString("<details open>\n<summary>🔴 <code>📨 send backfill</code> · 2 steps of channel interceptors</summary>", $whatRan);
     }
 
     public function test_interceptors_wrapping_one_another_fold_into_one_list_and_what_they_wrap_follows_where_the_first_stood(): void
@@ -175,8 +174,8 @@ final class BuildFlowStepTreeTest extends TestCase
 
         $whatRan = $this->whatRan(before: [self::process('batch', $steps)], after: [self::process('batch', [...$steps, [2, 'handler added']])]);
 
-        self::assertStringContainsString('<summary>🪝 2 interceptors around the next 5 steps, up to ✅ acknowledge</summary>', $whatRan);
-        self::assertStringContainsString('<summary>🪝 2 interceptors around the next 2 steps, up to 📨 release collected message to backfill</summary>', $whatRan);
+        self::assertStringContainsString('<summary>🪝 2 interceptors around the next 5 steps, through <code>✅ acknowledge</code></summary>', $whatRan);
+        self::assertStringContainsString('<summary>🪝 2 interceptors around the next 2 steps, through <code>📨 release collected message to backfill</code></summary>', $whatRan);
     }
 
     public function test_a_fold_of_a_step_that_is_itself_new_says_new_and_one_of_a_gone_step_says_gone(): void
@@ -186,8 +185,8 @@ final class BuildFlowStepTreeTest extends TestCase
         $added = $this->whatRan(before: [self::process('batch', [[1, 'receive backfill'], [2, 'acknowledge']])], after: [self::process('batch', [[1, 'receive backfill'], ...$send, [2, 'acknowledge']])]);
         $removed = $this->whatRan(before: [self::process('batch', [[1, 'receive backfill'], ...$send, [2, 'acknowledge']])], after: [self::process('batch', [[1, 'receive backfill'], [2, 'acknowledge']])]);
 
-        self::assertStringContainsString("<details open>\n<summary>🟢 new · 📨 send backfill · 1 step of channel interceptors</summary>", $added);
-        self::assertStringContainsString("<details open>\n<summary>🔴 gone · 📨 send backfill · 1 step of channel interceptors</summary>", $removed);
+        self::assertStringContainsString("<details open>\n<summary>🟢 new · <code>📨 send backfill</code> · 1 step of channel interceptors</summary>", $added);
+        self::assertStringContainsString("<details open>\n<summary>🔴 gone · <code>📨 send backfill</code> · 1 step of channel interceptors</summary>", $removed);
     }
 
     public function test_a_fold_where_nothing_changed_does_not_fold_its_unchanged_steps_again(): void
@@ -196,7 +195,7 @@ final class BuildFlowStepTreeTest extends TestCase
 
         $whatRan = $this->whatRan(before: [self::process('batch', [[1, 'receive backfill'], ...$send])], after: [self::process('batch', [[1, 'receive backfill'], ...$send, [2, 'acknowledge']])]);
 
-        self::assertStringContainsString('<summary>📨 send backfill · 5 steps of channel interceptors</summary>', $whatRan);
+        self::assertStringContainsString('<summary><code>📨 send backfill</code> · 5 steps of channel interceptors</summary>', $whatRan);
         self::assertStringNotContainsString('… 5 unchanged steps', $whatRan);
     }
 
@@ -222,7 +221,7 @@ final class BuildFlowStepTreeTest extends TestCase
     {
         $whatRan = $this->whatRan(before: [self::changedBefore()], after: [self::changedAfter()]);
 
-        self::assertStringStartsWith("#### What ran, process by process\n\n🟢 a fold holding something new or changed, open; 🔴 only gone steps; `+` new, `-` gone; each bar is one level deeper.\n\n**Flow · process 1 of 1**", $whatRan);
+        self::assertStringStartsWith("#### What ran, process by process\n\n🟢 a fold holding something new or changed, open; 🔴 a fold holding only gone steps, open; `🟢 new ·` / `🔴 gone ·` the folded step itself is new / gone; `+` new, `-` gone; each bar is one level deeper, and past six bars the indentation shows the depth.\n\n**Flow · process 1 of 1**", $whatRan);
     }
 
     public function test_a_backtick_in_a_title_or_a_label_does_not_split_its_inline_code(): void
@@ -239,10 +238,10 @@ final class BuildFlowStepTreeTest extends TestCase
 
         $whatRan = $this->whatRan(before: [self::process('preparing', $before)], after: [self::process('preparing', $after)]);
 
-        self::assertStringContainsString('2 of its steps (`entrypoint sends to first`) now run under the new `dispatch first`. 2 of its steps (`entrypoint sends to second`) now run under the new `dispatch second`.', $whatRan);
+        self::assertStringContainsString('`entrypoint sends to first` (2 steps with what runs inside it) now runs under the new `dispatch first`. `entrypoint sends to second` (2 steps with what runs inside it) now runs under the new `dispatch second`.', $whatRan);
     }
 
-    public function test_the_glossary_names_every_icon_the_tree_draws_and_the_steps_it_draws_it_for(): void
+    public function test_every_icon_the_glossary_names_is_the_one_the_tree_draws_for_that_kind_of_step(): void
     {
         $glossary = (string) file_get_contents(__DIR__ . '/../../../../../../../.agents/skills/framework-dev-environment/references/workflow.md');
         preg_match('/^\| the icons \| (.*) \|$/m', $glossary, $row);
@@ -255,11 +254,16 @@ final class BuildFlowStepTreeTest extends TestCase
                 $documented[$kind] = $icon;
             }
         }
-        ksort($documented);
-        $drawn = FlowStepTree::ICONS;
-        ksort($drawn);
 
-        self::assertSame($drawn, $documented);
+        $whatRan = $this->whatRan(before: [self::changedBefore()], after: [self::changedAfter(), self::process('every kind', array_map(fn (string $kind): array => [1, $kind . ' x'], array_keys($documented)))]);
+
+        $drawn = [];
+        foreach (array_keys($documented) as $kind) {
+            preg_match('/^\+ (\S+) ' . preg_quote($kind, '/') . ' x$/mu', $whatRan, $line);
+            $drawn[$kind] = $line[1] ?? 'none';
+        }
+        self::assertSame($documented, $drawn);
+        self::assertGreaterThanOrEqual(30, count($documented));
     }
 
     public function test_every_fence_and_html_block_is_balanced_and_has_a_blank_line_around_it(): void

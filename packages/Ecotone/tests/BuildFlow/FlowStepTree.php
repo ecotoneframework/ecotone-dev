@@ -12,7 +12,7 @@ final class FlowStepTree
     private const DEEPEST_QUOTE = 6;
     private const STEPS_FOLDED_BY_SIZE = 6;
     private const UNCHANGED_STEPS_FOLDED = 4;
-    public const ICONS = [
+    private const ICONS = [
         'release collected message to' => '📨', 'entrypoint sends to' => '🚪', 'after successful send' => '🪝', 'take from channel' => '📬',
         'put on channel' => '📥', 'part report to' => '🧩', 'publish-subscribe' => '📣', 'direct channel' => '➡️', 'no hand-over' => '↩️',
         'before send' => '🪝', 'after send' => '🪝', 'after receive' => '🪝', 'before receive' => '🪝', 'forward to' => '🔀', 'route to' => '🔀',
@@ -134,7 +134,7 @@ final class FlowStepTree
             $inside = $this->end[$position] - $position - 1;
             $chain = $this->wrappingChainOf($position);
             if (in_array($kind, self::SENDS, true) && $inside > 0) {
-                $items[] = ['html', $this->foldOfSteps(position: $position, base: $base, foldingRuns: $foldingRuns, summary: htmlspecialchars(self::withIcon($label)) . ' · ' . self::steps($inside) . ' of channel interceptors', quotes: $quotes)];
+                $items[] = ['html', $this->foldOfSteps(position: $position, base: $base, foldingRuns: $foldingRuns, summary: '<code>' . htmlspecialchars(self::withIcon($label)) . '</code> · ' . self::steps($inside) . ' of channel interceptors', quotes: $quotes)];
             } elseif (in_array($kind, self::CALLS, true) && $inside > 0) {
                 $items[] = ['html', $this->foldOfSteps(position: $position, base: $base, foldingRuns: $foldingRuns, summary: '<code>' . htmlspecialchars(self::withIcon($label)) . '</code> · ' . self::steps($inside) . ' inside', quotes: $quotes)];
             } elseif ($kind === 'around' && $chain !== null) {
@@ -147,7 +147,7 @@ final class FlowStepTree
                 }
                 $around = count($wrapped) === 1
                     ? '<code>' . htmlspecialchars(self::withIcon($this->rows[$wrapped[0]]['label'])) . '</code>'
-                    : 'the next ' . self::steps($this->end[$last] - $last - 1) . ', up to ' . htmlspecialchars(self::withIcon($this->rows[$wrapped[count($wrapped) - 1]]['label']));
+                    : 'the next ' . self::steps($this->end[$last] - $last - 1) . ', through <code>' . htmlspecialchars(self::withIcon($this->rows[$wrapped[count($wrapped) - 1]]['label'])) . '</code>';
                 $summary = '🪝 ' . $this->aroundsIn($chain) . ' interceptors around ' . $around;
                 $items[] = ['html', self::fold(open: $changed !== [], summary: self::dotted(summary: $summary, status: $this->rows[$position]['status'], changed: $changed !== [], onlyGone: $changed !== [] && array_unique(array_map(fn (int $member): string => $this->rows[$member]['status'], $changed)) === ['gone']), inner: self::quoted(self::fenced($listed), $quotes))];
                 foreach ($this->level(from: $last + 1, to: $this->end[$last], base: $base + count($chain), quotes: $quotes, foldingRuns: $foldingRuns) as $item) {

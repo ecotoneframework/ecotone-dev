@@ -151,7 +151,7 @@ final class FlowComparisonMarkdown
             array_push($inRunOrder, $block, ...($noLongerRunning[$position] ?? []));
         }
 
-        return "#### What ran, process by process\n\n🟢 a fold holding something new or changed, open; 🔴 only gone steps; `+` new, `-` gone; each bar is one level deeper.\n\n" . implode("\n\n", $inRunOrder) . "\n\n";
+        return "#### What ran, process by process\n\n🟢 a fold holding something new or changed, open; 🔴 a fold holding only gone steps, open; `🟢 new ·` / `🔴 gone ·` the folded step itself is new / gone; `+` new, `-` gone; each bar is one level deeper, and past six bars the indentation shows the depth.\n\n" . implode("\n\n", $inRunOrder) . "\n\n";
     }
 
     /**
@@ -183,6 +183,7 @@ final class FlowComparisonMarkdown
             default => false,
         };
         $news = [];
+        $newLabels = [];
         $gone = [];
         $paired = [];
         foreach ($rows as $position => $row) {
@@ -207,6 +208,7 @@ final class FlowComparisonMarkdown
                 $paired[$replaced] = true;
             }
             $news[] = self::code($row['label']) . ($replaced !== null ? ' in place of ' . self::code($rows[$replaced]['label']) : '');
+            $newLabels[] = $row['label'];
         }
         $gone = array_diff_key($gone, $paired);
         $moved = array_keys(array_filter($rows, fn (array $row): bool => isset($row['depthBefore']) && $row['depthBefore'] !== $row['depth']));
@@ -225,11 +227,13 @@ final class FlowComparisonMarkdown
             $movedUnder[$under][$label] = ($movedUnder[$under][$label] ?? 0) + 1;
             $movedCount[$under] = ($movedCount[$under] ?? 0) + count(array_filter($moved, fn (int $inside): bool => $inside >= $position && self::isUnder(rows: $rows, step: $inside, top: $position)));
         }
+        $onlyNew = count($news) === 1 && count($newLabels) === 1 ? 'the new ' . self::code($newLabels[0]) : null;
         $sentences = array_filter([
             $news === [] ? '' : 'New: ' . self::listed($news) . '.',
             $gone === [] ? '' : 'Gone: ' . self::listed(array_map(fn (string $label): string => self::code($label), array_values($gone))) . '.',
             ...array_map(
-                fn (string $under, array $tops): string => $movedCount[$under] . ' of its steps (' . implode(', ', array_map(fn (string $label, int $times): string => ($times > 1 ? $times . ' × ' : '') . self::code($label), array_keys($tops), $tops)) . ') now run under ' . $under . '.',
+                fn (string $under, array $tops): string => implode(', ', array_map(fn (string $label, int $times): string => ($times > 1 ? $times . ' × ' : '') . self::code($label), array_keys($tops), $tops))
+                    . ' (' . FlowStepTree::steps($movedCount[$under]) . ' with what runs inside ' . (array_sum($tops) === 1 ? 'it' : 'them') . ') now ' . (array_sum($tops) === 1 ? 'runs' : 'run') . ' under ' . ($under === $onlyNew ? 'it' : $under) . '.',
                 array_keys($movedUnder),
                 $movedUnder,
             ),

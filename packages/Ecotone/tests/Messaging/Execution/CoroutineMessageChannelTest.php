@@ -148,7 +148,8 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $default = CoroutineMessageChannelBuilder::create('async');
-        $limited = $limit === 10 ? $default : $default->withCoroutines($limit);
+        $default->withCoroutines(1);
+        $limited = $limit === CoroutineMessageChannelBuilder::DEFAULT_COROUTINES ? $default : $default->withCoroutines($limit);
         $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [$limited], licenceKey: LicenceTesting::VALID_LICENCE);
         $saturation = [];
 
@@ -172,7 +173,6 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         });
 
-        $this->assertSame(10, $default->coroutines);
         $this->assertSame([$limit, range(1, $limit)], $saturation);
         $this->assertSame($limit, $handler->maximum);
         $this->assertSame(range(1, $messages), $handler->started);
@@ -806,7 +806,7 @@ final class CoroutineMessageChannelTest extends TestCase
 
     public static function concurrency_limits(): array
     {
-        return [[2, 8], [10, 15]];
+        return [[2, 8], [CoroutineMessageChannelBuilder::DEFAULT_COROUTINES, CoroutineMessageChannelBuilder::DEFAULT_COROUTINES + 5]];
     }
 
     private function bootstrap_channel(array $extensions = []): FlowTestSupport

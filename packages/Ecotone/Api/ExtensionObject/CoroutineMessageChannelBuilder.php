@@ -22,7 +22,9 @@ use Psr\Container\ContainerInterface;
  */
 final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, DelayedMessageChannelBuilder
 {
-    private function __construct(public readonly string $messageChannelName, public readonly int $coroutines = 10)
+    public const DEFAULT_COROUTINES = 10;
+
+    private function __construct(public readonly string $messageChannelName, private readonly int $coroutines = self::DEFAULT_COROUTINES)
     {
     }
 
@@ -34,7 +36,7 @@ final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, Del
     public function withCoroutines(int $coroutines): self
     {
         if ($coroutines < 1) {
-            throw ConfigurationException::create("Coroutine channel `{$this->messageChannelName}` cannot run on {$coroutines} coroutines: it needs at least one. Pass a positive number to CoroutineMessageChannelBuilder::withCoroutines(), or leave it out for the default of 10.");
+            throw ConfigurationException::create("Coroutine message channel `{$this->messageChannelName}` cannot run on {$coroutines} coroutines: it needs at least one. Pass a positive number to CoroutineMessageChannelBuilder::withCoroutines(), or leave it out for the default of " . self::DEFAULT_COROUTINES . ".");
         }
         return new self(...[...get_object_vars($this), 'coroutines' => $coroutines]);
     }

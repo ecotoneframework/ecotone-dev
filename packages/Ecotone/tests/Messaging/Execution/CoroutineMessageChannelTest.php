@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\ErrorChannel;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\OnConsumerStop;
 use Ecotone\Api\Attribute\Priority;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\ServiceContext;
@@ -704,6 +705,43 @@ final class CoroutineMessageChannelTest extends TestCase
 
         $this->assertSame([['payload', $sleep]], $handler->handled);
         $this->assertSame([], $sleep->slept);
+    }
+
+    public function test_a_message_released_while_the_last_consumer_stops_is_handled(): void
+    {
+        $handler = new class () {
+            public array $handled = [];
+            public ?Coroutine\Channel $stopping = null;
+            public ?Coroutine\Channel $resumed = null;
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+
+            #[OnConsumerStop]
+            public function wait_while_the_consumer_stops(): void
+            {
+                if ($this->handled === ['first']) {
+                    $this->stopping->push(true);
+                    $this->resumed->pop(1);
+                }
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1)], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone, $handler): void {
+            $handler->stopping = new Coroutine\Channel(1);
+            $handler->resumed = new Coroutine\Channel(1);
+            $ecotone->sendCommandWithRouting('handle', 'first');
+            $handler->stopping->pop(1);
+            $ecotone->sendCommandWithRouting('handle', 'second');
+            $handler->resumed->push(true);
+        });
+
+        $this->assertSame(['first', 'second'], $handler->handled);
     }
 
     public function test_a_handler_can_send_to_its_own_channel_with_one_coroutine(): void

@@ -83,17 +83,30 @@ final class CoroutineMessageChannel extends QueueChannel
         $this->schedule(function (): void {
             try {
                 $runner = $this->consumer();
-                ConsumerCoroutines::consume(
-                    endpointId: $this->name,
-                    coroutines: 1,
-                    drainsAQueue: true,
-                    streamsConsumed: [],
-                    createConsumer: static fn (): ConsumerLifecycle => $runner->createConsumer(),
-                );
+                do {
+                    ConsumerCoroutines::consume(
+                        endpointId: $this->name,
+                        coroutines: 1,
+                        drainsAQueue: true,
+                        streamsConsumed: [],
+                        createConsumer: static fn (): ConsumerLifecycle => $runner->createConsumer(),
+                    );
+                } while ($this->hasWaitingMessage());
             } finally {
                 $this->consumers--;
             }
         });
+    }
+
+    private function hasWaitingMessage(): bool
+    {
+        $message = parent::receive();
+        if ($message === null) {
+            return false;
+        }
+        parent::sendToBeginning($message);
+
+        return true;
     }
 
     private function consumer(): CoroutineMessageChannelConsumer

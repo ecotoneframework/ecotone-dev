@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tracing;
 
+use Ecotone\Api\Attribute\After;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
@@ -225,6 +226,85 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $forward = self::positionOf($lines, 'forward to steps.a');
 
         self::assertSame(['↳ chosen by: routing slip, next: steps.c, steps.b', '↳ routing slip: adds steps.a, steps.c'], array_slice($lines, $forward + 1, 2));
+    }
+
+    public function test_an_interceptor_taking_a_step_off_the_routing_slip_is_recorded_as_dropping_it(): void
+    {
+        $workflow = new class () {
+            #[Orchestrator(inputChannelName: 'start')]
+            public function start(): array
+            {
+                return ['steps.a', 'steps.b', 'steps.c'];
+            }
+
+            #[InternalHandler(inputChannelName: 'steps.a', endpointId: 'steps.a.endpoint')]
+            public function a(string $payload): string
+            {
+                return $payload;
+            }
+
+            #[After(pointcut: self::class . '::a', changeHeaders: true)]
+            public function skipB(): array
+            {
+                return ['routingSlip' => 'steps.c'];
+            }
+
+            #[InternalHandler(inputChannelName: 'steps.b')]
+            public function b(string $payload): string
+            {
+                return $payload;
+            }
+
+            #[InternalHandler(inputChannelName: 'steps.c')]
+            public function c(string $payload): string
+            {
+                return $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$workflow::class], [$workflow], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        $ecotone->sendDirectToChannel('start', 'order');
+        $lines = array_map(trim(...), $ecotone->popExecutionRecording()->lines);
+        $forward = self::positionOf($lines, 'forward to steps.c');
+
+        self::assertSame([], preg_grep('/^handler class@anonymous::b$/', $lines));
+        self::assertSame(['↳ chosen by: routing slip, its last entry', '↳ routing slip: drops steps.b'], array_slice($lines, $forward + 1, 2));
+    }
+
+    public function test_an_interceptor_replacing_the_steps_on_the_routing_slip_is_recorded_as_replacing_them(): void
+    {
+        $workflow = new class () {
+            #[Orchestrator(inputChannelName: 'start')]
+            public function start(): array
+            {
+                return ['steps.a', 'steps.b', 'steps.c'];
+            }
+
+            #[InternalHandler(inputChannelName: 'steps.a', endpointId: 'steps.a.endpoint')]
+            public function a(string $payload): string
+            {
+                return $payload;
+            }
+
+            #[After(pointcut: self::class . '::a', changeHeaders: true)]
+            public function detour(): array
+            {
+                return ['routingSlip' => 'steps.d'];
+            }
+
+            #[InternalHandler(inputChannelName: 'steps.d')]
+            public function d(string $payload): string
+            {
+                return $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$workflow::class], [$workflow], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        $ecotone->sendDirectToChannel('start', 'order');
+        $lines = array_map(trim(...), $ecotone->popExecutionRecording()->lines);
+        $forward = self::positionOf($lines, 'forward to steps.d');
+
+        self::assertSame(['↳ chosen by: routing slip, its last entry', '↳ routing slip: replaces steps.b, steps.c with steps.d'], array_slice($lines, $forward + 1, 2));
     }
 
     public function test_a_routing_slip_the_output_channel_leaves_unchanged_is_kept_not_shown_as_changed(): void

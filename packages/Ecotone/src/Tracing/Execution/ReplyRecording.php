@@ -129,12 +129,14 @@ final class ReplyRecording
     private static function routingSlipChange(array $before, array $after): ?ExecutionHint
     {
         $added = array_slice($after, 0, max(0, count($after) - count($before)));
+        $dropped = array_slice($before, 0, max(0, count($before) - count($after)));
 
         return match (true) {
             $before === [] && $after === [] => null,
             $before === $after => ExecutionHint::shownInLines(ExecutionHint::KEPT, 'routing slip ' . implode(', ', $after)),
             $added !== [] && array_slice($after, count($added)) === $before => ExecutionHint::shownInLines(ExecutionHint::ROUTING_SLIP, 'adds ' . implode(', ', $added)),
-            default => null,
+            $dropped !== [] && array_slice($before, count($dropped)) === $after => ExecutionHint::shownInLines(ExecutionHint::ROUTING_SLIP, 'drops ' . implode(', ', $dropped)),
+            default => ExecutionHint::shownInLines(ExecutionHint::ROUTING_SLIP, 'replaces ' . implode(', ', $before) . ' with ' . implode(', ', $after)),
         };
     }
 

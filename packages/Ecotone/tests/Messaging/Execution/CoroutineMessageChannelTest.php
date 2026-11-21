@@ -223,7 +223,7 @@ final class CoroutineMessageChannelTest extends TestCase
     {
         $ecotone = $this->bootstrap_channel();
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Coroutine message channel `async` cannot send outside a Swoole or OpenSwoole coroutine. This can happen in a console command, a consumer started without --coroutines, or an HTTP server with enable_coroutine disabled. Set enable_coroutine=true on the server, run the sending consumer with ecotone:run <source-channel> --coroutines=N, or register SimpleMessageChannelBuilder::createQueueChannel(\'async\') (or another channel) for console commands and tests. An uncaught send failure rolls back the sender\'s Ecotone transaction.');
+        $this->expectExceptionMessage('Coroutine message channel `async` cannot send outside a Swoole or OpenSwoole coroutine. This can happen in a console command, a consumer started without --coroutines, or an HTTP server with enable_coroutine disabled. For HTTP requests set enable_coroutine=true on the server; for a sending consumer run ecotone:run <source-channel> --coroutines=N; for a console command run the command inside a Swoole or OpenSwoole coroutine. In tests, exclude the production registration with #[Environment([\'prod\'])] and register SimpleMessageChannelBuilder::createQueueChannel(\'async\') in the test environment, then call the flow test support\'s run(\'async\'). An uncaught send failure rolls back the sender\'s Ecotone transaction.');
 
         $ecotone->sendCommandWithRouting('handle', 'payload');
     }
@@ -791,7 +791,7 @@ final class CoroutineMessageChannelTest extends TestCase
     {
         $ecotone = $this->bootstrap_channel();
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Coroutine message channel `async` cannot send outside a Swoole or OpenSwoole coroutine. This can happen in a console command, a consumer started without --coroutines, or an HTTP server with enable_coroutine disabled. Set enable_coroutine=true on the server, run the sending consumer with ecotone:run <source-channel> --coroutines=N, or register SimpleMessageChannelBuilder::createQueueChannel(\'async\') (or another channel) for console commands and tests. An uncaught send failure rolls back the sender\'s Ecotone transaction.');
+        $this->expectExceptionMessage('Coroutine message channel `async` cannot send outside a Swoole or OpenSwoole coroutine. This can happen in a console command, a consumer started without --coroutines, or an HTTP server with enable_coroutine disabled. For HTTP requests set enable_coroutine=true on the server; for a sending consumer run ecotone:run <source-channel> --coroutines=N; for a console command run the command inside a Swoole or OpenSwoole coroutine. In tests, exclude the production registration with #[Environment([\'prod\'])] and register SimpleMessageChannelBuilder::createQueueChannel(\'async\') in the test environment, then call the flow test support\'s run(\'async\'). An uncaught send failure rolls back the sender\'s Ecotone transaction.');
 
         (new Fiber(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload')))->start();
     }

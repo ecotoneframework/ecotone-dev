@@ -108,7 +108,9 @@ requirement, and the session reviewing it reads that rule for the detail and its
 ### Rules no review decides
 
 Every rule of every project skill is either cited by a requirement above or listed here with the reason, and
-`php bin/check-agent-skills.php` refuses a rule that is in neither place.
+`php bin/check-agent-skills.php` refuses a rule that is in neither place. The four review skills are the
+exception: their rules say how a section of this list is decided, so they are not cited in it and the check skips
+them.
 
 | Rule | Why no review decides it |
 |---|---|

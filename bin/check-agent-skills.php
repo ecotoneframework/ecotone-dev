@@ -328,13 +328,6 @@ function checkEvalCases(string $root, string $evalsDirectory, array $graderRefer
 function checkReviewList(string $root, array &$violations): void
 {
     $skillsDirectory = $root . '/' . SKILL_ROOTS['framework']['skills'];
-    $lists = glob($skillsDirectory . '/*/' . REVIEW_LIST) ?: [];
-    if ($lists === []) {
-        return;
-    }
-    $list = $lists[0];
-    $relative = relativePath($root, $list);
-
     $rules = [];
     foreach (glob($skillsDirectory . '/*/SKILL.md') ?: [] as $skillFile) {
         $skillName = basename(dirname($skillFile));
@@ -347,6 +340,20 @@ function checkReviewList(string $root, array &$violations): void
             }
         }
     }
+
+    $lists = glob($skillsDirectory . '/*/' . REVIEW_LIST) ?: [];
+    if ($lists === [] && $rules === []) {
+        return;
+    }
+    if (count($lists) !== 1) {
+        $expected = SKILL_ROOTS['framework']['skills'] . '/<skill>/' . REVIEW_LIST;
+        $found = $lists === [] ? 'none' : implode(', ', array_map(fn (string $list) => relativePath($root, $list), $lists));
+        $violations[] = "Exactly one review list is expected at {$expected}, found: {$found}.\nThe pre-PR reviews decide only what the review list holds, and this check proves every rule is cited in it, so without the one list no rule is checked. Keep the list at that path (restore it, or move it back if it was renamed), and merge a second list into the first.";
+
+        return;
+    }
+    $list = $lists[0];
+    $relative = relativePath($root, $list);
 
     preg_match_all(REVIEW_LIST_CITATION, file_get_contents($list), $citations, PREG_SET_ORDER);
     $cited = [];

@@ -226,6 +226,11 @@ Ecotone's transaction commits. A failed sender releases no work. A transaction o
 is not waited for; keep the order's writes inside Ecotone's transaction. Once released, handlers start when the
 sending coroutine next yields to the event loop or ends. The caller does not wait for them to finish.
 
+A `#[ConsoleCommand]` holds messages just like a bus call: it releases them only after the console command returns
+successfully and Ecotone commits. A long-running console command keeps its messages held for its whole execution.
+Run a sending console command inside a Swoole or OpenSwoole coroutine; otherwise the send is refused. Ending an
+inner bus call does not release the console command's held messages.
+
 A channel runs up to 10 handlers at once by default. `withCoroutines(4)` sets its limit to four; the rest wait in
 order in memory. Objects pass as they are, without serialization. Set concurrency on the channel builder. Its
 handlers start in the sending process, so there is no separate `ecotone:run` consumer and `PollingMetadata` consumer
@@ -248,9 +253,9 @@ database's connection budget. For an exhausted pool, lower `CoroutineMessageChan
 the pool size, or adjust `connection_pool_wait_seconds` as in §2.
 
 This requires Ecotone Enterprise and the `swoole` or `openswoole` extension with coroutines enabled. Send from a
-coroutine, such as an HTTP request with `enable_coroutine=true` (§5). A console command, a polling consumer without
-`--coroutines`, or a server with coroutines disabled is refused when it sends; an uncaught failure rolls back the
-sender's Ecotone transaction. A dead-letter replay outside a coroutine runs synchronously in place.
+coroutine: enable `enable_coroutine=true` for HTTP requests (§5), start a sending polling consumer with
+`ecotone:run <source-channel> --coroutines=N`, or execute a sending console command inside a coroutine. A send
+outside a coroutine is refused; an uncaught failure rolls back the sender's Ecotone transaction. A dead-letter replay outside a coroutine runs synchronously in place.
 
 Error channels, instant retries, delayed retries and dead letter use the ordinary asynchronous consumer pipeline.
 Without an error channel, the channel and endpoint are logged with the exception and message headers, then the
@@ -268,7 +273,7 @@ $flow = Ecotone\Api\Lite\EcotoneLite::bootstrapFlowTesting(
     extensionObjects: [Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel('notifications')],
     environment: 'test',
 );
-$flow->sendCommandWithRouting('notifications.send', $notification);
+$flow->sendCommand($notification);
 $flow->run('notifications');
 ```
 
@@ -336,4 +341,14 @@ The channel needs Enterprise and a coroutine runtime in the PHP process sending 
 ### 10. The sending worker's memory is the delivery guarantee
 Pending messages and timers are lost when the process stops. Worker shutdown is not coordinated with this work.
 - **Expected:** the answer states in-process memory storage, loss on crash or restart, and no draining or completion guarantee at shutdown; durable work is assigned a durable channel.
+- **Verified by:** `eval:send-in-process`
+
+### 11. Extension-free tests exclude the production channel registration
+Put `#[Environment(['prod'])]` on the production `#[ServiceContext]` method, bootstrap tests in `test`, and register a queue channel under the same name.
+- **Expected:** the answer excludes the production builder by environment, registers `SimpleMessageChannelBuilder::createQueueChannel()` once in the test bootstrap, and calls `run('<channel>')` on the flow test support after sending.
+- **Verified by:** `eval:send-in-process`
+
+### 12. Console commands release only when they return
+A console command is a release boundary and its send still needs an active coroutine.
+- **Expected:** the answer says to run a sending console command inside a Swoole/OpenSwoole coroutine, explains that it releases messages only when the command returns successfully, and warns that a long-running command holds them until then.
 - **Verified by:** `eval:send-in-process`

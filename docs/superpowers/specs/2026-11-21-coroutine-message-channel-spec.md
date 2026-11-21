@@ -33,8 +33,8 @@ Test names below are in `packages/Ecotone/tests/Messaging/Execution/CoroutineMes
 | Outside a coroutine is refused with recovery and rollback guidance, including fibers | `test_sending_outside_a_coroutine_is_refused`, `test_a_sender_on_a_fiber_outside_a_coroutine_is_refused` |
 | Bootstrap requires Enterprise licence and runtime extension; positive concurrency; extension-free environment replacement | `CoroutineMessageChannelRefusedTest`, including `test_a_production_coroutine_channel_can_be_replaced_with_a_queue_in_tests` |
 | Separate consumer execution and polling concurrency are refused | `test_starting_a_consumer_is_refused`, `test_console_consumer_start_is_refused`, `test_polling_concurrency_is_refused_at_bootstrap` |
-| Consumer stop/handled/time/execution/memory limits, finish-when-no-messages, schedule settings (cron, fixed rate, initial delay, trigger, task executor, messages per poll), a disabled error channel, a connection retry template and a polled channel name are refused; `withSignalInterceptors()` cannot be told from its default, which follows `ext-pcntl` | `test_polling_consumer_limits_are_refused_at_bootstrap` |
-| A message released while the last consumer coroutine ends is still handled: a coroutine keeps its slot until it sees the queue empty | Proved red-first at 69baba3a5 on both runtimes through a yielding `#[OnConsumerStop]` handler (`var/r5-red-bh17-*.log`); that seam is closed by the next row, so no userland test can open the window any more |
+| Consumer stop/handled/time/execution/memory limits, finish-when-no-messages, schedule settings (cron, fixed rate, initial delay, trigger, task executor, messages per poll), a disabled error channel, a connection retry template and a polled channel name are refused | `test_polling_consumer_limits_are_refused_at_bootstrap` |
+| The channel never installs Ecotone's signal handling: a termination signal during a handler reaches the process's own handler; `withSignalInterceptors(true)` is refused where it differs from its `ext-pcntl` default and is otherwise not applied | `test_a_termination_signal_during_a_handler_reaches_the_handler_the_application_installed` (needs `ext-pcntl`, in the coroutine job on both runtimes); `CoroutineMessageChannelRefusedTest::test_signal_handling_requested_for_the_channel_is_refused` (runs only on PHP without `ext-pcntl`) |
 | The channel has no consumer process: `#[OnConsumerStop]` handlers are not called for it, and still are for polling consumers beside it | `test_consumer_stop_handlers_are_not_called_when_the_channel_is_drained`, `test_consumer_stop_handlers_are_still_called_for_a_polling_consumer_beside_the_channel` |
 | Aggregates and sagas handle on the channel | `test_an_aggregate_command_handler_runs_on_the_channel`, `test_a_saga_event_handler_runs_on_the_channel` |
 | Listing the channel with another channel in one `#[Asynchronous]` is refused in either order | `test_a_handler_chaining_the_channel_with_another_channel_is_refused_at_bootstrap` |
@@ -42,6 +42,15 @@ Test names below are in `packages/Ecotone/tests/Messaging/Execution/CoroutineMes
 | Configurable pool wait reaches Symfony's connection pool | Symfony `CoroutineConnectionPoolTest::test_symfony_zero_pool_wait_refuses_a_second_coroutine_at_once`; `SymfonyConnectionCopiesTest::test_create_for_connection_refuses_a_negative_pool_wait` |
 
 Loss on crash/restart and no shutdown guarantee are explicit exclusions: there is no durable write and no process-kill acceptance test. A manually managed external transaction is not the release boundary. Future resolution, caller execution of unstarted queries and refusing Future gateways on other channels are deferred to wave 2, with no tests claimed here.
+
+## Implementation notes
+
+A consumer coroutine of the channel consumes again while a message waits and gives its slot back only after seeing the
+queue empty, with nothing able to yield between that check and the release of the slot
+(`CoroutineMessageChannel::enqueue()`). Before 69baba3a5 a message released while the last consumer was ending found
+the limit taken and stayed on the queue. No guarantee is claimed here, because no test holds it: the red-first
+evidence is the test in commit 69baba3a5, which reached the window through a yielding `#[OnConsumerStop]` handler,
+and those handlers are no longer called for the channel (432edbfbd), so the userland surface cannot open it any more.
 
 ## Engine runs
 

@@ -24,6 +24,7 @@ use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -707,12 +708,11 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame([], $sleep->slept);
     }
 
-    public function test_a_message_released_while_the_last_consumer_stops_is_handled(): void
+    public function test_consumer_stop_handlers_are_not_called_when_the_channel_is_drained(): void
     {
         $handler = new class () {
             public array $handled = [];
-            public ?Coroutine\Channel $stopping = null;
-            public ?Coroutine\Channel $resumed = null;
+            public int $stops = 0;
 
             #[Asynchronous('async')]
             #[CommandHandler('handle', endpointId: 'handle.endpoint')]
@@ -722,26 +722,55 @@ final class CoroutineMessageChannelTest extends TestCase
             }
 
             #[OnConsumerStop]
-            public function wait_while_the_consumer_stops(): void
+            public function count_stop(): void
             {
-                if ($this->handled === ['first']) {
-                    $this->stopping->push(true);
-                    $this->resumed->pop(1);
-                }
+                $this->stops++;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(2)], licenceKey: LicenceTesting::VALID_LICENCE);
 
-        CoroutineTesting::runAtOnce(static function () use ($ecotone, $handler): void {
-            $handler->stopping = new Coroutine\Channel(1);
-            $handler->resumed = new Coroutine\Channel(1);
+        CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
             $ecotone->sendCommandWithRouting('handle', 'first');
-            $handler->stopping->pop(1);
             $ecotone->sendCommandWithRouting('handle', 'second');
-            $handler->resumed->push(true);
+            $ecotone->sendCommandWithRouting('handle', 'third');
         });
 
-        $this->assertSame(['first', 'second'], $handler->handled);
+        $this->assertSame(['first', 'second', 'third'], $handler->handled);
+        $this->assertSame(0, $handler->stops);
+    }
+
+    public function test_consumer_stop_handlers_are_still_called_for_a_polling_consumer_beside_the_channel(): void
+    {
+        $handler = new class () {
+            public array $stopped = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+            }
+
+            #[Asynchronous('queue')]
+            #[CommandHandler('queued', endpointId: 'queued.endpoint')]
+            public function queued(string $payload): void
+            {
+            }
+
+            #[OnConsumerStop]
+            public function record_stop(string $endpointId): void
+            {
+                $this->stopped[] = $endpointId;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), SimpleMessageChannelBuilder::createQueueChannel('queue')], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
+            $ecotone->sendCommandWithRouting('handle', 'payload');
+            $ecotone->sendCommandWithRouting('queued', 'payload');
+        });
+        $ecotone->run('queue', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $this->assertSame(['queue'], $handler->stopped);
     }
 
     public function test_a_handler_can_send_to_its_own_channel_with_one_coroutine(): void

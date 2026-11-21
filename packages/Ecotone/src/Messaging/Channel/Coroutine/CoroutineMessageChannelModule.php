@@ -203,6 +203,7 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
     private function registerConsumers(Configuration $configuration, array $channelNames): void
     {
         $configuration->addCompilerPass(new CoroutineMessageChannelConsumerRegistration($channelNames));
+        $configuration->registerChannelInterceptor(new CoroutineMessageChannelConsumerStopInterceptorBuilder($channelNames));
         foreach ($channelNames as $channelName) {
             $configuration->registerChannelInterceptor(new CoroutineMessageChannelHoldingInterceptorBuilder($channelName));
             $configuration->registerChannelInterceptor(new InMemoryQueueAcknowledgeInterceptorBuilder(

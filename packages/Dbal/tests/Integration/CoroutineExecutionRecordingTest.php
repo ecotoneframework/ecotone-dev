@@ -20,7 +20,6 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
-use Ecotone\Test\ExecutionRecordingShapes;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use RuntimeException;
 use Swoole\Coroutine;
@@ -80,6 +79,8 @@ final class CoroutineExecutionRecordingTest extends DbalMessagingTestCase
             private array $shipped = [];
             private int $shippedAtOnce = 0;
             private int $mostShippedAtOnce = 0;
+            private int $arrivedAtOnce = 0;
+            private ?Coroutine\Channel $allArrived = null;
 
             public function __construct(private int $atOnce)
             {
@@ -104,8 +105,19 @@ final class CoroutineExecutionRecordingTest extends DbalMessagingTestCase
 
             private function waitUntilShippingAtOnce(): void
             {
-                for ($waited = 0; $this->mostShippedAtOnce < $this->atOnce && $waited < 5_000; $waited++) {
-                    usleep(1_000);
+                if ($this->arrivedAtOnce >= $this->atOnce) {
+                    return;
+                }
+                $this->allArrived ??= new Coroutine\Channel($this->atOnce);
+                if (++$this->arrivedAtOnce === $this->atOnce) {
+                    for ($waiting = 1; $waiting < $this->atOnce; $waiting++) {
+                        $this->allArrived->push(true);
+                    }
+
+                    return;
+                }
+                if ($this->allArrived->pop(5.0) === false) {
+                    throw new RuntimeException("Only {$this->arrivedAtOnce} of {$this->atOnce} messages were being handled at once after 5 seconds, so the consumer did not run its coroutines at once");
                 }
             }
 

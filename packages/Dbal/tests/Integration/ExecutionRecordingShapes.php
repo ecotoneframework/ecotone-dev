@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Test;
+namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\Tracing\ExecutionRecording;
 use Ecotone\Api\Tracing\RecordedProcess;
@@ -11,6 +11,7 @@ use Ecotone\Api\Tracing\Span;
 
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class ExecutionRecordingShapes
 {

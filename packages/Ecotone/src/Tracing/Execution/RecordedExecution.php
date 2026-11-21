@@ -195,7 +195,7 @@ final class RecordedExecution
             if ($sender === null && $startingStep !== null && $inStepOrder[$consumer] !== [] && $processOf[$startingStep->spanId] !== $consumer) {
                 $starter = $processOf[$startingStep->spanId];
                 $sentBy[$consumer] = ['processNumber' => $starter + 1, 'stepNumber' => $stepOf[$startingStep->spanId] + 1];
-                $links[$inStepOrder[$consumer][0]->spanId][] = ['key' => ExecutionHint::STARTED_IN, 'value' => 'a coroutine process ' . ($starter + 1) . ' started', 'shownInLines' => true];
+                $links[$inStepOrder[$consumer][0]->spanId][] = ['key' => ExecutionHint::STARTED_IN, 'value' => 'a coroutine started by process ' . ($starter + 1), 'shownInLines' => true];
                 $links[$startingStep->spanId][] = ['key' => ExecutionHint::STARTS, 'value' => 'process ' . ($consumer + 1) . ', in a coroutine', 'shownInLines' => true];
                 continue;
             }

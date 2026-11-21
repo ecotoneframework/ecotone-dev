@@ -20,7 +20,6 @@ use Ecotone\Api\Tracing\RecordedStep;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\CoroutineTesting;
-use Ecotone\Test\ExecutionRecordingShapes;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use RuntimeException;
 use Swoole\Coroutine;
@@ -53,7 +52,6 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
             {
                 $published = new Coroutine\Channel(1);
                 Coroutine::create(static function () use ($eventBus, $published): void {
-                    usleep(10_000);
                     $eventBus->publishWithRouting('order.placed', []);
                     $published->push(true);
                 });
@@ -86,19 +84,27 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
         self::assertNotSame($processes[$publishing[0]]->sentBy->processNumber, $processes[$publishing[1]]->sentBy->processNumber);
         $first = $processes[$publishing[0]];
         $startingStep = $processes[$first->sentBy->processNumber - 1]->steps[$first->sentBy->stepNumber - 1];
-        self::assertContains('started in: a coroutine process ' . $first->sentBy->processNumber . ' started', array_map(fn ($hint): string => $hint->key . ': ' . $hint->value, $first->steps[0]->hints));
+        self::assertContains('started in: a coroutine started by process ' . $first->sentBy->processNumber, array_map(fn ($hint): string => $hint->key . ': ' . $hint->value, $first->steps[0]->hints));
         self::assertContains('starts: process ' . ($publishing[0] + 1) . ', in a coroutine', array_map(fn ($hint): string => $hint->key . ': ' . $hint->value, $startingStep->hints));
     }
 
-    public function test_a_coroutine_that_outlives_its_handler_is_a_sub_flow_of_the_step_open_when_it_started_not_of_a_later_one(): void
+    public function test_a_coroutine_that_outlives_its_handler_is_a_sub_flow_of_the_step_its_handler_ran_in_not_of_a_later_one(): void
     {
         $orders = new class () {
+            private ?Coroutine\Channel $nextStarted = null;
+            private ?Coroutine\Channel $published = null;
+
             #[CommandHandler('outlivesInto', outputChannelName: 'next')]
             public function outlivesInto(array $command, EventBus $eventBus): array
             {
-                Coroutine::create(static function () use ($eventBus): void {
-                    usleep(10_000);
+                $this->nextStarted = new Coroutine\Channel(1);
+                $this->published = new Coroutine\Channel(1);
+                $nextStarted = $this->nextStarted;
+                $published = $this->published;
+                Coroutine::create(static function () use ($eventBus, $nextStarted, $published): void {
+                    $nextStarted->pop();
                     $eventBus->publishWithRouting('order.placed', []);
+                    $published->push(true);
                 });
 
                 return $command;
@@ -107,7 +113,8 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
             #[InternalHandler(inputChannelName: 'next')]
             public function next(array $command): void
             {
-                usleep(40_000);
+                $this->nextStarted?->push(true);
+                $this->published?->pop();
             }
 
             #[EventHandler('order.placed', endpointId: 'order.notifier')]
@@ -123,27 +130,27 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
         [$published] = array_values(array_filter($processes, fn ($process): bool => str_starts_with($process->title, 'send event order.placed')));
         self::assertNotNull($published->sentBy);
         $steps = $processes[$published->sentBy->processNumber - 1]->steps;
-        $linked = $published->sentBy->stepNumber - 1;
-        $handler = array_key_first(array_filter($steps, fn ($step): bool => $step->label === 'handler class@anonymous::outlivesInto'));
-        self::assertIsInt($handler);
-        self::assertTrue($linked === $handler || self::isAncestorOf(steps: $steps, ancestor: $linked, of: $handler));
+        $stepOf = fn (string $label): int => (int) array_key_first(array_filter($steps, fn (RecordedStep $step): bool => $step->label === $label));
+        $stillOpenAncestors = array_intersect(self::ancestorsOf(steps: $steps, step: $stepOf('handler class@anonymous::outlivesInto')), self::ancestorsOf(steps: $steps, step: $stepOf('handler class@anonymous::next')));
+        self::assertSame(max($stillOpenAncestors), $published->sentBy->stepNumber - 1);
     }
 
     /**
      * @param list<RecordedStep> $steps
+     * @return list<int>
      */
-    private static function isAncestorOf(array $steps, int $ancestor, int $of): bool
+    private static function ancestorsOf(array $steps, int $step): array
     {
-        if ($ancestor >= $of || $steps[$ancestor]->depth >= $steps[$of]->depth) {
-            return false;
-        }
-        for ($between = $ancestor + 1; $between < $of; $between++) {
-            if ($steps[$between]->depth <= $steps[$ancestor]->depth) {
-                return false;
+        $ancestors = [];
+        $depth = $steps[$step]->depth;
+        for ($earlier = $step - 1; $earlier >= 0; $earlier--) {
+            if ($steps[$earlier]->depth < $depth) {
+                $ancestors[] = $earlier;
+                $depth = $steps[$earlier]->depth;
             }
         }
 
-        return true;
+        return $ancestors;
     }
 
     /**
@@ -179,6 +186,8 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
             private int $shippedAtOnce = 0;
             private int $mostShippedAtOnce = 0;
             private array $attempts = [];
+            private int $arrivedAtOnce = 0;
+            private ?Coroutine\Channel $allArrived = null;
 
             public function __construct(private int $atOnce)
             {
@@ -207,8 +216,19 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
 
             private function waitUntilShippingAtOnce(): void
             {
-                for ($waited = 0; $this->mostShippedAtOnce < $this->atOnce && $waited < 5_000; $waited++) {
-                    usleep(1_000);
+                if ($this->arrivedAtOnce >= $this->atOnce) {
+                    return;
+                }
+                $this->allArrived ??= new Coroutine\Channel($this->atOnce);
+                if (++$this->arrivedAtOnce === $this->atOnce) {
+                    for ($waiting = 1; $waiting < $this->atOnce; $waiting++) {
+                        $this->allArrived->push(true);
+                    }
+
+                    return;
+                }
+                if ($this->allArrived->pop(5.0) === false) {
+                    throw new RuntimeException("Only {$this->arrivedAtOnce} of {$this->atOnce} messages were being handled at once after 5 seconds, so the consumer did not run its coroutines at once");
                 }
             }
 

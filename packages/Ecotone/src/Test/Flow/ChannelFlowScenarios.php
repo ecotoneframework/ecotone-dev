@@ -50,12 +50,12 @@ final class ChannelFlowScenarios
                 ->expect(ExpectedSpan::named('send command')->containing(ExpectedSpan::named('send outbox')->ofKind(SpanKind::Producer)))
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(ExpectedSpan::named('receive outbox')->ofKind(SpanKind::Consumer)->containing(ExpectedSpan::named('send orders')->ofKind(SpanKind::Producer)))
                 ->expectNoSpanNamed('process class@anonymous::place')
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('send orders')->containing(
                         ExpectedSpan::named('receive orders')->ofKind(SpanKind::Consumer)->containing(
@@ -84,12 +84,12 @@ final class ChannelFlowScenarios
                 ->expect(ExpectedSpan::named('send command')->containing(ExpectedSpan::named('send outbox')->ofKind(SpanKind::Producer)))
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(ExpectedSpan::named('receive outbox')->ofKind(SpanKind::Consumer)->containing(ExpectedSpan::named('send orders')->ofKind(SpanKind::Producer)))
                 ->expectNoSpanNamed('process class@anonymous::place')
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('send orders')->containing(
                         ExpectedSpan::named('receive orders')->ofKind(SpanKind::Consumer)->containing(

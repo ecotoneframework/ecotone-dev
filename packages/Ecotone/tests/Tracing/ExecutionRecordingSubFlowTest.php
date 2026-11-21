@@ -37,7 +37,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
     {
         $processes = $this->recorded([$this->ordering()], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', []);
-            $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         });
 
         self::assertNull($processes[0]->sentBy);
@@ -49,7 +49,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
     {
         $processes = $this->recorded([$this->ordering(), $this->auditing()], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', []);
-            $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         });
 
         self::assertSame([1, 1], [$processes[1]->sentBy->processNumber, $processes[2]->sentBy->processNumber]);
@@ -98,7 +98,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         $processes = $this->recorded([$handlers], function (FlowTestSupport $ecotone) use ($consumingOrder): void {
             $ecotone->sendCommandWithRouting('order.place', []);
             foreach ($consumingOrder as $channel) {
-                $ecotone->run($channel, ExecutionPollingMetadata::createWithTestingSetup());
+                $ecotone->run($channel, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             }
         }, [SimpleMessageChannelBuilder::createQueueChannel('notifications'), SimpleMessageChannelBuilder::createQueueChannel('audits')]);
         $sendOf = fn (string $consumer): string => $processes[0]->steps[array_values(array_filter($processes, fn (RecordedProcess $process): bool => str_starts_with($process->title, 'receive ' . $consumer)))[0]->sentBy->stepNumber - 1]->label;
@@ -124,8 +124,8 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
 
         $processes = $this->recorded([$orders], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', []);
-            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
-            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         }, [SimpleMessageChannelBuilder::createQueueChannel('orders')]);
 
         self::assertCount(3, $processes);
@@ -137,7 +137,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
     {
         $processes = $this->recorded([$this->ordering()], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', [], metadata: [MessageHeaders::TRACEPARENT => '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01']);
-            $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         });
 
         self::assertNull($processes[0]->sentBy);
@@ -159,7 +159,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         $ticketService = EcotoneLite::bootstrapFlowTesting([$tickets::class], [$tickets, ...self::recordingSpansInto($recorder)], [$channel, ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), self::tracingConfiguration()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
-        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $sent = $users->popExecutionRecording()->processes;
         $received = $ticketService->popExecutionRecording()->processes;
         [$send] = self::tracedSpansNamed($recorder, 'send distributed_tickets');
@@ -194,7 +194,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         $users->sendCommandWithRouting('user.register', 'user-1');
         $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
         $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed shipping address');
-        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $orderOf = fn (Span $span): int => (int) $span->attributes[SpanAttribute::EXECUTION_ORDER];
         $sends = [];
         foreach (self::tracedSpansNamed($recorder, 'send distributed_tickets') as $send) {
@@ -233,7 +233,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
 
         $lines = $this->linesOf([$chain, $this->auditing()], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', []);
-            $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         });
 
         self::assertSame(
@@ -305,7 +305,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         $ticketService = EcotoneLite::bootstrapFlowTesting([$tickets::class], [$tickets], [SimpleMessageChannelBuilder::createQueueChannel('distributed_tickets'), DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_tickets'), ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         $ticketService->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
-        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $recording = $ticketService->popExecutionRecording();
 
         self::assertSame(1, $recording->processes[1]->sentBy?->processNumber);
@@ -318,7 +318,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         $channel = SimpleMessageChannelBuilder::createQueueChannel('distributed_tickets');
         $ticketService = EcotoneLite::bootstrapFlowTesting([$tickets::class], [$tickets], [$channel, ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
         $send($channel);
-        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         return $ticketService;
     }

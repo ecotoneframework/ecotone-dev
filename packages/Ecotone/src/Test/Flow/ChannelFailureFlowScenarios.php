@@ -93,7 +93,7 @@ final class ChannelFailureFlowScenarios
                 ExpectedSpan::named('route user.notifying')->ofKind(SpanKind::Producer),
             ),
         );
-        $consume = FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithTestingSetup()))
+        $consume = FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
             ->expect(
                 $notificationsSend === null
                     ? ExpectedSpan::named('receive users')->ofKind(SpanKind::Consumer)->withStatus(SpanStatus::Error)->containing($registered)
@@ -126,7 +126,7 @@ final class ChannelFailureFlowScenarios
             SimpleChannelInterceptorBuilder::create('notifications', 'filteringOut'),
         ], [
             self::registrationSentToTheQueue(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('receive users')->withStatus(SpanStatus::Ok)->containing(
                         ExpectedSpan::named('process class@anonymous::register')->containing(
@@ -155,14 +155,14 @@ final class ChannelFailureFlowScenarios
             SimpleChannelInterceptorBuilder::create('notifications', 'rebuilding'),
         ], [
             self::registrationSentToTheQueue(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('receive users')->withStatus(SpanStatus::Ok)->containing(
                         ExpectedSpan::named('send notifications')->ofKind(SpanKind::Producer)->withStatus(SpanStatus::Ok),
                     ),
                 )
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('send notifications')->containing(
                         ExpectedSpan::named('receive notifications')->ofKind(SpanKind::Consumer),
@@ -182,14 +182,14 @@ final class ChannelFailureFlowScenarios
             PollableChannelConfiguration::create('notifications', RetryTemplateBuilder::fixedBackOff(0)->maxRetries(1)->build()),
         ], [
             self::registrationSentToTheQueue(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('receive users')->withStatus(SpanStatus::Ok)->containing(
                         ExpectedSpan::named('send notifications')->ofKind(SpanKind::Producer)->withStatus(SpanStatus::Ok),
                     ),
                 )
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('send notifications')->withStatus(SpanStatus::Ok)->containing(
                         ExpectedSpan::named('receive notifications')->containing(
@@ -211,7 +211,7 @@ final class ChannelFailureFlowScenarios
             PollableChannelConfiguration::neverRetry('notifications')->withErrorChannel('notifications_failed_sends'),
         ], [
             self::registrationSentToTheQueue(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('receive users')->withStatus(SpanStatus::Ok)->containing(
                         ExpectedSpan::named('send notifications')->ofKind(SpanKind::Producer)->withStatus(SpanStatus::Error, 'Exception on send'),
@@ -287,7 +287,7 @@ final class ChannelFailureFlowScenarios
             SimpleMessageChannelBuilder::createQueueChannel('notifications'),
         ], [
             self::registrationSentToTheQueue(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->failingWith('Exception before send')
                 ->expect(
                     ExpectedSpan::named('receive users')->withStatus(SpanStatus::Error)->containing(

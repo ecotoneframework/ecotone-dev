@@ -40,7 +40,7 @@ final class TracingDisabledWithoutProviderTest extends TestCase
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->sendCommandWithRouting('user.register', '1')
-            ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+            ->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $this->assertNotSame([], $users->headers);
         $this->assertArrayNotHasKey(MessageHeaders::TRACEPARENT, $users->headers);

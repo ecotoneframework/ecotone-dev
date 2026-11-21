@@ -52,7 +52,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
         );
 
         $ecotone->sendCommandWithRouting('order.place', []);
-        $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $recording = $ecotone->popExecutionRecording();
 
         self::assertSame(
@@ -78,7 +78,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
         );
 
         $ecotone->sendCommandWithRouting('order.place', []);
-        $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame(
             ['send command order.place, class@anonymous::place', 'receive notifications, class@anonymous::notify'],
@@ -97,7 +97,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
 
         $ecotone->sendCommandWithRouting('order.place', []);
         $first = $ecotone->popExecutionRecording();
-        $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $second = $ecotone->popExecutionRecording();
 
         self::assertSame(['send command order.place, class@anonymous::place'], array_map(fn (RecordedProcess $process): string => $process->title, $first->processes));

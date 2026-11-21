@@ -132,7 +132,7 @@ final class ProjectionFlowScenarios
                     )
                     ->expectNoSpanNamed('process class@anonymous::whenDefined')
                     ->withNoOtherSpans(),
-                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('backfill', ExecutionPollingMetadata::createWithTestingSetup()))
+                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('backfill', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                     ->expect(
                         ExpectedSpan::named('receive backfill')->ofKind(SpanKind::Consumer)->containing(...$batchHandledAndReported()),
                         ExpectedSpan::named('receive backfill')->ofKind(SpanKind::Consumer)->containing(...$batchHandledAndReported()),
@@ -156,7 +156,7 @@ final class ProjectionFlowScenarios
                 )
                 ->expectNoSpanNamed('process class@anonymous::whenPlaced')
                 ->withNoOtherSpans(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run($operation, ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run($operation, ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('receive ' . $operation)->ofKind(SpanKind::Consumer)->containing(
                         self::projectionHandled($operation),
@@ -244,7 +244,7 @@ final class ProjectionFlowScenarios
                     ),
                 )
                 ->expectNoSpanNamed('process orders'),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('projections', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('projections', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('receive projections')->ofKind(SpanKind::Consumer)->containing(
                         ExpectedSpan::named('process orders')->ofKind(SpanKind::Consumer)->withAttributes([SpanAttribute::PROJECTION_NAME => 'orders']),
@@ -265,7 +265,7 @@ final class ProjectionFlowScenarios
         return new FlowScenario('polling projection reading its stream', [$projection::class], [$projection], [], [
             FlowStage::when(function (FlowTestSupport $ecotone): void {
                 $ecotone->withEventStream('board_stream', [Event::createWithType('order.placed', ['orderId' => '1'])]);
-                $ecotone->run('order_board_poller', ExecutionPollingMetadata::createWithTestingSetup());
+                $ecotone->run('order_board_poller', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             })
                 ->expect(
                     ExpectedSpan::named('poll order_board_poller')->asRoot()->ofKind(SpanKind::Consumer)->containing(

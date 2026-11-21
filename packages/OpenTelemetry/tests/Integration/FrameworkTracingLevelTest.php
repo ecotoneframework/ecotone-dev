@@ -166,7 +166,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
             for ($order = 0; $order < 300; $order++) {
                 $application->getCommandBus()->sendWithRouting('order.place', 'coffee');
             }
-            $application->run('notifications', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 300, executionTimeLimitInMilliseconds: 600000));
+            $application->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withHandledMessageLimit(300));
             $stepsExported += count(self::stepsIn($exporter->getSpans()));
             $exporter->getStorage()->exchangeArray([]);
             gc_collect_cycles();
@@ -199,7 +199,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
             for ($order = 0; $order < $messages; $order++) {
                 $application->getCommandBus()->sendWithRouting('order.place', 'coffee');
             }
-            $application->run('notifications', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: $messages, executionTimeLimitInMilliseconds: 600000, stopOnError: false));
+            $application->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withHandledMessageLimit($messages));
             $steps = self::stepsIn($exporter->getSpans());
             $exporter->getStorage()->exchangeArray([]);
 
@@ -372,7 +372,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         $users = $this->application($running, [$registration], $exporter, $tracing, [$channel, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_tickets'), ServiceConfiguration::createWithDefaults()->withServiceName('user_service')]);
         $ticketService = $this->application($running, [$tickets], $exporter, $tracing, [$channel, ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service')]);
         $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
-        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
 
     /**
@@ -474,7 +474,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
         };
         $ecotone = $this->application($running, [$handlers], $exporter, $tracing, [SimpleMessageChannelBuilder::createQueueChannel('notifications')]);
         $ecotone->getCommandBus()->sendWithRouting('order.place', 'coffee');
-        $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         return $ecotone;
     }

@@ -108,8 +108,8 @@ final class PulseFeaturesTest extends TestCase
         );
 
         $pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
-        $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $orderService->run('order_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $packages = array_column(json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['packages'], 'features', 'name');
 

@@ -48,13 +48,13 @@ final class RecoverabilityFlowScenarios
                 ->expect(self::queued())
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expectNoSpanNamed('receive orders')
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
             FlowStage::when(function (FlowTestSupport $ecotone): void {
                 $ecotone->advanceTimeBy(TimeSpan::withMinutes(2));
-                $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+                $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             })
                 ->expect(
                     ExpectedSpan::named('send orders')->containing(
@@ -136,7 +136,7 @@ final class RecoverabilityFlowScenarios
                 ->expect(self::queued())
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false)))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)))
                 ->expect(
                     ExpectedSpan::named('receive orders')->withStatus(SpanStatus::Error)->containing(
                         ExpectedSpan::named('process class@anonymous::place')->withStatus(SpanStatus::Error, 'Order cannot be placed'),

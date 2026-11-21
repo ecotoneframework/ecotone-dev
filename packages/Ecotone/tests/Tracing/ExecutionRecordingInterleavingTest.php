@@ -46,14 +46,14 @@ final class ExecutionRecordingInterleavingTest extends TracingTestCase
         $sequential = $this->application();
         $sequential->sendCommandWithRouting('order.ship', ['orderId' => 'first', 'suspend' => false]);
         $sequential->sendCommandWithRouting('order.ship', ['orderId' => 'second', 'suspend' => false]);
-        $sequential->run('shipments', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
+        $sequential->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withHandledMessageLimit(2));
 
         $interleaved = $this->application();
         $interleaved->sendCommandWithRouting('order.ship', ['orderId' => 'first', 'suspend' => true]);
         $interleaved->sendCommandWithRouting('order.ship', ['orderId' => 'second', 'suspend' => false]);
-        $suspended = new Fiber(fn () => $interleaved->run('shipments', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)));
+        $suspended = new Fiber(fn () => $interleaved->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withHandledMessageLimit(1)));
         $suspended->start();
-        $interleaved->run('shipments', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $interleaved->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withHandledMessageLimit(1));
         $suspended->resume();
 
         self::assertSame(self::processesOf($sequential), self::processesOf($interleaved));

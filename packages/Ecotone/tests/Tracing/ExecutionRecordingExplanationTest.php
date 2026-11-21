@@ -345,7 +345,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
             [SimpleMessageChannelBuilder::createQueueChannel('orders'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 3)],
             function (FlowTestSupport $ecotone): void {
                 $ecotone->sendCommandWithRouting('order.place', []);
-                $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+                $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             },
         ));
 
@@ -585,7 +585,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
 
         $lines = array_map(trim(...), $this->recorded([$listeners::class], [$listeners], [SimpleMessageChannelBuilder::createQueueChannel('notifications')], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', []);
-            $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         }));
 
         self::assertSame(
@@ -613,7 +613,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
 
         return $this->recorded([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', 'order-1');
-            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         }, $withEveryHint);
     }
 

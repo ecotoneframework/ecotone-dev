@@ -64,7 +64,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
         );
 
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
-        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $this->assertSame(['order-1'], $handler->handled);
     }

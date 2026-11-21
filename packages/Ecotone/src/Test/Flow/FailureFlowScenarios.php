@@ -106,7 +106,7 @@ final class FailureFlowScenarios
                     ),
                 )
                 ->withNoOtherSpans(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false)))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)))
                 ->expect(
                     ExpectedSpan::named('receive orders')->withStatus(SpanStatus::Error)->containing(
                         ExpectedSpan::named('process class@anonymous::place')->withStatus(SpanStatus::Error),

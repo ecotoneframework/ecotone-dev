@@ -185,7 +185,7 @@ final class TracingTreeTest extends TracingTestCase
         );
 
         $ecotoneTestSupport->sendCommand(new RegisterUser('2'), ['flowId' => '2']);
-        $ecotoneTestSupport->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(2));
+        $ecotoneTestSupport->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withHandledMessageLimit(2));
 
         //        $tracerProvider->shutdown();
     }

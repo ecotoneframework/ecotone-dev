@@ -216,7 +216,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             enabledModules: [],
         )
             ->sendCommandWithRouting('order.place', 'order-1')
-            ->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            ->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame(
             [
@@ -427,8 +427,8 @@ final class ExecutionRecordingTest extends TracingTestCase
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
         )
-            ->run('orders', ExecutionPollingMetadata::createWithTestingSetup())
-            ->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            ->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages())
+            ->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame([], $ecotone->popExecutionRecording()->lines);
     }
@@ -474,7 +474,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         $this->expectExceptionMessage('A #[Gathered] handler requires a gathering group opened by its splitter.');
 
         $ecotone->sendDirectToChannel('summary', 'not a part');
-        $ecotone->run('summaries', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('summaries', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
 
     public function test_a_process_that_fails_before_its_first_span_is_recorded_with_its_failure(): void
@@ -596,7 +596,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         )
             ->sendCommandWithRouting('order.place', 'order-1')
             ->sendCommandWithRouting('order.confirm', 'order-1')
-            ->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            ->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $lines = self::trimmed($ecotone->popExecutionRecording()->lines);
 
         $consumed = array_slice($lines, (int) array_search('sub-flow process 3: receive orders, ExecutionRecordedOrder::confirm', $lines, true));
@@ -632,7 +632,7 @@ final class ExecutionRecordingTest extends TracingTestCase
 
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
         try {
-            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         } catch (RuntimeException) {
         }
         $ecotone->publishEventWithRouting('order.placed', 'order-1', metadata: [MessageHeaders::MESSAGE_ID => '0b3c8e2a-5f8c-4d5e-9a3f-2b1c0d9e8f7a']);

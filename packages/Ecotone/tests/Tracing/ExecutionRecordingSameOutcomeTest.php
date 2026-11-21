@@ -70,7 +70,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         $run = function (FlowTestSupport $ecotone): void {
             $ecotone->sendDirectToChannel('collect', 'a', ['tenant' => "\xFF\xFE"]);
             $ecotone->sendDirectToChannel('collect', 'b', ['tenant' => "\xFF\xFE"]);
-            $ecotone->run('batches', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('batches', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         };
 
         $this->assertSameOutcomeWithRecordingOnAndOff([$collector::class], fn (): array => [clone $collector], $run, fn (object $collector): array => $collector->batches, [SimpleMessageChannelBuilder::createQueueChannel('batches')]);
@@ -81,7 +81,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         $run = function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', "\xFF\xFE");
             $ecotone->sendCommandWithRouting('order.confirm', "\xFF\xFE");
-            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         };
 
         $this->assertSameOutcomeWithRecordingOnAndOff([ExecutionRecordedBinaryOrder::class], fn (): array => [], $run, fn (): array => [], [SimpleMessageChannelBuilder::createQueueChannel('orders')]);
@@ -108,7 +108,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
             $tracing = self::tracingConfiguration();
             $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto($recorder)], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), $recording ? $tracing->withLevel(TracingLevel::Framework) : $tracing], enabledModules: []);
             $ecotone->sendCommandWithRouting('order.place', 'order-1');
-            $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             $recorded = $recorder->recordedSpans();
             $traced = array_values(array_filter($recorded, fn (Span $span): bool => ! isset($span->attributes[SpanAttribute::EXECUTION_STEP])));
             $nameOf = array_column(array_map(fn (Span $span): array => [$span->spanId, $span->name], $traced), 1, 0);
@@ -142,7 +142,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
             };
             $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())], [SimpleMessageChannelBuilder::createQueueChannel('orders'), self::tracingConfiguration()->withLevel($level)], enabledModules: []);
             $ecotone->sendCommandWithRouting('order.place', 'order-1');
-            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             $seen[$level->value] = $orders->acknowledgements;
         }
 
@@ -163,7 +163,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders', isAutoAcked: false), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: []);
 
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
-        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $lines = array_map(trim(...), $ecotone->popExecutionRecording()->lines);
         $acknowledge = (int) array_search('acknowledge', $lines, true);
 
@@ -202,7 +202,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders', isAutoAcked: false), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: []);
 
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
-        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withHandledMessageLimit(1));
         $lines = array_map(trim(...), $ecotone->popExecutionRecording()->lines);
 
         self::assertSame([$outcome], array_values(array_filter($lines, fn (string $line): bool => str_starts_with($line, '↳ outcome: ') && in_array($line, ['↳ outcome: resent to the channel', '↳ outcome: rejected', '↳ outcome: left to the handler', '↳ outcome: accepted'], true))));

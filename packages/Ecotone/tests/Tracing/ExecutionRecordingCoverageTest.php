@@ -92,7 +92,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             $ecotone->sendDirectToChannel('order.route', 'b');
             $ecotone->sendDirectToChannel('order.split', 'c,d');
             $ecotone->sendCommandWithRouting('order.place', 'e');
-            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         });
 
         self::assertStep($lines, 'router class@anonymous::route', ['returns: string']);
@@ -118,7 +118,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
     {
         $lines = $this->recorded([ExecutionRecordedOrders::class], [new ExecutionRecordedOrders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', 'order-1', metadata: [MessageHeaders::PRIORITY => 5]);
-            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         });
         $receive = array_search('sub-flow process 2: receive orders, ExecutionRecordedOrders::place', $lines, true);
 
@@ -130,7 +130,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
     {
         $lines = $this->recorded([ExecutionRecordedOrders::class], [new ExecutionRecordedOrders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', 'order-1');
-            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         });
 
         self::assertStep($lines, 'after receive TracingChannelInterceptor::afterReceiveCompletion', ['failure: none']);
@@ -143,7 +143,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         $lines = $this->recorded([ExecutionRecordedOrders::class], [new ExecutionRecordedOrders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', 'order-1');
             $ecotone->sendCommandWithRouting('order.place', 'failing');
-            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2, stopOnError: false));
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withHandledMessageLimit(2));
         });
 
         self::assertStep($lines, 'acknowledge', ['outcome: accepted']);
@@ -238,7 +238,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
 
         $lines = $this->recorded([$orders::class, ExecutionRecordedPlaceOrder::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::APPLICATION_X_PHP_SERIALIZED)], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommand(new ExecutionRecordedPlaceOrder());
-            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         });
 
         self::assertContains('convert ExecutionRecordedPlaceOrder (application/x-php) to string (application/x-php-serialized)', $lines);
@@ -305,7 +305,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         $lines = $this->recorded([ExecutionRecordedOrders::class], [new ExecutionRecordedOrders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', 'failing');
             try {
-                $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+                $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             } catch (RuntimeException) {
             }
         });

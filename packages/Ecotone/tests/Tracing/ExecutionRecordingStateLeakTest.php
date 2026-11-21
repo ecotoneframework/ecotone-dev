@@ -136,7 +136,7 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
             public function drain(string $reason, ConfiguredMessagingSystem $messagingSystem, CommandBus $commandBus): void
             {
                 $commandBus->sendWithRouting('audit.record', 'before');
-                $messagingSystem->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+                $messagingSystem->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
                 $commandBus->sendWithRouting('audit.record', 'after');
             }
 
@@ -182,10 +182,10 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
         $afterTheFailure = $this->application($orders);
         $afterTheFailure->sendCommandWithRouting('order.place', 'failing');
         $afterTheFailure->sendCommandWithRouting('order.place', 'order-2');
-        $afterTheFailure->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2, stopOnError: false));
+        $afterTheFailure->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withHandledMessageLimit(2));
         $alone = $this->application($orders);
         $alone->sendCommandWithRouting('order.place', 'order-2');
-        $alone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        $alone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $next = $afterTheFailure->popExecutionRecording()->processes[3];
 
@@ -297,7 +297,7 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
             $handlers,
             function (FlowTestSupport $ecotone): void {
                 $ecotone->sendCommandWithRouting('order.place', 'order-1');
-                $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+                $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
             },
             [ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errors'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
         );

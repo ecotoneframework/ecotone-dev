@@ -61,7 +61,7 @@ final class DistributedFlowScenarios
                     )
                     ->expectNoSpanNamed('process class@anonymous::create')
                     ->withNoOtherSpans(),
-                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('distributed_channel', ExecutionPollingMetadata::createWithTestingSetup()))
+                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('distributed_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                     ->expect(
                         ExpectedSpan::named('receive distributed_channel')->ofKind(SpanKind::Consumer)->containing(
                             ExpectedSpan::named('send command')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'ticket.create'])->containing(
@@ -102,7 +102,7 @@ final class DistributedFlowScenarios
                     ->expectNoSpanNamed('send audit_events')
                     ->withNoOtherSpans()
                     ->leavingWorkPending(),
-                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('billing_events', ExecutionPollingMetadata::createWithTestingSetup()))
+                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('billing_events', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                     ->expect(
                         ExpectedSpan::named('send billing_events')->containing(
                             ExpectedSpan::named('receive billing_events')->ofKind(SpanKind::Consumer)->containing(
@@ -148,7 +148,7 @@ final class DistributedFlowScenarios
                 FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', metadata: $metadata, replyRoutingKey: 'ticket.created'))->leavingWorkPending()
                     ->expect(ExpectedSpan::named('send distributed')->ofKind(SpanKind::Producer)->containing(ExpectedSpan::named('send distributed_channel')->ofKind(SpanKind::Producer)))
                     ->withNoOtherSpans(),
-                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('distributed_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)))->leavingWorkPending()
+                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('distributed_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withHandledMessageLimit(1)))->leavingWorkPending()
                     ->expect(
                         ExpectedSpan::named('receive distributed_channel')->ofKind(SpanKind::Consumer)->containing(
                             ExpectedSpan::named('process class@anonymous::create')->withAttributes([SpanAttribute::ENDPOINT_ID => 'ticket.creation']),
@@ -156,7 +156,7 @@ final class DistributedFlowScenarios
                         ),
                     )
                     ->withNoOtherSpans(),
-                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('distributed_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)))
+                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('distributed_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withHandledMessageLimit(1)))
                     ->expect(
                         ExpectedSpan::named('receive distributed_channel')->ofKind(SpanKind::Consumer)->containing(
                             ExpectedSpan::named('process class@anonymous::create')->withAttributes([SpanAttribute::ENDPOINT_ID => 'ticket.creation']),

@@ -74,7 +74,7 @@ final class TracingConfigurationTest extends TracingTestCase
             [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
         )
             ->sendCommandWithRouting('user.register', '1')
-            ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+            ->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $this->assertSame([], $recorder->recordedSpans());
         $this->assertArrayNotHasKey(MessageHeaders::TRACEPARENT, $users->headers);
@@ -100,7 +100,7 @@ final class TracingConfigurationTest extends TracingTestCase
             [self::tracingConfiguration(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
         )
             ->sendCommandWithRouting('user.register', '1')
-            ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+            ->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $this->assertMatchesRegularExpression('/^00-[0-9a-f]{32}-[0-9a-f]{16}-01$/', $users->headers[MessageHeaders::TRACEPARENT]);
     }

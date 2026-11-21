@@ -117,7 +117,7 @@ final class GatewayFlowScenarios
                 ->expectNoSpanNamed('process class@anonymous::create')
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('tickets', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('tickets', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('send tickets')->containing(
                         ExpectedSpan::named('receive tickets')->ofKind(SpanKind::Consumer)->containing(
@@ -175,7 +175,7 @@ final class GatewayFlowScenarios
                 ->expectNoSpanNamed('process class@anonymous::review', 'process class@anonymous::notify')
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('reviews', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('reviews', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('send reviews')->containing(
                         ExpectedSpan::named('receive reviews')->ofKind(SpanKind::Consumer)->containing(

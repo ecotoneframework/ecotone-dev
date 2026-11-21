@@ -93,7 +93,7 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
                 }
                 $this->refuseConsumerLimits($pollingMetadata);
                 if ($pollingMetadata->coroutines > 1) {
-                    throw ConfigurationException::create("Coroutine channel `{$channel->messageChannelName}` is consumed in the process that sent the message. Remove PollingMetadata::withCoroutines() for `{$channel->messageChannelName}` and set its concurrency with CoroutineMessageChannelBuilder::withCoroutines() instead.");
+                    throw ConfigurationException::create("Coroutine message channel `{$channel->messageChannelName}` has no separate polling consumer to configure: it is consumed in the process that sent the message. Remove PollingMetadata::withCoroutines() for `{$channel->messageChannelName}` and set concurrency with CoroutineMessageChannelBuilder::withCoroutines() instead.");
                 }
             }
             if (! $configuration->isRunningForEnterpriseLicence()) {

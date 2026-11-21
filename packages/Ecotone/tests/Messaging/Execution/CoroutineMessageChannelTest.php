@@ -43,6 +43,7 @@ use PHPUnit\Framework\Attributes\RequiresMethod;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
 use RuntimeException;
+use Fiber;
 use Stringable;
 use Swoole\Coroutine;
 use Swoole\Event;
@@ -222,7 +223,7 @@ final class CoroutineMessageChannelTest extends TestCase
     {
         $ecotone = $this->bootstrap_channel();
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Coroutine channel `async` cannot send outside a coroutine. Run the application on Swoole or OpenSwoole with coroutines enabled, or register another message channel builder under `async`.');
+        $this->expectExceptionMessage('Coroutine message channel `async` cannot send outside a Swoole or OpenSwoole coroutine. This can happen in a console command, a consumer started without --coroutines, or an HTTP server with enable_coroutine disabled. Set enable_coroutine=true on the server, run the sending consumer with ecotone:run <source-channel> --coroutines=N, or register SimpleMessageChannelBuilder::createQueueChannel(\'async\') (or another channel) for console commands and tests. An uncaught send failure rolls back the sender\'s Ecotone transaction.');
 
         $ecotone->sendCommandWithRouting('handle', 'payload');
     }
@@ -231,7 +232,7 @@ final class CoroutineMessageChannelTest extends TestCase
     public function test_polling_concurrency_is_refused_at_bootstrap(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Coroutine channel `async` is consumed in the process that sent the message. Remove PollingMetadata::withCoroutines() for `async` and set its concurrency with CoroutineMessageChannelBuilder::withCoroutines() instead.');
+        $this->expectExceptionMessage('Coroutine message channel `async` has no separate polling consumer to configure: it is consumed in the process that sent the message. Remove PollingMetadata::withCoroutines() for `async` and set concurrency with CoroutineMessageChannelBuilder::withCoroutines() instead.');
 
         $this->bootstrap_channel([PollingMetadata::create('async')->withCoroutines(2)]);
     }
@@ -241,7 +242,7 @@ final class CoroutineMessageChannelTest extends TestCase
     {
         $ecotone = $this->bootstrap_channel();
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Coroutine channel `async` is consumed in the process that sent the message. Do not start it with ecotone:run or ConfiguredMessagingSystem::run(); send to its asynchronous handlers instead, and set concurrency with CoroutineMessageChannelBuilder::withCoroutines().');
+        $this->expectExceptionMessage('Coroutine message channel `async` is consumed in the process that sent the message, so ecotone:run and ConfiguredMessagingSystem::run() cannot start a separate consumer for it. Send commands or publish events to handlers marked #[Asynchronous(\'async\')]; they start automatically in the sending process. Set concurrency with CoroutineMessageChannelBuilder::withCoroutines(), or register a queue channel under `async` to consume it with ecotone:run.');
 
         $ecotone->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
@@ -447,7 +448,7 @@ final class CoroutineMessageChannelTest extends TestCase
     {
         $ecotone = $this->bootstrap_channel();
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Coroutine channel `async` is consumed in the process that sent the message. Do not start it with ecotone:run or ConfiguredMessagingSystem::run(); send to its asynchronous handlers instead, and set concurrency with CoroutineMessageChannelBuilder::withCoroutines().');
+        $this->expectExceptionMessage('Coroutine message channel `async` is consumed in the process that sent the message, so ecotone:run and ConfiguredMessagingSystem::run() cannot start a separate consumer for it. Send commands or publish events to handlers marked #[Asynchronous(\'async\')]; they start automatically in the sending process. Set concurrency with CoroutineMessageChannelBuilder::withCoroutines(), or register a queue channel under `async` to consume it with ecotone:run.');
 
         $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => 'async', 'finishWhenNoMessages' => true, 'coroutines' => 2]);
     }
@@ -791,6 +792,16 @@ final class CoroutineMessageChannelTest extends TestCase
 
         ksort($logger->records);
         $this->assertSame(['a' => 'first.endpoint', 'b' => 'second.endpoint'], $logger->records);
+    }
+
+
+    public function test_a_sender_on_a_fiber_outside_a_coroutine_is_refused(): void
+    {
+        $ecotone = $this->bootstrap_channel();
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Coroutine message channel `async` cannot send outside a Swoole or OpenSwoole coroutine. This can happen in a console command, a consumer started without --coroutines, or an HTTP server with enable_coroutine disabled. Set enable_coroutine=true on the server, run the sending consumer with ecotone:run <source-channel> --coroutines=N, or register SimpleMessageChannelBuilder::createQueueChannel(\'async\') (or another channel) for console commands and tests. An uncaught send failure rolls back the sender\'s Ecotone transaction.');
+
+        (new Fiber(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload')))->start();
     }
 
     public static function concurrency_limits(): array

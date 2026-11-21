@@ -36,7 +36,7 @@ final class CoroutineChannelConsumer implements EndpointRunner
 
     public function runEndpointWithExecutionPollingMetadata(?ExecutionPollingMetadata $executionPollingMetadata = null): void
     {
-        throw ConfigurationException::create("Coroutine channel `{$this->channelName}` is consumed in the process that sent the message. Do not start it with ecotone:run or ConfiguredMessagingSystem::run(); send to its asynchronous handlers instead, and set concurrency with CoroutineMessageChannelBuilder::withCoroutines().");
+        throw ConfigurationException::create("Coroutine message channel `{$this->channelName}` is consumed in the process that sent the message, so ecotone:run and ConfiguredMessagingSystem::run() cannot start a separate consumer for it. Send commands or publish events to handlers marked #[Asynchronous('{$this->channelName}')]; they start automatically in the sending process. Set concurrency with CoroutineMessageChannelBuilder::withCoroutines(), or register a queue channel under `{$this->channelName}` to consume it with ecotone:run.");
     }
 
     public function createConsumer(): ConsumerLifecycle

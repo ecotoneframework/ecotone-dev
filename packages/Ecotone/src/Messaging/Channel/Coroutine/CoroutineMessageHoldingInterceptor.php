@@ -38,7 +38,7 @@ final class CoroutineMessageHoldingInterceptor extends AbstractChannelIntercepto
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
         if (Coroutine::getCid() < 1 && ! $message->getHeaders()->containsKey(ErrorContext::DLQ_MESSAGE_REPLIED)) {
-            throw ConfigurationException::create("Coroutine channel `{$this->channelName}` cannot send outside a coroutine. Run the application on Swoole or OpenSwoole with coroutines enabled, or register another message channel builder under `{$this->channelName}`.");
+            throw ConfigurationException::create("Coroutine message channel `{$this->channelName}` cannot send outside a Swoole or OpenSwoole coroutine. This can happen in a console command, a consumer started without --coroutines, or an HTTP server with enable_coroutine disabled. Set enable_coroutine=true on the server, run the sending consumer with ecotone:run <source-channel> --coroutines=N, or register SimpleMessageChannelBuilder::createQueueChannel('{$this->channelName}') (or another channel) for console commands and tests. An uncaught send failure rolls back the sender's Ecotone transaction.");
         }
         return $this->release->hold($this->channelName, $message) ? null : $message;
     }

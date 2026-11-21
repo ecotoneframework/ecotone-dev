@@ -152,7 +152,7 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
     private function consumedOn(int $coroutines): array
     {
         $recorder = new InMemorySpanRecorder();
-        $ecotone = $this->shipments($recorder);
+        $ecotone = $this->shipments(recorder: $recorder, atOnce: $coroutines);
         foreach (['parcel-1', 'fragile-2', 'parcel-3', 'fragile-4', 'parcel-5', 'parcel-6', 'fragile-7', 'parcel-8'] as $parcel) {
             $ecotone->sendCommandWithRouting('shipment.ship', ['parcelId' => $parcel]);
         }
@@ -172,13 +172,17 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
         ];
     }
 
-    private function shipments(InMemorySpanRecorder $recorder): FlowTestSupport
+    private function shipments(InMemorySpanRecorder $recorder, int $atOnce): FlowTestSupport
     {
-        $shipments = new class () {
+        $shipments = new class ($atOnce) {
             private int $shipped = 0;
             private int $shippedAtOnce = 0;
             private int $mostShippedAtOnce = 0;
             private array $attempts = [];
+
+            public function __construct(private int $atOnce)
+            {
+            }
 
             #[Asynchronous('shipments')]
             #[CommandHandler('shipment.ship', endpointId: 'shipment.ship.endpoint')]
@@ -187,7 +191,7 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
                 $this->attempts[$command['parcelId']] = ($this->attempts[$command['parcelId']] ?? 0) + 1;
                 $this->shippedAtOnce++;
                 $this->mostShippedAtOnce = max($this->mostShippedAtOnce, $this->shippedAtOnce);
-                usleep(20_000);
+                $this->waitUntilShippingAtOnce();
                 $this->shippedAtOnce--;
                 if (str_starts_with($command['parcelId'], 'fragile') && $this->attempts[$command['parcelId']] === 1) {
                     throw new RuntimeException("Parcel {$command['parcelId']} slipped");
@@ -199,6 +203,13 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
             #[EventHandler('shipment.shipped', endpointId: 'shipment.notifier')]
             public function whenShipped(string $parcelId): void
             {
+            }
+
+            private function waitUntilShippingAtOnce(): void
+            {
+                for ($waited = 0; $this->mostShippedAtOnce < $this->atOnce && $waited < 5_000; $waited++) {
+                    usleep(1_000);
+                }
             }
 
             #[QueryHandler('shipment.attempts')]

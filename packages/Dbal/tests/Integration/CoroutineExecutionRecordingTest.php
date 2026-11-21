@@ -76,10 +76,14 @@ final class CoroutineExecutionRecordingTest extends DbalMessagingTestCase
 
     private function shipments(InMemorySpanRecorder $recorder, int $coroutines): FlowTestSupport
     {
-        $shipments = new class () {
+        $shipments = new class ($coroutines) {
             private array $shipped = [];
             private int $shippedAtOnce = 0;
             private int $mostShippedAtOnce = 0;
+
+            public function __construct(private int $atOnce)
+            {
+            }
 
             #[Asynchronous('recorded_shipments')]
             #[CommandHandler('shipment.ship', endpointId: 'shipment.ship.endpoint')]
@@ -88,13 +92,20 @@ final class CoroutineExecutionRecordingTest extends DbalMessagingTestCase
                 $this->shippedAtOnce++;
                 $this->mostShippedAtOnce = max($this->mostShippedAtOnce, $this->shippedAtOnce);
                 try {
-                    usleep(50_000);
+                    $this->waitUntilShippingAtOnce();
                     if ($parcel === 'refused') {
                         throw new RuntimeException('Parcel was refused');
                     }
                     $this->shipped[] = $parcel;
                 } finally {
                     $this->shippedAtOnce--;
+                }
+            }
+
+            private function waitUntilShippingAtOnce(): void
+            {
+                for ($waited = 0; $this->mostShippedAtOnce < $this->atOnce && $waited < 5_000; $waited++) {
+                    usleep(1_000);
                 }
             }
 

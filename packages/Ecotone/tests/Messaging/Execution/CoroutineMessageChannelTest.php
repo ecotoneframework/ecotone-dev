@@ -694,7 +694,8 @@ final class CoroutineMessageChannelTest extends TestCase
     public function test_unsupported_delivery_attributes_are_refused_at_bootstrap(object $handler, string $attribute, string $reason): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Coroutine message channel `async` does not support #[{$attribute}]: {$reason} Remove #[{$attribute}] from this handler, or use a channel that honours it.");
+        $class = $handler::class;
+        $this->expectExceptionMessage("Coroutine message channel `async` does not support #[{$attribute}] on handler `{$class}::handle` (endpoint `handle.endpoint`): {$reason} Remove #[{$attribute}] from this handler, or use a channel that honours it.");
 
         EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
     }

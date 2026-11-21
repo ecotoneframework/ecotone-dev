@@ -140,7 +140,10 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
             foreach ([Priority::class => ['Priority', 'messages are handled in FIFO order.'], TimeToLive::class => ['TimeToLive', 'messages in this queue do not expire.']] as $attributeClass => [$attribute, $reason]) {
                 if ($interface->hasAnnotation($attributeClass)) {
                     $channel = reset($channels);
-                    throw ConfigurationException::create("Coroutine message channel `{$channel}` does not support #[{$attribute}]: {$reason} Remove #[{$attribute}] from this handler, or use a channel that honours it.");
+                    $class = $handler->getClassName();
+                    $method = $handler->getMethodName();
+                    $endpointId = $handler->getAnnotationForMethod()->getEndpointId();
+                    throw ConfigurationException::create("Coroutine message channel `{$channel}` does not support #[{$attribute}] on handler `{$class}::{$method}` (endpoint `{$endpointId}`): {$reason} Remove #[{$attribute}] from this handler, or use a channel that honours it.");
                 }
             }
         }

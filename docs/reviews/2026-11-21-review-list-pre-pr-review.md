@@ -246,3 +246,164 @@ Note (outside the DX section, for the maintainer's reading only, not a finding):
 clearly for a maintainer — JUDGE_MODEL (default opus) in bin/test-agent-skills, and the checkReviewList violation
 messages in bin/check-agent-skills.php name both ways out (cite the rule in a requirement, or list it under
 'Rules no review decides').
+
+# Round 2
+
+Range `17d4a5d41..6eaef911c`, sent to the same four Orca workers. All four passed: no requirement is `missing`.
+
+## Round 2: guidelines
+
+PASSED
+
+Guidelines re-review, round 2: `git diff 17d4a5d41..6eaef911c`, head 6eaef911c. Reviewer: the same Orca worker
+session as round 1, Claude Opus 5.5, read only.
+
+#### New commits read
+
+- e4274e6f9 `docs(reviews): the four decided review lists for the review list change`: adds
+  docs/reviews/2026-11-21-review-list-pre-pr-review.md, the committed round 1 lists (D4 / P3).
+- e842920ef `fix(skills): the review list check refuses a missing or second review list (BH8)`:
+  bin/check-agent-skills.php `checkReviewList()` now refuses unless there is exactly one list (when framework rules
+  exist); two new checker cases; review-list.md:110-113 says the review skills' rules are exempt.
+- 6eaef911c `docs(skills): the behaviour review gives BH1 its own status line`: rule V1 of framework-review-behaviour
+  (SKILL.md:31-35) and the review-diff-behaviour `rule-v6.md` grader.
+
+Ran (throwaway `ecotone/php:8.5.3-dev` container, worktree mounted read-only): `php bin/check-agent-skills.php` →
+`Agent skills are valid.`; `php bin/test-check-agent-skills.php` → `39 checker cases passed.` (including the new `review
+list missing` and `second review list`).
+
+#### Question 1: requirements decided `missing` in round 1
+
+None. Round 1 passed with no `missing` requirement, so nothing needed covering.
+
+#### Question 2: status changes from the new commits
+
+None. Every requirement keeps its round 1 status, and the evidence is updated where the new commits touch it:
+
+GL44 — covered — the new rule that exactly one review list exists is enforced by the program itself: bin/check-agent-skills.php:344-353, checker cases bin/test-check-agent-skills.php:47-48, run in CI by `.github/workflows/agent-skills.yml:30`.
+GL45 — covered — the review-skill exemption is stated in the review list itself (review-list.md:111-113), and the V1 refinement sits in framework-review-behaviour. Nothing went to `AGENTS.md` or `docs/` (docs/reviews holds the decided lists, not a rule).
+GL46 — covered — V1 changed. Its outcome (BH1 on its own status line, in the NOT PASSED ids) is graded by the updated rule-v6.md, and rule-v1.md still grades V1's unchanged *Expected*. The review-diff-behaviour runs that used today's rule-v6 grader scored 0.929 (14-36-01Z) and 1.0 with passRate 1 (14-41-30Z).
+GL47 — covered — only a grader changed; no `prompt.md` changed.
+GL48 — covered — `phpstan-baseline.neon` is untouched.
+GL49 — covered — the paths named in the new message (`.agents/skills/<skill>/references/review-list.md`) and in the new cases resolve, and the check passes on the tree.
+GL50 — covered — `docs(reviews): …`, `fix(skills): … (BH8)`, `docs(skills): …`. Each body states the defect: the check went silent without a list; BH1 was explained in prose and left without a status.
+GL15 — not-apply — still a CI script outside `framework-service-design`; the new calls (`implode`, `array_map`) take two arguments.
+GL16 — not-apply — the added PHP lines have no comment or docblock.
+GL23 to GL27 — not-apply — no exception or application configuration. The new violation still names what was found, why it breaks the review, and the ways out (restore, move back, merge), and `review list missing` / `second review list` assert its text.
+GL1 to GL14, GL17 to GL22, GL28 to GL43 — not-apply — the same reasons as round 1: no package test, service, `Api/`, storage, Enterprise, module or design.
+
+#### Not on the list (round 1 notes)
+
+1. The overclaim at review-list.md:110 is resolved by the added sentence at :111-113.
+2. Still open: `framework-design-and-briefs` D4 speaks of "numbered findings" while P3 cites it for committing the
+   decided lists. It does not change the result.
+3. Eval freshness: the behaviour review re-ran review-diff-behaviour on the current grader (above). Whether the
+   other review cases need a re-run after the list's last edit stays BH13's call.
+4. Resolved by e842920ef: zero or several lists are now refused.
+
+## Round 2: breaking-changes
+
+PASSED
+
+Breaking-changes re-review (round 2) of dgafka/ai-reviews, new commits git diff 17d4a5d41..6eaef911c
+(e4274e6f9, e842920ef, 6eaef911c).
+
+Question 1 — round 1 missing requirements now covered: round 1 had none missing (PASSED, BC1 to BC8 all
+not-apply), so there is nothing to re-decide.
+
+Question 2 — do the new commits change any other status: no. The six changed files are
+docs/reviews/2026-11-21-review-list-pre-pr-review.md, .agents/skills/framework-pull-request/references/review-list.md,
+.agents/skills/framework-review-behaviour/SKILL.md, the rule-v6 grader under .agents/evals/, and the dev scripts
+bin/check-agent-skills.php and bin/test-check-agent-skills.php. None is under packages/, api/ or upgrade/, and the
+release split (.github/workflows/release.yml:146-190) ships only packages/*. The release is still the 2.0 major
+(tag 2.0.0-beta.10, alias 2.0.x-dev).
+
+BC1 — not-apply — nothing written to a table, queue, outbox, dead letter or event store changes; no file under packages/
+BC2 — not-apply — no stored form changes (see BC1)
+BC3 — not-apply — no signature under packages/*/Api/, no attribute, gateway, #[ServiceContext] configuration or exception changes; checkReviewList() in bin/check-agent-skills.php (now refusing a missing or second review list) is an internal CI script, not shipped
+BC4 — not-apply — no default an application relies on changes
+BC5 — not-apply — no Ecotone console command or option changes
+BC6 — not-apply — no behaviour an application observes changes; the stricter check fails only the repository's own agent-skills CI job
+BC7 — not-apply — the release is the 2.0 major and there is no observable behaviour change
+BC8 — not-apply — nothing written to a shared queue or table changes
+
+Not on the list
+- None.
+
+## Round 2: behaviour
+
+PASSED
+
+### Behaviour re-review, round 2 — 17d4a5d41..6eaef911c
+
+New commits: e4274e6f9 (docs/reviews record of round 1), e842920ef (checker refuses a missing or second review list),
+6eaef911c (behaviour skill V1 gives BH1 its own status line, rule-v6 grader, a review-list sentence on why the review
+skills are exempt). Every requirement that was `missing` is decided again below, and so is every requirement the new
+commits touch. The others keep their round 1 status (behaviour.md).
+
+Commands run (read only; HEAD 6eaef911c, tree clean before and after):
+- `php bin/test-check-agent-skills.php` (php:8.3-cli): 39 checker cases passed.
+- `php bin/check-agent-skills.php`: Agent skills are valid.
+- Red run in a scratch copy: `17d4a5d41:bin/check-agent-skills.php` with the new test file fails both new cases.
+  'review list missing' gives "got exit 0: Agent skills are valid.". 'second review list' exits 1, but only with
+  "framework-other/SKILL.md is missing", never with the expected 'found: …' message.
+- `RUNS=1 bin/test-agent-skills framework-review-behaviour` (Opus judge), log
+  eval-framework-review-behaviour-round2.log: review-coroutine-compatibility 1.00, review-coroutine-consumer 1.00,
+  review-diff-behaviour 1.00 (rule-v6 passes), review-feature-combinations 1.00, review-skill-change 1.00. I reran it
+  because these commits changed both V1 and the rule-v6 grader, and the coordinator's eval-v6b.log (3/3 at 1.00)
+  could not be tied to HEAD.
+
+#### Covered
+
+BH8 — covered — bin/check-agent-skills.php:344-354 refuses unless exactly one review list exists, whenever framework
+      skills have rules. Cases 'review list missing' and 'second review list' in bin/test-check-agent-skills.php; both
+      are red on the round 1 checker (reproduced above). A renamed list is now refused with "found: none". The early
+      return remains only for a tree with no framework rules, and that tree is refused separately ('no framework skill
+      at all' still passes).
+BH1 — covered — unchanged trace (round 1). e842920ef also closes the one gap that made requirement (4) depend on a
+      file path: the CI check can no longer turn itself off without an error.
+BH2 (missing or second list refused) — covered — the two new cases above, red first
+BH12 — covered — the new cases build their own fixture tree and assert only the checker's exit code and message
+BH13 — covered — framework-review-behaviour, all five cases at 1.00 on HEAD (above). V1 changed and is graded by
+      rule-v1 (passes). The rule-v6 grader change passes in review-diff-behaviour. framework-pull-request changed only by
+      one explanatory sentence in references/review-list.md, which neither adds nor changes a rule (round 1: open-pr
+      1.00, update-open-pr 1.00).
+
+#### Not apply
+
+BH3 to BH7, BH9 to BH11, BH14 to BH21 — not-apply — unchanged from round 1: tooling and skill text only; the
+      checker has one entry point and runs once over a static tree; no storage, message, async path, time, Ecotone
+      feature, service state, wait or consumer
+
+#### Not on the list
+
+- The rule-v6 grader now lets a missing requirement whose gap is a test that does not exist yet pass "without a file
+  name". The review list (Deciding a requirement) and V6's Expected still ask for "the file and line" and "a
+  location". In the eval case the reviewer sees only a summary, so the relaxation fits that case. But V6 and the
+  review list do not say the same, so a real review could read either way. Consider saying in the review list that
+  for a test that does not exist yet, the test to add (its intended file) is the location.
+- The earlier note on rule-v6 is resolved: the missing BH1 line was a real gap in V1. It is fixed by 6eaef911c and
+  passes under the Opus judge.
+
+## Round 2: developer-experience
+
+PASSED
+
+Developer experience review, round 2 — branch dgafka/ai-reviews, new commits 17d4a5d41..6eaef911c
+(e4274e6f9, e842920ef, 6eaef911c), read on top of round 1 (origin/main...17d4a5d41).
+
+Missing requirements from round 1: none. Round 1 was PASSED with NO USER-FACING SURFACE, so nothing had to be covered.
+
+NO USER-FACING SURFACE
+
+DX1 to DX10 — not-apply — the new commits leave that unchanged. The six files they touch are still maintainer
+tooling of the ecotone-dev monorepo: docs/reviews/2026-11-21-review-list-pre-pr-review.md (the repo-internal
+record of the round 1 reviews, next to earlier docs/reviews/* records, not end-user documentation),
+bin/check-agent-skills.php and bin/test-check-agent-skills.php (checkReviewList now refuses a missing review list
+or a second one), one sentence in .agents/skills/framework-pull-request/references/review-list.md (the review
+skills' own rules are not cited and the check skips them), rule V1 in .agents/skills/framework-review-behaviour/SKILL.md
+and the rule-v6 eval grader. No file under packages/ and no public api/skills/ecotone-* skill changed, so there
+is still no attribute, configuration, gateway, console command, exception message or default an application
+developer writes, configures or reads.
+
+Status changes from the new commits: none.

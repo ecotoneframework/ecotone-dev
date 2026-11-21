@@ -623,3 +623,102 @@ empty hold (consistent with its own transaction, Dbal `CoroutineExecutionsTest::
 - BH17 reproduction: var/rv6-race-swoole.log, var/rv6-race-openswoole.log
 - PHP 8.2 (app8_2): php -l of every changed PHP file clean; no runtime run (shared vendor requires PHP >= 8.4.1)
 - NOT run (usage limit): full Dbal suite, OpenTelemetry CoroutineTracingTest on both runtimes, the skill eval judges
+
+# Guidelines review: re-check
+
+## Re-check at 082a7e5a6
+
+Missing in round 1, decided again:
+
+GL2 — covered — `CoroutineMessageChannelTest::test_a_failed_asynchronous_sender_starts_no_handler` (an
+      `#[Asynchronous('senders')]` handler sends and throws, `run('senders')` in a coroutine, nothing handled)
+GL15 — covered — `DbalConnection.php:41` and `CoroutineMessageChannelModule.php:89` name their arguments (dbee23d1c)
+GL17 — covered — `CoroutineMessageChannel.php:47,64` hold the service as `$sleep`
+GL27 — missing — `CoroutineMessageChannelModule.php:116-143` — every other `PollingMetadata` setting is now refused with
+      a data-provider row (`unsupported_polling_limits`), the error channel stays honoured, and the channel listed with
+      another channel is refused in both orders (`test_a_handler_chaining_the_channel_with_another_channel_is_refused_at_bootstrap`).
+      Judged calls: refusing `withEnabledErrorChannel(false)` is sound (a failure has no other place to go than the drop
+      log, so the setting contradicts the channel); refusing both chain orders is sound (rule 1d: when one reading works
+      and the other ends the process, refuse rather than support half). Still undecided: `withSignalInterceptors()`.
+      The reason given, that an explicit value cannot be told from the default, holds only when the value equals
+      `extension_loaded('pcntl')` (`PollingMetadata.php:57`); a differing value is detectable, and nothing proves it is
+      honoured either. It is the same question as the memory limit, which the channel already settles because it does
+      not own the worker: with ext-pcntl its internal consumer installs Ecotone's termination listener inside the HTTP
+      worker (the implementer's untested observation). — decide it: run the channel's internal consumer without signal
+      interceptors (as it already runs without a memory limit) and refuse `withSignalInterceptors()` with a value that
+      differs from the default, with a row in `unsupported_polling_limits`; or add a test that proves the value is
+      honoured — skill: framework-error-handling 1d
+GL34 — covered — MariaDB 11.4.13 runs of both Dbal files on Swoole (33 tests) and OpenSwoole (24 tests) listed in the
+      spec, "Engine runs"
+GL46 — covered — `bin/test-agent-skills ecotone-open-swoole` at a30dd3e64, after the rubric changes of 17855865f and
+      66f824ae6 and the skill change: both cases 1.00 over 2 runs, exit 0 (`var/r5-skill.log`, `var/r5-report.txt`)
+
+Requirements the new commits touch:
+
+GL42 — missing — `docs/superpowers/specs/2026-11-21-coroutine-message-channel-spec.md:37` — the new row "A message
+      released while the last consumer coroutine ends is still handled" is stated as an approved decision with no test:
+      its test was removed in 432edbfbd because no userland seam opens the window any more. Rule D2 makes every stated
+      guarantee carry a test named after it — move the sentence out of the decisions table into a note on the
+      implementation (what `CoroutineMessageChannel::enqueue()` loops on and why there is no test), or add a test that
+      reaches the window through the userland surface — skill: framework-design-and-briefs D2
+GL4 — covered — new tests are snake_case and comment-free; aggregate and saga anonymous; the two named events
+      `CoroutineChannelOrderWasPlaced`/`WasPaid` are type declarations (exception 1)
+GL8 — covered — `CoroutineMessageChannelConsumerStopInterceptor` holds only the channel names from its `Definition`
+GL9 — covered — `CoroutineMessageChannel::hasWaitingMessage()` takes the head message and puts it back at the head with
+      nothing yielding in between, so the query leaves the queue as it found it
+GL14, GL16 — covered — both new `src` files are `final`, `strict_types=1`, full Enterprise notice; their only
+      docblocks are `@param string[]`
+GL23, GL24, GL26 — covered — the chain refusal and the 12 new polling refusals name the setting, the reason and the
+      way out, are asserted in full, and run in `prepare()`
+GL37 — covered — consumer stop handlers are skipped by an Enterprise interceptor on the consumer-stop channel; open core
+      is untouched
+GL38, GL40 — covered — no new module; tests name no module
+The other requirements keep their round-1 status.
+
+# Behaviour review: re-check at 082a7e5a6
+
+
+NOT PASSED: BH14
+
+Count at 082a7e5a6: not-apply 1, covered 19, missing 1. (At 4d95019cc: BH17, BH14 missing.)
+## Missing
+
+BH14 — missing — `packages/Ecotone/src/Messaging/Channel/Coroutine/CoroutineMessageChannelConsumer.php:44` with
+`packages/Ecotone/src/Messaging/Endpoint/Interceptor/SignalInterceptor.php` — combination with the Swoole/OpenSwoole
+server's own signal handling when ext-pcntl is loaded (it is, in both containers). The internal consumer is built from
+`ExecutionPollingMetadata::createWithFinishWhenNoMessages()`, whose `withSignalInterceptors` defaults to
+`extension_loaded('pcntl')`, so every consumer coroutine of the channel installs Ecotone's `PcntlTerminationListener`
+(`pcntl_signal` for SIGINT/SIGTERM/SIGQUIT, `pcntl_async_signals(true)`) inside the HTTP worker for the length of a
+burst. Probe in the `swoole` container (Swoole HTTP server, `worker_num` 1, `enable_coroutine`, a channel handler that
+waits 2 s, `var/rv7-pcntl-swoole.log`): SIGTERM to the worker with no burst running ends it (baseline) and so does a
+SIGTERM after a drained burst. A SIGTERM during a burst is swallowed: 4 s later the worker is still alive and answers
+`ok`, and Swoole logs `swoole_signalfd_event_callback(): read from signalfd failed`. The termination only sets
+Ecotone's flag, so the consumer stops after its message and the loop starts the next one. When the listener is
+disabled the flag is reset, and the server's shutdown or reload signal to that worker is lost. Fix: the channel does
+not own the process, so its internal consumer runs `withSignalInterceptors(false)`, the same reasoning as the memory
+limit set to 0. Test to add in `CoroutineMessageChannelTest.php`:
+`test_a_termination_signal_during_a_handler_reaches_the_handler_the_application_installed`. The test installs a
+`pcntl_signal(SIGTERM, ...)` handler, sends `posix_kill(getmypid(), SIGTERM)` from a channel handler, and asserts the
+application's handler was called. It needs `#[RequiresPhpExtension('pcntl')]` and is listed in `COROUTINE_TESTS`
+(pcntl is loaded on both CI runtimes, so `--fail-on-skipped` holds). OnOpenSwoole the probe was not run.
+The rest of BH14 from 4d95019cc is covered now: (a) `#[OnConsumerStop]`
+(`test_consumer_stop_handlers_are_not_called_when_the_channel_is_drained`,
+`test_consumer_stop_handlers_are_still_called_for_a_polling_consumer_beside_the_channel`, red first in
+var/r5-red-bh14.log); (b) `test_an_aggregate_command_handler_runs_on_the_channel`,
+`test_a_saga_event_handler_runs_on_the_channel`. An event-sourced aggregate as sender is not tested on its own: its
+recorded events reach the channel through the event bus inside the command bus boundary, which the Dbal `event`
+dataset proves after commit. I accept that, given the coordinator's brief. — skill: `framework-service-design`,
+`framework-testing`.
+
+## Runs at 082a7e5a6 (alone on the stack, one at a time)
+
+- swoole, CI command, COROUTINE_TESTS: OK (119 tests, 222 assertions), var/rv7-swoole.log
+- openswoole, CI command, COROUTINE_TESTS: OK (110 tests, 211 assertions), var/rv7-openswoole.log
+- app, CoroutineMessageChannelRefusedTest: OK (4 tests, 8 assertions), var/rv7-refused-app.log
+- app, full Dbal tests suite: 1617 tests, 1 failure, 28 skipped (var/rv7-dbal.log). The failure is
+  `ApplicationConnectionLifetimeTest::test_a_discarded_application_releases_its_database_connection` ("1 is identical
+  to 2"). It counts every connection on the PostgreSQL server, and one connection open at its start had closed by its
+  end. The file passes alone (2 tests, var/rv7-dbal-lifetime.log). It comes from main (#749) and the branch does not
+  touch it. This is a timing-sensitive test of its own and needs a separate fix; it is not counted against BH1-BH21.
+  The Pulse failures of my two earlier runs are gone, which fits them having overlapped with the implementer's runs.
+- pcntl probe, swoole container: var/rv7-pcntl-swoole.log (see BH14).

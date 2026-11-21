@@ -38,7 +38,7 @@ final class DbalConnection
 
     public static function createWithCopiesForConcurrentExecutions(Connection $connection, int $connectionPoolSize = ConnectionPool::DEFAULT_SIZE, float $connectionPoolWaitSeconds = ConnectionPool::DEFAULT_WAIT_SECONDS): ConnectionFactory
     {
-        return AlreadyConnectedDbalConnectionFactory::withCopiesForConcurrentExecutions($connection, $connectionPoolSize, $connectionPoolWaitSeconds);
+        return AlreadyConnectedDbalConnectionFactory::withCopiesForConcurrentExecutions(connection: $connection, connectionPoolSize: $connectionPoolSize, connectionPoolWaitSeconds: $connectionPoolWaitSeconds);
     }
 
     public static function createForManagerRegistry(ManagerRegistry $managerRegistry, ?string $connectionName = null): ManagerRegistryConnectionFactory

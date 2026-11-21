@@ -44,7 +44,7 @@ final class CoroutineMessageChannel extends QueueChannel
 {
     private int $consumers = 0;
 
-    public function __construct(private string $name, private ContainerInterface $container, private int $coroutines, private EcotoneClockInterface $clock, private MessageBuilder $messageBuilder, private SleepInterface $timer)
+    public function __construct(private string $name, private ContainerInterface $container, private int $coroutines, private EcotoneClockInterface $clock, private MessageBuilder $messageBuilder, private SleepInterface $sleep)
     {
         parent::__construct($name);
     }
@@ -61,7 +61,7 @@ final class CoroutineMessageChannel extends QueueChannel
         if ($delay > 0) {
             $dueAt = $this->clock->now()->add(Duration::milliseconds($delay));
             $this->schedule(function () use ($message, $dueAt): void {
-                $this->timer->sleep($dueAt->durationSince($this->clock->now()));
+                $this->sleep->sleep($dueAt->durationSince($this->clock->now()));
                 $this->enqueue($this->messageBuilder->fromMessage($message)->removeHeader(MessageHeaders::DELIVERY_DELAY)->build());
             });
             return;

@@ -275,7 +275,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 '                        around CollectorSenderInterceptor::send for orders',
                 '                          bridge Bridge::handle',
                 '                          forward to order.place.endpoint.target.execute',
-                '                            ↳ chosen by: routing slip, now empty',
+                '                            ↳ chosen by: routing slip, its last entry',
                 '                            direct channel order.place.endpoint.target.execute',
                 '                              around MessageHandlerLogger::aroundCommandHandler',
                 '                                around TracingInterceptor::traceHandlerEndpoint',

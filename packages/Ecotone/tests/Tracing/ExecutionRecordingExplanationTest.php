@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Orchestrator;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
@@ -100,7 +101,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $forward = self::positionOf($lines, 'forward to order.place.endpoint.target.execute');
 
         self::assertSame(self::depthOf($lines[$forward]) + 1, self::depthOf($lines[$forward + 1]));
-        self::assertSame(['↳ chosen by: routing slip, now empty'], array_map(trim(...), array_slice($lines, $forward + 1, 1)));
+        self::assertSame(['↳ chosen by: routing slip, its last entry'], array_map(trim(...), array_slice($lines, $forward + 1, 1)));
     }
 
     public function test_hints_that_do_not_decide_the_flow_are_printed_only_when_every_hint_is_asked_for(): void
@@ -109,15 +110,13 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         self::assertNotEmpty(preg_grep('/↳ headers added: traceparent, ecotone_tracing_delivery$/', $this->asynchronousOrder(withEveryHint: true)));
     }
 
-    public function test_a_gatherer_process_is_titled_by_what_it_received_and_its_handler_and_its_first_step_says_where_the_work_ran(): void
+    public function test_a_gatherer_process_is_titled_by_what_it_received_and_its_handler_and_its_first_step_says_which_part_report_it_took(): void
     {
         $lines = array_map(trim(...), self::executionOf('tag-partitioned projection backfilled asynchronously in two batches'));
         $process = self::positionOf($lines, 'sub-flow process 5: receive backfill, GatheringMessageHandler::handle (part 1 of 2)');
 
-        self::assertSame(
-            ['receive backfill', '↳ sent by: process 3, the part report for part 1 of 2', '↳ work in: process 3, part 1 of 2'],
-            array_slice($lines, $process + 1, 3),
-        );
+        self::assertSame(['receive backfill', '↳ sent by: process 3, the part report for part 1 of 2'], array_slice($lines, $process + 1, 2));
+        self::assertSame([], preg_grep('/^↳ work in: /', $lines));
     }
 
     public function test_a_part_the_store_ignores_is_recorded_as_ignored_not_as_waiting(): void
@@ -178,12 +177,54 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         );
     }
 
-    public function test_the_routing_slip_hint_shows_the_slip_the_handler_returned_and_what_the_forward_left(): void
+    public function test_the_routing_slip_hint_shows_what_comes_next_and_what_the_orchestrator_gateway_put_on_the_slip(): void
     {
         $lines = array_map(trim(...), self::executionOf('orchestrator gateway starting the flow'));
         $forward = self::positionOf($lines, 'forward to approval.validate');
 
-        self::assertSame(['↳ chosen by: routing slip, then: approval.notify', 'direct channel approval.validate'], array_slice($lines, $forward + 1, 2));
+        self::assertSame(['↳ chosen by: routing slip, next: approval.notify', '↳ routing slip: adds approval.validate, approval.notify', 'direct channel approval.validate'], array_slice($lines, $forward + 1, 3));
+    }
+
+    public function test_an_orchestrator_putting_steps_on_the_routing_slip_says_what_it_adds_and_what_comes_next(): void
+    {
+        $workflow = new class () {
+            #[Orchestrator(inputChannelName: 'start')]
+            public function start(): array
+            {
+                return ['steps.orchestrate', 'steps.b'];
+            }
+
+            #[Orchestrator(inputChannelName: 'steps.orchestrate')]
+            public function orchestrate(): array
+            {
+                return ['steps.a', 'steps.c'];
+            }
+
+            #[InternalHandler(inputChannelName: 'steps.a')]
+            public function a(string $payload): string
+            {
+                return $payload;
+            }
+
+            #[InternalHandler(inputChannelName: 'steps.b')]
+            public function b(string $payload): string
+            {
+                return $payload;
+            }
+
+            #[InternalHandler(inputChannelName: 'steps.c')]
+            public function c(string $payload): string
+            {
+                return $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$workflow::class], [$workflow], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        $ecotone->sendDirectToChannel('start', 'order');
+        $lines = array_map(trim(...), $ecotone->popExecutionRecording()->lines);
+        $forward = self::positionOf($lines, 'forward to steps.a');
+
+        self::assertSame(['↳ chosen by: routing slip, next: steps.c, steps.b', '↳ routing slip: adds steps.a, steps.c'], array_slice($lines, $forward + 1, 2));
     }
 
     public function test_a_routing_slip_the_output_channel_leaves_unchanged_is_kept_not_shown_as_changed(): void
@@ -454,7 +495,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
         $forward = self::positionOf($lines, 'forward to order.place.endpoint.target.execute');
 
         self::assertSame('bridge Bridge::handle', $lines[$forward - 1]);
-        self::assertSame(['↳ chosen by: routing slip, now empty', 'direct channel order.place.endpoint.target.execute'], array_slice($lines, $forward + 1, 2));
+        self::assertSame(['↳ chosen by: routing slip, its last entry', 'direct channel order.place.endpoint.target.execute'], array_slice($lines, $forward + 1, 2));
     }
 
     public function test_the_routing_slip_an_asynchronous_endpoint_puts_on_the_message_is_recorded_before_the_send_to_the_queue(): void

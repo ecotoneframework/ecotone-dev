@@ -763,7 +763,7 @@ final class FlowScenarioChange
             'steps' => array_map(fn (array $step): array => [
                 ...$step,
                 'hints' => array_values(array_map(
-                    fn (array $hint): array => in_array($hint['key'], [ExecutionHint::SENT_BY, ExecutionHint::TAKEN_BY, ExecutionHint::WORK_IN, ExecutionHint::STARTED_IN, ExecutionHint::STARTS], true) ? [...$hint, 'value' => $named($hint['value'])] : $hint,
+                    fn (array $hint): array => in_array($hint['key'], [ExecutionHint::SENT_BY, ExecutionHint::TAKEN_BY, ExecutionHint::STARTED_IN, ExecutionHint::STARTS], true) ? [...$hint, 'value' => $named($hint['value'])] : $hint,
                     $step['hints'],
                 )),
             ], $process['steps']),

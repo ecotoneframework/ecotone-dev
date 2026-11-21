@@ -52,7 +52,7 @@ final class RecordedExecution
             $children[$parent][] = $span;
         }
 
-        [$links, $sources, $sentBy] = self::linksBetween($processes, $children);
+        [$links, $sentBy] = self::linksBetween($processes, $children);
         $processes = array_map(
             fn (Span $process, int $position): array => [
                 ...(($process->attributes[SpanAttribute::EXECUTION_STEP] ?? false)
@@ -64,7 +64,7 @@ final class RecordedExecution
             array_keys($processes),
         );
 
-        return new self(self::withNumberedGeneratedNames(self::titled($processes, $sources)));
+        return new self(self::withNumberedGeneratedNames(self::titled($processes)));
     }
 
     public function toRecording(): ExecutionRecording
@@ -162,7 +162,7 @@ final class RecordedExecution
     /**
      * @param list<Span> $processes
      * @param array<string, list<Span>> $children
-     * @return array{0: array<string, list<array{key: string, value: string, shownInLines: bool}>>, 1: array<int, array{process: int, part: ?string}>, 2: array<int, array{processNumber: int, stepNumber: int}>}
+     * @return array{0: array<string, list<array{key: string, value: string, shownInLines: bool}>>, 1: array<int, array{processNumber: int, stepNumber: int}>}
      */
     private static function linksBetween(array $processes, array $children): array
     {
@@ -188,7 +188,6 @@ final class RecordedExecution
             }
         }
         $links = [];
-        $sources = [];
         $sentBy = [];
         foreach ($processes as $consumer => $process) {
             $sender = self::senderOf(spans: [$process, ...$inStepOrder[$consumer]], processOf: $processOf, consumer: $consumer);
@@ -213,14 +212,13 @@ final class RecordedExecution
                 continue;
             }
             $producer = $processOf[$sender];
-            [$kind, $part] = self::kindOfMessageSentBy(self::firstSendOf($sendingStep, $inStepOrder[$producer]), $parentOf);
+            [$kind] = self::kindOfMessageSentBy(self::firstSendOf($sendingStep, $inStepOrder[$producer]), $parentOf);
             $sentBy[$consumer] = ['processNumber' => $producer + 1, 'stepNumber' => $stepOf[$sendingStep->spanId] + 1];
-            $sources[$consumer] = ['process' => $producer + 1, 'part' => $part];
             $links[$inStepOrder[$consumer][0]->spanId][] = ['key' => ExecutionHint::SENT_BY, 'value' => 'process ' . ($producer + 1) . ', ' . $kind, 'shownInLines' => true];
             $links[$sendingStep->spanId][] = ['key' => ExecutionHint::TAKEN_BY, 'value' => 'process ' . ($consumer + 1) . ', a separate consumer run', 'shownInLines' => true];
         }
 
-        return [$links, $sources, $sentBy];
+        return [$links, $sentBy];
     }
 
     /**
@@ -475,10 +473,9 @@ final class RecordedExecution
 
     /**
      * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}> $processes
-     * @param array<int, array{process: int, part: ?string}> $sources
      * @return list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}>
      */
-    private static function titled(array $processes, array $sources): array
+    private static function titled(array $processes): array
     {
         $ordinals = [];
         foreach ($processes as $position => $process) {
@@ -486,9 +483,6 @@ final class RecordedExecution
             $processes[$position]['process'] = $process['process'] . ($handled === null ? '' : ', ' . $handled);
             if ($part !== null) {
                 $ordinals[$position] = 'part ' . $part;
-                if (isset($sources[$position]) && $process['steps'] !== []) {
-                    $processes[$position]['steps'][0]['hints'][] = ['key' => ExecutionHint::WORK_IN, 'value' => 'process ' . $sources[$position]['process'] . ', part ' . $part, 'shownInLines' => true];
-                }
             }
         }
         $count = array_count_values(array_column($processes, 'process'));

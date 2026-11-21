@@ -236,7 +236,8 @@ order in memory. Objects pass as they are, without serialization. Set concurrenc
 handlers start in the sending process, so there is no separate `ecotone:run` consumer and `PollingMetadata` consumer
 limits and schedule settings are refused; its error channel is honoured. `#[Priority]` and `#[TimeToLive]` are
 refused for this channel, and so is listing it with another channel in one `#[Asynchronous]`. `#[OnConsumerStop]`
-handlers are not called for it: it has no consumer process.
+handlers are not called for it: it has no consumer process. It never handles process signals either: they stay
+with the server that owns the worker.
 
 Size each worker's connection pool for simultaneous requests plus the limit of every coroutine message channel in
 that process, and any polling consumer coroutines. For 12 requests and this channel's limit of 4, use at least 16:

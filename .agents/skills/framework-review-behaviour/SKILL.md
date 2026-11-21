@@ -30,7 +30,9 @@ BH4, V4 for BH5 to BH11, V5 for BH12, V7 for BH13, V8 for BH14, V9 for BH15 to B
 
 ### V1. Restate the problem, then check the change solves it
 Write the problem in the reporter's terms and the observable outcome that would prove it solved. Trace the diff
-from the entry point an application uses to that outcome.
+from the entry point an application uses to that outcome. That paragraph is the reasoning, not the decision: BH1
+still gets its own status line with the others (rule V6), `missing` when the trace depends on something the diff or
+a test does not show, and then BH1 is among the ids of the `NOT PASSED` line.
 - **Expected:** the report opens with the problem and the expected observable outcome, then says whether the
   change reaches it.
 - **Verified by:** `eval:review-diff-behaviour`

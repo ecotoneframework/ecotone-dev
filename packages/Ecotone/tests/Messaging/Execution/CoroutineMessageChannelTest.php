@@ -29,7 +29,6 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -602,6 +601,37 @@ final class CoroutineMessageChannelTest extends TestCase
 
         $this->assertSame('console failed', $failure);
         $this->assertSame([], $handler->handled);
+    }
+
+    public function test_console_command_holds_messages_until_it_returns(): void
+    {
+        $handler = new class () {
+            public array $handled = [];
+            public array $handledBeforeReturn = [];
+
+            #[ConsoleCommand('send.coroutine')]
+            public function send(#[Reference] CommandBus $bus): void
+            {
+                $bus->sendWithRouting('handle', 'payload');
+                $nextTick = new Coroutine\Channel();
+                Event::defer(static fn () => $nextTick->push(true));
+                $nextTick->pop();
+                $this->handledBeforeReturn = $this->handled;
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'console.held.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $flow = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $flow->runConsoleCommand('send.coroutine'));
+
+        $this->assertSame([], $handler->handledBeforeReturn);
+        $this->assertSame(['payload'], $handler->handled);
     }
 
     public function test_delayed_message_with_hooks_off_does_not_stall_a_sibling_coroutine(): void

@@ -59,7 +59,7 @@ final class TraceRecordingInterceptor implements FlowTrackingScope
 
     public function recordFailedAttemptHandedToErrorChannel(MethodInvocation $methodInvocation): mixed
     {
-        $this->recorder->beginConsumedMessage($this->tracer->currentSpan());
+        $this->recorder->beginConsumedMessage($this->tracer->currentApplicationSpan());
         try {
             $result = $methodInvocation->proceed();
             $this->storeFailedAttempt();
@@ -107,7 +107,7 @@ final class TraceRecordingInterceptor implements FlowTrackingScope
             return $work();
         }
 
-        $this->recorder->openScope($this->tracer->currentSpan());
+        $this->recorder->openScope($this->tracer->currentApplicationSpan());
         try {
             $result = $work();
             $this->recorder->flushWithOpenSpans();
@@ -134,7 +134,7 @@ final class TraceRecordingInterceptor implements FlowTrackingScope
             return $this->recorder->withinTransaction(function () use ($methodInvocation): mixed {
                 $processedEvents = $methodInvocation->proceed();
                 if ($processedEvents === 0) {
-                    $this->recorder->flushWithOpenSpansWithinOpenScope($this->tracer->currentSpan());
+                    $this->recorder->flushWithOpenSpansWithinOpenScope($this->tracer->currentApplicationSpan());
                 } else {
                     $this->recorder->flushBufferedWithinOpenScope();
                 }

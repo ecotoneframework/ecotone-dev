@@ -24,8 +24,8 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Tracing\CurrentTrace;
+use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\SpanRecorder;
-use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Messaging\Channel\Collector\MessageCollectionObserver;
 use Ecotone\Messaging\Channel\Collector\UnobservedMessageCollection;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -45,6 +45,12 @@ use Ecotone\Projecting\ProjectionOperationEndpoint;
 use Ecotone\Projecting\ProjectionTriggerEndpoint;
 use Ecotone\Tracing\CompositeSpanRecorder;
 use Ecotone\Tracing\EcotoneTracer;
+use Ecotone\Tracing\Execution\ExecutionRecorder;
+use Ecotone\Tracing\Execution\ExecutionRecordingNotSwitchedOn;
+use Ecotone\Tracing\Execution\ExecutionRecordingReader;
+use Ecotone\Tracing\Execution\ExecutionRecordingTracer;
+use Ecotone\Tracing\Execution\InMemoryExecutionRecordingReader;
+use Ecotone\Tracing\Execution\StepSpanCapture;
 use Ecotone\Tracing\MessageSpanAttributes;
 use Ecotone\Tracing\Tracer;
 use Ecotone\Tracing\TracerCurrentTrace;
@@ -71,11 +77,21 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $tracingConfiguration = ExtensionObjectResolver::resolveUnique(TracingConfiguration::class, $extensionObjects, TracingConfiguration::createWithDefaults());
+        $tracingConfiguration = FrameworkTracing::configurationOf($extensionObjects);
         $tracerReferences = ExtensionObjectResolver::resolve(TracerReference::class, $extensionObjects);
-
-        $spanRecorderReferences = ExtensionObjectResolver::resolve(SpanRecorderReference::class, $extensionObjects);
-        if ($tracingConfiguration->spanRecorderReferenceNames === [] && $tracerReferences === [] && $spanRecorderReferences === []) {
+        $recordsExecution = FrameworkTracing::recordsExecutionIn($extensionObjects);
+        $spanRecorderNames = FrameworkTracing::spanRecorderNamesOf($extensionObjects);
+        $readsTheRecording = FrameworkTracing::readsTheRecordingIn($extensionObjects);
+        if ($readsTheRecording) {
+            $messagingConfiguration->registerServiceDefinition(FrameworkTracing::FLOW_TESTING_SPAN_RECORDER, new Definition(InMemorySpanRecorder::class));
+            $spanRecorderNames[] = FrameworkTracing::FLOW_TESTING_SPAN_RECORDER;
+        }
+        $spanRecorders = array_map(fn (string $referenceName): Reference => new Reference($referenceName), $spanRecorderNames);
+        $messagingConfiguration->registerServiceDefinition(
+            ExecutionRecordingReader::class,
+            $readsTheRecording ? new Definition(InMemoryExecutionRecordingReader::class, [new Reference(FrameworkTracing::FLOW_TESTING_SPAN_RECORDER)]) : new Definition(ExecutionRecordingNotSwitchedOn::class),
+        );
+        if ($spanRecorderNames === [] && $tracerReferences === []) {
             $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracingDisabledCurrentTrace::class));
             $messagingConfiguration->registerServiceDefinition(MessageCollectionObserver::class, new Definition(UnobservedMessageCollection::class));
 
@@ -84,18 +100,21 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracerCurrentTrace::class, [new Reference(Tracer::class)]));
         $messagingConfiguration->registerServiceDefinition(MessageCollectionObserver::class, new Definition(TracingMessageCollectionObserver::class, [new Reference(Tracer::class)]));
 
-        $spanRecorders = [
-            ...array_map(fn (string $referenceName): Reference => new Reference($referenceName), $tracingConfiguration->spanRecorderReferenceNames),
-            ...array_map(fn (SpanRecorderReference $reference): Reference => new Reference($reference->referenceName), $spanRecorderReferences),
-        ];
-
-        $messagingConfiguration->registerServiceDefinition(SpanRecorder::class, new Definition(CompositeSpanRecorder::class, [$spanRecorders]));
-        $messagingConfiguration->registerServiceDefinition(
-            Tracer::class,
-            $tracerReferences === []
-                ? new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)])
-                : new Reference($tracerReferences[0]->referenceName)
-        );
+        $messagingConfiguration->registerServiceDefinition(SpanRecorder::class, $recordsExecution ? new Definition(StepSpanCapture::class, [new Definition(CompositeSpanRecorder::class, [$spanRecorders])]) : new Definition(CompositeSpanRecorder::class, [$spanRecorders]));
+        if ($recordsExecution) {
+            if ($tracerReferences === []) {
+                $messagingConfiguration->registerServiceDefinition(EcotoneTracer::class, new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));
+            }
+            $messagingConfiguration->registerServiceDefinition(Tracer::class, new Definition(ExecutionRecordingTracer::class, [new Reference($tracerReferences === [] ? EcotoneTracer::class : $tracerReferences[0]->referenceName), new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)]));
+            $messagingConfiguration->registerServiceDefinition(ExecutionRecorder::class, new Definition(ExecutionRecorder::class, [new Reference(Tracer::class)]));
+        } else {
+            $messagingConfiguration->registerServiceDefinition(
+                Tracer::class,
+                $tracerReferences === []
+                    ? new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)])
+                    : new Reference($tracerReferences[0]->referenceName)
+            );
+        }
         $messagingConfiguration->addCompilerPass(new RegisterSpanEventLoggerCompilerPass());
         $messagingConfiguration->addCompilerPass(new TraceEventRoutesCompilerPass());
         $messagingConfiguration->addCompilerPass(new TraceDynamicConsistencyBoundaryCompilerPass());

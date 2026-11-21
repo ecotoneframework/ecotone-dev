@@ -71,19 +71,22 @@ class ChainedMessageProcessorBuilder implements CompilableBuilder
     public function compileProcessor(MessagingContainerBuilder $builder, MethodInterceptorsConfiguration $interceptorsConfiguration): Definition|Reference
     {
         $compiledProcessors = [];
-        // register before interceptors
+        $roles = [];
         foreach ($interceptorsConfiguration->getBeforeInterceptors() as $beforeInterceptor) {
             $compiledProcessors[] = $beforeInterceptor;
+            $roles[] = InterceptedChainDefinition::BEFORE;
         }
         foreach ($this->processors as $processor) {
             if ($processor === $this->interceptedProcessor) {
                 $compiledProcessors[] = $processor->compile($builder, $interceptorsConfiguration->getAroundInterceptors());
-                // register after interceptors
+                $roles[] = InterceptedChainDefinition::HANDLER;
                 foreach ($interceptorsConfiguration->getAfterInterceptors() as $afterInterceptor) {
                     $compiledProcessors[] = $afterInterceptor;
+                    $roles[] = InterceptedChainDefinition::AFTER;
                 }
             } else {
                 $compiledProcessors[] = $processor->compile($builder);
+                $roles[] = InterceptedChainDefinition::STEP;
             }
         }
         foreach ($compiledProcessors as $compiledProcessor) {
@@ -96,7 +99,7 @@ class ChainedMessageProcessorBuilder implements CompilableBuilder
         return match(count($compiledProcessors)) {
             0 => throw ConfigurationException::create('At least one processor should be provided'),
             1 => $compiledProcessors[0],
-            default => new Definition(ChainedMessageProcessor::class, [$compiledProcessors])
+            default => new InterceptedChainDefinition($compiledProcessors, $roles)
         };
     }
 

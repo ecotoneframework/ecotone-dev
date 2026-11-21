@@ -47,4 +47,16 @@ final class InMemoryQueueAcknowledgeInterceptor extends AbstractChannelIntercept
             ->setHeader(self::ECOTONE_IN_MEMORY_QUEUE_ACK, new InMemoryAcknowledgeCallback(queueChannel: $messageChannel, message: $message, failureStrategy: $this->finalFailureStrategy, isAutoAcked: $this->isAutoAcked))
             ->build();
     }
+
+    public function postSend(Message $message, MessageChannel $messageChannel): void
+    {
+        $headers = $message->getHeaders();
+        if (! $headers->containsKey(self::ECOTONE_IN_MEMORY_QUEUE_ACK) || ! $headers->containsKey(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION) || $headers->get(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION) !== self::ECOTONE_IN_MEMORY_QUEUE_ACK) {
+            return;
+        }
+        $callback = $headers->get(self::ECOTONE_IN_MEMORY_QUEUE_ACK);
+        if ($callback instanceof InMemoryAcknowledgeCallback) {
+            $callback->redeliverAsPutOn($messageChannel, $this->messageBuilder->fromMessage($message)->removeHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION)->removeHeader(self::ECOTONE_IN_MEMORY_QUEUE_ACK)->build());
+        }
+    }
 }

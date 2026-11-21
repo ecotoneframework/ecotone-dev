@@ -10,6 +10,7 @@ use Ecotone\Lite\Test\Configuration\ProvidedReferences;
 use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\BootstrapConfiguration;
+use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\Module;
@@ -47,6 +48,7 @@ final class ModuleConfigurationCompilerPass implements CompilerPass
         $extensionObjects = $this->withResolvedSerializationMediaType($extensionObjects);
 
         foreach ($this->modules as $module) {
+            $this->configuration->registerOnBehalfOf($module::class);
             $module->prepare(
                 $this->configuration,
                 $extensionObjects,
@@ -54,6 +56,7 @@ final class ModuleConfigurationCompilerPass implements CompilerPass
                 $this->configuration->getInterfaceToCallRegistry(),
             );
         }
+        $this->configuration->registerOnBehalfOf(Configuration::REGISTERED_OUTSIDE_A_MODULE);
     }
 
     /**

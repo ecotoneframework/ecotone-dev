@@ -237,6 +237,12 @@ final class MessageFlowGraph implements DefinedObject
             }
         }
 
+        $frameworkNodes = array_values(array_filter($this->nodes, fn (FlowNode $node): bool => ($node->attributes['framework'] ?? false) === true));
+        if ($frameworkNodes !== []) {
+            $marks[] = '    classDef framework stroke-dasharray:2 3,color:#57606a';
+            $marks[] = sprintf('    class %s framework', implode(',', array_map(fn (FlowNode $node): string => $mermaidIds[$node->id], $frameworkNodes)));
+        }
+
         return implode("\n", [...$lines, ...array_keys($edgeLines), ...$marks]) . "\n";
     }
 

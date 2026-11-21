@@ -267,7 +267,7 @@ final class EndpointFlowScenarios
                 ->expect(ExpectedSpan::named('send command')->containing(ExpectedSpan::named('send orders')->ofKind(SpanKind::Producer)))
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->failingWith('Order cannot be stored')
                 ->expect(
                     ExpectedSpan::named('receive orders')->withStatus(SpanStatus::Error)->containing(
@@ -294,7 +294,7 @@ final class EndpointFlowScenarios
                 ->expect(ExpectedSpan::named('send command')->containing(ExpectedSpan::named('send orders')->ofKind(SpanKind::Producer)))
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->failingWith('Order cannot be stored')
                 ->expect(
                     ExpectedSpan::named('receive orders')->withStatus(SpanStatus::Error)->containing(
@@ -307,7 +307,7 @@ final class EndpointFlowScenarios
                         ),
                     ),
                 ),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->leavingWorkPending()
                 ->expect(
                     ExpectedSpan::named('receive notifications')->withStatus(SpanStatus::Ok)->containing(
@@ -343,7 +343,7 @@ final class EndpointFlowScenarios
                 ->expect(ExpectedSpan::named('send command')->containing(ExpectedSpan::named('send orders')->ofKind(SpanKind::Producer)))
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('receive orders')->withStatus(SpanStatus::Ok)->containing(
                         ExpectedSpan::named('process class@anonymous::place')->containing(
@@ -355,7 +355,7 @@ final class EndpointFlowScenarios
                     ),
                 )
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('send notifications')->containing(
                         ExpectedSpan::named('receive notifications')->containing(

@@ -24,6 +24,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Tracing\ExecutionRecording;
 use Ecotone\Lite\Test\DatabaseTablesSetUp;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
@@ -36,6 +37,7 @@ use Ecotone\Modelling\Config\AggregateModule;
 use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Projecting\ProjectionOperations;
 use Ecotone\Test\StaticPsrClock;
+use Ecotone\Tracing\Execution\ExecutionRecordingReader;
 use InvalidArgumentException;
 
 use function sprintf;
@@ -546,6 +548,11 @@ final class FlowTestSupport
     public function getInMemoryConsoleWriter(): InMemoryConsoleWriter
     {
         return $this->configuredMessagingSystem->getServiceFromContainer(InMemoryConsoleWriter::class);
+    }
+
+    public function popExecutionRecording(): ExecutionRecording
+    {
+        return $this->configuredMessagingSystem->getServiceFromContainer(ExecutionRecordingReader::class)->pop();
     }
 
     public function getMessageFlowGraph(): MessageFlowGraph

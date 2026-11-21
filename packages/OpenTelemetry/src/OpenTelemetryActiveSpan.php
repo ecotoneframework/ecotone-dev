@@ -15,6 +15,8 @@ use Ecotone\Tracing\ActiveSpan;
 use Ecotone\Tracing\EcotoneActiveSpan;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\StatusCode;
+use OpenTelemetry\Context\Context;
+use OpenTelemetry\Context\ContextInterface;
 use OpenTelemetry\Context\ScopeInterface;
 use Throwable;
 
@@ -34,7 +36,7 @@ final class OpenTelemetryActiveSpan implements ActiveSpan
      */
     public function __construct(
         private SpanInterface $span,
-        private ScopeInterface $scope,
+        private ?ScopeInterface $scope,
         private SpanContext $context,
         private ?string $parentSpanId,
         private string $name,
@@ -75,6 +77,11 @@ final class OpenTelemetryActiveSpan implements ActiveSpan
     public function context(): SpanContext
     {
         return $this->context;
+    }
+
+    public function asParent(): ContextInterface
+    {
+        return $this->span->storeInContext(Context::getRoot());
     }
 
     public function addEvent(string $name, array $attributes = []): void
@@ -143,7 +150,7 @@ final class OpenTelemetryActiveSpan implements ActiveSpan
         $this->ended = true;
 
         $this->span->setStatus($statusCode, $statusDescription);
-        $this->scope->detach();
+        $this->scope?->detach();
         $this->span->end();
 
         $this->tracer->endSpan($this, new Span(

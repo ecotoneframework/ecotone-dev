@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Headers;
@@ -38,9 +39,10 @@ final class TracingDisabledWithoutProviderTest extends TestCase
             [$users],
             [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )
             ->sendCommandWithRouting('user.register', '1')
-            ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+            ->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $this->assertNotSame([], $users->headers);
         $this->assertArrayNotHasKey(MessageHeaders::TRACEPARENT, $users->headers);

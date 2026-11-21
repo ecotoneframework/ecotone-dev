@@ -150,7 +150,7 @@ final class RoutingFlowScenarios
                 ->expect(ExpectedSpan::named('send command')->asRoot()->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'order.cancel'])->containing(ExpectedSpan::named('send orders')->ofKind(SpanKind::Producer)))
                 ->expectNoSpanNamed('process class@anonymous::cancel')
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('receive orders')->ofKind(SpanKind::Consumer)->containing(
                         ExpectedSpan::named('process class@anonymous::cancel')->withAttributes([SpanAttribute::ENDPOINT_ID => 'order.cancelling']),

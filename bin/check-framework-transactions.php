@@ -19,6 +19,7 @@ const OWN_TRANSACTIONS = [
     'packages/Tempest/src/Config/PDO/TempestConnectionPdo.php' => [1, 'driver adapter implementing the connection transaction API'],
     'packages/Tempest/src/Config/PDO/Connection.php' => [1, 'driver adapter implementing the connection transaction API'],
     'packages/Tempest/src/Config/PDO/TempestDynamicDriverConnection.php' => [1, 'driver adapter implementing the connection transaction API'],
+    'packages/Ecotone/src/Tracing/Execution/RecordedProjectionStateStorage.php' => [1, 'the execution recording decorator of a projection state storage: it hands on the transaction the wrapped storage opens and opens none of its own'],
     'packages/Laravel/src/EloquentRepository.php' => [1, 'an Eloquent aggregate save keeps its version claim and its write as one unit, a savepoint inside the boundary transaction'],
 ];
 

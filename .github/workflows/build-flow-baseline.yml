@@ -1,0 +1,95 @@
+name: Build Flow Baseline
+
+# Keeps the committed build-flow baseline (packages/Ecotone/tests/BuildFlow/baseline) equal to what main produces.
+# Pull requests leave the baseline alone; after a merge this regenerates it from the latest main and commits it.
+on:
+  push:
+    branches:
+      - main
+    # A commit that changes only the baseline (this workflow's own) does not start it again; the other push
+    # workflows do run on it, because it is pushed with the bot's token.
+    paths-ignore:
+      - 'packages/Ecotone/tests/BuildFlow/baseline/**'
+
+# Runs one after the other, never cancelled: each run regenerates from the latest main, so a run queued behind
+# another still commits the snapshot of everything merged before it.
+concurrency:
+  group: build-flow-baseline-main
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  commit-baseline:
+    if: github.repository == 'ecotoneframework/ecotone-dev'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.ECOTONE_BOT_TOKEN }}
+
+      - name: Set Up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          coverage: none
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction --ignore-platform-reqs
+
+      - name: Commit the baseline when it changed
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          wait_for_release() {
+            for minute in $(seq 1 30); do
+              running="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release.yml --limit 20 --json status --jq '[.[] | select(.status != "completed")] | length')"
+              if [ "$running" = "0" ]; then
+                return 0
+              fi
+              echo "A release is running; the baseline waits for it, so neither pushes to main under the other (minute ${minute})."
+              sleep 60
+            done
+            echo '::error::A release kept running for 30 minutes, so the baseline was not pushed; the next push to main regenerates it.'
+            exit 1
+          }
+          git config user.name "Ecotone Framework Bot"
+          git config user.email "ecotoneframework@gmail.com"
+          for attempt in 1 2 3; do
+            wait_for_release
+            php bin/build-flow.php snapshot --location=packages/Ecotone/tests/BuildFlow/baseline
+            if git diff --quiet -- packages/Ecotone/tests/BuildFlow/baseline && [ -z "$(git ls-files --others --exclude-standard -- packages/Ecotone/tests/BuildFlow/baseline)" ]; then
+              echo 'The baseline is current.'
+              exit 0
+            fi
+            generated_from="$(git rev-parse HEAD)"
+            git add -A -- packages/Ecotone/tests/BuildFlow/baseline
+            git commit -m "chore(flow): the build-flow baseline after $(git rev-parse --short HEAD)"
+            wait_for_release
+            git fetch origin main
+            if [ "$(git rev-parse origin/main)" != "$generated_from" ]; then
+              echo "main moved while the baseline was generated; regenerating from the latest main (attempt ${attempt})."
+              git reset --hard origin/main
+              composer update --prefer-dist --no-interaction --ignore-platform-reqs
+              continue
+            fi
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            git fetch origin main
+            if [ "$(git rev-parse origin/main)" = "$generated_from" ]; then
+              echo "::error::The push to main was refused although main did not move, so main's protection blocks it. Check that the Ecotone Framework Bot's token this workflow pushes with may push to main past its branch protection (on the bypass list of main's ruleset)."
+              exit 1
+            fi
+            echo "main moved while the baseline was generated; regenerating from the latest main (attempt ${attempt})."
+            git reset --hard origin/main
+            composer update --prefer-dist --no-interaction --ignore-platform-reqs
+          done
+          echo '::error::main kept moving while the baseline was generated; the next push to main regenerates it.'
+          exit 1

@@ -6,6 +6,8 @@ namespace Ecotone\Messaging\Handler\ServiceActivator;
 
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Handler\InterfaceToCall;
+use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 
@@ -40,6 +42,16 @@ final class UninterruptibleServiceActivator implements MessageHandlerBuilderWith
         $this->serviceActivatorBuilder = $this->serviceActivatorBuilder->withOutputMessageChannel($outputChannelName);
 
         return $this;
+    }
+
+    public function getOutputMessageChannelName(): string
+    {
+        return $this->serviceActivatorBuilder->getOutputMessageChannelName();
+    }
+
+    public function getInvokedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
+    {
+        return $this->serviceActivatorBuilder->getInterceptedInterface($interfaceToCallRegistry);
     }
 
     /**

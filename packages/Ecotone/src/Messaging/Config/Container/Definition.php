@@ -50,6 +50,14 @@ class Definition implements CompilableBuilder
         return ! empty($this->factory);
     }
 
+    /**
+     * @param array<string|int, mixed> $arguments
+     */
+    public function replaceArguments(array $arguments): void
+    {
+        $this->arguments = $arguments;
+    }
+
     public function addMethodCall(string $string, array $array): self
     {
         $this->methodCalls[] = new MethodCall($string, $array);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
@@ -94,6 +95,7 @@ final class PulseFeaturesTest extends TestCase
             ],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
         $pulseService = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$pulse::class],
@@ -105,11 +107,12 @@ final class PulseFeaturesTest extends TestCase
             ],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
-        $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $orderService->run('order_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $packages = array_column(json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['packages'], 'features', 'name');
 

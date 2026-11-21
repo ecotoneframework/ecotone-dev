@@ -167,6 +167,13 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
         }
     }
 
+    public function partsOf(string $groupId): ?array
+    {
+        $group = $this->groups[$groupId] ?? null;
+
+        return $group === null ? null : ['state' => (string) $group['state'], 'size' => GatheredGroupSize::asNullable($group['size']), 'partNumbers' => self::sorted(array_keys($group['parts']))];
+    }
+
     public function gatherChannelNameFor(string $groupId): string
     {
         $group = $this->groups[$groupId] ?? throw GatheredGroupNotFound::forId($groupId);
@@ -211,5 +218,16 @@ final class InMemoryGatheredGroupStore implements GatheredGroupStore
     public function cleanupClosedGroups(int $closedAtOrBefore): void
     {
         $this->groups = array_filter($this->groups, static fn (array $group): bool => $group['state'] === 'open' || $group['closedAt'] > $closedAtOrBefore);
+    }
+
+    /**
+     * @param list<int> $partNumbers
+     * @return list<int>
+     */
+    private static function sorted(array $partNumbers): array
+    {
+        sort($partNumbers);
+
+        return $partNumbers;
     }
 }

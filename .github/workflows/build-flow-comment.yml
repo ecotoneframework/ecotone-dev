@@ -1,0 +1,89 @@
+name: Build Flow Comment
+
+# Posts the comment build-flow-comparison.yml built, also for pull requests from forks. This file always runs as it
+# is on main. It never checks out or runs the pull request's code: it reads the uploaded comment as data, checks it
+# belongs to the pull request and commit of the run that made it, and creates or updates one comment found by its
+# marker line. A comparison run that uploaded no comment (its base commit had no tooling to compare with) posts nothing.
+on:
+  workflow_run:
+    workflows: [Build Flow Comparison]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Find the comment of the run
+        id: find
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, { owner, repo, run_id: context.payload.workflow_run.id, per_page: 100 });
+            const uploaded = artifacts.some((artifact) => artifact.name === 'build-flow-comment');
+            if (!uploaded) {
+              core.info('The comparison run uploaded no comment, because its base commit had no build-flow tooling to compare with; nothing is posted.');
+            }
+            core.setOutput('uploaded', uploaded ? 'true' : 'false');
+
+      - name: Download the comment
+        if: steps.find.outputs.uploaded == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: build-flow-comment
+          path: build-flow-comment
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Create or update the comment
+        if: steps.find.outputs.uploaded == 'true'
+        uses: actions/github-script@v7
+        env:
+          RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- ecotone-build-flow-comparison -->';
+            const comment = JSON.parse(fs.readFileSync('build-flow-comment/build-flow-comment.json', 'utf8'));
+            const pullRequest = comment.pullRequest;
+            if (!Number.isSafeInteger(pullRequest) || pullRequest <= 0) {
+              core.setFailed('The comment names no valid pull request number.');
+              return;
+            }
+            if (typeof comment.headSha !== 'string' || !/^[0-9a-f]{40}$/.test(comment.headSha) || comment.headSha !== process.env.RUN_HEAD_SHA) {
+              core.setFailed('The comment was not built for the commit of the run that uploaded it.');
+              return;
+            }
+            if (typeof comment.body !== 'string' || !comment.body.startsWith(marker + '\n') || typeof comment.changed !== 'boolean') {
+              core.setFailed('The comment body is not one build-flow-comment.php builds.');
+              return;
+            }
+            const body = comment.body
+              .split(/(^```[\s\S]*?^```$|`[^`\n]*`)/m)
+              .map((part, position) => (position % 2 === 1 ? part : part.replace(/(?<![\w.])@(?=[A-Za-z0-9])/g, '@\u200B')))
+              .join('');
+            if (body.length > 65536) {
+              core.setFailed(`The comment body has ${body.length} characters, more than the 65,536 GitHub allows.`);
+              return;
+            }
+            const { owner, repo } = context.repo;
+            const { data: pull } = await github.rest.pulls.get({ owner, repo, pull_number: pullRequest });
+            if (pull.head.sha !== comment.headSha) {
+              core.info(`Pull request #${pullRequest} moved on to ${pull.head.sha}; the run for that commit posts its comment.`);
+              return;
+            }
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: pullRequest, per_page: 100 });
+            const existing = comments.find((posted) => posted.user?.login === 'github-actions[bot]' && typeof posted.body === 'string' && posted.body.startsWith(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+              return;
+            }
+            if (comment.changed) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: pullRequest, body });
+            }

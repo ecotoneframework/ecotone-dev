@@ -45,6 +45,8 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Tracing\SpanContext;
+use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
@@ -130,6 +132,26 @@ final class PulseTracesTest extends DbalMessagingTestCase
             ],
             $tracing['flowTypes'],
         );
+    }
+
+    #[DataProvider('implementations')]
+    public function test_pulse_shows_the_same_flow_types_traces_and_failed_steps_at_both_tracing_levels(string $implementation): void
+    {
+        $shown = [];
+        foreach ([TracingLevel::Application, TracingLevel::Framework] as $level) {
+            $this->bootstrap($implementation, deadLetter: true, extensionObjects: [TracingConfiguration::createWithDefaults()->withLevel($level)]);
+            $this->orderService->sendCommandWithRouting('create.ticket', '100');
+            $this->orderService->advanceTimeBy(Duration::seconds(10));
+            $this->orderService->sendCommandWithRouting('create.ticket', '200');
+            $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+            $this->sendWithTrace('ticket.close', 'ticket-1', self::FIRST_TRACE);
+            $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+            $shown[$level->name] = $this->whatPulseShows();
+            $this->orderService->runConsoleCommand('ecotone:migration:database:delete', ['force' => true]);
+        }
+
+        self::assertNotSame([], $shown['Application']['traces']);
+        self::assertSame($shown['Application'], $shown['Framework']);
     }
 
     #[DataProvider('implementations')]
@@ -1110,6 +1132,41 @@ final class PulseTracesTest extends DbalMessagingTestCase
         $this->sendWithTrace('create.ticket', '200', self::SECOND_TRACE);
         $this->orderService->advanceTimeBy(Duration::seconds(10));
         $this->sendWithTrace('create.ticket', '300', self::THIRD_TRACE);
+    }
+
+    /**
+     * @return array{flowTypes: array<mixed>, traces: list<array<mixed>>}
+     */
+    private function whatPulseShows(): array
+    {
+        $flowTypes = $this->requestSnapshot()['tracing']['flowTypes'];
+        $traces = array_merge(...array_map(fn (array $flowType): array => $this->listTraces(['flowType' => $flowType['flowType']])['traces'], $flowTypes));
+        $stable = function (mixed $value) use (&$stable): mixed {
+            if (is_array($value)) {
+                $stableArray = [];
+                foreach ($value as $key => $element) {
+                    $stableArray[$key] = $key === 'exception.stacktrace' ? '{stacktrace}' : $stable($element);
+                }
+
+                return $stableArray;
+            }
+
+            return is_string($value) ? (string) preg_replace('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\b[0-9a-f]{32}\b|\b[0-9a-f]{16}\b/', '{id}', $value) : $value;
+        };
+        $shown = [];
+        foreach ($traces as $trace) {
+            $spans = $this->traceOf($trace['traceId'])['spans'];
+            $nameOf = array_column($spans, 'name', 'spanId');
+            $shown[] = [
+                'trace' => $stable(array_diff_key($trace, array_flip(['traceId']))),
+                'spans' => array_map(fn (array $span): array => [
+                    ...$stable(array_diff_key($span, array_flip(['spanId', 'parentSpanId', 'traceId']))),
+                    'parent' => $nameOf[$span['parentSpanId'] ?? ''] ?? (($span['parentSpanId'] ?? null) === null ? null : 'outside the trace'),
+                ], $spans),
+            ];
+        }
+
+        return ['flowTypes' => $flowTypes, 'traces' => $shown];
     }
 
     private function sendWithTrace(string $routingKey, string $payload, string $traceId): void

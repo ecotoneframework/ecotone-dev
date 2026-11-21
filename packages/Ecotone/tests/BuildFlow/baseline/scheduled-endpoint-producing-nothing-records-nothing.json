@@ -1,0 +1,40 @@
+{
+    "formatVersion": 3,
+    "scenario": "scheduled endpoint producing nothing records nothing",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:add","kind":"channel","label":"add","attributes":{"name":"add","pollable":false}},
+            {"id":"channel:scheduled_nothing","kind":"channel","label":"scheduled_nothing","attributes":{"framework":true,"name":"scheduled_nothing","pollable":false,"registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule"}},
+            {"id":"endpoint:scheduled_nothing.target","kind":"internalHandler","label":"class@anonymous#1::produceNothing on scheduled_nothing","attributes":{"class":"class@anonymous#1","framework":true,"inputChannel":"scheduled_nothing","method":"produceNothing","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule"}},
+            {"id":"handler:class@anonymous#1::add","kind":"internalHandler","label":"class@anonymous#1::add","attributes":{"class":"class@anonymous#1","endpointId":null,"inputChannel":"add","method":"add","owner":null}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","framework":true,"method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
+            {"id":"scheduled:scheduled_nothing","kind":"scheduled","label":"class@anonymous#1::produceNothing","attributes":{"class":"class@anonymous#1","endpointId":"scheduled_nothing","method":"produceNothing"}}
+        ],
+        "edges": [
+            {"from":"channel:add","to":"handler:class@anonymous#1::add","kind":"input","attributes":[]},
+            {"from":"channel:scheduled_nothing","to":"endpoint:scheduled_nothing.target","kind":"input","attributes":{"consumer":"eventDriven","framework":true}},
+            {"from":"handler:class@anonymous#1::add","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","kind":"interceptedBy","attributes":{"framework":true}},
+            {"from":"handler:class@anonymous#1::add","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"framework":true}},
+            {"from":"scheduled:scheduled_nothing","to":"channel:add","kind":"sendsTo","attributes":[]}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"channel","name":"add","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule","kind":"channel","name":"scheduled_nothing","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ScheduledModule","kind":"consumer","name":"scheduled_nothing","builder":"inbound channel adapter"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ServiceActivatorModule","kind":"handler","name":"class@anonymous#1::add on add","builder":"service activator","inputChannel":"add","target":"class@anonymous#1::add"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule","kind":"handler","name":"scheduled_nothing.target","builder":"service activator","inputChannel":"scheduled_nothing","target":"class@anonymous#1::produceNothing"}
+        ],
+        "chains": [
+            {"handler":"class@anonymous#1::add on add","layers":["event driven consumer of add","around interceptor Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundMessageHandler","around interceptor Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","handler class@anonymous#1::add()","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]},
+            {"handler":"scheduled_nothing.target","layers":["event driven consumer of scheduled_nothing","handler class@anonymous#1::produceNothing()","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
+    },
+    "trace": [],
+    "execution": []
+}

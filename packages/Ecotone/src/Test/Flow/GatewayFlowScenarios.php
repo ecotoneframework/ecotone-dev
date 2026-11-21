@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Test\Flow;
 
+use Ecotone\Api\Attribute\After;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -33,6 +34,7 @@ final class GatewayFlowScenarios
             self::orchestratorReachedFromCommandHandler(),
             self::asynchronousGatewayQueuesTheCall(),
             self::orchestratorWithAnAsynchronousStep(),
+            self::orchestratorStepWhoseInterceptorTakesTheNextStepOffTheRoutingSlip(),
         ];
     }
 
@@ -117,7 +119,7 @@ final class GatewayFlowScenarios
                 ->expectNoSpanNamed('process class@anonymous::create')
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('tickets', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('tickets', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('send tickets')->containing(
                         ExpectedSpan::named('receive tickets')->ofKind(SpanKind::Consumer)->containing(
@@ -175,7 +177,7 @@ final class GatewayFlowScenarios
                 ->expectNoSpanNamed('process class@anonymous::review', 'process class@anonymous::notify')
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('reviews', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('reviews', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('send reviews')->containing(
                         ExpectedSpan::named('receive reviews')->ofKind(SpanKind::Consumer)->containing(
@@ -185,6 +187,65 @@ final class GatewayFlowScenarios
                     ),
                 ),
         ]);
+    }
+
+    private static function orchestratorStepWhoseInterceptorTakesTheNextStepOffTheRoutingSlip(): FlowScenario
+    {
+        $approvals = new class () {
+            #[CommandHandler('approval.request', outputChannelName: 'approval.workflow', endpointId: 'approval.requesting')]
+            public function request(string $request): string
+            {
+                return $request;
+            }
+
+            #[Orchestrator('approval.workflow')]
+            public function workflow(): array
+            {
+                return ['approval.validate', 'approval.audit', 'approval.notify'];
+            }
+
+            #[InternalHandler('approval.validate', endpointId: 'approval.validating')]
+            public function validate(string $request): string
+            {
+                return $request;
+            }
+
+            #[After(pointcut: self::class . '::validate', changeHeaders: true)]
+            public function skipTheAudit(): array
+            {
+                return ['routingSlip' => 'approval.notify'];
+            }
+
+            #[InternalHandler('approval.audit', endpointId: 'approval.auditing')]
+            public function audit(string $request): string
+            {
+                return $request;
+            }
+
+            #[InternalHandler('approval.notify', endpointId: 'approval.notifying')]
+            public function notify(string $request): string
+            {
+                return $request;
+            }
+        };
+
+        return new FlowScenario(
+            name: 'orchestrator step whose interceptor takes the next step off the routing slip',
+            classesToResolve: [$approvals::class],
+            services: [$approvals],
+            extensionObjects: [],
+            stages: [
+                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('approval.request', 'request-1', metadata: $metadata))
+                    ->expect(
+                        ExpectedSpan::named('send command')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'approval.request'])->containing(
+                            ExpectedSpan::named('process class@anonymous::request')->withAttributes([SpanAttribute::ENDPOINT_ID => 'approval.requesting']),
+                            ExpectedSpan::named('process class@anonymous::validate')->withAttributes([SpanAttribute::ENDPOINT_ID => 'approval.validating']),
+                            ExpectedSpan::named('process class@anonymous::notify')->withAttributes([SpanAttribute::ENDPOINT_ID => 'approval.notifying']),
+                        ),
+                    )
+                    ->withNoOtherSpans(),
+            ],
+        );
     }
 
     private static function approvalSteps(): object

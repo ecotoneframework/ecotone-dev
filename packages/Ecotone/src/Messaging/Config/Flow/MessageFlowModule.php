@@ -38,6 +38,8 @@ use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseRequest;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseRequestBodyBuilder;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
+use Ecotone\Tracing\Config\FrameworkTracing;
+use Ecotone\Tracing\Execution\RecordExecutionCompilerPass;
 
 #[ModuleAnnotation]
 final class MessageFlowModule implements AnnotationModule
@@ -54,9 +56,14 @@ final class MessageFlowModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $flowVersionsConfigurations = ExtensionObjectResolver::resolve(FlowVersionsConfiguration::class, $extensionObjects);
+        $frameworkLevel = FrameworkTracing::isTheLevelOf($extensionObjects);
+        $recordsExecution = FrameworkTracing::recordsExecutionIn($extensionObjects);
         if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             if ($flowVersionsConfigurations !== []) {
                 throw LicensingException::create('Flow versions are available only as part of Ecotone Enterprise. Provide a licence key, or remove the FlowVersionsConfiguration from your #[ServiceContext]. See https://docs.ecotone.tech/enterprise for details.');
+            }
+            if ($recordsExecution) {
+                $messagingConfiguration->addCompilerPass(new RecordExecutionCompilerPass());
             }
 
             return;
@@ -71,13 +78,21 @@ final class MessageFlowModule implements AnnotationModule
             $distributedBusParameters,
             new Definition(HandlerSourceScanner::class),
         ]));
-        $messagingConfiguration->registerServiceDefinition(MessageFlowConsoleCommands::class, new Definition(MessageFlowConsoleCommands::class));
+        $dumpCommands = MessageFlowConsoleCommandsWithoutFramework::class;
+        if ($frameworkLevel) {
+            $messagingConfiguration->addCompilerPass(new MessageFlowFrameworkCompilerPass(configuration: $messagingConfiguration, interfaceToCallRegistry: $interfaceToCallRegistry, declared: $declared->graph));
+            $dumpCommands = MessageFlowConsoleCommands::class;
+        }
+        if ($recordsExecution) {
+            $messagingConfiguration->addCompilerPass(new RecordExecutionCompilerPass());
+        }
+        $messagingConfiguration->registerServiceDefinition($dumpCommands, new Definition($dumpCommands));
         [$messageHandlerBuilder, $consoleCommandConfiguration] = ConsoleCommandModule::prepareConsoleCommandForReference(
-            new Reference(MessageFlowConsoleCommands::class),
-            new InterfaceToCallReference(MessageFlowConsoleCommands::class, 'dump'),
+            new Reference($dumpCommands),
+            new InterfaceToCallReference($dumpCommands, 'dump'),
             'ecotone:flow:dump',
             $interfaceToCallRegistry,
-            'Dumps the message flow graph of the application: commands, events, queries, handlers, aggregates, sagas, projections, gateways and channels, with what each handler emits, as Mermaid or JSON',
+            'Dumps the message flow graph of the application: commands, events, queries, handlers, aggregates, sagas, projections, gateways and channels, with what each handler emits, as Mermaid or JSON; --framework adds what Ecotone itself registers for the application: its buses, interceptors, routing, channels and consumers',
         );
         $messagingConfiguration
             ->registerMessageHandler($messageHandlerBuilder)

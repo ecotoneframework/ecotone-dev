@@ -64,3 +64,29 @@ behaviour (V), developer experience (D). Verdicts: breaking changes safe to rele
 New coroutine files: 28 tests on Swoole and on OpenSwoole; refusal file 3 tests in `app`; skill eval
 `ecotone-open-swoole`: both cases 1.00. Found sound by reading: discard on failure, instant retry outside the release,
 the failure logger outside the error channel, FIFO order, no WeakMap cycle.
+
+## Re-verification at a2d74c252
+
+All four sessions: no BLOCKING finding. Resolved: V1-V8, G1-G12, B1, the applied part of B3, D1-D10 as far as applied.
+The behaviour session reran the channel tests with the CI command: 53 tests on Swoole and 48 on OpenSwoole, in both
+DSN orders. New findings:
+
+- **D11 SHOULD-FIX** missing-extension refusal and `SKILL.md:260`: "replace this registration" in tests does not say
+  how; registering the queue channel beside the production one fails with "registered twice".
+- **D12 SHOULD-FIX** outside-a-coroutine refusal: "register another channel for console commands" would replace the
+  channel for the HTTP worker too.
+- **G14 SHOULD-FIX / D15 NIT** `CoroutineMessageChannelModule.php:435`: the `#[Priority]` / `#[TimeToLive]` refusal
+  does not name the handler.
+- **G15 SHOULD-FIX** `CoroutineMessageChannelTest.php:584-620`: the hooks-off delay test asserts elapsed milliseconds.
+- **G16 SHOULD-FIX** `CoroutineMessageChannelTest.php:642-645`: the bare-send test reaches the channel through
+  `ConfiguredMessagingSystem::getMessageChannelByName()` and a hand-built message.
+- **NIT**: **D13** the drop log implies an error channel is durable, and the `PollingMetadata` error channel it names
+  is not proven for this channel. **D14 / V9**: the skill is unclear about console commands, and a long-running
+  console command holds its messages until it returns. **G17 / V11 / B6**: the builder picks its timer by looking for
+  a pinned clock in `TestConfiguration`. **G18**: `CoroutineMessageChannelTimer` only sleeps. **G19 / V10**:
+  `recordFailedEndpoint` wraps every handler of the application. **B5**: the module looks handlers up at every
+  bootstrap. **G1 (rest)**: MariaDB is not part of the coroutine CI job.
+
+Left for the maintainer: the default of 10 coroutines (D1), the unbounded `maximumDelay()` and the public
+`$messageChannelName` (B3), `isPollable(): true` (kept: without it the asynchronous consumer is not registered), the
+two public pool-wait default constants (B2 / G13).

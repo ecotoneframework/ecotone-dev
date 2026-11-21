@@ -148,7 +148,7 @@ final class BuildFlowPresentationTest extends TestCase
         $markdown = $this->presentation('build');
 
         self::assertMatchesRegularExpression('/^\*\*Flow · process 1 of 2\*\* · \d+ new steps, 1 step gone · \d+ → \d+ steps\n`send command order\.place, class@anonymous::place`\nNew: `route to audit\.target, whenOrderWasPlaced\.target` in place of `route to whenOrderWasPlaced\.target`, and `span route audit audit\.target`\.$/m', $markdown);
-        self::assertMatchesRegularExpression('/^\*\*Sub-flow · process 2 of 2\*\* · sent by process 1 · unchanged · (\d+) steps\n`receive notifications, class@anonymous::whenPlaced`\n\n… \1 unchanged steps$/m', $markdown);
+        self::assertMatchesRegularExpression('/^\*\*Sub-flow · process 2 of 2\*\* · sent by process 1 · unchanged · (\d+) steps\n`receive notifications, class@anonymous::whenPlaced`\n\n<details>\n<summary>Steps of process 2<\/summary>$/m', $markdown);
     }
 
     public function test_the_build_presentation_names_every_changed_scenario_with_how_many_of_its_processes_changed_right_under_the_summary(): void
@@ -160,7 +160,7 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertStringStartsWith("## Message flow: what changed\n\n1 of 1 scenario changes its message path.\n\n- `Placing an order`: 1 of 2 processes changed\n\n", $markdown);
     }
 
-    public function test_the_build_presentation_lists_a_process_that_no_longer_runs_with_its_number_before(): void
+    public function test_the_build_presentation_lists_a_process_that_no_longer_runs_with_its_number_before_and_its_tree_removed(): void
     {
         $synchronous = new class () {
             #[CommandHandler('order.place', endpointId: 'placeOrder')]
@@ -179,7 +179,7 @@ final class BuildFlowPresentationTest extends TestCase
 
         $markdown = $this->presentation('build');
 
-        self::assertMatchesRegularExpression('/^\*\*Sub-flow · process 2 of 2 before\*\* · no longer runs · (\d+) steps\n`receive notifications, class@anonymous::whenPlaced`\n\n… \1 steps no longer run$/m', $markdown);
+        self::assertMatchesRegularExpression('/^\*\*Sub-flow · process 2 of 2 before\*\* · no longer runs · (\d+) steps\n`receive notifications, class@anonymous::whenPlaced`\n\n<details open>\n<summary>Steps of process 2 before<\/summary>\n\n```diff\n- 📬 receive notifications$/m', $markdown);
     }
 
     public function test_the_build_presentation_lists_a_process_that_runs_only_now_at_its_place_in_run_order(): void
@@ -242,30 +242,15 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertStringContainsString('**Sub-flow · process 2 of 3 before** · no longer runs', $markdown);
     }
 
-    public function test_the_build_presentation_shows_a_changed_step_under_every_step_it_runs_in_and_collapses_the_rest(): void
+    public function test_the_build_presentation_shows_a_changed_step_with_its_hint_in_the_open_tree_of_its_process_and_folds_the_unchanged_runs(): void
     {
         $this->recordAnOrderThatGainsAnAudit('Placing an order');
 
         $markdown = $this->presentation('build');
 
-        preg_match('/<details open><summary>Steps of process 1<\/summary>\n\n```diff\n(.*?)```\n\n<\/details>/s', $markdown, $tree);
-        self::assertNotEmpty($tree);
-        $lines = explode("\n", rtrim($tree[1]));
-        $added = array_search('+ ' . str_repeat('  ', $this->depthOf($lines, 'route to audit.target, whenOrderWasPlaced.target')) . 'route to audit.target, whenOrderWasPlaced.target', $lines, true);
-        self::assertIsInt($added);
-        self::assertMatchesRegularExpression('/^  \S/', $lines[0]);
-        for ($depth = $this->depthOf($lines, 'route to audit.target, whenOrderWasPlaced.target') - 1; $depth >= 0; $depth--) {
-            $ancestor = null;
-            for ($position = $added - 1; $position >= 0; $position--) {
-                if (preg_match('/^  ' . str_repeat('  ', $depth) . '(?! )(?!… )(?!↳ )\S/', $lines[$position]) === 1) {
-                    $ancestor = $lines[$position];
-                    break;
-                }
-            }
-            self::assertNotNull($ancestor);
-        }
-        self::assertContains('+ ' . str_repeat('  ', $this->depthOf($lines, 'route to audit.target, whenOrderWasPlaced.target') + 1) . '↳ chosen by: name order.placed', $lines);
-        self::assertMatchesRegularExpression('/^  ( {2})*… \d+ unchanged steps?$/m', $tree[1]);
+        self::assertStringContainsString("<details open>\n<summary>Steps of process 1</summary>", $markdown);
+        self::assertMatchesRegularExpression('/^\+ ((?:  )*)🔀 route to audit\.target, whenOrderWasPlaced\.target\n\+ \1  ↳ chosen by: name order\.placed$/m', $markdown);
+        self::assertMatchesRegularExpression('/^<summary>… \d+ unchanged steps<\/summary>$/m', $markdown);
     }
 
     public function test_the_build_presentation_puts_what_ran_before_the_message_path_and_the_collapsed_wiring(): void
@@ -502,16 +487,5 @@ final class BuildFlowPresentationTest extends TestCase
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-    }
-
-    private function depthOf(array $lines, string $label): int
-    {
-        foreach ($lines as $line) {
-            if (preg_match('/^[+\- ] ((?:  )*)' . preg_quote($label, '/') . '$/', $line, $match) === 1) {
-                return intdiv(strlen($match[1]), 2);
-            }
-        }
-
-        return -1;
     }
 }

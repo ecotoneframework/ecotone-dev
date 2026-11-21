@@ -104,15 +104,14 @@ final class FlowComparisonMarkdown
         $beforeByTitle = array_column($before, null, 'process');
         $afterTitles = array_column($after, 'process');
         $blocks = [];
-        $printed = [];
+        $stepsOf = fn (int $number, array $rows, bool $changed, string $side = ''): string => "\n\n" . FlowStepTree::fold(open: $changed, summary: 'Steps of process ' . $number . $side, inner: FlowStepTree::of(rows: $rows, foldsUnchangedRuns: $changed));
         foreach ($after as $position => $process) {
             $number = $position + 1;
             $heading = (isset($process['sentBy']) ? '**Sub-flow · process ' . $number . ' of ' . count($after) . '** · sent by process ' . $process['sentBy']['processNumber'] : '**Flow · process ' . $number . ' of ' . count($after) . '**');
             $earlier = $beforeByTitle[$process['process']] ?? null;
             if ($earlier === null) {
-                $rows = array_map(fn (array $step): array => ['mark' => '+', 'depth' => $step['depth'], 'label' => $step['label'], 'hints' => self::shownHintsOf($step)], $process['steps']);
-                $lines = self::linesOfRows(self::withSharedStepsCollapsed(rows: $rows, after: $after, position: $position, beforeByTitle: $beforeByTitle));
-                $blocks[] = $heading . ' · runs only now · ' . self::stepCount(count($process['steps'])) . "\n`" . $process['process'] . '`' . self::treeOf(number: $number, lines: $lines, printed: $printed);
+                $rows = array_map(fn (array $step): array => ['mark' => '+', 'status' => 'new', 'depth' => $step['depth'], 'label' => $step['label'], 'hints' => self::shownHintsOf($step)], $process['steps']);
+                $blocks[] = $heading . ' · runs only now · ' . self::stepCount(count($process['steps'])) . "\n`" . $process['process'] . '`' . $stepsOf($number, $rows, true);
                 continue;
             }
             $rows = self::rowsOfDiff(before: $earlier, after: $process, beforeTitles: array_column($before, 'process'), afterTitles: $afterTitles);
@@ -126,11 +125,11 @@ final class FlowComparisonMarkdown
             ]));
             $stepCount = count($earlier['steps']) === count($process['steps']) ? self::stepCount(count($process['steps'])) : count($earlier['steps']) . ' → ' . count($process['steps']) . ' steps';
             if ($status === '') {
-                $blocks[] = $heading . ' · unchanged · ' . $stepCount . "\n`" . $process['process'] . "`\n\n… " . self::counted(count: count($process['steps']), one: 'unchanged step', many: 'unchanged steps');
+                $blocks[] = $heading . ' · unchanged · ' . $stepCount . "\n`" . $process['process'] . '`' . $stepsOf($number, $rows, false);
                 continue;
             }
             $note = self::noteOfChangedSteps($rows) ?? $notes[$process['process']] ?? null;
-            $blocks[] = $heading . ' · ' . $status . ' · ' . $stepCount . "\n`" . $process['process'] . '`' . ($note !== null ? "\n" . $note : '') . self::treeOf(number: $number, lines: self::linesOfRows(self::inContext($rows)), printed: $printed);
+            $blocks[] = $heading . ' · ' . $status . ' · ' . $stepCount . "\n`" . $process['process'] . '`' . ($note !== null ? "\n" . $note : '') . $stepsOf($number, $rows, true);
         }
         $noLongerRunning = [];
         $lastStillRunning = -1;
@@ -139,7 +138,8 @@ final class FlowComparisonMarkdown
                 $lastStillRunning = (int) array_search($process['process'], $afterTitles, true);
                 continue;
             }
-            $noLongerRunning[$lastStillRunning][] = '**' . (isset($process['sentBy']) ? 'Sub-flow' : 'Flow') . ' · process ' . ($position + 1) . ' of ' . count($before) . ' before** · no longer runs · ' . self::stepCount(count($process['steps'])) . "\n`" . $process['process'] . "`\n\n… " . self::counted(count: count($process['steps']), one: 'step no longer runs', many: 'steps no longer run');
+            $rows = array_map(fn (array $step): array => ['mark' => '-', 'status' => 'gone', 'depth' => $step['depth'], 'label' => $step['label'], 'hints' => self::shownHintsOf($step)], $process['steps']);
+            $noLongerRunning[$lastStillRunning][] = '**' . (isset($process['sentBy']) ? 'Sub-flow' : 'Flow') . ' · process ' . ($position + 1) . ' of ' . count($before) . ' before** · no longer runs · ' . self::stepCount(count($process['steps'])) . "\n`" . $process['process'] . '`' . $stepsOf($position + 1, $rows, true, ' before');
         }
 
         $inRunOrder = $noLongerRunning[-1] ?? [];
@@ -249,24 +249,6 @@ final class FlowComparisonMarkdown
         return $count . ($count === 1 ? ' step' : ' steps');
     }
 
-    /**
-     * @param list<string> $lines
-     * @param list<array{number: int, lines: list<string>}> $printed
-     */
-    private static function treeOf(int $number, array $lines, array &$printed): string
-    {
-        $withoutNumbers = fn (array $of): array => array_map(fn (string $line): string => (string) preg_replace('/\d+/', '#', $line), $of);
-        foreach ($printed as $earlier) {
-            if (count($earlier['lines']) === count($lines) && $withoutNumbers($earlier['lines']) === $withoutNumbers($lines)) {
-                $differing = array_values(array_diff_assoc($lines, $earlier['lines']));
-
-                return $differing === [] ? "\n\nThe same steps as process {$earlier['number']}." : "\n\nLike process {$earlier['number']}, except:\n\n```diff\n" . implode("\n", $differing) . "\n```";
-            }
-        }
-        $printed[] = ['number' => $number, 'lines' => $lines];
-
-        return "\n\n<details open><summary>Steps of process {$number}</summary>\n\n```diff\n" . implode("\n", $lines) . "\n```\n\n</details>";
-    }
 
     /**
      * @param array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>} $step
@@ -318,106 +300,8 @@ final class FlowComparisonMarkdown
         return $rows;
     }
 
-    /**
-     * @param list<array{mark: string, status: string, depth: int, label: string, hints: list<array{key: string, value: string}>, hintsBefore?: list<array{key: string, value: string}>}> $rows
-     * @return list<array<string, mixed>>
-     */
-    private static function inContext(array $rows): array
-    {
-        $kept = [];
-        $ancestors = [];
-        foreach ($rows as $position => $row) {
-            $ancestors = array_slice($ancestors, 0, $row['depth'] - 1);
-            if (in_array($row['status'], ['new', 'gone', 'rehinted'], true)) {
-                $kept[$position] = true;
-                foreach ($ancestors as $ancestor) {
-                    $kept[$ancestor] = true;
-                }
-            }
-            $ancestors[$row['depth'] - 1] = $position;
-        }
-        $shown = [];
-        $collapsed = [];
-        foreach ($rows as $position => $row) {
-            if (isset($kept[$position])) {
-                if ($collapsed !== []) {
-                    $shown[] = ['collapsed' => count($collapsed), 'depth' => $collapsed[0]['depth']];
-                    $collapsed = [];
-                }
-                $shown[] = $row;
-                continue;
-            }
-            if ($collapsed !== [] && $row['depth'] < $collapsed[0]['depth']) {
-                $shown[] = ['collapsed' => count($collapsed), 'depth' => $collapsed[0]['depth']];
-                $collapsed = [];
-            }
-            $collapsed[] = $row;
-        }
-        if ($collapsed !== []) {
-            $shown[] = ['collapsed' => count($collapsed), 'depth' => $collapsed[0]['depth']];
-        }
 
-        return $shown;
-    }
 
-    /**
-     * @param list<array<string, mixed>> $rows
-     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}> $after
-     * @param array<string, mixed> $beforeByTitle
-     * @return list<array<string, mixed>>
-     */
-    private static function withSharedStepsCollapsed(array $rows, array $after, int $position, array $beforeByTitle): array
-    {
-        $best = ['number' => 0, 'steps' => 0];
-        foreach (array_slice($after, 0, $position) as $index => $other) {
-            $shared = 0;
-            while (isset($rows[$shared + 1], $other['steps'][$shared + 1]) && $rows[$shared + 1]['label'] === $other['steps'][$shared + 1]['label'] && $rows[$shared + 1]['depth'] === $other['steps'][$shared + 1]['depth']) {
-                $shared++;
-            }
-            if ($shared > $best['steps']) {
-                $best = ['number' => $index + 1, 'steps' => $shared];
-            }
-        }
-        if ($best['steps'] < 3) {
-            return $rows;
-        }
-
-        return [$rows[0], ['collapsed' => $best['steps'], 'depth' => $rows[1]['depth'], 'asIn' => $best['number']], ...array_slice($rows, 1 + $best['steps'])];
-    }
-
-    /**
-     * @param list<array<string, mixed>> $rows
-     * @return list<string>
-     */
-    private static function linesOfRows(array $rows): array
-    {
-        $lines = [];
-        foreach ($rows as $row) {
-            $indent = str_repeat('  ', max(0, $row['depth'] - 1));
-            if (isset($row['collapsed'])) {
-                $lines[] = '  ' . $indent . '… ' . (isset($row['asIn']) ? $row['collapsed'] . ' steps as in process ' . $row['asIn'] : self::counted(count: $row['collapsed'], one: 'unchanged step', many: 'unchanged steps'));
-                continue;
-            }
-            $lines[] = $row['mark'] . ' ' . $indent . $row['label'];
-            $hintLine = fn (string $mark, array $hint): string => $mark . ' ' . $indent . '  ↳ ' . $hint['key'] . ': ' . $hint['value'];
-            if (! isset($row['hintsBefore'])) {
-                foreach ($row['hints'] as $hint) {
-                    $lines[] = $hintLine($row['mark'], $hint);
-                }
-                continue;
-            }
-            foreach ($row['hintsBefore'] as $hint) {
-                $lines[] = $hintLine(in_array($hint, $row['hints'], true) ? ' ' : '-', $hint);
-            }
-            foreach ($row['hints'] as $hint) {
-                if (! in_array($hint, $row['hintsBefore'], true)) {
-                    $lines[] = $hintLine('+', $hint);
-                }
-            }
-        }
-
-        return $lines;
-    }
 
     private static function whatRan(FlowScenarioChange $change): string
     {

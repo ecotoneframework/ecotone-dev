@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Api\Gateway\EcotoneClockInterface;
-use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannel;
+use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannelSleep;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -68,6 +68,6 @@ final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, Del
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return new Definition(CoroutineMessageChannel::class, [$this->messageChannelName, new Reference(ContainerInterface::class), $this->coroutines, new Reference(EcotoneClockInterface::class), new Reference(MessageBuilder::class), new Reference(SleepInterface::class)]);
+        return new Definition(CoroutineMessageChannel::class, [$this->messageChannelName, new Reference(ContainerInterface::class), $this->coroutines, new Reference(EcotoneClockInterface::class), new Reference(MessageBuilder::class), new Reference(CoroutineMessageChannelSleep::SERVICE_ID)]);
     }
 }

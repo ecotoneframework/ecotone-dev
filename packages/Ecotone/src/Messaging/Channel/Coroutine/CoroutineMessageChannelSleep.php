@@ -27,6 +27,8 @@ use Ecotone\Api\Scheduling\SleepInterface;
  */
 final class CoroutineMessageChannelSleep implements SleepInterface
 {
+    public const SERVICE_ID = 'ecotone.coroutine_message_channel.sleep';
+
     public function sleep(Duration $duration): void
     {
         if ($duration->isNegativeOrZero()) {

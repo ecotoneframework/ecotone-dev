@@ -30,6 +30,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\CoroutineTesting;
@@ -674,6 +675,35 @@ final class CoroutineMessageChannelTest extends TestCase
         );
 
         $this->assertSame(['sibling', 'payload'], $handler->handled);
+    }
+
+    public function test_delays_wait_on_the_coroutine_timer_beside_a_sleep_service_of_the_application(): void
+    {
+        $sleep = new class () implements SleepInterface {
+            public array $slept = [];
+
+            public function sleep(Duration $duration): void
+            {
+                $this->slept[] = $duration->inMilliseconds();
+            }
+        };
+        $handler = new class () {
+            public array $handled = [];
+
+            #[Delayed(milliseconds: 20)]
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload, #[Reference] SleepInterface $sleep): void
+            {
+                $this->handled[] = [$payload, $sleep];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, SleepInterface::class => $sleep], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
+
+        $this->assertSame([['payload', $sleep]], $handler->handled);
+        $this->assertSame([], $sleep->slept);
     }
 
     public function test_a_handler_can_send_to_its_own_channel_with_one_coroutine(): void

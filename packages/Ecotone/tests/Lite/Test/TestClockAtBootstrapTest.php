@@ -9,12 +9,14 @@ use DateTimeZone;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Messaging\Config\ConfigurationException;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -47,6 +49,34 @@ final class TestClockAtBootstrapTest extends TestCase
 
         self::assertSame((new DateTimeImmutable('2024-03-01 10:00:00'))->getTimestamp(), $service->timestamp);
         self::assertEquals(new DatePoint('2024-03-01 10:00:00'), $ecotone->now());
+    }
+
+    public function test_pinned_time_leaves_the_applications_sleep_service_in_place(): void
+    {
+        $sleep = new class () implements SleepInterface {
+            public function sleep(Duration $duration): void
+            {
+            }
+        };
+        $service = new class () {
+            public ?SleepInterface $sleep = null;
+
+            #[CommandHandler('order.place')]
+            public function place(string $orderId, #[Reference] SleepInterface $sleep): void
+            {
+                $this->sleep = $sleep;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$service::class],
+            [$service, SleepInterface::class => $sleep],
+            initialTime: new DateTimeImmutable('2024-03-01 10:00:00'),
+        );
+
+        $ecotone->sendCommandWithRouting('order.place', 'order-1');
+
+        self::assertSame($sleep, $service->sleep);
     }
 
     public function test_now_follows_the_time_the_test_moves_to(): void

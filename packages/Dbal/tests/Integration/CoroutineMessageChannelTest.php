@@ -10,10 +10,8 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
-use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Deduplicated;
-use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
@@ -23,6 +21,7 @@ use Ecotone\Api\Dbal\Attribute\DbalTransaction;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -31,6 +30,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -38,8 +38,8 @@ use Ecotone\Test\CoroutineTesting;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\Attributes\RequiresMethod;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Swoole\Coroutine;
@@ -91,7 +91,6 @@ final class CoroutineMessageChannelTest extends TestCase
                 $nextTick->pop();
                 return $result;
             }
-
 
             #[CommandHandler('order.place')]
             public function place(int $id, #[CurrentConnection] Connection $connection, #[Reference] CommandBus $bus): void
@@ -207,7 +206,6 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(0, $deadLetter->count());
     }
 
-
     public function test_concurrent_messages_keep_their_own_headers_and_transaction(): void
     {
         $factory = new DbalConnectionFactory(self::dsnOf('mysql'));
@@ -264,7 +262,6 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(['accepted'], $factory->establishConnection()->fetchFirstColumn('SELECT tenant FROM coroutine_channel_deliveries ORDER BY id'));
     }
 
-
     public function test_caught_inner_failure_commits_its_rows_and_releases_both_commands_messages_with_the_outer_command(): void
     {
         $factory = new DbalConnectionFactory(self::dsnOf('mysql'));
@@ -318,14 +315,13 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame([0, 1], array_map('intval', $factory->establishConnection()->fetchFirstColumn('SELECT id FROM coroutine_channel_nested_orders ORDER BY id')));
     }
 
-
     public function test_interleaved_senders_release_only_the_successful_senders_message(): void
     {
         $factory = new DbalConnectionFactory(self::dsnOf('mysql'));
         $connection = $factory->establishConnection();
         $connection->executeStatement('DROP TABLE IF EXISTS coroutine_channel_senders');
         $connection->executeStatement('CREATE TABLE coroutine_channel_senders (id INTEGER PRIMARY KEY)');
-        $handler = new class {
+        $handler = new class () {
             public Coroutine\Channel $firstHolding;
             public Coroutine\Channel $resumeFirst;
             public array $handled = [];
@@ -384,10 +380,9 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame([1], array_map('intval', $factory->establishConnection()->fetchFirstColumn('SELECT id FROM coroutine_channel_senders')));
     }
 
-
     public function test_deduplicated_handler_runs_once_for_the_same_deduplication_key(): void
     {
-        $handler = new class {
+        $handler = new class () {
             public array $handled = [];
 
             #[Deduplicated('deduplication-key')]
@@ -424,7 +419,7 @@ final class CoroutineMessageChannelTest extends TestCase
             $connection->executeStatement('DROP TABLE IF EXISTS coroutine_channel_tenant_orders');
             $connection->executeStatement('CREATE TABLE coroutine_channel_tenant_orders (id INTEGER PRIMARY KEY, tenant VARCHAR(255))');
         }
-        $handler = new class {
+        $handler = new class () {
             #[Asynchronous('async')]
             #[CommandHandler('handle', endpointId: 'tenant.coroutine.endpoint')]
             public function handle(int $id, #[Header('tenant')] string $tenant, #[CurrentConnection] Connection $connection): void
@@ -463,7 +458,6 @@ final class CoroutineMessageChannelTest extends TestCase
     {
         return [['command_bus'], ['gateway'], ['asynchronous'], ['console'], ['event']];
     }
-
 }
 
 interface CoroutineOrderGateway

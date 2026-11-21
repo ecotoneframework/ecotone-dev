@@ -15,10 +15,10 @@ use Ecotone\Api\Attribute\ErrorChannel;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
-use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\Priority;
-use Ecotone\Api\Attribute\TimeToLive;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Attribute\TimeToLive;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
@@ -27,23 +27,23 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
-use Ecotone\Test\StaticMessageBuilder;
+use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\DatePoint;
-use Psr\Clock\ClockInterface;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\CoroutineTesting;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticMessageBuilder;
+use Fiber;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use PHPUnit\Framework\TestCase;
+use Psr\Clock\ClockInterface;
 use Psr\Log\AbstractLogger;
 use RuntimeException;
-use Fiber;
 use Stringable;
 use Swoole\Coroutine;
 use Swoole\Event;
@@ -228,7 +228,6 @@ final class CoroutineMessageChannelTest extends TestCase
         $ecotone->sendCommandWithRouting('handle', 'payload');
     }
 
-
     public function test_polling_concurrency_is_refused_at_bootstrap(): void
     {
         $this->expectException(ConfigurationException::class);
@@ -236,7 +235,6 @@ final class CoroutineMessageChannelTest extends TestCase
 
         $this->bootstrap_channel([PollingMetadata::create('async')->withCoroutines(2)]);
     }
-
 
     public function test_starting_a_consumer_is_refused(): void
     {
@@ -246,7 +244,6 @@ final class CoroutineMessageChannelTest extends TestCase
 
         $ecotone->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
-
 
     public function test_delayed_message_waits_on_a_coroutine_timer(): void
     {
@@ -276,7 +273,6 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame([['payload', '2026-03-01 12:00:00.500000']], $handler->handled);
     }
 
-
     public function test_delayed_retry_returns_to_the_coroutine_channel_after_its_delay(): void
     {
         $handler = new class () {
@@ -305,7 +301,6 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame([['payload', '2026-03-01 12:00:00.500000']], $handler->handled);
     }
 
-
     public function test_command_bus_returns_before_even_a_non_yielding_handler_finishes(): void
     {
         $handler = new class () {
@@ -327,7 +322,6 @@ final class CoroutineMessageChannelTest extends TestCase
 
         $this->assertSame(['returned', 'handled'], $handler->steps);
     }
-
 
     public function test_class_routed_objects_keep_their_identity_with_service_context_registration(): void
     {
@@ -453,7 +447,6 @@ final class CoroutineMessageChannelTest extends TestCase
         $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => 'async', 'finishWhenNoMessages' => true, 'coroutines' => 2]);
     }
 
-
     #[DataProvider('delivery_delays')]
     public function test_delay_header_accepts_durations_and_an_absolute_time(mixed $delay): void
     {
@@ -481,7 +474,6 @@ final class CoroutineMessageChannelTest extends TestCase
     {
         return [[500], [TimeSpan::withMilliseconds(500)], [Duration::milliseconds(500)], [new DateTimeImmutable('2026-03-01 12:00:00.500000')]];
     }
-
 
     public function test_a_retried_sender_discards_messages_from_its_failed_attempt(): void
     {
@@ -513,7 +505,6 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(2, $handler->attempts);
         $this->assertSame([2], $handler->handled);
     }
-
 
     public function test_retried_outer_command_discards_messages_from_its_failed_nested_call(): void
     {
@@ -556,10 +547,9 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame([0, 2], $handler->handled);
     }
 
-
     public function test_failed_console_command_starts_no_handler(): void
     {
-        $handler = new class {
+        $handler = new class () {
             public array $handled = [];
 
             #[ConsoleCommand('send-and-fail')]
@@ -591,16 +581,15 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame([], $handler->handled);
     }
 
-
     public function test_delayed_message_with_hooks_off_does_not_stall_a_sibling_coroutine(): void
     {
-        $clock = new class implements ClockInterface {
+        $clock = new class () implements ClockInterface {
             public function now(): DateTimeImmutable
             {
                 return new DateTimeImmutable('now');
             }
         };
-        $handler = new class {
+        $handler = new class () {
             public array $handled = [];
 
             #[Delayed(milliseconds: 400)]
@@ -631,10 +620,9 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertLessThan(200, $siblingElapsed);
     }
 
-
     public function test_a_send_without_a_boundary_is_released_at_once(): void
     {
-        $handler = new class {
+        $handler = new class () {
             public array $handled = [];
 
             #[Asynchronous('async')]
@@ -659,10 +647,9 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(['bare send'], $handler->handled);
     }
 
-
     public function test_a_handler_can_send_to_its_own_channel_with_one_coroutine(): void
     {
-        $handler = new class {
+        $handler = new class () {
             public array $handled = [];
 
             #[Asynchronous('async')]
@@ -681,7 +668,6 @@ final class CoroutineMessageChannelTest extends TestCase
 
         $this->assertSame([1, 2, 3], $handler->handled);
     }
-
 
     #[DataProvider('unsupported_polling_limits')]
     public function test_polling_consumer_limits_are_refused_at_bootstrap(PollingMetadata $metadata, string $setting, string $reason): void
@@ -716,35 +702,42 @@ final class CoroutineMessageChannelTest extends TestCase
     public static function unsupported_delivery_attributes(): array
     {
         return [
-            [new class {
+            [new class () {
                 #[Priority(2)]
                 #[Asynchronous('async')]
                 #[CommandHandler('handle', endpointId: 'handle.endpoint')]
-                public function handle(string $payload): void {}
+                public function handle(string $payload): void
+                {
+                }
             }, 'Priority', 'messages are handled in FIFO order.'],
-            [new class {
+            [new class () {
                 #[TimeToLive(100)]
                 #[Asynchronous('async')]
                 #[CommandHandler('handle', endpointId: 'handle.endpoint')]
-                public function handle(string $payload): void {}
+                public function handle(string $payload): void
+                {
+                }
             }, 'TimeToLive', 'messages in this queue do not expire.'],
             [new #[Priority(2)] class {
                 #[Asynchronous('async')]
                 #[CommandHandler('handle', endpointId: 'handle.endpoint')]
-                public function handle(string $payload): void {}
+                public function handle(string $payload): void
+                {
+                }
             }, 'Priority', 'messages are handled in FIFO order.'],
             [new #[TimeToLive(100)] class {
                 #[Asynchronous('async')]
                 #[CommandHandler('handle', endpointId: 'handle.endpoint')]
-                public function handle(string $payload): void {}
+                public function handle(string $payload): void
+                {
+                }
             }, 'TimeToLive', 'messages in this queue do not expire.'],
         ];
     }
 
-
     public function test_failure_logs_keep_each_coroutines_endpoint_and_headers(): void
     {
-        $logger = new class extends AbstractLogger {
+        $logger = new class () extends AbstractLogger {
             public array $records = [];
             private int $failures = 0;
             private Coroutine\Channel $release;
@@ -768,7 +761,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 }
             }
         };
-        $handler = new class {
+        $handler = new class () {
             #[Asynchronous('async')]
             #[CommandHandler('first', endpointId: 'first.endpoint')]
             public function first(string $payload): void
@@ -793,7 +786,6 @@ final class CoroutineMessageChannelTest extends TestCase
         ksort($logger->records);
         $this->assertSame(['a' => 'first.endpoint', 'b' => 'second.endpoint'], $logger->records);
     }
-
 
     public function test_a_sender_on_a_fiber_outside_a_coroutine_is_refused(): void
     {
@@ -820,7 +812,6 @@ final class CoroutineMessageChannelTest extends TestCase
         };
         return EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), ...$extensions], licenceKey: LicenceTesting::VALID_LICENCE);
     }
-
 }
 
 final class CoroutineChannelCommand

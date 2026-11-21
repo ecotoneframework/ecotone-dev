@@ -36,7 +36,7 @@ final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, Del
     public function withCoroutines(int $coroutines): self
     {
         if ($coroutines < 1) {
-            throw ConfigurationException::create("Coroutine message channel `{$this->messageChannelName}` cannot run on {$coroutines} coroutines: it needs at least one. Pass a positive number to CoroutineMessageChannelBuilder::withCoroutines(), or leave it out for the default of " . self::DEFAULT_COROUTINES . ".");
+            throw ConfigurationException::create("Coroutine message channel `{$this->messageChannelName}` cannot run on {$coroutines} coroutines: it needs at least one. Pass a positive number to CoroutineMessageChannelBuilder::withCoroutines(), or leave it out for the default of " . self::DEFAULT_COROUTINES . '.');
         }
         return new self(...[...get_object_vars($this), 'coroutines' => $coroutines]);
     }

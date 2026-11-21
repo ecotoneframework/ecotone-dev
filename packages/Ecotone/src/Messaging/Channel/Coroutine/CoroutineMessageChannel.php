@@ -11,8 +11,8 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Api\Scheduling\SleepInterface;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
@@ -96,7 +96,7 @@ final class CoroutineMessageChannel extends QueueChannel
         });
     }
 
-    private function consumer(): CoroutineChannelConsumer
+    private function consumer(): CoroutineMessageChannelConsumer
     {
         return $this->container->get((string) new EndpointRunnerReference($this->name));
     }
@@ -108,7 +108,6 @@ final class CoroutineMessageChannel extends QueueChannel
 
     public function __toString(): string
     {
-        return 'coroutine channel: ' . $this->name;
+        return 'coroutine message channel: ' . $this->name;
     }
-
 }

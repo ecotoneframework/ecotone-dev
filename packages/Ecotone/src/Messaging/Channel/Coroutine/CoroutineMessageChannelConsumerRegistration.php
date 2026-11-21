@@ -27,7 +27,7 @@ use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
  *
  * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
-final class CoroutineChannelConsumerRegistration implements CompilerPass
+final class CoroutineMessageChannelConsumerRegistration implements CompilerPass
 {
     public function __construct(private array $channelNames)
     {
@@ -38,7 +38,7 @@ final class CoroutineChannelConsumerRegistration implements CompilerPass
         foreach ($this->channelNames as $channelName) {
             $reference = (string) new EndpointRunnerReference($channelName);
             if ($builder->has($reference)) {
-                $builder->replace($reference, new Definition(CoroutineChannelConsumer::class, [$channelName, $builder->getDefinition($reference)]));
+                $builder->replace($reference, new Definition(CoroutineMessageChannelConsumer::class, [$channelName, $builder->getDefinition($reference)]));
             }
         }
     }

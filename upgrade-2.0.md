@@ -3070,7 +3070,8 @@ with an exception, the others stop and the consumer throws it. A `#[Scheduled]` 
 and so is a consumer of a Kafka topic or a RabbitMQ stream, where a message finished out of turn would commit its
 position past one still being handled; both are refused when the application boots if the coroutines come from
 `PollingMetadata`. A pool smaller than the coroutines of a consumer leaves the extra coroutines failing with
-`ConnectionPoolExhausted` after five seconds, so set `connection_pool_size` to at least the coroutines.
+`ConnectionPoolExhausted` after the configured `connection_pool_wait_seconds` (five seconds by default), so set
+`connection_pool_size` to at least the coroutines.
 
 Every concurrent execution also has its own RabbitMQ connection, kept open when the execution ends and handed to the
 next one. Their number is not limited: a process holds as many as it has had executions running at once, so keep the

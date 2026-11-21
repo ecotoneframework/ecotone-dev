@@ -42,5 +42,4 @@ final class CoroutineMessageChannelRefusedTest extends TestCase
 
         CoroutineMessageChannelBuilder::create('async')->withCoroutines(0);
     }
-
 }

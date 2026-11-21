@@ -6,15 +6,14 @@ namespace Ecotone\Messaging\Channel\Coroutine;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Api\Attribute\Priority;
-use Ecotone\Api\Attribute\TimeToLive;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\Priority;
+use Ecotone\Api\Attribute\TimeToLive;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -23,6 +22,7 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeInterceptorBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -148,10 +148,10 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
 
     private function registerRelease(Configuration $configuration, InterfaceToCallRegistry $registry): void
     {
-        $configuration->registerServiceDefinition(CoroutineMessageRelease::class, new Definition(CoroutineMessageRelease::class));
+        $configuration->registerServiceDefinition(CoroutineMessageChannelRelease::class, new Definition(CoroutineMessageChannelRelease::class));
         $configuration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
-            referenceName: CoroutineMessageRelease::class,
-            interfaceToCall: $registry->getFor(CoroutineMessageRelease::class, 'release'),
+            referenceName: CoroutineMessageChannelRelease::class,
+            interfaceToCall: $registry->getFor(CoroutineMessageChannelRelease::class, 'release'),
             precedence: Precedence::BETWEEN_INSTANT_RETRY_AND_TRANSACTION_PRECEDENCE,
             pointcut: CommandBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . MessageGateway::class . '||' . ConsoleCommand::class,
         ));
@@ -159,16 +159,16 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
 
     private function registerFailureLogging(Configuration $configuration, InterfaceToCallRegistry $registry, array $channelNames): void
     {
-        $configuration->registerServiceDefinition(CoroutineMessageFailureLogger::class, new Definition(CoroutineMessageFailureLogger::class, [$channelNames, new Reference(LoggingGateway::class)]));
+        $configuration->registerServiceDefinition(CoroutineMessageChannelFailureLogger::class, new Definition(CoroutineMessageChannelFailureLogger::class, [$channelNames, new Reference(LoggingGateway::class)]));
         $configuration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
-            referenceName: CoroutineMessageFailureLogger::class,
-            interfaceToCall: $registry->getFor(CoroutineMessageFailureLogger::class, 'recordFailedEndpoint'),
+            referenceName: CoroutineMessageChannelFailureLogger::class,
+            interfaceToCall: $registry->getFor(CoroutineMessageChannelFailureLogger::class, 'recordFailedEndpoint'),
             precedence: Precedence::DEFAULT_PRECEDENCE,
             pointcut: CommandHandler::class . '||' . EventHandler::class . '||' . InternalHandler::class,
         ));
         $configuration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
-            referenceName: CoroutineMessageFailureLogger::class,
-            interfaceToCall: $registry->getFor(CoroutineMessageFailureLogger::class, 'log'),
+            referenceName: CoroutineMessageChannelFailureLogger::class,
+            interfaceToCall: $registry->getFor(CoroutineMessageChannelFailureLogger::class, 'log'),
             precedence: Precedence::EXCEPTION_LOGGING_PRECEDENCE,
             pointcut: AsynchronousRunningEndpoint::class,
         ));
@@ -176,9 +176,9 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
 
     private function registerConsumers(Configuration $configuration, array $channelNames): void
     {
-        $configuration->addCompilerPass(new CoroutineChannelConsumerRegistration($channelNames));
+        $configuration->addCompilerPass(new CoroutineMessageChannelConsumerRegistration($channelNames));
         foreach ($channelNames as $channelName) {
-            $configuration->registerChannelInterceptor(new CoroutineMessageHoldingInterceptorBuilder($channelName));
+            $configuration->registerChannelInterceptor(new CoroutineMessageChannelHoldingInterceptorBuilder($channelName));
             $configuration->registerChannelInterceptor(new InMemoryQueueAcknowledgeInterceptorBuilder(
                 relatedChannel: $channelName,
                 finalFailureStrategy: FinalFailureStrategy::IGNORE,
